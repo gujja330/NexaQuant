@@ -159,3 +159,10 @@ sizing:
   kelly_cap: 0.5       # fractional Kelly ceiling (never full Kelly)
   confidence_cap: 3.0  # max size multiplier on high-conviction trades (set 1.0 to disable scaling)
   confidence_source: "adx"   # "adx" (trend strength, validated) or "ai" (meta-label P(win), when it has skill)
+  # TIERED risk by momentum-confidence: weak setups risk less, strong-momentum more (capped).
+  # Each tier = [confidence_below, risk_fraction]; the LAST tier is the max cap.
+  # Raise these to chase bigger profit (and bigger drawdown). Default ladder: 0.5% / 1% / 2%.
+  risk_tiers:
+    - [1.5, 0.005]   # confidence < 1.5  -> risk 0.5%
+    - [2.0, 0.010]   # 1.5 <= conf < 2.0 -> risk 1%
+    - [99.0, 0.020]  # conf >= 2.0       -> risk 2% (max)

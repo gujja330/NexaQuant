@@ -515,6 +515,56 @@ def page_research(pdf):
     pdf.savefig(fig); plt.close(fig)
 
 
+# =============================================================== PAGE: LATEST VALIDATED CONFIG
+def page_latest(pdf):
+    fig = plt.figure(figsize=(16, 9))
+    ax = base_ax(fig, "Validated Config & Results (v2)",
+                 "Design goal: make money at LOW RISK by trading only high-confidence setups", "11")
+    # design philosophy
+    box(ax, 0.4, 6.7, 15.2, 1.5, "", "#eef4ff", ec=BLUE, rs=0.03)
+    ax.text(0.65, 8.05, "DESIGN PRINCIPLE", color=BLUE, fontsize=11, fontweight="bold", va="top")
+    ax.text(0.65, 7.65,
+            "Win-rate / trade-selection first; lot size follows. Regime-aware LONG+SHORT, confluence entries\n"
+            "(trend regime + structure + momentum), momentum-ride exit + scale-out, CONFIDENCE-TIERED risk\n"
+            "(0.5% / 1% / 2% by trend strength, 2% hard cap). AI meta-label tightens selection as data grows.",
+            color=SLATE, fontsize=9.3, va="top")
+    # results table (OOS, long+short, tiered risk)
+    ax.text(0.4, 6.3, "Re-test — best pair & timeframe (OOS, net of cost)", color=INK, fontsize=13, fontweight="bold")
+    rows = [("BTC", "H1", "50", "3.66", "2.5%", "low-risk pick", GREEN),
+            ("XAU", "H1", "44", "4.59", "3.9%", "low-risk pick", GREEN),
+            ("BTC", "H4", "43", "1.95", "14.8%", "more return, more DD", AMBER),
+            ("ETH", "H4", "46", "-0.01", "28%", "weak", RED),
+            ("BNB", "H1", "26", "0.40", "5.3%", "weak", RED),
+            ("SOL", "H4", "42", "-2.41", "33%", "avoid", RED)]
+    ax.text(0.5, 5.8, f"{'pair':<7}{'TF':<6}{'win%':<8}{'Sharpe':<9}{'maxDD':<9}{'verdict'}",
+            color=SUB, fontsize=10, fontweight="bold", family="monospace")
+    y = 5.4
+    for pair, tf, win, sh, dd, verdict, col in rows:
+        ax.add_patch(plt.Rectangle((0.4, y - 0.18), 15.2, 0.42, fc=CARD, ec="#dbe4f0", lw=0.6))
+        ax.add_patch(plt.Rectangle((0.4, y - 0.18), 0.1, 0.42, fc=col))
+        ax.text(0.6, y, f"{pair:<7}{tf:<6}{win+'%':<8}{sh:<9}{dd:<9}", color=INK, fontsize=9, va="center", family="monospace")
+        ax.text(11.5, y, verdict, color=col, fontsize=8.5, va="center", fontweight="bold")
+        y -= 0.5
+    # realistic expectations + honest caveat
+    box(ax, 0.4, 0.5, 7.5, 1.7, "", "#eafaf0", ec=GREEN, rs=0.03)
+    ax.text(0.65, 2.05, "REALISTIC TARGET", color=GREEN, fontsize=10.5, fontweight="bold", va="top")
+    ax.text(0.65, 1.65,
+            "Low risk, high Sharpe: BTC/XAU H1, long+short.\n"
+            "~3% max drawdown, win ~50% with big payoff.\n"
+            "Return ~10-25%/yr (more with capital + AI selection).\n"
+            "Beats a bank 3-5x at low drawdown.",
+            color=SLATE, fontsize=9, va="top")
+    box(ax, 8.1, 0.5, 7.5, 1.7, "", "#fdeeee", ec=RED, rs=0.03)
+    ax.text(8.35, 2.05, "HONEST LIMITS", color=RED, fontsize=10.5, fontweight="bold", va="top")
+    ax.text(8.35, 1.65,
+            "5-10%/MONTH is NOT achievable sustainably\n"
+            "(Medallion, the best ever, ~4%/mo). Chasing it =\n"
+            "ruin. Bigger money = robust edge x CAPITAL x time,\n"
+            "NOT leverage. Backtest, not live — paper-test first.",
+            color=SLATE, fontsize=9, va="top")
+    pdf.savefig(fig); plt.close(fig)
+
+
 def main():
     df, reg, eq_bh, eq_ct, eq_gt, d1, reg_d1 = load_curves()
     out = ROOT / "docs" / "NexaQuant_Architecture.pdf"
@@ -529,6 +579,7 @@ def main():
         page_ai(pdf)
         page_validation(pdf)
         page_research(pdf)
+        page_latest(pdf)
         page_roadmap(pdf)
     print(f"PDF written: {out}")
 

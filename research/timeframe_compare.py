@@ -38,6 +38,8 @@ def discover():
 
 
 def evaluate(sym, tf):
+    """OOS performance of the CANONICAL config: regime-aware LONG+SHORT, momentum-ride
+    exit + scale-out. ret_pct uses confidence-tiered risk (0.5/1/2%) compounded."""
     p = RAW / f"{sym}_{tf}.parquet"
     if not p.exists():
         return None
@@ -45,20 +47,28 @@ def evaluate(sym, tf):
     sp = symbol_params(sym, df["close"])
     method = "hmm" if len(df) >= HMM_MIN else "adx"
     reg = playbook.regime_labels(df, method)
-    ent = playbook.entries(df, regime=reg)
-    ex = playbook.momentum_exit_signal(df)
+    a = atr(df, 14)
     oos = slice(int(len(df) * IS_FRACTION), None)
-    tr = simulate_trades(df.iloc[oos], ent.iloc[oos], atr(df, 14).iloc[oos], sp["cost"],
-                         exit_signal=ex.iloc[oos], pip_size=sp["pip_size"], **playbook.EXIT)
-    s = trade_stats(tr, BARS_PER_YEAR.get(tf, 252 * 24), tr["bars"].mean() if not tr.empty else 1)
-    if not s:
+    seg = df.iloc[oos]
+    parts = []
+    for side, s in (("long", 1), ("short", -1)):
+        ent = playbook.entries(df, side=side, regime=reg).iloc[oos]
+        ex = playbook.momentum_exit_signal(df, side=side).iloc[oos]
+        parts.append(simulate_trades(seg, ent, a.iloc[oos], sp["cost"], exit_signal=ex,
+                                     pip_size=sp["pip_size"], side=s, **playbook.EXIT))
+    tr = pd.concat([p for p in parts if not p.empty]).sort_values("entry_time") \
+        if any(not p.empty for p in parts) else parts[0]
+    st = trade_stats(tr, BARS_PER_YEAR.get(tf, 252 * 24), tr["bars"].mean() if not tr.empty else 1)
+    if not st:
         return None
-    notional = df["close"].iloc[int(len(df) * IS_FRACTION)]
-    ret_pct = 100 * s["total"] / notional
-    worst_R = tr["R"].min()
-    return dict(tf=tf, method=method, trades=s["trades"], win=s["win"], pf=s["pf"],
-                avgR=s["avgR"], ret_pct=ret_pct, dd_pct=100 * s["dd"] / notional,
-                worst_R=worst_R, sharpe=s["sharpe"], pips=s["total_pips"])
+    # account return: confidence-tiered risk (0.5/1/2%) compounded
+    conf = playbook.confidence_size(df).reindex(tr["entry_time"]).fillna(1.0).values
+    risk = np.where(conf < 1.5, 0.005, np.where(conf < 2.0, 0.01, 0.02))
+    acct = float(np.prod(1 + risk * tr["R"].values) - 1) if not tr.empty else 0.0
+    eq = (risk * tr["R"].values).cumsum() if not tr.empty else np.array([0.0])
+    return dict(tf=tf, method=method, trades=st["trades"], win=st["win"], pf=st["pf"],
+                avgR=st["avgR"], ret_pct=100 * acct, dd_pct=100 * st["dd"] / df["close"].iloc[int(len(df)*IS_FRACTION)],
+                worst_R=tr["R"].min(), sharpe=st["sharpe"], pips=st["total_pips"])
 
 
 def run():
