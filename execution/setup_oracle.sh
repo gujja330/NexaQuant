@@ -1,0 +1,84 @@
+#!/usr/bin/env bash
+# execution/setup_oracle.sh
+# ONE-COMMAND setup for an Oracle Cloud "Always Free" Ubuntu (x86) VM:
+# installs Wine + MT5 + Python deps, adds swap, writes a systemd service, and starts the
+# bot. After this the bot is autonomous (auto-connects to MT5, trades, manages, alerts,
+# restarts on boot/failure). Run ONCE:
+#
+#     export MT5_LOGIN=123456 MT5_PASSWORD='***' MT5_SERVER='YourBroker-Server'
+#     # optional alerts:  export TELEGRAM_BOT_TOKEN=... TELEGRAM_CHAT_ID=...
+#     bash execution/setup_oracle.sh BTCUSDm H4 paper
+#
+# args:  SYMBOL (default BTCUSDm)   TF (default H4)   MODE (paper|live, default paper)
+set -euo pipefail
+
+SYMBOL="${1:-BTCUSDm}"; TF="${2:-H4}"; MODE="${3:-paper}"
+REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+WINE_PY="$HOME/.wine/drive_c/users/$USER/python/python.exe"   # Wine Python (installed below)
+MT5_EXE="$HOME/.wine/drive_c/Program Files/MetaTrader 5/terminal64.exe"
+
+: "${MT5_LOGIN:?set MT5_LOGIN}"; : "${MT5_PASSWORD:?set MT5_PASSWORD}"; : "${MT5_SERVER:?set MT5_SERVER}"
+
+echo "==> [1/6] system packages + Wine + Xvfb"
+sudo dpkg --add-architecture i386 || true
+sudo apt-get update -y
+sudo apt-get install -y wine64 wine32:i386 winbind xvfb wget python3 python3-pip git || \
+  sudo apt-get install -y wine64 winbind xvfb wget python3 python3-pip git
+
+echo "==> [2/6] 4G swap (1GB RAM VMs are tight for MT5+Wine)"
+if ! sudo swapon --show | grep -q /swapfile; then
+  sudo fallocate -l 4G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile
+  echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+fi
+
+export WINEDEBUG=-all DISPLAY=:0
+echo "==> [3/6] MT5 terminal under Wine (silent install)"
+if [ ! -f "$MT5_EXE" ]; then
+  wget -q https://download.mql5.com/cdn/web/metaquotes.software.corp/mt5/mt5setup.exe -O /tmp/mt5setup.exe
+  xvfb-run -a wine /tmp/mt5setup.exe /auto || echo "  (if this stalls, run mt5setup.exe once interactively)"
+fi
+
+echo "==> [4/6] Python inside Wine + packages (MT5 pkg must share the Wine env)"
+if [ ! -f "$WINE_PY" ]; then
+  wget -q https://www.python.org/ftp/python/3.12.4/python-3.12.4-amd64.exe -O /tmp/py.exe
+  xvfb-run -a wine /tmp/py.exe /quiet InstallAllUsers=0 PrependPath=1 TargetDir='C:\\users\\'"$USER"'\\python'
+fi
+xvfb-run -a wine "$WINE_PY" -m pip install --upgrade pip
+xvfb-run -a wine "$WINE_PY" -m pip install MetaTrader5 pandas numpy scikit-learn scipy hmmlearn pyyaml
+
+echo "==> [5/6] credentials env file (root-only) + systemd service"
+ENVF="$REPO_DIR/.env.nexabot"
+cat > "$ENVF" <<EOF
+MT5_LOGIN=$MT5_LOGIN
+MT5_PASSWORD=$MT5_PASSWORD
+MT5_SERVER=$MT5_SERVER
+MT5_PATH=Z:$(echo "$MT5_EXE" | sed 's#/#\\#g')
+TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID:-}
+EOF
+chmod 600 "$ENVF"
+
+LIVE_FLAG=""; [ "$MODE" = "live" ] && LIVE_FLAG="--live"
+sudo tee /etc/systemd/system/nexabot.service >/dev/null <<EOF
+[Unit]
+Description=NexaQuant trading bot
+After=network-online.target
+[Service]
+User=$USER
+WorkingDirectory=$REPO_DIR
+EnvironmentFile=$ENVF
+ExecStart=/usr/bin/xvfb-run -a wine "$WINE_PY" execution/live_trader.py --symbol $SYMBOL --tf $TF --mode $MODE $LIVE_FLAG --poll 60
+Restart=always
+RestartSec=30
+[Install]
+WantedBy=multi-user.target
+EOF
+
+echo "==> [6/6] enable + start"
+sudo systemctl daemon-reload
+sudo systemctl enable --now nexabot.service
+echo ""
+echo "DONE. The bot is running ($SYMBOL $TF, $MODE) and will auto-restart on boot/failure."
+echo "  logs:    journalctl -u nexabot -f"
+echo "  stop:    sudo systemctl stop nexabot"
+echo "  go live: re-run with 'live' as the 3rd arg AFTER 30 days of profitable paper."

@@ -1,0 +1,38 @@
+# secrets — NEVER commit
+.env
+*.env
+secrets.*
+config/secrets.yaml
+
+# local machine settings (permissions, etc.) — personal, not for the public repo
+.claude/settings.local.json
+
+# bot run wrappers / credential env files — hold secrets, NEVER commit
+run_nexabot.bat
+.env.nexabot
+data/raw/signal_*.json
+
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.ipynb_checkpoints/
+
+# data: KEEP the small analysis-TF gold parquets (repo stays reproducible, ~700KB).
+# Exclude only the large execution-TF pulls (M5/M15 can be tens of MB).
+data/raw/*_M5.parquet
+data/raw/*_M15.parquet
+
+# logs & local outputs
+logs/*.log
+*.log
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# generated reports/blotters
+output/

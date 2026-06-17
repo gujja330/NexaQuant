@@ -1,0 +1,161 @@
+system:
+  name: "NexaQuant"
+  symbols: ["XAUUSDm"]
+  timeframes: ["H1", "H4", "D1"]
+  data_storage: "./data/raw/"
+  # Top-down workflow: analyse on the higher TFs, EXECUTE on the lower TFs.
+  analysis_timeframes: ["W1", "D1", "H4", "H1"]
+  execution_timeframes: ["M15", "M5"]   # NOT yet pulled from MT5 -- see data/prepare_data.py
+  timeframes: ["H1", "H4", "D1"]        # currently available
+  paper_trading: true
+  max_drawdown_limit: 0.20
+  risk_per_trade: 0.01
+  mt5:
+    enabled: true
+    # SECURITY: keep credentials OUT of the repo. Set via environment:
+    #   MT5_SERVER, MT5_LOGIN, MT5_PASSWORD  (data/pull_mt5.py reads these)
+    server: "${MT5_SERVER}"
+    login: "${MT5_LOGIN}"
+    # SECURITY: never commit credentials. Read from environment at runtime:
+    #   password: ${MT5_PASSWORD}   (export MT5_PASSWORD in your shell / .env, untracked)
+    password: "${MT5_PASSWORD}"
+    timeout: 30000
+  alpaca:
+    enabled: false
+
+agents:
+  trend:
+    state_features: 45
+    action_space: 5
+    reward_type: "risk_adjusted_pnl"
+  risk:
+    method: "neural_kelly"
+    max_position_size: 10.0
+
+execution:
+  slippage_model: "volume_based"
+  latency_ms: 300
+  fill_rate_target: 0.98
+
+validation:
+  embargo_days: 7
+  paper_trading_min_days: 30
+  brier_score_threshold: 0.25
+  min_train_samples: 100
+  min_test_samples: 30
+  walk_forward_train_months: 1
+  walk_forward_test_months: 1
+  walk_forward_train_days: 120
+  walk_forward_test_days: 30
+
+model_management:
+  retrain_on_drift: true
+  max_feature_drift_kl: 0.15
+  max_prediction_drift_wasserstein: 0.2
+
+logging:
+  level: "INFO"
+  circuit_breaker: "./logs/circuit_breaker/"
+  data_quality: "./logs/data_quality/"
+  anomalies: "./logs/anomalies/"
+  config_errors: "./logs/config_errors.log"
+
+risk_fortress:
+  early_warning_threshold: 0.8
+  strategy_health_threshold: 0.7
+  volatility_normalization_base: 0.05
+  anomaly_contamination: 0.1
+  derisk_exponent: 2.0
+  volatility_spike_threshold: 3.0
+  regime_multipliers: [0.5, 1.0, 1.5]
+  base_stop_multiplier: 1.5
+  trailing_profit_threshold: 1.0
+  unusual_move_window: 20
+  long_vol_window: 200
+  confidence_volatility_penalty_weight: 0.3
+  drawdown_severity_threshold: 0.7
+  anomaly_health_penalty: 0.8
+
+bootstrap_test:
+  test_equity: 10000.0
+  test_stop_loss_pips: 100
+
+event_injection:
+  enabled: true
+  sources: ["investing"]  # or your preferred free source
+  min_impact: "medium"
+  update_frequency_hours: 24
+
+intelligence:
+  xgboost:
+    enabled: true
+  conflict_resolution:
+    enabled: true
+  rl_position_sizing:
+    enabled: true
+  nlp:
+    enabled: false  # Set true when full NLP is ready
+  nash_variance_weight: 0.3
+  confidence_reward_weight: 0.7
+  unusual_move_confidence_threshold: 0.6
+
+nlp:
+  model_name: "ProsusAI/finbert"
+
+risk_profiles:
+  XAUUSDm_risk_profile:
+    pip_value_per_lot: 0.01
+    min_stop_pips: 10
+  BTCUSDm_risk_profile:
+    pip_value_per_lot: 1.0
+    min_stop_pips: 50
+
+# Pipeline-wide settings (fully dynamic — works for ANY instrument/timeframe).
+# Per-symbol cost/pip can be set under `instruments`; anything not listed is DERIVED
+# from the data (see config_loader.symbol_params) so new stocks/pairs/commodities just work.
+pipeline:
+  timeframes:                       # tf -> triple-barrier horizon (bars)
+    M5: 24
+    M15: 16
+    H1: 24
+    H4: 12
+    D1: 10
+  is_fraction: 0.70                 # in-sample fraction (rest is out-of-sample)
+  hmm_min_bars: 6000                # use learned HMM gate only with >= this many bars
+  default_cost_bps: 2.0             # round-trip cost ~ price * bps/10000 when not specified
+  n_strategies_tried: 8             # for Deflated-Sharpe multiple-testing penalty
+  gate:                             # GO/NO-GO thresholds (conservative, honest)
+    min_oos_sharpe: 1.0
+    min_dsr: 0.90
+    min_trades: 30
+    max_pbo: 0.5                    # probability of backtest overfitting must be < this
+
+instruments:                        # OPTIONAL overrides; omit a symbol -> values derived from data
+  XAUUSDm: {cost: 0.50, pip_size: 0.1}
+  BTCUSDm: {cost: 5.0,  pip_size: 1.0}
+
+account:                            # for the $ P&L view in research/trade_report.py
+  starting_equity: 10.0             # start tiny (mini/micro) for live testing
+  risk_per_trade: 0.005             # 0.5% of equity risked per trade (your rule)
+  compound: true                    # risk a % of the CURRENT balance (compounding)
+
+# Regime gate -- decides which SMC pillars are active (see strategy/regime.py)
+regime:
+  adx_n: 14
+  vol_fast: 14
+  vol_slow: 100
+  adx_trend: 25.0      # ADX >= this -> TREND (continuation pillars)
+  adx_range: 18.0      # ADX <= this -> RANGE (mean-reversion pillars)
+  vol_spike: 1.8       # ATR_fast/ATR_slow >= this -> VOLATILE (stand aside / size down)
+
+# Position sizing -- volatility targeting (see strategy/risk.py)
+sizing:
+  atr_n: 14
+  ref_window: 200
+  cap: 3.0             # max size multiplier in calm markets
+  floor: 0.25          # min size multiplier in wild markets
+  stop_mult: 1.5       # ATR multiples for stop distance
+  reward_risk: 2.0     # take-profit = rr * stop distance
+  kelly_cap: 0.5       # fractional Kelly ceiling (never full Kelly)
+  confidence_cap: 3.0  # max size multiplier on high-conviction trades (set 1.0 to disable scaling)
+  confidence_source: "adx"   # "adx" (trend strength, validated) or "ai" (meta-label P(win), when it has skill)
