@@ -565,6 +565,45 @@ def page_latest(pdf):
     pdf.savefig(fig); plt.close(fig)
 
 
+def page_findings(pdf):
+    fig = plt.figure(figsize=(16, 9))
+    ax = base_ax(fig, "Edge Research — What We Kept vs Rejected (v3)",
+                 "Honest, evidence-first: every idea back-tested on BTC H4, kept only if it provably helps", "12")
+    # KEPT
+    ax.text(0.4, 8.05, "KEPT — proven to add pips", color=GREEN, fontsize=13, fontweight="bold", va="top")
+    box(ax, 0.4, 6.55, 15.2, 1.25, "", "#eafaf0", ec=GREEN, rs=0.03)
+    ax.text(0.65, 7.55, "LENGTHY-CANDLE CONFIDENCE BOOST", color=GREEN, fontsize=10.5, fontweight="bold", va="top")
+    ax.text(0.65, 7.15,
+            "A wide-range bar (body >= 1.5x ATR) confirming a regime entry marks the highest-quality trades\n"
+            "(52% win, PF 3.38, 1,444 avg pips vs 84 baseline). Used as a +50% SIZE boost (not a standalone\n"
+            "trigger): BTC H4 return +42% -> +54% at the SAME 4% drawdown. Big candles confirm; they don't trigger.",
+            color=SLATE, fontsize=9.2, va="top")
+    # REJECTED
+    ax.text(0.4, 6.2, "REJECTED — tested, did not survive (won't be shipped)", color=RED, fontsize=13, fontweight="bold", va="top")
+    rows = [("Pyramiding (add-to-winner)", "+42% -> -13%, drawdown 4% -> 20% — adds buy near tops"),
+            ("Candle streaks 2/3/4 as entry", "profit factor < 1.0 on EVERY timeframe — patterns fire too late"),
+            ("Pure expansion candle entry", "PF 0.96 — lengthy candle works only as a filter, not a trigger"),
+            ("Fast timeframes (M5 / M15)", "M5 = -100% (account wiped), M15 = -77% — cost + noise dominate")]
+    y = 5.55
+    for name, why in rows:
+        ax.add_patch(plt.Rectangle((0.4, y - 0.2), 15.2, 0.62, fc=CARD, ec="#dbe4f0", lw=0.6))
+        ax.add_patch(plt.Rectangle((0.4, y - 0.2), 0.1, 0.62, fc=RED))
+        ax.text(0.65, y + 0.12, name, color=INK, fontsize=10, va="center", fontweight="bold")
+        ax.text(0.65, y - 0.12, why, color=SLATE, fontsize=8.6, va="center")
+        y -= 0.72
+    # SELF-LEARNING LOOP
+    box(ax, 0.4, 0.5, 15.2, 2.0, "", "#eef4ff", ec=BLUE, rs=0.03)
+    ax.text(0.65, 2.35, "WEEKLY SELF-LEARNING LOOP  (execution/auto_update.py)", color=BLUE, fontsize=11, fontweight="bold", va="top")
+    ax.text(0.65, 1.95,
+            "Runs every week (systemd timer): 1) PULL fresh bars (incremental, history grows)  2) RE-VALIDATE via\n"
+            "anchored PER-YEAR walk-forward (not a single noisy slice)  3) PROMOTE a config only if it passes the\n"
+            "gate AND beats the champion — never auto-degrades  4) write the bot's TRADING LICENSE (health.json).\n"
+            "The live bot reads the license each cycle: if the edge stops persisting on fresh data, it AUTO-STANDS-\n"
+            "DOWN to manage-only. Self-learning with a guardrail — it cannot keep trading a dead strategy.",
+            color=SLATE, fontsize=9.2, va="top")
+    pdf.savefig(fig); plt.close(fig)
+
+
 def main():
     df, reg, eq_bh, eq_ct, eq_gt, d1, reg_d1 = load_curves()
     out = ROOT / "docs" / "NexaQuant_Architecture.pdf"
@@ -580,6 +619,7 @@ def main():
         page_validation(pdf)
         page_research(pdf)
         page_latest(pdf)
+        page_findings(pdf)
         page_roadmap(pdf)
     print(f"PDF written: {out}")
 

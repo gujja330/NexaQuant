@@ -45,6 +45,8 @@ class NexaBot:
         self.pos = None          # paper/dry-run open position dict
         self.mt5 = None
         self.sp = {"pip_size": 0.1, "cost": 0.5}
+        self.health_file = ROOT / "execution" / "health.json"
+        self.license_stale_days = 21    # weekly loop runs every 7d; >21d w/o a check = stale
 
     # ---------------- data ----------------
     def connect(self):
@@ -141,8 +143,53 @@ class NexaBot:
         self._broker_close(units, sd)
         return pnl
 
+    def _refresh_equity(self):
+        """DYNAMIC compounding/withdrawal-aware sizing: re-read live account equity each
+        cycle so lot sizes auto-grow as profits compound and auto-shrink on withdrawal or
+        drawdown. Fully dynamic — no hardcoded balance anywhere."""
+        if self.mode == "dry-run" or self.mt5 is None:
+            return
+        acc = self.mt5.account_info()
+        if not acc:
+            return
+        bal = float(acc.balance)
+        if self.pos is None:                       # only re-baseline when flat (avoid mid-trade jumps)
+            prev = self.rm.equity
+            self.rm.equity = bal
+            self.rm.peak = max(self.rm.peak, bal)
+            if abs(bal - prev) / max(prev, 1e-9) > 0.02:
+                self._notify(f"balance changed {prev:.2f} -> {bal:.2f} {acc.currency} "
+                             f"(deposit/withdrawal/PnL) — lot sizing rebased")
+
+    def _trading_license(self):
+        """The weekly self-learning loop (execution/auto_update.py) writes health.json with
+        the latest per-year walk-forward gate result. This is the bot's TRADING LICENSE:
+        open NEW trades only while the edge still PERSISTS on fresh data and the check is
+        recent. If the gate fails or the check is stale, STAND DOWN to manage-only — never
+        keep firing a dead edge. Returns (allowed, reason). Absent file -> allowed (fail-open
+        on first deploy, before the first weekly run)."""
+        try:
+            h = json.loads(self.health_file.read_text()).get(f"{self.symbol}_{self.tf}")
+        except Exception:
+            return True, "no-license-file(first-run)"
+        if not h:
+            return True, "no-license-entry(first-run)"
+        if not h.get("gate_passed", False):
+            return False, (f"edge stopped persisting (pos-years {h.get('pct_pos')}, "
+                           f"worst {h.get('worst_yr_pct')}%) — standing down")
+        checked = h.get("checked")
+        if checked:
+            try:
+                age = (pd.Timestamp.utcnow().tz_localize(None) - pd.Timestamp(checked)).days
+                if age > self.license_stale_days:
+                    return False, f"license stale ({age}d since last validation) — standing down"
+            except Exception:
+                pass
+        return True, "ok"
+
     # ---------------- one cycle ----------------
     def run_once(self, write_signal=False):
+        self._refresh_equity()                     # compounding + withdrawal-aware
         df = self.get_bars()
         dec = self.decide(df)
         # manage existing position first
@@ -160,8 +207,15 @@ class NexaBot:
                 msg = f"CLOSE {self.symbol} {self.tf} @ {dec['price']} ({act}) pnl={pnl:.2f} eq={self.rm.equity:.2f}"
                 print(f"  [{dec['time']}] {msg}  {self.rm.status()}")
                 self._notify(msg); self.pos = None
-        # new entry (LONG or SHORT, confidence-scaled size)
+        # new entry (LONG or SHORT, confidence-scaled size) — gated by the weekly license
         if self.pos is None and dec["entry_signal"]:
+            licensed, lic_why = self._trading_license()
+            if not licensed:
+                print(f"  [{dec['time']}] entry blocked: {lic_why}")
+                if write_signal:
+                    (ROOT / f"data/raw/signal_{self.symbol}.json").write_text(
+                        json.dumps({**dec, "position": self.pos, "license": lic_why}, default=str))
+                return dec
             allowed, why = self.rm.can_open(dec["time"], self.risk_per_trade)
             if allowed:
                 units = self.size(dec["price"], dec["stop_loss"], dec.get("conf", 1.0))

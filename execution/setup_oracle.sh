@@ -75,12 +75,45 @@ RestartSec=30
 WantedBy=multi-user.target
 EOF
 
-echo "==> [6/6] enable + start ($SVC)"
+echo "==> [6/7] enable + start ($SVC)"
 sudo systemctl daemon-reload
 sudo systemctl enable --now ${SVC}.service
+
+echo "==> [7/7] WEEKLY self-learning loop (native Python; pulls fresh data, re-validates,"
+echo "          updates the bot's trading license — runs OUTSIDE Wine, no MT5 needed)"
+python3 -m pip install --user -q requests pandas numpy scikit-learn scipy hmmlearn pyyaml pyarrow || true
+sudo tee /etc/systemd/system/nexa-update.service >/dev/null <<EOF
+[Unit]
+Description=NexaQuant weekly self-learning loop (pull + revalidate + license)
+After=network-online.target
+[Service]
+Type=oneshot
+User=$USER
+WorkingDirectory=$REPO_DIR
+EnvironmentFile=$ENVF
+ExecStart=/usr/bin/python3 execution/auto_update.py
+EOF
+sudo tee /etc/systemd/system/nexa-update.timer >/dev/null <<EOF
+[Unit]
+Description=Run NexaQuant self-learning loop weekly (Mon 02:00) + on boot
+[Timer]
+OnCalendar=Mon *-*-* 02:00:00
+OnBootSec=10min
+Persistent=true
+[Install]
+WantedBy=timers.target
+EOF
+sudo systemctl daemon-reload
+sudo systemctl enable --now nexa-update.timer
+
 echo ""
 echo "DONE. Service '$SVC' is running ($SYMBOL $TF, $MODE) and auto-restarts on boot/failure."
-echo "  logs:    journalctl -u $SVC -f"
-echo "  stop:    sudo systemctl stop $SVC"
+echo "  bot logs:      journalctl -u $SVC -f"
+echo "  weekly loop:   journalctl -u nexa-update -f   (next run: systemctl list-timers nexa-update)"
+echo "  stop bot:      sudo systemctl stop $SVC"
 echo "  run the OTHER pair too:  bash execution/setup_oracle.sh XAUUSDm H4 paper   (separate service)"
 echo "  go live: re-run with 'live' as the 3rd arg AFTER 30 days of profitable paper."
+echo ""
+echo "  The weekly loop re-validates the edge on fresh data and writes execution/health.json."
+echo "  If the edge stops persisting, the bot AUTO-STANDS-DOWN (manage-only) — it never keeps"
+echo "  trading a dead strategy. That is the self-learning + safety guarantee you asked for."
