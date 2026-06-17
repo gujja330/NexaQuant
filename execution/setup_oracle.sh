@@ -13,6 +13,7 @@
 set -euo pipefail
 
 SYMBOL="${1:-BTCUSDm}"; TF="${2:-H4}"; MODE="${3:-paper}"
+SVC="nexabot-${SYMBOL}-${TF}"          # per-symbol service name -> run BTC + XAU side by side
 REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 WINE_PY="$HOME/.wine/drive_c/users/$USER/python/python.exe"   # Wine Python (installed below)
 MT5_EXE="$HOME/.wine/drive_c/Program Files/MetaTrader 5/terminal64.exe"
@@ -46,8 +47,8 @@ fi
 xvfb-run -a wine "$WINE_PY" -m pip install --upgrade pip
 xvfb-run -a wine "$WINE_PY" -m pip install MetaTrader5 pandas numpy scikit-learn scipy hmmlearn pyyaml
 
-echo "==> [5/6] credentials env file (root-only) + systemd service"
-ENVF="$REPO_DIR/.env.nexabot"
+echo "==> [5/6] credentials env file (root-only) + systemd service ($SVC)"
+ENVF="$REPO_DIR/.env.${SVC}"
 cat > "$ENVF" <<EOF
 MT5_LOGIN=$MT5_LOGIN
 MT5_PASSWORD=$MT5_PASSWORD
@@ -59,9 +60,9 @@ EOF
 chmod 600 "$ENVF"
 
 LIVE_FLAG=""; [ "$MODE" = "live" ] && LIVE_FLAG="--live"
-sudo tee /etc/systemd/system/nexabot.service >/dev/null <<EOF
+sudo tee /etc/systemd/system/${SVC}.service >/dev/null <<EOF
 [Unit]
-Description=NexaQuant trading bot
+Description=NexaQuant bot ($SYMBOL $TF)
 After=network-online.target
 [Service]
 User=$USER
@@ -74,11 +75,12 @@ RestartSec=30
 WantedBy=multi-user.target
 EOF
 
-echo "==> [6/6] enable + start"
+echo "==> [6/6] enable + start ($SVC)"
 sudo systemctl daemon-reload
-sudo systemctl enable --now nexabot.service
+sudo systemctl enable --now ${SVC}.service
 echo ""
-echo "DONE. The bot is running ($SYMBOL $TF, $MODE) and will auto-restart on boot/failure."
-echo "  logs:    journalctl -u nexabot -f"
-echo "  stop:    sudo systemctl stop nexabot"
+echo "DONE. Service '$SVC' is running ($SYMBOL $TF, $MODE) and auto-restarts on boot/failure."
+echo "  logs:    journalctl -u $SVC -f"
+echo "  stop:    sudo systemctl stop $SVC"
+echo "  run the OTHER pair too:  bash execution/setup_oracle.sh XAUUSDm H4 paper   (separate service)"
 echo "  go live: re-run with 'live' as the 3rd arg AFTER 30 days of profitable paper."
