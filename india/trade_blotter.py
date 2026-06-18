@@ -44,16 +44,18 @@ def all_trades():
                     continue
                 tr = tr.copy()
                 tr.insert(0, "stock", sym); tr.insert(1, "edge", edge)
-                # % move (side-adjusted) and ₹ profit on a fixed notional
                 sgn = np.where(tr["side"] == "long", 1, -1)
+                tr["px_diff"] = (tr["exit_px"] - tr["entry_px"]).round(2)        # raw entry->exit move
                 tr["ret_pct"] = (sgn * (tr["exit_px"] - tr["entry_px"]) / tr["entry_px"] * 100).round(2)
                 tr["pnl_rs"] = (tr["ret_pct"] / 100 * CAPITAL_PER_TRADE).round(0)
+                tr["days_held"] = tr["bars"].astype(int)                         # daily bars = days
                 rows.append(tr)
     out = pd.concat(rows, ignore_index=True)
     out["entry_date"] = pd.to_datetime(out["entry_time"]).dt.date
     out["exit_date"] = pd.to_datetime(out["exit_time"]).dt.date
-    cols = ["stock", "edge", "side", "entry_date", "entry_px", "exit_date", "exit_px",
-            "ret_pct", "pnl_rs", "R", "bars", "reason", "win"]
+    out["year"] = pd.to_datetime(out["entry_time"]).dt.year
+    cols = ["stock", "edge", "side", "entry_date", "entry_px", "sl_px", "exit_date", "exit_px",
+            "px_diff", "days_held", "ret_pct", "pnl_rs", "R", "reason", "win", "year"]
     return out[cols].sort_values(["stock", "entry_date"]).reset_index(drop=True)
 
 
@@ -69,11 +71,22 @@ d = bl[bl["stock"] == demo]
 print(d[["edge", "side", "entry_date", "entry_px", "exit_date", "exit_px", "ret_pct", "pnl_rs", "R", "reason"]]
       .to_string(index=False))
 
+print("\n=== YEARLY SUMMARY (wins vs losses + net P&L, Rs10k/trade) ===")
+print(f"  {'year':<6}{'trades':>7}{'WINS':>6}{'LOSSES':>8}{'win%':>6}{'avg_days':>9}{'net_Rs':>10}{'sumR':>8}")
+yr = bl.groupby("year")
+for y, d in yr:
+    w = int(d["win"].sum()); l = int((~d["win"]).sum())
+    print(f"  {y:<6}{len(d):>7}{w:>6}{l:>8}{100*d['win'].mean():>5.0f}%"
+          f"{d['days_held'].mean():>9.1f}{d['pnl_rs'].sum():>10,.0f}{d['R'].sum():>8.1f}")
+print(f"  {'-'*60}")
+print(f"  {'ALL':<6}{len(bl):>7}{int(bl['win'].sum()):>6}{int((~bl['win']).sum()):>8}"
+      f"{100*bl['win'].mean():>5.0f}%{bl['days_held'].mean():>9.1f}{bl['pnl_rs'].sum():>10,.0f}{bl['R'].sum():>8.1f}")
+
 print("\n=== PER-STOCK SUMMARY (all trades, Rs10k/trade notional) ===")
-g = bl.groupby("stock").agg(trades=("R", "size"), win_pct=("win", lambda s: round(100*s.mean())),
-                            total_pnl_rs=("pnl_rs", "sum"), avg_ret_pct=("ret_pct", "mean"),
-                            sum_R=("R", "sum")).round(1).sort_values("sum_R", ascending=False)
+g = bl.groupby("stock").agg(trades=("R", "size"), wins=("win", "sum"),
+                            win_pct=("win", lambda s: round(100*s.mean())),
+                            avg_days=("days_held", "mean"),
+                            total_pnl_rs=("pnl_rs", "sum"), sum_R=("R", "sum")).round(1).sort_values("sum_R", ascending=False)
 print(g.to_string())
-print(f"\n  TOTAL: {len(bl)} trades, net sum_R={bl['R'].sum():.0f}, "
-      f"total Rs P&L (Rs10k/trade)={bl['pnl_rs'].sum():,.0f}")
+print(f"\n  Columns now include: sl_px (stop), days_held, px_diff (entry->exit), win (True/False).")
 print(f"  Open output/india_trades.csv in Excel for the full trade-by-trade list.")
