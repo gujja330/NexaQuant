@@ -15,8 +15,13 @@
 # the critical artifacts explicitly and fail loudly only when something real is missing.
 set -uo pipefail
 
-SYMBOL="${1:-BTCUSDc}"; TF="${2:-H4}"; MODE="${3:-paper}"   # default = Exness CENT BTC symbol
-SVC="nexabot-${SYMBOL}-${TF}"          # per-symbol service name -> run BTC + XAU side by side
+# ONE service, ONE MT5 terminal, driven by config (system.live_symbols + system.live_tf).
+# Args are OPTIONAL overrides: $1=symbols (comma-sep), $2=TF, $3=mode. Omit them and the bot
+# reads the live universe from config -> add a pair later = edit config + restart, no re-setup.
+SYMBOLS="${1:-}"; TF="${2:-}"; MODE="${3:-paper}"
+SVC="nexabot"                                       # single canonical service (multi-symbol)
+SYMARG=""; [ -n "$SYMBOLS" ] && SYMARG="--symbols $SYMBOLS"
+TFARG="";  [ -n "$TF" ] && TFARG="--tf $TF"
 REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 PYDIR="$HOME/.wine/drive_c/users/$USER/python"
 WINE_PY="$PYDIR/python.exe"            # Wine Python (embeddable build, installed below)
@@ -88,13 +93,13 @@ chmod 600 "$ENVF"
 LIVE_FLAG=""; [ "$MODE" = "live" ] && LIVE_FLAG="--live"
 sudo tee /etc/systemd/system/${SVC}.service >/dev/null <<EOF
 [Unit]
-Description=NexaQuant bot ($SYMBOL $TF)
+Description=NexaQuant bot (config-driven universe)
 After=network-online.target
 [Service]
 User=$USER
 WorkingDirectory=$REPO_DIR
 EnvironmentFile=$ENVF
-ExecStart=/usr/bin/xvfb-run -a wine "$WINE_PY" execution/live_trader.py --symbol $SYMBOL --tf $TF --mode $MODE $LIVE_FLAG --poll 60
+ExecStart=/usr/bin/xvfb-run -a wine "$WINE_PY" execution/live_trader.py $SYMARG $TFARG --mode $MODE $LIVE_FLAG --poll 60
 Restart=always
 RestartSec=30
 [Install]
@@ -133,11 +138,13 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now nexa-update.timer
 
 echo ""
-echo "DONE. Service '$SVC' is running ($SYMBOL $TF, $MODE) and auto-restarts on boot/failure."
+echo "DONE. Service '$SVC' is running ($MODE) — ONE terminal driving the config universe"
+echo "      (system.live_symbols), auto-restarts on boot/failure."
 echo "  bot logs:      journalctl -u $SVC -f"
 echo "  weekly loop:   journalctl -u nexa-update -f   (next run: systemctl list-timers nexa-update)"
 echo "  stop bot:      sudo systemctl stop $SVC"
-echo "  run the OTHER pair too:  bash execution/setup_oracle.sh XAUUSDm H4 paper   (separate service)"
+echo "  ADD A PAIR:    edit system.live_symbols in config/base_config.yaml -> git pull on VM ->"
+echo "                 sudo systemctl restart $SVC   (no re-setup, no code change)"
 echo "  go live: re-run with 'live' as the 3rd arg AFTER 30 days of profitable paper."
 echo ""
 echo "  The weekly loop re-validates the edge on fresh data and writes execution/health.json."

@@ -36,14 +36,17 @@ EXIT = playbook.EXIT
 
 
 class NexaBot:
-    def __init__(self, symbol, tf, mode="dry-run", equity=10000.0):
+    def __init__(self, symbol, tf, mode="dry-run", equity=10000.0, rm=None, mt5_handle=None):
         self.symbol, self.tf, self.mode = symbol, tf, mode
         sysc = cfg().get("system", {})
         self.risk_per_trade = sysc.get("risk_per_trade", 0.01)
-        self.rm = RiskManager(equity, risk_per_trade=self.risk_per_trade,
-                              max_drawdown=sysc.get("max_drawdown_limit", 0.20))
+        # rm/mt5_handle injected => this bot is part of a MultiBot that shares ONE MT5 terminal
+        # and ONE account-wide RiskManager (so portfolio risk + kill switch span ALL symbols).
+        self._shared = rm is not None
+        self.rm = rm if rm is not None else RiskManager(
+            equity, risk_per_trade=self.risk_per_trade, max_drawdown=sysc.get("max_drawdown_limit", 0.20))
         self.pos = None          # paper/dry-run open position dict
-        self.mt5 = None
+        self.mt5 = mt5_handle
         self.sp = {"pip_size": 0.1, "cost": 0.5}
         self.health_file = ROOT / "execution" / "health.json"
         self.license_stale_days = 21    # weekly loop runs every 7d; >21d w/o a check = stale
@@ -52,6 +55,8 @@ class NexaBot:
     def connect(self):
         if self.mode == "dry-run":
             return True
+        if self._shared and self.mt5 is not None:
+            return True              # parent MultiBot already initialised the terminal + equity
         import os
         import MetaTrader5 as mt5
         self.mt5 = mt5
@@ -191,7 +196,8 @@ class NexaBot:
 
     # ---------------- one cycle ----------------
     def run_once(self, write_signal=False):
-        self._refresh_equity()                     # compounding + withdrawal-aware
+        if not self._shared:
+            self._refresh_equity()                 # compounding + withdrawal-aware (MultiBot does this once)
         df = self.get_bars()
         dec = self.decide(df)
         # manage existing position first
@@ -367,10 +373,105 @@ class NexaBot:
         print("  (no order placed — pre-flight only)")
 
 
+class MultiBot:
+    """ONE MT5 terminal/connection driving MANY symbols — the resource-correct design
+    (a single Wine+MT5 process for the whole account, not one per pair). All symbols share
+    ONE account-wide RiskManager, so the portfolio risk cap, daily-loss and drawdown kill
+    switch span every symbol together. Each symbol keeps its own position + strategy gates."""
+
+    def __init__(self, symbols, tf, mode="paper"):
+        self.symbols = symbols; self.tf = tf; self.mode = mode
+        self.mt5 = None; self.rm = None; self.bots = []
+        sysc = cfg().get("system", {})
+        self.risk_per_trade = sysc.get("risk_per_trade", 0.005)
+        self.max_dd = sysc.get("max_drawdown_limit", 0.20)
+
+    def connect(self):
+        if self.mode == "dry-run":
+            self.bots = [NexaBot(s, self.tf, mode=self.mode) for s in self.symbols]
+            return True
+        import os
+        import MetaTrader5 as mt5
+        self.mt5 = mt5
+        sysc = cfg()["system"]["mt5"]
+        kw = dict(login=int(os.environ.get("MT5_LOGIN", sysc.get("login") or 0)),
+                  password=os.environ.get("MT5_PASSWORD"),
+                  server=os.environ.get("MT5_SERVER", sysc.get("server")))
+        path = os.environ.get("MT5_PATH")
+        if path:
+            kw["path"] = path
+        if not mt5.initialize(**kw):
+            sys.exit(f"MT5 connect failed: {mt5.last_error()}")
+        acc = mt5.account_info()
+        bal = float(acc.balance) if acc else 10000.0
+        self.rm = RiskManager(bal, risk_per_trade=self.risk_per_trade, max_drawdown=self.max_dd)
+        if acc:
+            print(f"  connected: balance={acc.balance} {acc.currency} server={kw['server']}  "
+                  f"symbols={','.join(self.symbols)} (ONE terminal)")
+        # every symbol shares the SAME mt5 handle + RiskManager
+        self.bots = [NexaBot(s, self.tf, mode=self.mode, rm=self.rm, mt5_handle=mt5)
+                     for s in self.symbols]
+        return True
+
+    def _refresh_equity(self):
+        """Account-wide compounding/withdrawal-aware refresh — done ONCE per cycle (balance is
+        shared across symbols; it excludes floating PnL so it's stable during open trades)."""
+        if self.mode == "dry-run" or self.mt5 is None:
+            return
+        acc = self.mt5.account_info()
+        if not acc:
+            return
+        bal = float(acc.balance); prev = self.rm.equity
+        self.rm.equity = bal; self.rm.peak = max(self.rm.peak, bal)
+        if prev and abs(bal - prev) / max(prev, 1e-9) > 0.02:
+            self.bots[0]._notify(f"account balance {prev:.2f} -> {bal:.2f} {acc.currency} "
+                                 f"(deposit/withdrawal/PnL) — lot sizing rebased account-wide")
+
+    def run_once(self, write_signal=True):
+        self._refresh_equity()                     # once for the whole account
+        for bot in self.bots:
+            try:
+                bot.run_once(write_signal=write_signal)
+            except Exception as e:
+                print(f"  [{bot.symbol}] cycle error: {e}")
+
+    def check(self):
+        for bot in self.bots:
+            bot.check()
+
+    def replay(self):
+        for bot in self.bots:
+            try:
+                bot.replay()
+            except FileNotFoundError:
+                print(f"  [{bot.symbol}] dry-run needs a local data/raw/{bot.symbol}_{bot.tf}.parquet; "
+                      f"the cent ('c') symbols only have LIVE data — use --mode paper on the VM, "
+                      f"or dry-run an 'm' research symbol (e.g. --symbols BTCUSDm,XAUUSDm).")
+
+
+def resolve_universe(args):
+    """Decide which symbols + TF to trade, CONFIG-FIRST (no hardcoding):
+      --symbols X,Y  -> exactly those (CLI override)
+      --symbol X     -> single symbol (back-compat / dry-run probes)
+      neither given  -> system.live_symbols + system.live_tf from config (the live default).
+    Returns (symbols_list, tf)."""
+    sysc = cfg().get("system", {})
+    tf = args.tf or sysc.get("live_tf", "H4")
+    if args.symbols:
+        syms = [s.strip() for s in args.symbols.split(",") if s.strip()]
+    elif args.symbol:
+        syms = [args.symbol]
+    else:
+        syms = list(sysc.get("live_symbols", ["BTCUSDc", "XAUUSDc"]))
+    return syms, tf
+
+
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--symbol", default="XAUUSDm")
-    ap.add_argument("--tf", default="H1")
+    ap.add_argument("--symbol", default=None, help="single symbol (override config)")
+    ap.add_argument("--symbols", default=None,
+                    help="comma-separated override, e.g. BTCUSDc,XAUUSDc — ONE terminal drives them all")
+    ap.add_argument("--tf", default=None, help="timeframe (default: system.live_tf from config)")
     ap.add_argument("--mode", choices=["dry-run", "paper", "live"], default="dry-run")
     ap.add_argument("--live", action="store_true", help="confirm REAL-money trading")
     ap.add_argument("--poll", type=int, default=0, help="seconds between cycles (0 = one shot)")
@@ -378,14 +479,18 @@ def main():
     args = ap.parse_args()
     if args.mode == "live" and not args.live:
         sys.exit("Refusing live mode without explicit --live (and a validated, paper-passed config).")
-    bot = NexaBot(args.symbol, args.tf, mode=args.mode)
+
+    syms, tf = resolve_universe(args)
+    # one terminal drives many symbols; a single symbol uses the lighter NexaBot path
+    bot = MultiBot(syms, tf, mode=args.mode) if len(syms) > 1 else NexaBot(syms[0], tf, mode=args.mode)
     bot.connect()
+
     if args.check:
         bot.check()
     elif args.mode == "dry-run":
         bot.replay()
     elif args.poll > 0:
-        print(f"NexaBot {args.symbol} {args.tf} [{args.mode}] — polling every {args.poll}s")
+        print(f"NexaBot {','.join(syms)} {tf} [{args.mode}] — polling every {args.poll}s")
         while True:
             bot.run_once(write_signal=True)
             time.sleep(args.poll)

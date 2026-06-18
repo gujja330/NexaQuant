@@ -3,6 +3,11 @@ system:
   symbols: ["XAUUSDm"]
   timeframes: ["H1", "H4", "D1"]
   data_storage: "./data/raw/"
+  # LIVE trading universe — the bot reads THIS (one MT5 terminal drives them all).
+  # To add a pair in future: add the broker symbol here, `git pull` on the VM, restart the
+  # service. No code change, no re-running setup. Each symbol's gates come from `instruments`.
+  live_symbols: ["BTCUSDc", "XAUUSDc"]   # Exness cent symbols (the 'c' suffix)
+  live_tf: "H4"
   # Top-down workflow: analyse on the higher TFs, EXECUTE on the lower TFs.
   analysis_timeframes: ["W1", "D1", "H4", "H1"]
   execution_timeframes: ["M15", "M5"]   # NOT yet pulled from MT5 -- see data/prepare_data.py
