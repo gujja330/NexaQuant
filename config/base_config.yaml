@@ -221,3 +221,18 @@ portfolio:
   allocation: "equal_risk"            # combine edges at equal risk (inverse-vol weighting)
   target_vol: 0.10                    # annualised vol target for the combined book
   base_risk: 0.005                    # per-edge base risk anchor (Option B compatible)
+
+# CCXT execution — native crypto-exchange API (NO MT5/Wine). Runs on a 1GB VM. Paper-trades
+# on the exchange's free TESTNET (fake money) by default. Config-driven: switch exchange,
+# symbols, or testnet->live here. Same validated multi-edge engine (trend + breakout).
+ccxt:
+  enabled: true
+  exchange: "bybit"          # bybit | binance | okx ... (ccxt id)
+  testnet: true              # true = free demo/paper (sandbox); false = REAL money
+  market_type: "swap"        # perpetual futures -> allows LONG and SHORT
+  quote: "USDT"
+  symbols: ["BTC/USDT:USDT"] # bybit linear perp; add ETH/USDT:USDT etc. once validated
+  edges: ["trend", "breakout"]
+  timeframe: "4h"
+  poll_seconds: 60
+  leverage: 2                # modest; sizing still risk-capped, leverage just frees margin
