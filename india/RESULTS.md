@@ -97,3 +97,14 @@ losing EVERY year. Same lesson as M5/M15 crypto — intraday is noise+cost. Drop
 ## Influences embedded / to embed → see india/INFLUENCES.md
 Global (S&P/China/DXY/crude/USD-INR/VIX), sector rotation (metals/IT/auto/EV), FII flows,
 earnings/PEAD. We react to news via its footprint (VIX + price), never predict headlines.
+
+---
+
+## Loss-control test — ALL mechanisms REJECTED  [`python india/loss_control.py`]
+Tested trend-confirm entry, momentum-break exit, trailing stops (8/12%), breadth de-risk, and
+all combined on the champion. **Every one reduced total return and/or Sharpe:**
+- champion (VIX only): 145% / Sharpe 1.23 / maxDD 13.8% / 2026 −9.8%  ← BEST
+- momentum-break exit: "fixes" 2026 (−0.3%) but CRUSHES total to 49% (Sharpe 0.83) — whipsaw
+- trailing stop 12%: 137% (slightly worse); 8%: 134%; trend-confirm: 103%; breadth: 111%; ALL: 24%
+**Conclusion:** stops whipsaw momentum — the losers are the necessary cost of the winners. The
+only loss-control that helps is the VIX de-risk already in the champion. Do NOT add stops.
