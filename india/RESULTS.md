@@ -60,3 +60,19 @@ python india/validate_india.py      # cross-sectional + per-instrument validatio
 ```
 Data lives in `data/raw/india/`. Research in `india/STRATEGY_RESEARCH_INDIA.md` and
 `docs/GLOBAL_EQUITY_RESEARCH.md`.
+
+---
+
+## Trade blotter (every trade, all stocks)  [`python india/trade_blotter.py`]
+- **2,073 trades across 25 stocks** → full CSV at `output/india_trades.csv` (entry/exit dates,
+  prices, % move, ₹ P&L on ₹10k/trade, R-multiple, exit reason, win/loss). Filter it freely.
+- Example: RELIANCE breakout long 2021-08-17→2021-10-22, ₹904→₹1178, **+19.96% / +3.87R**.
+
+## AI meta-label (P[win] filter)  [`python india/ai_meta.py`]
+- 1,824 pooled trades, TIME split (train 1,276 / test 548). **Test AUC = 0.551** (borderline
+  skill — better than gold/BTC's ~0.50 thanks to more data).
+- Filtering test trades by **P(win) ≥ 0.50** turned the losing 2024–26 test set (take-all −74R)
+  into **+3.1R across 31 high-confidence trades (48% win)** — it cuts the junk.
+- Top predictive feature: **ADX (trend strength)**. 
+- **Verdict:** use as a CONSERVATIVE filter only; AUC 0.55 is weak + small surviving sample.
+  Real lift needs fundamentals/earnings features + more stocks/history. AI = modest filter, NOT oracle.
