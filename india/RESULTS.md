@@ -108,3 +108,15 @@ all combined on the champion. **Every one reduced total return and/or Sharpe:**
 - trailing stop 12%: 137% (slightly worse); 8%: 134%; trend-confirm: 103%; breadth: 111%; ALL: 24%
 **Conclusion:** stops whipsaw momentum — the losers are the necessary cost of the winners. The
 only loss-control that helps is the VIX de-risk already in the champion. Do NOT add stops.
+
+---
+
+## Winners vs Losers analysis — losers are UNPREDICTABLE at entry  [`python india/winners_vs_losers.py`]
+Tested the right idea (avoid losers at SELECTION, not via stops). Result on 262 holdings:
+- Winners vs losers look ~IDENTICAL at entry on technicals (mom/vol/ADX/RSI/dist-200 differ by
+  noise; losers even had slightly HIGHER momentum/ADX — most-extended names reverse).
+- AI winner/loser classifier: TEST AUC = 0.469 (WORSE than coin flip). Filtering HURT (43% vs 46% win).
+**Conclusion:** you cannot separate future winners from losers at entry from PRICE data — the
+losses are statistically unpredictable per-holding. This is WHY the edge is a systematic basket
+(hold top-5) and why stops/filters fail. OPEN frontier: point-in-time FUNDAMENTALS (we only have
+a current snapshot) might separate them — re-run this test if that data is obtained.
