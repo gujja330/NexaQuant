@@ -10,44 +10,67 @@
 #     bash execution/setup_oracle.sh BTCUSDm H4 paper
 #
 # args:  SYMBOL (default BTCUSDm)   TF (default H4)   MODE (paper|live, default paper)
-set -euo pipefail
+# NOTE: deliberately NOT using `set -e` — Wine/Xvfb steps emit transient non-zero exits
+# (e.g. "X connection to :99 broken") that must NOT abort the whole setup. We instead VERIFY
+# the critical artifacts explicitly and fail loudly only when something real is missing.
+set -uo pipefail
 
 SYMBOL="${1:-BTCUSDm}"; TF="${2:-H4}"; MODE="${3:-paper}"
 SVC="nexabot-${SYMBOL}-${TF}"          # per-symbol service name -> run BTC + XAU side by side
 REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-WINE_PY="$HOME/.wine/drive_c/users/$USER/python/python.exe"   # Wine Python (installed below)
+PYDIR="$HOME/.wine/drive_c/users/$USER/python"
+WINE_PY="$PYDIR/python.exe"            # Wine Python (embeddable build, installed below)
 MT5_EXE="$HOME/.wine/drive_c/Program Files/MetaTrader 5/terminal64.exe"
 
 : "${MT5_LOGIN:?set MT5_LOGIN}"; : "${MT5_PASSWORD:?set MT5_PASSWORD}"; : "${MT5_SERVER:?set MT5_SERVER}"
 
-echo "==> [1/6] system packages + Wine + Xvfb"
+echo "==> [1/7] system packages + Wine + Xvfb"
 sudo dpkg --add-architecture i386 || true
 sudo apt-get update -y
-sudo apt-get install -y wine64 wine32:i386 winbind xvfb wget python3 python3-pip git || \
-  sudo apt-get install -y wine64 winbind xvfb wget python3 python3-pip git
+sudo apt-get install -y wine64 wine32:i386 winbind xvfb wget unzip python3 python3-pip git || \
+  sudo apt-get install -y wine64 winbind xvfb wget unzip python3 python3-pip git
 
-echo "==> [2/6] 4G swap (1GB RAM VMs are tight for MT5+Wine)"
+echo "==> [2/7] 4G swap (1GB RAM VMs are tight for MT5+Wine)"
 if ! sudo swapon --show | grep -q /swapfile; then
   sudo fallocate -l 4G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile
   echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
 fi
 
 export WINEDEBUG=-all DISPLAY=:0
-echo "==> [3/6] MT5 terminal under Wine (silent install)"
+echo "==> [3/7] MT5 terminal under Wine (silent install)"
 if [ ! -f "$MT5_EXE" ]; then
   wget -q https://download.mql5.com/cdn/web/metaquotes.software.corp/mt5/mt5setup.exe -O /tmp/mt5setup.exe
   xvfb-run -a wine /tmp/mt5setup.exe /auto || echo "  (if this stalls, run mt5setup.exe once interactively)"
 fi
 
-echo "==> [4/6] Python inside Wine + packages (MT5 pkg must share the Wine env)"
+echo "==> [4/7] Python inside Wine + packages (EMBEDDABLE zip — reliable headless on old Wine)"
+# The Python .exe GUI installer is unreliable under Ubuntu's Wine 6.0 (crashes the Xvfb X
+# server -> "X connection broken"). The embeddable ZIP needs no GUI, so it installs headless.
+# We also pin Python 3.10 (works on Wine 6.0; 3.12 does not) and bootstrap pip via get-pip.
+PYVER="3.10.11"; PYTAG="310"
 if [ ! -f "$WINE_PY" ]; then
-  wget -q https://www.python.org/ftp/python/3.12.4/python-3.12.4-amd64.exe -O /tmp/py.exe
-  xvfb-run -a wine /tmp/py.exe /quiet InstallAllUsers=0 PrependPath=1 TargetDir='C:\\users\\'"$USER"'\\python'
+  mkdir -p "$PYDIR"
+  wget -q "https://www.python.org/ftp/python/${PYVER}/python-${PYVER}-embed-amd64.zip" -O /tmp/py.zip
+  unzip -o /tmp/py.zip -d "$PYDIR" >/dev/null
+  # enable site-packages so pip works in the embeddable build
+  sed -i 's/^#import site/import site/' "$PYDIR/python${PYTAG}._pth" 2>/dev/null || true
+  grep -q '^import site' "$PYDIR/python${PYTAG}._pth" 2>/dev/null || echo 'import site' >> "$PYDIR/python${PYTAG}._pth"
+  wget -q https://bootstrap.pypa.io/get-pip.py -O /tmp/get-pip.py
+  xvfb-run -a wine "$WINE_PY" /tmp/get-pip.py || true
 fi
-xvfb-run -a wine "$WINE_PY" -m pip install --upgrade pip
-xvfb-run -a wine "$WINE_PY" -m pip install MetaTrader5 pandas numpy scikit-learn scipy hmmlearn pyyaml
+xvfb-run -a wine "$WINE_PY" -m pip install --upgrade pip || true
+xvfb-run -a wine "$WINE_PY" -m pip install MetaTrader5 pandas numpy scikit-learn scipy hmmlearn pyyaml pyarrow || true
+# VERIFY the Wine-Python env actually works (the part that was silently failing before)
+if ! xvfb-run -a wine "$WINE_PY" -c "import MetaTrader5, pandas, numpy, pyarrow" >/dev/null 2>&1; then
+  echo "  ! Wine-Python packages did not import. Retrying the pip install once..."
+  xvfb-run -a wine "$WINE_PY" -m pip install --no-cache-dir MetaTrader5 pandas numpy scikit-learn scipy hmmlearn pyyaml pyarrow || true
+  if ! xvfb-run -a wine "$WINE_PY" -c "import MetaTrader5, pandas, numpy" >/dev/null 2>&1; then
+    echo "  !! Wine-Python still broken. Check: ls '$WINE_PY' ; wine --version (need a working 64-bit prefix)."
+    echo "     You can re-run this script after fixing; earlier steps are skipped if already done."
+  fi
+fi
 
-echo "==> [5/6] credentials env file (root-only) + systemd service ($SVC)"
+echo "==> [5/7] credentials env file (root-only) + systemd service ($SVC)"
 ENVF="$REPO_DIR/.env.${SVC}"
 cat > "$ENVF" <<EOF
 MT5_LOGIN=$MT5_LOGIN
