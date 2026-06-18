@@ -109,15 +109,15 @@ def p_flow(pdf):
 
 def p_results(pdf):
     fig = plt.figure(figsize=(16, 9)); ax = base(fig, "Backtest Results", "Rs1,00,000 compounded, net of cost — the money view", "3")
-    # equity curve
-    c1 = fig.add_axes([0.07, 0.12, 0.52, 0.62])
+    # equity curve (raised so it doesn't overlap the stat cards below)
+    c1 = fig.add_axes([0.07, 0.28, 0.52, 0.48])
     c1.plot(eq.index, eq.values, color=GREEN, lw=2)
     c1.fill_between(eq.index, 100000, eq.values, color=GREEN, alpha=0.12)
     c1.axhline(100000, color=SUB, lw=0.8, ls="--")
     c1.set_title("Portfolio value (Rs)", fontsize=11, color=INK)
     c1.grid(alpha=0.25); c1.tick_params(labelsize=8)
     # yearly bars
-    c2 = fig.add_axes([0.66, 0.12, 0.3, 0.62])
+    c2 = fig.add_axes([0.66, 0.28, 0.3, 0.48])
     yrs = [str(y) for y, _ in yearly]; vals = [v for _, v in yearly]
     c2.bar(yrs, vals, color=[GREEN if v > 0 else RED for v in vals])
     c2.axhline(0, color=INK, lw=0.8); c2.set_title("Yearly return %", fontsize=11, color=INK)
