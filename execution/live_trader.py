@@ -90,8 +90,10 @@ class NexaBot:
         self.sp = symbol_params(self.symbol, df["close"])
         method = "hmm" if len(df) >= cfg().get("pipeline", {}).get("hmm_min_bars", 6000) else "adx"
         reg = playbook.regime_labels(df, method)
-        long_sig = bool(playbook.entries(df, side="long", regime=reg).iloc[-1])
-        short_sig = bool(playbook.entries(df, side="short", regime=reg).iloc[-1])
+        inst = cfg().get("instruments", {}).get(self.symbol, {})
+        tsm = float(inst.get("tsm_confirm", 0.0)); mg = bool(inst.get("macro_gate", False))
+        long_sig = bool(playbook.entries(df, side="long", regime=reg, tsm_confirm=tsm, macro_gate=mg).iloc[-1])
+        short_sig = bool(playbook.entries(df, side="short", regime=reg, tsm_confirm=tsm, macro_gate=mg).iloc[-1])
         a = atr(df, 14); bar = df.iloc[-1]; atr_now = float(a.iloc[-1])
         ema20 = ema(df["close"], 20).iloc[-1]
         side = 1 if long_sig else (-1 if short_sig else 0)

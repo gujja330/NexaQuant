@@ -61,3 +61,15 @@ def event_proximity_feature(df, window_hours=24, min_impact="high"):
 def avoid_mask(df, vol_thresh=1.8, blackout_hours=12):
     """Bars where we should NOT open a new position: vol spike OR scheduled-news window."""
     return realized_vol_spike(df, thresh=vol_thresh) | event_blackout(df, blackout_hours)
+
+
+def crash_risk_scale(df, fast=14, slow=100, floor=0.3):
+    """RISK-MANAGED MOMENTUM (Barroso/Santa-Clara; 2025 crypto): a GRADED, ASYMMETRIC
+    de-risk. Returns a multiplier in [floor, 1.0]:
+        current_vol <= normal_vol  -> 1.0          (calm: full size, never inflated)
+        current_vol >  normal_vol  -> normal/current (cut size as vol climbs into the
+                                                       crash zone), floored at `floor`.
+    Unlike a symmetric vol-target overlay (tested + rejected: it sized UP in calm and hurt),
+    this ONLY cuts exposure when realized vol spikes — exactly when momentum crashes occur."""
+    ratio = (atr(df, fast) / atr(df, slow).replace(0, np.nan)).fillna(1.0)
+    return (1.0 / ratio.clip(lower=1.0)).clip(lower=floor, upper=1.0)

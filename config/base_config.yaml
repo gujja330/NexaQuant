@@ -131,8 +131,18 @@ pipeline:
     max_pbo: 0.5                    # probability of backtest overfitting must be < this
 
 instruments:                        # OPTIONAL overrides; omit a symbol -> values derived from data
-  XAUUSDm: {cost: 0.50, pip_size: 0.1}
-  BTCUSDm: {cost: 5.0,  pip_size: 1.0}
+  # tsm_confirm (0..1): require this fraction of multi-lookback TSM horizons to agree with the
+  # trade side before entering. Validated per-symbol (research/tsm_test.py): gold needs it
+  # (Sharpe -0.14 -> +0.55), BTC does NOT (leave at 0). Set per instrument; default 0 = off.
+  # macro_gate: require fundamentals (real yields + DXY falling = gold-bullish) to agree with
+  # the side. Validated on gold (research/macro_gate_test.py): +TSM+macro lifted Sharpe
+  # 0.19 -> 0.68. BTC off (these are gold drivers; BTC fundamentals = funding/flows, later).
+  XAUUSDm: {cost: 0.50, pip_size: 0.1, tsm_confirm: 1.0, macro_gate: true}
+  BTCUSDm: {cost: 5.0,  pip_size: 1.0, tsm_confirm: 0.0, macro_gate: false}
+
+# Multi-lookback time-series-momentum confirmation (see strategy/playbook.tsm_score)
+signals:
+  tsm_lookbacks: [20, 60, 120, 240]   # bars (H4: ~3d/10d/20d/40d) — horizons that must agree
 
 account:                            # for the $ P&L view in research/trade_report.py
   starting_equity: 10.0             # start tiny (mini/micro) for live testing
