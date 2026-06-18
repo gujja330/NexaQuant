@@ -48,11 +48,11 @@ def base(fig, title, subtitle, page):
     return ax
 
 
-# ---- real backtest data ----
-net = backtest(vix_derisk=True)
+# ---- real backtest data (HARDENED: pure momentum on the broad ~49-stock universe) ----
+net = backtest(vix_derisk=False)
 eq = (1 + net).cumprod() * 100000.0
 yearly = [(y, 100 * ((1 + g).prod() - 1)) for y, g in net.groupby(net.index.year) if len(g) > 30]
-closes, _ = load(); score = composite_score(closes, {"momentum": 0.6, "low_vol": 0.4})
+closes, _ = load(); score = composite_score(closes, {"momentum": 1.0})
 picks = score.iloc[-1].dropna().sort_values(ascending=False).head(5)
 
 
@@ -62,11 +62,11 @@ def p_cover(pdf):
     ax.add_patch(plt.Rectangle((0, 5.2), 16, 0.06, color=TEAL))
     ax.text(8, 6.85, "ARJUNA", color="#fbbf24", fontsize=58, fontweight="bold", ha="center")
     ax.text(8, 6.05, "NSE Equity Engine", color="white", fontsize=16, ha="center")
-    ax.text(8, 5.6, "The focused stock picker — sees only the target: momentum + low-vol + VIX de-risk",
+    ax.text(8, 5.6, "The focused stock picker — sees only the target: momentum, top-5, weekly",
             color="#cfe0f0", fontsize=13, ha="center")
-    for i, (lbl, val, c) in enumerate([("BACKTEST", "Rs 1L -> Rs 2.44L", GREEN),
-                                       ("RETURN", "+145% / ~6y", TEAL),
-                                       ("SHARPE", "1.23", BLUE),
+    for i, (lbl, val, c) in enumerate([("BACKTEST", "Rs 1L -> Rs 2.64L", GREEN),
+                                       ("RETURN", "+164% / ~6y", TEAL),
+                                       ("SHARPE", "0.79", BLUE),
                                        ("PROFIT YEARS", "6 / 7", AMBER)]):
         x = 1.2 + i * 3.6
         box(ax, x, 3.0, 3.2, 1.5, "", "#16314f", ec=c)
@@ -81,10 +81,10 @@ def p_cover(pdf):
 
 def p_flow(pdf):
     fig = plt.figure(figsize=(16, 9)); ax = base(fig, "How a Stock Gets Picked", "Systematic, rule-based — rank the universe, hold the best, de-risk on fear", "2")
-    steps = [("UNIVERSE\nliquid NSE\nlarge-caps", BLUE),
-             ("SCORE each\n0.6 x momentum(6m)\n+ 0.4 x low-vol", TEAL),
+    steps = [("UNIVERSE\n~49 liquid\nNSE stocks", BLUE),
+             ("SCORE each\nby 6-month\nMOMENTUM", TEAL),
              ("RANK &\nHOLD TOP 5\nequal weight", GREEN),
-             ("VIX DE-RISK\nhalf size when\nfear spikes", AMBER),
+             ("VIX DE-RISK\n(optional: lower\ndrawdown)", AMBER),
              ("REBALANCE\nweekly -> sell\nif drops out", SLATE)]
     for i, (t, c) in enumerate(steps):
         x = 0.5 + i * 3.15
@@ -94,9 +94,9 @@ def p_flow(pdf):
     box(ax, 0.5, 3.0, 15.0, 1.7, "", CARD, ec=BLUE)
     ax.text(0.8, 4.4, "WHY THIS WORKS", color=BLUE, fontsize=11, fontweight="bold", va="top")
     ax.text(0.8, 4.0,
-            "Momentum rewards strength (winners keep winning); low-vol rewards steadiness (avoids wild names).\n"
+            "Momentum rewards strength (winners keep winning) — the most robust factor across markets.\n"
             "The edge is the BASKET, not any single stock — across many holds, winners' payoff beats losers' cost.\n"
-            "VIX de-risk cuts exposure in fear/war regimes (the one loss-control that proved to help).",
+            "Validated on a BROAD ~49-stock universe (the narrow 23-stock blend with low-vol was overfit).",
             color=SLATE, fontsize=9.5, va="top")
     box(ax, 0.5, 0.7, 15.0, 1.9, "", "#eafaf0", ec=GREEN)
     ax.text(0.8, 2.35, "EXIT RULE (no stops — proven to whipsaw)", color=GREEN, fontsize=11, fontweight="bold", va="top")
@@ -122,8 +122,8 @@ def p_results(pdf):
     c2.bar(yrs, vals, color=[GREEN if v > 0 else RED for v in vals])
     c2.axhline(0, color=INK, lw=0.8); c2.set_title("Yearly return %", fontsize=11, color=INK)
     c2.tick_params(labelsize=8); plt.setp(c2.get_xticklabels(), rotation=45)
-    for i, (lbl, val, c) in enumerate([("Total", "+145%", GREEN), ("Sharpe", "1.23", BLUE),
-                                       ("Max DD", "13.8%", AMBER), ("Win rate", "57%", TEAL)]):
+    for i, (lbl, val, c) in enumerate([("Total", "+164%", GREEN), ("Sharpe", "0.79", BLUE),
+                                       ("Max DD", "~25%", AMBER), ("CAGR", "~15%", TEAL)]):
         x = 0.5 + i * 3.85
         box(ax, x, 0.6, 3.5, 1.0, "", CARD, ec=c)
         ax.text(x + 1.75, 1.25, val, color=INK, fontsize=15, fontweight="bold", ha="center")
@@ -134,8 +134,8 @@ def p_results(pdf):
 def p_evidence(pdf):
     fig = plt.figure(figsize=(16, 9)); ax = base(fig, "What Works vs What We Rejected", "Every idea tested honestly — kept only what the data proved", "4")
     ax.text(0.5, 8.0, "KEPT (validated)", color=GREEN, fontsize=13, fontweight="bold", va="top")
-    keep = [("Momentum + Low-Vol picker", "the core edge — Sharpe 1.23"),
-            ("VIX de-risk", "cut 2026 crash -15% -> -9.8%, free"),
+    keep = [("Pure-momentum picker", "the robust core — Sharpe 0.79"),
+            ("Broad ~49-stock universe", "hardened (narrow set was overfit)"),
             ("Top-5 diversified basket", "systematic, not stock-picking")]
     y = 7.4
     for n, w in keep:
@@ -184,10 +184,11 @@ def p_influences(pdf):
 def p_roadmap(pdf):
     fig = plt.figure(figsize=(16, 9)); ax = base(fig, "Status & Roadmap", "Honest scorecard + the path to live", "6")
     box(ax, 0.5, 6.4, 15.0, 1.8, "", "#eafaf0", ec=GREEN)
-    ax.text(0.8, 8.0, "TODAY  (~7.5 / 10)", color=GREEN, fontsize=12, fontweight="bold", va="top")
+    ax.text(0.8, 8.0, "TODAY  (~6 / 10, honest after hardening)", color=GREEN, fontsize=12, fontweight="bold", va="top")
     ax.text(0.8, 7.6,
-            "Validated long-term equity engine: +145% / Sharpe 1.23 / 6-of-7 years, fully transparent,\n"
-            "every alternative tested & rejected. Current picks printed daily by india/picks_report.py.",
+            "Pure-momentum engine on a broad universe: +164% / CAGR ~15% / Sharpe 0.79 / 6-of-7 years.\n"
+            "Hardening cut the inflated 1.23 to a trustworthy 0.79. Decent, not spectacular — every\n"
+            "alternative tested & rejected. Current picks printed by india/picks_report.py.",
             color=SLATE, fontsize=9.5, va="top")
     steps = [("1. HARDEN", "survivorship-safe\nNifty 200/500 +\nwalk-forward gate", BLUE),
              ("2. FUNDAMENTALS", "point-in-time data ->\nseparate winners/losers\n(the open frontier)", TEAL),
@@ -219,10 +220,10 @@ def p_insights(pdf):
          "Future winners & losers look identical at entry\n(AI AUC 0.47). You can't cherry-pick —\nhold the top-5, the math wins in aggregate."),
         ("STOPS WHIPSAW MOMENTUM", RED,
          "Every stop / trailing / exit filter CUT returns\n(mom-break: 145%->49%). The losers are the\nnecessary cost of the winners."),
-        ("VOLATILITY CONTROL WORKS", BLUE,
-         "VIX de-risk is the ONE defense that helped:\nSharpe 1.04->1.23, 2026 crash -15%->-9.8%,\nat no cost to return."),
-        ("LOW-VOL BEATS PURE MOMENTUM", TEAL,
-         "Adding the low-volatility factor lifted Sharpe\n0.70 -> 1.04 and smoothed the bad years.\nSteadiness + strength > strength alone."),
+        ("HARDEN ON A BROAD UNIVERSE", BLUE,
+         "On 23 stocks mom+low-vol showed Sharpe 1.23 —\nbut it COLLAPSED to 0.42 on 49 stocks. It was\noverfit. Pure momentum held at 0.79. Always\nvalidate broad before trusting a number."),
+        ("VIX DE-RISK = OPTIONAL", TEAL,
+         "VIX de-risk lowers drawdown (24.7%->21.8%) but\nslightly trims return on the broad universe.\nA risk dial, not a free lunch."),
         ("INTRADAY IS NOISE + COST", AMBER,
          "11,695 intraday trades: -0.09%/trade, losing\nevery year. Same lesson as fast-TF crypto.\nLong-term/positional is the real edge."),
         ("RETURNS ARE LUMPY, NOT SMOOTH", SLATE,

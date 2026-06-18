@@ -120,3 +120,16 @@ Tested the right idea (avoid losers at SELECTION, not via stops). Result on 262 
 losses are statistically unpredictable per-holding. This is WHY the edge is a systematic basket
 (hold top-5) and why stops/filters fail. OPEN frontier: point-in-time FUNDAMENTALS (we only have
 a current snapshot) might separate them — re-run this test if that data is obtained.
+
+---
+
+## HARDENING (broad universe) — the honest correction  [`python india/picker_pro.py`]
+Expanded universe 23 -> ~49 liquid NSE stocks (reduce concentration/survivorship bias). Result:
+- The old "champion" (mom+low-vol, Sharpe 1.23) was OVERFIT to the narrow set -> collapsed to
+  **Sharpe 0.42 / +46%** on the broad universe.
+- **PURE MOMENTUM is the robust champion:** +164% / CAGR ~15% / **Sharpe 0.79** / 6-of-7 years /
+  worst -7.4% / maxDD ~25% -> **Rs1L -> Rs2.64L** (net profit Rs1,64,238).
+- VIX de-risk now OPTIONAL (lowers DD 24.7%->21.8%, trims return slightly).
+**Lesson:** always validate on a BROAD universe — the narrow-set Sharpe 1.23 was an artifact.
+Honest scorecard downgraded ~7.5 -> ~6/10: a decent, trustworthy ~15% CAGR momentum engine,
+not spectacular. Deck (Arjuna_Architecture.pdf) + picks_report updated to these honest numbers.

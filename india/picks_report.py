@@ -19,25 +19,25 @@ sys.path.insert(0, str(ROOT))
 from india.equity_engine import load, composite_score
 from india.picker_pro import backtest, SECTOR
 
-WEIGHTS = {"momentum": 0.6, "low_vol": 0.4}
+WEIGHTS = {"momentum": 1.0}     # HARDENED champion = pure momentum (broad ~49-stock universe)
 
 print("=" * 74)
-print("  NexaQuant India — CHAMPION strategy report")
+print("  ARJUNA — champion strategy report (hardened, broad universe)")
 print("=" * 74)
 print("""
   LOGIC (how a stock gets picked):
-    1. For every stock, each week compute two things, ranked ACROSS the universe (z-score):
-         MOMENTUM  = its return over the last ~6 months (skip last 2 wks)  -> reward strength
-         LOW-VOL   = inverse of its recent volatility                      -> reward steadiness
-       composite score = 0.6*momentum_z + 0.4*lowvol_z
-    2. Hold the TOP 5 scores, equal weight (20% each).
-    3. VIX DE-RISK: when India VIX is in its high (fear) regime, cut exposure (defends crashes).
+    1. For every stock in the broad ~49-name universe, each week compute its 6-month MOMENTUM
+       (return over ~6 months, skip last 2 wks), ranked ACROSS the universe (z-score).
+       [mom+low-vol scored higher on a NARROW 23-stock set but was OVERFIT -> pure momentum is
+        the robust choice on the broad universe: Sharpe 0.79 vs 0.42 for the blend.]
+    2. Hold the TOP 5 momentum scores, equal weight (20% each).
+    3. VIX DE-RISK (optional): cut exposure in high-VIX fear regimes -> lower drawdown.
     4. EXIT RULE: re-rank WEEKLY -> a name is SOLD when it drops out of the top 5 (rotation).
        There is no fixed target price; it's a systematic rotation, not a one-shot trade.
 """)
 
 # ---- year-by-year backtest of the champion (VIX de-risk on) ----
-net = backtest(vix_derisk=True)
+net = backtest(vix_derisk=False)     # pure-momentum champion (VIX de-risk optional)
 eq = (1 + net).cumprod(); peak = eq.cummax()
 print("  YEAR-BY-YEAR BACKTEST (Rs1,00,000 start, net of cost):")
 print(f"  {'year':<6}{'start_Rs':>12}{'return%':>9}{'gain/loss_Rs':>14}{'end_Rs':>13}")

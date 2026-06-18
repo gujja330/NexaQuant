@@ -19,7 +19,10 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from india.equity_engine import load, composite_score, COST_BPS
 
-WEIGHTS = {"momentum": 0.6, "low_vol": 0.4}
+# HARDENED champion = PURE MOMENTUM. (mom+low-vol won on the narrow 23-stock universe but was
+# OVERFIT — on a realistic ~49-stock universe it collapsed to Sharpe 0.42; pure momentum holds
+# at Sharpe ~0.79. Lesson: validate on a broad universe.)
+WEIGHTS = {"momentum": 1.0}
 TOPN, REBAL = 5, 5
 SECTOR = {  # liquid large-cap sector map
     "HDFCBANK": "Fin", "ICICIBANK": "Fin", "SBIN": "Fin", "KOTAKBANK": "Fin",
