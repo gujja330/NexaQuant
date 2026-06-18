@@ -158,7 +158,7 @@ class NexaBot:
         """Close `units` at current price, update risk manager + notify (side-correct)."""
         sd = self.pos["side"]
         pnl = sd * (dec["price"] - self.pos["entry"]) * units - self.sp["cost"] * units
-        self.rm.on_close(pnl, self.risk_per_trade * units / self.pos["units0"])
+        self.rm.on_close(pnl, self.pos.get("risk_frac", self.risk_per_trade) * units / self.pos["units0"])
         self._broker_close(units, sd)
         return pnl
 
@@ -236,13 +236,14 @@ class NexaBot:
                     (ROOT / f"data/raw/signal_{self.symbol}_{self.edge}.json").write_text(
                         json.dumps({**dec, "position": self.pos, "license": lic_why}, default=str))
                 return dec
-            allowed, why = self.rm.can_open(dec["time"], self.risk_per_trade)
+            rf = self._risk_frac(dec.get("conf", 1.0))          # actual conf-scaled risk fraction
+            allowed, why = self.rm.can_open(dec["time"], rf)
             if allowed:
                 units = self.size(dec["price"], dec["stop_loss"], dec.get("conf", 1.0))
                 self.pos = {"entry": dec["price"], "sl": dec["stop_loss"], "side": dec["side"],
                             "hwm": 0.0, "risk": abs(dec["price"] - dec["stop_loss"]),
-                            "units": units, "units0": units, "scaled": False}
-                self.rm.on_open(self.risk_per_trade)
+                            "units": units, "units0": units, "scaled": False, "risk_frac": rf}
+                self.rm.on_open(rf)
                 self._broker_order(dec, units, dec["side"])
                 direction = "BUY" if dec["side"] == 1 else "SELL"
                 msg = (f"{direction} {self.tag} {self.tf} @ {dec['price']} SL={dec['stop_loss']} "
@@ -266,6 +267,14 @@ class NexaBot:
         except Exception:
             pass
 
+    def _risk_frac(self, conf):
+        """Option B risk fraction: base% x confidence, CAPPED at the top configured risk tier.
+        Used for BOTH the lot size and the portfolio-risk accounting, so the account-wide 6%
+        cap is honest and the live lot matches the validated backtest sizing exactly."""
+        tiers = cfg().get("sizing", {}).get("risk_tiers", [[99.0, 0.02]])
+        cap = float(max(t[1] for t in tiers))
+        return float(min(self.risk_per_trade * float(conf), cap))
+
     def _calc_lots(self, dec):
         """Broker-accurate lot size from risk: lots = risk_$ / (loss-per-lot at the SL),
         rounded to the symbol's volume step, clamped to [min, max]. Returns (lots, feasible).
@@ -278,7 +287,7 @@ class NexaBot:
         loss_per_lot = stop_pts * info.trade_tick_value * (info.point / info.trade_tick_size)
         if loss_per_lot <= 0:
             return 0.0, False
-        risk_amt = self.rm.equity * self.risk_per_trade * dec.get("conf", 1.0)
+        risk_amt = self.rm.equity * self._risk_frac(dec.get("conf", 1.0))
         lots = risk_amt / loss_per_lot
         step = info.volume_step or 0.01
         lots = max(info.volume_min, round(lots / step) * step)
@@ -381,9 +390,10 @@ class NexaBot:
               f"  price={dec['price']}  SL={dec['stop_loss']}  conf={dec.get('conf',1.0)}x")
         if dec["side"] and self.mt5:
             lots, feasible = self._calc_lots(dec)
-            risk = self.rm.equity * self.risk_per_trade * dec.get("conf", 1.0)
+            rf = self._risk_frac(dec.get("conf", 1.0))
+            risk = self.rm.equity * rf
             print(f"  WOULD trade: {lots} lots  (risk ~{risk:.2f} {getattr(acc,'currency','')}, "
-                  f"{self.risk_per_trade*100:.1f}% of balance)  feasible={feasible}")
+                  f"{rf*100:.2f}% of balance @ conf {dec.get('conf',1.0)}x)  feasible={feasible}")
             if not feasible:
                 print("  -> account too small for this symbol; use a cent account or a cheaper symbol.")
         else:
