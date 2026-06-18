@@ -96,7 +96,7 @@ wineserver -k 2>/dev/null
 
 # Wine-Python broken? force a clean reinstall of the embeddable Python, then re-run setup
 rm -rf ~/.wine/drive_c/users/$USER/python
-bash execution/setup_oracle.sh BTCUSDc H4 paper
+bash execution/setup_oracle.sh
 
 # check the exact broker symbol name (must match what you pass the bot)
 #   -> open the MT5 mobile app > Market Watch (cent account shows BTCUSDc / XAUUSDc)
@@ -112,11 +112,12 @@ xvfb-run -a wine ~/.wine/drive_c/users/$USER/python/python.exe -c "import MetaTr
 ---
 
 ## Going LIVE (only AFTER ~30 days of clean paper trading)
-Real money. Stop the paper service first, then start live.
+Real money. Stop the paper service first, then start live (3rd arg = mode; empty symbol/TF
+args mean "use config").
 ```bash
 sudo systemctl disable --now nexabot      # stop paper
 export MT5_LOGIN=183286147 MT5_PASSWORD='YOUR_NEW_PASSWORD' MT5_SERVER='Exness-MT5Real25'
-bash execution/setup_oracle.sh BTCUSDc H4 live       # 3rd arg = live
+bash execution/setup_oracle.sh "" "" live            # config universe, LIVE mode
 ```
 
 ## Safety reminders
