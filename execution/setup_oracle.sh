@@ -15,7 +15,7 @@
 # the critical artifacts explicitly and fail loudly only when something real is missing.
 set -uo pipefail
 
-SYMBOL="${1:-BTCUSDm}"; TF="${2:-H4}"; MODE="${3:-paper}"
+SYMBOL="${1:-BTCUSDc}"; TF="${2:-H4}"; MODE="${3:-paper}"   # default = Exness CENT BTC symbol
 SVC="nexabot-${SYMBOL}-${TF}"          # per-symbol service name -> run BTC + XAU side by side
 REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 PYDIR="$HOME/.wine/drive_c/users/$USER/python"
