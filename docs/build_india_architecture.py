@@ -1,6 +1,6 @@
 # docs/build_india_architecture.py
 """
-Builds docs/NexaQuant_India_Architecture.pdf — a colorful architecture/results deck for the
+Builds docs/Arjuna_Architecture.pdf — a colorful architecture/results deck for the
 INDIA equity engine (parallel to the gold/BTC deck). Charts are drawn from the REAL backtest.
 
 Run: python docs/build_india_architecture.py
@@ -41,7 +41,7 @@ def base(fig, title, subtitle, page):
     ax.add_patch(plt.Rectangle((0, 8.5), 16, 0.5, color=INK))
     ax.text(0.4, 8.75, title, color="white", fontsize=18, fontweight="bold", va="center")
     ax.text(15.6, 8.82, "ARJUNA", color="#fbbf24", fontsize=13, fontweight="bold", va="center", ha="right")
-    ax.text(15.6, 8.58, "by NexaQuant - NSE equity", color="#9fc3e8", fontsize=8, va="center", ha="right")
+    ax.text(15.6, 8.58, "NSE equity engine", color="#9fc3e8", fontsize=8, va="center", ha="right")
     if subtitle:
         ax.text(0.4, 8.2, subtitle, color=SUB, fontsize=11, va="center")
     ax.text(8, 0.18, page, color=SUB, fontsize=8, ha="center")
@@ -61,8 +61,8 @@ def p_cover(pdf):
     ax.add_patch(plt.Rectangle((0, 0), 16, 9, color=INK))
     ax.add_patch(plt.Rectangle((0, 5.2), 16, 0.06, color=TEAL))
     ax.text(8, 6.85, "ARJUNA", color="#fbbf24", fontsize=58, fontweight="bold", ha="center")
-    ax.text(8, 6.05, "by NexaQuant", color="white", fontsize=16, ha="center")
-    ax.text(8, 5.6, "The focused NSE equity engine — sees only the target: momentum + low-vol + VIX de-risk",
+    ax.text(8, 6.05, "NSE Equity Engine", color="white", fontsize=16, ha="center")
+    ax.text(8, 5.6, "The focused stock picker — sees only the target: momentum + low-vol + VIX de-risk",
             color="#cfe0f0", fontsize=13, ha="center")
     for i, (lbl, val, c) in enumerate([("BACKTEST", "Rs 1L -> Rs 2.44L", GREEN),
                                        ("RETURN", "+145% / ~6y", TEAL),
@@ -213,7 +213,7 @@ def p_roadmap(pdf):
 
 def p_insights(pdf):
     fig = plt.figure(figsize=(16, 9)); ax = base(fig, "Key Insights — What the Data Taught Us",
-                                                 "Hard-won, evidence-based — the lessons behind Arjuna", "7")
+                                                 "Hard-won, evidence-based — the lessons behind ARJUNA", "7")
     cards = [
         ("THE EDGE IS THE BASKET", GREEN,
          "Future winners & losers look identical at entry\n(AI AUC 0.47). You can't cherry-pick —\nhold the top-5, the math wins in aggregate."),
@@ -238,7 +238,7 @@ def p_insights(pdf):
     pdf.savefig(fig); plt.close(fig)
 
 
-out = ROOT / "docs" / "NexaQuant_Arjuna_Architecture.pdf"
+out = ROOT / "docs" / "Arjuna_Architecture.pdf"
 with PdfPages(out) as pdf:
     p_cover(pdf); p_flow(pdf); p_results(pdf); p_evidence(pdf); p_insights(pdf); p_influences(pdf); p_roadmap(pdf)
 print(f"PDF written: {out}")
