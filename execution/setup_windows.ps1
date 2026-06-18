@@ -26,11 +26,11 @@ foreach ($v in "MT5_LOGIN","MT5_PASSWORD","MT5_SERVER") {
   if (-not (Get-Item "env:$v" -ErrorAction SilentlyContinue)) { throw "Set $v before running (\$env:$v='...')." }
 }
 
-Write-Host "==> [1/6] Python check + dependencies"
+Write-Host "==> [1/6] Python check + SLIM live dependencies (no heavy ML stack)"
 $py = (Get-Command python -ErrorAction SilentlyContinue).Source
 if (-not $py) { throw "Python not found. Install Python 3.12 from python.org (tick 'Add to PATH'), then re-run." }
-& $py -m pip install --quiet -r requirements.txt
-& $py -m pip install --quiet MetaTrader5
+& $py -m pip install --quiet --upgrade pip
+& $py -m pip install --quiet -r requirements-live.txt    # slim: MetaTrader5 + pandas/numpy/... only
 
 Write-Host "==> [2/6] locate MetaTrader 5 terminal"
 $mt5 = Get-ChildItem "C:\Program Files","C:\Program Files (x86)","$env:APPDATA" -Recurse -Filter "terminal64.exe" -ErrorAction SilentlyContinue |
@@ -65,7 +65,11 @@ cd /d "$Repo"
 Write-Host "  wrote $bat  (keep private; it holds credentials)"
 
 Write-Host "==> [5/6] pre-flight check (connects, prints lots it WOULD trade, NO order)"
-& $py execution\live_trader.py $(if($Symbols){"--symbols"; $Symbols}) $(if($TF){"--tf"; $TF}) --mode $Mode --check
+$chkArgs = @("execution\live_trader.py")
+if ($Symbols -ne "") { $chkArgs += @("--symbols", $Symbols) }
+if ($TF -ne "")      { $chkArgs += @("--tf", $TF) }
+$chkArgs += @("--mode", $Mode, "--check")
+& $py @chkArgs
 
 Write-Host "==> [6/6] register auto-start + auto-restart Scheduled Task 'NexaBot'"
 $action  = New-ScheduledTaskAction -Execute $bat
