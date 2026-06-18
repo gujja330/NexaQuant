@@ -76,3 +76,24 @@ Data lives in `data/raw/india/`. Research in `india/STRATEGY_RESEARCH_INDIA.md` 
 - Top predictive feature: **ADX (trend strength)**. 
 - **Verdict:** use as a CONSERVATIVE filter only; AUC 0.55 is weak + small surviving sample.
   Real lift needs fundamentals/earnings features + more stocks/history. AI = modest filter, NOT oracle.
+
+---
+
+## CLEAN re-test + volatility control (champion update)
+Fixed a bug (S&P/VIX series had leaked into the stock universe). Clean results:
+- **Champion = momentum + low-vol + VIX de-risk** (top-5, weekly): **+145%, Sharpe 1.23,
+  maxDD 13.8%, 6/7 profitable years, worst year −9.8%.**
+- VIX de-risk (cut exposure when India VIX is in its high regime) improved EVERYTHING vs the
+  +143%/Sharpe 1.04 base: higher return, Sharpe 1.04→1.23, drawdown 18.9%→13.8%, and shrank
+  the 2026 crash −15% → −9.8%. The "control volatility" instinct was right.
+- Sector cap HURT on the 23-stock universe (121%, too restrictive); correlation cap neutral.
+- Long-term variant (12m momentum, monthly) was weaker (+68%) → the WEEKLY 6m picker wins.
+- Current buy list (2026-06-18): TATASTEEL, NTPC, POWERGRID, ONGC, SUNPHARMA  [`python india/long_term_picker.py`]
+
+## Intraday — REJECTED  [`python india/intraday_engine.py`]
+ORB+VWAP on hourly, hard stop + EOD square-off: 11,695 trades, 38% win, **−0.091%/trade**,
+losing EVERY year. Same lesson as M5/M15 crypto — intraday is noise+cost. Dropped.
+
+## Influences embedded / to embed → see india/INFLUENCES.md
+Global (S&P/China/DXY/crude/USD-INR/VIX), sector rotation (metals/IT/auto/EV), FII flows,
+earnings/PEAD. We react to news via its footprint (VIX + price), never predict headlines.

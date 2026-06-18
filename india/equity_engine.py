@@ -34,7 +34,9 @@ def load():
     for f in sorted(glob.glob(str(RAW / "*_D1.parquet"))):
         s = os.path.basename(f).replace("_D1.parquet", "")
         data[s] = pd.read_parquet(f).sort_index()
-    stocks = [s for s in data if s not in ("NSEI", "NSEBANK")]
+    # exclude indices + macro series (SP500/VIX saved here for the guard) from the STOCK universe
+    NON_STOCKS = ("NSEI", "NSEBANK", "SP500", "INDIAVIX", "fundamentals")
+    stocks = [s for s in data if s not in NON_STOCKS]
     closes = pd.DataFrame({s: data[s]["close"] for s in stocks}).dropna(how="all")
     index_close = data[INDEX]["close"].reindex(closes.index).ffill()
     return closes.dropna(), index_close
