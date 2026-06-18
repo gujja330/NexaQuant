@@ -439,10 +439,18 @@ class MultiBot:
         acc = mt5.account_info()
         bal = float(acc.balance) if acc else 10000.0
         self.rm = RiskManager(bal, risk_per_trade=self.risk_per_trade, max_drawdown=self.max_dd)
+        # SAFETY: multiple edges on ONE symbol need a HEDGING account (independent positions).
+        # On a NETTING account they'd share a single position/SL and fight — so detect the
+        # margin mode and, if netting, fall back to ONE edge per symbol (no same-symbol stacking).
+        hedging = bool(acc and getattr(acc, "margin_mode", None) == mt5.ACCOUNT_MARGIN_MODE_RETAIL_HEDGING)
+        if not hedging and len(self.edges) > 1:
+            print(f"  ! NETTING account — multiple edges per symbol would share one position. "
+                  f"Falling back to one edge per symbol ('{self.edges[0]}') for safe execution.")
+            self.edges = [self.edges[0]]
         if acc:
             print(f"  connected: balance={acc.balance} {acc.currency} server={kw['server']}  "
                   f"symbols={','.join(self.symbols)} edges={','.join(self.edges)} "
-                  f"({len(self.symbols)*len(self.edges)} sleeves, ONE terminal)")
+                  f"({len(self.symbols)*len(self.edges)} sleeves, {'HEDGING' if hedging else 'NETTING'}, ONE terminal)")
         # every sleeve shares the SAME mt5 handle + account-wide RiskManager
         self.bots = self._make_bots(rm=self.rm, mt5h=mt5)
         return True
