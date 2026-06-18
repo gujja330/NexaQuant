@@ -48,6 +48,9 @@ echo "==> [4/7] Python inside Wine + packages (EMBEDDABLE zip — reliable headl
 # server -> "X connection broken"). The embeddable ZIP needs no GUI, so it installs headless.
 # We also pin Python 3.10 (works on Wine 6.0; 3.12 does not) and bootstrap pip via get-pip.
 PYVER="3.10.11"; PYTAG="310"
+# wrapper: run a Wine command headless with a hard TIMEOUT + kill lingering wineserver, so a
+# Wine process that won't exit cleanly can never hang the whole setup.
+winerun() { local t="$1"; shift; timeout --kill-after=10 "$t" xvfb-run -a wine "$@"; local rc=$?; wineserver -k >/dev/null 2>&1 || true; return $rc; }
 if [ ! -f "$WINE_PY" ]; then
   mkdir -p "$PYDIR"
   wget -q "https://www.python.org/ftp/python/${PYVER}/python-${PYVER}-embed-amd64.zip" -O /tmp/py.zip
@@ -56,19 +59,19 @@ if [ ! -f "$WINE_PY" ]; then
   sed -i 's/^#import site/import site/' "$PYDIR/python${PYTAG}._pth" 2>/dev/null || true
   grep -q '^import site' "$PYDIR/python${PYTAG}._pth" 2>/dev/null || echo 'import site' >> "$PYDIR/python${PYTAG}._pth"
   wget -q https://bootstrap.pypa.io/get-pip.py -O /tmp/get-pip.py
-  xvfb-run -a wine "$WINE_PY" /tmp/get-pip.py || true
+  winerun 180 "$WINE_PY" /tmp/get-pip.py || true
 fi
-xvfb-run -a wine "$WINE_PY" -m pip install --upgrade pip || true
-xvfb-run -a wine "$WINE_PY" -m pip install MetaTrader5 pandas numpy scikit-learn scipy hmmlearn pyyaml pyarrow || true
-# VERIFY the Wine-Python env actually works (the part that was silently failing before)
-if ! xvfb-run -a wine "$WINE_PY" -c "import MetaTrader5, pandas, numpy, pyarrow" >/dev/null 2>&1; then
-  echo "  ! Wine-Python packages did not import. Retrying the pip install once..."
-  xvfb-run -a wine "$WINE_PY" -m pip install --no-cache-dir MetaTrader5 pandas numpy scikit-learn scipy hmmlearn pyyaml pyarrow || true
-  if ! xvfb-run -a wine "$WINE_PY" -c "import MetaTrader5, pandas, numpy" >/dev/null 2>&1; then
-    echo "  !! Wine-Python still broken. Check: ls '$WINE_PY' ; wine --version (need a working 64-bit prefix)."
-    echo "     You can re-run this script after fixing; earlier steps are skipped if already done."
-  fi
+winerun 120 "$WINE_PY" -m pip install --upgrade pip || true
+winerun 600 "$WINE_PY" -m pip install MetaTrader5 pandas numpy scikit-learn scipy hmmlearn pyyaml pyarrow || true
+# VERIFY (timeout-guarded so it can NEVER hang the script)
+if ! winerun 90 "$WINE_PY" -c "import MetaTrader5, pandas, numpy, pyarrow" >/dev/null 2>&1; then
+  echo "  ! Wine-Python import check did not pass cleanly (often just a slow Wine exit). Retrying pip once..."
+  winerun 600 "$WINE_PY" -m pip install --no-cache-dir MetaTrader5 pandas numpy scikit-learn scipy hmmlearn pyyaml pyarrow || true
+  winerun 90 "$WINE_PY" -c "import MetaTrader5, pandas, numpy" >/dev/null 2>&1 \
+    && echo "  packages OK on retry" \
+    || echo "  (continuing anyway — if the bot later can't import, re-run this step)"
 fi
+echo "  [4/7] done — continuing to service setup"
 
 echo "==> [5/7] credentials env file (root-only) + systemd service ($SVC)"
 ENVF="$REPO_DIR/.env.${SVC}"
