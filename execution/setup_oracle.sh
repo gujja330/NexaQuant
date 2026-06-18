@@ -49,13 +49,19 @@ if echo "$WINEVER" | grep -qE 'wine-([0-7])\.'  || [ "$WINEVER" = none ]; then
   echo "  wine now: $(wine --version 2>/dev/null)"
 fi
 
-echo "==> [2/7] 4G swap (1GB RAM VMs are tight for MT5+Wine)"
+echo "==> [2/7] 8G swap (1GB RAM VMs are tight for MT5+Wine)"
 if ! sudo swapon --show | grep -q /swapfile; then
-  sudo fallocate -l 4G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile
+  sudo fallocate -l 8G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile
   echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+elif [ "$(stat -c%s /swapfile 2>/dev/null || echo 0)" -lt 5000000000 ]; then
+  sudo swapoff /swapfile && sudo fallocate -l 8G /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile
 fi
+sudo sysctl -w vm.swappiness=80 >/dev/null 2>&1 || true   # lean on swap (slow but won't OOM)
 
-export WINEDEBUG=-all DISPLAY=:0 WINEARCH=win64 WINEPREFIX="$HOME/.wine"
+# CRITICAL: disable Wine's Mono(.NET) + Gecko(HTML) so they NEVER prompt to install. Headless
+# (no display to click), those prompts hang Wine indefinitely — the likely cause of the MT5
+# installer stalling for 30+ min. MT5 trading does not need either component.
+export WINEDEBUG=-all DISPLAY=:0 WINEARCH=win64 WINEPREFIX="$HOME/.wine" WINEDLLOVERRIDES="mscoree=;mshtml="
 echo "==> [2b/7] initialise the Wine prefix (creates kernel32 etc. — must exist before Python)"
 echo "  wine version: $(wine --version 2>/dev/null || echo UNKNOWN)"
 if [ ! -f "$HOME/.wine/system.reg" ]; then
@@ -69,10 +75,18 @@ if ! timeout 60 xvfb-run -a wine cmd /c ver >/dev/null 2>&1; then
   rm -rf "$HOME/.wine"; timeout 240 xvfb-run -a wineboot --init >/dev/null 2>&1; timeout 60 wineserver -w 2>/dev/null || true; sleep 3
 fi
 
-echo "==> [3/7] MT5 terminal under Wine (silent install)"
+echo "==> [3/7] MT5 terminal under Wine (silent install; mono/gecko disabled so it can't hang)"
 if [ ! -f "$MT5_EXE" ]; then
   wget -q https://download.mql5.com/cdn/web/metaquotes.software.corp/mt5/mt5setup.exe -O /tmp/mt5setup.exe
-  xvfb-run -a wine /tmp/mt5setup.exe /auto || echo "  (if this stalls, run mt5setup.exe once interactively)"
+  # hard timeout so a stall can't block forever; mono/gecko prompts are disabled via WINEDLLOVERRIDES
+  timeout --kill-after=20 600 xvfb-run -a wine /tmp/mt5setup.exe /auto
+  wineserver -k >/dev/null 2>&1 || true
+fi
+if [ -f "$MT5_EXE" ]; then
+  echo "  MT5 terminal installed OK"
+else
+  echo "  ! MT5 terminal NOT found after install. If this box is 1GB RAM and it keeps stalling,"
+  echo "    the fix is more RAM — recreate on an Oracle Ampere ARM (free, 24GB). See docs."
 fi
 
 echo "==> [4/7] Python inside Wine + packages (EMBEDDABLE zip — reliable headless on old Wine)"
