@@ -36,8 +36,9 @@ EXIT = playbook.EXIT
 
 
 class NexaBot:
-    def __init__(self, symbol, tf, mode="dry-run", equity=10000.0, rm=None, mt5_handle=None):
+    def __init__(self, symbol, tf, mode="dry-run", equity=10000.0, rm=None, mt5_handle=None, edge="trend"):
         self.symbol, self.tf, self.mode = symbol, tf, mode
+        self.edge = edge          # "trend" or "breakout" — one SLEEVE of the multi-edge portfolio
         sysc = cfg().get("system", {})
         self.risk_per_trade = sysc.get("risk_per_trade", 0.01)
         # rm/mt5_handle injected => this bot is part of a MultiBot that shares ONE MT5 terminal
@@ -45,11 +46,15 @@ class NexaBot:
         self._shared = rm is not None
         self.rm = rm if rm is not None else RiskManager(
             equity, risk_per_trade=self.risk_per_trade, max_drawdown=sysc.get("max_drawdown_limit", 0.20))
-        self.pos = None          # paper/dry-run open position dict
+        self.pos = None          # paper/dry-run open position dict (this sleeve's own position)
         self.mt5 = mt5_handle
         self.sp = {"pip_size": 0.1, "cost": 0.5}
         self.health_file = ROOT / "execution" / "health.json"
         self.license_stale_days = 21    # weekly loop runs every 7d; >21d w/o a check = stale
+        # stable per-sleeve MAGIC number so each (symbol,tf,edge) sleeve's orders/positions are
+        # tracked independently at the broker and never interfere with another sleeve.
+        self.magic = 1_000_000 + (abs(hash(f"{symbol}:{tf}:{edge}")) % 8_000_000)
+        self.tag = f"{symbol}/{edge}"
 
     # ---------------- data ----------------
     def connect(self):
@@ -89,16 +94,23 @@ class NexaBot:
 
     # ---------------- decision logic (reuses validated strategy) ----------------
     def decide(self, df):
-        """Direction-aware decision for the latest CLOSED bar: LONG in bullish-trend
-        regime, SHORT in bearish-trend regime (the validated long+short config), with
-        confidence-scaled size and side-correct stop/momentum."""
+        """Direction-aware decision for the latest CLOSED bar, for THIS sleeve's edge:
+          trend    : regime-gated EMA continuation (+ per-symbol TSM/macro gates)
+          breakout : Donchian channel break (length from edges.breakout.length)
+        Both ride the same ATR-stop + momentum-exit machinery, confidence-scaled size."""
         self.sp = symbol_params(self.symbol, df["close"])
         method = "hmm" if len(df) >= cfg().get("pipeline", {}).get("hmm_min_bars", 6000) else "adx"
         reg = playbook.regime_labels(df, method)
-        inst = cfg().get("instruments", {}).get(self.symbol, {})
-        tsm = float(inst.get("tsm_confirm", 0.0)); mg = bool(inst.get("macro_gate", False))
-        long_sig = bool(playbook.entries(df, side="long", regime=reg, tsm_confirm=tsm, macro_gate=mg).iloc[-1])
-        short_sig = bool(playbook.entries(df, side="short", regime=reg, tsm_confirm=tsm, macro_gate=mg).iloc[-1])
+        if self.edge == "breakout":
+            from strategy import breakout
+            n = int(cfg().get("edges", {}).get("breakout", {}).get("length", 20))
+            long_sig = bool(breakout.entries(df, side="long", n=n).iloc[-1])
+            short_sig = bool(breakout.entries(df, side="short", n=n).iloc[-1])
+        else:
+            inst = cfg().get("instruments", {}).get(self.symbol, {})
+            tsm = float(inst.get("tsm_confirm", 0.0)); mg = bool(inst.get("macro_gate", False))
+            long_sig = bool(playbook.entries(df, side="long", regime=reg, tsm_confirm=tsm, macro_gate=mg).iloc[-1])
+            short_sig = bool(playbook.entries(df, side="short", regime=reg, tsm_confirm=tsm, macro_gate=mg).iloc[-1])
         a = atr(df, 14); bar = df.iloc[-1]; atr_now = float(a.iloc[-1])
         ema20 = ema(df["close"], 20).iloc[-1]
         side = 1 if long_sig else (-1 if short_sig else 0)
@@ -221,7 +233,7 @@ class NexaBot:
             if not licensed:
                 print(f"  [{dec['time']}] entry blocked: {lic_why}")
                 if write_signal:
-                    (ROOT / f"data/raw/signal_{self.symbol}.json").write_text(
+                    (ROOT / f"data/raw/signal_{self.symbol}_{self.edge}.json").write_text(
                         json.dumps({**dec, "position": self.pos, "license": lic_why}, default=str))
                 return dec
             allowed, why = self.rm.can_open(dec["time"], self.risk_per_trade)
@@ -233,16 +245,16 @@ class NexaBot:
                 self.rm.on_open(self.risk_per_trade)
                 self._broker_order(dec, units, dec["side"])
                 direction = "BUY" if dec["side"] == 1 else "SELL"
-                msg = (f"{direction} {self.symbol} {self.tf} @ {dec['price']} SL={dec['stop_loss']} "
+                msg = (f"{direction} {self.tag} {self.tf} @ {dec['price']} SL={dec['stop_loss']} "
                        f"units={units} conf={dec.get('conf',1.0)}x")
                 print(f"  [{dec['time']}] {msg}")
                 self._notify(msg)
             elif why != "ok":
-                print(f"  [{dec['time']}] entry blocked: {why}")
+                print(f"  [{dec['time']}] entry blocked ({self.tag}): {why}")
                 if "KILL" in why:
-                    self._notify(f"KILL-SWITCH {self.symbol}: {why}")
+                    self._notify(f"KILL-SWITCH {self.tag}: {why}")
         if write_signal:
-            (ROOT / f"data/raw/signal_{self.symbol}.json").write_text(json.dumps({**dec, "position": self.pos}, default=str))
+            (ROOT / f"data/raw/signal_{self.symbol}_{self.edge}.json").write_text(json.dumps({**dec, "position": self.pos}, default=str))
         return dec
 
     def _notify(self, msg):
@@ -303,18 +315,24 @@ class NexaBot:
         otype = self.mt5.ORDER_TYPE_BUY if side == 1 else self.mt5.ORDER_TYPE_SELL
         req = {"action": self.mt5.TRADE_ACTION_DEAL, "symbol": self.symbol, "volume": lots,
                "type": otype, "price": price, "sl": self.pos["sl"], "deviation": 20,
+               "magic": self.magic, "comment": f"nexa-{self.edge}",   # tag this sleeve's orders
                "type_filling": self._filling_mode(info)}
         r = self.mt5.order_send(req)
         if r is None or r.retcode != self.mt5.TRADE_RETCODE_DONE:
-            msg = f"ORDER FAILED {self.symbol}: {getattr(r,'retcode','?')} {getattr(r,'comment','')}"
+            msg = f"ORDER FAILED {self.tag}: {getattr(r,'retcode','?')} {getattr(r,'comment','')}"
             print("  " + msg); self._notify(msg); self.pos = None
 
     def _broker_close(self, units, side=1):
         if self.mode == "dry-run" or self.mt5 is None:
             return
+        info = self.mt5.symbol_info(self.symbol)
         close_type = self.mt5.ORDER_TYPE_SELL if side == 1 else self.mt5.ORDER_TYPE_BUY
+        tick = self.mt5.symbol_info_tick(self.symbol)
+        price = tick.bid if side == 1 else tick.ask
         req = {"action": self.mt5.TRADE_ACTION_DEAL, "symbol": self.symbol,
-               "volume": max(0.01, round(units, 2)), "type": close_type, "deviation": 20}
+               "volume": max(info.volume_min, round(units, 2)), "type": close_type, "price": price,
+               "deviation": 20, "magic": self.magic, "comment": f"nexa-{self.edge}-close",
+               "type_filling": self._filling_mode(info)}
         self.mt5.order_send(req)
 
     # ---------------- offline replay (dry-run proof) ----------------
@@ -385,10 +403,16 @@ class MultiBot:
         sysc = cfg().get("system", {})
         self.risk_per_trade = sysc.get("risk_per_trade", 0.005)
         self.max_dd = sysc.get("max_drawdown_limit", 0.20)
+        self.edges = list(sysc.get("live_edges", ["trend"]))   # sleeves per symbol (config-driven)
+
+    def _make_bots(self, rm=None, mt5h=None):
+        """One NexaBot per (symbol x edge) sleeve — the live multi-edge portfolio."""
+        return [NexaBot(s, self.tf, mode=self.mode, rm=rm, mt5_handle=mt5h, edge=e)
+                for s in self.symbols for e in self.edges]
 
     def connect(self):
         if self.mode == "dry-run":
-            self.bots = [NexaBot(s, self.tf, mode=self.mode) for s in self.symbols]
+            self.bots = self._make_bots()
             return True
         import os
         import MetaTrader5 as mt5
@@ -407,10 +431,10 @@ class MultiBot:
         self.rm = RiskManager(bal, risk_per_trade=self.risk_per_trade, max_drawdown=self.max_dd)
         if acc:
             print(f"  connected: balance={acc.balance} {acc.currency} server={kw['server']}  "
-                  f"symbols={','.join(self.symbols)} (ONE terminal)")
-        # every symbol shares the SAME mt5 handle + RiskManager
-        self.bots = [NexaBot(s, self.tf, mode=self.mode, rm=self.rm, mt5_handle=mt5)
-                     for s in self.symbols]
+                  f"symbols={','.join(self.symbols)} edges={','.join(self.edges)} "
+                  f"({len(self.symbols)*len(self.edges)} sleeves, ONE terminal)")
+        # every sleeve shares the SAME mt5 handle + account-wide RiskManager
+        self.bots = self._make_bots(rm=self.rm, mt5h=mt5)
         return True
 
     def _refresh_equity(self):
