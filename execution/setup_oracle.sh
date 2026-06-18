@@ -55,7 +55,20 @@ if ! sudo swapon --show | grep -q /swapfile; then
   echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
 fi
 
-export WINEDEBUG=-all DISPLAY=:0
+export WINEDEBUG=-all DISPLAY=:0 WINEARCH=win64 WINEPREFIX="$HOME/.wine"
+echo "==> [2b/7] initialise the Wine prefix (creates kernel32 etc. — must exist before Python)"
+echo "  wine version: $(wine --version 2>/dev/null || echo UNKNOWN)"
+if [ ! -f "$HOME/.wine/system.reg" ]; then
+  timeout 240 xvfb-run -a wineboot --init >/dev/null 2>&1
+  timeout 60 wineserver -w 2>/dev/null || true
+  sleep 3
+fi
+# sanity: the prefix must be able to load core DLLs, else Python will fail with c0000135
+if ! timeout 60 xvfb-run -a wine cmd /c ver >/dev/null 2>&1; then
+  echo "  ! Wine prefix not healthy yet — forcing a rebuild"
+  rm -rf "$HOME/.wine"; timeout 240 xvfb-run -a wineboot --init >/dev/null 2>&1; timeout 60 wineserver -w 2>/dev/null || true; sleep 3
+fi
+
 echo "==> [3/7] MT5 terminal under Wine (silent install)"
 if [ ! -f "$MT5_EXE" ]; then
   wget -q https://download.mql5.com/cdn/web/metaquotes.software.corp/mt5/mt5setup.exe -O /tmp/mt5setup.exe
