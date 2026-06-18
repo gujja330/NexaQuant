@@ -604,6 +604,98 @@ def page_findings(pdf):
     pdf.savefig(fig); plt.close(fig)
 
 
+def page_sizing(pdf):
+    fig = plt.figure(figsize=(16, 9))
+    ax = base_ax(fig, "Position Sizing & Safety — Option B (dynamic, compounding)",
+                 "Confidence-scaled lots, earned by account growth — never hardcoded, never ruinous", "14")
+    # Option B formula
+    box(ax, 0.4, 6.95, 15.2, 1.25, "", "#eef4ff", ec=BLUE, rs=0.03)
+    ax.text(0.65, 8.0, "OPTION B — how every lot is sized (execution/live_trader._calc_lots)", color=BLUE, fontsize=11, fontweight="bold", va="top")
+    ax.text(0.65, 7.55,
+            "lot = (live_balance x risk% x CONFIDENCE) / broker_loss_per_lot     [read live from MT5 symbol_info]\n"
+            "risk% tiers 0.5/1/2% by trend strength; CONFIDENCE = ADX x lengthy-candle boost. Re-reads balance each\n"
+            "cycle: compounds up as profit grows, shrinks on withdrawal/drawdown. Zero hardcoding; any broker/account.",
+            color=SLATE, fontsize=9.2, va="top")
+    # $10 lot study
+    ax.text(0.4, 6.5, "$10 account, 3-yr BTC H4 — fixed lots vs Option B", color=INK, fontsize=12.5, fontweight="bold", va="top")
+    rows = [("fixed 0.01 (standard acct)", "RUINED on trade #1 — one stop > the whole $10", RED),
+            ("fixed 0.05 (cent acct)", "+49% but 46% drawdown — pure leverage, no skill", AMBER),
+            ("Option B %-risk compounding", "+9% at 4% drawdown — best risk-adjusted, can't be ruined", GREEN)]
+    y = 5.95
+    for name, res, col in rows:
+        ax.add_patch(plt.Rectangle((0.4, y - 0.18), 15.2, 0.56, fc=CARD, ec="#dbe4f0", lw=0.6))
+        ax.add_patch(plt.Rectangle((0.4, y - 0.18), 0.1, 0.56, fc=col))
+        ax.text(0.65, y + 0.08, name, color=INK, fontsize=9.6, va="center", fontweight="bold")
+        ax.text(6.7, y + 0.02, res, color=col, fontsize=8.8, va="center", fontweight="bold")
+        y -= 0.66
+    ax.text(0.4, 3.75,
+            "WHEN bigger lots (0.02/0.04/0.05) apply: as the balance GROWS (~$20/$40/$50 -> next tier) AND on\n"
+            "HIGH-CONFIDENCE trades (strong ADX + lengthy candle multiply the lot 2-4x). Earned, not forced onto $10.",
+            color=SLATE, fontsize=9.3, va="top")
+    # safety: trading license
+    box(ax, 0.4, 0.5, 15.2, 2.55, "", "#eafaf0", ec=GREEN, rs=0.03)
+    ax.text(0.65, 2.9, "SELF-LEARNING + SAFETY  (execution/auto_update.py -> health.json -> the bot)", color=GREEN, fontsize=11, fontweight="bold", va="top")
+    ax.text(0.65, 2.5,
+            "Weekly (systemd timer): pull fresh bars -> re-validate via anchored PER-YEAR walk-forward -> promote a\n"
+            "config only if it BEATS the champion (never auto-degrades) -> write the bot's TRADING LICENSE.\n"
+            "The live bot reads the license each cycle and AUTO-STANDS-DOWN to manage-only if the edge stops\n"
+            "persisting on fresh data or the check goes stale (>21d). Risk guards: ATR stop (non-negotiable),\n"
+            "daily-loss + drawdown kill switch, vol-spike/news blackout, tiny-account feasibility skip.\n"
+            "Self-learning WITH a guardrail — it can never keep trading a dead strategy or over-risk a small account.",
+            color=SLATE, fontsize=9, va="top")
+    pdf.savefig(fig); plt.close(fig)
+
+
+def page_backlog(pdf):
+    fig = plt.figure(figsize=(16, 9))
+    ax = base_ax(fig, "Strategy Backlog Development (v4)",
+                 "Research-sourced ideas, each tested under the rigor gate — kept only if it provably helped", "13")
+    # ADOPTED
+    ax.text(0.4, 8.05, "ADOPTED (gold-only — BTC entries already clean)", color=GREEN, fontsize=12.5, fontweight="bold", va="top")
+    adopt = [("Multi-lookback TSM confirmation", "require 20/60/120/240-bar momentum agreement", "gold Sharpe -0.14 -> +0.55"),
+             ("Fundamental macro gate", "real yields + DXY falling = gold-bullish (free data)", "stacks: Sharpe 0.19 -> 0.68, win 38->44%")]
+    y = 7.5
+    for name, how, res in adopt:
+        ax.add_patch(plt.Rectangle((0.4, y - 0.2), 15.2, 0.62, fc="#eafaf0", ec=GREEN, lw=0.8))
+        ax.add_patch(plt.Rectangle((0.4, y - 0.2), 0.1, 0.62, fc=GREEN))
+        ax.text(0.65, y + 0.12, name, color=INK, fontsize=10, va="center", fontweight="bold")
+        ax.text(0.65, y - 0.12, how, color=SLATE, fontsize=8.4, va="center")
+        ax.text(11.2, y, res, color=GREEN, fontsize=8.6, va="center", fontweight="bold")
+        y -= 0.74
+    # REJECTED
+    ax.text(0.4, 5.75, "REJECTED (tested, did not beat the champion)", color=RED, fontsize=12.5, fontweight="bold", va="top")
+    rej = [("Volatility-targeting overlay", "already implicit in our ATR-stop risk sizing"),
+           ("Crash-protection de-risk", "over-trims winners; tiny DD gain, lower Sharpe"),
+           ("Meta-label as AI sizer", "CPCV AUC ~0.50 = no skill yet -> keep ADX confidence"),
+           ("Mean-reversion sleeve (ranges)", "loses; ranges break into trends on BTC/gold")]
+    y = 5.25
+    for name, why in rej:
+        ax.add_patch(plt.Rectangle((0.4, y - 0.16), 15.2, 0.5, fc=CARD, ec="#dbe4f0", lw=0.6))
+        ax.add_patch(plt.Rectangle((0.4, y - 0.16), 0.1, 0.5, fc=RED))
+        ax.text(0.65, y + 0.08, name, color=INK, fontsize=9.5, va="center", fontweight="bold")
+        ax.text(0.65, y - 0.1, why, color=SLATE, fontsize=8.2, va="center")
+        y -= 0.6
+    # 3-YEAR RESULTS + honest verdict
+    box(ax, 0.4, 0.5, 7.5, 2.0, "", "#eafaf0", ec=GREEN, rs=0.03)
+    ax.text(0.65, 2.35, "LAST 3 YEARS (0.5%-base Option B, net of cost)", color=GREEN, fontsize=10, fontweight="bold", va="top")
+    ax.text(0.65, 1.95,
+            "BTC H4: 3/3 years profitable, +8.5% compounded,\n"
+            "drawdown <= 4.3%. Gold H4: thin history (~2y),\n"
+            "+5.1%. Lever for bigger returns = base risk (tiers\n"
+            "already scale to 2% on strong trades; ~linear).",
+            color=SLATE, fontsize=9, va="top")
+    box(ax, 8.1, 0.5, 7.5, 2.0, "", "#eef4ff", ec=BLUE, rs=0.03)
+    ax.text(8.35, 2.35, "HONEST VERDICT", color=BLUE, fontsize=10, fontweight="bold", va="top")
+    ax.text(8.35, 1.95,
+            "The bottleneck is DATA, not techniques: sizing\n"
+            "overlays don't help an already risk-normalised book;\n"
+            "signal-quality filters (TSM, macro) help GOLD. AI\n"
+            "meta-label has no skill yet (needs deeper history).\n"
+            "Edge is real but regime-dependent — paper-trade first.",
+            color=SLATE, fontsize=9, va="top")
+    pdf.savefig(fig); plt.close(fig)
+
+
 def main():
     df, reg, eq_bh, eq_ct, eq_gt, d1, reg_d1 = load_curves()
     out = ROOT / "docs" / "NexaQuant_Architecture.pdf"
@@ -620,6 +712,8 @@ def main():
         page_research(pdf)
         page_latest(pdf)
         page_findings(pdf)
+        page_backlog(pdf)
+        page_sizing(pdf)
         page_roadmap(pdf)
     print(f"PDF written: {out}")
 
