@@ -29,11 +29,25 @@ MT5_EXE="$HOME/.wine/drive_c/Program Files/MetaTrader 5/terminal64.exe"
 
 : "${MT5_LOGIN:?set MT5_LOGIN}"; : "${MT5_PASSWORD:?set MT5_PASSWORD}"; : "${MT5_SERVER:?set MT5_SERVER}"
 
-echo "==> [1/7] system packages + Wine + Xvfb"
+echo "==> [1/7] system packages + WineHQ + Xvfb"
 sudo dpkg --add-architecture i386 || true
 sudo apt-get update -y
-sudo apt-get install -y wine64 wine32:i386 winbind xvfb wget unzip python3 python3-pip git || \
-  sudo apt-get install -y wine64 winbind xvfb wget unzip python3 python3-pip git
+sudo apt-get install -y wget unzip xvfb winbind python3 python3-pip git || true
+# WineHQ (modern Wine). Ubuntu's distro Wine 6.0 lacks CRT functions numpy/scipy call
+# (api-ms-win-crt-runtime ...fetestexcept) and CRASH-LOOPS the bot. Install WineHQ stable;
+# fall back to distro wine only if the WineHQ repo is unreachable.
+WINEVER="$(wine --version 2>/dev/null || echo none)"
+if echo "$WINEVER" | grep -qE 'wine-([0-7])\.'  || [ "$WINEVER" = none ]; then
+  echo "  installing WineHQ stable (current: $WINEVER) ..."
+  . /etc/os-release; CODE="${UBUNTU_CODENAME:-jammy}"
+  sudo mkdir -pm755 /etc/apt/keyrings
+  sudo wget -qO /etc/apt/keyrings/winehq-archive.key https://dl.winehq.org/wine-builds/winehq.key
+  sudo wget -qNP /etc/apt/sources.list.d/ "https://dl.winehq.org/wine-builds/ubuntu/dists/${CODE}/winehq-${CODE}.sources"
+  sudo apt-get update -y
+  sudo apt-get install -y --install-recommends winehq-stable \
+    || sudo apt-get install -y wine64 wine32:i386 winbind   # fallback (may still be too old)
+  echo "  wine now: $(wine --version 2>/dev/null)"
+fi
 
 echo "==> [2/7] 4G swap (1GB RAM VMs are tight for MT5+Wine)"
 if ! sudo swapon --show | grep -q /swapfile; then

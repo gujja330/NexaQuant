@@ -90,6 +90,14 @@ sudo systemctl restart nexabot     # restart so the bot picks up changes
 
 ## Troubleshooting
 ```bash
+# CRASH-LOOP: log shows "Unimplemented function ...crt-runtime...fetestexcept, aborting"
+#   -> Ubuntu's Wine 6.0 is too old for numpy. Upgrade to WineHQ + recreate the prefix:
+sudo systemctl stop nexabot
+git pull                                   # gets the WineHQ-enabled setup
+rm -rf ~/.wine                             # recreate the prefix under the new Wine
+export MT5_LOGIN=183286147 MT5_PASSWORD='YOUR_NEW_PASSWORD' MT5_SERVER='Exness-MT5Real25'
+bash execution/setup_oracle.sh             # installs WineHQ, rebuilds everything
+
 # a Wine command hangs / "stopped on same screen": interrupt + kill lingering Wine
 Ctrl + C
 wineserver -k 2>/dev/null
