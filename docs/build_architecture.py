@@ -604,6 +604,54 @@ def page_findings(pdf):
     pdf.savefig(fig); plt.close(fig)
 
 
+def page_portfolio(pdf):
+    fig = plt.figure(figsize=(16, 9))
+    ax = base_ax(fig, "The Consistency Engine — Multi-Edge Portfolio (v5)",
+                 "Diversification across UNCORRELATED edges = the only free lunch; the path to consistent long-term", "15")
+    # concept
+    box(ax, 0.4, 7.0, 15.2, 1.2, "", "#eef4ff", ec=BLUE, rs=0.03)
+    ax.text(0.65, 8.05, "WHY A PORTFOLIO", color=BLUE, fontsize=11, fontweight="bold", va="top")
+    ax.text(0.65, 7.62,
+            "One edge is regime-dependent — when trends die it idles. Combining several edges that are NOT\n"
+            "correlated means a drawdown in one is cushioned by the others. Equal-risk (inverse-vol) weighting,\n"
+            "config-driven (edges block), each sleeve validated independently and watched for decay by the weekly loop.",
+            color=SLATE, fontsize=9.2, va="top")
+    # results table
+    ax.text(0.4, 6.55, "Single edge vs 4-sleeve portfolio (per-year, net of cost, Option B)", color=INK, fontsize=12.5, fontweight="bold")
+    rows = [("metric", "trend:BTC only", "PORTFOLIO (4 sleeves)", INK),
+            ("Full 5y return", "+24.3%", "+34.2%", GREEN),
+            ("Last 3y compounded", "+8.5%", "+10.8%", GREEN),
+            ("Max drawdown", "4.3%", "5.3%", AMBER),
+            ("Profitable years", "6/6", "6/6", GREEN),
+            ("Return sources", "1 (fragile)", "4 uncorrelated (durable)", GREEN)]
+    y = 5.95
+    for met, a_, b_, col in rows:
+        hdr = (met == "metric")
+        ax.add_patch(plt.Rectangle((0.4, y - 0.16), 15.2, 0.5, fc=(CARD if not hdr else "#e9eef6"), ec="#dbe4f0", lw=0.6))
+        ax.text(0.7, y + 0.08, met, color=INK, fontsize=9.3, va="center", fontweight="bold" if hdr else "normal")
+        ax.text(6.2, y + 0.08, a_, color=INK, fontsize=9.3, va="center")
+        ax.text(10.8, y + 0.08, b_, color=(INK if hdr else col), fontsize=9.3, va="center", fontweight="bold")
+        y -= 0.58
+    # edges kept/rejected + corr note
+    box(ax, 0.4, 0.5, 7.5, 2.0, "", "#eafaf0", ec=GREEN, rs=0.03)
+    ax.text(0.65, 2.35, "VALIDATED EDGES (in the book)", color=GREEN, fontsize=10, fontweight="bold", va="top")
+    ax.text(0.65, 1.95,
+            "1. Time-series TREND (EMA momentum-ride) — BTC, gold\n"
+            "2. Volatility BREAKOUT (Donchian) — BTC, gold\n"
+            "Cross-sleeve correlation ~0.0-0.3 = genuinely\n"
+            "independent. Gold also gated by TSM + macro.",
+            color=SLATE, fontsize=9, va="top")
+    box(ax, 8.1, 0.5, 7.5, 2.0, "", "#fdeeee", ec=RED, rs=0.03)
+    ax.text(8.35, 2.35, "REJECTED / NEXT", color=RED, fontsize=10, fontweight="bold", va="top")
+    ax.text(8.35, 1.95,
+            "Cross-sectional momentum: 82% DD (needs a\n"
+            "BROAD universe, not 4 correlated cryptos).\n"
+            "Path to 10/10: more instruments + edges (more\n"
+            "data), CCXT crypto infra, and a LIVE track record.",
+            color=SLATE, fontsize=9, va="top")
+    pdf.savefig(fig); plt.close(fig)
+
+
 def page_sizing(pdf):
     fig = plt.figure(figsize=(16, 9))
     ax = base_ax(fig, "Position Sizing & Safety — Option B (dynamic, compounding)",
@@ -713,6 +761,7 @@ def main():
         page_latest(pdf)
         page_findings(pdf)
         page_backlog(pdf)
+        page_portfolio(pdf)
         page_sizing(pdf)
         page_roadmap(pdf)
     print(f"PDF written: {out}")

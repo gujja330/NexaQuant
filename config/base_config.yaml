@@ -185,3 +185,31 @@ sizing:
     - [1.5, 0.005]   # confidence < 1.5  -> risk 0.5%
     - [2.0, 0.010]   # 1.5 <= conf < 2.0 -> risk 1%
     - [99.0, 0.020]  # conf >= 2.0       -> risk 2% (max)
+# Multi-edge PORTFOLIO — the consistency engine. Each edge is validated independently and
+# combined with equal-risk allocation. Everything here is config-driven (no hardcoding):
+# add an edge / instrument by editing this block, not the code.
+edges:
+  trend:                              # time-series trend-following (the existing core edge)
+    enabled: true
+    instruments: ["BTCUSDm", "XAUUSDm"]
+    timeframe: "H4"
+  xsec_momentum:                      # cross-sectional (relative-strength) momentum
+    enabled: true
+    universe: ["BTCUSDm", "ETHUSDm", "BNBUSDm", "SOLUSDm"]
+    timeframe: "D1"
+    lookback: 60                      # ranking lookback (bars)
+    skip: 5                           # skip most-recent bars (avoid short-term reversal)
+    rebal: 5                          # rebalance every N bars
+    cost_bps: 10.0                    # round-trip turnover cost (basis points)
+    long_only: false                  # false = dollar-neutral long/short
+
+  breakout:                           # volatility breakout (Donchian) — different mechanism, same instruments
+    enabled: true
+    instruments: ["BTCUSDm", "XAUUSDm"]
+    timeframe: "H4"
+    length: 20                        # Donchian channel length (bars)
+
+portfolio:
+  allocation: "equal_risk"            # combine edges at equal risk (inverse-vol weighting)
+  target_vol: 0.10                    # annualised vol target for the combined book
+  base_risk: 0.005                    # per-edge base risk anchor (Option B compatible)
