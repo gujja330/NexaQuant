@@ -24,51 +24,56 @@ git pull
 ```
 
 ## 2. Deploy / (re)start the bot — PAPER mode (start here, always)
+ONE service (`nexabot`), ONE MT5 terminal, driving BOTH pairs from config.
 ```bash
-bash execution/setup_oracle.sh BTCUSDc H4 paper
+bash execution/setup_oracle.sh
 ```
-- Installs Wine + MT5 + Python (embeddable, headless-safe) + deps, writes a systemd
+- No symbol args needed — the bot reads `system.live_symbols` (BTCUSDc, XAUUSDc) + `live_tf`
+  from `config/base_config.yaml`. Mode defaults to `paper`.
+- Installs Wine + MT5 + Python (embeddable, headless-safe) + deps, writes the systemd
   service, starts the bot, and installs the weekly self-learning timer.
 - Idempotent: safe to re-run; it skips steps already done.
-- Wait for: `DONE. Service 'nexabot-BTCUSDc-H4' is running...`
+- Wait for: `DONE. Service 'nexabot' is running (paper)...`
 - `X connection to :99 broken` and `Wine Gecko` messages are **harmless**.
-
-Run the OTHER pair too (separate service):
-```bash
-bash execution/setup_oracle.sh XAUUSDc H4 paper
-```
 
 ## 3. Verify it connected to your account
 ```bash
-systemctl status nexabot-BTCUSDc-H4 --no-pager
-journalctl -u nexabot-BTCUSDc-H4 -n 40 --no-pager
+systemctl status nexabot --no-pager
+journalctl -u nexabot -n 40 --no-pager
 ```
-✅ Good: `active (running)` + `connected: balance=1196.00 USC server=Exness-MT5Real25`
+✅ Good: `active (running)` + `connected: balance=1196.00 USC server=Exness-MT5Real25 symbols=BTCUSDc,XAUUSDc (ONE terminal)`
 
 ## 4. Pre-flight sizing check (NO order placed)
-Confirms the lot the bot would trade on your cent balance.
+Confirms the lot the bot would trade on your cent balance, per symbol.
 ```bash
 xvfb-run -a wine ~/.wine/drive_c/users/$USER/python/python.exe execution/live_trader.py \
-  --symbol BTCUSDc --tf H4 --mode paper --check
+  --mode paper --check
 ```
-- Tiny lot (e.g. `0.01`) = good. `SKIP ... too small for this symbol` = BTC min lot risks
-  too much for $12 → use **gold (XAUUSDc)** instead (smaller contract).
+- Tiny lot (e.g. `0.01`) = good. `SKIP ... too small for this symbol` = that symbol's min
+  lot risks too much for $12 → the bot stands aside on it and trades the one that fits.
+
+## Add / change traded pairs (future) — config only, NO re-setup
+Edit `system.live_symbols` in `config/base_config.yaml`, then on the VM:
+```bash
+git pull
+sudo systemctl restart nexabot
+```
 
 ---
 
 ## Daily operations
 ```bash
 # live logs (follow)
-journalctl -u nexabot-BTCUSDc-H4 -f
+journalctl -u nexabot -f
 
 # weekly self-learning loop: when it next runs + its log
 systemctl list-timers nexa-update --no-pager
 journalctl -u nexa-update -n 30 --no-pager
 
 # stop / start / restart the bot
-sudo systemctl stop    nexabot-BTCUSDc-H4
-sudo systemctl start   nexabot-BTCUSDc-H4
-sudo systemctl restart nexabot-BTCUSDc-H4
+sudo systemctl stop    nexabot
+sudo systemctl start   nexabot
+sudo systemctl restart nexabot
 
 # remove a service entirely (e.g. a wrong-symbol one)
 sudo systemctl disable --now nexabot-BTCUSD-H4
@@ -78,7 +83,7 @@ sudo systemctl disable --now nexabot-BTCUSD-H4
 ```bash
 cd ~/NexaQuant
 git pull
-sudo systemctl restart nexabot-BTCUSDc-H4     # restart so the bot picks up changes
+sudo systemctl restart nexabot     # restart so the bot picks up changes
 ```
 
 ---
@@ -109,7 +114,7 @@ xvfb-run -a wine ~/.wine/drive_c/users/$USER/python/python.exe -c "import MetaTr
 ## Going LIVE (only AFTER ~30 days of clean paper trading)
 Real money. Stop the paper service first, then start live.
 ```bash
-sudo systemctl disable --now nexabot-BTCUSDc-H4      # stop paper
+sudo systemctl disable --now nexabot      # stop paper
 export MT5_LOGIN=183286147 MT5_PASSWORD='YOUR_NEW_PASSWORD' MT5_SERVER='Exness-MT5Real25'
 bash execution/setup_oracle.sh BTCUSDc H4 live       # 3rd arg = live
 ```
