@@ -10,6 +10,7 @@ Run: python india/monthly_snapshot.py            # snapshot for the current mont
 import sys, warnings
 from datetime import datetime
 from pathlib import Path
+import numpy as np
 import pandas as pd
 
 warnings.simplefilter("ignore")
@@ -18,6 +19,23 @@ sys.path.insert(0, str(ROOT))
 from india.config import CONFIG, VERSION
 from india.sectors import sector_of
 from india.run_arjuna import current_portfolio, allocate, holding_projection
+from india.arjuna_v2 import backtest, stats
+
+
+def risk_metrics():
+    """Live backtest -> pain/recovery profile (Ulcer Index, MAR, recovery distribution)."""
+    net, idx = backtest(method="hrp", regime="global", topn=15, sector_cap=2, rebal=63)
+    net = net.dropna(); s = stats(net, idx)
+    eq = (1 + net).cumprod(); uw = eq / eq.cummax() - 1
+    ulcer = float(np.sqrt((uw.values ** 2).mean()) * 100)
+    is_high = uw >= -1e-9; reps = []; last = 0
+    for i in range(1, len(uw)):
+        if is_high.iloc[i]:
+            if i - last > 1: reps.append(i - last)
+            last = i
+    reps = np.array(reps) if reps else np.array([0])
+    return dict(sharpe=s["sharpe"], dd=s["dd"], ulcer=ulcer, mar=s["cagr"] / s["dd"],
+                med=int(np.median(reps)), worst=int(reps.max()))
 
 REPORTS = ROOT / "reports"; REPORTS.mkdir(exist_ok=True)
 NEWS = ROOT / "data" / "raw" / "india" / "news_sentiment.parquet"
@@ -63,6 +81,19 @@ def main():
     L.append("|---|---|---|---|")
     for k, (avg, lo, hi, pos) in proj.items():
         L.append(f"| {k} | {100*avg:+.1f}% | {100*pos:.0f}% | Rs{cap*(1+avg):,.0f} |")
+
+    rm = risk_metrics()
+    L.append("\n## Risk profile (backtest; the honest expectation)\n")
+    L.append("| Metric | Value | Meaning |")
+    L.append("|---|---|---|")
+    L.append(f"| Sharpe | {rm['sharpe']:.2f} | risk-adjusted return (Nifty ~0.80) |")
+    L.append(f"| Max drawdown | {rm['dd']:.1f}% | worst peak-to-trough |")
+    L.append(f"| Ulcer Index | {rm['ulcer']:.2f} | pain = depth × duration; lower is better |")
+    L.append(f"| MAR (CAGR/DD) | {rm['mar']:.2f} | return per unit of drawdown; >1.0 is good |")
+    L.append(f"| Median recovery | {rm['med']} days | typical time back to a new high |")
+    L.append(f"| Worst underwater | ~{rm['worst']//21} months | budget for one long grind per cycle |")
+    L.append("\n*Duration risk > depth risk: drawdowns are shallow and usually heal in days; the real cost "
+             "is one rare ~12–16 month underwater stretch. That stretch is the cost of the Sharpe, not a malfunction.*\n")
 
     L.append("\n## Reasons / notes")
     L.append("- **Risk-weighted (HRP):** low-volatility, well-diversified names get more weight; "

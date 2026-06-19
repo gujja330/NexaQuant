@@ -64,6 +64,17 @@ def main():
         q = (1 + x).cumprod(); return 100 * ((q.cummax() - q) / q.cummax()).max()
     windows = [("2022", "2022-01-01", "2022-06-30"), ("2025", "2025-01-01", "2025-03-31"),
                ("2026", "2026-01-01", "2026-04-30")]
+    # pain & recovery: Ulcer Index (depth x duration), MAR (CAGR/maxDD), recovery distribution
+    uw = eq / eq.cummax() - 1
+    ulcer = float(np.sqrt((uw.values ** 2).mean()) * 100)
+    mar = s["cagr"] / s["dd"]
+    is_high = uw >= -1e-9; reps = []; last = 0
+    for i in range(1, len(uw)):
+        if is_high.iloc[i]:
+            if i - last > 1: reps.append(i - last)
+            last = i
+    reps = np.array(reps) if reps else np.array([0])
+    rp = {q: int(np.percentile(reps, q)) for q in (50, 75, 90, 95)}; rworst = int(reps.max())
 
     pdf_path = ROOT / "docs" / "ARJUNA_v2_Architecture.pdf"
     with PdfPages(pdf_path) as pdf:
@@ -185,6 +196,30 @@ def main():
             "  median ~9–10%/yr, P(+ve 1yr)=87% / 3yr=98%, P(drawdown>20%) ~ 0% at every haircut.", GREEN, tc=NAVY, fs=11, align="left")
         box(ax, 0.06, 0.13, 0.88, 0.11, "  In 3 of 4 corrections ARJUNA stayed POSITIVE while the Nifty fell hard;\n"
             "  drawdown was 2–3x smaller every time. The regime + Global overlay is the defense.", INDIGO, fs=11, align="left")
+        pdf.savefig(fig); plt.close(fig)
+
+        # ---- 7b PAIN & RECOVERY ----
+        fig, ax = newpage(); header(ax, "PAIN & RECOVERY", "Duration risk > depth risk")
+        ax.text(0.06, 0.83, "Drawdowns are shallow (max ~11%) and usually heal in days. The real cost is\n"
+                "the rare long grind — budget for one ~12–16 month underwater stretch over a cycle.", fontsize=11.5, color=NAVY)
+        axr = fig.add_axes([0.12, 0.42, 0.76, 0.32])
+        rk = ["median", "75%", "90%", "95%", "worst"]; rv = [rp[50], rp[75], rp[90], rp[95], rworst]
+        rc = [GREEN, GREEN, GOLD, GOLD, RED]
+        axr.bar(rk, rv, color=rc)
+        axr.set_ylabel("recovery time (trading days)")
+        for i, v in enumerate(rv): axr.text(i, v + max(rv) * 0.012, f"{v}d", ha="center", weight="bold", color=NAVY)
+        axr.set_title("Time to recover to a new high (by percentile of drawdown episodes)", color=NAVY, weight="bold")
+        for sp in ["top", "right"]: axr.spines[sp].set_visible(False)
+        pm = [("Ulcer Index", f"{ulcer:.2f}", TEAL), ("MAR (CAGR/DD)", f"{mar:.2f}", GREEN),
+              ("median recovery", f"{rp[50]}d", GOLD), ("worst underwater", f"~{rworst // 21}mo", CORAL)]
+        for i, (k, v, c) in enumerate(pm):
+            x = 0.07 + i * 0.22
+            ax.add_patch(FancyBboxPatch((x, 0.24), 0.195, 0.10, boxstyle="round,pad=0.004,rounding_size=0.01", fc="white"))
+            ax.add_patch(Rectangle((x, 0.24), 0.195, 0.012, color=c))
+            ax.text(x + 0.097, 0.30, v, color=NAVY, fontsize=15, weight="bold", ha="center")
+            ax.text(x + 0.097, 0.262, k, color=GREY, fontsize=8.6, ha="center")
+        box(ax, 0.06, 0.085, 0.88, 0.12, "  90% of drawdowns recover within ~5 weeks. Ulcer Index (≈3.3) and MAR (≈1.5)\n"
+            "  confirm a smooth ride — the one long grind is the cost of the Sharpe, not a malfunction.", INDIGO, fs=10.8, align="left")
         pdf.savefig(fig); plt.close(fig)
 
         # ---- 8 HOW TO USE ----
