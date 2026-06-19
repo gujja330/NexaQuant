@@ -133,10 +133,14 @@ def main():
     idle = a.capital - spent
     print(f"\n  deployed Rs{spent:,.0f} ({100*spent/a.capital:.0f}%)   cash Rs{idle:,.0f} ({100*idle/a.capital:.0f}%)")
 
+    hold_days = {"1 month": 30, "3 months": 91, "6 months": 182, "1 year": 365}.get(a.hold, 365)
+    target_exit = (pd.Timestamp(asof) + pd.Timedelta(days=hold_days)).date()
     blot = df.copy()
     blot.insert(0, "asof", pd.Timestamp(asof).date())
     blot.insert(1, "ts", datetime.now().isoformat(timespec="seconds"))
     blot.insert(2, "capital", a.capital)
+    blot.insert(3, "hold", a.hold)
+    blot.insert(4, "target_exit", target_exit)
     blot.to_csv(OUT / "arjuna_paper_orders.csv", index=False)
 
     # ---- dated recommendation with holding-period profit target ----
