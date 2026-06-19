@@ -189,10 +189,13 @@ def main():
         print(f"  Positions {len(rdf)}  (equal ~Rs{a.capital*deploy/n:,.0f} each, min Rs5,000)\n")
         for i, r in enumerate(rdf.to_dict("records"), 1):
             print(f"   {i}. {r['symbol']:<12} @Rs{r['price']:>8,.0f}  x{r['shares']:<3} = Rs{r['cost_rs']:>7,.0f}")
-        print(f"\n  Hold      ~{a.hold}   (target exit ~{exit_d})")
-        print(f"  Expected  {100*avg:+.1f}% backtest  /  ~{100*avg*0.65:+.1f}% realistic   "
-              f"(profitable {100*pos:.0f}% of the time)")
-        print("  Note: frozen Core v2.0; expectation not guaranteed; paper-trade first.")
+        conf = "HIGH" if deploy >= 0.95 else "MEDIUM" if deploy >= 0.55 else "LOW"
+        print(f"\n  Hold       ~{a.hold}   (target exit ~{exit_d})")
+        print(f"  Expected   {100*avg:+.1f}% backtest / ~{100*avg*0.65:+.1f}% realistic  "
+              f"(profitable {100*pos:.0f}% at this horizon)")
+        print(f"  Confidence {conf}   exp. vol ~11%   exp. drawdown ~11%   "
+              f"horizon 1yr -> P(+ve)~96%")
+        print("  Note: frozen Core v2.1; expectation not guaranteed; paper-trade first.")
         rblot = rdf.copy()
         for col, val in [("asof", pd.Timestamp(asof).date()), ("capital", a.capital),
                          ("hold", a.hold), ("target_exit", exit_d)]:

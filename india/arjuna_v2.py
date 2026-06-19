@@ -111,7 +111,8 @@ def select_names(hist, topn, sector_cap, corr_cap=None, corr_thr=0.7):
 
 
 def backtest(method="ew", regime=False, universe=NIFTY200, cap=0.05, vol_target=0.0,
-             topn=None, sector_cap=None, corr_cap=None, with_turnover=False, rebal=REBAL):
+             topn=None, sector_cap=None, corr_cap=None, with_turnover=False, rebal=REBAL,
+             cost_bps=COST_BPS):
     closes, highs, lows, vols, idx, vix, spx = load_panels()
     cols = [c for c in closes.columns if c in set(universe)]
     closes = closes[cols]
@@ -132,7 +133,7 @@ def backtest(method="ew", regime=False, universe=NIFTY200, cap=0.05, vol_target=
     W = pd.DataFrame(wrows).T.reindex(columns=closes.columns).fillna(0.0)
     W = W.reindex(closes.index).ffill().fillna(0.0)
     gross = (W.shift(1) * rets.reindex(columns=W.columns)).sum(axis=1)
-    net = gross - (W - W.shift(1)).abs().sum(axis=1) * (COST_BPS / 1e4)
+    net = gross - (W - W.shift(1)).abs().sum(axis=1) * (cost_bps / 1e4)
     if regime in ("simple", True, "global"):
         scale = pd.Series(1.0, index=net.index)
         if vix is not None:
