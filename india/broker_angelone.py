@@ -81,6 +81,27 @@ def nse_tokens(symbols):
     return {s: by_name.get(s) for s in symbols}
 
 
+def _get_candles_retry(obj, params, tries=6):
+    """One historical call with backoff on Angel's 'exceeding access rate' throttle.
+    The historical endpoint is strict (~1 req every ~1s+); on a rate error we wait
+    progressively longer (2,4,8,16,32s) and retry instead of losing the chunk."""
+    delay = 2.0
+    for attempt in range(tries):
+        try:
+            r = obj.getCandleData(params)
+            # SmartAPI returns the rate error in the JSON body, not as an exception
+            msg = str(r.get("message", "")) if isinstance(r, dict) else str(r)
+            if "exceeding access rate" in msg.lower() or "access denied" in msg.lower():
+                raise RuntimeError(msg or "access rate")
+            return r.get("data") if isinstance(r, dict) else None
+        except Exception as e:
+            if attempt == tries - 1:
+                raise
+            time.sleep(delay)
+            delay = min(delay * 2, 32)
+    return None
+
+
 def candles(obj, token, interval="ONE_DAY", days=2000):
     """Pull historical candles (chunked to respect API range limits). Returns OHLCV DataFrame."""
     end = datetime.now()
@@ -90,14 +111,14 @@ def candles(obj, token, interval="ONE_DAY", days=2000):
     while cur < end:
         nxt = min(cur + timedelta(days=step), end)
         try:
-            r = obj.getCandleData({"exchange": "NSE", "symboltoken": token, "interval": interval,
-                                   "fromdate": cur.strftime("%Y-%m-%d %H:%M"),
-                                   "todate": nxt.strftime("%Y-%m-%d %H:%M")})
-            for c in (r.get("data") or []):
+            data = _get_candles_retry(obj, {"exchange": "NSE", "symboltoken": token, "interval": interval,
+                                            "fromdate": cur.strftime("%Y-%m-%d %H:%M"),
+                                            "todate": nxt.strftime("%Y-%m-%d %H:%M")})
+            for c in (data or []):
                 frames.append(c)
         except Exception as e:
             print(f"    ! chunk {cur.date()}: {e}")
-        time.sleep(0.4)                                # ~3 req/s rate limit
+        time.sleep(1.2)                                # historical endpoint is strict — go slow
         cur = nxt
     if not frames:
         return None
