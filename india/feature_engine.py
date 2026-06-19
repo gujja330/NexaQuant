@@ -18,11 +18,12 @@ backtest can run an HONEST-FLOOR (no fundamentals) vs OPTIMISTIC (with) comparis
 
 Run (self-test): python india/feature_engine.py
 """
-import sys, glob, os
+import sys, glob, os, warnings
 from pathlib import Path
 import numpy as np
 import pandas as pd
 
+warnings.simplefilter("ignore")                # silence pandas stack/downcast FutureWarnings
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from india.sectors import SECTORS

@@ -65,3 +65,7 @@ drawdown**, net of cost, out-of-sample? Report the honest verdict either way.
 
 ## Progress log
 - 2026-06-19: plan saved. Starting Stage A.
+- 2026-06-19: **STAGE A PASSED.** 100/100 stocks (clean Angel history); feature engine builds
+  27,200 weekly / 6,500 monthly rows, 31 features, 99% fundamental coverage, no leakage.
+  Labels sane: base win rate 51% (W) / 55.5% (M), mean fwd_ret +0.42% (W) / +1.74% (M).
+  -> the AI must beat this baseline. Monthly looks more promising. Starting Stage B.

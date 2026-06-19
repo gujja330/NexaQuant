@@ -15,11 +15,12 @@ The last rebalance date has no "next" -> its labels are NaN (dropped in training
 
 Run (self-test): python india/labels.py
 """
-import sys
+import sys, warnings
 from pathlib import Path
 import numpy as np
 import pandas as pd
 
+warnings.simplefilter("ignore")
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from india.feature_engine import load_panels, STEP
