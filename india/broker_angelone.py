@@ -33,13 +33,31 @@ RAW.mkdir(parents=True, exist_ok=True)
 SCRIP_URL = "https://margincalculator.angelbroking.com/OpenAPI_File/files/OpenAPIScripMaster.json"
 
 
+def _load_dotenv():
+    """Load credentials from a .env.angel (or .env) file in the repo root — no PowerShell needed.
+    Lines like  ANGEL_API_KEY=xxxx . Existing real env vars take priority. File is git-ignored."""
+    for name in (".env.angel", ".env"):
+        p = ROOT / name
+        if not p.exists():
+            continue
+        for line in p.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            k, v = line.split("=", 1)
+            os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
+        print(f"  loaded credentials from {name}")
+        return
+
+
 def connect():
     """Authenticate to SmartAPI (TOTP-based). Returns the SmartConnect session object."""
+    _load_dotenv()
     try:
         from SmartApi import SmartConnect
         import pyotp
-    except ImportError:
-        sys.exit("Missing deps. Run:  pip install smartapi-python pyotp")
+    except ImportError as e:
+        sys.exit(f"Missing dep: {e}. Run:  pip install smartapi-python pyotp logzero websocket-client")
     for v in ("ANGEL_API_KEY", "ANGEL_CLIENT_CODE", "ANGEL_PIN", "ANGEL_TOTP_SECRET"):
         if not os.environ.get(v):
             sys.exit(f"Set {v} (see the setup notes at the top of this file).")
