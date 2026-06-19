@@ -4,13 +4,20 @@
 # Credentials are NOT here — they live in a git-ignored .env.angel file in the repo root:
 #   ANGEL_API_KEY=...   ANGEL_CLIENT_CODE=...   ANGEL_PIN=...   ANGEL_TOTP_SECRET=...
 
-# ---- data + strategy engine ----
+# ---- data + strategy engine (v2 core) ----
 pandas
 numpy
 pyarrow            # parquet read/write
-scipy
-scikit-learn       # AI meta-label / future ML refinement
+scipy              # Deflated Sharpe (validation.py)
+scikit-learn       # Ledoit-Wolf covariance (min-variance), ML utils
 yfinance           # free fallback data (indices, fundamentals, backtest)
+hmmlearn           # HMM regime model (regime_hmm.py)
+xgboost            # risk/vol forecasting + research ML bench
+lightgbm           # research ML bench
+
+# ---- research extras (HEAVY, optional — only to re-run india/research/ AI validation) ----
+# torch transformers           # FinBERT (news_sentiment.py uses transformers), DL/RL tests
+# stable-baselines3 gymnasium   # RL test only
 
 # ---- Angel One SmartAPI (live auth + clean historical data + execution) ----
 smartapi-python    # the broker SDK (provides the SmartApi module)

@@ -14,7 +14,7 @@ import numpy as np
 import pandas as pd
 
 warnings.simplefilter("ignore")
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from india.dataset import build_dataset, feature_list
 from india.feature_engine import load_panels

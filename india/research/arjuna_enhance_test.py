@@ -13,9 +13,9 @@ Run: python india/arjuna_enhance_test.py
 import sys, warnings
 from pathlib import Path
 warnings.simplefilter("ignore")
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from india.arjuna_strategy import backtest, stats
-from india.arjuna_compare import NIFTY200
+from india.data_nse import NIFTY200
 
 U = NIFTY200
 YEARS = 5.47

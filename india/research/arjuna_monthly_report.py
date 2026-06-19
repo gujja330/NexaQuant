@@ -13,10 +13,10 @@ import numpy as np
 import pandas as pd
 
 warnings.simplefilter("ignore")
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from india.arjuna_strategy import backtest
-from india.arjuna_compare import NIFTY200
+from india.data_nse import NIFTY200
 
 
 def monthly(net, idx):

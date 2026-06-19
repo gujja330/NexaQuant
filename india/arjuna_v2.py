@@ -27,7 +27,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from india.feature_engine import load_panels
 from india.equity_engine import COST_BPS
-from india.arjuna_compare import NIFTY200
+from india.data_nse import NIFTY200
 from sklearn.covariance import LedoitWolf
 
 REBAL, LOOKBACK = 21, 120          # monthly rebalance; 120d window for vol/covariance

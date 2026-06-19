@@ -67,6 +67,11 @@ UNIVERSE = INDICES + [
     "TATACOMM.NS", "PVRINOX.NS", "SUNTV.NS", "GMRAIRPORT.NS",
 ]
 
+# clean symbols (no .NS / index ^) — first 100 = Nifty-100, all = Nifty-200. Single source of truth.
+STOCKS = [s.replace(".NS", "").replace("^", "") for s in UNIVERSE if not s.startswith("^")]
+NIFTY100 = STOCKS[:100]
+NIFTY200 = STOCKS
+
 
 def fetch(sym, years):
     import yfinance as yf

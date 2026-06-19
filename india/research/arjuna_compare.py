@@ -9,7 +9,7 @@ import sys, warnings
 from pathlib import Path
 
 warnings.simplefilter("ignore")
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from india.data_nse import UNIVERSE
 from india.arjuna_strategy import backtest, stats
