@@ -111,12 +111,12 @@ def select_names(hist, topn, sector_cap, corr_cap=None, corr_thr=0.7):
 
 
 def backtest(method="ew", regime=False, universe=NIFTY200, cap=0.05, vol_target=0.0,
-             topn=None, sector_cap=None, corr_cap=None, with_turnover=False):
+             topn=None, sector_cap=None, corr_cap=None, with_turnover=False, rebal=REBAL):
     closes, highs, lows, vols, idx, vix, spx = load_panels()
     cols = [c for c in closes.columns if c in set(universe)]
     closes = closes[cols]
     rets = closes.pct_change()
-    rebal_idx = closes.index[::REBAL]
+    rebal_idx = closes.index[::rebal]
     wrows = {}                                          # one COMPLETE weight row per rebalance
     for dt in rebal_idx:
         hist = rets.loc[:dt].tail(LOOKBACK).dropna(axis=1, how="any")
