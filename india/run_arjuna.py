@@ -93,9 +93,22 @@ def allocate(weights, prices, budget):
     return pd.DataFrame(rows).sort_values("weight_%", ascending=False), spent
 
 
+def holding_projection():
+    """Expected return by holding length, from the champion backtest (regime-aware net)."""
+    from india.arjuna_v2 import backtest
+    net, _ = backtest(CONFIG.method, regime=CONFIG.regime)
+    eq = (1 + net).cumprod()
+    out = {}
+    for label, d in [("1 month", 21), ("3 months", 63), ("6 months", 126), ("1 year", 252)]:
+        r = (eq.shift(-d) / eq - 1).dropna()
+        out[label] = (r.mean(), r.quantile(0.15), r.quantile(0.85), (r > 0).mean())
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--capital", type=float, default=CONFIG.capital)
+    ap.add_argument("--hold", default="1 year", help="planned holding period for the profit target")
     ap.add_argument("--method", default=CONFIG.method)
     ap.add_argument("--regime", default=CONFIG.regime)
     ap.add_argument("--live", action="store_true")
@@ -125,6 +138,25 @@ def main():
     blot.insert(1, "ts", datetime.now().isoformat(timespec="seconds"))
     blot.insert(2, "capital", a.capital)
     blot.to_csv(OUT / "arjuna_paper_orders.csv", index=False)
+
+    # ---- dated recommendation with holding-period profit target ----
+    proj = holding_projection()
+    avg, lo, hi, pos = proj.get(a.hold, proj["1 year"])
+    fwd = 0.65                                          # haircut: backtest is bull/survivorship-inflated
+    print("\n" + "=" * 70)
+    print(f"  RECOMMENDATION — as on {pd.Timestamp(asof).date()}")
+    print("=" * 70)
+    top = df.nlargest(3, "weight_%")
+    print(f"  INVEST  Rs{a.capital:,.0f}  ->  Rs{spent:,.0f} across {len(df)} stocks + Rs{a.capital-spent:,.0f} cash ({regime_lbl})")
+    print(f"  e.g. {', '.join(f'{r.symbol} @Rs{r.price:,.0f} x{r.shares}' for r in top.itertuples())} ...")
+    print(f"  HOLD    ~{a.hold}")
+    print(f"  TARGET  backtest avg {100*avg:+.1f}%  ->  Rs{a.capital*(1+avg):,.0f}   "
+          f"(typical range Rs{a.capital*(1+lo):,.0f} - Rs{a.capital*(1+hi):,.0f})")
+    print(f"  REALISTIC (forward, haircut)  ~{100*avg*fwd:+.1f}%  ->  ~Rs{a.capital*(1+avg*fwd):,.0f}   "
+          f"profitable {100*pos:.0f}% of the time")
+    print(f"  {'hold:':<8}" + "  ".join(f"{k} {100*v[0]:+.1f}%" for k, v in proj.items()))
+    print("  NOTE: expectation (backtest, not guaranteed); longer hold = more reliable. Paper-trade first.")
+
     print(f"\n  paper blotter -> {OUT / 'arjuna_paper_orders.csv'}")
     if a.live:
         print("\n  --live BLOCKED: account unfunded by design. Wire order placement after funding + cred rotation.")
