@@ -56,8 +56,8 @@ if __name__ == "__main__":
     N = 20                                          # ~variants explored across the project
     for name, kw in [("EW", dict(method="ew")),
                      ("INV_VOL+simple regime", dict(method="inv_vol", regime="simple")),
-                     ("INV_VOL+HMM regime", dict(method="inv_vol", regime="hmm")),
-                     ("MIN_VAR+HMM regime", dict(method="min_var", regime="hmm"))]:
+                     ("HRP+simple regime", dict(method="hrp", regime="simple")),
+                     ("HRP+regime+voltarget", dict(method="hrp", regime="simple", vol_target=0.12))]:
         net, _ = backtest(**kw)
         d = deflated_sharpe(net.values, n_trials=N)
         verdict = "ROBUST" if d["dsr"] > 0.95 else ("borderline" if d["dsr"] > 0.8 else "likely overfit")

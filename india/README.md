@@ -16,11 +16,13 @@ india/
   ── FEATURES / SIGNALS ──
   feature_engine.py    ~30 technical+fundamental+macro features -> panel
   sectors.py           Nifty-200 sector map
-  regime_hmm.py        breadth engine + regime (Layer 1)
+  regime_hmm.py        breadth engine + (rejected) HMM regime (Layer 1)
+  global_risk.py       Global Risk Engine — S&P/US-VIX/DXY/oil/gold (Layer 1, Tier-1) ⭐
   equity_engine.py     cost model + helpers
   labels.py, dataset.py   ML training data (used by research/)
   ── STRATEGY ──
-  arjuna_v2.py         risk-based construction (inv_vol / min_var) + regime  ← the strategy
+  arjuna_v2.py         risk construction (inv_vol/min_var/HRP) + regime + global  ← the strategy
+  moonshot.py          OPTIONAL satellite (quality-growth basket + barbell; doesn't beat Core)
   arjuna_strategy.py   v1 quality-basket helpers (screen, reject) still used by runner/news
   validation.py        Deflated Sharpe Ratio + purged walk-forward (rigor gate)
   ── EXECUTION ──

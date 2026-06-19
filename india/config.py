@@ -13,11 +13,11 @@ class ArjunaConfig:
     # --- rebalance / risk windows ---
     rebal_days: int = 21              # 21 = monthly, 63 = quarterly
     lookback: int = 120               # trading days for volatility / covariance
-    # --- portfolio construction (Layer 3) ---
-    method: str = "inv_vol"           # "ew" | "inv_vol" | "min_var"
+    # --- portfolio construction (Layer 4) ---
+    method: str = "hrp"               # "ew" | "inv_vol" | "min_var" | "hrp" (validated champion)
     name_cap: float = 0.05            # max weight per stock (diversification)
     # --- regime / exposure (Layer 1) ---
-    regime: str = "simple"            # "none" | "simple" (VIX+200DMA) | "hmm"
+    regime: str = "global"            # "none" | "simple" | "global" (simple+Global Risk) | "hmm"
     # --- execution (Layer 4) ---
     news_filter: bool = True          # drop strongly-negative-news names (blow-up filter)
     news_thresh: float = -0.4
