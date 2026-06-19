@@ -90,9 +90,11 @@ def weights_for(method, hist):
     return w
 
 
-def select_names(hist, topn, sector_cap):
-    """Select the top-N LOWEST-VOLATILITY names (the safest), capping names per sector."""
+def select_names(hist, topn, sector_cap, corr_cap=None, corr_thr=0.7):
+    """Select top-N LOWEST-VOL names; cap names per SECTOR and per CORRELATION CLUSTER
+    (skip a name if it's >corr_thr correlated with corr_cap names already chosen)."""
     iv = (1.0 / hist.std().replace(0, np.nan)).dropna().sort_values(ascending=False)
+    corr = hist.corr().abs() if corr_cap else None
     chosen, sec = [], {}
     for s in iv.index:
         if topn and len(chosen) >= topn:
@@ -100,12 +102,16 @@ def select_names(hist, topn, sector_cap):
         k = SECTORS.get(s, "Other")
         if sector_cap and sec.get(k, 0) >= sector_cap:
             continue
+        if corr_cap and chosen:
+            n_corr = sum(1 for c in chosen if corr.loc[s, c] > corr_thr)
+            if n_corr >= corr_cap:
+                continue
         chosen.append(s); sec[k] = sec.get(k, 0) + 1
     return chosen
 
 
 def backtest(method="ew", regime=False, universe=NIFTY200, cap=0.05, vol_target=0.0,
-             topn=None, sector_cap=None, with_turnover=False):
+             topn=None, sector_cap=None, corr_cap=None, with_turnover=False):
     closes, highs, lows, vols, idx, vix, spx = load_panels()
     cols = [c for c in closes.columns if c in set(universe)]
     closes = closes[cols]
@@ -116,8 +122,8 @@ def backtest(method="ew", regime=False, universe=NIFTY200, cap=0.05, vol_target=
         hist = rets.loc[:dt].tail(LOOKBACK).dropna(axis=1, how="any")
         if hist.shape[1] < 20 or len(hist) < 60:
             continue
-        if topn or sector_cap:                          # concentrate into the safest N (sector-capped)
-            sel = select_names(hist, topn, sector_cap)
+        if topn or sector_cap or corr_cap:              # concentrate: top-N, sector- & correlation-capped
+            sel = select_names(hist, topn, sector_cap, corr_cap)
             if len(sel) >= 3:
                 hist = hist[sel]
         w = weights_for(method, hist).clip(upper=cap)   # per-name cap for diversification
