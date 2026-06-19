@@ -28,6 +28,7 @@ sys.path.insert(0, str(ROOT))
 from india.feature_engine import load_panels
 from india.equity_engine import COST_BPS
 from india.data_nse import NIFTY200
+from india.sectors import SECTORS
 from sklearn.covariance import LedoitWolf
 from scipy.cluster.hierarchy import linkage
 from scipy.spatial.distance import squareform
@@ -89,21 +90,41 @@ def weights_for(method, hist):
     return w
 
 
-def backtest(method="ew", regime=False, universe=NIFTY200, cap=0.05, vol_target=0.0):
+def select_names(hist, topn, sector_cap):
+    """Select the top-N LOWEST-VOLATILITY names (the safest), capping names per sector."""
+    iv = (1.0 / hist.std().replace(0, np.nan)).dropna().sort_values(ascending=False)
+    chosen, sec = [], {}
+    for s in iv.index:
+        if topn and len(chosen) >= topn:
+            break
+        k = SECTORS.get(s, "Other")
+        if sector_cap and sec.get(k, 0) >= sector_cap:
+            continue
+        chosen.append(s); sec[k] = sec.get(k, 0) + 1
+    return chosen
+
+
+def backtest(method="ew", regime=False, universe=NIFTY200, cap=0.05, vol_target=0.0,
+             topn=None, sector_cap=None):
     closes, highs, lows, vols, idx, vix, spx = load_panels()
     cols = [c for c in closes.columns if c in set(universe)]
     closes = closes[cols]
     rets = closes.pct_change()
     rebal_idx = closes.index[::REBAL]
-    W = pd.DataFrame(0.0, index=closes.index, columns=closes.columns)
+    wrows = {}                                          # one COMPLETE weight row per rebalance
     for dt in rebal_idx:
         hist = rets.loc[:dt].tail(LOOKBACK).dropna(axis=1, how="any")
         if hist.shape[1] < 20 or len(hist) < 60:
             continue
+        if topn or sector_cap:                          # concentrate into the safest N (sector-capped)
+            sel = select_names(hist, topn, sector_cap)
+            if len(sel) >= 3:
+                hist = hist[sel]
         w = weights_for(method, hist).clip(upper=cap)   # per-name cap for diversification
-        w = w / w.sum()
-        W.loc[dt, w.index] = w.values
-    W = W.replace(0.0, np.nan).ffill().fillna(0.0)
+        wrows[dt] = w / w.sum()
+    # rebal-date rows (0 for unselected -> dropped names correctly go to 0), carried forward
+    W = pd.DataFrame(wrows).T.reindex(columns=closes.columns).fillna(0.0)
+    W = W.reindex(closes.index).ffill().fillna(0.0)
     gross = (W.shift(1) * rets.reindex(columns=W.columns)).sum(axis=1)
     net = gross - (W - W.shift(1)).abs().sum(axis=1) * (COST_BPS / 1e4)
     if regime in ("simple", True, "global"):
