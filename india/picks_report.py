@@ -4,8 +4,11 @@ ONE clear report for the CHAMPION strategy — logic + year-by-year backtest + c
 with prices and the exit rule. Removes the earlier confusion (the long_term variant's buy
 list was shown by mistake; THIS is the validated champion).
 
-CHAMPION = momentum(6m) + low-vol, top-5, WEEKLY rebalance, + VIX de-risk.
-Backtest: +145% / ~6y, Sharpe 1.23, maxDD 13.8%, 6/7 profitable years.
+CHAMPION = pure 6-month momentum, top-5, WEEKLY rebalance (+ optional VIX de-risk).
+NUMBERS ARE WINDOW-DEPENDENT — the printout below is computed live on whatever data is
+loaded, so trust THAT, not any number in this comment. On clean Angel data (2021-2026,
+the actually-tradeable window) it is modest: ~+23% total, Sharpe ~0.28. The older yfinance
+"+164%" leaned on the 2020-21 post-COVID momentum rally that Angel's free history excludes.
 
 Run: python india/picks_report.py
 """
@@ -28,8 +31,9 @@ print("""
   LOGIC (how a stock gets picked):
     1. For every stock in the broad ~49-name universe, each week compute its 6-month MOMENTUM
        (return over ~6 months, skip last 2 wks), ranked ACROSS the universe (z-score).
-       [mom+low-vol scored higher on a NARROW 23-stock set but was OVERFIT -> pure momentum is
-        the robust choice on the broad universe: Sharpe 0.79 vs 0.42 for the blend.]
+       [mom+low-vol scored higher on a NARROW 23-stock set but was OVERFIT -> pure momentum
+        is the robust choice on the broad universe. See the computed Sharpe printed below;
+        on clean 2021-2026 Angel data it is a modest ~0.28, not the inflated yfinance figure.]
     2. Hold the TOP 5 momentum scores, equal weight (20% each).
     3. VIX DE-RISK (optional): cut exposure in high-VIX fear regimes -> lower drawdown.
     4. EXIT RULE: re-rank WEEKLY -> a name is SOLD when it drops out of the top 5 (rotation).
