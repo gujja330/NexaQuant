@@ -19,19 +19,30 @@ ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "data" / "raw" / "india"
 OUT.mkdir(parents=True, exist_ok=True)
 
-# liquid, algo-friendly Nifty large-caps + indices (yfinance symbols). Edit freely.
-UNIVERSE = [
-    "^NSEI", "^NSEBANK",                                   # Nifty 50, Bank Nifty (indices)
+# NIFTY 100 universe (liquid large+midcaps) + indices (yfinance symbols). Breadth fixes the
+# concentration that doubled drawdown; ~100 names give the AI ranker something to rank ACROSS.
+INDICES = ["^NSEI", "^NSEBANK"]                            # Nifty 50, Bank Nifty
+UNIVERSE = INDICES + [
+    # ---- Nifty 50 core ----
     "RELIANCE.NS", "TCS.NS", "HDFCBANK.NS", "ICICIBANK.NS", "INFY.NS", "SBIN.NS",
     "BHARTIARTL.NS", "ITC.NS", "LT.NS", "KOTAKBANK.NS", "HINDUNILVR.NS", "AXISBANK.NS",
     "BAJFINANCE.NS", "MARUTI.NS", "SUNPHARMA.NS", "TITAN.NS", "ASIANPAINT.NS", "WIPRO.NS",
     "TATAMOTORS.NS", "TATASTEEL.NS", "ADANIENT.NS", "POWERGRID.NS", "NTPC.NS", "ONGC.NS",
-    # ---- expansion: more liquid Nifty-100/200 names (reduce concentration/survivorship bias) ----
     "MM.NS", "HCLTECH.NS", "TECHM.NS", "ULTRACEMCO.NS", "NESTLEIND.NS", "BAJAJFINSV.NS",
     "HDFCLIFE.NS", "GRASIM.NS", "JSWSTEEL.NS", "HINDALCO.NS", "COALINDIA.NS", "BPCL.NS",
-    "DRREDDY.NS", "CIPLA.NS", "EICHERMOT.NS", "HEROMOTOCO.NS", "BRITANNIA.NS", "DABUR.NS",
-    "DLF.NS", "ADANIPORTS.NS", "GAIL.NS", "TATACONSUM.NS", "BANKBARODA.NS", "PNB.NS",
-    "VEDL.NS", "JINDALSTEL.NS", "SAIL.NS",
+    "DRREDDY.NS", "CIPLA.NS", "EICHERMOT.NS", "HEROMOTOCO.NS", "BRITANNIA.NS", "ADANIPORTS.NS",
+    "TATACONSUM.NS", "APOLLOHOSP.NS", "BAJAJ-AUTO.NS", "INDUSINDBK.NS", "SBILIFE.NS",
+    "SHRIRAMFIN.NS", "TRENT.NS", "JIOFIN.NS",
+    # ---- Nifty Next 50 / liquid large-caps (to ~100) ----
+    "DABUR.NS", "DLF.NS", "GAIL.NS", "BANKBARODA.NS", "PNB.NS", "VEDL.NS", "JINDALSTEL.NS",
+    "SAIL.NS", "ADANIGREEN.NS", "ADANIPOWER.NS", "AMBUJACEM.NS", "ABB.NS", "CANBK.NS",
+    "BEL.NS", "BOSCHLTD.NS", "CHOLAFIN.NS", "COLPAL.NS", "DMART.NS", "GODREJCP.NS",
+    "HAVELLS.NS", "HAL.NS", "ICICIGI.NS", "ICICIPRULI.NS", "IOC.NS", "INDIGO.NS",
+    "NAUKRI.NS", "LICI.NS", "LTIM.NS", "MOTHERSON.NS", "MARICO.NS", "MUTHOOTFIN.NS",
+    "PIDILITIND.NS", "PFC.NS", "RECLTD.NS", "SIEMENS.NS", "SRF.NS", "SHREECEM.NS",
+    "TATAPOWER.NS", "TORNTPHARM.NS", "TVSMOTOR.NS", "UNITDSPR.NS", "VBL.NS", "ZYDUSLIFE.NS",
+    "PAGEIND.NS", "BIOCON.NS", "LUPIN.NS", "MPHASIS.NS", "COFORGE.NS", "POLYCAB.NS",
+    "INDHOTEL.NS", "MAXHEALTH.NS", "PETRONET.NS",
 ]
 
 

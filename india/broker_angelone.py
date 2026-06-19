@@ -70,6 +70,10 @@ def connect():
     return obj
 
 
+# our clean ticker -> Angel scrip-master symbol, where they differ (e.g. the '&' in M&M)
+TOKEN_ALIAS = {"MM": "M&M"}
+
+
 def nse_tokens(symbols):
     """Resolve plain symbols (e.g. RELIANCE) -> Angel NSE-equity tokens via the scrip master."""
     import requests
@@ -78,7 +82,7 @@ def nse_tokens(symbols):
     for it in master:
         if it.get("exch_seg") == "NSE" and str(it.get("symbol", "")).endswith("-EQ"):
             by_name[it["symbol"][:-3]] = it["token"]
-    return {s: by_name.get(s) for s in symbols}
+    return {s: by_name.get(TOKEN_ALIAS.get(s, s)) for s in symbols}
 
 
 def _get_candles_retry(obj, params, tries=6):
