@@ -105,7 +105,7 @@ def select_names(hist, topn, sector_cap):
 
 
 def backtest(method="ew", regime=False, universe=NIFTY200, cap=0.05, vol_target=0.0,
-             topn=None, sector_cap=None):
+             topn=None, sector_cap=None, with_turnover=False):
     closes, highs, lows, vols, idx, vix, spx = load_panels()
     cols = [c for c in closes.columns if c in set(universe)]
     closes = closes[cols]
@@ -148,6 +148,10 @@ def backtest(method="ew", regime=False, universe=NIFTY200, cap=0.05, vol_target=
         realized = net.rolling(20).std() * np.sqrt(252)
         lev = (vol_target / realized.shift(1)).clip(0.0, 2.0).fillna(1.0)
         net = net * lev
+    if with_turnover:
+        turns_per_yr = (W - W.shift(1)).abs().sum(axis=1).sum() / (len(W) / 252)
+        avg_names = (W > 0).sum(axis=1).replace(0, np.nan).mean()
+        return net, idx, turns_per_yr, avg_names
     return net, idx
 
 

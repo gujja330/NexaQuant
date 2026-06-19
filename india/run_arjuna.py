@@ -105,9 +105,34 @@ def holding_projection():
     return out
 
 
+def position_budget(w, prices, capital, deploy, min_alloc=5000.0):
+    """RETAIL Position Budget Engine: exposure -> position count -> equal-Rs, min Rs5k/position.
+    Turns the broad HRP basket into a holdable few-stock portfolio."""
+    invest = capital * deploy
+    n = int(np.clip(round(deploy * 10), 0, 10))         # 100%->10, 75%->8, 50%->5, 25%->3 ...
+    if n == 0 or invest < min_alloc:
+        return pd.DataFrame(), 0.0, 0
+    n = max(1, min(n, int(invest // min_alloc)))        # enforce >= Rs5,000 per position
+    picks = w.nlargest(n).index
+    per = invest / n                                    # equal rupee per position
+    rows = []
+    for s in picks:
+        p = float(prices.get(s, np.nan))
+        if not np.isfinite(p) or p <= 0:
+            continue
+        sh = int(per // p)
+        if sh < 1:
+            continue
+        rows.append({"symbol": s, "price": round(p, 1), "target_rs": round(per),
+                     "shares": sh, "cost_rs": round(sh * p)})
+    df = pd.DataFrame(rows)
+    return df, (df["cost_rs"].sum() if len(df) else 0.0), n
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--capital", type=float, default=CONFIG.capital)
+    ap.add_argument("--retail", action="store_true", help="Position Budget Engine: few-stock practical basket")
     ap.add_argument("--hold", default="1 year", help="planned holding period for the profit target")
     ap.add_argument("--risk", default=None, choices=["low", "medium", "high"],
                     help="risk appetite -> sets method/cap/regime")
@@ -124,6 +149,35 @@ def main():
     CONFIG.capital = a.capital
 
     asof, w, prices, deploy, regime_lbl, excluded = current_portfolio()
+
+    if a.retail:                                        # ---- Position Budget Engine (few-stock) ----
+        rdf, rspent, n = position_budget(w, prices, a.capital, deploy)
+        proj = holding_projection(); avg, lo, hi, pos = proj.get(a.hold, proj["1 year"])
+        hd = {"1 month": 30, "3 months": 91, "6 months": 182, "1 year": 365}.get(a.hold, 365)
+        exit_d = (pd.Timestamp(asof) + pd.Timedelta(days=hd)).date()
+        print("=" * 60)
+        print(f"  ARJUNA RETAIL RECOMMENDATION — as on {pd.Timestamp(asof).date()}")
+        print("=" * 60)
+        print(f"  Capital   Rs{a.capital:,.0f}")
+        print(f"  Regime    {regime_lbl}")
+        print(f"  Invest    Rs{rspent:,.0f}    Cash Rs{a.capital-rspent:,.0f}")
+        if rdf.empty:
+            print("  Positions 0  -> regime says hold cash (or capital too small)."); return
+        print(f"  Positions {len(rdf)}  (equal ~Rs{a.capital*deploy/n:,.0f} each, min Rs5,000)\n")
+        for i, r in enumerate(rdf.to_dict("records"), 1):
+            print(f"   {i}. {r['symbol']:<12} @Rs{r['price']:>8,.0f}  x{r['shares']:<3} = Rs{r['cost_rs']:>7,.0f}")
+        print(f"\n  Hold      ~{a.hold}   (target exit ~{exit_d})")
+        print(f"  Expected  {100*avg:+.1f}% backtest  /  ~{100*avg*0.65:+.1f}% realistic   "
+              f"(profitable {100*pos:.0f}% of the time)")
+        print("  Note: frozen Core v2.0; expectation not guaranteed; paper-trade first.")
+        rblot = rdf.copy()
+        for col, val in [("asof", pd.Timestamp(asof).date()), ("capital", a.capital),
+                         ("hold", a.hold), ("target_exit", exit_d)]:
+            rblot.insert(0, col, val)
+        rblot.to_csv(OUT / "arjuna_retail_orders.csv", index=False)
+        print(f"\n  saved -> output/arjuna_retail_orders.csv")
+        return
+
     invest = a.capital * deploy
     df, spent = allocate(w, prices, invest)
 
