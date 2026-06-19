@@ -12,7 +12,7 @@ beat the Nifty net of cost (the real 10/10 bar).**
 | # | Module | Does |
 |---|---|---|
 | A1 | `india/data_nse.py` (+ broker pull) | Expand universe to **Nifty 100**; pull clean history (Angel, incremental). |
-| A2 | `india/feature_engine.py` | ~30 signals/stock/week: technical + ALL fundamentals + macro/sector. |
+| A2 | `india/feature_engine.py` | ~30 signals/stock/week: technical + ALL fundamentals + macro + **correlation/beta** (beta-to-Nifty, avg pairwise corr = crowding) + **SECTOR analysis** (sector momentum, sector rank, stock-vs-sector relative strength). |
 | A3 | `india/labels.py` | Two targets: `forward_return_rank` (picker) and `win` (avoidance filter). |
 
 **TEST A:** ~100 stocks with full history saved; feature matrix builds with no NaN leakage;
@@ -31,7 +31,7 @@ avoidance filter raises win rate vs no-filter on a holdout; reject rules remove 
 ## STAGE C — Portfolio & Cost  → `[ ]`
 | # | Module | Does |
 |---|---|---|
-| C1 | `india/portfolio.py` | Top 15–20 survivors, equal-weight, VIX de-risk, **monthly AND weekly**. |
+| C1 | `india/portfolio.py` | Top 15–20 survivors, equal-weight, VIX de-risk, **monthly AND weekly**. **Correlation cap** (drop a pick too correlated to one already held) + **sector cap** (max N per sector) = genuine diversification, not a one-theme bet. |
 | C2 | `india/costs.py` | Indian costs ~21bps (brokerage+STT+GST+SEBI+stamp+slippage) on every trade. |
 
 **TEST C:** portfolio turns scores→weights correctly; cost model matches a hand-checked trade;
