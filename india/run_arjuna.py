@@ -105,28 +105,42 @@ def holding_projection():
     return out
 
 
-def position_budget(w, prices, capital, deploy, min_alloc=5000.0):
-    """RETAIL Position Budget Engine: exposure -> position count -> equal-Rs, min Rs5k/position.
-    Turns the broad HRP basket into a holdable few-stock portfolio."""
+def capital_profile(capital):
+    """Capital -> (target positions, min Rs/position). Bigger accounts hold more names."""
+    for ceil, n, mn in [(75_000, 3, 8_000), (150_000, 5, 10_000), (300_000, 8, 12_000),
+                        (700_000, 10, 18_000), (2_000_000, 15, 25_000)]:
+        if capital < ceil:
+            return n, mn
+    return 20, 30_000
+
+
+def position_budget(w, prices, capital, deploy):
+    """Capital-aware Position Budget Engine: positions scale with capital; deploy the FULL
+    investable amount (equal-Rs base + greedy whole-share top-up so cash isn't wasted)."""
     invest = capital * deploy
-    n = int(np.clip(round(deploy * 10), 0, 10))         # 100%->10, 75%->8, 50%->5, 25%->3 ...
-    if n == 0 or invest < min_alloc:
+    n, _ = capital_profile(capital)
+    n = max(1, n)
+    picks = [s for s in w.nlargest(n * 2).index if np.isfinite(prices.get(s, np.nan))
+             and prices.get(s) > 0][:n]
+    if not picks:
         return pd.DataFrame(), 0.0, 0
-    n = max(1, min(n, int(invest // min_alloc)))        # enforce >= Rs5,000 per position
-    picks = w.nlargest(n).index
-    per = invest / n                                    # equal rupee per position
-    rows = []
-    for s in picks:
-        p = float(prices.get(s, np.nan))
-        if not np.isfinite(p) or p <= 0:
-            continue
-        sh = int(per // p)
-        if sh < 1:
-            continue
-        rows.append({"symbol": s, "price": round(p, 1), "target_rs": round(per),
-                     "shares": sh, "cost_rs": round(sh * p)})
+    per = invest / len(picks)
+    shares = {s: int(per // float(prices[s])) for s in picks}
+    spent = sum(shares[s] * float(prices[s]) for s in picks)
+    # greedy top-up with leftover (cheapest affordable first) -> minimise idle cash
+    while True:
+        cand = [s for s in picks if spent + float(prices[s]) <= invest
+                and (shares[s] + 1) * float(prices[s]) <= invest * 0.30]   # 30% per-name ceiling
+        if not cand:
+            break
+        s = min(cand, key=lambda x: float(prices[x]))
+        shares[s] += 1; spent += float(prices[s])
+    rows = [{"symbol": s, "price": round(float(prices[s]), 1),
+             "shares": shares[s], "cost_rs": round(shares[s] * float(prices[s])),
+             "weight_%": round(100 * shares[s] * float(prices[s]) / capital, 1)}
+            for s in picks if shares[s] > 0]
     df = pd.DataFrame(rows)
-    return df, (df["cost_rs"].sum() if len(df) else 0.0), n
+    return df, (df["cost_rs"].sum() if len(df) else 0.0), len(picks)
 
 
 def main():

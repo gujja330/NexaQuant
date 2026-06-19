@@ -23,7 +23,7 @@ class ArjunaConfig:
     sector_cap: float = 0.20          # max weight per sector
     position_cap: float = 0.25        # hard ceiling per stock
     # --- rebalance / risk windows ---
-    rebal_days: int = 21              # 21 = monthly, 63 = quarterly
+    rebal_days: int = 63              # QUARTERLY (promoted: Sharpe 1.86 vs monthly 1.70, less churn)
     lookback: int = 120               # trading days for volatility / covariance
     # --- portfolio construction (Layer 4) ---
     method: str = "hrp"               # "ew" | "inv_vol" | "min_var" | "hrp" (validated champion)
