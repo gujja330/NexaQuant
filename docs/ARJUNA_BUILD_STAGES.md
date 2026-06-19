@@ -27,6 +27,9 @@ label distribution sane (≈balanced win/loss). Print shape + sample rows.
 
 **TEST B:** ranker beats a random/momentum baseline on out-of-sample rank correlation (IC > 0);
 avoidance filter raises win rate vs no-filter on a holdout; reject rules remove known-bad names.
+**P&L is the primary metric** (user 2026-06-19): lead with ₹ profit/loss + expectancy
+(avg ₹ won vs avg ₹ lost) of the top-N picks vs the universe baseline; win-rate is secondary.
+A high win rate that doesn't grow ₹ is worthless — the top-N picks must out-EARN the average stock.
 
 ## STAGE C — Portfolio & Cost  → `[ ]`
 | # | Module | Does |
@@ -68,4 +71,11 @@ drawdown**, net of cost, out-of-sample? Report the honest verdict either way.
 - 2026-06-19: **STAGE A PASSED.** 100/100 stocks (clean Angel history); feature engine builds
   27,200 weekly / 6,500 monthly rows, 31 features, 99% fundamental coverage, no leakage.
   Labels sane: base win rate 51% (W) / 55.5% (M), mean fwd_ret +0.42% (W) / +1.74% (M).
-  -> the AI must beat this baseline. Monthly looks more promising. Starting Stage B.
+- 2026-06-19: **STAGE B (rotation) — WEAK.** AI ranker IC ~0 (=noise); top-15 only roughly
+  matches the equal-weight basket and the edge is FRONT-LOADED in year 1 then fades to ~0/neg
+  (fund+tech monthly: 2023 +55% edge+18.6, 2024 ~0, 2025 -0.5, 2026 -5.6). Avoidance filter
+  helps only weekly (+Rs52-62k high vs low half). Reject rules FAILED (vetoed winners).
+  Verdict: weekly/monthly rotation has no durable edge worth trading.
+- 2026-06-19: **PIVOT (user) -> LONG-HOLD COMPOUNDERS.** Build `india/compounder.py`: quality +
+  momentum + low-vol, HOLD quarters (low churn/cost), buffered rebalance. Compare vs Nifty
+  buy-and-hold + equal-weight. Honest floor (causal price) vs +quality (snapshot/optimistic).
