@@ -131,16 +131,24 @@ def backtest(method="ew", regime=False, universe=NIFTY200, cap=0.05, vol_target=
 
 
 def stats(net, idx):
-    eq = (1 + net).cumprod(); peak = eq.cummax()
-    yrs = len(net) / 252
-    return dict(cagr=100 * (eq.iloc[-1] ** (1 / yrs) - 1),
-                sharpe=net.mean() / (net.std() + 1e-12) * np.sqrt(252),
-                dd=100 * ((peak - eq) / peak).max(), end=eq.iloc[-1] * 1e5)
+    eq = (1 + net).cumprod(); peak = eq.cummax(); yrs = len(net) / 252
+    cagr = eq.iloc[-1] ** (1 / yrs) - 1
+    dd = ((peak - eq) / peak).max()
+    nf = idx.pct_change().reindex(net.index).fillna(0.0)
+    down = net[net < 0].std()
+    beta = np.cov(net, nf)[0, 1] / (nf.var() + 1e-12)
+    active = net - nf
+    return dict(cagr=100 * cagr, sharpe=net.mean() / (net.std() + 1e-12) * np.sqrt(252),
+                sortino=net.mean() / (down + 1e-12) * np.sqrt(252), dd=100 * dd,
+                calmar=cagr / (dd + 1e-12), beta=beta,
+                alpha=100 * (net.mean() - beta * nf.mean()) * 252,
+                ir=active.mean() / (active.std() + 1e-12) * np.sqrt(252), end=eq.iloc[-1] * 1e5)
 
 
 def row(name, net, idx):
     s = stats(net, idx)
-    print(f"  {name:<30}{s['cagr']:>7.1f}%{s['sharpe']:>8.2f}{s['dd']:>8.1f}%   Rs{s['end']:>11,.0f}")
+    print(f"  {name:<26}{s['cagr']:>6.1f}%{s['sharpe']:>7.2f}{s['sortino']:>8.2f}{s['dd']:>7.1f}%"
+          f"{s['calmar']:>7.2f}{s['alpha']:>+7.1f}{s['ir']:>6.2f} Rs{s['end']:>9,.0f}")
 
 
 if __name__ == "__main__":
@@ -148,19 +156,15 @@ if __name__ == "__main__":
     print("  ARJUNA v2 — RISK-BASED construction (Nifty-200, net of cost, ~5.5y)")
     print("  Goal: higher Sharpe + smaller drawdown (return is unpredictable)")
     print("=" * 74)
-    print(f"  {'method':<30}{'CAGR':>7}{'Sharpe':>8}{'maxDD':>8}   {'Rs1L ->':>13}")
+    print(f"  {'method':<26}{'CAGR':>7}{'Sharpe':>7}{'Sortino':>8}{'maxDD':>7}{'Calmar':>7}{'alpha':>7}{'IR':>6} {'Rs1L->':>11}")
     _, idx = backtest("ew")
     row("EW (v1 baseline)", *backtest("ew"))
-    row("INV_VOL (risk parity lite)", *backtest("inv_vol"))
-    row("MIN_VAR (shrinkage cov)", *backtest("min_var"))
+    row("INV_VOL (risk parity)", *backtest("inv_vol"))
+    row("MIN_VAR (shrinkage)", *backtest("min_var"))
     row("HRP (cluster risk parity)", *backtest("hrp"))
-    row("INV_VOL + simple regime", *backtest("inv_vol", regime="simple"))
     row("HRP + simple regime", *backtest("hrp", regime="simple"))
-    row("INV_VOL + regime + vol-target 12%", *backtest("inv_vol", regime="simple", vol_target=0.12))
-    row("HRP + regime + vol-target 12%", *backtest("hrp", regime="simple", vol_target=0.12))
-    nifty = idx.pct_change().fillna(0.0); neq = (1 + nifty).cumprod()
-    nsh = nifty.mean() / (nifty.std() + 1e-12) * np.sqrt(252)
-    print(f"  {'NIFTY-50 (benchmark)':<30}{100*((neq.iloc[-1])**(1/(len(nifty)/252))-1):>7.1f}%{nsh:>8.2f}"
-          f"{100*((neq.cummax()-neq)/neq.cummax()).max():>8.1f}%   Rs{neq.iloc[-1]*1e5:>11,.0f}")
+    row("HRP + regime + GLOBAL", *backtest("hrp", regime="global"))
+    row("INV_VOL + regime + GLOBAL", *backtest("inv_vol", regime="global"))
+    row("NIFTY-50 (benchmark)", idx.pct_change().fillna(0.0), idx)
     print("\n  Keep the method with the best Sharpe + lowest drawdown. (Survivorship inflates CAGR;")
     print("  the Sharpe/DD IMPROVEMENT over EW is the honest, transferable signal.)")

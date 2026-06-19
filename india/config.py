@@ -10,6 +10,11 @@ from dataclasses import dataclass
 class ArjunaConfig:
     # --- universe ---
     universe: str = "nifty200"        # "nifty100" | "nifty200"
+    # --- investor inputs (master-prompt spec) ---
+    risk_appetite: str = "medium"     # "low" | "medium" | "high"  -> sets method/cap/regime
+    max_drawdown: float = 0.10        # tolerance (informational + tightens de-risk when low)
+    sector_cap: float = 0.20          # max weight per sector
+    position_cap: float = 0.25        # hard ceiling per stock
     # --- rebalance / risk windows ---
     rebal_days: int = 21              # 21 = monthly, 63 = quarterly
     lookback: int = 120               # trading days for volatility / covariance
@@ -26,6 +31,16 @@ class ArjunaConfig:
 
 
 CONFIG = ArjunaConfig()
+
+# risk_appetite -> (method, name_cap, regime). Low = diversified+defensive, High = concentrated.
+RISK_PROFILE = {"low": ("hrp", 0.04, "global"),
+                "medium": ("hrp", 0.05, "global"),
+                "high": ("inv_vol", 0.08, "simple")}
+
+
+def apply_risk_appetite():
+    m, cap, reg = RISK_PROFILE.get(CONFIG.risk_appetite, RISK_PROFILE["medium"])
+    CONFIG.method, CONFIG.name_cap, CONFIG.regime = m, cap, reg
 
 
 def universe_list():

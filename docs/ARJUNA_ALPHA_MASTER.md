@@ -71,9 +71,11 @@ options flow · analyst estimates · historical news · alt-data.
 > I taking, how long do I hold, and why?"  → delivered by `run_arjuna.py` (dated recommendation +
 > hold + target + exit), honestly framed at the portfolio level.
 
-## Gap to fully realize this spec (small, mostly built)
-1. Input config (risk_appetite, max_drawdown, sector/position cap) → `config.py` knobs.
-2. Add metrics: Sortino · Calmar · alpha · beta · Information Ratio.
-3. Add SPA / White Reality Check to the gate; SHAP to explainability.
-4. Black-Litterman / Kelly / risk-budgeting as portfolio options.
-5. The DATA unlock (point-in-time fundamentals) — the only thing that could move per-stock return.
+## Gap to fully realize this spec
+1. ✅ **DONE** — Input config (risk_appetite low/med/high, max_drawdown, sector/position cap) in
+   `config.py`; `run_arjuna.py --risk low|medium|high` applies the profile.
+2. ✅ **DONE** — Metrics: Sortino · Calmar · alpha · beta · Information Ratio (in `arjuna_v2.stats`).
+3. ✅ **DONE (SHAP)** — `research/explain_shap.py` (native XGBoost SHAP on the risk model).
+   SPA / White Reality Check still ⏸ (DSR+PBO already gate strongly).
+4. ⏸ Black-Litterman / Kelly / risk-budgeting — optional portfolio variants (HRP already wins).
+5. ❗ The DATA unlock (point-in-time fundamentals) — the ONLY thing that could move per-stock return.

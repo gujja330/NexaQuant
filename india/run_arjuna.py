@@ -18,7 +18,7 @@ import pandas as pd
 warnings.simplefilter("ignore")
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from india.config import CONFIG, universe_list
+from india.config import CONFIG, universe_list, apply_risk_appetite
 from india.feature_engine import load_panels
 from india.arjuna_v2 import weights_for
 
@@ -109,11 +109,19 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--capital", type=float, default=CONFIG.capital)
     ap.add_argument("--hold", default="1 year", help="planned holding period for the profit target")
-    ap.add_argument("--method", default=CONFIG.method)
-    ap.add_argument("--regime", default=CONFIG.regime)
+    ap.add_argument("--risk", default=None, choices=["low", "medium", "high"],
+                    help="risk appetite -> sets method/cap/regime")
+    ap.add_argument("--method", default=None)
+    ap.add_argument("--regime", default=None)
     ap.add_argument("--live", action="store_true")
     a = ap.parse_args()
-    CONFIG.method, CONFIG.regime, CONFIG.capital = a.method, a.regime, a.capital
+    if a.risk:                                          # risk appetite drives method/cap/regime
+        CONFIG.risk_appetite = a.risk; apply_risk_appetite()
+    if a.method:
+        CONFIG.method = a.method
+    if a.regime:
+        CONFIG.regime = a.regime
+    CONFIG.capital = a.capital
 
     asof, w, prices, deploy, regime_lbl, excluded = current_portfolio()
     invest = a.capital * deploy
