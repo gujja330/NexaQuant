@@ -55,8 +55,11 @@ def screen(closes, vols, kind):
     return _z(mom) + _z(lowvol) + _z(trend)
 
 
-def backtest(kind="all", k=K, vix_derisk=False):
+def backtest(kind="all", k=K, vix_derisk=False, universe=None):
     closes, highs, lows, vols, idx, vix, spx = load_panels()
+    if universe is not None:                          # restrict to a chosen universe (e.g. Nifty-100)
+        cols = [c for c in closes.columns if c in set(universe)]
+        closes, vols = closes[cols], vols[cols]
     rets = closes.pct_change().fillna(0.0)
     rebal_idx = set(closes.index[::REBAL])
     score = None if kind == "all" else screen(closes, vols, kind)
