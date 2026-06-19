@@ -2,8 +2,15 @@
 """
 Central ARJUNA v2 configuration — the ONE place to change strategy behavior (dynamic format).
 Every core module + the runner reads from CONFIG, so tuning the system never means editing logic.
+
+>>> ARJUNA CORE v2.0 — FROZEN 2026-06-19 <<<
+Champion config below (HRP + regime=global) is locked for a 12-month forward paper-trading phase.
+Validated: Sharpe 2.04 · maxDD 12.8% · Deflated Sharpe 0.996 · PBO 0.00. DO NOT tune Core during
+the freeze — experiments belong in india/research/ (Lab) and only promote after beating Core.
 """
 from dataclasses import dataclass
+
+VERSION = "ARJUNA Core v2.0 (frozen 2026-06-19)"
 
 
 @dataclass
