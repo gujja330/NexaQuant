@@ -1,0 +1,20 @@
+# india/requirements.txt — everything the Arjuna (India equity) bot needs.
+# Install once:   python -m pip install -r india/requirements.txt
+#
+# Credentials are NOT here — they live in a git-ignored .env.angel file in the repo root:
+#   ANGEL_API_KEY=...   ANGEL_CLIENT_CODE=...   ANGEL_PIN=...   ANGEL_TOTP_SECRET=...
+
+# ---- data + strategy engine ----
+pandas
+numpy
+pyarrow            # parquet read/write
+scipy
+scikit-learn       # AI meta-label / future ML refinement
+yfinance           # free fallback data (indices, fundamentals, backtest)
+
+# ---- Angel One SmartAPI (live auth + clean historical data + execution) ----
+smartapi-python    # the broker SDK (provides the SmartApi module)
+pyotp              # generates the TOTP code from ANGEL_TOTP_SECRET
+logzero            # smartapi dependency (not auto-installed)
+websocket-client   # smartapi dependency (provides the `websocket` module)
+requests           # scrip-master download + HTTP
