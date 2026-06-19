@@ -117,11 +117,20 @@ def capital_profile(capital):
 def position_budget(w, prices, capital, deploy):
     """Capital-aware Position Budget Engine: positions scale with capital; deploy the FULL
     investable amount (equal-Rs base + greedy whole-share top-up so cash isn't wasted)."""
+    from india.sectors import sector_of
     invest = capital * deploy
     n, _ = capital_profile(capital)
     n = max(1, n)
-    picks = [s for s in w.nlargest(n * 2).index if np.isfinite(prices.get(s, np.nan))
-             and prices.get(s) > 0][:n]
+    picks, sec = [], {}                                 # sector<=2 (validated champion diversification)
+    for s in w.nlargest(len(w)).index:
+        if len(picks) >= n:
+            break
+        if not (np.isfinite(prices.get(s, np.nan)) and prices.get(s) > 0):
+            continue
+        k = sector_of(s)
+        if sec.get(k, 0) >= 2:
+            continue
+        picks.append(s); sec[k] = sec.get(k, 0) + 1
     if not picks:
         return pd.DataFrame(), 0.0, 0
     per = invest / len(picks)

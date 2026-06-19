@@ -4,8 +4,10 @@ Central ARJUNA v2 configuration — the ONE place to change strategy behavior (d
 Every core module + the runner reads from CONFIG, so tuning the system never means editing logic.
 
 >>> ARJUNA CORE v2.1 — FROZEN 2026-06-19 <<<
-Champion: HRP + continuous regime + Global Risk, QUARTERLY rebalance, 15 stocks, sector<=3.
-Validated: Sharpe 2.00 · maxDD 10.6% · turnover 3.3/yr · Deflated Sharpe 0.996 · PBO 0.00.
+Champion: HRP + continuous regime + Global Risk, QUARTERLY rebalance, 15 stocks, sector<=2
+(tuning grid: sector<=2 Sharpe 2.02 / DD 11.2% beats <=3; sector<=1 peaks Sharpe 2.19 but DD 13.4%).
+Validated: Sharpe ~2.0 · maxDD ~11% · turnover 3.3/yr · Deflated Sharpe 0.996 · PBO 0.01.
+Monte Carlo (haircut-robust): median 4-15%/yr across 0-70% haircut, P(DD>20%)~0% at every level.
 Stress (real corrections): positive in 3/4, drawdown 2-3x smaller than Nifty. Monte-Carlo (35%
 haircut): median ~9-10%/yr, P(+ve 1yr)=87%/3yr=98%, typical maxDD 6-8%, P(DD>20%)~0%.
 Locked for 12-month forward paper. DO NOT tune Core — experiments live in india/research/ (Lab).

@@ -52,7 +52,7 @@ survives BOTH bull and bear markets.
   (0.61 vs 0.49 down) appeared only in a bull OOS window — not trusted until a bear-market test.
 
 ### Net finding
-**Per-stock RETURN is not reliably predictable; per-stock RISK is.** So the recommendation output is
+**With CURRENT data, per-stock return has NOT shown predictability (could change with new data); per-stock RISK is.** So the recommendation output is
 **basket-level expected return + risk-based allocation + holding-period probabilities** — honest
 numbers, not fabricated per-stock "confidence."
 
