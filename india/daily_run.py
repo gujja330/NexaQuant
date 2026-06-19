@@ -36,8 +36,9 @@ def main():
 
     if a.pull:
         step("1. refresh prices (Angel, incremental)", ["broker_angelone.py", "--pull"])
-    step("2. news sentiment (FinBERT + Google News)", ["news_sentiment.py"])
-    step("3. news-filtered basket", ["run_arjuna.py", "--capital", a.capital])
+    step("2. FII/DII flows (NSE, forward)", ["fii_dii.py"])
+    step("3. news sentiment (FinBERT + Google News)", ["news_sentiment.py"])
+    step("4. risk-weighted basket (+regime +global +news filter)", ["run_arjuna.py", "--capital", a.capital])
 
     # append today's basket to the forward paper log
     blot = OUT / "arjuna_paper_orders.csv"

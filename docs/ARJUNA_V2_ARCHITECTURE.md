@@ -81,9 +81,14 @@ Price: Angel SmartAPI ✅ · Regime: India-VIX/breadth ✅, **Global (S&P/VIX/DX
 FII/DII (NSE, planned) · News: Google RSS + FinBERT ✅ · Factors: Fama-French (planned) ·
 Macro: FRED (planned) · Fundamentals: yfinance snapshot / SimFin (US). **Real gap: point-in-time INDIA fundamentals.**
 
-## v2.5 priorities
-1. FII/DII ⭐ 2. Breadth-as-regime-input ⭐ 3. GARCH vol 4. Conformal uncertainty
-5. Triple-barrier + meta-label 6. PBO + SPA tests 7. Fama-French factor overlay.
+## v2.5 status (built + tested)
+- ✅ **FII/DII flow engine** (`fii_dii.py`) — NSE live; no free history → forward-collected (like news).
+- ✅ **PBO** (`validation.py`) — Probability of Backtest Overfitting across 10 configs = **0.00** (robust).
+- ❌ **GARCH/EWMA vol** (`risk_forecast.py`) — corr with next-month vol 0.442/0.439 vs trailing **0.444**
+  → no improvement, REJECTED (trailing vol is good enough; keep it simple).
+- ⏸ Conformal uncertainty · triple-barrier+meta-label · Fama-French — Lab/deferred (low fit for the
+  rules-based Core; revisit only with a prediction model or new data).
+Validation gate now = **Deflated Sharpe + PBO + purged walk-forward**.
 
 ## Crypto (parked — stocks first)
 Risk principle (vol-targeting, regime de-risk) transfers to gold/BTC; cross-sectional selection does
