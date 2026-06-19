@@ -79,3 +79,13 @@ drawdown**, net of cost, out-of-sample? Report the honest verdict either way.
 - 2026-06-19: **PIVOT (user) -> LONG-HOLD COMPOUNDERS.** Build `india/compounder.py`: quality +
   momentum + low-vol, HOLD quarters (low churn/cost), buffered rebalance. Compare vs Nifty
   buy-and-hold + equal-weight. Honest floor (causal price) vs +quality (snapshot/optimistic).
+- 2026-06-19: **DECISIVE — AI selection LOSES to owning the basket.** Fair benchmark = equal-weight
+  Nifty-100 (same universe). AI long-hold (+60%, Sharpe 0.94) < EW-100 (+73%, 1.39) OOS; IC ~ -0.03.
+  AI's "win vs Nifty-50" was mid-cap beta. Dropped AI stock-selection.
+- 2026-06-19: **SHIPPED Arjuna v1 = equal-weight basket + VIX de-risk** (`arjuna_strategy.py`).
+  Full window net of cost: EW-100 +190%/1.36 (ideal, 100 orders, most survivorship-biased);
+  EW-30 quality+VIX +85%/1.00 (DEPLOYABLE, beats Nifty +74/0.80); VIX overlay lifted Sharpe
+  0.77->1.00 (kept). `run_arjuna.py` = paper runner (auto-sizes basket to capital; live orders
+  blocked until funded). Honest caveats: survivorship inflates backtest; small capital + no
+  fractional shares means ultra-high-priced names need ~Rs2-3L to fit a 30-name basket.
+  PENDING: user funds + rotates creds -> wire live order placement; optional lot-aware allocator.
