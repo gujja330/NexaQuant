@@ -68,7 +68,7 @@ def backtest(method="ew", regime=False, universe=NIFTY200, cap=0.05):
     W = W.replace(0.0, np.nan).ffill().fillna(0.0)
     gross = (W.shift(1) * rets.reindex(columns=W.columns)).sum(axis=1)
     net = gross - (W - W.shift(1)).abs().sum(axis=1) * (COST_BPS / 1e4)
-    if regime:
+    if regime in ("simple", True):
         scale = pd.Series(1.0, index=net.index)
         if vix is not None:
             hi = (vix > vix.rolling(120, min_periods=30).quantile(0.80)).reindex(net.index).fillna(False)
@@ -76,6 +76,10 @@ def backtest(method="ew", regime=False, universe=NIFTY200, cap=0.05):
         below = (idx < idx.rolling(200).mean()).reindex(net.index).fillna(False)
         scale *= below.map({True: 0.6, False: 1.0})
         net = net * scale
+    elif regime == "hmm":
+        from india.regime_hmm import hmm_exposure
+        exp = hmm_exposure().reindex(net.index).shift(1).fillna(1.0)   # shift -> use prior day's state
+        net = net * exp
     return net, idx
 
 
@@ -102,8 +106,10 @@ if __name__ == "__main__":
     row("EW (v1 baseline)", *backtest("ew"))
     row("INV_VOL (risk parity lite)", *backtest("inv_vol"))
     row("MIN_VAR (shrinkage cov)", *backtest("min_var"))
-    row("INV_VOL + regime de-risk", *backtest("inv_vol", regime=True))
-    row("MIN_VAR + regime de-risk", *backtest("min_var", regime=True))
+    row("INV_VOL + simple regime", *backtest("inv_vol", regime="simple"))
+    row("MIN_VAR + simple regime", *backtest("min_var", regime="simple"))
+    row("INV_VOL + HMM regime", *backtest("inv_vol", regime="hmm"))
+    row("MIN_VAR + HMM regime", *backtest("min_var", regime="hmm"))
     nifty = idx.pct_change().fillna(0.0); neq = (1 + nifty).cumprod()
     nsh = nifty.mean() / (nifty.std() + 1e-12) * np.sqrt(252)
     print(f"  {'NIFTY-50 (benchmark)':<30}{100*((neq.iloc[-1])**(1/(len(nifty)/252))-1):>7.1f}%{nsh:>8.2f}"
