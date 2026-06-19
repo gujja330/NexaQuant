@@ -102,10 +102,13 @@ def _get_candles_retry(obj, params, tries=6):
     return None
 
 
-def candles(obj, token, interval="ONE_DAY", days=2000):
-    """Pull historical candles (chunked to respect API range limits). Returns OHLCV DataFrame."""
+def candles(obj, token, interval="ONE_DAY", days=2000, since=None):
+    """Pull historical candles (chunked to respect API range limits). Returns OHLCV DataFrame.
+    If `since` (a datetime) is given, pull only from there -> now (incremental append mode)."""
     end = datetime.now()
-    start = end - timedelta(days=days)
+    start = since if since is not None else end - timedelta(days=days)
+    if start >= end:
+        return None                                   # already up to date
     step = 100 if interval != "ONE_DAY" else 1500     # per-call span (bars/days) limits vary
     frames, cur = [], start
     while cur < end:
@@ -151,20 +154,51 @@ def main():
         syms = a.symbols or [s.replace(".NS", "").replace("^", "") for s in UNIVERSE if not s.startswith("^")]
         toks = nse_tokens(syms)
         suffix = {"ONE_DAY": "D1", "ONE_HOUR": "H1", "FIFTEEN_MINUTE": "M15", "FIVE_MINUTE": "M5"}.get(a.interval, "D1")
+        cols = ["open", "high", "low", "close", "tick_volume", "spread"]
         ok = 0
         for s in syms:
             tk = toks.get(s)
             if not tk:
                 print(f"  ! {s}: no NSE token"); continue
-            df = candles(obj, tk, a.interval, a.days)
-            if df is None or len(df) < 50:
-                print(f"  ! {s}: low/no data"); continue
-            df["tick_volume"] = df["volume"]; df["spread"] = 0.0
             out = RAW / (f"{s}_{suffix}.parquet" if suffix == "D1" else f"intraday/{s}_{suffix}.parquet")
             out.parent.mkdir(parents=True, exist_ok=True)
-            df[["open", "high", "low", "close", "tick_volume", "spread"]].to_parquet(out)
+
+            # INCREMENTAL APPEND: if we already have this symbol, only pull bars after the last one.
+            existing, since = None, None
+            if out.exists():
+                try:
+                    existing = pd.read_parquet(out)
+                    if len(existing):
+                        # re-pull from a few bars back to overlap/repair the boundary, then dedup
+                        since = existing.index[-1].to_pydatetime() - timedelta(days=3)
+                except Exception:
+                    existing = None
+
+            df = candles(obj, tk, a.interval, a.days, since=since)
+            new = None
+            if df is not None and len(df):
+                df["tick_volume"] = df["volume"]; df["spread"] = 0.0
+                new = df[cols]
+
+            if existing is not None and new is not None:
+                merged = pd.concat([existing[cols], new])
+                merged = merged[~merged.index.duplicated(keep="last")].sort_index()
+                added = len(merged) - len(existing)
+            elif new is not None:
+                merged, added = new, len(new)
+            elif existing is not None:
+                merged, added = existing, 0                      # nothing new, keep what we have
+            else:
+                print(f"  ! {s}: low/no data"); continue
+
+            # only enforce the min-history floor on a first-time (from-scratch) pull
+            if existing is None and len(merged) < 50:
+                print(f"  ! {s}: low/no data"); continue
+
+            merged.to_parquet(out)
             ok += 1
-            print(f"  {s:<12}{len(df):>6} bars  {df.index[0].date()} -> {df.index[-1].date()}")
+            tag = f"+{added} new" if existing is not None else "fresh"
+            print(f"  {s:<12}{len(merged):>6} bars  {merged.index[0].date()} -> {merged.index[-1].date()}  ({tag})")
         print(f"\n  pulled {ok}/{len(syms)} symbols ({a.interval}). Re-run india/picker_pro.py to use the clean data.")
 
 
