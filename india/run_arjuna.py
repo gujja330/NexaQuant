@@ -26,6 +26,18 @@ from india.feature_engine import load_panels
 from india.arjuna_strategy import screen, K
 
 OUT = ROOT / "output"; OUT.mkdir(exist_ok=True)
+NEWS = ROOT / "data" / "raw" / "india" / "news_sentiment.parquet"
+NEG_THRESH = -0.4          # drop names with strongly negative latest news (blow-up avoidance)
+
+
+def negative_news_names():
+    """Latest news sentiment per symbol; return names with sentiment <= NEG_THRESH (to exclude)."""
+    if not NEWS.exists():
+        return {}, {}
+    df = pd.read_parquet(NEWS)
+    latest = df.sort_values("asof").groupby("symbol").tail(1).set_index("symbol")["news_sent"]
+    bad = set(latest[latest <= NEG_THRESH].index)
+    return bad, latest.to_dict()
 
 
 def current_scores():
@@ -81,10 +93,18 @@ def allocate(ranked, prices, budget, max_names=30, min_names=4):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--capital", type=float, default=100000)
+    ap.add_argument("--no-news", action="store_true", help="disable the news risk-filter")
     ap.add_argument("--live", action="store_true")
     a = ap.parse_args()
 
     asof, ranked, prices, deploy, regime = current_scores()
+    # NEWS RISK FILTER: drop names with strongly negative latest news (avoid blow-ups)
+    excluded = []
+    if not a.no_news:
+        bad, _ = negative_news_names()
+        excluded = [s for s in ranked.index if s in bad]
+        if excluded:
+            ranked = ranked.drop(labels=excluded)
     invest = a.capital * deploy
     df, deployed = allocate(ranked, prices, invest)
 
@@ -92,6 +112,8 @@ def main():
     print(f"  ARJUNA v1 — dynamic basket  (capital Rs{a.capital:,.0f})  as of {pd.Timestamp(asof).date()}")
     print("=" * 66)
     print(f"  VIX regime: {regime}   investable Rs{invest:,.0f} ({deploy*100:.0f}%)")
+    if excluded:
+        print(f"  news filter EXCLUDED (negative sentiment <= {NEG_THRESH}): {', '.join(excluded)}")
     if df.empty:
         print("\n  ! capital too small to buy even one share of an eligible name. Increase capital.")
         return

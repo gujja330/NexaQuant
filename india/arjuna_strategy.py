@@ -29,6 +29,7 @@ from india.feature_engine import load_panels
 from india.equity_engine import COST_BPS
 from india.sectors import SECTORS
 
+RAW = ROOT / "data" / "raw" / "india"
 REBAL = 63          # quarterly
 K = 30              # practical basket size
 BUFFER = 40         # keep a held name until it leaves the top-40 (low churn)
@@ -107,13 +108,13 @@ def regime_overlay(net, idx, vix, use_vix, use_trend):
 
 
 def backtest(kind="all", k=K, vix_derisk=False, trend_derisk=False, sector_cap=None,
-             reject_weak=False, weight="equal", universe=None):
+             reject_weak=False, weight="equal", universe=None, rebal=REBAL):
     closes, highs, lows, vols, idx, vix, spx = load_panels()
     if universe is not None:                          # restrict to a chosen universe (e.g. Nifty-100)
         cols = [c for c in closes.columns if c in set(universe)]
         closes, vols = closes[cols], vols[cols]
     rets = closes.pct_change().fillna(0.0)
-    rebal_idx = set(closes.index[::REBAL])
+    rebal_idx = set(closes.index[::rebal])
     score = None if kind == "all" else screen(closes, vols, kind)
     bad = weak_fundamental_names() if reject_weak else set()
 
