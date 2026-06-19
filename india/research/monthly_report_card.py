@@ -41,8 +41,8 @@ def main():
         hist = rets.loc[:d].tail(LOOKBACK).dropna(axis=1, how="any")
         if hist.shape[1] < 20:
             continue
-        w = weights_for("hrp", hist).clip(upper=NAME_CAP)
-        w = (w / w.sum()).sort_values(ascending=False).head(TOPN)
+        w = weights_for("hrp", hist).clip(upper=NAME_CAP).sort_values(ascending=False).head(TOPN)
+        w = w / w.sum()                              # renormalize the held basket to 100%
         d1 = didx[i + 21] if i + 21 < len(didx) else None
         d3 = didx[i + 63] if i + 63 < len(didx) else None
         recs = []
@@ -67,29 +67,54 @@ def main():
         per_month[d.strftime("%Y-%m")] = mdf
         for r in recs:
             all_rows.append({"month": d.strftime("%Y-%m"), **r})
-        g1s = mdf["gain_1m_%"].dropna(); g3s = mdf["gain_3m_%"].dropna()
+        def wgain(col):                              # weighted basket gain (uses the real weights)
+            g = mdf.dropna(subset=[col])
+            return (g["weight_%"] / g["weight_%"].sum() * g[col]).sum() if len(g) else np.nan
         summary.append({"month": d.strftime("%Y-%m"), "picks": len(mdf),
-                        "avg_gain_1m_%": round(g1s.mean(), 1) if len(g1s) else None,
+                        "basket_gain_1m_%": round(wgain("gain_1m_%"), 1) if np.isfinite(wgain("gain_1m_%")) else None,
                         "winners_1m": f"{(mdf['result_1m']=='UP').sum()}/{mdf['result_1m'].isin(['UP','DOWN']).sum()}",
-                        "avg_gain_3m_%": round(g3s.mean(), 1) if len(g3s) else None,
+                        "basket_gain_3m_%": round(wgain("gain_3m_%"), 1) if np.isfinite(wgain("gain_3m_%")) else None,
                         "winners_3m": f"{(mdf['result_3m']=='UP').sum()}/{mdf['result_3m'].isin(['UP','DOWN']).sum()}"})
 
     flat = pd.DataFrame(all_rows); flat.to_csv(OUT / "arjuna_report_card.csv", index=False)
     sm = pd.DataFrame(summary)
-    with pd.ExcelWriter(OUT / "arjuna_report_card.xlsx") as xl:
-        sm.to_excel(xl, sheet_name="summary", index=False)
-        for month, mdf in per_month.items():
-            mdf.to_excel(xl, sheet_name=month, index=False)
 
-    print("=" * 70)
-    print("  DETAILED REPORT CARD saved -> output/arjuna_report_card.xlsx")
-    print(f"  ({len(per_month)} monthly sheets + summary; {len(flat)} stock-picks total)")
-    print("=" * 70)
-    print("  SAMPLE — 2025-03 picks (first 10), entry -> 1-month exit:\n")
-    s = per_month.get("2025-03")
-    if s is not None:
-        print(s[["stock", "buy_price", "exit_1m_price", "gain_1m_%", "result_1m", "gain_3m_%", "result_3m"]].head(10).to_string(index=False))
-    print("\n  Open the xlsx: one tab per month, every stock with buy/exit price + gain%.")
+    # OVERALL profit: roll the basket monthly (buy, hold 1m, rotate) -> compounded
+    m1 = [s["basket_gain_1m_%"] for s in summary if s["basket_gain_1m_%"] is not None]
+    m3 = [s["basket_gain_3m_%"] for s in summary if s["basket_gain_3m_%"] is not None]
+    comp1 = (np.prod([1 + x / 100 for x in m1]) - 1) * 100
+    overall = {"month": "OVERALL", "picks": "",
+               "basket_gain_1m_%": round(np.mean(m1), 1), "winners_1m": f"compounded {comp1:+.0f}%",
+               "basket_gain_3m_%": round(np.mean(m3), 1), "winners_3m": f"over {len(m1)} months"}
+    sm = pd.concat([sm, pd.DataFrame([overall])], ignore_index=True)
+
+    xlsx_path = OUT / "arjuna_report_card.xlsx"
+    for attempt in (xlsx_path, OUT / "arjuna_report_card_new.xlsx"):
+        try:
+            with pd.ExcelWriter(attempt) as xl:
+                sm.to_excel(xl, sheet_name="summary", index=False)
+                for month, mdf in per_month.items():
+                    mdf.to_excel(xl, sheet_name=month, index=False)
+            xlsx_path = attempt; break
+        except PermissionError:
+            print(f"  ! {attempt.name} is open/locked — writing to a new file...")
+    else:
+        xlsx_path = "(xlsx locked; close Excel and re-run)"
+
+    print("=" * 72)
+    print("  DETAILED REPORT CARD -> output/arjuna_report_card.xlsx")
+    print(f"  ({len(per_month)} monthly sheets + summary; {len(flat)} picks; weights now sum to 100%)")
+    print("=" * 72)
+    print(f"  {'month':<9}{'basket 1m':>11}{'winners 1m':>12}{'basket 3m':>11}{'winners 3m':>12}")
+    for s in summary:
+        b1 = f"{s['basket_gain_1m_%']:+.1f}%" if s['basket_gain_1m_%'] is not None else "  --"
+        b3 = f"{s['basket_gain_3m_%']:+.1f}%" if s['basket_gain_3m_%'] is not None else "  --"
+        print(f"  {s['month']:<9}{b1:>11}{s['winners_1m']:>12}{b3:>11}{s['winners_3m']:>12}")
+    print("  " + "-" * 60)
+    print(f"  OVERALL avg monthly basket 1m gain {np.mean(m1):+.1f}%   "
+          f"compounded if rolled monthly {comp1:+.0f}% over {len(m1)} months")
+    print(f"          avg 3m basket gain {np.mean(m3):+.1f}%")
+    print("  (weighted by actual basket weights; NO regime cash overlay applied here = raw picks.)")
 
 
 if __name__ == "__main__":
