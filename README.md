@@ -90,11 +90,8 @@ nexaquant/
 │   └── validator.py       <- walk-forward + Purged CV + Deflated Sharpe + PBO (overfitting)
 ├── execution/
 │   └── live_trader.py     <- MT5 bot: dry-run / paper / live; autonomous SL/trail/scale-out + kill switch
-├── docs/                  <- source PDFs + NexaQuant_Architecture.pdf (11pp) + STRATEGY.md
-│   └── build_architecture.py  <- regenerates the colourful architecture + research-evidence deck
-└── legacy/                <- the original 8-module MARL scaffolding, PARKED
-                              (validation was FAILED; kept for reference, safe to
-                               delete once nothing here is needed)
+└── docs/                  <- source PDFs + NexaQuant_Architecture.pdf (11pp) + STRATEGY.md
+    └── build_architecture.py  <- regenerates the colourful architecture + research-evidence deck
 ```
 
 ---
@@ -178,7 +175,7 @@ The honest sequence (each step only once the prior one has fuel):
    signals). Needs ~10k+ decisions across regimes -> unlocked by M5/M15 + BTC.
 4. **DL features** — CNN/transformer representations fed AS FEATURES into the ensemble.
 5. **Multi-agent ensemble** — specialised trend / mean-reversion / risk agents combined
-   by a regime-weighted meta-learner (the original MARL vision in `legacy/`).
+   by a regime-weighted meta-learner (the original MARL vision).
 > Rule: model complexity may only increase together with data breadth AND validation
 > rigor (purged CV + paper trading). More models on thin data = more ways to overfit.
 
