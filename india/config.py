@@ -25,6 +25,12 @@ from dataclasses import dataclass
 
 VERSION = "ARJUNA Core v2.2 (2026-06-22)"
 
+# AI/ML re-experimentation policy (see docs/ARJUNA_V4_ROADMAP.md). We are NOT abandoning ML.
+# It is a signboard, not a tombstone: TEMPORARILY CLOSED until better DATA arrives. Doctrine =
+# Data -> Features -> Targets -> Validation -> Models (sophistication LAST). Run india/ai_reopen.py
+# to see which data triggers are CLOSED vs ARMED.
+MODELS_FROZEN_UNTIL_DATA_ARRIVES = True      # never *_FOREVER
+
 
 @dataclass
 class ArjunaConfig:
