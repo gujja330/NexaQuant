@@ -82,7 +82,10 @@ def main():
     # horizon-aware read for the requested holding period
     hv = horizon_view(eq, HORIZON_DAYS, CAP)
     hlabel = f"{HORIZON_DAYS//21} months" if HORIZON_DAYS >= 21 else f"{HORIZON_DAYS} days"
-    # confidence is the WEAKER of the regime read and the horizon's mode (don't oversell short holds)
+    # confidence = WEAKER of regime + horizon mode. NOTE: this is a deliberately CONSERVATIVE
+    # heuristic, not a measured fact. The conditional test (evidence/probability_matrix.py) found
+    # weak-regime entries actually had HIGHER forward odds (de-risk + buy-the-dip) — but those cells
+    # are bull-period/small-sample artifacts, so we under-promise on purpose until forward data.
     rank = {"Low": 0, "Medium": 1, "High": 2}
     eff_conf = min([conf, hv["confidence"]], key=lambda x: rank[x.title()])
 
