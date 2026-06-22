@@ -22,8 +22,11 @@ warnings.simplefilter("ignore")
 from india.arjuna_v2 import backtest
 from india.feature_engine import load_panels
 from india.evidence.monte_carlo import sim
+from india.probability_surface import surface, horizon_view, mode_of
 
 CFG = dict(method="hrp", regime="global", topn=15, sector_cap=2, rebal=63)
+HORIZON_DAYS = 126     # default read = 6 months (CORE mode); change to see TACTICAL/OPPORTUNITY
+CAP = 100000
 
 
 def current_regime():
@@ -76,27 +79,35 @@ def main():
     r = net.values; cvar95 = 100 * r[r <= np.percentile(r, 5)].mean()
     tail = "Low" if cvar95 > -1.2 else ("Medium" if cvar95 > -2.0 else "High")
 
-    # suggested horizon (first holding length with >=90% positive, in-sample)
-    horizon = "1 year+"
-    for label, h in [("1 month", 21), ("3 months", 63), ("6 months", 126), ("1 year", 252)]:
-        if ((eq.shift(-h) / eq - 1).dropna() > 0).mean() >= 0.90:
-            horizon = label + "+"; break
+    # horizon-aware read for the requested holding period
+    hv = horizon_view(eq, HORIZON_DAYS, CAP)
+    hlabel = f"{HORIZON_DAYS//21} months" if HORIZON_DAYS >= 21 else f"{HORIZON_DAYS} days"
+    # confidence is the WEAKER of the regime read and the horizon's mode (don't oversell short holds)
+    rank = {"Low": 0, "Medium": 1, "High": 2}
+    eff_conf = min([conf, hv["confidence"]], key=lambda x: rank[x.title()])
 
-    print("=" * 50)
+    print("=" * 56)
     print("  ARJUNA CONFIDENCE ENGINE")
-    print("=" * 50)
+    print("=" * 56)
+    print(f"  Horizon:           {hlabel}   ->   mode {hv['mode']} ({hv['status']})")
     print(f"  Regime:            {regime}  (market exposure {exp:.0%})")
-    print(f"  Confidence:        {conf}")
+    print(f"  Confidence:        {eff_conf}   (weaker of regime + horizon mode)")
+    print(f"  P(positive):       {hv['p_pos']:.0f}%   at this horizon")
+    print(f"  Expected gain:     Rs{hv['median']:+,.0f}   (bad case Rs{hv['bad']:+,.0f}) on Rs{CAP:,.0f}")
     print(f"  Expected CAGR:     {cagr_lo:.0f}-{cagr_hi:.0f}%   (realistic band, survivorship-haircut)")
-    print(f"  P(positive, 1yr):  {p_pos:.0f}%")
     print(f"  Expected drawdown: ~{exp_dd:.0f}%   (typical worst dip)")
     print(f"  Recovery:          {med_rec} days median")
     print(f"  Worst underwater:  ~{worst_uw_mo} months (rare, once-a-cycle)")
     print(f"  Worst month seen:  {worst_m:.0f}%")
     print(f"  Tail risk:         {tail}")
-    print(f"  Suggested horizon: {horizon}")
-    print("=" * 50)
-    print("  This is an expectation + confidence read, NOT a prediction of winners.")
+    print(f"  Review:            Quarterly")
+    print("-" * 56)
+    print("  PROBABILITY SURFACE (odds of profit by hold, on Rs 1,00,000):")
+    for label, v in surface(eq, CAP):
+        bar = "#" * int(v["p_pos"] / 5)
+        print(f"    {label:<4}{v['p_pos']:>4.0f}%  {bar:<20} {v['mode']}")
+    print("=" * 56)
+    print("  Expectation + probability read, NOT a prediction of winners or a target price.")
 
 
 if __name__ == "__main__":
