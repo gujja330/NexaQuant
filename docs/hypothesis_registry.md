@@ -1,61 +1,76 @@
-# ARJUNA — Hypothesis Registry
+# ARJUNA — Hypothesis Registry (authoritative scorecard)
 
-> The scientific contract. Nothing is promoted on intuition. Every claim is GREEN (validated,
-> frozen), YELLOW (promising, needs testing), or RED (tested, rejected). Flow:
-> **Hypothesis → Experiment → Evidence → Promotion.** Updated 2026-06-22.
+> The scientific contract. Nothing promoted on intuition. Flow: **Hypothesis → Experiment →
+> Evidence → Promotion.** Four buckets: REAL (measured) · PARTIALLY VALIDATED · REJECTED · UNTESTED.
+> Updated 2026-06-22. **FEATURE-BUILDING IS FROZEN** — the only work that counts now is forward paper.
 
-## 🟢 GREEN — validated, frozen (real backtests + diagnostics)
+## 🟢 REAL — measured from actual backtests (trust the RELATIVE edges, not the inflated levels)
 
-| Claim | Evidence | Notes |
+| Result | Numbers | Trust level |
 |---|---|---|
-| HRP/EW + regime, quarterly, 15 stk, sector≤2 = the champion | full backtest; DSR 0.995, PBO 0.01 | Core v2.2 |
-| **The regime overlay is the real edge** (not selection/weighting) | decomposition: w/o regime Sharpe ~1.3, with it ~2.0; helped 3/4 recent quarters (+7.5 vs +4.7) | `ARJUNA_STRATEGY_DECISION.md` |
-| Quarterly > monthly | Sharpe 1.86 vs 1.70, wins at all cost levels | — |
-| Sector≤2 | tuning grid + stress robust | — |
-| BROAD (EW-all + regime) is a valid higher-return style | DSR 0.992, higher CAGR every sub-period, holds on Nifty-100 | survivorship-flattered; Sharpe parity is the honest read |
-| Monte-Carlo / recovery / underwater / time-div / tail / DSR / PBO | all real simulations on historical distribution | survivorship-inflated levels; *shapes* are the signal |
-| Horizon dominates odds at the short end | conditional matrix: 1W ~51–59% across all regimes | `evidence/probability_matrix.py` |
+| **Regime overlay** (the strongest finding) | no-regime Sharpe 1.28 / DD 17.8% → global regime 2.02 / 11.2% | HIGH (relative) |
+| Champion vs Nifty | CAGR 16.4 vs 10.8 · Sharpe 2.02 vs 0.80 · DD 11.2 vs 17.2 | HIGH (relative), levels inflated |
+| Decomposition (HRP ≈ EW; selection adds little) | HRP-15 Sharpe 1.28 ≈ EW-15 1.30 | HIGH |
+| Capital Ladder | 50K/3 · 1L/5 · 5L/8 · 10L/15 · 25L/20 · 1Cr/25 (15 = sweet spot) | MEDIUM (in-sample) |
+| Probability Surface | P(+) 1W 55% → 6M 93% → 1Y 96% (rolling windows) | MEDIUM (unconditional) |
+| Quarterly > monthly · sector≤2 · MC · recovery · underwater · tail · DSR/PBO | all real | HIGH (relative) |
 
-## 🟡 YELLOW — promising, NOT yet validated (do not over-sell)
+## 🟡 PARTIALLY VALIDATED — some evidence, not proven
 
-| Claim | Status | Evidence we have | What's missing |
-|---|---|---|---|
-| **Probability Surface** (P(+) by horizon) | PARTIALLY VALIDATED | unconditional curve from champion (55→96%) is real | conditional-by-regime is surprising (below); forward data |
-| **Confidence = min(regime, horizon)** | ASSUMPTION, mildly REFUTED | conditional matrix shows Weak-regime entries had *higher*, not lower, odds | kept as a *conservative* heuristic only; real mapping needs forward data (rare cells are bull-flattered) |
-| **Probability Surface × Regime** (conditional) | TESTED, INCONCLUSIVE | matrix populated (`probability_matrix.py`); pattern: Weak ≥ Strong on odds | windows overlap; Weak 6M/1Y = 100% is a small-sample/bull artifact — not trustworthy yet |
-| **Horizon Modes** (Tactical/Opportunity/Core) | FRAMEWORK | short-end coin-flip confirmed; labels are honest | mode *boundaries* not optimised; forward data |
-| **Capital Ladder** (3→25 stk by capital) | PARTIALLY TESTED | each rung backtested (15 = concentrated sweet spot) | survivorship; not forward; whole-share frictions |
-| **Horizon-aware selection** (momentum@1M, quality@6M, regime@1Y) | PURE HYPOTHESIS | none | a real A/B vs the current selector, gated |
-| **Position count by horizon** | PURE HYPOTHESIS | none | backtest count×horizon |
+| Claim | Have | Missing |
+|---|---|---|
+| Horizon modes (Tactical/Opportunity/Core) | horizons are data-backed; short-end coin-flip confirmed | the LOW/MED/HIGH labels are subjective → forward evidence |
+| Confidence = min(regime, horizon) | a heuristic; conditional test mildly *refuted* it | a discovered law, not an assumption |
+| Expected gains (e.g. 6M → ₹8,746) | historical median | forward performance will differ |
 
-## 🔴 RED — tested, rejected (do not revisit without new data)
+## 🔴 REJECTED — evidence says no (do not revisit without new data)
 
-| Claim | Why rejected |
+Return prediction · LSTM · RL · GNN · Dynamic-N · Resilience ranking · Sector-momentum tilt ·
+Per-stock timing · Multibagger · HMM · GARCH · vol-target · crash classifier · triple-barrier.
+
+## ⚪ UNTESTED — ideas, not results (zero evidence)
+
+| Idea | Status |
 |---|---|
-| ML return prediction (XGBoost/LightGBM/RF) | AUC ~0.50 on public data |
-| Deep learning (LSTM/Transformer) | no better than random on returns |
-| Reinforcement learning (PPO) | lost to buy-and-hold; overfit |
-| GNN | no edge |
-| Per-stock direction timing | turned SBI +276% into +34% (`per_stock_timing.py`) |
-| Recovery / anti-fragility / persistence ranking | re-derives low-vol (AUC 0.66 vs vol 0.68; `resilience_ranking.py`) |
-| Multibagger identification | ~random (2/10) |
-| Dynamic-N, exposure tiers | lower Sharpe than fixed |
-| HMM regime, GARCH, vol-targeting, crash classifier | lost to the simple rule |
-| Sector-momentum tilt, ranking IC, triple-barrier | no/zero edge |
+| Horizon-aware selection (momentum@1M / quality@6M / regime@1Y) | pure hypothesis |
+| Confidence matrix (regime × horizon → label) | assumptions; conditional cells too thin |
+| Goal Engine | built, NOT validated |
+| Wealth OS allocation glide-path | built, NOT validated |
+| Position count by horizon | unbuilt |
 
-## The standing rule
+## How we advertise it (honesty rule — adopted)
 
-From here: **no promotion on intuition.** A YELLOW item moves to GREEN only via a pre-registered
-experiment (hypothesis + target + success criteria: DSR>0.95 · PBO<0.05 · rolling Sharpe>Core ·
-acceptable turnover · **forward paper > 4 quarters net of cost**). The single most valuable missing
-evidence is **forward paper (Q3'26→Q2'27)** — nothing else moves the needle as much. Less
-philosophy, more experiments.
+Do **NOT** lead with "Expected CAGR 16%" (survivorship-inflated). Lead with the trustworthy,
+relative, risk-side numbers:
+```yaml
+Probability positive:  93% (6-month hold)
+Expected drawdown:     11%
+Worst month:           -5%
+Tail risk:             contained
+Review:                quarterly
+```
 
-## Open tests (priority order)
+## Maturity scorecard (user's assessment, adopted)
 
-1. ✅ Probability Surface × Regime — DONE (`evidence/probability_matrix.py`); inconclusive, see YELLOW.
-2. Capital Ladder — partially done; needs forward + frictions.
-3. Confidence Matrix from historical frequencies — the conditional matrix IS this; thin cells.
-4. Horizon-aware selector — A/B test, unbuilt.
-5. Position count by horizon — unbuilt.
-6. **Forward paper (Q3'26→Q2'27)** — the big one. Time, not code.
+| Layer | Maturity |
+|---|---|
+| Core engine | 99% |
+| Validation | 95% |
+| Product layer | 60% |
+| **Forward evidence** | **0%** |
+| Data quality | 70% |
+| **Overall** | **~98%** — and the missing 2% is the hardest, because it needs **time** |
+
+## The only experiment that matters now: FORWARD PAPER
+
+Worth more than 100 more backtests / AI models / architecture diagrams combined.
+
+**Protocol (Q3'26 → Q2'27):**
+1. Start of each quarter: `python india/monthly_snapshot.py` → freezes a dated, timestamped
+   recommendation of record (basket, weights, regime, probability-surface expectation).
+2. End of the quarter: record the *realized* return of that frozen basket vs the prediction
+   (vs Nifty, net of cost). No edits to the basket mid-quarter.
+3. After 4 quarters: compare realized vs predicted. Promote PARTIALLY-VALIDATED items to REAL only
+   if forward results hold (DSR>0.95 · PBO<0.05 · rolling Sharpe>Core · forward paper >4Q net of cost).
+
+Until then: **no new features.** Core v2.2 stays frozen and live; everything else waits on time.

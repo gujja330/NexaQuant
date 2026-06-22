@@ -127,11 +127,13 @@ def main():
     print(f"  Invest now:         Rs{invest:,.0f}   (Equity Rs{cap*mix['equity']:,.0f} · "
           f"Gold Rs{cap*mix['gold']:,.0f} · Debt Rs{cap*mix['debt']:,.0f})")
     print(f"  Cash buffer:        Rs{cap*mix['cash']:,.0f}")
-    print(f"  Expected CAGR:      {100*blended-2:.0f}-{100*blended+2:.0f}%   (blended, honest band)")
+    # lead with the TRUSTWORTHY risk-side numbers (probability/drawdown), not inflated CAGR
     print(f"  P(positive, 1yr):   {extra['p_pos']:.0f}%")
     print(f"  Expected drawdown:  ~{extra['eq_dd']:.0f}% on the equity sleeve")
     print(f"  Confidence:         {extra['conf']}")
     print(f"  Review:             Quarterly")
+    print(f"  (CAGR ~{100*blended-2:.0f}-{100*blended+2:.0f}% shown for reference only — "
+          f"survivorship-inflated, do not rely on the level)")
     print(f"\n  Next: run  python india/run_arjuna.py --retail  for the {n}-stock equity buy-list,")
     print(f"  and  python india/confidence_engine.py  for the live regime/confidence read.")
 
