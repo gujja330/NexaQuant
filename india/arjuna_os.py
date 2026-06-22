@@ -25,6 +25,7 @@ sys.path.insert(0, str(ROOT))
 warnings.simplefilter("ignore")
 from india.arjuna_v2 import backtest, stats
 from india.capital_ladder import LADDER, rupees
+from india.evidence.monte_carlo import sim
 
 DEBT_ASSUMED = 0.070      # FD / debt fund (labelled assumption)
 CASH_ASSUMED = 0.035      # liquid fund / sweep
@@ -74,13 +75,20 @@ def plan(capital, age, risk, goal, horizon_years, emergency_fund=0):
     n = stocks_for(eq_amt)
 
     net, idx = backtest(method="hrp", regime="global", topn=n, sector_cap=2, rebal=63)
-    eq_stats = stats(net.dropna(), idx)
+    net = net.dropna()
+    eq_stats = stats(net, idx)
     g = gold_cagr()
     # haircut the survivorship-inflated equity CAGR for an honest forward number
     eq_fwd = eq_stats["cagr"] / 100 * 0.65
     blended = (mix["equity"] * eq_fwd + mix["gold"] * g +
                mix["debt"] * DEBT_ASSUMED + mix["cash"] * CASH_ASSUMED)
-    return mix, n, eq_amt, eq_fwd, g, blended
+    # honest expectation band + odds from Monte-Carlo on the equity sleeve (survivorship haircut)
+    c, d = sim(net, 252, 0.65)
+    p_pos = 100 * (c > 0).mean()
+    exp_dd = 100 * float(np.median(d))
+    conf = "High" if p_pos >= 90 else ("Medium" if p_pos >= 75 else "Low")
+    extra = dict(p_pos=p_pos, exp_dd=exp_dd, conf=conf, eq_dd=eq_stats["dd"])
+    return mix, n, eq_amt, eq_fwd, g, blended, extra
 
 
 def main():
@@ -88,7 +96,7 @@ def main():
     PROFILE = dict(capital=10_00_000, age=35, risk="medium",
                    goal="Retirement", horizon_years=20, emergency_fund=5_00_000)
 
-    mix, n, eq_amt, eq_fwd, g, blended = plan(**PROFILE)
+    mix, n, eq_amt, eq_fwd, g, blended, extra = plan(**PROFILE)
     cap = PROFILE["capital"]
     print("=" * 56)
     print("  ARJUNA OS — WEALTH PLAN")
@@ -108,8 +116,24 @@ def main():
     print("  " + "-" * 52)
     print(f"  Blended expected return: ~{100*blended:.1f}%/yr  =  ~Rs{cap*blended:,.0f}/yr on {rupees(cap)}")
     print(f"  (Equity uses a 35% haircut on the backtest CAGR for an honest forward figure.)")
+
+    # ---- final, client-facing recommendation ----
+    invest = cap * (mix["equity"] + mix["gold"] + mix["debt"])
+    print("\n  " + "=" * 52)
+    print("  FINAL RECOMMENDATION")
+    print("  " + "=" * 52)
+    if PROFILE["emergency_fund"]:
+        print(f"  Emergency fund:     Rs{PROFILE['emergency_fund']:,.0f}  (parked separately)")
+    print(f"  Invest now:         Rs{invest:,.0f}   (Equity Rs{cap*mix['equity']:,.0f} · "
+          f"Gold Rs{cap*mix['gold']:,.0f} · Debt Rs{cap*mix['debt']:,.0f})")
+    print(f"  Cash buffer:        Rs{cap*mix['cash']:,.0f}")
+    print(f"  Expected CAGR:      {100*blended-2:.0f}-{100*blended+2:.0f}%   (blended, honest band)")
+    print(f"  P(positive, 1yr):   {extra['p_pos']:.0f}%")
+    print(f"  Expected drawdown:  ~{extra['eq_dd']:.0f}% on the equity sleeve")
+    print(f"  Confidence:         {extra['conf']}")
+    print(f"  Review:             Quarterly")
     print(f"\n  Next: run  python india/run_arjuna.py --retail  for the {n}-stock equity buy-list,")
-    print(f"  and  python india/confidence_engine.py  for the current regime/confidence read.")
+    print(f"  and  python india/confidence_engine.py  for the live regime/confidence read.")
 
 
 if __name__ == "__main__":

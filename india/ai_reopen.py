@@ -56,7 +56,7 @@ def main():
         print("  All triggers CLOSED. No data unlock yet -> stay rule-based (Core v2.2 frozen).")
         print("  Highest-leverage move remains: acquire POINT-IN-TIME FUNDAMENTALS first.")
     else:
-        print(f"  {armed} trigger(s) ARMED. Reopen the listed models IN THE LAB (india/research/),")
+        print(f"  {armed} trigger(s) ARMED. Reopen the listed models IN A FRESH LAB (india/lab/),")
         print("  gated by walk-forward CV + deflated Sharpe + PBO + realistic costs, then the")
         print("  production gate (must beat Core's rolling Sharpe net of cost on forward data).")
 

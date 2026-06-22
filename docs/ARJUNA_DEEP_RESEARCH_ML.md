@@ -51,7 +51,7 @@ Data upgrades (PIT/news) -> Lab ML (rank/recovery/persistence) -> Validation (WF
 ## Lab experiment log
 
 **2026-06-22 — Resilience ranking (Ideas 2-4 / report tasks 2-3): TESTED, REJECTED.**
-`india/research/resilience_ranking.py`. Predicting forward low-drawdown out-of-sample:
+`india/evidence/resilience_ranking.py`. Predicting forward low-drawdown out-of-sample:
 trailing volatility ALONE scores AUC 0.679; the full resilience set (recovery, anti-fragility,
 consistency, downside-beta) scores 0.664 — i.e. resilience features add **-0.014 AUC** (negligible/
 slightly worse). Volatility is 57% of all predictive power. The resilience composite DOES pick

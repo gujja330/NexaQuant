@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 warnings.simplefilter("ignore")
 from india.arjuna_v2 import backtest
-from india.research.monte_carlo import sim
+from india.evidence.monte_carlo import sim
 
 CFG = dict(method="hrp", regime="global", topn=15, sector_cap=2, rebal=63)
 OUT = Path(__file__).resolve().parents[2] / "output"

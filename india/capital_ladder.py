@@ -6,7 +6,7 @@ How many stocks should you hold at each capital level, and what does each rung a
 We backtest the champion (HRP + regime + sector<=2, quarterly) at every position count and map it
 to a capital rung, in PLAIN MONEY (profit per month on that capital).
 
-  Rs 50K  -> 3 stocks      Rs 5L  -> 10 stocks     Rs 50L -> 20 stocks
+  Rs 50K  -> 3 stocks      Rs 5L  -> 8 stocks      Rs 25L -> 20 stocks
   Rs 1L   -> 5 stocks      Rs 10L -> 15 stocks      Rs 1Cr -> 25 stocks
 
 Run: python india/capital_ladder.py
@@ -21,8 +21,8 @@ sys.path.insert(0, str(ROOT))
 warnings.simplefilter("ignore")
 from india.arjuna_v2 import backtest, stats
 
-LADDER = [(50_000, 3), (1_00_000, 5), (5_00_000, 10),
-          (10_00_000, 15), (50_00_000, 20), (1_00_00_000, 25)]
+LADDER = [(50_000, 3), (1_00_000, 5), (5_00_000, 8),
+          (10_00_000, 15), (25_00_000, 20), (1_00_00_000, 25)]
 
 
 def rupees(n):

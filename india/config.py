@@ -19,7 +19,8 @@ styles built on that one real edge:
 CAVEAT: all CAGR is survivorship-inflated; BROAD is the MOST flattered (holds every survivor), so the
 forward return gap over CONCENTRATED is likely smaller than +4pp. Sharpe parity is the honest read.
 DO NOT re-defend HRP/selection as alpha — tested, dead. The edge to protect is the regime overlay.
-Experiments live in india/research/ (Lab).
+Concluded experiments are archived in india/evidence/ (the evidence trail); reopened ML work (only
+when a data trigger fires) starts fresh in india/lab/. See docs/ARJUNA_V4_ROADMAP.md.
 """
 from dataclasses import dataclass
 
