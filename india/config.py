@@ -3,24 +3,37 @@
 Central ARJUNA v2 configuration — the ONE place to change strategy behavior (dynamic format).
 Every core module + the runner reads from CONFIG, so tuning the system never means editing logic.
 
->>> ARJUNA CORE v2.1 — FROZEN 2026-06-19 <<<
-Champion: HRP + continuous regime + Global Risk, QUARTERLY rebalance, 15 stocks, sector<=2
-(tuning grid: sector<=2 Sharpe 2.02 / DD 11.2% beats <=3; sector<=1 peaks Sharpe 2.19 but DD 13.4%).
-Validated: Sharpe ~2.0 · maxDD ~11% · turnover 3.3/yr · Deflated Sharpe 0.996 · PBO 0.01.
-Monte Carlo (haircut-robust): median 4-15%/yr across 0-70% haircut, P(DD>20%)~0% at every level.
-Stress (real corrections): positive in 3/4, drawdown 2-3x smaller than Nifty. Monte-Carlo (35%
-haircut): median ~9-10%/yr, P(+ve 1yr)=87%/3yr=98%, typical maxDD 6-8%, P(DD>20%)~0%.
-Locked for 12-month forward paper. DO NOT tune Core — experiments live in india/research/ (Lab).
+>>> ARJUNA CORE v2.2 — 2026-06-22 <<<
+DECOMPOSITION FINDING (see docs/ARJUNA_STRATEGY_DECISION.md): stock SELECTION and HRP WEIGHTING
+add ~no value over equal-weight (HRP-15 Sharpe 1.28 ~ EW-15 1.30, regime OFF). The ENTIRE
+Sharpe-2.0 edge is the REGIME overlay (defensive exposure timing). So v2.2 offers two validated
+styles built on that one real edge:
+
+  BROAD  (higher return, index-fund route): equal-weight the whole basket + regime.
+         CAGR 20.6% · Sharpe 1.98 · DD 12.8% · DSR 0.992 · robust cross-period & on Nifty-100 (19.3%).
+         Implement as an equal-weight / broad index fund + the regime cash rule. Best POTENTIAL.
+  CONCENTRATED (individual-stock route): 15 names + regime (the v2.1 champion).
+         CAGR 16.4% · Sharpe 2.02 · DD 11.2% · DSR 0.995. For holding specific shares / small capital;
+         costs ~4pp CAGR vs BROAD — the price of holding 15 names instead of the whole basket.
+
+CAVEAT: all CAGR is survivorship-inflated; BROAD is the MOST flattered (holds every survivor), so the
+forward return gap over CONCENTRATED is likely smaller than +4pp. Sharpe parity is the honest read.
+DO NOT re-defend HRP/selection as alpha — tested, dead. The edge to protect is the regime overlay.
+Experiments live in india/research/ (Lab).
 """
 from dataclasses import dataclass
 
-VERSION = "ARJUNA Core v2.1 (frozen 2026-06-19)"
+VERSION = "ARJUNA Core v2.2 (2026-06-22)"
 
 
 @dataclass
 class ArjunaConfig:
     # --- universe ---
     universe: str = "nifty200"        # "nifty100" | "nifty200"
+    # --- STYLE: the v2.2 decision. "broad" = EW whole basket + regime (higher return, index-fund
+    #     route). "concentrated" = 15 names + regime (individual-stock route, v2.1 champion). ---
+    style: str = "concentrated"       # "broad" | "concentrated"
+    topn: int = 15                    # names held in CONCENTRATED style (ignored when broad)
     # --- investor inputs (master-prompt spec) ---
     risk_appetite: str = "medium"     # "low" | "medium" | "high"  -> sets method/cap/regime
     max_drawdown: float = 0.10        # tolerance (informational + tightens de-risk when low)
@@ -52,6 +65,16 @@ RISK_PROFILE = {"low": ("hrp", 0.04, "global"),
 def apply_risk_appetite():
     m, cap, reg = RISK_PROFILE.get(CONFIG.risk_appetite, RISK_PROFILE["medium"])
     CONFIG.method, CONFIG.name_cap, CONFIG.regime = m, cap, reg
+
+
+# style -> backtest kwargs. BROAD drops selection (topn=None) and uses equal-weight; the regime
+# overlay (the one real edge) stays ON for both. See docs/ARJUNA_STRATEGY_DECISION.md.
+def style_kwargs():
+    if CONFIG.style == "broad":
+        return dict(method="ew", regime=CONFIG.regime, topn=None, sector_cap=None,
+                    rebal=CONFIG.rebal_days, cost_bps=CONFIG.cost_bps)
+    return dict(method=CONFIG.method, regime=CONFIG.regime, topn=CONFIG.topn, sector_cap=2,
+                rebal=CONFIG.rebal_days, cost_bps=CONFIG.cost_bps)
 
 
 def universe_list():
