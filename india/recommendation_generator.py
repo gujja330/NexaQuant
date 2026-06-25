@@ -252,9 +252,18 @@ def main():
             why.append(f"relative strength top {round(100*(1-rs_rank[s]))}% vs Nifty")
         if bool(above200[s]):
             why.append("above 200-DMA")
-        why.append("HRP-weighted (low correlation to book)" if _ord <= 3 else "diversifies the portfolio")
+        why.append("HRP overweight (low correlation to book)" if _ord <= 3 else "diversifies the portfolio")
+        why.append(f"regime-approved ({regime} exposure)")
+        why_str = "; ".join(why)
+        # honest evidence score 0-100: sample size + win rate + drawdown control (NOT a prediction)
+        if occ:
+            sp = min(occ, 10) / 10 * 100; wn = 100 * (t["actual_ret"] > 0).mean()
+            dpts = max(0.0, 100 + 3 * t["actual_ret"].min())
+            ev_score = round(0.4 * wn + 0.35 * sp + 0.25 * dpts)
+        else:
+            ev_score = NA
         rows.append({"Allocation Order": _ord, "Type": "Risk Allocation Candidate",
-            "Stock": s, "Sector": sector_of(s), "Why Selected": "; ".join(why),
+            "Stock": s, "Sector": sector_of(s), "Why Selected": why_str, "Evidence Score /100": ev_score,
             "Weight Reason": "Highest HRP weight (low covariance)" if _ord == 1 else "HRP risk-parity allocation",
             "CMP": round(px, 1), "Entry Zone": f"{px-band:.0f} - {px+band:.0f}",
             "Entry Method": "Volatility band (~2 std-dev daily)", "Allocated Rs": round(sh * px), "Shares": sh,
@@ -276,6 +285,11 @@ def main():
             "Hist Median Price (scenario)": round(px * (1 + t["actual_ret"].median() / 100)) if occ else NA,
             "Hist Best Price (scenario)": round(px * (1 + t["actual_ret"].max() / 100)) if occ else NA,
             "Hist Worst Price (scenario)": round(px * (1 + t["actual_ret"].min() / 100)) if occ else NA,
+            # expected profit (on this allocation) + historical probability bands (descriptive)
+            "Hist Expected Profit Rs (median)": round(sh * px * t["actual_ret"].median() / 100) if occ else NA,
+            "P(>5%) hist": round(100 * (t["actual_ret"] > 5).mean()) if occ else NA,
+            "P(>10%) hist": round(100 * (t["actual_ret"] > 10).mean()) if occ else NA,
+            "P(>20%) hist": round(100 * (t["actual_ret"] > 20).mean()) if occ else NA,
             "Status": "Running"})
     live = pd.DataFrame(rows)
 
