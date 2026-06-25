@@ -564,11 +564,41 @@ def main():
     attr_bot = attribution.tail(5) if not attribution.empty else attribution
     horizon_brief = hmat[["Horizon", "Win Rate %", "Median Return %", "Worst Cycle %", "Confidence"]] \
         if not hmat.empty else hmat
+    # ===== AEGIS Engine v4 — the connected pipeline, made visible to the investor =====
+    try:
+        from india.aegis_engine import run as engine_run
+        _er = engine_run()
+        engine_pipeline = pd.DataFrame([(s.name, s.action, s.detail) for s in _er.stages],
+                                       columns=["Pipeline Stage", "Action", "Detail"])
+        engine_changed = pd.DataFrame({"What changed in today's recommendation (and why)": _er.changed})
+        if _er.ledger is not None and not _er.ledger.empty:
+            _l = _er.ledger.copy()
+            engine_layers = pd.DataFrame({
+                "Information Layer": _l["layer"], "Type": _l["kind"],
+                "Incremental Value (RQS lift vs 0.50)": _l.get("incr_value", 0.0).round(3),
+                "Lifecycle Status": _l.get("status", "—")})
+        else:
+            engine_layers = pd.DataFrame([["No layers evaluated yet", "", "", ""]],
+                columns=["Information Layer", "Type", "Incremental Value (RQS lift vs 0.50)", "Lifecycle Status"])
+        engine_note = pd.DataFrame([
+            ["How to read this sheet", "AEGIS connects Market -> Sector -> Company -> Data Layers -> "
+             "Portfolio into ONE pipeline. Only PRODUCTION information layers can move your picks."],
+            ["Today", "There are 0 production layers, so today's recommendation reflects the VALIDATED "
+             "portfolio + market-regime engine only — nothing speculative is influencing it."],
+            ["What unlocks change", "A new data source (earnings, FII/DII flows, analyst revisions) must "
+             "pass the gate (IC, RQS lift, walk-forward, DSR) AND live forward paper before it is promoted "
+             "to production. Then these picks adapt automatically and this sheet explains exactly what moved."]],
+            columns=["Topic", "Detail"])
+        engine_blocks = [engine_pipeline, engine_changed, engine_layers, engine_note]
+    except Exception as _e:
+        engine_blocks = [pd.DataFrame([[f"engine view unavailable: {_e}"]], columns=["Note"])]
+
     # INVESTOR LAYER only — research internals (candidate scores, layer scores, gates, validation)
     # stay in data/ + india/evidence/, NOT in this report.
     sheets = [
         ("Executive Summary", [exec_block, exec_table]),                       # 1 ⭐
         ("Today's Recommendations", [live]),                                   # 2 ⭐ decision report
+        ("AEGIS Engine", engine_blocks),                                       # 3 ⭐ pipeline + what changed
         ("Portfolio", [portfolio_sheet]),                                      # 3 expected outcomes
         ("Historical Performance", [cyc, strategy_replay]),                    # 4 replay + money diary
         ("Backtested Trades", [detail]),                                       # 5 the proof
