@@ -413,6 +413,13 @@ def main():
             "Weight %": round(100 * w[s], 1), "Evidence": sample_conf, "Similar Past Cases": occ,
             "Why": " • ".join(wb)})
     live = pd.DataFrame(rows)
+    # SORT top-to-bottom = best first: strength tier, then Evidence Score desc, then weight desc.
+    # One sort on the source -> xlsx, canonical CSV, Telegram and Google Sheets all share this order.
+    if not live.empty:
+        rank = {"STRONG BUY": 0, "BUY": 1, "ACCUMULATE": 2, "WATCH": 3}
+        live["_sr"] = live["Strength"].map(rank).fillna(9)
+        live = (live.sort_values(["_sr", "Score /100", "Weight %"], ascending=[True, False, False])
+                .drop(columns="_sr").reset_index(drop=True))
 
     # ---- CLEAN investor view (no 40-column wall): the actionable columns only ----
     clean_cols = ["Strength", "Score /100", "Stock", "Sector", "Current Price", "Buy Range",

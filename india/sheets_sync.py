@@ -88,8 +88,9 @@ def create_spreadsheet(title="AEGIS Live"):
     return sh.id
 
 
-def sync():
-    """Push every sheet of the latest workbook to the target spreadsheet (clear + rewrite each tab)."""
+def sync(clean=False):
+    """Push every sheet of the latest workbook to the target spreadsheet (clear + rewrite each tab).
+    clean=True also REMOVES any pre-existing tabs that aren't AEGIS sheets (reuse a sheet entirely)."""
     load_env()
     wb = latest_workbook()
     if not wb:
@@ -99,6 +100,7 @@ def sync():
         print("  config incomplete — run with --check."); return False
     sh = _client().open_by_key(sid)
     xls = pd.ExcelFile(wb)
+    aegis_names = set(xls.sheet_names)
     for name in xls.sheet_names:
         df = pd.read_excel(wb, sheet_name=name).fillna("")
         values = [list(map(str, df.columns))] + df.astype(str).values.tolist()
@@ -109,9 +111,20 @@ def sync():
             ws = sh.add_worksheet(title=name[:99], rows=max(len(values) + 5, 20),
                                   cols=max(len(df.columns) + 2, 6))
         ws.update(values, value_input_option="USER_ENTERED")
-    print(f"  synced {len(xls.sheet_names)} sheets from {Path(wb).name}")
+    if clean:                                            # remove leftover non-AEGIS tabs (reuse entirely)
+        for ws in sh.worksheets():
+            if ws.title not in aegis_names:
+                try:
+                    sh.del_worksheet(ws)
+                except Exception:
+                    pass
+    print(f"  synced {len(xls.sheet_names)} sheets from {Path(wb).name}"
+          + ("  (cleaned old tabs)" if clean else ""))
     print(f"  view: https://docs.google.com/spreadsheets/d/{sid}")
     return True
+
+
+
 
 
 def main():
@@ -121,7 +134,7 @@ def main():
         create_spreadsheet()
     else:
         if check():
-            sync()
+            sync(clean="--clean" in sys.argv)
 
 
 if __name__ == "__main__":
