@@ -27,7 +27,7 @@ from india.feature_engine import load_panels
 from india.data_nse import NIFTY200
 from india.config import VERSION
 
-REG = ROOT / "reports" / "recommendation_registry.csv"
+REG = ROOT / "data" / "aegis_registry.csv"          # INTERNAL evidence DB (not a report output)
 HOLD = 63
 COLS = ["fingerprint", "rec_id", "asof", "strategy_version", "universe", "horizon_d", "symbol",
         "weight", "buy_price", "mature_date", "exit_price", "actual_ret", "holding_days",

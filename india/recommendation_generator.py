@@ -37,7 +37,7 @@ from india.config import VERSION
 from india.horizon_matrix import horizon_matrix, recommend, LABELS
 
 REPORTS = ROOT / "reports"
-REG = REPORTS / "recommendation_registry.csv"
+REG = ROOT / "data" / "aegis_registry.csv"          # INTERNAL evidence DB (not exposed in reports/)
 
 CONFIG = dict(method="hrp", regime="global", sector_cap=2, rebal=63, name_cap=0.30,
               default_capital=500000, default_horizon=126,
