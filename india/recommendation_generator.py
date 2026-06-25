@@ -273,6 +273,32 @@ def main():
                          "Volatility %": round(vol_all[s]), "HRP Weight %": None, "Why": "; ".join(reasons)})
     decision = pd.DataFrame(dec_rows)
 
+    # ---- Historical Expectation block (#1 ask): evidence from past cycles, NOT a forecast ----
+    er = hmat[hmat["Horizon"] == rec_label]
+    er = er.iloc[0] if not er.empty else None
+    hist_expect = pd.DataFrame([
+        ["Horizon", f"{rec_label} ({months} months)"],
+        ["Historical median return", f"{er['Median Return %']:+.1f}%" if er is not None else "n/a"],
+        ["Historical average return", f"{er['Avg Return %']:+.1f}%" if er is not None else "n/a"],
+        ["Historical win rate", f"{er['Win Rate %']:.0f}%" if er is not None else "n/a"],
+        ["Historical best cycle", f"{er['Best Cycle %']:+.1f}%" if er is not None else "n/a"],
+        ["Historical worst cycle", f"{er['Worst Cycle %']:+.1f}%" if er is not None else "n/a"],
+        ["Beat Nifty rate", f"{er['Beat Nifty %']:.0f}%" if er is not None else "n/a"],
+        ["Cycles observed", int(er["Cycles"]) if er is not None else 0],
+        ["Expected review", str(review)],
+        ["NOTE", "How similar historical AEGIS portfolios performed at this horizon. EVIDENCE-BASED, "
+         "NOT a guarantee or forecast. Levels are survivorship-inflated -> trust the odds/relative edge, "
+         "not the exact %."]], columns=["Historical Expectation", "Value"])
+
+    # ---- Candidate Universe funnel (#biggest missing sheet): how 200 -> final N ----
+    n_uni = len(hist.columns)
+    funnel = pd.DataFrame([
+        ["Nifty-200 with full lookback history", n_uni, "eligible universe"],
+        ["Ranked by realised volatility (low first)", n_uni, "the only selection signal"],
+        ["Sector cap <= %d applied" % C["sector_cap"], len(w), "drops higher-vol & cap-exceeding names"],
+        ["Final portfolio (capital-sized)", len(w), f"top {len(w)} for Rs{capital:,.0f}"]],
+        columns=["Stage", "Count", "Note"])
+
     # ---- Sheet 1: Dashboard (correct dates, no ambiguity) ----
     dashboard = pd.DataFrame([
         ["** WHAT IS VALIDATED **", "PORTFOLIO recommendation = evidence-backed. INDIVIDUAL stock "
@@ -285,7 +311,11 @@ def main():
         ["Portfolio Grade", G["pf_grade"]], ["Recommendation Grade", G["al_grade"]],
         ["Current Market", regime], ["Exposure", f"{exp:.0%}"], ["Recommended Stocks", len(w)],
         ["Portfolio beat Nifty (history)", f"{beat_n}/{len(cyc)} ({beat_pct}%)"],
-        ["Selection RQS (all history)", f"{G['rqs']:.3f} (~random)"], ["Review Date", str(review)]],
+        ["Historical median return (%s)" % rec_label, f"{er['Median Return %']:+.1f}%" if er is not None else "n/a"],
+        ["Historical win rate (%s)" % rec_label, f"{er['Win Rate %']:.0f}%" if er is not None else "n/a"],
+        ["Expected drawdown", f"~{round(cs['dd'])}% (historical)"],
+        ["Selection RQS (all history)", f"{G['rqs']:.3f} (~random)"], ["Review Date", str(review)],
+        ["(expectations)", "historical, evidence-based — NOT forecasts/guarantees"]],
         columns=["Field", "Value"])
     # ---- Evidence Badges (what's validated vs experimental vs not evaluated) ----
     badges = pd.DataFrame([
@@ -358,12 +388,18 @@ def main():
          "Nifty. Forward paper (live cycles) is the real, ongoing test."]], columns=["Topic", "Detail"])
 
     # ---- write ONE investor workbook (named by RUN date) ----
-    # one workbook, investor sheets only (Registry stays an INTERNAL csv, not exposed)
-    sheets = [("Dashboard", dashboard), ("Evidence Badges", badges), ("Today's Recommendations", live),
-              ("Horizon Matrix", hmat), ("Recommendation Replay", cyc), ("Strategy Replay", strategy_replay),
-              ("Recommendation History", detail), ("Selection Decision", decision),
-              ("Factor Snapshot", why), ("Statistics", statistics), ("Market Snapshot", market),
-              ("About AEGIS", about)]
+    # one workbook, four logical sections (Registry stays an INTERNAL csv, not exposed)
+    sheets = [  # 1) EXECUTIVE
+        ("Dashboard", dashboard), ("Market Snapshot", market),
+        # 2) RECOMMENDATIONS
+        ("Today's Recommendations", live), ("Historical Expectation", hist_expect),
+        ("Selection Decision", decision), ("Candidate Universe", funnel), ("Factor Snapshot", why),
+        ("Horizon Matrix", hmat),
+        # 3) EVIDENCE
+        ("Recommendation Replay", cyc), ("Strategy Replay", strategy_replay),
+        ("Recommendation History", detail), ("Statistics", statistics),
+        # 4) DOCUMENTATION
+        ("Evidence Badges", badges), ("About AEGIS", about)]
     out = REPORTS / f"AEGIS_{run_date}.xlsx"
 
     def _write(path):

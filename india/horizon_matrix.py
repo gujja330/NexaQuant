@@ -66,6 +66,7 @@ def horizon_matrix():
         mode, _, _ = mode_of(h)
         rows.append({"Horizon": LABELS[h], "Mode": mode, "Cycles": len(a),
                      "Win Rate %": round(win), "Avg Return %": round(port.mean(), 1),
+                     "Median Return %": round(float(np.median(port)), 1), "Best Cycle %": round(port.max(), 1),
                      "Beat Nifty %": round(beat), "Worst Cycle %": round(port.min(), 1),
                      "Sharpe (ann)": round(sharpe, 1), "Confidence": confidence_from(win)})
     return pd.DataFrame(rows)
