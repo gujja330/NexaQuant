@@ -33,9 +33,10 @@ from india.data_nse import NIFTY200
 from india.sectors import SECTORS, sector_of
 from india.confidence_engine import current_regime
 from india.probability_surface import horizon_view, mode_of
-from india.capital_ladder import LADDER, rupees
+from india.capital_ladder import rupees
 from india.config import VERSION
 from india.horizon_matrix import horizon_matrix, recommend, LABELS
+from india.dynamic_policy import choose_horizon, choose_topn
 
 REPORTS = ROOT / "reports"
 REG = ROOT / "data" / "aegis_registry.csv"          # INTERNAL evidence DB (not exposed in reports/)
@@ -49,14 +50,6 @@ GATES = dict(min_cycles=20, min_win_rate=65, max_dd=15, min_median_q=0.0,
 
 def arg(flag, default, cast):
     return cast(sys.argv[sys.argv.index(flag) + 1]) if flag in sys.argv else default
-
-
-def stocks_for(amount):
-    n = LADDER[0][1]
-    for cap, k in LADDER:
-        if amount >= cap:
-            n = k
-    return n
 
 
 def select_with_watchlist(hist, topn, sector_cap):
@@ -167,11 +160,9 @@ def history_for(reg, idx, capital, closes):
 def main():
     capital = arg("--capital", CONFIG["default_capital"], float)
     C = CONFIG
-    # DYNAMIC HORIZON: independently backtest ALL holding periods, let evidence choose
-    hmat = horizon_matrix(); rec_label, rec_conf = recommend(hmat)
+    # DYNAMIC HORIZON: independently backtest ALL holding periods; choose_horizon picks by regime below
+    hmat = horizon_matrix()
     days_for = {v: k for k, v in LABELS.items()}
-    horizon = arg("--horizon", days_for.get(rec_label, CONFIG["default_horizon"]), int)
-    months = horizon // 21
     closes, highs, lows, vols, idx, vix, spx = load_panels()
     closes = closes[[c for c in closes.columns if c in set(NIFTY200)]]
     rets = closes.pct_change(); asof = closes.index[-1]; prices = closes.iloc[-1]
@@ -194,14 +185,22 @@ def main():
         print("  Portfolio evidence gate failed -> no recommendations issued."); return
 
     hist = rets.tail(LOOKBACK).dropna(axis=1, how="any")
-    n = stocks_for(capital); selected, vol_rank = select_with_watchlist(hist, n, C["sector_cap"])
+    exp, regime, regime_conf = current_regime()
+    # DYNAMIC POLICY (not fixed config): holding period adapts to regime, basket size to breadth+regime.
+    # Both are walk-forward backtested in india/dynamic_policy.py (dynamic ~ fixed Sharpe, lower DD).
+    rec_label, rec_conf = choose_horizon(hmat, exp)
+    horizon = arg("--horizon", days_for.get(rec_label, CONFIG["default_horizon"]), int)
+    months = max(1, horizon // 21)
+    n_dyn, breadth = choose_topn(hist, closes, exp, cap=C["sector_cap"])
+    n = arg("--topn", n_dyn, int)
+    selected, vol_rank = select_with_watchlist(hist, n, C["sector_cap"])
     w = weights_for("hrp", hist[selected]); w = (w / w.sum()).clip(upper=C["name_cap"]); w = w / w.sum()
-    exp, regime, regime_conf = current_regime(); invest = capital * exp
+    invest = capital * exp
     mode, mode_conf, status = mode_of(horizon)
     hv = horizon_view(eqc, horizon, 100000)
     run_date = datetime.now().date(); market_asof = asof.date()    # run date vs data date (no ambiguity)
     valid_until = (asof + timedelta(days=C["expiry_cal_days"])).date()
-    review = (asof + timedelta(days=int(C["rebal"] * C["review_cal_factor"]))).date()
+    review = (asof + timedelta(days=int(min(horizon, C["rebal"]) * C["review_cal_factor"]))).date()
     rid_today = rec_id(asof, months)
 
     # real, causal technical CONTEXT (computed from price; NOT the selection driver, which is low-vol)
@@ -271,6 +270,23 @@ def main():
     # ---- Sheet: Today's Recommendations. Disclaimer is on the Dashboard (not repeated per row). ----
     completion = (asof + timedelta(days=int(horizon * C["review_cal_factor"]))).date()
     daily_vol = hist.std()                                   # for volatility-band entry zone
+    gen_date = run_date
+    expiry_date = (asof + timedelta(days=int(C.get("expiry_cal_days", 7)))).date()
+
+    def evidence_score(sym):
+        """The same transparent 0-100 score used for the pick, computed for ANY name — so a stock can be
+        ranked against its sector alternatives ('why THIS, not that?'). Components documented in Methodology."""
+        tt = track.get(sym); o = len(tt) if tt is not None else 0
+        w_ = round(100 * (tt["actual_ret"] > 0).mean()) if o else None
+        m_ = float(tt["actual_ret"].median()) if o else None
+        sw = (w_ / 100) * 30 if o else 12
+        sr = max(0, min(30, (m_ + 5) * 2)) if o else 12
+        a200 = bool(sym in closes.columns and closes[sym].iloc[-1] > closes[sym].tail(200).mean())
+        rsr = float(rs_rank.get(sym, 0.5)); vr = float(vol_rank.get(sym, 0.5))
+        st = (10 if a200 else 0) + (10 if rsr > 0.6 else (5 if rsr > 0.4 else 0))
+        sk = round(10 * exp) + (10 if vr < 0.5 else 5)
+        return int(round(sw + sr + st + sk))
+
     rows = []
     for _ord, s in enumerate(w.sort_values(ascending=False).index, 1):
         px = float(prices[s]); band = px * float(daily_vol.get(s, 0.01)) * 2     # ~2-sigma daily band
@@ -294,11 +310,21 @@ def main():
 
         # ---- Recommendation EVIDENCE SCORE (0-100, transparent + documented on Methodology). ----
         # Components: historical win (30) + historical median return (30) + trend/RS (20) + regime+risk (20).
-        sc_win = (win / 100) * 30 if occ else 12                         # no history -> neutral 12/30
-        sc_ret = max(0, min(30, (med + 5) * 2)) if occ else 12           # +10% median ~ full marks
-        sc_tr = (10 if bool(above200[s]) else 0) + (10 if rs_rank[s] > 0.6 else (5 if rs_rank[s] > 0.4 else 0))
-        sc_risk = round(10 * exp) + (10 if vol_rank.get(s, 0.5) < 0.5 else 5)
-        score = int(round(sc_win + sc_ret + sc_tr + sc_risk))
+        score = evidence_score(s)
+        # WHY THIS, NOT THAT? — show the sector alternatives + their scores, but be HONEST that the
+        # selector is lowest-volatility under the sector cap, NOT the Evidence Score (which is context).
+        peers = [c for c in hist.columns if sector_of(c) == sector_of(s) and c != s]
+        alt = sorted(((p, evidence_score(p)) for p in peers), key=lambda kv: -kv[1])[:3]
+        if alt:
+            alt_str = (f"Picked by lowest-vol + sector cap (the validated rule). Evidence scores — "
+                       f"{s}: {score}; " + ", ".join(f"{p}: {sc}" for p, sc in alt))
+            if any(sc > score for _, sc in alt):
+                alt_str += ". Note: a peer scores higher but is higher-vol or cap-excluded — Evidence Score is context, not the selector."
+        else:
+            alt_str = "No same-sector peer in the universe."
+        # RECOMMENDATION confidence (this single pick's evidence) — distinct from portfolio process confidence
+        rec_conf_pct = min(95, int(round(40 + 0.45 * score +
+                           (15 if occ >= 10 else (8 if occ >= 5 else (3 if occ >= 1 else 0))))))
         if occ and med is not None and med < 0:
             strength = "WATCH"                        # weak historical analogue -> never a BUY (trust)
         elif score >= 70 and (not occ or med > 0):
@@ -347,9 +373,11 @@ def main():
             "Dist 200-DMA %": d200, "RSI": rsi if rsi is not None else DASH, "Vol Pctile": volp,
             "52W Range Pos %": pos52 if pos52 is not None else DASH,
             "Trend": trend, "Rel Strength": rstr, "Sector Score": f"{sec_score[s]:.0f}/100",
-            "Today's Setup": today_setup,
+            "Today's Setup": today_setup, "Why This vs Alternatives": alt_str,
+            "Rec Confidence %": rec_conf_pct,
             "Recommended Holding": f"{months} months ({rec_label})", "Expected Exit": str(completion),
-            "Review Date": str(review), "Allocation Rs": round(sh * px), "Shares": sh,
+            "Generated": str(gen_date), "Valid Until": str(expiry_date), "Review Date": str(review),
+            "Allocation Rs": round(sh * px), "Shares": sh,
             "Weight %": round(100 * w[s], 1), "Evidence": sample_conf, "Similar Past Cases": occ,
             "Why": " • ".join(wb)})
     live = pd.DataFrame(rows)
@@ -590,6 +618,9 @@ def main():
         ["Backtest CAGR (survivorship-inflated)", f"{cs['cagr']:.1f}%"],
         ["Backtest Sharpe", f"{cs['sharpe']:.2f}"], ["Backtest max drawdown", f"{cs['dd']:.1f}%"],
         ["Recommended deployment now", f"{exp:.0%} ({regime} regime)"],
+        ["Portfolio process confidence", f"{min(96, round(50 + beat_pct*0.5 + (10 if G['pf_grade']=='A' else 0)))}% (validated process)"],
+        ["Confidence note", "Portfolio confidence = the validated PROCESS. Per-stock 'Rec Confidence %' "
+         "in Today's sheet = strength of that one pick's evidence — a different, weaker thing."],
         ["Strategy version", f"AEGIS {VERSION.split('(')[0].strip()}"],
         ["— TOP RISKS —", ""],
         ["1", f"Lags in strong bull markets (low beta {cs['beta']:.2f})"],
@@ -621,12 +652,13 @@ def main():
          "only — it failed the incremental-value test, so it informs but does not drive selection."],
         ["Today's Setup", "Descriptive current-state facts (distance from 200-DMA, volatility percentile, "
          "52-week range position, RSI, sector rank, regime). Context for 'why today', NOT a forecast."],
-        ["Holding period", f"Chosen from the backtested Horizon Matrix each run (currently {rec_label}). "
-         "Evidence-selected, not hand-set; it moves if the evidence moves. Per-STOCK horizons are NOT offered "
-         "— small-sample horizon skill is ~random (RQS 0.5)."],
-        ["Number of holdings", "Driven by how many names clear the low-vol + sector-cap filter (varies by "
-         "breadth), NOT return-optimised. Tested: choosing N by trailing performance LOSES out-of-sample "
-         "(Sharpe 0.95 vs 1.24) — so N is risk-driven, and the validated de-risking lever is exposure/cash."],
+        ["Holding period (DYNAMIC)", f"Chosen by choose_horizon() from the backtested Horizon Matrix, "
+         f"REGIME-CONDITIONAL: risk-off favours a strong SHORT horizon (de-risk fast), risk-on lets it run "
+         f"longer. Today: {rec_label}. The full menu of horizons (1W-1Y) with win rates is on this sheet so "
+         "you can pick a shorter commitment. Per-STOCK horizons are NOT offered (small-sample skill ~random)."],
+        ["Number of holdings (DYNAMIC)", "Sized by choose_topn() from market BREADTH (% above 200-DMA) + "
+         "regime: wider book when healthy, concentrate + more cash when weak. Risk-first, NOT return-tuned "
+         "(return-tuning N loses OOS). Walk-forward tested: dynamic ~ fixed Sharpe with LOWER drawdown."],
         ["What it does NOT do", "Predict returns or pick 'winners'. Returns are ~unpredictable on this data; "
          "risk is. AEGIS forecasts risk, not direction."]], columns=["Component", "How it works"])
     badge_rows = (pd.DataFrame([[b["Layer"], f"{b['Status']} — {b['Detail']}"] for _, b in badges.iterrows()],
@@ -639,6 +671,14 @@ def main():
     attr_bot = attribution.tail(5) if not attribution.empty else attribution
     horizon_brief = hmat[["Horizon", "Win Rate %", "Median Return %", "Worst Cycle %", "Confidence"]] \
         if not hmat.empty else hmat
+    # Holding-period MENU — every horizon's backtested evidence so an investor can pick a shorter commitment
+    if not hmat.empty:
+        hm = hmat.copy()
+        hm["Chosen"] = hm["Horizon"].map(lambda h: "<-- engine pick (regime)" if h == rec_label else "")
+        horizon_menu = hm[["Horizon", "Mode", "Win Rate %", "Median Return %", "Beat Nifty %",
+                           "Worst Cycle %", "Sharpe (ann)", "Confidence", "Chosen"]]
+    else:
+        horizon_menu = pd.DataFrame([["(horizon matrix unavailable)"]])
     # ===== AEGIS Engine v4 — the connected pipeline, made visible to the investor =====
     try:
         from india.aegis_engine import run as engine_run
@@ -704,7 +744,8 @@ def main():
         ("Portfolio", [portfolio_sheet, sector_mix]),                          # 3 expected outcomes + sector mix
         ("Historical Performance", [cyc, strategy_replay]),                    # 4 replay + money diary
         ("Backtested Trades", [detail]),                                       # 5 the proof
-        ("Backtest Summary", [overall, yearly, statistics]),                   # 6 overall + by-year + stats
+        ("Holding Period Options", [horizon_menu]),                            # dynamic horizon menu (1W-1Y)
+        ("Backtest Summary", [overall, yearly, statistics]),                   # overall + by-year + stats
         ("Methodology", [methodology]),                                        # 7
         ("About", [about_full]),                                               # 8
     ]

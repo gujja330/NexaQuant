@@ -42,6 +42,7 @@ from india.data_nse import NIFTY200
 from india.sectors import SECTORS, sector_of
 from india.confidence_engine import current_regime
 from india.horizon_matrix import horizon_matrix, recommend
+from india.dynamic_policy import choose_horizon, choose_topn
 from india.data_layer_gate import REG as LAYER_REG, PITFileLayer, discover_file_layers
 
 CFG = dict(topn=15, sector_cap=2, name_cap=0.30, default_capital=500000)
@@ -128,20 +129,27 @@ def run(capital=None, demo=False):
     prod, exp_layers = active_layers(led, demo=demo)
     stages = []
 
-    # 1. MARKET — validated regime exposure
+    # 1. MARKET — validated regime exposure (+ dynamic policy derived from it)
     exposure, regime, rconf = current_regime()
     stages.append(Stage("Market", f"regime {regime}", f"deploy {exposure:.0%} (confidence {rconf})"))
+    topn_dyn, breadth = choose_topn(hist, closes, exposure, cap=CFG["sector_cap"])
+    try:
+        hmat = horizon_matrix()
+    except Exception:
+        hmat = None
+    hl, hconf = choose_horizon(hmat, exposure)
 
     # 2. SECTOR — forced diversification (fixed cap; a production sector layer would tilt here)
     stages.append(Stage("Sector", f"cap {CFG['sector_cap']}/sector",
-                        f"{len(set(sector_of(c) for c in cols))} sectors in universe"))
+                        f"{len(set(sector_of(c) for c in cols))} sectors · breadth {breadth:.0%} above 200-DMA"))
 
     # 3. INDUSTRY — not separately modelled yet (approximated by sector). Honest gap.
     stages.append(Stage("Industry", "approximated by sector", "no separate industry taxonomy yet"))
 
-    # 4. COMPANY — baseline validated selection (lowest-vol, sector-capped)
-    base_sel = select_names(hist, CFG["topn"], CFG["sector_cap"])
-    stages.append(Stage("Company", f"{len(base_sel)} low-vol names", "validated baseline selection"))
+    # 4. COMPANY — baseline validated selection (lowest-vol, sector-capped, DYNAMIC N from breadth+regime)
+    base_sel = select_names(hist, topn_dyn, CFG["sector_cap"])
+    stages.append(Stage("Company", f"{len(base_sel)} low-vol names (dynamic N={topn_dyn})",
+                        "validated baseline selection"))
 
     # 5. DATA LAYERS — only PRODUCTION layers may move picks; experimental run in shadow
     final_sel = list(base_sel)
@@ -156,15 +164,13 @@ def run(capital=None, demo=False):
             score = score.reindex(cols).dropna()
             if len(score) >= 12:
                 allowed_all &= set(score[score >= score.median()].index)
-        re_sel = select_names(hist[[c for c in cols if c in allowed_all or True]], CFG["topn"],
-                              CFG["sector_cap"], corr_cap=None)
-        # re-run selection restricted to layer-allowed names
+        # re-run selection restricted to layer-allowed names, at the DYNAMIC basket size
         iv = (1.0 / hist[cols].std().replace(0, np.nan)).dropna().sort_values(ascending=False)
         chosen, sec = [], {}
         for s in iv.index:
             if s not in allowed_all:
                 continue
-            if len(chosen) >= CFG["topn"]:
+            if len(chosen) >= topn_dyn:
                 break
             k = SECTORS.get(s, "Other")
             if sec.get(k, 0) >= CFG["sector_cap"]:
@@ -181,11 +187,7 @@ def run(capital=None, demo=False):
     w = weights_for("hrp", hist[final_sel]); w = (w / w.sum()).clip(upper=CFG["name_cap"]); w = w / w.sum()
     stages.append(Stage("Portfolio", "HRP weights", f"name cap {CFG['name_cap']:.0%}"))
 
-    # 7. RECOMMENDATION + horizon
-    try:
-        hl, hconf = recommend(horizon_matrix())
-    except Exception:
-        hl, hconf = "6M", "Medium"
+    # 7. RECOMMENDATION + horizon (dynamic hl/hconf computed in stage 1)
     invest = capital * exposure
     picks = pd.DataFrame({"Stock": w.index, "Sector": [sector_of(s) for s in w.index],
                           "Weight %": (w.values * 100).round(1),
