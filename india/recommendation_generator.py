@@ -235,6 +235,19 @@ def main():
             "Win %": ("actual_ret", lambda x: round(100 * (x > 0).mean())),
             "Avg Return %": ("actual_ret", "mean")}).round(1).reset_index().rename(columns={"year": "Year"}))
 
+    # ---- MULTI-LAYER CANDIDATE SCORES (honest: validated driver + context + DATA NOT AVAILABLE) ----
+    risk_score = (100 * (1 - hist.std().rank(pct=True))).round()              # low-vol = high (VALIDATED driver)
+    mom3_all = (closes.iloc[-1] / closes.iloc[-64] - 1).reindex(hist.columns)
+    above200_all = (closes.iloc[-1] > closes.tail(200).mean()).reindex(hist.columns)
+    tech_score = (50 + 25 * above200_all.astype(float) + 25 * mom3_all.rank(pct=True)).round()  # CONTEXT (no validated lift)
+    sec_mom = {sec: (closes[[c for c in hist.columns if sector_of(c) == sec]].iloc[-1] /
+               closes[[c for c in hist.columns if sector_of(c) == sec]].iloc[-64] - 1).mean()
+               for sec in set(sector_of(c) for c in hist.columns)}
+    sec_rank = pd.Series(sec_mom).rank(pct=True)
+    sec_score = {c: round(100 * sec_rank[sector_of(c)]) for c in hist.columns}                  # CONTEXT
+    market_score = round(100 * exp)                                            # regime (VALIDATED)
+    NA_DATA = "DATA NOT AVAILABLE"
+
     # ---- Sheet: Today's Recommendations. Disclaimer is on the Dashboard (not repeated per row). ----
     completion = (asof + timedelta(days=int(horizon * C["review_cal_factor"]))).date()
     daily_vol = hist.std()                                   # for volatility-band entry zone
@@ -264,6 +277,10 @@ def main():
             ev_score = NA
         rows.append({"Allocation Order": _ord, "Type": "Risk Allocation Candidate",
             "Stock": s, "Sector": sector_of(s), "Why Selected": why_str, "Evidence Score /100": ev_score,
+            "Candidate Score": int(risk_score.get(s, 0)), "Market Score": market_score,
+            "Risk Score (driver)": int(risk_score.get(s, 0)), "Sector Score (context)": sec_score.get(s),
+            "Technical Score (context)": int(tech_score.get(s, 50)),
+            "Fundamental Score": NA_DATA, "News Score": NA_DATA,
             "Weight Reason": "Highest HRP weight (low covariance)" if _ord == 1 else "HRP risk-parity allocation",
             "CMP": round(px, 1), "Entry Zone": f"{px-band:.0f} - {px+band:.0f}",
             "Entry Method": "Volatility band (~2 std-dev daily)", "Allocated Rs": round(sh * px), "Shares": sh,
@@ -341,6 +358,23 @@ def main():
         dec_rows.append({"Stock": s, "Sector": sec, "Decision": "rejected",
                          "Volatility %": round(vol_all[s]), "HRP Weight %": None, "Why": "; ".join(reasons)})
     decision = pd.DataFrame(dec_rows)
+
+    # ---- Candidate Scores: the intermediate Universe -> Scores -> Portfolio table (why in/out) ----
+    cand_rows = []
+    for s in sorted(hist.columns, key=lambda x: -risk_score.get(x, 0)):
+        chosen = s in sel_set
+        if chosen:
+            reason = "SELECTED"
+        elif sel_sectors.get(sector_of(s), 0) >= C["sector_cap"]:
+            reason = "sector cap filled"
+        else:
+            reason = "lower risk score (higher volatility)"
+        cand_rows.append({"Stock": s, "Sector": sector_of(s),
+            "Candidate Score": int(risk_score.get(s, 0)), "Risk Score (driver)": int(risk_score.get(s, 0)),
+            "Sector Score (context)": sec_score.get(s), "Technical Score (context)": int(tech_score.get(s, 50)),
+            "Market Score": market_score, "Fundamental": NA_DATA, "News": NA_DATA,
+            "Selected": "YES" if chosen else "no", "Reason": reason})
+    candidate_scores = pd.DataFrame(cand_rows)
 
     # ---- Historical Expectation block (#1 ask): evidence from past cycles, NOT a forecast ----
     er = hmat[hmat["Horizon"] == rec_label]
@@ -520,6 +554,7 @@ def main():
     sheets = [
         ("Executive Summary", [exec_block, exec_table]),                       # 1 ⭐
         ("Today's Recommendations", [live]),                                   # 2 ⭐
+        ("Candidate Scores", [candidate_scores]),                              # 2b (Universe -> Scores -> Portfolio)
         ("Historical Performance", [cyc, strategy_replay]),                    # 3 ⭐ (replay + money diary)
         ("Backtested Trades", [detail]),                                       # 4 ⭐ (every historical pick)
         ("Statistics", [statistics, yearly, attr_top, attr_bot, horizon_brief, market]),  # 5 ⭐
