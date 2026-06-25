@@ -25,7 +25,7 @@ warnings.simplefilter("ignore")
 DB = ROOT / "data" / "aegis_recommendation_db.csv"
 REPORTS = ROOT / "reports"
 
-COLS = ["snapshot_date", "symbol", "action", "horizon", "entry", "target", "review_date",
+COLS = ["recommended_date", "symbol", "action", "horizon", "entry", "target", "review_date",
         "expiry_date", "confidence", "weight", "status"]
 
 
@@ -48,6 +48,12 @@ def _today_rows():
     t = pd.read_excel(f, sheet_name="Today's Recommendations")
     if t.empty:
         return pd.DataFrame(columns=COLS), None
+    # the sheet stacks two blocks (clean recs + factor breakdown) separated by a blank row;
+    # keep ONLY the first (clean) block so the DB ingests one row per recommendation.
+    blanks = t.index[t.isna().all(axis=1)]
+    if len(blanks):
+        t = t.iloc[:blanks[0]]
+    t = t[t["Stock"].notna()] if "Stock" in t else t
     snap = str(t["Generated"].iloc[0]) if "Generated" in t else str(pd.Timestamp.now().date())
 
     def g(row, *names, default=""):
@@ -58,7 +64,7 @@ def _today_rows():
     rows = []
     for _, r in t.iterrows():
         rows.append({
-            "snapshot_date": snap, "symbol": g(r, "Stock"), "action": g(r, "Strength"),
+            "recommended_date": snap, "symbol": g(r, "Stock"), "action": g(r, "Strength"),
             "horizon": g(r, "Recommended Holding"), "entry": g(r, "Current Price"),
             "target": g(r, "Hist Target"), "review_date": g(r, "Review Date"),
             "expiry_date": g(r, "Valid Until"), "confidence": g(r, "Rec Confidence %"),
@@ -81,12 +87,12 @@ def lifecycle(df, today=None):
 
 
 def snapshot(today=None):
-    """Append today's recommendations to the DB (idempotent per snapshot_date). Returns (db, snap)."""
+    """Append today's recommendations to the DB (idempotent per recommended_date). Returns (db, snap)."""
     rows, snap = _today_rows()
     if snap is None:
         return load_db(), None
     db = load_db()
-    if not db.empty and snap in set(db["snapshot_date"].astype(str)):
+    if not db.empty and snap in set(db["recommended_date"].astype(str)):
         return db, snap                                    # already snapshotted today -> idempotent
     db = pd.concat([db, rows], ignore_index=True)
     db = lifecycle(db, today)                              # refresh lifecycle on the whole DB
@@ -99,10 +105,10 @@ def daily_diff(db):
     """Compare the two most recent snapshots: NEW, REMOVED, INCREASED, REDUCED (by weight)."""
     if db.empty:
         return {}
-    snaps = sorted(db["snapshot_date"].astype(str).unique())
+    snaps = sorted(db["recommended_date"].astype(str).unique())
     if len(snaps) < 2:
         return {"note": "only one snapshot so far — diff begins from the next run"}
-    prev, cur = db[db.snapshot_date.astype(str) == snaps[-2]], db[db.snapshot_date.astype(str) == snaps[-1]]
+    prev, cur = db[db.recommended_date.astype(str) == snaps[-2]], db[db.recommended_date.astype(str) == snaps[-1]]
     pw = dict(zip(prev.symbol, pd.to_numeric(prev.weight, errors="coerce")))
     cw = dict(zip(cur.symbol, pd.to_numeric(cur.weight, errors="coerce")))
     new = [s for s in cw if s not in pw]
@@ -119,7 +125,7 @@ def main():
     else:
         db, snap = snapshot()
         print(f"  snapshot: {snap or 'no workbook'}  ·  DB now holds {len(db)} rows across "
-              f"{db['snapshot_date'].nunique() if not db.empty else 0} days")
+              f"{db['recommended_date'].nunique() if not db.empty else 0} days")
     print("=" * 70)
     print("  AEGIS RECOMMENDATION DATABASE")
     print("=" * 70)

@@ -794,7 +794,7 @@ def main():
         ("Market", engine_blocks + [sector_mix]),                              # 5 regime/pipeline + sector mix
         ("About", [methodology, about_full]),                                  # 6 methodology + evidence
     ]
-    out = REPORTS / f"AEGIS_{run_date}.xlsx"
+    out = REPORTS / "AEGIS_LATEST.xlsx"              # ONE live file, overwritten each run (no day-by-day clutter)
 
     def _write(path):
         with pd.ExcelWriter(path, engine="openpyxl") as xl:
@@ -807,9 +807,9 @@ def main():
     try:
         _write(out)
     except PermissionError:                          # workbook is open in Excel -> fallback, don't crash
-        out = REPORTS / f"AEGIS_{run_date}_new.xlsx"
+        out = REPORTS / "AEGIS_LATEST_new.xlsx"
         _write(out)
-        print(f"  (note: AEGIS_{run_date}.xlsx was open/locked -> wrote {out.name}; close Excel & re-run to refresh the main file)")
+        print(f"  (note: AEGIS_LATEST.xlsx was open/locked -> wrote {out.name}; close Excel & re-run to refresh)")
 
     try:
         from india.recommendation_registry import log_rec

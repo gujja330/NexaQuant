@@ -268,7 +268,7 @@ def render():
                          f"· INCREASED {dd['increased'] or '—'} · REDUCED {dd['reduced'] or '—'}")
             elif dd.get("note"):
                 st.caption(dd["note"])
-            st.dataframe(db.sort_values("snapshot_date", ascending=False),
+            st.dataframe(db.sort_values("recommended_date", ascending=False),
                          use_container_width=True, hide_index=True)
         st.subheader("Scored outcomes (registry)")
         if reg.empty:
