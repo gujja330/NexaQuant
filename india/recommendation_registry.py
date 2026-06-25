@@ -1,19 +1,18 @@
 # india/recommendation_registry.py
 """
-RECOMMENDATION REGISTRY — the evidence database (the one thing worth building now).
+RECOMMENDATION REGISTRY — the reproducible evidence database (the research/evidence layer).
 
-Every recommendation AEGIS ever makes is stored, then scored against what ACTUALLY happened once
-its horizon elapses. After a year of forward use this holds hundreds of real observations — worth
-more than another 100 backtests.
+Every recommendation Aegis makes is stored with enough detail to REPRODUCE it, then scored against
+what actually happened once its horizon elapses. This is the machine-readable DB under reports/;
+the investor-facing workbook shows only a clean view of it.
 
-Schema (reports/recommendation_registry.csv):
-  rec_id · asof · horizon_d · symbol · weight · mature_date · actual_ret · rank · universe_n
-  · hit_top25 · scored · source(historical|live)
+Each pick stores: fingerprint · rec_id · asof · strategy_version · universe · horizon · symbol ·
+weight · buy_price · mature_date · exit_price · return% · holding days/months · rank · hit · regime.
 
 Usage:
-  python india/recommendation_registry.py --backfill   # seed with historical, scored recs
-  python india/recommendation_registry.py --log        # log a NEW live rec (today's champion)
-  python india/recommendation_registry.py              # score any matured recs + print summary
+  python india/recommendation_registry.py --backfill   # rebuild historical, scored
+  python india/recommendation_registry.py --log        # log a NEW live rec (latest date)
+  python india/recommendation_registry.py              # score matured recs + summary
 """
 import sys, warnings
 from pathlib import Path
@@ -26,17 +25,34 @@ warnings.simplefilter("ignore")
 from india.arjuna_v2 import select_names, weights_for, LOOKBACK
 from india.feature_engine import load_panels
 from india.data_nse import NIFTY200
+from india.config import VERSION
 
 REG = ROOT / "reports" / "recommendation_registry.csv"
 HOLD = 63
-COLS = ["rec_id", "asof", "horizon_d", "symbol", "weight", "mature_date", "actual_ret",
-        "rank", "universe_n", "hit_top25", "scored", "source"]
+COLS = ["fingerprint", "rec_id", "asof", "strategy_version", "universe", "horizon_d", "symbol",
+        "weight", "buy_price", "mature_date", "exit_price", "actual_ret", "holding_days",
+        "holding_months", "rank", "universe_n", "hit_top25", "regime", "scored", "source"]
+_regime_cache = None
 
 
 def _panels():
     c, *_ = load_panels()
     closes = c[[x for x in c.columns if x in set(NIFTY200)]]
     return closes, closes.pct_change()
+
+
+def _regime_at(asof):
+    global _regime_cache
+    if _regime_cache is None:
+        try:
+            from india.evidence.probability_matrix import regime_state_series
+            _regime_cache = regime_state_series()
+        except Exception:
+            _regime_cache = pd.Series(dtype=object)
+    try:
+        return str(_regime_cache.reindex([pd.Timestamp(asof)]).iloc[0])
+    except Exception:
+        return ""
 
 
 def champion_picks(closes, rets, asof):
@@ -49,42 +65,45 @@ def champion_picks(closes, rets, asof):
 
 
 def load_reg():
-    if REG.exists():
-        return pd.read_csv(REG)
-    return pd.DataFrame(columns=COLS)
+    return pd.read_csv(REG) if REG.exists() else pd.DataFrame(columns=COLS)
 
 
 def log_rec(closes, rets, asof, source="live", horizon=HOLD):
-    df = load_reg()
-    asof = pd.Timestamp(asof)
-    rid = f"{asof.date()}_{horizon}"
-    if (df["rec_id"] == rid).any():
+    df = load_reg(); asof = pd.Timestamp(asof); rid = f"{asof.date()}_{horizon}"
+    if "rec_id" in df and (df["rec_id"] == rid).any():
         return df, 0
     picks = champion_picks(closes, rets, asof)
     if not picks:
         return df, 0
-    mature = closes.index[min(closes.index.get_loc(asof) + horizon, len(closes) - 1)]
-    rows = [dict(rec_id=rid, asof=asof.date(), horizon_d=horizon, symbol=s, weight=round(w, 4),
-                 mature_date=mature.date(), actual_ret=np.nan, rank=np.nan, universe_n=np.nan,
-                 hit_top25=np.nan, scored=0, source=source) for s, w in picks.items()]
-    df = pd.concat([df, pd.DataFrame(rows)], ignore_index=True)
-    return df, len(rows)
+    i = closes.index.get_loc(asof)
+    mature = closes.index[min(i + horizon, len(closes) - 1)]
+    regime = _regime_at(asof); base = len(df)
+    rows = []
+    for j, (s, w) in enumerate(picks.items()):
+        rows.append(dict(fingerprint=f"REC-{asof.strftime('%Y%m%d')}-{base + j:04d}", rec_id=rid,
+            asof=asof.date(), strategy_version=VERSION, universe="nifty200", horizon_d=horizon,
+            symbol=s, weight=round(w, 4), buy_price=round(float(closes.loc[asof, s]), 2),
+            mature_date=mature.date(), exit_price=np.nan, actual_ret=np.nan, holding_days=horizon,
+            holding_months=round(horizon / 21, 1), rank=np.nan, universe_n=np.nan, hit_top25=np.nan,
+            regime=regime, scored=0, source=source))
+    return pd.concat([df, pd.DataFrame(rows)], ignore_index=True), len(rows)
 
 
 def score(df, closes, rets):
-    last = closes.index[-1]; n = 0
+    n = 0
     for rid, g in df[df["scored"] == 0].groupby("rec_id"):
         asof = pd.Timestamp(g["asof"].iloc[0]); h = int(g["horizon_d"].iloc[0])
         i = closes.index.get_loc(asof)
         if i + h >= len(closes):
-            continue                                  # not matured yet (live forward recs)
+            continue
         fwd = (closes.iloc[i + h] / closes.iloc[i] - 1).dropna()
         pct = fwd.rank(pct=True); N = len(fwd)
         for idx in g.index:
             s = df.at[idx, "symbol"]
             if s in fwd.index:
+                df.at[idx, "exit_price"] = round(float(closes.iloc[i + h][s]), 2)
                 df.at[idx, "actual_ret"] = round(100 * fwd[s], 2)
-                df.at[idx, "rank"] = int((1 - pct[s]) * N) + 1     # 1 = best
+                df.at[idx, "rank"] = int((1 - pct[s]) * N) + 1
                 df.at[idx, "universe_n"] = N
                 df.at[idx, "hit_top25"] = int(pct[s] >= 0.75)
                 df.at[idx, "scored"] = 1
@@ -95,35 +114,31 @@ def score(df, closes, rets):
 def summary(df):
     sc = df[df["scored"] == 1]
     if sc.empty:
-        print("  (no scored recommendations yet — live recs score once their horizon elapses)"); return
+        print("  (no scored recs yet — live recs score once their horizon elapses)"); return
     for src in sc["source"].unique():
         s = sc[sc["source"] == src]
-        rqs = 1 - (s["rank"] / s["universe_n"]).mean()           # 0.5 = random
-        hit = 100 * s["hit_top25"].mean()
-        avg_rank = s["rank"].mean(); N = int(s["universe_n"].median())
-        print(f"  [{src:<10}] {s['rec_id'].nunique()} recs · {len(s)} picks · "
-              f"RQS {rqs:.3f} · avg rank {avg_rank:.0f}/{N} · hit(top25) {hit:.0f}%")
-    print("  RQS 0.50 = random · >0.55 = real skill. Historical = in-sample; LIVE = the real evidence.")
+        rqs = 1 - (s["rank"] / s["universe_n"]).mean()
+        print(f"  [{src:<10}] {s['rec_id'].nunique()} recs · {len(s)} picks · RQS {rqs:.3f} · "
+              f"avg rank {s['rank'].mean():.0f}/{int(s['universe_n'].median())} · "
+              f"hit {100*s['hit_top25'].mean():.0f}% · median ret {s['actual_ret'].median():+.1f}%")
 
 
 def main():
-    closes, rets = _panels()
-    df = load_reg()
+    closes, rets = _panels(); df = load_reg()
     if "--backfill" in sys.argv:
-        rebals = closes.index[::HOLD]
+        if REG.exists():
+            REG.unlink()                              # rebuild cleanly under the enriched schema
         added = 0
-        for dt in rebals:
+        for dt in closes.index[::HOLD]:
             if closes.index.get_loc(dt) + HOLD >= len(closes):
                 continue
             df, k = log_rec(closes, rets, dt, source="historical")
-            df.to_csv(REG, index=False); added += k
-        print(f"  backfilled historical recs (+{added} picks)")
+            df.to_csv(REG, index=False); added += k          # write each step so log_rec accumulates
+        print(f"  backfilled (+{added} picks, enriched schema)")
     if "--log" in sys.argv:
-        df, k = log_rec(closes, rets, closes.index[-1], source="live")
-        df.to_csv(REG, index=False)
-        print(f"  logged LIVE rec for {closes.index[-1].date()} (+{k} picks)")
-    df, scored = score(df, closes, rets)
-    df.to_csv(REG, index=False)
+        df, k = log_rec(closes, rets, closes.index[-1], source="live"); df.to_csv(REG, index=False)
+        print(f"  logged LIVE rec {closes.index[-1].date()} (+{k} picks)")
+    df, scored = score(df, closes, rets); df.to_csv(REG, index=False)
     print(f"\n  registry: {REG.relative_to(ROOT)}  ({df['rec_id'].nunique()} recs, {scored} newly scored)")
     summary(df)
 
