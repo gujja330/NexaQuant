@@ -137,6 +137,7 @@ def history_for(reg, idx, capital, closes):
         cyc_rows.append({"Rec ID": rid, "Investment Month": a.strftime("%Y-%m"), "Holding": f"{mo}M",
             "Stocks": ", ".join(grp.sort_values("weight", ascending=False)["symbol"].head(5)) + " ...",
             "Invested Rs": round(inv_tot), "Exit Value Rs": round(exit_tot), "Gain Rs": round(exit_tot - inv_tot),
+            "Exit Date": m.strftime("%Y-%m-%d"), "Holding Days": hd,
             "Portfolio Ret %": round(port, 1), "Nifty Ret %": round(nif, 1), "Beat Nifty": "YES" if port > nif else "no",
             "Top Contributor": f"{top_c} ({contrib[top_c]:+.1f})", "Worst Contributor": f"{worst_c} ({contrib[worst_c]:+.1f})"})
     cyc = pd.DataFrame(cyc_rows); detail = pd.DataFrame(detail_rows)
@@ -206,26 +207,30 @@ def main():
     for _ord, s in enumerate(w.sort_values(ascending=False).index, 1):
         px = float(prices[s]); band = px * C["buy_band_pct"] / 100
         sh = int((invest * w[s]) // px) if px > 0 else 0
-        t = track.get(s)
-        occ = len(t) if t is not None else 0
-        win = round(100 * (t["actual_ret"] > 0).mean()) if occ else None
-        med = round(t["actual_ret"].median(), 1) if occ else None
+        t = track.get(s); occ = len(t) if t is not None else 0
         rl = "Low" if vol_rank.get(s, 0.5) < 0.33 else ("Medium" if vol_rank.get(s, 0.5) < 0.66 else "High")
-        rows.append({"Allocation Order": _ord, "Type": "Risk Allocation Candidate", "Rec ID": rid_today,
-            "Stock": s, "Sector": sector_of(s), "CMP": round(px, 1),
-            "Entry Zone": f"{px-band:.0f} - {px+band:.0f}", "Allocated Rs": round(sh * px), "Shares": sh,
-            "Weight %": round(100 * w[s], 1), "Generated": str(run_date), "Market Data": str(market_asof),
-            "Valid Until": str(valid_until), "Review Date": str(review), "Expected Completion": str(completion),
+        sample_conf = "High" if occ >= 10 else ("Medium" if occ >= 5 else ("Low" if occ >= 1 else "New"))
+        NA = "New — no history"            # never expose NaN
+        rows.append({"Allocation Order": _ord, "Type": "Risk Allocation Candidate",
+            "Stock": s, "Sector": sector_of(s),
+            "Why Selected": f"Lowest-volatility name in {sector_of(s)} under the sector cap; HRP-weighted",
+            "Weight Reason": "Highest HRP weight (low covariance)" if _ord == 1 else "HRP risk-parity allocation",
+            "CMP": round(px, 1), "Entry Zone": f"{px-band:.0f} - {px+band:.0f}",
+            "Allocated Rs": round(sh * px), "Shares": sh, "Weight %": round(100 * w[s], 1),
+            "Generated": str(run_date), "Market Data": str(market_asof), "Valid Until": str(valid_until),
+            "Review Date": str(review), "Expected Completion": str(completion),
             "Suggested Holding": f"{months} months", "Portfolio Confidence": regime_conf.title(),
-            "Construction Confidence": mode_conf.title(),
-            "3M Momentum %": round(float(mom3[s]), 1), "Rel Strength vs Nifty": f"top {round(100*(1-rs_rank[s]))}%",
+            "Construction Confidence": mode_conf.title(), "3M Momentum %": round(float(mom3[s]), 1),
+            "Rel Strength vs Nifty": f"top {round(100*(1-rs_rank[s]))}%",
             "Above 200-DMA": "Yes" if bool(above200[s]) else "No", "Risk Level": rl,
-            # per-stock HISTORICAL EXPECTATION (descriptive stats from past recs, NOT a forecast)
-            "Hist Cases": occ, "Hist Win %": win, "Hist Median %": med,
-            "Hist Avg %": round(t["actual_ret"].mean(), 1) if occ else None,
-            "Hist Best %": round(t["actual_ret"].max(), 1) if occ else None,
-            "Hist Worst %": round(t["actual_ret"].min(), 1) if occ else None,
-            "Hist Avg Hold (d)": round(t["holding_days"].mean()) if occ else None,
+            # HISTORICAL EXPECTATION — descriptive stats of SIMILAR PAST RECS (not a forecast)
+            "Past Recs (count)": occ, "Sample Confidence": sample_conf,
+            "Win % (similar past recs)": round(100 * (t["actual_ret"] > 0).mean()) if occ else NA,
+            "Median Ret % (similar past recs)": round(t["actual_ret"].median(), 1) if occ else NA,
+            "Avg Ret % (similar past recs)": round(t["actual_ret"].mean(), 1) if occ else NA,
+            "Best % (similar past recs)": round(t["actual_ret"].max(), 1) if occ else NA,
+            "Worst % (similar past recs)": round(t["actual_ret"].min(), 1) if occ else NA,
+            "Avg Hold d (similar past recs)": round(t["holding_days"].mean()) if occ else NA,
             "Status": "Running"})
     live = pd.DataFrame(rows)
 
@@ -295,13 +300,15 @@ def main():
          "NOT a guarantee or forecast. Levels are survivorship-inflated -> trust the odds/relative edge, "
          "not the exact %."]], columns=["Historical Expectation", "Value"])
 
-    # ---- Candidate Universe funnel (#biggest missing sheet): how 200 -> final N ----
-    n_uni = len(hist.columns)
+    # ---- Candidate Universe funnel with REAL counts (honest; no fabricated thresholds) ----
+    n_uni = len(hist.columns); vmed = float(vol_all.median())
+    n_lowvol = int((vol_all.reindex(hist.columns) < vmed).sum())
+    n_sectors = len(set(sector_of(x) for x in hist.columns))
     funnel = pd.DataFrame([
         ["Nifty-200 with full lookback history", n_uni, "eligible universe"],
-        ["Ranked by realised volatility (low first)", n_uni, "the only selection signal"],
-        ["Sector cap <= %d applied" % C["sector_cap"], len(w), "drops higher-vol & cap-exceeding names"],
-        ["Final portfolio (capital-sized)", len(w), f"top {len(w)} for Rs{capital:,.0f}"]],
+        ["Lower-half by volatility (selection pool)", n_lowvol, "the only selection signal is low vol"],
+        [f"Sectors available (cap <= {C['sector_cap']}/sector)", n_sectors, "diversification constraint"],
+        ["Final portfolio (capital-sized)", len(w), f"top {len(w)} for Rs{capital:,.0f} = {100*len(w)/n_uni:.0f}% of universe"]],
         columns=["Stage", "Count", "Note"])
 
     # ---- Sheet 1: Dashboard (correct dates, no ambiguity) ----
@@ -356,7 +363,8 @@ def main():
         start = bal; bal *= (1 + r["Portfolio Ret %"] / 100); nbal *= (1 + r["Nifty Ret %"] / 100)
         sr_rows.append({"Cycle": r["Investment Month"], "Start Rs": round(start),
             "Return %": r["Portfolio Ret %"], "End Rs": round(bal), "If Nifty Rs": round(nbal),
-            "Beat Nifty": r["Beat Nifty"]})
+            "Beat Nifty": r["Beat Nifty"], "Largest Winner": r.get("Top Contributor", ""),
+            "Largest Loser": r.get("Worst Contributor", "")})
     strategy_replay = pd.DataFrame(sr_rows)
     if not strategy_replay.empty:
         strategy_replay = pd.concat([strategy_replay, pd.DataFrame([{"Cycle": "FINAL",
@@ -397,10 +405,24 @@ def main():
         ["Honest caveat", "Absolute return levels are survivorship-inflated; trust the RELATIVE edge vs "
          "Nifty. Forward paper (live cycles) is the real, ongoing test."]], columns=["Topic", "Detail"])
 
+    # ---- Decision Summary: the one-screen top sheet (what to do today, at a glance) ----
+    decision_summary = pd.DataFrame([
+        ["Today's Decision", "Hold a risk-managed portfolio (constituents below)"],
+        ["Market Regime", regime], ["Recommended Horizon", f"{rec_label} ({months} months)"],
+        ["Portfolio", f"{len(w)} stocks"], ["Suggested Capital", rupees(capital)],
+        ["Deploy now", f"Rs{round(invest):,.0f} ({exp:.0%}) · cash Rs{round(capital-invest):,.0f}"],
+        ["Allocation method", "Equal-risk (HRP), sector-capped"],
+        ["Historical win rate (%s)" % rec_label, f"{er['Win Rate %']:.0f}%" if er is not None else "n/a"],
+        ["Historical median return (%s)" % rec_label, f"{er['Median Return %']:+.1f}%" if er is not None else "n/a"],
+        ["Review", str(review)],
+        ["Validation", f"Portfolio grade {G['pf_grade']} (validated) · stock-alpha experimental (RQS {G['rqs']:.2f})"],
+        ["Reminder", "Historical = how similar past portfolios did. Evidence, NOT a forecast or guarantee."]],
+        columns=["Field", "Value"])
+
     # ---- write ONE investor workbook (named by RUN date) ----
     # one workbook, four logical sections (Registry stays an INTERNAL csv, not exposed)
     sheets = [  # 1) EXECUTIVE
-        ("Dashboard", dashboard), ("Market Snapshot", market),
+        ("Decision Summary", decision_summary), ("Dashboard", dashboard), ("Market Snapshot", market),
         # 2) RECOMMENDATIONS
         ("Today's Recommendations", live), ("Historical Expectation", hist_expect),
         ("Selection Decision", decision), ("Candidate Universe", funnel), ("Factor Snapshot", why),
