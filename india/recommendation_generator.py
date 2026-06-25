@@ -99,8 +99,8 @@ def rec_id(asof, months):
     return f"AEGIS-{pd.Timestamp(asof).strftime('%Y%m%d')}-{months}M"
 
 
-def history_for(reg, idx, capital):
-    """Registry -> per-cycle portfolio (with money), full per-stock investment LIFECYCLE, per-stock track."""
+def history_for(reg, idx, capital, closes):
+    """Registry -> per-cycle portfolio (with money), full per-stock LIFECYCLE incl trade path / exit quality."""
     h = reg[(reg.scored == 1) & (reg.source == "historical")].copy()
     if h.empty:
         return pd.DataFrame(), pd.DataFrame(), {}, pd.DataFrame()
@@ -115,13 +115,22 @@ def history_for(reg, idx, capital):
             sh = int((capital * r["weight"]) // r["buy_price"]) if r["buy_price"] > 0 else 0
             inv = sh * r["buy_price"]; ev = sh * r["exit_price"]; inv_tot += inv; exit_tot += ev
             cagr = ((1 + r["actual_ret"] / 100) ** (252 / max(hd, 1)) - 1) * 100
+            # trade path / exit quality from the price path during the holding window
+            path = closes[r["symbol"]].loc[a:m] if r["symbol"] in closes.columns else pd.Series(dtype=float)
+            if len(path) > 1 and r["buy_price"] > 0:
+                max_p = 100 * (path.max() / r["buy_price"] - 1); min_p = 100 * (path.min() / r["buy_price"] - 1)
+                capture = round(100 * r["actual_ret"] / max_p) if max_p > 0 else None
+            else:
+                max_p = min_p = capture = None
             detail_rows.append({"Rec ID": rid, "Month": a.strftime("%Y-%m"), "Stock": r["symbol"],
                 "Sector": sector_of(r["symbol"]), "Buy Price": r["buy_price"], "Exit Price": r["exit_price"],
-                "Shares": sh, "Invested Rs": round(inv), "Exit Value Rs": round(ev),
-                "Profit Rs": round(ev - inv), "Return %": r["actual_ret"], "CAGR %": round(cagr, 1),
-                "Holding Days": hd, "Rank": f"{int(r['rank'])}/{int(r['universe_n'])}",
-                "Why Picked": "low-vol + HRP + sector-cap + regime", "Exit Reason": "quarterly rebalance",
-                "Status": "Completed"})
+                "Shares": sh, "Invested Rs": round(inv), "Exit Value Rs": round(ev), "Profit Rs": round(ev - inv),
+                "Return %": r["actual_ret"], "Contribution %": round(r["weight"] * r["actual_ret"], 2),
+                "Max Profit %": round(max_p, 1) if max_p is not None else None,
+                "Max Loss %": round(min_p, 1) if min_p is not None else None,
+                "Captured %": capture, "CAGR %": round(cagr, 1), "Holding Days": hd,
+                "Rank in Universe": f"{int(r['rank'])}/{int(r['universe_n'])}",
+                "Exit Reason": "quarterly rebalance", "Status": "Completed"})
         cyc_rows.append({"Rec ID": rid, "Investment Month": a.strftime("%Y-%m"), "Holding": f"{mo}M",
             "Stocks": ", ".join(grp.sort_values("weight", ascending=False)["symbol"].head(5)) + " ...",
             "Invested Rs": round(inv_tot), "Exit Value Rs": round(exit_tot), "Gain Rs": round(exit_tot - inv_tot),
@@ -182,14 +191,14 @@ def main():
     rs_rank = rs.rank(pct=True)
     above200 = closes.iloc[-1] > closes.tail(200).mean()
 
-    cyc, detail, track, clean = history_for(reg, idx, capital)
+    cyc, detail, track, clean = history_for(reg, idx, capital, closes)
     beat_n = int((cyc["Beat Nifty"] == "YES").sum()) if not cyc.empty else 0
     beat_pct = round(100 * beat_n / len(cyc)) if not cyc.empty else 0
     avg_port = cyc["Portfolio Ret %"].mean() if not cyc.empty else float("nan")
 
     # ---- Sheet 2: Live Recommendations (each with its OWN history + honest remark) ----
     rows = []
-    for s in w.sort_values(ascending=False).index:
+    for _rank, s in enumerate(w.sort_values(ascending=False).index, 1):
         px = float(prices[s]); band = px * C["buy_band_pct"] / 100
         sh = int((invest * w[s]) // px) if px > 0 else 0
         t = track.get(s)
@@ -200,13 +209,13 @@ def main():
         remark = (f"In {beat_pct}% of past cycles this portfolio beat Nifty (avg +{avg_port:.1f}%). " +
                   (f"{s} appeared in {occ} past portfolios, median {med:+.1f}%, win {win}%. " if occ else f"{s}: no prior history. ") +
                   "Risk-managed holding, not a return forecast.")
-        rows.append({"Rec ID": rid_today, "Action": "BUY (portfolio candidate)",
-            "Basis": "construction candidate — stock-alpha NOT validated (RQS~0.5)", "Run Date": str(run_date),
+        rows.append({"Rec ID": rid_today, "Rank": _rank, "Type": "Portfolio Constituent",
+            "Basis": "allocation candidate — stock-alpha NOT validated (RQS~0.5)", "Run Date": str(run_date),
             "Market Data As Of": str(market_asof), "Valid Until": str(valid_until), "Stock": s,
             "Sector": sector_of(s), "CMP": round(px, 1), "Entry Zone": f"{px-band:.0f} - {px+band:.0f}",
             "Allocated Rs": round(sh * px), "Shares": sh, "Weight %": round(100 * w[s], 1),
             "Suggested Holding Window": f"{months} months", "Review Date": str(review),
-            "Portfolio Confidence": regime_conf.title(), "Recommendation Confidence": mode_conf.title(),
+            "Portfolio Confidence": regime_conf.title(), "Construction Confidence": mode_conf.title(),
             "3M Momentum %": round(float(mom3[s]), 1), "Rel Strength vs Nifty": f"top {round(100*(1-rs_rank[s]))}%",
             "Above 200-DMA": "Yes" if bool(above200[s]) else "No",
             "Historical Cases": occ, "Hist Win %": win, "Hist Median %": med,
@@ -250,12 +259,18 @@ def main():
         dec_rows.append({"Stock": s, "Sector": sec, "Decision": "SELECTED",
                          "Volatility %": round(vol_all[s]), "HRP Weight %": round(100 * w[s], 1),
                          "Why": why_won + "Risk-driven selection — not an alpha call."})
-    rej = vol_all.drop(list(sel_set), errors="ignore").sort_values().head(10)
+    sel_vol_med = float(vol_all[list(sel_set)].median())
+    rej = vol_all.drop(list(sel_set), errors="ignore").sort_values().head(12)
     for s in rej.index:
-        sec = sector_of(s); full = sel_sectors.get(sec, 0) >= C["sector_cap"]
+        sec = sector_of(s); reasons = []
+        if sel_sectors.get(sec, 0) >= C["sector_cap"]:
+            reasons.append("sector cap filled")
+        if vol_all[s] > sel_vol_med:
+            reasons.append(f"higher volatility ({vol_all[s]:.0f}% vs {sel_vol_med:.0f}% median selected)")
+        if not reasons:
+            reasons.append("outside top-N by volatility")
         dec_rows.append({"Stock": s, "Sector": sec, "Decision": "rejected",
-                         "Volatility %": round(vol_all[s]), "HRP Weight %": None,
-                         "Why": "sector cap already filled" if full else "higher volatility / outside top-N"})
+                         "Volatility %": round(vol_all[s]), "HRP Weight %": None, "Why": "; ".join(reasons)})
     decision = pd.DataFrame(dec_rows)
 
     # ---- Sheet 1: Dashboard (correct dates, no ambiguity) ----
@@ -281,22 +296,30 @@ def main():
         ["Fundamental Analysis", "NOT EVALUATED", "no point-in-time data"],
         ["News / Events", "NOT EVALUATED", "no event database"]], columns=["Layer", "Status", "Detail"])
     if not cyc.empty:
-        pr = cyc["Portfolio Ret %"]
+        pr = cyc["Portfolio Ret %"]; wins = pr > 0
+        # longest win / loss streaks
+        def streak(mask):
+            best = cur = 0
+            for x in mask:
+                cur = cur + 1 if x else 0; best = max(best, cur)
+            return best
         statistics = pd.DataFrame([
             ["Total cycles", len(cyc)], ["Cycles beating Nifty", f"{beat_n} ({beat_pct}%)"],
-            ["Cycles positive", f"{int((pr>0).sum())} ({round(100*(pr>0).mean())}%)"],
+            ["Cycles positive", f"{int(wins.sum())} ({round(100*wins.mean())}%)"],
             ["Avg portfolio return", f"{pr.mean():+.1f}%"], ["Median portfolio return", f"{pr.median():+.1f}%"],
-            ["Std deviation", f"{pr.std():.1f}%"], ["Avg holding", f"{months} months"],
-            ["Best cycle", f"{pr.max():+.1f}%"], ["Worst cycle", f"{pr.min():+.1f}%"]],
+            ["Std deviation", f"{pr.std():.1f}%"], ["Avg outperformance vs Nifty", f"{(pr-cyc['Nifty Ret %']).mean():+.1f}%"],
+            ["Best cycle", f"{pr.max():+.1f}%"], ["Worst cycle", f"{pr.min():+.1f}%"],
+            ["Avg winning cycle", f"{pr[wins].mean():+.1f}%"], ["Avg losing cycle", f"{pr[~wins].mean():+.1f}%"],
+            ["Longest win streak", f"{streak(wins)} cycles"], ["Longest loss streak", f"{streak(~wins)} cycles"]],
             columns=["Metric", "Value"])
     else:
         statistics = pd.DataFrame([["(no scored history yet)", ""]], columns=["Metric", "Value"])
 
     # ---- write ONE investor workbook (named by RUN date) ----
-    sheets = [("Dashboard", dashboard), ("Evidence Badges", badges), ("Live Recommendations", live),
-              ("Horizon Matrix", hmat), ("Historical Performance", cyc), ("Monthly Detail", detail),
-              ("Selection Decision", decision), ("Factor Snapshot", why),
-              ("Registry", clean), ("Statistics", statistics)]
+    # one workbook, investor sheets only (Registry stays an INTERNAL csv, not exposed)
+    sheets = [("Dashboard", dashboard), ("Evidence Badges", badges), ("Today's Recommendations", live),
+              ("Horizon Matrix", hmat), ("Recommendation Replay", cyc), ("Recommendation History", detail),
+              ("Selection Decision", decision), ("Factor Snapshot", why), ("Statistics", statistics)]
     out = REPORTS / f"AEGIS_{run_date}.xlsx"
 
     def _write(path):
