@@ -18,7 +18,7 @@ based, not stop-losses.
 Outputs: reports/recommendations/<date>/ + reports/LIVE_RECOMMENDATIONS.xlsx (8 sheets).
 Run: python india/recommendation_generator.py --capital 500000 --horizon 126
 """
-import sys, warnings
+import sys, warnings, shutil
 from datetime import timedelta
 from pathlib import Path
 import numpy as np
@@ -209,17 +209,87 @@ def main():
         "Early Exit": "quarterly rebalance", "Emergency Exit": "fraud / delisting / regime-OFF"}
         for s in w.index])
 
+    # ---- HISTORICAL EVIDENCE (complete: winners AND losers) + per-pick ANALOGUES ----
+    hist_ev = pd.DataFrame(); analogues = pd.DataFrame(); ev = {}
+    if REG.exists():
+        rg = pd.read_csv(REG)
+        h = rg[(rg.scored == 1) & (rg.source == "historical")].copy()
+        if not h.empty:
+            h["Hold"] = (h["horizon_d"] // 21).astype(int).astype(str) + "M"
+            h["Sector"] = h["symbol"].map(sector_of)
+            hist_ev = h.rename(columns={"symbol": "Stock", "asof": "Buy Date",
+                "mature_date": "Exit Date", "actual_ret": "Return %", "rank": "Rank",
+                "universe_n": "of N", "hit_top25": "TopQ"})[
+                ["Stock", "Sector", "Buy Date", "Exit Date", "Hold", "Return %", "Rank", "of N", "TopQ"]
+                ].sort_values("Buy Date")
+            ev = dict(picks=len(h), rqs=1 - (h["rank"] / h["universe_n"]).mean(),
+                      avg_rank=h["rank"].mean(), N=int(h["universe_n"].median()),
+                      hit=100 * h["hit_top25"].mean(), win=100 * (h["actual_ret"] > 0).mean(),
+                      med=h["actual_ret"].median(), best=h["actual_ret"].max(), worst=h["actual_ret"].min())
+            arows = []
+            for s in w.index:
+                hs = h[h.symbol == s]
+                if len(hs):
+                    arows.append({"Stock": s, "Occurrences": len(hs),
+                        "Median Ret %": round(hs.actual_ret.median(), 1),
+                        "Win Rate %": round(100 * (hs.actual_ret > 0).mean()),
+                        "Best %": round(hs.actual_ret.max(), 1), "Worst %": round(hs.actual_ret.min(), 1),
+                        "Avg Rank": f"{hs['rank'].mean():.0f}/{int(hs['universe_n'].median())}"})
+                else:
+                    arows.append({"Stock": s, "Occurrences": 0, "Median Ret %": np.nan,
+                        "Win Rate %": np.nan, "Best %": np.nan, "Worst %": np.nan, "Avg Rank": "n/a"})
+            analogues = pd.DataFrame(arows)
+
+    ev_sum = pd.DataFrame([
+        ["Total historical picks", ev.get("picks", "-")],
+        ["RQS (0.50 = random)", f"{ev.get('rqs', float('nan')):.3f}"],
+        ["Avg finishing rank", f"{ev.get('avg_rank', float('nan')):.0f}/{ev.get('N', '')}"],
+        ["Hit rate (top quartile)", f"{ev.get('hit', float('nan')):.0f}%"],
+        ["Win rate (positive)", f"{ev.get('win', float('nan')):.0f}%"],
+        ["Median return", f"{ev.get('med', float('nan')):.1f}%"],
+        ["Best / Worst pick", f"{ev.get('best', float('nan')):.0f}% / {ev.get('worst', float('nan')):.0f}%"],
+        ["HONEST NOTE", "standout winners are shown WITH the full history; overall the picks behave "
+         "~ randomly (RQS~0.5) — no per-stock alpha. Treat as risk-managed holdings."]],
+        columns=["Evidence Summary", "Value"])
+
+    dashboard = pd.DataFrame([
+        ["Generated", str(asof.date())], ["Universe", "Nifty-200"], ["Regime", regime],
+        ["Exposure", f"{exp:.0%}"], ["Mode", mode], ["Portfolio Grade", pf_grade],
+        ["Alpha Grade", al_grade], ["Capital", rupees(capital)],
+        ["Suggested Horizon", f"{horizon // 21} months"], ["Confidence", confidence],
+        ["P(positive)", f"{hv['p_pos']:.0f}%"], ["Review", str(review)],
+        ["Selection RQS (all history)", f"{ev.get('rqs', float('nan')):.3f} (~random)"]],
+        columns=["Field", "Value"])
+
+    why = pd.DataFrame([{"Stock": s,
+        "Selected because": "low volatility; diversifies book; regime-compatible; liquid; "
+                            f"fits {horizon // 21}M horizon",
+        "Caveat": "risk/construction reason — NOT a return forecast"} for s in w.index])
+
     folder = REPORTS / "recommendations" / str(asof.date()); folder.mkdir(parents=True, exist_ok=True)
     buy.to_csv(folder / "buy_list.csv", index=False); watch_df.to_csv(folder / "watchlist.csv", index=False)
-    with pd.ExcelWriter(XLSX, engine="openpyxl") as xl:
-        backtest_summary.to_excel(xl, sheet_name="Backtest Summary", index=False)
-        gate_df.to_excel(xl, sheet_name="Evidence Gate", index=False)
-        buy.to_excel(xl, sheet_name="Live Recommendations", index=False)
-        watch_df.to_excel(xl, sheet_name="Watchlist", index=False)
-        portfolio.to_excel(xl, sheet_name="Portfolio", index=False)
-        market.to_excel(xl, sheet_name="Market", index=False)
-        risk.to_excel(xl, sheet_name="Risk", index=False)
-        exits.to_excel(xl, sheet_name="Exit Rules", index=False)
+
+    def write_workbook(path):
+        with pd.ExcelWriter(path, engine="openpyxl") as xl:
+            dashboard.to_excel(xl, sheet_name="Dashboard", index=False)
+            backtest_summary.to_excel(xl, sheet_name="Backtest Summary", index=False)
+            gate_df.to_excel(xl, sheet_name="Evidence Gate", index=False)
+            buy.to_excel(xl, sheet_name="Live Recommendations", index=False)
+            ev_sum.to_excel(xl, sheet_name="Historical Evidence", index=False)
+            if not hist_ev.empty:
+                hist_ev.to_excel(xl, sheet_name="Historical Evidence", index=False, startrow=len(ev_sum) + 2)
+            if not analogues.empty:
+                analogues.to_excel(xl, sheet_name="Historical Analogues", index=False)
+            why.to_excel(xl, sheet_name="Why Selected", index=False)
+            watch_df.to_excel(xl, sheet_name="Watchlist", index=False)
+            portfolio.to_excel(xl, sheet_name="Portfolio", index=False)
+            market.to_excel(xl, sheet_name="Market", index=False)
+            risk.to_excel(xl, sheet_name="Risk", index=False)
+            exits.to_excel(xl, sheet_name="Exit Rules", index=False)
+
+    stamped = folder / f"ARJUNA_RECOMMENDATIONS_{asof.date()}.xlsx"
+    write_workbook(stamped)                       # archived, timestamped
+    shutil.copyfile(stamped, XLSX)                # latest pointer
 
     L = [f"# ARJUNA Recommendation — {asof.date()}", "",
          f"## Why trust this? (evidence gate)",
@@ -246,8 +316,9 @@ def main():
         rdf, k = log_rec(closes, rets, asof, source="live", horizon=63); rdf.to_csv(REG, index=False)
     except Exception:
         k = 0
-    print(f"\n  PUBLISHED -> reports/recommendations/{asof.date()}/ + LIVE_RECOMMENDATIONS.xlsx (8 sheets)")
-    print(f"  {len(w)} holdings · {len(watch_df)} watchlist · registry +{k} picks")
+    print(f"\n  PUBLISHED -> {stamped.relative_to(ROOT)} (11 sheets) + LIVE_RECOMMENDATIONS.xlsx (latest)")
+    print(f"  {len(w)} holdings · {len(watch_df)} watchlist · {ev.get('picks', 0)} historical picks "
+          f"(RQS {ev.get('rqs', float('nan')):.3f}) attached · registry +{k} picks")
 
 
 if __name__ == "__main__":
