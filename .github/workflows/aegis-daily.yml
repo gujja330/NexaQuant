@@ -56,6 +56,13 @@ jobs:
           python india/sheets_sync.py || echo "sheets sync skipped/failed (non-fatal)"
           rm -f secrets/prism-sheets-sa.json
 
+      - name: Telegram daily notification — no-ops if secrets absent
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          AEGIS_SPREADSHEET_ID: ${{ secrets.AEGIS_SPREADSHEET_ID }}
+        run: python india/telegram_notify.py || echo "telegram skipped (non-fatal)"
+
       - name: Commit regenerated report + database
         run: |
           git config user.name  "aegis-bot"

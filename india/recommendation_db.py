@@ -40,20 +40,22 @@ def load_db():
     return pd.read_csv(DB)
 
 
+CANON = ROOT / "data" / "aegis_today.csv"
+
+
 def _today_rows():
-    """Map the latest workbook's Today's Recommendations into database rows (one per pick)."""
-    f = _latest_workbook()
-    if not f:
+    """Read today's recommendations from the canonical CSV the engine emits (decoupled from the
+    report layout). Falls back to the workbook sheet if the CSV is absent."""
+    if CANON.exists():
+        t = pd.read_csv(CANON)
+    else:
+        f = _latest_workbook()
+        if not f:
+            return pd.DataFrame(columns=COLS), None
+        t = pd.read_excel(f, sheet_name="Today's Recommendations")
+    if t.empty or "Stock" not in t:
         return pd.DataFrame(columns=COLS), None
-    t = pd.read_excel(f, sheet_name="Today's Recommendations")
-    if t.empty:
-        return pd.DataFrame(columns=COLS), None
-    # the sheet stacks two blocks (clean recs + factor breakdown) separated by a blank row;
-    # keep ONLY the first (clean) block so the DB ingests one row per recommendation.
-    blanks = t.index[t.isna().all(axis=1)]
-    if len(blanks):
-        t = t.iloc[:blanks[0]]
-    t = t[t["Stock"].notna()] if "Stock" in t else t
+    t = t[t["Stock"].notna()]
     snap = str(t["Generated"].iloc[0]) if "Generated" in t else str(pd.Timestamp.now().date())
 
     def g(row, *names, default=""):

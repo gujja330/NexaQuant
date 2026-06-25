@@ -282,16 +282,16 @@ def render():
             st.dataframe(dfr[cols].sort_values("asof"), use_container_width=True, hide_index=True)
 
     with tabs[3]:                                       # Backtest
-        bs = load_sheet("Backtest Summary")
+        bs = load_sheet("Backtest")
         if not bs.empty:
             st.dataframe(bs, use_container_width=True, hide_index=True)
-        hm = load_sheet("Holding Period Options")
+        hm = load_sheet("Holding Options")
         if not hm.empty:
             st.subheader("Holding-period menu (backtested)")
             st.dataframe(hm, use_container_width=True, hide_index=True)
 
     with tabs[4]:                                       # Portfolio
-        pf = load_sheet("Portfolio")
+        pf = load_sheet("Market")
         if not pf.empty:
             st.dataframe(pf, use_container_width=True, hide_index=True)
         if not today.empty and "Sector" in today:

@@ -424,6 +424,13 @@ def main():
                    "F: Regime", "Trend", "RSI", "52W Range Pos %", "Today's Setup",
                    "Why This vs Alternatives"]
     recs_factors = live[[c for c in factor_cols if c in live.columns]] if not live.empty else live
+    # canonical machine-readable snapshot (decouples the DB / Telegram / sync from the report layout)
+    canon_cols = ["Generated", "Stock", "Sector", "Strength", "Score /100", "Current Price", "Buy Range",
+                  "Hist Target", "Expected Range (hist)", "Prob +ve", "Rec Confidence %",
+                  "Recommended Holding", "Review Date", "Valid Until", "Allocation Rs", "Shares",
+                  "Weight %", "Why"]
+    if not live.empty:
+        live[[c for c in canon_cols if c in live.columns]].to_csv(ROOT / "data" / "aegis_today.csv", index=False)
 
     # ---- Sheet: Factor Snapshot — Observed / Used by Strategy / Contribution (no faked signals) ----
     from india.technical_factors import snapshot as tech_snapshot
@@ -783,16 +790,37 @@ def main():
         ["TOTAL", "100.0%", f"{len(w)} stocks / {len(secw)} sectors"]],
         columns=sector_mix.columns)], ignore_index=True)
 
-    # INVESTOR LAYER only — research internals (candidate scores, layer scores, gates, validation)
-    # stay in data/ + india/evidence/, NOT in this report.
-    sheets = [
-        # SIX focused sheets — the workbook IS the product (clean, printable, Google-Sheets friendly)
-        ("Dashboard", [exec_block, exec_table]),                               # 1 KPIs + compact recs
-        ("Today's Recommendations", [recs_clean, recs_factors]),               # 2 clean actionable + factor block
-        ("Backtest", [overall, yearly, statistics, horizon_menu, detail]),     # 3 the proof
-        ("History", [cyc, strategy_replay]),                                   # 4 every cycle + money diary
-        ("Market", engine_blocks + [sector_mix]),                              # 5 regime/pipeline + sector mix
-        ("About", [methodology, about_full]),                                  # 6 methodology + evidence
+    # ===== ONE CLEAN TABLE PER SHEET (single header row) — required for Google Sheets / filters /
+    # pivots / programmatic self-learning. No stacked blocks (which put headers mid-sheet). =====
+    # Recommendations: clean actionable cols + compact factor scores, all in ONE wide table.
+    wide_cols = ["Strength", "Score /100", "F: Historical", "F: Technical/Trend", "F: Risk/Vol",
+                 "F: Sector", "F: Regime", "Stock", "Sector", "Current Price", "Buy Range",
+                 "Expected Range (hist)", "Prob +ve", "Rec Confidence %", "Trend", "RSI",
+                 "Recommended Holding", "Review Date", "Allocation Rs", "Shares", "Weight %",
+                 "Why This vs Alternatives", "Why"]
+    recs_wide = live[[c for c in wide_cols if c in live.columns]] if not live.empty else live
+    # Dashboard: all KPIs + backtest stats as ONE Field|Value table (each source is already 2-col).
+    def _kv(df, sep):
+        d = df.copy(); d.columns = ["Field", "Value"]
+        head = pd.DataFrame([[f"— {sep} —", ""]], columns=["Field", "Value"])
+        return pd.concat([head, d], ignore_index=True)
+    dashboard_tbl = pd.concat([_kv(exec_block, "TODAY"), _kv(overall, "BACKTEST (ALL HISTORY)"),
+                               _kv(statistics, "CYCLE STATISTICS")], ignore_index=True)
+    # About: methodology + evidence as ONE Topic|Detail table.
+    meth = methodology.copy(); meth.columns = ["Topic", "Detail"]
+    about_one = pd.concat([pd.DataFrame([["— METHODOLOGY —", ""]], columns=["Topic", "Detail"]), meth,
+                           pd.DataFrame([["— ABOUT / EVIDENCE —", ""]], columns=["Topic", "Detail"]),
+                           about_full], ignore_index=True)
+
+    sheets = [                                # each entry = ONE dataframe -> ONE header row, no stacking
+        ("Dashboard", [dashboard_tbl]),                # KPIs + backtest stats (Field | Value)
+        ("Today's Recommendations", [recs_wide]),      # clean wide decision table
+        ("Backtest", [yearly]),                        # per-year money + win/return
+        ("Trade Log", [detail]),                       # every backtested trade
+        ("Holding Options", [horizon_menu]),           # dynamic horizon menu (1W-1Y)
+        ("History", [strategy_replay]),                # compounded money diary per cycle
+        ("Market", [sector_mix]),                      # sector allocation + cash
+        ("About", [about_one]),                        # methodology + evidence
     ]
     out = REPORTS / "AEGIS_LATEST.xlsx"              # ONE live file, overwritten each run (no day-by-day clutter)
 
