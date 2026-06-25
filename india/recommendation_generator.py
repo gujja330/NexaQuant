@@ -142,13 +142,16 @@ def history_for(reg, idx, capital, closes):
                 "Max Loss %": round(min_p, 1) if min_p is not None else None,
                 "Captured %": capture, "CAGR %": round(cagr, 1), "Holding Days": hd,
                 "Rank in Universe": f"{int(r['rank'])}/{int(r['universe_n'])}",
-                "Why Picked": "low-vol + HRP + sector-cap + regime", "Exit Reason": "quarterly rebalance",
-                "Status": "Completed"})
+                "Why Picked": f"Low-vol {sector_of(r['symbol'])} holding; risk-managed; regime-timed",
+                "Exit Reason": "quarterly rebalance", "Status": "Completed"})
         cyc_rows.append({"Rec ID": rid, "Investment Month": a.strftime("%Y-%m"), "Holding": f"{mo}M",
             "Stocks": ", ".join(grp.sort_values("weight", ascending=False)["symbol"].head(5)) + " ...",
             "Invested Rs": round(inv_tot), "Exit Value Rs": round(exit_tot), "Gain Rs": round(exit_tot - inv_tot),
             "Exit Date": m.strftime("%Y-%m-%d"), "Holding Days": hd,
             "Portfolio Ret %": round(port, 1), "Nifty Ret %": round(nif, 1), "Beat Nifty": "YES" if port > nif else "no",
+            "Avg Stock Ret %": round(grp["actual_ret"].mean(), 1),
+            "Avg Winner %": round(grp[grp.actual_ret > 0]["actual_ret"].mean(), 1) if winners else 0.0,
+            "Avg Loser %": round(grp[grp.actual_ret <= 0]["actual_ret"].mean(), 1) if losers else 0.0,
             "Max DD During Hold %": round(-cyc_dd, 1), "Win Ratio": f"{winners}/{losers}",
             "Top Contributor": f"{top_c} ({contrib[top_c]:+.1f})", "Worst Contributor": f"{worst_c} ({contrib[worst_c]:+.1f})"})
     cyc = pd.DataFrame(cyc_rows); detail = pd.DataFrame(detail_rows)
@@ -233,7 +236,16 @@ def main():
             "Picks": ("symbol", "count"), "Winners": ("actual_ret", lambda x: int((x > 0).sum())),
             "Losers": ("actual_ret", lambda x: int((x <= 0).sum())),
             "Win %": ("actual_ret", lambda x: round(100 * (x > 0).mean())),
-            "Avg Return %": ("actual_ret", "mean")}).round(1).reset_index().rename(columns={"year": "Year"}))
+            "Avg Return %": ("actual_ret", "mean"), "Median %": ("actual_ret", "median"),
+            "Best %": ("actual_ret", "max"), "Worst %": ("actual_ret", "min")})
+            .round(1).reset_index().rename(columns={"year": "Year"}))
+        # merge per-year cycle stats: beat-Nifty count + profit Rs (on the reference capital)
+        if not cyc.empty:
+            cy = cyc.assign(Year=cyc["Investment Month"].str[:4].astype(int))
+            cyg = cy.groupby("Year").agg(**{"Cycles": ("Investment Month", "count"),
+                "Beat Nifty": ("Beat Nifty", lambda x: f"{int((x=='YES').sum())}/{len(x)}"),
+                "Profit Rs": ("Gain Rs", "sum")}).reset_index()
+            yearly = yearly.merge(cyg, on="Year", how="left")
 
     # ---- MULTI-LAYER CANDIDATE SCORES (honest: validated driver + context + DATA NOT AVAILABLE) ----
     risk_score = (100 * (1 - hist.std().rank(pct=True))).round()              # low-vol = high (VALIDATED driver)
@@ -258,7 +270,7 @@ def main():
         t = track.get(s); occ = len(t) if t is not None else 0
         rl = "Low" if vol_rank.get(s, 0.5) < 0.33 else ("Medium" if vol_rank.get(s, 0.5) < 0.66 else "High")
         sample_conf = "High" if occ >= 10 else ("Medium" if occ >= 5 else ("Low" if occ >= 1 else "New"))
-        DASH = "—"
+        DASH = "No historical analogues yet (<3 obs)"      # explain blanks, never leave empty
         med = t["actual_ret"].median() if occ else None
         best = t["actual_ret"].max() if occ else None
         worst = t["actual_ret"].min() if occ else None
@@ -277,9 +289,9 @@ def main():
         rows.append({
             "Decision": "BUY", "Stock": s, "Sector": sector_of(s), "Current Price": round(px, 1),
             "Buy Range": f"{px-band:.0f} - {px+band:.0f}",
-            "Expected Target (hist)": round(px * (1 + med / 100)) if occ else DASH,
-            "Expected Return %": round(med, 1) if occ else DASH,
-            "Risk / Reward": round(med / abs(worst), 1) if (occ and worst < 0) else DASH,
+            "Hist Scenario Target": round(px * (1 + med / 100)) if occ else DASH,
+            "Hist Median Return %": round(med, 1) if occ else DASH,
+            "Risk / Reward (hist)": round(med / abs(worst), 1) if (occ and worst < 0) else DASH,
             "Probability Positive %": win if occ else DASH,
             "Probability >10% %": round(100 * (t["actual_ret"] > 10).mean()) if occ else DASH,
             "Best Case (hist) %": round(best, 1) if occ else DASH,
@@ -529,7 +541,7 @@ def main():
     exec_table = pd.DataFrame({
         "Decision": et["Decision"], "Stock": et["Stock"], "Sector": et["Sector"],
         "Buy ~Rs": et["Current Price"], "Allocation Rs": et["Allocation Rs"], "Weight %": et["Weight %"],
-        "Exp Return %": et["Expected Return %"], "Prob +ve %": et["Probability Positive %"],
+        "Hist Median Ret %": et["Hist Median Return %"], "Prob +ve %": et["Probability Positive %"],
         "Why": et["Why"]})
 
     methodology = pd.DataFrame([
