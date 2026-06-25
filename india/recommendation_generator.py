@@ -143,7 +143,7 @@ def main():
     days_for = {v: k for k, v in LABELS.items()}
     horizon = arg("--horizon", days_for.get(rec_label, CONFIG["default_horizon"]), int)
     months = horizon // 21
-    closes, _, _, _, idx, vix, _ = load_panels()
+    closes, highs, lows, vols, idx, vix, _ = load_panels()
     closes = closes[[c for c in closes.columns if c in set(NIFTY200)]]
     rets = closes.pct_change(); asof = closes.index[-1]; prices = closes.iloc[-1]
     reg = pd.read_csv(REG) if REG.exists() else pd.DataFrame()
@@ -214,21 +214,23 @@ def main():
             "Risk Level": rl, "Expected DD %": round(cs["dd"]), "Status": "Running", "Remarks": remark})
     live = pd.DataFrame(rows)
 
-    # ---- Sheet 5: Why Picked — 3 honest tiers (drivers / computed context / not evaluated) ----
+    # ---- Sheet: Factor Snapshot — Observed / Used by Strategy / Contribution (no faked signals) ----
+    from india.technical_factors import snapshot as tech_snapshot
     why_rows = []
     for s in w.index:
-        for cat, ind, val, ok in [
-            ("DRIVER", "Low trailing volatility", "lowest-vol set", "PASS"),
-            ("DRIVER", "HRP cluster weight", f"{100*w[s]:.1f}%", "PASS"),
-            ("DRIVER", f"Sector cap <= {C['sector_cap']}", "diversified", "PASS"),
-            ("DRIVER", "Regime exposure", f"{regime}", "PASS"),
-            ("CONTEXT (not a driver)", "3M momentum", f"{float(mom3[s]):+.1f}%", "info"),
-            ("CONTEXT (not a driver)", "Relative strength vs Nifty", f"top {round(100*(1-rs_rank[s]))}%", "info"),
-            ("CONTEXT (not a driver)", "Above 200-DMA", "Yes" if bool(above200[s]) else "No", "info"),
-            ("NOT EVALUATED", "ROE / PE / EPS / Debt", "no point-in-time data", "—"),
-            ("NOT EVALUATED", "News / earnings / events", "no data", "—"),
-            ("NOT EVALUATED", "RSI / MACD / ADX", "not in model", "—")]:
-            why_rows.append({"Stock": s, "Tier": cat, "Indicator": ind, "Value": val, "Status": ok})
+        sec_syms = [x for x in closes.columns if SECTORS.get(x) == sector_of(s)]
+        for st, cat, ind, obs, used, contrib in tech_snapshot(closes, highs, lows, vols, idx, s, sec_syms):
+            why_rows.append({"Stock": st, "Category": cat, "Indicator": ind, "Observed": obs,
+                             "Used by Strategy": used, "Contribution": contrib})
+        # portfolio drivers actually used + the NOT-EVALUATED layers (honest)
+        for cat, ind, obs, used, contrib in [
+            ("Portfolio", "HRP cluster weight", f"{100*w[s]:.1f}%", "YES", "Positive"),
+            ("Portfolio", f"Sector cap <= {C['sector_cap']}", "diversified", "YES", "Positive"),
+            ("Macro", "Regime exposure", regime, "YES", "Positive"),
+            ("Fundamental", "ROE/PE/EPS/Debt", "Not Evaluated", "No", "no PIT data"),
+            ("News/Events", "earnings/orders/upgrades", "Not Evaluated", "No", "no data")]:
+            why_rows.append({"Stock": s, "Category": cat, "Indicator": ind, "Observed": obs,
+                             "Used by Strategy": used, "Contribution": contrib})
     why = pd.DataFrame(why_rows)
 
     # ---- Sheet 1: Dashboard (correct dates, no ambiguity) ----
@@ -266,11 +268,19 @@ def main():
     # ---- write ONE investor workbook (named by RUN date) ----
     sheets = [("Dashboard", dashboard), ("Evidence Badges", badges), ("Live Recommendations", live),
               ("Horizon Matrix", hmat), ("Historical Performance", cyc), ("Monthly Detail", detail),
-              ("Why Picked", why), ("Registry", clean), ("Statistics", statistics)]
+              ("Factor Snapshot", why), ("Registry", clean), ("Statistics", statistics)]
     out = REPORTS / f"AEGIS_{run_date}.xlsx"
-    with pd.ExcelWriter(out, engine="openpyxl") as xl:
-        for name, df in sheets:
-            (df if not df.empty else pd.DataFrame([["(none)"]])).to_excel(xl, sheet_name=name[:31], index=False)
+
+    def _write(path):
+        with pd.ExcelWriter(path, engine="openpyxl") as xl:
+            for name, df in sheets:
+                (df if not df.empty else pd.DataFrame([["(none)"]])).to_excel(xl, sheet_name=name[:31], index=False)
+    try:
+        _write(out)
+    except PermissionError:                          # workbook is open in Excel -> fallback, don't crash
+        out = REPORTS / f"AEGIS_{run_date}_new.xlsx"
+        _write(out)
+        print(f"  (note: AEGIS_{run_date}.xlsx was open/locked -> wrote {out.name}; close Excel & re-run to refresh the main file)")
 
     try:
         from india.recommendation_registry import log_rec
