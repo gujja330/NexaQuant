@@ -315,11 +315,55 @@ def main():
     else:
         statistics = pd.DataFrame([["(no scored history yet)", ""]], columns=["Metric", "Value"])
 
+    # ---- Strategy Replay: the money diary (compound non-overlapping quarterly cycles) ----
+    sr_rows = []; bal = nbal = capital
+    for r in (cyc.to_dict("records") if not cyc.empty else []):
+        start = bal; bal *= (1 + r["Portfolio Ret %"] / 100); nbal *= (1 + r["Nifty Ret %"] / 100)
+        sr_rows.append({"Cycle": r["Investment Month"], "Start Rs": round(start),
+            "Return %": r["Portfolio Ret %"], "End Rs": round(bal), "If Nifty Rs": round(nbal),
+            "Beat Nifty": r["Beat Nifty"]})
+    strategy_replay = pd.DataFrame(sr_rows)
+    if not strategy_replay.empty:
+        strategy_replay = pd.concat([strategy_replay, pd.DataFrame([{"Cycle": "FINAL",
+            "Start Rs": round(capital), "Return %": round(100 * (bal / capital - 1), 1),
+            "End Rs": round(bal), "If Nifty Rs": round(nbal), "Beat Nifty": "AEGIS" if bal > nbal else "Nifty"}])],
+            ignore_index=True)
+
+    # ---- Market Snapshot ----
+    sec_mom = {sec: (closes[[c for c in closes.columns if SECTORS.get(c) == sec]].iloc[-1] /
+               closes[[c for c in closes.columns if SECTORS.get(c) == sec]].iloc[-64] - 1).mean()
+               for sec in set(SECTORS.values()) if len([c for c in closes.columns if SECTORS.get(c) == sec]) >= 2}
+    market = pd.DataFrame([["As of (market data)", str(market_asof)], ["Regime", regime],
+        ["Suggested exposure", f"{exp:.0%}"], ["India VIX", f"{float(vix.iloc[-1]):.1f}" if vix is not None else "n/a"],
+        ["Nifty vs 200-DMA", "above" if idx.iloc[-1] > idx.tail(200).mean() else "below"],
+        ["Sector leaders (3M)", ", ".join(sorted(sec_mom, key=sec_mom.get, reverse=True)[:3])],
+        ["Sector laggards (3M)", ", ".join(sorted(sec_mom, key=sec_mom.get)[:3])]], columns=["Field", "Value"])
+
+    # ---- About AEGIS (honest one-pager) ----
+    about = pd.DataFrame([
+        ["What AEGIS is", "A risk-managed PORTFOLIO engine: low-volatility selection + HRP weighting + "
+         "sector cap + market-regime exposure timing. Rebalances quarterly."],
+        ["What is validated", f"The PORTFOLIO process (grade {G['pf_grade']}): beat Nifty {beat_pct}% of "
+         f"cycles, ~half the drawdown, higher risk-adjusted return. Out-of-sample tested."],
+        ["What is NOT validated", f"Individual stock-picking ALPHA. Selection RQS {G['rqs']:.2f} ~ random "
+         "— picks are portfolio CONSTITUENTS, not proven winners."],
+        ["What AEGIS is NOT", "Not a tip sheet, not a multibagger finder, not a return predictor. It does "
+         "not forecast which stock will rise."],
+        ["Exit philosophy", "Process-based: hold to the quarterly review/rebalance. No fixed stop-loss "
+         "(unvalidated). Emergency exit only on fraud/delisting/regime-off."],
+        ["Review frequency", "Quarterly. Recommendation valid ~1 week from generation."],
+        ["Not evaluated (no data)", "Fundamentals (ROE/PE/EPS), news/events, earnings, institutional flow. "
+         "Shown as 'Not Evaluated' — never invented."],
+        ["Honest caveat", "Absolute return levels are survivorship-inflated; trust the RELATIVE edge vs "
+         "Nifty. Forward paper (live cycles) is the real, ongoing test."]], columns=["Topic", "Detail"])
+
     # ---- write ONE investor workbook (named by RUN date) ----
     # one workbook, investor sheets only (Registry stays an INTERNAL csv, not exposed)
     sheets = [("Dashboard", dashboard), ("Evidence Badges", badges), ("Today's Recommendations", live),
-              ("Horizon Matrix", hmat), ("Recommendation Replay", cyc), ("Recommendation History", detail),
-              ("Selection Decision", decision), ("Factor Snapshot", why), ("Statistics", statistics)]
+              ("Horizon Matrix", hmat), ("Recommendation Replay", cyc), ("Strategy Replay", strategy_replay),
+              ("Recommendation History", detail), ("Selection Decision", decision),
+              ("Factor Snapshot", why), ("Statistics", statistics), ("Market Snapshot", market),
+              ("About AEGIS", about)]
     out = REPORTS / f"AEGIS_{run_date}.xlsx"
 
     def _write(path):
