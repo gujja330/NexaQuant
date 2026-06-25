@@ -361,8 +361,11 @@ def main():
             target = round(px * (1 + med / 100)); upside = round(med, 1)
             ann = round(((1 + med / 100) ** (252 / horizon) - 1) * 100, 1)
             ret_range = f"{p25:+.1f}% to {p75:+.1f}% (mid 50% of {occ} cases)"
+            exp_range = f"{p25:+.0f}% to {p75:+.0f}%"          # ONE clean column for the investor view
+            prob_clean = f"{win:.0f}%"
         else:
             target = upside = ann = ret_range = INSUFF
+            exp_range = "—"; prob_clean = "—"                  # short dash, not a sentence repeated 5x
         trend = f"{'Above' if d200 >= 0 else 'Below'} 200-DMA ({d200:+.1f}%)"
         rstr = "Outperforming" if rs_rank[s] > 0.6 else ("In-line" if rs_rank[s] > 0.4 else "Lagging")
         # ---- WHY TODAY: current-state setup (descriptive context — NOT a forecast) ----
@@ -389,6 +392,7 @@ def main():
         rows.append({
             "Strength": strength, "Score /100": score, "Stock": s, "Sector": sector_of(s),
             "Current Price": round(px, 1), "Buy Range": f"{px-band:.0f} - {px+band:.0f}",
+            "Expected Range (hist)": exp_range, "Prob +ve": prob_clean,
             "Hist Target": target, "Expected Return Range": ret_range, "Upside %": upside,
             "Hist Median Ret %": round(med, 1) if enough else INSUFF, "Annualized %": ann,
             "Risk / Reward (hist)": round(med / abs(worst), 1) if (enough and worst < 0) else INSUFF,
@@ -409,6 +413,17 @@ def main():
             "Weight %": round(100 * w[s], 1), "Evidence": sample_conf, "Similar Past Cases": occ,
             "Why": " • ".join(wb)})
     live = pd.DataFrame(rows)
+
+    # ---- CLEAN investor view (no 40-column wall): the actionable columns only ----
+    clean_cols = ["Strength", "Score /100", "Stock", "Sector", "Current Price", "Buy Range",
+                  "Expected Range (hist)", "Prob +ve", "Rec Confidence %", "Recommended Holding",
+                  "Review Date", "Allocation Rs", "Shares", "Weight %", "Why"]
+    recs_clean = live[[c for c in clean_cols if c in live.columns]] if not live.empty else live
+    # "Why this stock" factor breakdown (kept, but as a compact second block — not 40 columns up top)
+    factor_cols = ["Stock", "F: Historical", "F: Technical/Trend", "F: Risk/Vol", "F: Sector",
+                   "F: Regime", "Trend", "RSI", "52W Range Pos %", "Today's Setup",
+                   "Why This vs Alternatives"]
+    recs_factors = live[[c for c in factor_cols if c in live.columns]] if not live.empty else live
 
     # ---- Sheet: Factor Snapshot — Observed / Used by Strategy / Contribution (no faked signals) ----
     from india.technical_factors import snapshot as tech_snapshot
@@ -661,8 +676,7 @@ def main():
     exec_table = pd.DataFrame({
         "Strength": et["Strength"], "Stock": et["Stock"], "Sector": et["Sector"],
         "Buy ~Rs": et["Current Price"], "Allocation Rs": et["Allocation Rs"], "Weight %": et["Weight %"],
-        "Hist Median Ret %": et["Hist Median Ret %"], "Prob +ve %": et["Probability Positive %"],
-        "Why": et["Why"]})
+        "Expected Range": et["Expected Range (hist)"], "Prob +ve": et["Prob +ve"]})
 
     methodology = pd.DataFrame([
         ["Selection", "Pick the lowest trailing-volatility names (the only signal with out-of-sample skill)."],
@@ -772,16 +786,13 @@ def main():
     # INVESTOR LAYER only — research internals (candidate scores, layer scores, gates, validation)
     # stay in data/ + india/evidence/, NOT in this report.
     sheets = [
-        ("Executive Summary", [exec_block, exec_table]),                       # 1 ⭐
-        ("Today's Recommendations", [live]),                                   # 2 ⭐ decision report
-        ("AEGIS Engine", engine_blocks),                                       # 3 ⭐ pipeline + what changed
-        ("Portfolio", [portfolio_sheet, sector_mix]),                          # 3 expected outcomes + sector mix
-        ("Historical Performance", [cyc, strategy_replay]),                    # 4 replay + money diary
-        ("Backtested Trades", [detail]),                                       # 5 the proof
-        ("Holding Period Options", [horizon_menu]),                            # dynamic horizon menu (1W-1Y)
-        ("Backtest Summary", [overall, yearly, statistics]),                   # overall + by-year + stats
-        ("Methodology", [methodology]),                                        # 7
-        ("About", [about_full]),                                               # 8
+        # SIX focused sheets — the workbook IS the product (clean, printable, Google-Sheets friendly)
+        ("Dashboard", [exec_block, exec_table]),                               # 1 KPIs + compact recs
+        ("Today's Recommendations", [recs_clean, recs_factors]),               # 2 clean actionable + factor block
+        ("Backtest", [overall, yearly, statistics, horizon_menu, detail]),     # 3 the proof
+        ("History", [cyc, strategy_replay]),                                   # 4 every cycle + money diary
+        ("Market", engine_blocks + [sector_mix]),                              # 5 regime/pipeline + sector mix
+        ("About", [methodology, about_full]),                                  # 6 methodology + evidence
     ]
     out = REPORTS / f"AEGIS_{run_date}.xlsx"
 
