@@ -28,11 +28,19 @@
 Return prediction · LSTM · RL · GNN · Dynamic-N · Resilience ranking · Sector-momentum tilt ·
 Per-stock timing · Multibagger · HMM · GARCH · vol-target · crash classifier · triple-barrier.
 
+**Simple-factor ALPHA RANKING** (momentum + low-vol + sector strength → top-20) — TESTED 2026-06-22
+(`evidence/alpha_ranking.py`): Sharpe 0.83 vs low-vol 1.19 vs random 1.02; **IC +0.008 (full) /
++0.035 (OOS) ≈ no skill.** Momentum+sector ADD NOISE to low-vol. A separate "Alpha Engine" is the
+right ARCHITECTURE but is **data-gated** — on price/technical data the ranking signal isn't there;
+it reopens with PIT fundamentals/news/flows (v4 Trigger 1), not before. 4th independent test to hit
+the same wall (with AUC 0.47, resilience 0.66, momentum<Nifty).
+
 ## ⚪ UNTESTED — ideas, not results (zero evidence)
 
 | Idea | Status |
 |---|---|
-| Horizon-aware selection (momentum@1M / quality@6M / regime@1Y) | pure hypothesis |
+| Horizon-aware selection (momentum@1M / quality@6M / regime@1Y) | pure hypothesis; low prior after alpha-ranking IC~0 |
+| ARJUNA Alpha/Ranking Engine on NEW data (PIT/news/flows) | architecturally right, data-gated (v4 Trigger 1) |
 | Confidence matrix (regime × horizon → label) | assumptions; conditional cells too thin |
 | Goal Engine | built, NOT validated |
 | Wealth OS allocation glide-path | built, NOT validated |
