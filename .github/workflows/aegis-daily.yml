@@ -4,7 +4,7 @@ name: AEGIS Daily
 #   GitHub Actions (this) -> run engine + recommendation DB -> regenerate Excel
 #   -> commit back to the repo -> (optional) push to Google Sheets (the live view).
 #
-# Runs 01:00 UTC = 06:30 IST, Mon-Fri. Also runnable on demand (workflow_dispatch).
+# Runs 03:00 UTC = 08:30 IST, Mon-Fri (pre-market). Also runnable on demand (workflow_dispatch).
 #
 # NOTE ON DATA: the engine reads the committed parquet panels in data/raw/india/.
 # Until a live data-pull step is added (yfinance/Angel), a daily run reproduces the
@@ -17,7 +17,7 @@ name: AEGIS Daily
 
 on:
   schedule:
-    - cron: "0 1 * * 1-5"
+    - cron: "0 3 * * 1-5"   # 03:00 UTC = 08:30 IST, weekdays (pre-market)
   workflow_dispatch:
 
 permissions:
