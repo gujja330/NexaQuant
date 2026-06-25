@@ -18,7 +18,7 @@ Config-driven (CONFIG/GATES); dates derive from `asof`; nothing hardcoded in log
 Run: python india/recommendation_generator.py [--capital 500000] [--horizon 126]
 """
 import sys, warnings
-from datetime import timedelta
+from datetime import datetime, timedelta
 from pathlib import Path
 import numpy as np
 import pandas as pd
@@ -95,28 +95,43 @@ def evidence_gate(champ, idx, reg):
                 rqs=rqs, pf_grade=pf_grade, al_grade="A" if al_ok else "X")
 
 
-def history_for(reg, idx):
-    """From the registry: per-cycle portfolio-vs-Nifty, per-stock track records, clean registry view."""
+def rec_id(asof, months):
+    return f"AEGIS-{pd.Timestamp(asof).strftime('%Y%m%d')}-{months}M"
+
+
+def history_for(reg, idx, capital):
+    """Registry -> per-cycle portfolio (with money), full per-stock investment LIFECYCLE, per-stock track."""
     h = reg[(reg.scored == 1) & (reg.source == "historical")].copy()
     if h.empty:
         return pd.DataFrame(), pd.DataFrame(), {}, pd.DataFrame()
     cyc_rows, detail_rows = [], []
-    for rid, grp in h.groupby("rec_id"):
+    for _, grp in h.groupby("rec_id"):
         a = pd.Timestamp(grp["asof"].iloc[0]); m = pd.Timestamp(grp["mature_date"].iloc[0])
-        port = float((grp["weight"] * grp["actual_ret"]).sum() / grp["weight"].sum())
+        mo = int(grp["holding_months"].iloc[0]); hd = int(grp["holding_days"].iloc[0])
+        rid = rec_id(a, mo); port = float((grp["weight"] * grp["actual_ret"]).sum() / grp["weight"].sum())
         nif = 100 * (idx.asof(m) / idx.asof(a) - 1)
-        cyc_rows.append({"Investment Month": a.strftime("%Y-%m"), "Holding": f"{int(grp['holding_months'].iloc[0])}M",
-                         "Stocks": len(grp), "Portfolio Ret %": round(port, 1), "Nifty Ret %": round(nif, 1),
-                         "Beat Nifty": "YES" if port > nif else "no"})
+        inv_tot = exit_tot = 0.0
         for _, r in grp.sort_values("actual_ret", ascending=False).iterrows():
-            detail_rows.append({"Month": a.strftime("%Y-%m"), "Stock": r["symbol"], "Sector": sector_of(r["symbol"]),
-                "Buy Price": r["buy_price"], "Exit Price": r["exit_price"], "Return %": r["actual_ret"],
-                "Holding": f"{r['holding_months']}M", "Rank": f"{int(r['rank'])}/{int(r['universe_n'])}"})
+            sh = int((capital * r["weight"]) // r["buy_price"]) if r["buy_price"] > 0 else 0
+            inv = sh * r["buy_price"]; ev = sh * r["exit_price"]; inv_tot += inv; exit_tot += ev
+            cagr = ((1 + r["actual_ret"] / 100) ** (252 / max(hd, 1)) - 1) * 100
+            detail_rows.append({"Rec ID": rid, "Month": a.strftime("%Y-%m"), "Stock": r["symbol"],
+                "Sector": sector_of(r["symbol"]), "Buy Price": r["buy_price"], "Exit Price": r["exit_price"],
+                "Shares": sh, "Invested Rs": round(inv), "Exit Value Rs": round(ev),
+                "Profit Rs": round(ev - inv), "Return %": r["actual_ret"], "CAGR %": round(cagr, 1),
+                "Holding Days": hd, "Rank": f"{int(r['rank'])}/{int(r['universe_n'])}",
+                "Why Picked": "low-vol + HRP + sector-cap + regime", "Exit Reason": "quarterly rebalance",
+                "Status": "Completed"})
+        cyc_rows.append({"Rec ID": rid, "Investment Month": a.strftime("%Y-%m"), "Holding": f"{mo}M",
+            "Stocks": ", ".join(grp.sort_values("weight", ascending=False)["symbol"].head(5)) + " ...",
+            "Invested Rs": round(inv_tot), "Exit Value Rs": round(exit_tot), "Gain Rs": round(exit_tot - inv_tot),
+            "Portfolio Ret %": round(port, 1), "Nifty Ret %": round(nif, 1), "Beat Nifty": "YES" if port > nif else "no"})
     cyc = pd.DataFrame(cyc_rows); detail = pd.DataFrame(detail_rows)
-    track = {s: g for s, g in h.groupby("symbol")}            # per-stock history
-    clean = h.rename(columns={"symbol": "Stock", "asof": "Date", "buy_price": "Buy", "exit_price": "Exit",
-        "actual_ret": "Return %", "rank": "Rank", "hit_top25": "Winner"})[
-        ["fingerprint", "Date", "Stock", "Buy", "Exit", "Return %", "Rank", "Winner", "scored"]].sort_values("Date")
+    track = {s: g for s, g in h.groupby("symbol")}
+    clean = h.assign(Status="Completed").rename(columns={"symbol": "Stock", "asof": "Date",
+        "buy_price": "Buy", "exit_price": "Exit", "actual_ret": "Return %", "rank": "Rank",
+        "hit_top25": "Winner"})[["fingerprint", "Date", "Stock", "Buy", "Exit", "Return %",
+        "Rank", "Winner", "regime", "Status"]].sort_values("Date")
     return cyc, detail, track, clean
 
 
@@ -132,6 +147,15 @@ def main():
     closes = closes[[c for c in closes.columns if c in set(NIFTY200)]]
     rets = closes.pct_change(); asof = closes.index[-1]; prices = closes.iloc[-1]
     reg = pd.read_csv(REG) if REG.exists() else pd.DataFrame()
+    # AUTO-REFRESH: score any matured recs so history reflects the latest data every run
+    if not reg.empty:
+        try:
+            from india.recommendation_registry import score as _score
+            reg, _ns = _score(reg, closes, rets)
+            if _ns:
+                reg.to_csv(REG, index=False)
+        except Exception:
+            pass
 
     champ, _ = backtest(method=C["method"], regime=C["regime"], topn=15,
                         sector_cap=C["sector_cap"], rebal=C["rebal"])
@@ -146,11 +170,19 @@ def main():
     exp, regime, regime_conf = current_regime(); invest = capital * exp
     mode, mode_conf, status = mode_of(horizon)
     hv = horizon_view(eqc, horizon, 100000)
-    generated = asof.date()
+    run_date = datetime.now().date(); market_asof = asof.date()    # run date vs data date (no ambiguity)
     valid_until = (asof + timedelta(days=C["expiry_cal_days"])).date()
     review = (asof + timedelta(days=int(C["rebal"] * C["review_cal_factor"]))).date()
+    rid_today = rec_id(asof, months)
 
-    cyc, detail, track, clean = history_for(reg, idx)
+    # real, causal technical CONTEXT (computed from price; NOT the selection driver, which is low-vol)
+    mom3 = (closes.iloc[-1] / closes.iloc[-64] - 1) * 100
+    nifty_3m = 100 * (idx.iloc[-1] / idx.iloc[-64] - 1)
+    rs = (mom3 - nifty_3m)                                          # relative strength vs Nifty
+    rs_rank = rs.rank(pct=True)
+    above200 = closes.iloc[-1] > closes.tail(200).mean()
+
+    cyc, detail, track, clean = history_for(reg, idx, capital)
     beat_n = int((cyc["Beat Nifty"] == "YES").sum()) if not cyc.empty else 0
     beat_pct = round(100 * beat_n / len(cyc)) if not cyc.empty else 0
     avg_port = cyc["Portfolio Ret %"].mean() if not cyc.empty else float("nan")
@@ -168,44 +200,57 @@ def main():
         remark = (f"In {beat_pct}% of past cycles this portfolio beat Nifty (avg +{avg_port:.1f}%). " +
                   (f"{s} appeared in {occ} past portfolios, median {med:+.1f}%, win {win}%. " if occ else f"{s}: no prior history. ") +
                   "Risk-managed holding, not a return forecast.")
-        rows.append({"Date Generated": str(generated), "Stock": s, "Sector": sector_of(s),
-            "CMP": round(px, 1), "Suggested Buy Range": f"{px-band:.0f} - {px+band:.0f}",
-            "Suggested Capital": round(sh * px), "Weight %": round(100 * w[s], 1),
+        rows.append({"Rec ID": rid_today, "Action": "BUY", "Run Date": str(run_date),
+            "Market Data As Of": str(market_asof), "Valid Until": str(valid_until), "Stock": s,
+            "Sector": sector_of(s), "CMP": round(px, 1), "Entry Zone": f"{px-band:.0f} - {px+band:.0f}",
+            "Allocated Rs": round(sh * px), "Shares": sh, "Weight %": round(100 * w[s], 1),
             "Suggested Holding Window": f"{months} months", "Review Date": str(review),
-            "Expected Exit Window": f"around {review}", "Portfolio Confidence": regime_conf.title(),
-            "Recommendation Confidence": mode_conf.title(), "Reason Score": "4/4 risk drivers (tech/fund/news: not evaluated)",
-            "Historical Similar Cases": occ, "Historical Win %": win, "Historical Median Return %": med,
-            "Historical Worst %": round(t["actual_ret"].min(), 1) if occ else None,
-            "Historical Best %": round(t["actual_ret"].max(), 1) if occ else None,
-            "Risk Level": rl, "Expected Drawdown %": round(cs["dd"]), "Remarks": remark})
+            "Portfolio Confidence": regime_conf.title(), "Recommendation Confidence": mode_conf.title(),
+            "3M Momentum %": round(float(mom3[s]), 1), "Rel Strength vs Nifty": f"top {round(100*(1-rs_rank[s]))}%",
+            "Above 200-DMA": "Yes" if bool(above200[s]) else "No",
+            "Historical Cases": occ, "Hist Win %": win, "Hist Median %": med,
+            "Hist Worst %": round(t["actual_ret"].min(), 1) if occ else None,
+            "Hist Best %": round(t["actual_ret"].max(), 1) if occ else None,
+            "Risk Level": rl, "Expected DD %": round(cs["dd"]), "Status": "Running", "Remarks": remark})
     live = pd.DataFrame(rows)
 
-    # ---- Sheet 5: Why Picked (honest evidence matrix) ----
+    # ---- Sheet 5: Why Picked — 3 honest tiers (drivers / computed context / not evaluated) ----
     why_rows = []
     for s in w.index:
         for cat, ind, val, ok in [
-            ("Risk", "Low trailing volatility", "lowest-vol set", "PASS"),
-            ("Portfolio", "HRP cluster weight", f"{100*w[s]:.1f}%", "PASS"),
-            ("Portfolio", f"Sector cap <= {C['sector_cap']}", "diversified", "PASS"),
-            ("Macro", "Regime-compatible", f"{regime} exposure", "PASS"),
-            ("Technical", "RSI / MACD / 200DMA / ADX", "—", "NOT EVALUATED"),
-            ("Fundamental", "ROE / Debt / EPS / PE", "—", "NOT EVALUATED"),
-            ("News/Events", "orders / earnings / upgrades", "—", "NOT EVALUATED"),
-            ("Sector alpha", "sector-strength rank", "—", "NOT EVALUATED")]:
-            why_rows.append({"Stock": s, "Category": cat, "Indicator": ind, "Value": val, "Status": ok})
+            ("DRIVER", "Low trailing volatility", "lowest-vol set", "PASS"),
+            ("DRIVER", "HRP cluster weight", f"{100*w[s]:.1f}%", "PASS"),
+            ("DRIVER", f"Sector cap <= {C['sector_cap']}", "diversified", "PASS"),
+            ("DRIVER", "Regime exposure", f"{regime}", "PASS"),
+            ("CONTEXT (not a driver)", "3M momentum", f"{float(mom3[s]):+.1f}%", "info"),
+            ("CONTEXT (not a driver)", "Relative strength vs Nifty", f"top {round(100*(1-rs_rank[s]))}%", "info"),
+            ("CONTEXT (not a driver)", "Above 200-DMA", "Yes" if bool(above200[s]) else "No", "info"),
+            ("NOT EVALUATED", "ROE / PE / EPS / Debt", "no point-in-time data", "—"),
+            ("NOT EVALUATED", "News / earnings / events", "no data", "—"),
+            ("NOT EVALUATED", "RSI / MACD / ADX", "not in model", "—")]:
+            why_rows.append({"Stock": s, "Tier": cat, "Indicator": ind, "Value": val, "Status": ok})
     why = pd.DataFrame(why_rows)
 
-    # ---- Sheet 1 / 7 ----
+    # ---- Sheet 1: Dashboard (correct dates, no ambiguity) ----
     dashboard = pd.DataFrame([
-        ["Generated", str(generated)], ["Strategy", f"AEGIS {VERSION.split('(')[0].strip()}"],
-        ["Universe", "Nifty-200"], ["Recommended Horizon", f"{rec_label} (confidence {rec_conf})"],
+        ["Recommendation ID", rid_today], ["Run Date", str(run_date)],
+        ["Market Data As Of", str(market_asof)], ["Valid Until", str(valid_until)],
+        ["Strategy", f"AEGIS {VERSION.split('(')[0].strip()}"], ["Universe", "Nifty-200"],
+        ["Recommended Horizon", f"{rec_label} (confidence {rec_conf})"],
         ["Suggested Holding Window", f"{months} months"],
         ["Portfolio Grade", G["pf_grade"]], ["Recommendation Grade", G["al_grade"]],
         ["Current Market", regime], ["Exposure", f"{exp:.0%}"], ["Recommended Stocks", len(w)],
         ["Portfolio beat Nifty (history)", f"{beat_n}/{len(cyc)} ({beat_pct}%)"],
-        ["Selection RQS (all history)", f"{G['rqs']:.3f} (~random)"], ["Review Date", str(review)],
-        ["Note", "Validated PORTFOLIO (grade A); stock-alpha NOT validated (holdings, not bets)"]],
+        ["Selection RQS (all history)", f"{G['rqs']:.3f} (~random)"], ["Review Date", str(review)]],
         columns=["Field", "Value"])
+    # ---- Evidence Badges (what's validated vs experimental vs not evaluated) ----
+    badges = pd.DataFrame([
+        ["Portfolio Strategy", "VALIDATED", f"grade {G['pf_grade']} · beat Nifty {beat_pct}% of cycles"],
+        ["Stock Selection (alpha)", "EXPERIMENTAL", f"RQS {G['rqs']:.2f} ~ random · holdings, not bets"],
+        ["Recommendation Horizon", "HISTORICALLY TESTED", f"all horizons backtested · best = {rec_label}"],
+        ["Technical Context", "COMPUTED (not a driver)", "momentum / rel-strength / 200-DMA shown for info"],
+        ["Fundamental Analysis", "NOT EVALUATED", "no point-in-time data"],
+        ["News / Events", "NOT EVALUATED", "no event database"]], columns=["Layer", "Status", "Detail"])
     if not cyc.empty:
         pr = cyc["Portfolio Ret %"]
         statistics = pd.DataFrame([
@@ -218,11 +263,11 @@ def main():
     else:
         statistics = pd.DataFrame([["(no scored history yet)", ""]], columns=["Metric", "Value"])
 
-    # ---- write ONE investor workbook ----
-    sheets = [("Dashboard", dashboard), ("Live Recommendations", live),
+    # ---- write ONE investor workbook (named by RUN date) ----
+    sheets = [("Dashboard", dashboard), ("Evidence Badges", badges), ("Live Recommendations", live),
               ("Horizon Matrix", hmat), ("Historical Performance", cyc), ("Monthly Detail", detail),
               ("Why Picked", why), ("Registry", clean), ("Statistics", statistics)]
-    out = REPORTS / f"AEGIS_{generated}.xlsx"
+    out = REPORTS / f"AEGIS_{run_date}.xlsx"
     with pd.ExcelWriter(out, engine="openpyxl") as xl:
         for name, df in sheets:
             (df if not df.empty else pd.DataFrame([["(none)"]])).to_excel(xl, sheet_name=name[:31], index=False)
