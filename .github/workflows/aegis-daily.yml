@@ -41,10 +41,10 @@ jobs:
       # - name: Refresh market data        # TODO: add yfinance/Angel pull to make it truly daily
       #   run: python india/refresh_data.py
 
-      - name: Run AEGIS engine + recommendation database
+      - name: Run AEGIS engine + recommendation database (resilient — Telegram still fires)
         run: |
-          python india/recommendation_generator.py
-          python india/recommendation_db.py
+          python india/recommendation_generator.py || echo "engine refresh issue; will send last snapshot"
+          python india/recommendation_db.py || echo "db update skipped"
 
       - name: Push to Google Sheets (live view) — no-ops if secrets absent
         env:
