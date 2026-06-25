@@ -110,6 +110,8 @@ def history_for(reg, idx, capital, closes):
         mo = int(grp["holding_months"].iloc[0]); hd = int(grp["holding_days"].iloc[0])
         rid = rec_id(a, mo); port = float((grp["weight"] * grp["actual_ret"]).sum() / grp["weight"].sum())
         nif = 100 * (idx.asof(m) / idx.asof(a) - 1)
+        contrib = grp.set_index("symbol").eval("weight * actual_ret")     # per-stock contribution
+        top_c, worst_c = contrib.idxmax(), contrib.idxmin()
         inv_tot = exit_tot = 0.0
         for _, r in grp.sort_values("actual_ret", ascending=False).iterrows():
             sh = int((capital * r["weight"]) // r["buy_price"]) if r["buy_price"] > 0 else 0
@@ -130,11 +132,13 @@ def history_for(reg, idx, capital, closes):
                 "Max Loss %": round(min_p, 1) if min_p is not None else None,
                 "Captured %": capture, "CAGR %": round(cagr, 1), "Holding Days": hd,
                 "Rank in Universe": f"{int(r['rank'])}/{int(r['universe_n'])}",
-                "Exit Reason": "quarterly rebalance", "Status": "Completed"})
+                "Why Picked": "low-vol + HRP + sector-cap + regime", "Exit Reason": "quarterly rebalance",
+                "Status": "Completed"})
         cyc_rows.append({"Rec ID": rid, "Investment Month": a.strftime("%Y-%m"), "Holding": f"{mo}M",
             "Stocks": ", ".join(grp.sort_values("weight", ascending=False)["symbol"].head(5)) + " ...",
             "Invested Rs": round(inv_tot), "Exit Value Rs": round(exit_tot), "Gain Rs": round(exit_tot - inv_tot),
-            "Portfolio Ret %": round(port, 1), "Nifty Ret %": round(nif, 1), "Beat Nifty": "YES" if port > nif else "no"})
+            "Portfolio Ret %": round(port, 1), "Nifty Ret %": round(nif, 1), "Beat Nifty": "YES" if port > nif else "no",
+            "Top Contributor": f"{top_c} ({contrib[top_c]:+.1f})", "Worst Contributor": f"{worst_c} ({contrib[worst_c]:+.1f})"})
     cyc = pd.DataFrame(cyc_rows); detail = pd.DataFrame(detail_rows)
     track = {s: g for s, g in h.groupby("symbol")}
     clean = h.assign(Status="Completed").rename(columns={"symbol": "Stock", "asof": "Date",
@@ -152,7 +156,7 @@ def main():
     days_for = {v: k for k, v in LABELS.items()}
     horizon = arg("--horizon", days_for.get(rec_label, CONFIG["default_horizon"]), int)
     months = horizon // 21
-    closes, highs, lows, vols, idx, vix, _ = load_panels()
+    closes, highs, lows, vols, idx, vix, spx = load_panels()
     closes = closes[[c for c in closes.columns if c in set(NIFTY200)]]
     rets = closes.pct_change(); asof = closes.index[-1]; prices = closes.iloc[-1]
     reg = pd.read_csv(REG) if REG.exists() else pd.DataFrame()
@@ -196,9 +200,10 @@ def main():
     beat_pct = round(100 * beat_n / len(cyc)) if not cyc.empty else 0
     avg_port = cyc["Portfolio Ret %"].mean() if not cyc.empty else float("nan")
 
-    # ---- Sheet 2: Live Recommendations (each with its OWN history + honest remark) ----
+    # ---- Sheet: Today's Recommendations. Disclaimer is on the Dashboard (not repeated per row). ----
+    completion = (asof + timedelta(days=int(horizon * C["review_cal_factor"]))).date()
     rows = []
-    for _rank, s in enumerate(w.sort_values(ascending=False).index, 1):
+    for _ord, s in enumerate(w.sort_values(ascending=False).index, 1):
         px = float(prices[s]); band = px * C["buy_band_pct"] / 100
         sh = int((invest * w[s]) // px) if px > 0 else 0
         t = track.get(s)
@@ -206,22 +211,22 @@ def main():
         win = round(100 * (t["actual_ret"] > 0).mean()) if occ else None
         med = round(t["actual_ret"].median(), 1) if occ else None
         rl = "Low" if vol_rank.get(s, 0.5) < 0.33 else ("Medium" if vol_rank.get(s, 0.5) < 0.66 else "High")
-        remark = (f"In {beat_pct}% of past cycles this portfolio beat Nifty (avg +{avg_port:.1f}%). " +
-                  (f"{s} appeared in {occ} past portfolios, median {med:+.1f}%, win {win}%. " if occ else f"{s}: no prior history. ") +
-                  "Risk-managed holding, not a return forecast.")
-        rows.append({"Rec ID": rid_today, "Rank": _rank, "Type": "Portfolio Constituent",
-            "Basis": "allocation candidate — stock-alpha NOT validated (RQS~0.5)", "Run Date": str(run_date),
-            "Market Data As Of": str(market_asof), "Valid Until": str(valid_until), "Stock": s,
-            "Sector": sector_of(s), "CMP": round(px, 1), "Entry Zone": f"{px-band:.0f} - {px+band:.0f}",
-            "Allocated Rs": round(sh * px), "Shares": sh, "Weight %": round(100 * w[s], 1),
-            "Suggested Holding Window": f"{months} months", "Review Date": str(review),
-            "Portfolio Confidence": regime_conf.title(), "Construction Confidence": mode_conf.title(),
+        rows.append({"Allocation Order": _ord, "Type": "Risk Allocation Candidate", "Rec ID": rid_today,
+            "Stock": s, "Sector": sector_of(s), "CMP": round(px, 1),
+            "Entry Zone": f"{px-band:.0f} - {px+band:.0f}", "Allocated Rs": round(sh * px), "Shares": sh,
+            "Weight %": round(100 * w[s], 1), "Generated": str(run_date), "Market Data": str(market_asof),
+            "Valid Until": str(valid_until), "Review Date": str(review), "Expected Completion": str(completion),
+            "Suggested Holding": f"{months} months", "Portfolio Confidence": regime_conf.title(),
+            "Construction Confidence": mode_conf.title(),
             "3M Momentum %": round(float(mom3[s]), 1), "Rel Strength vs Nifty": f"top {round(100*(1-rs_rank[s]))}%",
-            "Above 200-DMA": "Yes" if bool(above200[s]) else "No",
-            "Historical Cases": occ, "Hist Win %": win, "Hist Median %": med,
-            "Hist Worst %": round(t["actual_ret"].min(), 1) if occ else None,
+            "Above 200-DMA": "Yes" if bool(above200[s]) else "No", "Risk Level": rl,
+            # per-stock HISTORICAL EXPECTATION (descriptive stats from past recs, NOT a forecast)
+            "Hist Cases": occ, "Hist Win %": win, "Hist Median %": med,
+            "Hist Avg %": round(t["actual_ret"].mean(), 1) if occ else None,
             "Hist Best %": round(t["actual_ret"].max(), 1) if occ else None,
-            "Risk Level": rl, "Expected DD %": round(cs["dd"]), "Status": "Running", "Remarks": remark})
+            "Hist Worst %": round(t["actual_ret"].min(), 1) if occ else None,
+            "Hist Avg Hold (d)": round(t["holding_days"].mean()) if occ else None,
+            "Status": "Running"})
     live = pd.DataFrame(rows)
 
     # ---- Sheet: Factor Snapshot — Observed / Used by Strategy / Contribution (no faked signals) ----
@@ -303,8 +308,8 @@ def main():
     dashboard = pd.DataFrame([
         ["** WHAT IS VALIDATED **", "PORTFOLIO recommendation = evidence-backed. INDIVIDUAL stock "
          "= construction candidate, NOT validated as alpha (selection RQS ~0.5)."],
-        ["Recommendation ID", rid_today], ["Run Date", str(run_date)],
-        ["Market Data As Of", str(market_asof)], ["Valid Until", str(valid_until)],
+        ["Workbook Version", f"AEGIS_{run_date}"], ["Recommendation Cycle", f"{asof.year}-Q{(asof.month-1)//3+1}"],
+        ["Run Date", str(run_date)], ["Market Data As Of", str(market_asof)], ["Valid Until", str(valid_until)],
         ["Strategy", f"AEGIS {VERSION.split('(')[0].strip()}"], ["Universe", "Nifty-200"],
         ["Recommended Horizon", f"{rec_label} (confidence {rec_conf})"],
         ["Suggested Holding Window", f"{months} months"],
@@ -313,7 +318,7 @@ def main():
         ["Portfolio beat Nifty (history)", f"{beat_n}/{len(cyc)} ({beat_pct}%)"],
         ["Historical median return (%s)" % rec_label, f"{er['Median Return %']:+.1f}%" if er is not None else "n/a"],
         ["Historical win rate (%s)" % rec_label, f"{er['Win Rate %']:.0f}%" if er is not None else "n/a"],
-        ["Expected drawdown", f"~{round(cs['dd'])}% (historical)"],
+        ["Expected drawdown", f"~{round(cs['dd'])}% (historical)"], ["Cycles observed", len(cyc)],
         ["Selection RQS (all history)", f"{G['rqs']:.3f} (~random)"], ["Review Date", str(review)],
         ["(expectations)", "historical, evidence-based — NOT forecasts/guarantees"]],
         columns=["Field", "Value"])
@@ -363,9 +368,14 @@ def main():
     sec_mom = {sec: (closes[[c for c in closes.columns if SECTORS.get(c) == sec]].iloc[-1] /
                closes[[c for c in closes.columns if SECTORS.get(c) == sec]].iloc[-64] - 1).mean()
                for sec in set(SECTORS.values()) if len([c for c in closes.columns if SECTORS.get(c) == sec]) >= 2}
+    nifty_3m = 100 * (idx.iloc[-1] / idx.iloc[-64] - 1) if len(idx) > 64 else float("nan")
+    spx_3m = (100 * (spx.dropna().iloc[-1] / spx.dropna().iloc[-64] - 1)
+              if spx is not None and len(spx.dropna()) > 64 else None)
     market = pd.DataFrame([["As of (market data)", str(market_asof)], ["Regime", regime],
         ["Suggested exposure", f"{exp:.0%}"], ["India VIX", f"{float(vix.iloc[-1]):.1f}" if vix is not None else "n/a"],
         ["Nifty vs 200-DMA", "above" if idx.iloc[-1] > idx.tail(200).mean() else "below"],
+        ["Nifty 3M trend", f"{nifty_3m:+.1f}%"],
+        ["Global (S&P 500 3M)", f"{spx_3m:+.1f}%" if spx_3m is not None else "n/a"],
         ["Sector leaders (3M)", ", ".join(sorted(sec_mom, key=sec_mom.get, reverse=True)[:3])],
         ["Sector laggards (3M)", ", ".join(sorted(sec_mom, key=sec_mom.get)[:3])]], columns=["Field", "Value"])
 
