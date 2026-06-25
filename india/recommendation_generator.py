@@ -250,9 +250,14 @@ def main():
                 bal = capital
                 for r in g.sort_values("Investment Month").to_dict("records"):
                     bal *= (1 + r["Portfolio Ret %"] / 100)
-                return pd.Series({"Year Ret %": round(100 * (bal / capital - 1), 1), "End Rs (from ref)": round(bal)})
+                return pd.Series({"Year Ret %": round(100 * (bal / capital - 1), 1), "End Rs": round(bal)})
             moneyy = cy.groupby("Year").apply(_year_money).reset_index()
             yearly = yearly.merge(cyg, on="Year", how="left").merge(moneyy, on="Year", how="left")
+            yearly["Start Rs"] = round(capital)
+            # MONEY-FIRST ordering (rupees are easier to grasp than percentages); stats follow
+            lead = ["Year", "Start Rs", "End Rs", "Year Ret %", "Beat Nifty", "Cycles", "Picks", "Win %"]
+            yearly = yearly[[c for c in lead if c in yearly.columns] +
+                            [c for c in yearly.columns if c not in lead]]
 
     # ---- MULTI-LAYER CANDIDATE SCORES (honest: validated driver + context + DATA NOT AVAILABLE) ----
     risk_score = (100 * (1 - hist.std().rank(pct=True))).round()              # low-vol = high (VALIDATED driver)
@@ -273,19 +278,33 @@ def main():
     gen_date = run_date
     expiry_date = (asof + timedelta(days=int(C.get("expiry_cal_days", 7)))).date()
 
-    def evidence_score(sym):
-        """The same transparent 0-100 score used for the pick, computed for ANY name — so a stock can be
-        ranked against its sector alternatives ('why THIS, not that?'). Components documented in Methodology."""
+    MIN_ANALOGUES = 5            # need >=5 historical cases before showing a target/return — else say so
+
+    def score_components(sym):
+        """Transparent FACTOR BREAKDOWN (each 0-100) so an investor sees WHY, not one opaque number.
+        Overall = weighted blend (risk & history dominate; sector is light context). Same function scores
+        any name, so a pick can be ranked against its sector alternatives."""
         tt = track.get(sym); o = len(tt) if tt is not None else 0
-        w_ = round(100 * (tt["actual_ret"] > 0).mean()) if o else None
-        m_ = float(tt["actual_ret"].median()) if o else None
-        sw = (w_ / 100) * 30 if o else 12
-        sr = max(0, min(30, (m_ + 5) * 2)) if o else 12
+        wn = round(100 * (tt["actual_ret"] > 0).mean()) if o else None
+        md = float(tt["actual_ret"].median()) if o else None
+        hist_raw = round(0.6 * wn + 0.4 * max(0, min(100, (md + 5) * 5))) if o else 50
+        shrink = min(1.0, o / MIN_ANALOGUES)                       # small sample -> pull toward neutral 50
+        hist_sc = int(round(50 + shrink * (hist_raw - 50)))         # honest: 2 cases can't earn a 100
         a200 = bool(sym in closes.columns and closes[sym].iloc[-1] > closes[sym].tail(200).mean())
         rsr = float(rs_rank.get(sym, 0.5)); vr = float(vol_rank.get(sym, 0.5))
-        st = (10 if a200 else 0) + (10 if rsr > 0.6 else (5 if rsr > 0.4 else 0))
-        sk = round(10 * exp) + (10 if vr < 0.5 else 5)
-        return int(round(sw + sr + st + sk))
+        rsv = _rsi(closes[sym].dropna()) if (sym in closes.columns and len(closes[sym].dropna()) > 30) else 50
+        rsi_pos = 1.0 if 40 <= rsv <= 70 else 0.5
+        tech_sc = int(max(0, min(100, round(40 * (1 if a200 else 0) + 40 * rsr + 20 * rsi_pos))))
+        risk_sc = int(round(100 * (1 - vr)))                                   # low vol -> high (validated driver)
+        sec_sc = int(sec_score.get(sym, 50))
+        regime_sc = int(round(100 * exp))
+        overall = int(round(0.30 * hist_sc + 0.25 * risk_sc + 0.20 * tech_sc +
+                            0.10 * sec_sc + 0.15 * regime_sc))
+        return dict(hist=hist_sc, tech=tech_sc, risk=risk_sc, sector=sec_sc, regime=regime_sc,
+                    overall=overall, occ=o, win=wn, med=md)
+
+    def evidence_score(sym):
+        return score_components(sym)["overall"]
 
     rows = []
     for _ord, s in enumerate(w.sort_values(ascending=False).index, 1):
@@ -308,9 +327,8 @@ def main():
         pos52 = round(100 * (px - lo52) / (hi52 - lo52)) if hi52 > lo52 else None
         volp = round(100 * float(vol_rank.get(s, 0.5)))                  # low pctile = calmest names
 
-        # ---- Recommendation EVIDENCE SCORE (0-100, transparent + documented on Methodology). ----
-        # Components: historical win (30) + historical median return (30) + trend/RS (20) + regime+risk (20).
-        score = evidence_score(s)
+        # ---- FACTOR BREAKDOWN (each 0-100) -> transparent Overall score (documented on Methodology) ----
+        comp = score_components(s); score = comp["overall"]
         # WHY THIS, NOT THAT? — show the sector alternatives + their scores, but be HONEST that the
         # selector is lowest-volatility under the sector cap, NOT the Evidence Score (which is context).
         peers = [c for c in hist.columns if sector_of(c) == sector_of(s) and c != s]
@@ -327,18 +345,24 @@ def main():
                            (15 if occ >= 10 else (8 if occ >= 5 else (3 if occ >= 1 else 0))))))
         if occ and med is not None and med < 0:
             strength = "WATCH"                        # weak historical analogue -> never a BUY (trust)
-        elif score >= 70 and (not occ or med > 0):
+        elif score >= 65 and (not occ or med > 0):
             strength = "STRONG BUY"
         elif score >= 55:
             strength = "BUY"
-        elif score >= 42:
+        elif score >= 45:
             strength = "ACCUMULATE"
         else:
             strength = "WATCH"
-        # expected exit / target / upside / annualised — all from the historical analogue, labelled as such
-        target = round(px * (1 + med / 100)) if occ else DASH
-        upside = round(med, 1) if occ else DASH
-        ann = round(((1 + med / 100) ** (252 / horizon) - 1) * 100, 1) if occ else DASH
+        # ---- target / upside / range — ONLY when there is enough evidence (>=5 analogues), else say so ----
+        enough = occ >= MIN_ANALOGUES
+        INSUFF = f"Insufficient evidence (<{MIN_ANALOGUES} cases)" if occ else "No analogues yet"
+        if enough:
+            p25, p75 = np.percentile(t["actual_ret"], 25), np.percentile(t["actual_ret"], 75)
+            target = round(px * (1 + med / 100)); upside = round(med, 1)
+            ann = round(((1 + med / 100) ** (252 / horizon) - 1) * 100, 1)
+            ret_range = f"{p25:+.1f}% to {p75:+.1f}% (mid 50% of {occ} cases)"
+        else:
+            target = upside = ann = ret_range = INSUFF
         trend = f"{'Above' if d200 >= 0 else 'Below'} 200-DMA ({d200:+.1f}%)"
         rstr = "Outperforming" if rs_rank[s] > 0.6 else ("In-line" if rs_rank[s] > 0.4 else "Lagging")
         # ---- WHY TODAY: current-state setup (descriptive context — NOT a forecast) ----
@@ -365,14 +389,18 @@ def main():
         rows.append({
             "Strength": strength, "Score /100": score, "Stock": s, "Sector": sector_of(s),
             "Current Price": round(px, 1), "Buy Range": f"{px-band:.0f} - {px+band:.0f}",
-            "Hist Target": target, "Upside %": upside, "Hist Median Ret %": round(med, 1) if occ else DASH,
-            "Annualized %": ann, "Risk / Reward (hist)": round(med / abs(worst), 1) if (occ and worst < 0) else DASH,
-            "Probability Positive %": win if occ else DASH,
-            "Probability >10% %": round(100 * (t["actual_ret"] > 10).mean()) if occ else DASH,
-            "Best Case %": round(best, 1) if occ else DASH, "Worst Case %": round(worst, 1) if occ else DASH,
+            "Hist Target": target, "Expected Return Range": ret_range, "Upside %": upside,
+            "Hist Median Ret %": round(med, 1) if enough else INSUFF, "Annualized %": ann,
+            "Risk / Reward (hist)": round(med / abs(worst), 1) if (enough and worst < 0) else INSUFF,
+            "Probability Positive %": win if enough else INSUFF,
+            "Probability >10% %": round(100 * (t["actual_ret"] > 10).mean()) if enough else INSUFF,
+            "Best Case %": round(best, 1) if enough else INSUFF, "Worst Case %": round(worst, 1) if enough else INSUFF,
+            # FACTOR BREAKDOWN (each 0-100) — the "why this stock" detail behind the Overall score
+            "F: Historical": comp["hist"], "F: Technical/Trend": comp["tech"], "F: Risk/Vol": comp["risk"],
+            "F: Sector": comp["sector"], "F: Regime": comp["regime"],
             "Dist 200-DMA %": d200, "RSI": rsi if rsi is not None else DASH, "Vol Pctile": volp,
             "52W Range Pos %": pos52 if pos52 is not None else DASH,
-            "Trend": trend, "Rel Strength": rstr, "Sector Score": f"{sec_score[s]:.0f}/100",
+            "Trend": trend, "Rel Strength": rstr,
             "Today's Setup": today_setup, "Why This vs Alternatives": alt_str,
             "Rec Confidence %": rec_conf_pct,
             "Recommended Holding": f"{months} months ({rec_label})", "Expected Exit": str(completion),
@@ -644,12 +672,18 @@ def main():
          "single biggest validated edge — de-risks in weak regimes."],
         ["Rebalance", "Quarterly (beats monthly net of cost; less churn)."],
         ["Evidence gate", "Promote nothing on intuition: DSR / PBO / rolling OOS / forward paper."],
-        ["Evidence Score (0-100)", "The Strength label is driven by a transparent score: historical win "
-         "rate (30) + historical median return (30) + trend/relative-strength (20) + regime & low-vol (20). "
-         ">=70 STRONG BUY, >=55 BUY, >=42 ACCUMULATE, else WATCH. HARD RULE: a negative historical median "
-         "is always WATCH (never a BUY), even if held for diversification."],
+        ["Factor breakdown (each 0-100)", "Every pick shows 5 sub-scores so you see WHY, not one opaque "
+         "number: Historical (win rate + median, SHRUNK toward neutral when <5 cases), Technical/Trend "
+         "(200-DMA, relative strength, RSI), Risk/Vol (low volatility = high), Sector, Regime. Overall = "
+         "0.30 Historical + 0.25 Risk + 0.20 Technical + 0.10 Sector + 0.15 Regime."],
+        ["Strength tiers", ">=65 STRONG BUY, >=55 BUY, >=45 ACCUMULATE, else WATCH. HARD RULE: a negative "
+         "historical median is always WATCH (never a BUY), even if held for diversification."],
+        ["Evidence threshold", f"A target price / return range is shown only with >={5} historical analogues; "
+         "fewer says 'Insufficient evidence'. We never invent a number from a tiny sample."],
         ["Sector Score (x/100)", "Percentile rank of the stock's sector by 3-month sector momentum. CONTEXT "
          "only — it failed the incremental-value test, so it informs but does not drive selection."],
+        ["Sector-risk tilt", "A risk-first sector tilt (overweight low-vol sectors) was BUILT and walk-forward "
+         "VALIDATED — it underperformed (Sharpe 0.99 vs 1.15) so it is kept OFF. Honest: tested, not adopted."],
         ["Today's Setup", "Descriptive current-state facts (distance from 200-DMA, volatility percentile, "
          "52-week range position, RSI, sector rank, regime). Context for 'why today', NOT a forecast."],
         ["Holding period (DYNAMIC)", f"Chosen by choose_horizon() from the backtested Horizon Matrix, "
