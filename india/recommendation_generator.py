@@ -276,30 +276,55 @@ def main():
         worst = t["actual_ret"].min() if occ else None
         win = round(100 * (t["actual_ret"] > 0).mean()) if occ else None
         avg = round(t["actual_ret"].mean()) if occ else None
-        # plain-English WHY (human, tied to the validated process + history) — not engine jargon
-        why = [f"Low-risk {sector_of(s)} holding"]
-        if bool(above200[s]):
-            why.append("in an uptrend (above 200-DMA)")
-        if rs_rank[s] > 0.6:
-            why.append("outperforming Nifty")
-        why.append("diversifies the portfolio")
-        why.append("market regime favourable" if exp >= 0.85 else "regime cautious (partial deploy)")
+        # ---- Recommendation STRENGTH (honest tiers). A negative historical analogue is NEVER a BUY. ----
+        pts = 0
         if occ:
-            why.append(f"{occ} similar past recs averaged {avg:+d}%")
+            pts += 2 if win >= 60 else (1 if win >= 50 else 0)
+            pts += 2 if med > 3 else (1 if med > 0 else 0)
+        pts += 1 if bool(above200[s]) else 0
+        pts += 1 if rs_rank[s] > 0.6 else 0
+        pts += 1 if exp >= 0.85 else 0
+        if occ and med is not None and med < 0:
+            strength = "WATCH"                        # weak historical analogue -> do NOT say BUY (trust)
+        elif pts >= 5:
+            strength = "STRONG BUY"
+        elif pts >= 3:
+            strength = "BUY"
+        elif pts >= 1:
+            strength = "ACCUMULATE"
+        else:
+            strength = "WATCH"
+        # expected exit / target / upside / annualised — all from the historical analogue, labelled as such
+        target = round(px * (1 + med / 100)) if occ else DASH
+        upside = round(med, 1) if occ else DASH
+        ann = round(((1 + med / 100) ** (252 / horizon) - 1) * 100, 1) if occ else DASH
+        trend = "Above 200-DMA" if bool(above200[s]) else "Below 200-DMA"
+        rstr = "Outperforming" if rs_rank[s] > 0.6 else ("In-line" if rs_rank[s] > 0.4 else "Lagging")
+        # plain-English WHY-NOW, as bullets (facts, not forecasts)
+        wb = [f"Low-risk {sector_of(s)} holding ({rl.lower()} vol)", trend.lower(),
+              f"sector strength {sec_score[s]:.0f}/100",
+              "regime favourable" if exp >= 0.85 else "regime cautious (partial deploy)"]
+        if rs_rank[s] > 0.6:
+            wb.insert(2, "outperforming Nifty")
+        if occ:
+            wb.append(f"{occ} similar past recs: {win:.0f}% positive, median {med:+.1f}%")
+            if med < 0:
+                wb.append("HELD FOR DIVERSIFICATION despite weak historical analogue — sized by risk, not conviction")
+        else:
+            wb.append("no historical analogue yet (<3 obs)")
         rows.append({
-            "Decision": "BUY", "Stock": s, "Sector": sector_of(s), "Current Price": round(px, 1),
+            "Strength": strength, "Stock": s, "Sector": sector_of(s), "Current Price": round(px, 1),
             "Buy Range": f"{px-band:.0f} - {px+band:.0f}",
-            "Hist Scenario Target": round(px * (1 + med / 100)) if occ else DASH,
-            "Hist Median Return %": round(med, 1) if occ else DASH,
-            "Risk / Reward (hist)": round(med / abs(worst), 1) if (occ and worst < 0) else DASH,
+            "Hist Target": target, "Upside %": upside, "Hist Median Ret %": round(med, 1) if occ else DASH,
+            "Annualized %": ann, "Risk / Reward (hist)": round(med / abs(worst), 1) if (occ and worst < 0) else DASH,
             "Probability Positive %": win if occ else DASH,
             "Probability >10% %": round(100 * (t["actual_ret"] > 10).mean()) if occ else DASH,
-            "Best Case (hist) %": round(best, 1) if occ else DASH,
-            "Worst Case (hist) %": round(worst, 1) if occ else DASH,
-            "Recommended Holding": f"{months} months", "Review Date": str(review),
-            "Allocation Rs": round(sh * px), "Shares": sh, "Weight %": round(100 * w[s], 1),
-            "Confidence": sample_conf, "Similar Past Cases": occ,
-            "Why": "; ".join(why)})
+            "Best Case %": round(best, 1) if occ else DASH, "Worst Case %": round(worst, 1) if occ else DASH,
+            "Trend": trend, "Rel Strength": rstr, "Sector Score": f"{sec_score[s]:.0f}/100",
+            "Recommended Holding": f"{months} months ({rec_label})", "Expected Exit": str(completion),
+            "Review Date": str(review), "Allocation Rs": round(sh * px), "Shares": sh,
+            "Weight %": round(100 * w[s], 1), "Evidence": sample_conf, "Similar Past Cases": occ,
+            "Why": " • ".join(wb)})
     live = pd.DataFrame(rows)
 
     # ---- Sheet: Factor Snapshot — Observed / Used by Strategy / Contribution (no faked signals) ----
@@ -530,6 +555,13 @@ def main():
         ["Median expected value", f"Rs{median_val:,.0f}"],
         ["Best historical case", f"Rs{best_val:,.0f}"], ["Worst historical case", f"Rs{worst_val:,.0f}"],
         ["Worst historical drawdown", f"{round(cs['dd'])}%"],
+        ["— HISTORICAL PORTFOLIO (%d cycles, 2021-2026) —" % len(cyc), ""],
+        ["Cycles beating Nifty", f"{beat_n}/{len(cyc)} ({beat_pct}%)"],
+        ["Median cycle return", f"{cyc['Portfolio Ret %'].median():+.1f}%" if not cyc.empty else "n/a"],
+        ["Avg cycle return", f"{avg_port:+.1f}%" if not np.isnan(avg_port) else "n/a"],
+        ["Money diary (ref capital)", f"{rupees(capital)} -> Rs{round(bal):,.0f} ({bal/capital:.2f}x)" if not cyc.empty else "n/a"],
+        ["Recommended deployment now", f"{exp:.0%} ({regime} regime)"],
+        ["Strategy version", f"AEGIS {VERSION.split('(')[0].strip()}"],
         ["— TOP RISKS —", ""],
         ["1", f"Lags in strong bull markets (low beta {cs['beta']:.2f})"],
         ["2", "Stock selection is NOT validated alpha (RQS ~0.5) — these are risk constituents"],
@@ -539,9 +571,9 @@ def main():
     # compact recommendation table for the summary
     et = live.copy()
     exec_table = pd.DataFrame({
-        "Decision": et["Decision"], "Stock": et["Stock"], "Sector": et["Sector"],
+        "Strength": et["Strength"], "Stock": et["Stock"], "Sector": et["Sector"],
         "Buy ~Rs": et["Current Price"], "Allocation Rs": et["Allocation Rs"], "Weight %": et["Weight %"],
-        "Hist Median Ret %": et["Hist Median Return %"], "Prob +ve %": et["Probability Positive %"],
+        "Hist Median Ret %": et["Hist Median Ret %"], "Prob +ve %": et["Probability Positive %"],
         "Why": et["Why"]})
 
     methodology = pd.DataFrame([
@@ -593,16 +625,43 @@ def main():
     except Exception as _e:
         engine_blocks = [pd.DataFrame([[f"engine view unavailable: {_e}"]], columns=["Note"])]
 
+    # ---- Backtest Summary: a single OVERALL block so users don't interpret raw trades ----
+    if not hh.empty:
+        overall = pd.DataFrame([
+            ["Years covered", f"{hh['year'].nunique()} ({hh['year'].min()}-{hh['year'].max()})"],
+            ["Investment cycles", len(cyc)], ["Total stock-picks", len(hh)],
+            ["Win rate (picks)", f"{round(100 * (hh['actual_ret'] > 0).mean())}%"],
+            ["Median pick return", f"{hh['actual_ret'].median():+.1f}%"],
+            ["Average pick return", f"{hh['actual_ret'].mean():+.1f}%"],
+            ["Cycles beating Nifty", f"{beat_n}/{len(cyc)} ({beat_pct}%)"],
+            ["Money diary (ref capital)", f"{rupees(capital)} -> Rs{round(bal):,.0f} ({bal/capital:.2f}x)"]],
+            columns=["Overall (all history)", "Value"])
+    else:
+        overall = pd.DataFrame([["(no scored history yet)", ""]], columns=["Overall (all history)", "Value"])
+
+    # ---- Portfolio: sector mix (weight % + holdings) and intentional cash ----
+    secw = {}
+    for s in w.index:
+        secw[sector_of(s)] = secw.get(sector_of(s), 0.0) + float(w[s])
+    sector_mix = pd.DataFrame(
+        [[sec, f"{100 * exp * wt:.1f}%", sum(1 for x in w.index if sector_of(x) == sec)]
+         for sec, wt in sorted(secw.items(), key=lambda kv: -kv[1])],
+        columns=["Sector", "% of Capital", "Holdings"])
+    sector_mix = pd.concat([sector_mix, pd.DataFrame([
+        ["CASH (intentional)", f"{100 * (1 - exp):.1f}%", 0],
+        ["TOTAL", "100.0%", f"{len(w)} stocks / {len(secw)} sectors"]],
+        columns=sector_mix.columns)], ignore_index=True)
+
     # INVESTOR LAYER only — research internals (candidate scores, layer scores, gates, validation)
     # stay in data/ + india/evidence/, NOT in this report.
     sheets = [
         ("Executive Summary", [exec_block, exec_table]),                       # 1 ⭐
         ("Today's Recommendations", [live]),                                   # 2 ⭐ decision report
         ("AEGIS Engine", engine_blocks),                                       # 3 ⭐ pipeline + what changed
-        ("Portfolio", [portfolio_sheet]),                                      # 3 expected outcomes
+        ("Portfolio", [portfolio_sheet, sector_mix]),                          # 3 expected outcomes + sector mix
         ("Historical Performance", [cyc, strategy_replay]),                    # 4 replay + money diary
         ("Backtested Trades", [detail]),                                       # 5 the proof
-        ("Backtest Summary", [yearly, statistics]),                            # 6 by-year + key stats
+        ("Backtest Summary", [overall, yearly, statistics]),                   # 6 overall + by-year + stats
         ("Methodology", [methodology]),                                        # 7
         ("About", [about_full]),                                               # 8
     ]
