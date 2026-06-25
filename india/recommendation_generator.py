@@ -258,56 +258,36 @@ def main():
         t = track.get(s); occ = len(t) if t is not None else 0
         rl = "Low" if vol_rank.get(s, 0.5) < 0.33 else ("Medium" if vol_rank.get(s, 0.5) < 0.66 else "High")
         sample_conf = "High" if occ >= 10 else ("Medium" if occ >= 5 else ("Low" if occ >= 1 else "New"))
-        NA = "New — no history"            # never expose NaN
-        # dynamic, per-stock Why Selected from REAL computed signals (not a fixed string)
-        why = [f"Lowest-vol name in {sector_of(s)} (vol {100*float(daily_vol.get(s,0))*np.sqrt(252):.0f}%)"]
-        if rs_rank[s] > 0.6:
-            why.append(f"relative strength top {round(100*(1-rs_rank[s]))}% vs Nifty")
+        DASH = "—"
+        med = t["actual_ret"].median() if occ else None
+        best = t["actual_ret"].max() if occ else None
+        worst = t["actual_ret"].min() if occ else None
+        win = round(100 * (t["actual_ret"] > 0).mean()) if occ else None
+        avg = round(t["actual_ret"].mean()) if occ else None
+        # plain-English WHY (human, tied to the validated process + history) — not engine jargon
+        why = [f"Low-risk {sector_of(s)} holding"]
         if bool(above200[s]):
-            why.append("above 200-DMA")
-        why.append("HRP overweight (low correlation to book)" if _ord <= 3 else "diversifies the portfolio")
-        why.append(f"regime-approved ({regime} exposure)")
-        why_str = "; ".join(why)
-        # honest evidence score 0-100: sample size + win rate + drawdown control (NOT a prediction)
+            why.append("in an uptrend (above 200-DMA)")
+        if rs_rank[s] > 0.6:
+            why.append("outperforming Nifty")
+        why.append("diversifies the portfolio")
+        why.append("market regime favourable" if exp >= 0.85 else "regime cautious (partial deploy)")
         if occ:
-            sp = min(occ, 10) / 10 * 100; wn = 100 * (t["actual_ret"] > 0).mean()
-            dpts = max(0.0, 100 + 3 * t["actual_ret"].min())
-            ev_score = round(0.4 * wn + 0.35 * sp + 0.25 * dpts)
-        else:
-            ev_score = NA
-        rows.append({"Allocation Order": _ord, "Type": "Risk Allocation Candidate",
-            "Stock": s, "Sector": sector_of(s), "Why Selected": why_str, "Evidence Score /100": ev_score,
-            "Candidate Score": int(risk_score.get(s, 0)), "Market Score": market_score,
-            "Risk Score (driver)": int(risk_score.get(s, 0)), "Sector Score (context)": sec_score.get(s),
-            "Technical Score (context)": int(tech_score.get(s, 50)),
-            "Fundamental Score": NA_DATA, "News Score": NA_DATA,
-            "Weight Reason": "Highest HRP weight (low covariance)" if _ord == 1 else "HRP risk-parity allocation",
-            "CMP": round(px, 1), "Entry Zone": f"{px-band:.0f} - {px+band:.0f}",
-            "Entry Method": "Volatility band (~2 std-dev daily)", "Allocated Rs": round(sh * px), "Shares": sh,
-            "Weight %": round(100 * w[s], 1), "Generated": str(run_date), "Market Data": str(market_asof),
-            "Valid for Entry Until": str(valid_until), "Review Date": str(review),
-            "Expected Completion": str(completion), "Suggested Holding": f"{months} months",
-            "Portfolio Confidence": regime_conf.title(), "Construction Confidence": mode_conf.title(),
-            "3M Momentum %": round(float(mom3[s]), 1), "Rel Strength vs Nifty": f"top {round(100*(1-rs_rank[s]))}%",
-            "Above 200-DMA": "Yes" if bool(above200[s]) else "No", "Risk Level": rl,
-            # HISTORICAL EXPECTATION — descriptive stats of SIMILAR past recommendations (not a forecast)
-            "Past Observations": occ, "Sample Confidence": sample_conf,
-            "Historical Win % (Similar Recs)": round(100 * (t["actual_ret"] > 0).mean()) if occ else NA,
-            "Historical Median Return % (Similar Recs)": round(t["actual_ret"].median(), 1) if occ else NA,
-            "Historical Avg Return % (Similar Recs)": round(t["actual_ret"].mean(), 1) if occ else NA,
-            "Historical Best % (Similar Recs)": round(t["actual_ret"].max(), 1) if occ else NA,
-            "Historical Worst % (Similar Recs)": round(t["actual_ret"].min(), 1) if occ else NA,
-            "Historical Avg Hold d (Similar Recs)": round(t["holding_days"].mean()) if occ else NA,
-            # PRICE SCENARIOS — current price x historical return (descriptive, NOT a target/forecast)
-            "Hist Median Price (scenario)": round(px * (1 + t["actual_ret"].median() / 100)) if occ else NA,
-            "Hist Best Price (scenario)": round(px * (1 + t["actual_ret"].max() / 100)) if occ else NA,
-            "Hist Worst Price (scenario)": round(px * (1 + t["actual_ret"].min() / 100)) if occ else NA,
-            # expected profit (on this allocation) + historical probability bands (descriptive)
-            "Hist Expected Profit Rs (median)": round(sh * px * t["actual_ret"].median() / 100) if occ else NA,
-            "P(>5%) hist": round(100 * (t["actual_ret"] > 5).mean()) if occ else NA,
-            "P(>10%) hist": round(100 * (t["actual_ret"] > 10).mean()) if occ else NA,
-            "P(>20%) hist": round(100 * (t["actual_ret"] > 20).mean()) if occ else NA,
-            "Status": "Running"})
+            why.append(f"{occ} similar past recs averaged {avg:+d}%")
+        rows.append({
+            "Decision": "BUY", "Stock": s, "Sector": sector_of(s), "Current Price": round(px, 1),
+            "Buy Range": f"{px-band:.0f} - {px+band:.0f}",
+            "Expected Target (hist)": round(px * (1 + med / 100)) if occ else DASH,
+            "Expected Return %": round(med, 1) if occ else DASH,
+            "Risk / Reward": round(med / abs(worst), 1) if (occ and worst < 0) else DASH,
+            "Probability Positive %": win if occ else DASH,
+            "Probability >10% %": round(100 * (t["actual_ret"] > 10).mean()) if occ else DASH,
+            "Best Case (hist) %": round(best, 1) if occ else DASH,
+            "Worst Case (hist) %": round(worst, 1) if occ else DASH,
+            "Recommended Holding": f"{months} months", "Review Date": str(review),
+            "Allocation Rs": round(sh * px), "Shares": sh, "Weight %": round(100 * w[s], 1),
+            "Confidence": sample_conf, "Similar Past Cases": occ,
+            "Why": "; ".join(why)})
     live = pd.DataFrame(rows)
 
     # ---- Sheet: Factor Snapshot — Observed / Used by Strategy / Contribution (no faked signals) ----
@@ -375,6 +355,10 @@ def main():
             "Market Score": market_score, "Fundamental": NA_DATA, "News": NA_DATA,
             "Selected": "YES" if chosen else "no", "Reason": reason})
     candidate_scores = pd.DataFrame(cand_rows)
+    try:                                                # research/engine internals stay INTERNAL
+        candidate_scores.to_csv(ROOT / "data" / "aegis_candidates.csv", index=False)
+    except Exception:
+        pass
 
     # ---- Historical Expectation block (#1 ask): evidence from past cycles, NOT a forecast ----
     er = hmat[hmat["Horizon"] == rec_label]
@@ -507,6 +491,21 @@ def main():
     # ================= EXECUTIVE SUMMARY (the one screen 95% of users read) =================
     exp_med = f"{er['Median Return %']:+.1f}%" if er is not None else "n/a"
     exp_win = f"{er['Win Rate %']:.0f}%" if er is not None else "n/a"
+    em = er["Median Return %"] if er is not None else 0.0
+    eb = er["Best Cycle %"] if er is not None else 0.0
+    ewc = er["Worst Cycle %"] if er is not None else 0.0
+    median_val, best_val, worst_val = (round(capital * (1 + x / 100)) for x in (em, eb, ewc))
+    # Portfolio sheet (expected outcomes — historical distribution, not a forecast)
+    portfolio_sheet = pd.DataFrame([
+        ["Capital", rupees(capital)], ["Deploy now", f"Rs{round(invest):,.0f} ({exp:.0%})"],
+        ["Cash buffer", f"Rs{round(capital-invest):,.0f} ({1-exp:.0%})"], ["Holdings", len(w)],
+        ["Recommended holding", f"{months} months ({rec_label})"],
+        ["Expected return (hist median)", exp_med], ["Median expected value", f"Rs{median_val:,.0f}"],
+        ["Best historical case", f"Rs{best_val:,.0f}"], ["Worst historical case", f"Rs{worst_val:,.0f}"],
+        ["Probability positive", exp_win], ["Expected drawdown", f"~{round(cs['dd'])}%"],
+        ["Review date", str(review)], ["Expected completion", str(completion)],
+        ["Note", "Expected values are HISTORICAL distributions of similar portfolios — evidence, NOT a forecast."]],
+        columns=["Field", "Value"])
     exec_block = pd.DataFrame([
         ["TODAY'S RECOMMENDATION", f"Hold a {len(w)}-stock risk-managed portfolio"],
         ["Run Date / Market Data", f"{run_date}  /  {market_asof}"],
@@ -514,8 +513,10 @@ def main():
         ["Suggested Capital", rupees(capital)], ["Deploy now", f"Rs{round(invest):,.0f} ({exp:.0%})"],
         ["Cash (intentional)", f"Rs{round(capital-invest):,.0f} ({1-exp:.0%})"],
         ["Review Date", str(review)],
-        ["— HISTORICAL (similar past cycles, NOT a forecast) —", ""],
-        ["Win rate", exp_win], ["Median return", exp_med],
+        ["— EXPECTED (historical similar cycles, NOT a forecast) —", ""],
+        ["Probability positive", exp_win], ["Expected return (median)", exp_med],
+        ["Median expected value", f"Rs{median_val:,.0f}"],
+        ["Best historical case", f"Rs{best_val:,.0f}"], ["Worst historical case", f"Rs{worst_val:,.0f}"],
         ["Worst historical drawdown", f"{round(cs['dd'])}%"],
         ["— TOP RISKS —", ""],
         ["1", f"Lags in strong bull markets (low beta {cs['beta']:.2f})"],
@@ -526,10 +527,10 @@ def main():
     # compact recommendation table for the summary
     et = live.copy()
     exec_table = pd.DataFrame({
-        "Allocation Order": et["Allocation Order"], "Stock": et["Stock"], "Sector": et["Sector"],
-        "Buy ~Rs": et["CMP"], "Allocation Rs": et["Allocated Rs"], "Weight %": et["Weight %"],
-        "Hist Win %": et["Historical Win % (Similar Recs)"],
-        "Hist Median %": et["Historical Median Return % (Similar Recs)"], "Why": et["Why Selected"]})
+        "Decision": et["Decision"], "Stock": et["Stock"], "Sector": et["Sector"],
+        "Buy ~Rs": et["Current Price"], "Allocation Rs": et["Allocation Rs"], "Weight %": et["Weight %"],
+        "Exp Return %": et["Expected Return %"], "Prob +ve %": et["Probability Positive %"],
+        "Why": et["Why"]})
 
     methodology = pd.DataFrame([
         ["Selection", "Pick the lowest trailing-volatility names (the only signal with out-of-sample skill)."],
@@ -551,15 +552,17 @@ def main():
     attr_bot = attribution.tail(5) if not attribution.empty else attribution
     horizon_brief = hmat[["Horizon", "Win Rate %", "Median Return %", "Worst Cycle %", "Confidence"]] \
         if not hmat.empty else hmat
+    # INVESTOR LAYER only — research internals (candidate scores, layer scores, gates, validation)
+    # stay in data/ + india/evidence/, NOT in this report.
     sheets = [
         ("Executive Summary", [exec_block, exec_table]),                       # 1 ⭐
-        ("Today's Recommendations", [live]),                                   # 2 ⭐
-        ("Candidate Scores", [candidate_scores]),                              # 2b (Universe -> Scores -> Portfolio)
-        ("Historical Performance", [cyc, strategy_replay]),                    # 3 ⭐ (replay + money diary)
-        ("Backtested Trades", [detail]),                                       # 4 ⭐ (every historical pick)
-        ("Statistics", [statistics, yearly, attr_top, attr_bot, horizon_brief, market]),  # 5 ⭐
-        ("Methodology", [methodology, funnel]),                                # 6
-        ("About", [about_full]),                                               # 7
+        ("Today's Recommendations", [live]),                                   # 2 ⭐ decision report
+        ("Portfolio", [portfolio_sheet]),                                      # 3 expected outcomes
+        ("Historical Performance", [cyc, strategy_replay]),                    # 4 replay + money diary
+        ("Backtested Trades", [detail]),                                       # 5 the proof
+        ("Backtest Summary", [yearly, statistics]),                            # 6 by-year + key stats
+        ("Methodology", [methodology]),                                        # 7
+        ("About", [about_full]),                                               # 8
     ]
     out = REPORTS / f"AEGIS_{run_date}.xlsx"
 
