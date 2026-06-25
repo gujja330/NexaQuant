@@ -1,74 +1,101 @@
-# ARJUNA — Alpha Data Research (the next phase)
+# ARJUNA — Evidence-Driven Alpha Research (the next phase)
 
-> The bottleneck is no longer **algorithms**. It is **information the market hasn't already priced
-> into public price history.** So the next phase is NOT "AI Research" — it is **Alpha Data Research.**
+> NOT "AI-first." NOT "data-first." **Evidence-first.** Data alone is not enough — every dataset
+> must earn promotion through the same scientific gate. The bottleneck is no longer algorithms; the
+> open question is whether *new, point-in-time information* adds incremental predictive value —
+> which is **unproven** until tested.
 
-## The reframe (why this, why now)
+## The correction (scientific humility)
 
-Wrong question: *"Can ARJUNA rank the best stocks each week?"* — answered NO, four times, on price data.
+We do NOT claim "the edge lives in non-price information." What we actually have is:
 
-Right question: **"What information do successful weekly/monthly recommendations use that ARJUNA
-doesn't?"**
+> **Our evidence shows the price-derived features we tested did not produce a useful ranking signal.
+> We do NOT yet have evidence that non-price data WILL succeed. The next phase investigates whether
+> additional point-in-time information adds incremental predictive value — and rejects what doesn't.**
 
-The alpha experiment (`evidence/alpha_ranking.py`) failed with IC ≈ 0 — but every feature in it was
-**price-derived** (momentum, low-vol, sector strength). That doesn't mean ranking is impossible; it
-means *these widely-known price transforms* don't rank future returns on this data. We have been
-proving `price → price` doesn't predict price. Unsurprising. The edge lives in **non-price
-information.**
+That distinction matters. A good story is not evidence.
 
-## The product split
-
-| Product | Purpose | Status |
-|---|---|---|
-| **ARJUNA Portfolio** | protect capital, allocate intelligently (regime + risk construction) | built, excellent |
-| **ARJUNA Discover** | weekly **Top-20 + WHY / catalysts / risks / suggested horizon** | future — data-gated |
-
-Discover proposes; Portfolio disposes. Discover generates candidates from *new information*;
-Portfolio decides if any actually enter (risk, regime, sizing). Two engines, as institutions run.
-
-## The six research streams (information ARJUNA does NOT have)
-
-| # | Stream | What it adds | Price-derivable? | Priority |
-|---|---|---|---|---|
-| 1 | **Earnings Engine** | earnings dates, surprise, 4-qtr trend, guidance, margin | NO (new data) | ⭐⭐⭐⭐⭐ |
-| 2 | **Relative Strength** | stock vs sector vs Nifty (not raw momentum) | YES (partly tested, low prior) | ⭐⭐⭐ |
-| 3 | **Sector Rotation** | which sector is attracting money (scores) | PARTLY (price + flow) | ⭐⭐⭐⭐ |
-| 4 | **Institutional Flow** | FII / DII / MF / ETF history (money moves sectors first) | NO (forward collector exists, no history) | ⭐⭐⭐⭐⭐ |
-| 5 | **News/Event Engine** | EVENTS (order win, approval, promoter buy, upgrade), not generic sentiment | NO (new data) | ⭐⭐⭐⭐⭐ |
-| 6 | **Fundamental Change** | Δ ROE, Δ valuation, revenue *acceleration* (markets react to CHANGE) | NO (PIT fundamentals) | ⭐⭐⭐⭐⭐ |
-
-Honest nuance: streams **2 & 3 are price/derivable** and are *partly* covered by the IC~0 result —
-low prior, cheap to re-check, not the frontier. The real value is the **non-price streams (1, 4, 5,
-6)** — that's where information the price hasn't absorbed actually lives.
-
-## The new composite score (ONLY after the data arrives)
+## Three parallel tracks
 
 ```
-Alpha = Fundamental Improvement + Sector Rotation + Institutional Flow
-        + Events + Relative Strength + Risk
+                         ARJUNA Research
+                                │
+        ┌───────────────────────┼───────────────────────┐
+        │                       │                       │
+   Track A                  Track B                  Track C
+   Portfolio Engineering    Alpha Data Research      Validation Framework
+   🟢 Production (frozen)    🟡 Research               🟢 Built (the gate)
 ```
-Note: almost none of these were in the rejected experiment. That is the point.
 
-## The five datasets to acquire (priority order)
+### Track A — Portfolio Engineering (DONE, frozen)
+HRP/EW · regime · sector cap · position sizing · quarterly rebalance. Backpaper-passed (OOS Sharpe
+1.61 vs Nifty 0.62). Forward paper is its only remaining test.
 
-1. **Point-in-time fundamentals** (removes look-ahead; powers streams 1 & 6)
-2. **Earnings history & estimate revisions** (IBES/Zacks-style)
-3. **FII/DII & institutional flow history**
-4. **Event database** (orders, approvals, management changes, promoter txns, rating actions)
-5. **Sector-rotation indicators** (derivable now; lowest cost)
+### Track B — Alpha Data Research (the six streams)
+| # | Stream | Price-derivable? | Priority |
+|---|---|---|---|
+| 1 | Earnings (dates, surprise, trend, guidance, margin) | NO | ⭐⭐⭐⭐⭐ |
+| 2 | Relative Strength (stock vs sector vs Nifty) | YES (low prior) | ⭐⭐⭐ |
+| 3 | Sector Rotation (which sector attracts money) | PARTLY | ⭐⭐⭐⭐ |
+| 4 | Institutional Flow (FII/DII/MF/ETF history) | NO | ⭐⭐⭐⭐⭐ |
+| 5 | News/EVENT (orders, approvals, promoter buys, upgrades) | NO | ⭐⭐⭐⭐⭐ |
+| 6 | Fundamental CHANGE (Δ ROE, Δ valuation, acceleration) | NO (PIT) | ⭐⭐⭐⭐⭐ |
 
-## The discipline does NOT change
+Frontier = the non-price streams (1, 4, 5, 6). Whether ANY of them works is **unknown** — that is
+the experiment, not the assumption.
 
-Every stream earns its place the same way (this is not a licence to assume it works):
-1. Acquire the dataset · 2. Engineer causal, point-in-time features · 3. Measure **IC vs the target**
-(top-quintile over 1M/3M/6M) · 4. Beat random AND the current low-vol selector · 5. Only THEN ML
-(LightGBM/CatBoost/ranking) · 6. Rolling OOS → forward paper → production gate.
+### Track C — Validation Framework (BUILT: `evidence/recommendation_quality.py`)
+The gate that prevents emotional attachment to any dataset. Every method/dataset is scored on what
+users actually care about — recommendation quality — not Sharpe:
 
-A stream that lands at IC ~0 (like the price factors) is rejected, regardless of how good the story
-sounds. Information first, models last.
+- **RQS** (Recommendation Quality Score): avg forward-return percentile of the picks. 0.50 = random.
+- **Hit Rate**: % of picks finishing in the TOP QUARTILE over the horizon.
+- **Avg rank**: where the picks land out of the universe (lower = better).
+- **IC**: Spearman of score vs forward return (>0.05 = useful).
 
-## What this renames
+**Current scorecard (price-factor baselines, top-20, monthly, 3-month horizon, ~56 samples):**
 
-The v4 "AI Reopen" signboard is the *mechanism*; **"Alpha Data Research" is the mission.** The
-triggers in `ARJUNA_V4_ROADMAP.md` / `india/ai_reopen.py` are these datasets. Until they arrive,
-ARJUNA Portfolio stays the product and forward paper stays the only experiment that moves the needle.
+| Method | RQS | Avg rank | Hit% | IC | Verdict |
+|---|---|---|---|---|---|
+| Random | 0.495 | 113/224 | 26% | — | none |
+| Momentum | 0.522 | 107/224 | 31% | +0.030 | weak |
+| Quality (risk-adj) | 0.503 | 111/224 | 27% | +0.025 | none |
+| Low-Vol | 0.501 | 112/224 | 20% | −0.038 | none |
+| Alpha (composite) | 0.492 | 114/224 | 21% | +0.004 | none |
+
+Reading: **no price factor has recommendation skill** (all ~dead-center). Momentum is marginally
+best but below the useful IC bar. Low-Vol (what we use) has the *worst* hit rate — it's a RISK
+factor, not a recommendation factor. **These rows are the bar every new dataset must clear.**
+
+> Note: true Quality/Value factors need POINT-IN-TIME fundamentals we don't have causally — we
+> can't even *score* them here. That gap is itself the argument for PIT fundamentals as dataset #1.
+
+## The DATA CHALLENGE (how every dataset competes)
+
+```
+New Dataset → Features → IC → RQS / Hit Rate → rolling OOS → Forward Paper → Production?
+```
+Each dataset runs the *identical* pipeline; the scorecard decides. Winners survive, stories don't.
+Promotion criteria (all required): IC > 0.05 · RQS lift over baselines · beats standard factors ·
+survives rolling OOS · survives forward paper.
+
+## ARJUNA Discover → outputs a WATCHLIST, not a buy list
+
+Research and portfolio management are separate functions (as in real desks):
+```
+New-data signals → ARJUNA Discover → WATCHLIST (20, with WHY/catalysts/risks/horizon)
+                                          → ARJUNA Portfolio decides → Final Buy List (5)
+```
+Discover proposes a watchlist; Portfolio disposes. Institutions don't buy everything research
+suggests — and neither should ARJUNA.
+
+## The five datasets to acquire (priority)
+
+1. Point-in-time fundamentals · 2. Earnings history & revisions · 3. FII/DII & institutional flow
+history · 4. Event database · 5. Sector-rotation indicators (cheapest, lowest prior).
+
+## The phase name
+
+**Evidence-Driven Alpha Research.** Not AI-first, not data-first — evidence-first. The five
+questions every dataset must answer: (1) new information? (2) improves ranking quality? (3) beats
+existing baselines? (4) survives rolling OOS? (5) survives forward paper? Only then → ARJUNA Discover.
