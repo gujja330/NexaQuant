@@ -200,7 +200,8 @@ def main():
         remark = (f"In {beat_pct}% of past cycles this portfolio beat Nifty (avg +{avg_port:.1f}%). " +
                   (f"{s} appeared in {occ} past portfolios, median {med:+.1f}%, win {win}%. " if occ else f"{s}: no prior history. ") +
                   "Risk-managed holding, not a return forecast.")
-        rows.append({"Rec ID": rid_today, "Action": "BUY", "Run Date": str(run_date),
+        rows.append({"Rec ID": rid_today, "Action": "BUY (portfolio candidate)",
+            "Basis": "construction candidate — stock-alpha NOT validated (RQS~0.5)", "Run Date": str(run_date),
             "Market Data As Of": str(market_asof), "Valid Until": str(valid_until), "Stock": s,
             "Sector": sector_of(s), "CMP": round(px, 1), "Entry Zone": f"{px-band:.0f} - {px+band:.0f}",
             "Allocated Rs": round(sh * px), "Shares": sh, "Weight %": round(100 * w[s], 1),
@@ -233,8 +234,34 @@ def main():
                              "Used by Strategy": used, "Contribution": contrib})
     why = pd.DataFrame(why_rows)
 
+    # ---- Selection Decision: WHY each pick won vs the rejected candidates (the real metric: vol) ----
+    vol_all = (hist.std() * np.sqrt(252) * 100)
+    sel_set = set(w.index); sel_sectors = {}
+    for s in w.index:
+        sel_sectors[sector_of(s)] = sel_sectors.get(sector_of(s), 0) + 1
+    dec_rows = []
+    for s in w.sort_values(ascending=False).index:
+        sec = sector_of(s)
+        peers = [x for x in hist.columns if sector_of(x) == sec and x != s]
+        cheaper = [x for x in peers if vol_all.get(x, 1e9) < vol_all[s]]   # lower-vol same-sector not taken
+        why_won = (f"Lowest-volatility pick available for {sec} under the sector cap "
+                   f"(vol {vol_all[s]:.0f}%). " + ("" if not cheaper else
+                   f"Lower-vol {sec} names ({', '.join(cheaper[:2])}) were already used by the cap. "))
+        dec_rows.append({"Stock": s, "Sector": sec, "Decision": "SELECTED",
+                         "Volatility %": round(vol_all[s]), "HRP Weight %": round(100 * w[s], 1),
+                         "Why": why_won + "Risk-driven selection — not an alpha call."})
+    rej = vol_all.drop(list(sel_set), errors="ignore").sort_values().head(10)
+    for s in rej.index:
+        sec = sector_of(s); full = sel_sectors.get(sec, 0) >= C["sector_cap"]
+        dec_rows.append({"Stock": s, "Sector": sec, "Decision": "rejected",
+                         "Volatility %": round(vol_all[s]), "HRP Weight %": None,
+                         "Why": "sector cap already filled" if full else "higher volatility / outside top-N"})
+    decision = pd.DataFrame(dec_rows)
+
     # ---- Sheet 1: Dashboard (correct dates, no ambiguity) ----
     dashboard = pd.DataFrame([
+        ["** WHAT IS VALIDATED **", "PORTFOLIO recommendation = evidence-backed. INDIVIDUAL stock "
+         "= construction candidate, NOT validated as alpha (selection RQS ~0.5)."],
         ["Recommendation ID", rid_today], ["Run Date", str(run_date)],
         ["Market Data As Of", str(market_asof)], ["Valid Until", str(valid_until)],
         ["Strategy", f"AEGIS {VERSION.split('(')[0].strip()}"], ["Universe", "Nifty-200"],
@@ -268,7 +295,8 @@ def main():
     # ---- write ONE investor workbook (named by RUN date) ----
     sheets = [("Dashboard", dashboard), ("Evidence Badges", badges), ("Live Recommendations", live),
               ("Horizon Matrix", hmat), ("Historical Performance", cyc), ("Monthly Detail", detail),
-              ("Factor Snapshot", why), ("Registry", clean), ("Statistics", statistics)]
+              ("Selection Decision", decision), ("Factor Snapshot", why),
+              ("Registry", clean), ("Statistics", statistics)]
     out = REPORTS / f"AEGIS_{run_date}.xlsx"
 
     def _write(path):
