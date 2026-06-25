@@ -212,6 +212,29 @@ def main():
     beat_pct = round(100 * beat_n / len(cyc)) if not cyc.empty else 0
     avg_port = cyc["Portfolio Ret %"].mean() if not cyc.empty else float("nan")
 
+    # ---- Analytics from the registry: Attribution · Stock Track Record · Yearly quality ----
+    hh = reg[(reg.scored == 1) & (reg.source == "historical")].copy()
+    attribution = track_record = yearly = pd.DataFrame()
+    if not hh.empty:
+        hh["contrib"] = hh["weight"] * hh["actual_ret"]
+        hh["year"] = pd.to_datetime(hh["asof"]).dt.year
+        attribution = (hh.groupby("symbol").agg(**{
+            "Times Held": ("rec_id", "nunique"), "Total Contribution %": ("contrib", "sum"),
+            "Avg Contribution %": ("contrib", "mean"), "Avg Return %": ("actual_ret", "mean")})
+            .round(2).sort_values("Total Contribution %", ascending=False).reset_index()
+            .rename(columns={"symbol": "Stock"}))
+        track_record = (hh.groupby("symbol").agg(**{
+            "Times Recommended": ("rec_id", "nunique"), "First": ("asof", "min"), "Last": ("asof", "max"),
+            "Avg Return %": ("actual_ret", "mean"), "Best %": ("actual_ret", "max"),
+            "Worst %": ("actual_ret", "min"), "Win %": ("actual_ret", lambda x: 100 * (x > 0).mean())})
+            .round(1).sort_values("Times Recommended", ascending=False).reset_index()
+            .rename(columns={"symbol": "Stock"}))
+        yearly = (hh.groupby("year").agg(**{
+            "Picks": ("symbol", "count"), "Winners": ("actual_ret", lambda x: int((x > 0).sum())),
+            "Losers": ("actual_ret", lambda x: int((x <= 0).sum())),
+            "Win %": ("actual_ret", lambda x: round(100 * (x > 0).mean())),
+            "Avg Return %": ("actual_ret", "mean")}).round(1).reset_index().rename(columns={"year": "Year"}))
+
     # ---- Sheet: Today's Recommendations. Disclaimer is on the Dashboard (not repeated per row). ----
     completion = (asof + timedelta(days=int(horizon * C["review_cal_factor"]))).date()
     daily_vol = hist.std()                                   # for volatility-band entry zone
@@ -372,6 +395,9 @@ def main():
             ["Std deviation", f"{pr.std():.1f}%"], ["Avg outperformance vs Nifty", f"{(pr-cyc['Nifty Ret %']).mean():+.1f}%"],
             ["Best cycle", f"{pr.max():+.1f}%"], ["Worst cycle", f"{pr.min():+.1f}%"],
             ["Avg winning cycle", f"{pr[wins].mean():+.1f}%"], ["Avg losing cycle", f"{pr[~wins].mean():+.1f}%"],
+            ["Median winning cycle", f"{pr[wins].median():+.1f}%"], ["Median losing cycle", f"{pr[~wins].median():+.1f}%"],
+            ["Avg holding period", f"{months} months ({C['rebal']} trading days)"],
+            ["Avg drawdown during hold", f"{cyc['Max DD During Hold %'].mean():.1f}%" if 'Max DD During Hold %' in cyc else 'n/a'],
             ["Longest win streak", f"{streak(wins)} cycles"], ["Longest loss streak", f"{streak(~wins)} cycles"]],
             columns=["Metric", "Value"])
     else:
@@ -451,7 +477,8 @@ def main():
         ("Horizon Matrix", hmat),
         # 3) EVIDENCE
         ("Recommendation Replay", cyc), ("Strategy Replay", strategy_replay),
-        ("Recommendation History", detail), ("Statistics", statistics),
+        ("Recommendation History", detail), ("Portfolio Attribution", attribution),
+        ("Stock Track Record", track_record), ("Yearly Quality", yearly), ("Statistics", statistics),
         # 4) DOCUMENTATION
         ("Evidence Badges", badges), ("About AEGIS", about)]
     out = REPORTS / f"AEGIS_{run_date}.xlsx"
