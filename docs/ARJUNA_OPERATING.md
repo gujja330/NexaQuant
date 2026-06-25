@@ -1,10 +1,10 @@
-# ARJUNA — Operating Mode (12-month forward paper phase)
+# AEGIS — Operating Mode (12-month forward paper phase)
 
 **Decision (2026-06-19): stop adding models. Operate. Real forward evidence > more AI.**
-ARJUNA Core v2.0 is FROZEN (HRP + regime + Global Risk; Sharpe 2.04, maxDD 12.8%, DSR 0.996, PBO 0.00).
+AEGIS Core v2.0 is FROZEN (HRP + regime + Global Risk; Sharpe 2.04, maxDD 12.8%, DSR 0.996, PBO 0.00).
 
 ## Monthly cycle (1st trading day)
-1. Refresh data + news (auto via `ArjunaDailyPaper` scheduled task / `python india/daily_run.py --pull`).
+1. Refresh data + news (auto via `AegisDailyPaper` scheduled task / `python india/daily_run.py --pull`).
 2. `python india/monthly_snapshot.py`  -> writes `reports/YYYY_MM.md` (stocks, weights, cash, regime,
    news, expected return by hold, reasons). This is the dated recommendation of record.
 3. Hold through the month. No daily churn.

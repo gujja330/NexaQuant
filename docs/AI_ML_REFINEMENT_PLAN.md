@@ -1,4 +1,4 @@
-# Arjuna — AI/ML Refinement Plan (honest)
+# Aegis — AI/ML Refinement Plan (honest)
 
 ## The correction I owe you
 I earlier said "AI doesn't help." That was **too narrow and partly wrong**. What I actually showed

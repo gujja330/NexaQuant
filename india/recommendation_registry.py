@@ -2,7 +2,7 @@
 """
 RECOMMENDATION REGISTRY — the evidence database (the one thing worth building now).
 
-Every recommendation ARJUNA ever makes is stored, then scored against what ACTUALLY happened once
+Every recommendation AEGIS ever makes is stored, then scored against what ACTUALLY happened once
 its horizon elapses. After a year of forward use this holds hundreds of real observations — worth
 more than another 100 backtests.
 

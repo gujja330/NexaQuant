@@ -1,4 +1,4 @@
-# ARJUNA — Hypothesis Registry (authoritative scorecard)
+# AEGIS — Hypothesis Registry (authoritative scorecard)
 
 > The scientific contract. Nothing promoted on intuition. Flow: **Hypothesis → Experiment →
 > Evidence → Promotion.** Four buckets: REAL (measured) · PARTIALLY VALIDATED · REJECTED · UNTESTED.
@@ -40,7 +40,7 @@ the same wall (with AUC 0.47, resilience 0.66, momentum<Nifty).
 | Idea | Status |
 |---|---|
 | Horizon-aware selection (momentum@1M / quality@6M / regime@1Y) | pure hypothesis; low prior after alpha-ranking IC~0 |
-| ARJUNA Alpha/Ranking Engine on NEW data (PIT/news/flows) | architecturally right, data-gated (v4 Trigger 1) |
+| AEGIS Alpha/Ranking Engine on NEW data (PIT/news/flows) | architecturally right, data-gated (v4 Trigger 1) |
 | Confidence matrix (regime × horizon → label) | assumptions; conditional cells too thin |
 | Goal Engine | built, NOT validated |
 | Wealth OS allocation glide-path | built, NOT validated |

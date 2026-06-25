@@ -1,7 +1,7 @@
 # india/monthly_snapshot.py
 """
 MONTHLY RESEARCH DESK — freeze a dated recommendation snapshot to reports/YYYY_MM.md.
-ARJUNA Core v2.0 (frozen): HRP + regime + Global Risk. Run on the first trading day of each month;
+AEGIS Core v2.0 (frozen): HRP + regime + Global Risk. Run on the first trading day of each month;
 it records the basket, weights, cash, regime, per-stock news, expected return by hold, and reasons.
 After 12 months you have 12 real, timestamped recommendations to judge the system on.
 
@@ -58,7 +58,7 @@ def main():
     path = REPORTS / f"{ym}.md"
 
     L = []
-    L.append(f"# ARJUNA — Monthly Recommendation · {datetime.now().strftime('%B %Y')}\n")
+    L.append(f"# AEGIS — Monthly Recommendation · {datetime.now().strftime('%B %Y')}\n")
     L.append(f"**Strategy:** {VERSION} — HRP + regime + Global Risk  ")
     L.append(f"**As of data:** {pd.Timestamp(asof).date()}  |  **Universe:** {CONFIG.universe}  |  "
              f"**Capital:** Rs{cap:,.0f}  ")

@@ -1,7 +1,7 @@
-# ARJUNA — Indian-equity risk-allocation system
+# AEGIS — Indian-equity risk-allocation system
 
-> ARJUNA is **not** a stock-picker. It's a **risk-allocation & regime-management** system.
-> (Returns are unpredictable; risk is. See [docs/ARJUNA_V2_ARCHITECTURE.md](../docs/ARJUNA_V2_ARCHITECTURE.md).)
+> AEGIS is **not** a stock-picker. It's a **risk-allocation & regime-management** system.
+> (Returns are unpredictable; risk is. See [docs/AEGIS_V2_ARCHITECTURE.md](../docs/AEGIS_V2_ARCHITECTURE.md).)
 
 ## Clean structure
 

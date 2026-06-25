@@ -7,7 +7,7 @@ candidate tasks 2-3, the HONEST way:
   Q1: Can resilience features predict which stocks have LOW drawdown next quarter, out-of-sample?
       (a RISK target -> should be predictable, AUC > 0.5)
   Q2: Does the full resilience set beat using TRAILING VOLATILITY ALONE? (i.e. does it add anything
-      new, or just re-derive the low-vol factor ARJUNA already selects on?)
+      new, or just re-derive the low-vol factor AEGIS already selects on?)
   Q3: Do resilience picks even differ from low-vol picks? (overlap of top-15 each date)
 
 Leak-free: all features use only trailing data; label uses the FORWARD quarter; train on the older

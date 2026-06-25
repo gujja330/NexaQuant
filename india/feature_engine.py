@@ -1,6 +1,6 @@
 # india/feature_engine.py
 """
-STAGE A2 — Feature pipeline for the Arjuna AI ranker.
+STAGE A2 — Feature pipeline for the Aegis AI ranker.
 
 Builds ~30 signals per stock per rebalance date, the RICH feature set the literature says
 ML needs (my earlier price-only test was starved -> AUC 0.47). Groups:

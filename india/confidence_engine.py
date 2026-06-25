@@ -1,6 +1,6 @@
 # india/confidence_engine.py
 """
-ARJUNA CONFIDENCE ENGINE (Future 3 / ARJUNA OS building block).
+AEGIS CONFIDENCE ENGINE (Future 3 / AEGIS OS building block).
 
 One honest dashboard the investor reads BEFORE committing money: current regime, our confidence,
 the realistic return band, odds of profit, expected pain, and the horizon to commit for. It does
@@ -90,7 +90,7 @@ def main():
     eff_conf = min([conf, hv["confidence"]], key=lambda x: rank[x.title()])
 
     print("=" * 56)
-    print("  ARJUNA CONFIDENCE ENGINE")
+    print("  AEGIS CONFIDENCE ENGINE")
     print("=" * 56)
     print(f"  Horizon:           {hlabel}   ->   mode {hv['mode']} ({hv['status']})")
     print(f"  Regime:            {regime}  (market exposure {exp:.0%})")

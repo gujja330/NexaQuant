@@ -43,7 +43,7 @@ def main():
     net, idx = backtest(**CFG)
     eq = (1 + net).cumprod()
 
-    print("=" * 70); print("  ARJUNA v2.1 — PORTFOLIO DIAGNOSTICS"); print("=" * 70)
+    print("=" * 70); print("  AEGIS v2.1 — PORTFOLIO DIAGNOSTICS"); print("=" * 70)
 
     # 1) turnover decomposition
     W = champ_weights(); rebals = W.index
@@ -86,7 +86,7 @@ def main():
     gp = Path(__file__).resolve().parents[2] / "data/raw/india/global/GOLD.parquet"
     if gp.exists():
         gold = pd.read_parquet(gp)["close"].pct_change().reindex(net.index).fillna(0)
-    benches = {"ARJUNA v2.1": net, "Nifty-50": idx2.pct_change().fillna(0),
+    benches = {"AEGIS v2.1": net, "Nifty-50": idx2.pct_change().fillna(0),
                "Equal-weight-200": ew.reindex(net.index).fillna(0)}
     if gold is not None:
         benches["Gold"] = gold

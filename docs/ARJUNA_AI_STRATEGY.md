@@ -1,4 +1,4 @@
-# ARJUNA — Finalized AI Strategy (v1 spec)
+# AEGIS — Finalized AI Strategy (v1 spec)
 
 Status: **FINALIZED for build** (2026-06-19). This is the single source of truth that
 synthesizes the three research docs with the clean-data reality check. Build to THIS;
@@ -17,7 +17,7 @@ On clean Angel data (2021-06 → 2026-06, the only forward-tradeable window):
 | | ₹1L → | Total | CAGR | Sharpe | maxDD |
 |---|---|---|---|---|---|
 | **Nifty buy-and-hold** | **₹1,72,401** | **+72%** | **10.5%** | **0.79** | **17.2%** |
-| Old Arjuna (pure momentum top-5) | ₹1,22,636 | +23% | 3.8% | 0.28 | 33.9% |
+| Old Aegis (pure momentum top-5) | ₹1,22,636 | +23% | 3.8% | 0.28 | 33.9% |
 
 **The old strategy LOSES to a passive index fund on every metric.** v1 is only worth trading
 real money if it beats Nifty buy-and-hold on **return AND Sharpe AND drawdown**, net of cost.

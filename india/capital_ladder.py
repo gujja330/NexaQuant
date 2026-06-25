@@ -1,6 +1,6 @@
 # india/capital_ladder.py
 """
-ARJUNA — CAPITAL LADDER (Future 3 / ARJUNA OS building block).
+AEGIS — CAPITAL LADDER (Future 3 / AEGIS OS building block).
 
 How many stocks should you hold at each capital level, and what does each rung actually deliver?
 We backtest the champion (HRP + regime + sector<=2, quarterly) at every position count and map it
@@ -34,7 +34,7 @@ def rupees(n):
 
 def main():
     print("=" * 84)
-    print("  ARJUNA CAPITAL LADDER — how many stocks per capital, and the money it makes")
+    print("  AEGIS CAPITAL LADDER — how many stocks per capital, and the money it makes")
     print("  (champion: HRP + regime + sector<=2, quarterly; net of cost; ~5.5y)")
     print("=" * 84)
     print(f"  {'capital':<10}{'stocks':>7}{'avg/yr':>9}{'worst fall':>12}{'worst month':>13}"

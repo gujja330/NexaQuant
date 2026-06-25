@@ -1,15 +1,15 @@
-# ARJUNA v2 — Adaptive Risk & Regime Allocation System
+# AEGIS v2 — Adaptive Risk & Regime Allocation System
 
 > **NOT an AI stock-selection system.** A risk-allocation & regime-management system —
 > **AQR / Bridgewater / BlackRock-style risk investing, for retail.**
 
 Identity settled by evidence: 13 model families found no return-selection edge; the gains all came
-from **regime management + risk-based construction**. ARJUNA stopped trying to be a mini-RenTech.
+from **regime management + risk-based construction**. AEGIS stopped trying to be a mini-RenTech.
 
 ## Fundamental Principle
 ```
 Cross-sectional returns are UNPREDICTABLE.  Risk, volatility, drawdowns, regimes are PREDICTABLE.
-ARJUNA forecasts Risk · Regime · Exposure · Weights — never returns.
+AEGIS forecasts Risk · Regime · Exposure · Weights — never returns.
 Objective: long-term RISK-ADJUSTED compounding. Survival first; raw CAGR last.
 ```
 Proof: return prediction AUC ≈ 0.50 (13 models); **volatility AUC 0.76, drawdown 0.62**.
@@ -49,7 +49,7 @@ drops fraud/default/downgrade names before ordering.
 
 ---
 
-## ARJUNA-Core vs ARJUNA-Lab  (physically implemented)
+## AEGIS-Core vs AEGIS-Lab  (physically implemented)
 - **Core = `india/`** — only what SURVIVED: simple+global regime, risk model, correlation/HRP,
   min-var/inv-vol, news filter, validation, breadth.
 - **Lab = `india/research/`** — sandbox: XGBoost/LightGBM, LSTM/Transformer, RL, GNN, HMM, target
@@ -63,7 +63,7 @@ drops fraud/default/downgrade names before ordering.
 
 ---
 
-## ARJUNA-Moonshot (OPTIONAL satellite — power-law, not prediction)
+## AEGIS-Moonshot (OPTIONAL satellite — power-law, not prediction)
 VC philosophy: don't predict which doubles; own 40 quality+growth+momentum names (equal-weight,
 sector-capped, annual hold) and let winners drive it. **Honest result:** Moonshot CAGR 12.1%,
 Sharpe 0.87 — it does NOT beat Core (2.04); a 70/30 barbell *dilutes* Sharpe to 1.62.

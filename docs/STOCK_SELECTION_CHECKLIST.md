@@ -2,7 +2,7 @@
 
 A serious-analyst workflow: first eliminate bad stocks, then rank survivors by business quality,
 catalyst, trend, and risk. The literature supports combining fundamentals, technicals, news/text,
-and macro context — not relying on one signal. This is the human framework that Arjuna's engine
+and macro context — not relying on one signal. This is the human framework that Aegis's engine
 (and its AI refinement, see AI_ML_REFINEMENT_PLAN.md) operationalizes.
 
 ## 1) Universal "must-pass" checklist

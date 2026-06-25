@@ -1,6 +1,6 @@
 # india/labels.py
 """
-STAGE A3 — Labels for the Arjuna AI models.
+STAGE A3 — Labels for the Aegis AI models.
 
 Two targets, both computed at the rebalance frequency and aligned to the feature panel index
 (date, symbol) so they join 1:1 with india/feature_engine.build_features():

@@ -1,6 +1,6 @@
 # india/probability_surface.py
 """
-PROBABILITY SURFACE + HORIZON MODES — the flagship output of ARJUNA OS.
+PROBABILITY SURFACE + HORIZON MODES — the flagship output of AEGIS OS.
 
 Instead of false certainty ("buy ITC, target Rs 350") we communicate a DISTRIBUTION + PROBABILITY
 by holding period. The shorter the horizon the lower the confidence — but we do NOT ban short holds,
@@ -63,7 +63,7 @@ def surface(eq=None, cap=CAP):
 def main():
     eq = _champ_equity()
     print("=" * 84)
-    print("  ARJUNA — PROBABILITY SURFACE (on Rs 1,00,000)   ·   horizon modes, not false targets")
+    print("  AEGIS — PROBABILITY SURFACE (on Rs 1,00,000)   ·   horizon modes, not false targets")
     print("=" * 84)
     print(f"  {'hold':<6}{'P(profit)':>11}{'typical':>11}{'good case':>12}{'bad case':>12}"
           f"{'mode':>13}{'confidence':>12}")
@@ -75,7 +75,7 @@ def main():
     print("    OPPORTUNITY 1-3M    MEDIUM conf TACTICAL     (edge starts to appear)")
     print("    CORE        >=6M    HIGH conf   CORE         (flagship; 90%+ odds)")
     print("\n  The product speaks PROBABILITY + DISTRIBUTION, never 'target price Rs X'.")
-    print("  Short-term limit is 'current public data + architecture' — a future ARJUNA Tactical")
+    print("  Short-term limit is 'current public data + architecture' — a future AEGIS Tactical")
     print("  (options flow / microstructure / news embeddings) could change the 1W-1M picture.")
 
 

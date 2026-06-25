@@ -1,4 +1,4 @@
-# ARJUNA — Product Roadmap (v3.1) — Horizon Modes, Probability Surface, Branches
+# AEGIS — Product Roadmap (v3.1) — Horizon Modes, Probability Surface, Branches
 
 > The product communicates **probability + distribution**, never a false "target price Rs 350".
 > Saying "Hold 6 months · P(profit) 93% · expected +Rs 8,700 · bad case -Rs 1,000 · Confidence HIGH"
@@ -32,10 +32,10 @@ investor self-selects a horizon they're comfortable with instead of being sold f
 
 | Branch | Horizon | Confidence | Status | Notes |
 |---|---|---|---|---|
-| **ARJUNA Core** | 6–12 months | HIGH | mature, frozen (v2.2) | the flagship; HRP/EW + regime |
-| **ARJUNA OS** | n/a (planner) | — | **highest priority** | Goal Engine · Capital Ladder · Confidence Engine · client-facing |
-| **ARJUNA Tactical** | 1 week–3 months | LOW | **research, NOT production** | needs new data (below) |
-| **ARJUNA Lab** | — | — | CLOSED | reopens on data triggers (see ARJUNA_V4_ROADMAP.md) |
+| **AEGIS Core** | 6–12 months | HIGH | mature, frozen (v2.2) | the flagship; HRP/EW + regime |
+| **AEGIS OS** | n/a (planner) | — | **highest priority** | Goal Engine · Capital Ladder · Confidence Engine · client-facing |
+| **AEGIS Tactical** | 1 week–3 months | LOW | **research, NOT production** | needs new data (below) |
+| **AEGIS Lab** | — | — | CLOSED | reopens on data triggers (see AEGIS_V4_ROADMAP.md) |
 
 ## The honest short-term statement (corrected)
 
@@ -43,7 +43,7 @@ We do **not** say "no system can ever help at 1 week/1 month." We say:
 
 > With **current public data and current architecture**, 1-week/1-month holds are near coin flips.
 
-A future **ARJUNA Tactical** built on different fuel — options flow, intraday microstructure, order
+A future **AEGIS Tactical** built on different fuel — options flow, intraday microstructure, order
 books, futures positioning, market profile, news embeddings — could change the short-term picture.
 That is a research branch, gated by the same reopen protocol, not a production promise.
 
@@ -63,6 +63,6 @@ usual DSR/PBO/forward rules. Do not assume it works — it's a hypothesis.
 2. **Horizon Modes** ⭐⭐⭐⭐⭐⭐⭐⭐ — DONE (`mode_of()` + Confidence Engine integration)
 3. **Confidence Engine integration** ⭐⭐⭐⭐⭐⭐⭐⭐ — DONE (horizon-aware, surface embedded)
 4. **Horizon-aware stock selection** ⭐⭐⭐⭐⭐⭐ — research (above), not built
-5. **ARJUNA Tactical** ⭐⭐⭐⭐⭐ — research branch, awaits short-term data
+5. **AEGIS Tactical** ⭐⭐⭐⭐⭐ — research branch, awaits short-term data
 
 Core (6–12 months) remains the flagship product throughout.

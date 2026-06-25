@@ -2,7 +2,7 @@
 """
 EXPERIMENT (scientific roadmap, step 1-3): is a simple-factor ALPHA RANKING worth building?
 
-ARJUNA today = portfolio CONSTRUCTION (how to allocate). Missing = a RANKING engine (which stocks
+AEGIS today = portfolio CONSTRUCTION (how to allocate). Missing = a RANKING engine (which stocks
 deserve consideration). Before any ML, test a SIMPLE-FACTOR baseline ranking the user's way:
 
   Step 1 — Target: cross-sectional forward 3-month return (rank), and "finish in top quintile".
@@ -11,7 +11,7 @@ deserve consideration). Before any ML, test a SIMPLE-FACTOR baseline ranking the
            already do), and Nifty. ALL regime-OFF + equal-weight, to isolate SELECTION skill.
 
 Verdict logic: alpha-ranking is only worth pursuing (and only THEN with ML) if it beats RANDOM
-AND beats plain LOW-VOL out-of-sample. Otherwise it adds nothing over what ARJUNA already has.
+AND beats plain LOW-VOL out-of-sample. Otherwise it adds nothing over what AEGIS already has.
 
 Run: python india/evidence/alpha_ranking.py
 """
@@ -128,7 +128,7 @@ def main():
     if beats_rand and beats_lv:
         print("     -> ranking signal EXISTS over what we have -> THEN try ML (LightGBM/CatBoost), gated.")
     else:
-        print("     -> simple alpha ranking does NOT beat what ARJUNA already does. Do NOT add ML on")
+        print("     -> simple alpha ranking does NOT beat what AEGIS already does. Do NOT add ML on")
         print("        these factors/targets; the missing edge is DATA (PIT fundamentals/news/flows).")
 
 

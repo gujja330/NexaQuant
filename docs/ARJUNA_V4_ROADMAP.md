@@ -1,9 +1,9 @@
-# ARJUNA v4 Roadmap — "AI: Temporarily Closed, Reopens on Data"
+# AEGIS v4 Roadmap — "AI: Temporarily Closed, Reopens on Data"
 
 > We are NOT abandoning AI / ML / DL / RL. We are striking off **"AI with our *current data* and
 > *current problem formulation*"** — a very different statement. The models are a Ferrari engine;
 > our data is kerosene. Institutions run the same engine on jet fuel. **They don't worship models.
-> They worship data.** That is the biggest lesson ARJUNA has learned.
+> They worship data.** That is the biggest lesson AEGIS has learned.
 
 ## The doctrine: data comes first, models last
 
@@ -13,7 +13,7 @@ Data -> Features -> Targets -> Validation -> Models
 ```
 
 Model sophistication is the LAST lever, not the first — and even the full model stack is only ONE
-component. After everything ARJUNA discovered, the real chain runs *past* the model into portfolio
+component. After everything AEGIS discovered, the real chain runs *past* the model into portfolio
 construction, risk management, investor behavior, and ultimately **wealth outcomes > predictions.** The literature (Gu-Kelly, Hanauer/Robeco,
 Chen, State Street) agrees: **model choice matters far less than data quality and target design.**
 More models != more alpha. This is why "AI doesn't work in finance" is false — Renaissance, Two
@@ -113,14 +113,14 @@ experiments are archived in `india/evidence/` (the evidence trail). Every
 experiment: walk-forward / purged CV · nested tuning · deflated Sharpe + PBO for the trial count ·
 realistic costs. A model reaches production ONLY via the decision gate: beats Core's rolling Sharpe,
 acceptable turnover + drawdown, **net of cost, on forward data.** See the protocol in
-`docs/ARJUNA_DEEP_RESEARCH_ML.md`.
+`docs/AEGIS_DEEP_RESEARCH_ML.md`.
 
 ## The arc
 
 ```
 v1  Maybe LSTM finds multibaggers.        (wrong question)
 v2  Returns are hard. Risk is predictable. (the reframe)
-v3  Portfolio engineering > prediction.    (manage wealth — ARJUNA OS)
+v3  Portfolio engineering > prediction.    (manage wealth — AEGIS OS)
 v4  New data unlocks new AI.               (signboard reopens)
 ```
 

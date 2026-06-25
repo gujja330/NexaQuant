@@ -1,7 +1,7 @@
-# ARJUNA Alpha — Master Research Prompt & Evidence Ledger
+# AEGIS Alpha — Master Research Prompt & Evidence Ledger
 
 The canonical objective for the project. Evidence-driven: nothing is assumed; everything proves
-itself through validation. (Companion to [ARJUNA_V2_ARCHITECTURE.md](ARJUNA_V2_ARCHITECTURE.md).)
+itself through validation. (Companion to [AEGIS_V2_ARCHITECTURE.md](AEGIS_V2_ARCHITECTURE.md).)
 
 ## Objective
 Given **capital · horizon (1M/3M/6M/1Y/3Y) · risk appetite · max-drawdown tolerance**, recommend:
@@ -61,9 +61,9 @@ Missing (the real ceiling): point-in-time fundamentals · earnings revisions · 
 options flow · analyst estimates · historical news · alt-data.
 
 ## Architecture split (implemented)
-- **ARJUNA Core** (`india/`) — production: risk · regime · Global Risk · breadth · FII/DII · news
+- **AEGIS Core** (`india/`) — production: risk · regime · Global Risk · breadth · FII/DII · news
   filter · portfolio construction. Goal: max Sharpe, min drawdown.
-- **ARJUNA Alpha Lab** (`india/research/`) — research: is per-stock return predictable? Test new
+- **AEGIS Alpha Lab** (`india/research/`) — research: is per-stock return predictable? Test new
   targets/features/datasets. Evidence decides; promote only on the rule above.
 
 ## Final question the system answers

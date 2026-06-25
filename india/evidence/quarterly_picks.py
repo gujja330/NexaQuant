@@ -44,7 +44,7 @@ def main():
     windows = windows[-5:]                                     # last 4 complete + current
 
     print("=" * 74)
-    print("  ARJUNA Core v2.1 — QUARTERLY PICKS & P&L (last 4 quarters + current)")
+    print("  AEGIS Core v2.1 — QUARTERLY PICKS & P&L (last 4 quarters + current)")
     print("  HRP · 15 names · sector<=2 · quarterly hold. Per-stock = pure model call.")
     print("=" * 74)
 

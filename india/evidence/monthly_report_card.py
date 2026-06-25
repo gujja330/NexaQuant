@@ -1,7 +1,7 @@
 # india/research/monthly_report_card.py
 """
 DETAILED REPORT CARD — every monthly pick, with entry/exit prices and gains (real evidence).
-For each month-start from Jan-2025, reconstruct ARJUNA's basket using ONLY data available then
+For each month-start from Jan-2025, reconstruct AEGIS's basket using ONLY data available then
 (causal), then for each stock record entry price/date, 1-month & 3-month exit price/date, gain%.
 
 Output: output/arjuna_report_card.xlsx

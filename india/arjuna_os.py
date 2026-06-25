@@ -1,16 +1,16 @@
 # india/arjuna_os.py
 """
-ARJUNA OS — the Wealth Operating System (Future 3).
+AEGIS OS — the Wealth Operating System (Future 3).
 
 The leap: v1 found multibaggers, v2 managed risk, v3 manages WEALTH. Not a stock picker —
 a financial planner + risk manager + portfolio manager + stock allocator in one.
 
   INPUT : capital, age, risk appetite, goal, horizon, emergency fund
-  OUTPUT: a full multi-asset plan (Equity / Gold / Debt / Cash), with ARJUNA running the
+  OUTPUT: a full multi-asset plan (Equity / Gold / Debt / Cash), with AEGIS running the
           equity sleeve (stock count from the Capital Ladder), and a blended expectation.
 
 Asset-mix logic is transparent rule-based financial planning (age glide-path + risk + horizon).
-Equity is the validated ARJUNA engine. Gold CAGR is measured from data; Debt/Cash use clearly
+Equity is the validated AEGIS engine. Gold CAGR is measured from data; Debt/Cash use clearly
 LABELLED assumptions (FD ~7%, liquid ~3.5%) since we don't backtest those sleeves.
 
 Run: python india/arjuna_os.py            (edit PROFILE below, or import plan())
@@ -99,7 +99,7 @@ def main():
     mix, n, eq_amt, eq_fwd, g, blended, extra = plan(**PROFILE)
     cap = PROFILE["capital"]
     print("=" * 56)
-    print("  ARJUNA OS — WEALTH PLAN")
+    print("  AEGIS OS — WEALTH PLAN")
     print("=" * 56)
     print(f"  Capital {rupees(cap)}  ·  Age {PROFILE['age']}  ·  Risk {PROFILE['risk']}  ·  "
           f"Goal {PROFILE['goal']} ({PROFILE['horizon_years']}y)")
@@ -107,7 +107,7 @@ def main():
         print(f"  Emergency fund {rupees(PROFILE['emergency_fund'])} -> keep SEPARATE in liquid/FD (not invested)")
     print("  " + "-" * 52)
     print(f"  {'Sleeve':<10}{'Weight':>8}{'Amount':>14}{'Engine / assumption':>24}")
-    rows = [("Equity", mix["equity"], "ARJUNA " + f"({n} stocks)"),
+    rows = [("Equity", mix["equity"], "AEGIS " + f"({n} stocks)"),
             ("Gold", mix["gold"], f"measured {100*g:.0f}%/yr"),
             ("Debt", mix["debt"], f"assumed {100*DEBT_ASSUMED:.0f}%/yr"),
             ("Cash", mix["cash"], f"assumed {100*CASH_ASSUMED:.0f}%/yr")]

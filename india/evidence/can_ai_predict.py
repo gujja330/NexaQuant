@@ -94,7 +94,7 @@ def main():
     print("\n  " + "-" * 60)
     print(f"  Verdict: the SAME AI, SAME factors, SAME data.")
     print(f"  Predicting WHO RISES = {a:.2f} (~ a coin). Predicting WHO IS RISKY = {b:.2f} (skill).")
-    print(f"  This is why ARJUNA forecasts RISK, not winners. The 'reasons' a stock rose are")
+    print(f"  This is why AEGIS forecasts RISK, not winners. The 'reasons' a stock rose are")
     print(f"  already in its price the moment everyone can see them — so they don't predict the")
     print(f"  NEXT move. But risk (volatility) genuinely persists and IS forecastable.")
 

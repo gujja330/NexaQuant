@@ -132,4 +132,4 @@ Expanded universe 23 -> ~49 liquid NSE stocks (reduce concentration/survivorship
 - VIX de-risk now OPTIONAL (lowers DD 24.7%->21.8%, trims return slightly).
 **Lesson:** always validate on a BROAD universe — the narrow-set Sharpe 1.23 was an artifact.
 Honest scorecard downgraded ~7.5 -> ~6/10: a decent, trustworthy ~15% CAGR momentum engine,
-not spectacular. Deck (Arjuna_Architecture.pdf) + picks_report updated to these honest numbers.
+not spectacular. Deck (Aegis_Architecture.pdf) + picks_report updated to these honest numbers.

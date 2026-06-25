@@ -1,13 +1,13 @@
 # india/goal_engine.py
 """
-ARJUNA GOAL ENGINE (Future-3 / ARJUNA OS).
+AEGIS GOAL ENGINE (Future-3 / AEGIS OS).
 
 Turn a life goal into an honest savings plan:
   INPUT : goal name, years, target corpus, (optional) lump-sum already saved
   OUTPUT: required monthly SIP, expected corpus, probability of hitting the target, worst case,
           and a confidence read.
 
-The expected return + its uncertainty come from the validated ARJUNA equity engine via Monte-Carlo
+The expected return + its uncertainty come from the validated AEGIS equity engine via Monte-Carlo
 (survivorship-haircut), blended with the goal's risk posture. Longer goals lean more on equity;
 short goals stay defensive. No predictions of winners — just honest compounding maths with the
 real return distribution.
@@ -76,7 +76,7 @@ def main():
     GOAL = dict(name="Child education", years=10, target=50_00_000, lump_sum=0)
     r = plan_goal(**GOAL)
     print("=" * 52)
-    print("  ARJUNA GOAL ENGINE")
+    print("  AEGIS GOAL ENGINE")
     print("=" * 52)
     print(f"  Goal:              {r['name']}")
     print(f"  Horizon:           {r['years']} years")

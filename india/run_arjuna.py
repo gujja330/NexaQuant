@@ -1,6 +1,6 @@
 # india/run_arjuna.py
 """
-ARJUNA v2 runner — generates the live (paper) portfolio from CONFIG (india/config.py).
+AEGIS v2 runner — generates the live (paper) portfolio from CONFIG (india/config.py).
 
 Pipeline (config-driven): universe -> risk-based weights (Layer 3) -> regime exposure (Layer 1)
 -> news blow-up filter (Layer 4) -> whole-share allocation for your capital. No real orders
@@ -179,7 +179,7 @@ def main():
         hd = {"1 month": 30, "3 months": 91, "6 months": 182, "1 year": 365}.get(a.hold, 365)
         exit_d = (pd.Timestamp(asof) + pd.Timedelta(days=hd)).date()
         print("=" * 60)
-        print(f"  ARJUNA RETAIL RECOMMENDATION — as on {pd.Timestamp(asof).date()}")
+        print(f"  AEGIS RETAIL RECOMMENDATION — as on {pd.Timestamp(asof).date()}")
         print("=" * 60)
         print(f"  Capital   Rs{a.capital:,.0f}")
         print(f"  Regime    {regime_lbl}")
@@ -208,7 +208,7 @@ def main():
     df, spent = allocate(w, prices, invest)
 
     print("=" * 70)
-    print(f"  ARJUNA v2 portfolio  | {CONFIG.universe} | {CONFIG.method} | regime={CONFIG.regime}")
+    print(f"  AEGIS v2 portfolio  | {CONFIG.universe} | {CONFIG.method} | regime={CONFIG.regime}")
     print(f"  as of {pd.Timestamp(asof).date()}   capital Rs{a.capital:,.0f}")
     print("=" * 70)
     print(f"  regime: {regime_lbl}   investing Rs{invest:,.0f} ({100*deploy:.0f}%)")

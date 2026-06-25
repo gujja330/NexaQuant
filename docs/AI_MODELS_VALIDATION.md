@@ -1,4 +1,4 @@
-# Arjuna — AI Model Validation (complete, honest)
+# Aegis — AI Model Validation (complete, honest)
 
 **Question:** can AI/ML pick Indian stocks that beat the index, using our data
 (220 Nifty-200 stocks, ~5.5y daily, 31 features = technical + fundamental + macro + sector)?

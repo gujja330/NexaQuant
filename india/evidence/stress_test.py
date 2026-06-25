@@ -30,7 +30,7 @@ def main():
     print("=" * 70)
     print("  STRESS TESTS — Core v2.1 (15-stock quarterly) vs Nifty in real corrections")
     print("=" * 70)
-    print(f"  {'window':<18}{'ARJUNA ret':>12}{'ARJUNA DD':>11}{'Nifty ret':>11}{'Nifty DD':>10}")
+    print(f"  {'window':<18}{'AEGIS ret':>12}{'AEGIS DD':>11}{'Nifty ret':>11}{'Nifty DD':>10}")
     for name, a, b in WINDOWS:
         s = net.loc[a:b]; n = nifty.loc[a:b]
         if len(s) < 5:

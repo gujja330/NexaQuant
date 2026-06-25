@@ -1,6 +1,6 @@
 # india/evidence/ — Conclusions, not active work
 
-These scripts are ARJUNA's **evidence trail**, not an active research backlog. Each one is a
+These scripts are AEGIS's **evidence trail**, not an active research backlog. Each one is a
 *concluded experiment* — it exists so that "why not X?" is answered with a runnable proof instead
 of being rediscovered two years later.
 
@@ -14,5 +14,5 @@ They answer, with code:
   (`validation_sprint.py`, `diagnostics.py`, `monte_carlo.py`, `risk_analytics.py`, the grids).
 
 Policy: these stay frozen as the record. NEW experiments (only when a data trigger fires — see
-`docs/ARJUNA_V4_ROADMAP.md`) start fresh in a new `india/lab/`, gated by the reopen protocol.
+`docs/AEGIS_V4_ROADMAP.md`) start fresh in a new `india/lab/`, gated by the reopen protocol.
 Do not re-run these expecting a different answer; the answer is the point.

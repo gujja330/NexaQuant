@@ -1,6 +1,6 @@
 # india/arjuna_v2.py
 """
-ARJUNA v2 — RISK-BASED portfolio construction (the validated direction).
+AEGIS v2 — RISK-BASED portfolio construction (the validated direction).
 
 We proved: returns are unpredictable (AUC 0.51) but RISK is (vol AUC 0.76). So v2 stops trying to
 pick winners and instead WEIGHTS the broad basket by predictable risk:
@@ -185,7 +185,7 @@ def row(name, net, idx):
 
 if __name__ == "__main__":
     print("=" * 74)
-    print("  ARJUNA v2 — RISK-BASED construction (Nifty-200, net of cost, ~5.5y)")
+    print("  AEGIS v2 — RISK-BASED construction (Nifty-200, net of cost, ~5.5y)")
     print("  Goal: higher Sharpe + smaller drawdown (return is unpredictable)")
     print("=" * 74)
     print(f"  {'method':<26}{'CAGR':>7}{'Sharpe':>7}{'Sortino':>8}{'maxDD':>7}{'Calmar':>7}{'alpha':>7}{'IR':>6} {'Rs1L->':>11}")

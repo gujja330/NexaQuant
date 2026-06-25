@@ -1,6 +1,6 @@
 # india/arjuna_strategy.py
 """
-ARJUNA — FINAL STRATEGY (evidence-based).
+AEGIS — FINAL STRATEGY (evidence-based).
 
 After testing rotation + AI stock-selection (all LOST to owning the basket), the validated core is:
   OWN A DIVERSIFIED EQUAL-WEIGHT BASKET AND HOLD IT, rebalanced quarterly.
@@ -161,7 +161,7 @@ def line(name, net):
 
 if __name__ == "__main__":
     print("=" * 74)
-    print("  ARJUNA FINAL — equal-weight basket variants (full window, net of cost)")
+    print("  AEGIS FINAL — equal-weight basket variants (full window, net of cost)")
     print("=" * 74)
     print(f"  {'variant':<28}{'total':>8}{'Sharpe':>8}{'maxDD':>8}   {'Rs1L ->':>13}")
     ew100, idx, _, _ = backtest("all");           line("EW-100 (own all, hold)", ew100)

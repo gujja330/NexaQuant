@@ -29,7 +29,7 @@ def main():
     net = net.dropna()
     eq = (1 + net).cumprod(); peak = eq.cummax(); uw = eq / peak - 1
 
-    print("=" * 64); print("  ARJUNA v2.1 — RISK ANALYTICS"); print("=" * 64)
+    print("=" * 64); print("  AEGIS v2.1 — RISK ANALYTICS"); print("=" * 64)
 
     # 1) recovery episodes (peak -> back to new high)
     is_high = uw >= -1e-9; episodes = []; last = 0
@@ -54,7 +54,7 @@ def main():
     print(f"\n  2) UNDERWATER: max depth {100*uw.min():.1f}%   longest underwater {longest} days (~{longest/21:.1f} mo)")
     fig, ax = plt.subplots(figsize=(9, 3.2))
     ax.fill_between(uw.index, 100 * uw.values, 0, color="#d62246", alpha=0.6)
-    ax.set_title("ARJUNA v2.1 — Underwater Curve (drawdown over time)", weight="bold")
+    ax.set_title("AEGIS v2.1 — Underwater Curve (drawdown over time)", weight="bold")
     ax.set_ylabel("drawdown %"); ax.grid(alpha=0.3)
     for s in ["top", "right"]: ax.spines[s].set_visible(False)
     fig.tight_layout(); fig.savefig(OUT / "arjuna_underwater.png", dpi=110); plt.close(fig)

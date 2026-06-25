@@ -1,7 +1,7 @@
 # docs/build_arjuna_v2_pdf.py
 """
-ARJUNA v2.1 architecture deck — clean, colorful, one idea per page, real backtest charts.
-Output: docs/ARJUNA_v2_Architecture.pdf   Run: python docs/build_arjuna_v2_pdf.py
+AEGIS v2.1 architecture deck — clean, colorful, one idea per page, real backtest charts.
+Output: docs/AEGIS_v2_Architecture.pdf   Run: python docs/build_arjuna_v2_pdf.py
 """
 import sys, warnings
 from pathlib import Path
@@ -76,12 +76,12 @@ def main():
     reps = np.array(reps) if reps else np.array([0])
     rp = {q: int(np.percentile(reps, q)) for q in (50, 75, 90, 95)}; rworst = int(reps.max())
 
-    pdf_path = ROOT / "docs" / "ARJUNA_v2_Architecture.pdf"
+    pdf_path = ROOT / "docs" / "AEGIS_v2_Architecture.pdf"
     with PdfPages(pdf_path) as pdf:
 
         # ---- 1 COVER ----
         fig, ax = newpage(NAVY)
-        ax.text(0.5, 0.78, "ARJUNA", color="white", fontsize=60, weight="bold", ha="center")
+        ax.text(0.5, 0.78, "AEGIS", color="white", fontsize=60, weight="bold", ha="center")
         ax.add_patch(Rectangle((0.34, 0.745), 0.32, 0.005, color=GOLD))
         ax.text(0.5, 0.70, "v2.1  ·  Adaptive Risk & Regime Allocation System", color=TEAL, fontsize=15, ha="center", weight="bold")
         ax.text(0.5, 0.645, "AQR / Bridgewater-style risk investing — for retail Indian equities", color="#c7d0db", fontsize=11, ha="center")
@@ -96,7 +96,7 @@ def main():
                 color="white", fontsize=12.5, ha="center", weight="bold")
         ax.text(0.5, 0.30, "NOT a stock-picker. A risk-allocation & regime-management system.", color=GOLD, fontsize=11.5, ha="center")
         ax.text(0.5, 0.06, "Validated on clean Angel One data · Nifty-200 · net of cost · ~5.5y\n"
-                "Returns are unpredictable. Risk is. ARJUNA forecasts risk, not winners.", color="#8b9bb0", fontsize=9.5, ha="center")
+                "Returns are unpredictable. Risk is. AEGIS forecasts risk, not winners.", color="#8b9bb0", fontsize=9.5, ha="center")
         pdf.savefig(fig, facecolor=fig.get_facecolor()); plt.close(fig)
 
         # ---- 2 PRINCIPLE ----
@@ -117,7 +117,7 @@ def main():
         # ---- 3 RESULTS ----
         fig, ax = newpage(); header(ax, "VALIDATED RESULTS", "v2.1 vs the index (₹1L, ~5.5y, net of cost)")
         axc = fig.add_axes([0.11, 0.44, 0.80, 0.38])
-        axc.plot(ce.index, ce, color=TEAL, lw=2.4, label="ARJUNA v2.1 (15 stk, quarterly)")
+        axc.plot(ce.index, ce, color=TEAL, lw=2.4, label="AEGIS v2.1 (15 stk, quarterly)")
         axc.plot(ewe.index, ewe, color=GOLD, lw=1.5, label="Equal-weight basket")
         axc.plot(ne.index, ne, color=GREY, lw=1.5, label="Nifty-50")
         axc.legend(frameon=False, fontsize=10, loc="upper left"); axc.grid(alpha=0.25)
@@ -165,7 +165,7 @@ def main():
             yy = 0.72 - i * 0.082
             box(ax, 0.06, yy, 0.42, 0.06, "  " + a, "#e7f5ef", tc=NAVY, fs=10, align="left")
             box(ax, 0.52, yy, 0.42, 0.06, "  " + d, "#fdeaea", tc=NAVY, fs=10, align="left")
-        ax.text(0.5, 0.06, "Every rejection made ARJUNA simpler. Data is the bottleneck, not models.", color=GREY, fontsize=10, ha="center", style="italic")
+        ax.text(0.5, 0.06, "Every rejection made AEGIS simpler. Data is the bottleneck, not models.", color=GREY, fontsize=10, ha="center", style="italic")
         pdf.savefig(fig); plt.close(fig)
 
         # ---- 6 TIME DIVERSIFICATION ----
@@ -179,7 +179,7 @@ def main():
         axt.set_title("Probability of a positive outcome by holding period", color=NAVY, weight="bold")
         for sp in ["top", "right"]: axt.spines[sp].set_visible(False)
         box(ax, 0.06, 0.18, 0.88, 0.16, "  ≥6 months -> 90%+ positive · ≥1 year -> 96% · ≥2 years -> 100% (in-sample).\n"
-            "  ARJUNA is a compounding system — give it time. Suggested horizon: 1 year+.", INDIGO, fs=11, align="left")
+            "  AEGIS is a compounding system — give it time. Suggested horizon: 1 year+.", INDIGO, fs=11, align="left")
         pdf.savefig(fig); plt.close(fig)
 
         # ---- 7 STRESS + ROBUSTNESS ----
@@ -188,13 +188,13 @@ def main():
         labels = [w[0] for w in windows]
         adds = [dd(champ.loc[a:b]) for _, a, b in windows]; ndds = [dd(nifty.loc[a:b]) for _, a, b in windows]
         x = np.arange(len(labels)); w = 0.36
-        axs.bar(x - w/2, adds, w, color=TEAL, label="ARJUNA"); axs.bar(x + w/2, ndds, w, color=GREY, label="Nifty")
+        axs.bar(x - w/2, adds, w, color=TEAL, label="AEGIS"); axs.bar(x + w/2, ndds, w, color=GREY, label="Nifty")
         axs.set_xticks(x); axs.set_xticklabels(labels); axs.set_ylabel("max drawdown %")
         axs.legend(frameon=False, fontsize=10); axs.set_title("Drawdown in real corrections (lower = better)", color=NAVY, weight="bold")
         for sp in ["top", "right"]: axs.spines[sp].set_visible(False)
         box(ax, 0.06, 0.30, 0.88, 0.14, "  Rolling 3-yr windows: Sharpe 2.1–2.66 (consistent).  Monte-Carlo (35% haircut):\n"
             "  median ~9–10%/yr, P(+ve 1yr)=87% / 3yr=98%, P(drawdown>20%) ~ 0% at every haircut.", GREEN, tc=NAVY, fs=11, align="left")
-        box(ax, 0.06, 0.13, 0.88, 0.11, "  In 3 of 4 corrections ARJUNA stayed POSITIVE while the Nifty fell hard;\n"
+        box(ax, 0.06, 0.13, 0.88, 0.11, "  In 3 of 4 corrections AEGIS stayed POSITIVE while the Nifty fell hard;\n"
             "  drawdown was 2–3x smaller every time. The regime + Global overlay is the defense.", INDIGO, fs=11, align="left")
         pdf.savefig(fig); plt.close(fig)
 
@@ -245,13 +245,13 @@ def main():
         box(ax, 0.06, 0.59, 0.88, 0.12, "  WON'T: pick the next multibagger (impossible in advance) · predict returns ·\n"
             "  win every year (streaky: great in trends, flat in chop).", "#fdeaea", tc=NAVY, fs=11, align="left")
         ax.text(0.06, 0.52, "Maturity ~98%. Remaining: forward paper (12 mo) + point-in-time fundamentals (data).", color=NAVY, fontsize=11, weight="bold")
-        box(ax, 0.06, 0.14, 0.88, 0.30, "  THE ARJUNA DOCTRINE\n\n"
+        box(ax, 0.06, 0.14, 0.88, 0.30, "  THE AEGIS DOCTRINE\n\n"
             "  Markets are mostly efficient.        Regime > stock selection.\n"
             "  Returns are noisy.                   Construction > models.\n"
             "  Risk has structure.                  Data quality > complexity.\n"
             "  Survival > prediction.               Robustness > backtests.\n"
             "  Diversification > concentration.     Long-term compounding > short-term accuracy.", NAVY, fs=10.5, align="left")
-        ax.text(0.5, 0.07, "ARJUNA v2.1 — built on evidence, not hope. \U0001f3f9", color=GREY, fontsize=10.5, ha="center")
+        ax.text(0.5, 0.07, "AEGIS v2.1 — built on evidence, not hope. \U0001f3f9", color=GREY, fontsize=10.5, ha="center")
         pdf.savefig(fig); plt.close(fig)
 
     print(f"  saved -> {pdf_path}  ({s['cagr']:.1f}% CAGR, Sharpe {s['sharpe']:.2f})")

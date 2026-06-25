@@ -59,10 +59,10 @@ def main():
     net = net.dropna()
 
     print("=" * 64)
-    print("  ARJUNA v2.1 — MONTH-ON-MONTH (MoM) BREAKDOWN")
+    print("  AEGIS v2.1 — MONTH-ON-MONTH (MoM) BREAKDOWN")
     print("=" * 64)
     df = mom_table(net, idx, months=18)
-    print(f"  {'month':<10}{'ARJUNA':>9}{'Nifty':>9}{'edge':>8}{'result':>10}")
+    print(f"  {'month':<10}{'AEGIS':>9}{'Nifty':>9}{'edge':>8}{'result':>10}")
     wins = beats = 0
     for dt, r in df.iterrows():
         edge = r["arjuna"] - r["nifty"]
@@ -73,7 +73,7 @@ def main():
     print(f"  {'-'*46}")
     print(f"  months positive   {int(wins)}/{n} = {100*wins/n:.0f}%")
     print(f"  months beat Nifty {int(beats)}/{n} = {100*beats/n:.0f}%")
-    print(f"  cum (18m)  ARJUNA {100*((1+df['arjuna']/100).prod()-1):+.1f}%   "
+    print(f"  cum (18m)  AEGIS {100*((1+df['arjuna']/100).prod()-1):+.1f}%   "
           f"Nifty {100*((1+df['nifty']/100).prod()-1):+.1f}%")
 
     # ---- pick quality ----

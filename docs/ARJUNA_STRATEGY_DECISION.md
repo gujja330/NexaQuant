@@ -1,4 +1,4 @@
-# ARJUNA — Strategy Decision (2026-06-22)
+# AEGIS — Strategy Decision (2026-06-22)
 
 > The honest answer to "we can't pick stocks, the weights don't work, where's the potential?"
 > This document records the decomposition test that settled it and the two-style decision it forced.

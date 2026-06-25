@@ -10,7 +10,7 @@ Measures the thing users actually care about — RECOMMENDATION QUALITY — not 
   IC: Spearman of the factor score vs forward return.
 
 Bake-off vs STANDARD FACTORS (not just random): Random · Momentum · Quality(risk-adj) · Low-Vol ·
-Alpha(composite). Answers "does ARJUNA beat standard factor investing?" — and gives the template
+Alpha(composite). Answers "does AEGIS beat standard factor investing?" — and gives the template
 every NEW dataset must pass (same pipeline: features -> IC -> RQS/Hit -> OOS -> forward paper).
 
 NOTE: true Quality/Value factors need POINT-IN-TIME fundamentals we don't have causally — so only
@@ -98,7 +98,7 @@ def main():
     print("\n  RQS 0.50 = no skill (random) · >0.55 = real recommendation skill · IC>0.05 = useful.")
     print("  Avg rank = where the picks finish out of the universe (lower is better).")
     print("\n  This scorecard is the GATE every new dataset must pass (Track C). A dataset only enters")
-    print("  ARJUNA Discover if it lifts RQS/Hit above these price-factor baselines, then survives OOS")
+    print("  AEGIS Discover if it lifts RQS/Hit above these price-factor baselines, then survives OOS")
     print("  + forward paper. Quality/Value need POINT-IN-TIME fundamentals (untestable here) -> PIT is")
     print("  dataset #1 precisely because we cannot even score those factors causally yet.")
 

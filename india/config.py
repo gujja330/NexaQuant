@@ -1,10 +1,10 @@
 # india/config.py
 """
-Central ARJUNA v2 configuration — the ONE place to change strategy behavior (dynamic format).
+Central AEGIS v2 configuration — the ONE place to change strategy behavior (dynamic format).
 Every core module + the runner reads from CONFIG, so tuning the system never means editing logic.
 
->>> ARJUNA CORE v2.2 — 2026-06-22 <<<
-DECOMPOSITION FINDING (see docs/ARJUNA_STRATEGY_DECISION.md): stock SELECTION and HRP WEIGHTING
+>>> AEGIS CORE v2.2 — 2026-06-22 <<<
+DECOMPOSITION FINDING (see docs/AEGIS_STRATEGY_DECISION.md): stock SELECTION and HRP WEIGHTING
 add ~no value over equal-weight (HRP-15 Sharpe 1.28 ~ EW-15 1.30, regime OFF). The ENTIRE
 Sharpe-2.0 edge is the REGIME overlay (defensive exposure timing). So v2.2 offers two validated
 styles built on that one real edge:
@@ -20,13 +20,13 @@ CAVEAT: all CAGR is survivorship-inflated; BROAD is the MOST flattered (holds ev
 forward return gap over CONCENTRATED is likely smaller than +4pp. Sharpe parity is the honest read.
 DO NOT re-defend HRP/selection as alpha — tested, dead. The edge to protect is the regime overlay.
 Concluded experiments are archived in india/evidence/ (the evidence trail); reopened ML work (only
-when a data trigger fires) starts fresh in india/lab/. See docs/ARJUNA_V4_ROADMAP.md.
+when a data trigger fires) starts fresh in india/lab/. See docs/AEGIS_V4_ROADMAP.md.
 """
 from dataclasses import dataclass
 
-VERSION = "ARJUNA Core v2.2 (2026-06-22)"
+VERSION = "AEGIS Core v2.2 (2026-06-22)"
 
-# AI/ML re-experimentation policy (see docs/ARJUNA_V4_ROADMAP.md). We are NOT abandoning ML.
+# AI/ML re-experimentation policy (see docs/AEGIS_V4_ROADMAP.md). We are NOT abandoning ML.
 # It is a signboard, not a tombstone: TEMPORARILY CLOSED until better DATA arrives. Doctrine =
 # Data -> Features -> Targets -> Validation -> Models (sophistication LAST). Run india/ai_reopen.py
 # to see which data triggers are CLOSED vs ARMED.
@@ -34,7 +34,7 @@ MODELS_FROZEN_UNTIL_DATA_ARRIVES = True      # never *_FOREVER
 
 
 @dataclass
-class ArjunaConfig:
+class AegisConfig:
     # --- universe ---
     universe: str = "nifty200"        # "nifty100" | "nifty200"
     # --- STYLE: the v2.2 decision. "broad" = EW whole basket + regime (higher return, index-fund
@@ -61,7 +61,7 @@ class ArjunaConfig:
     capital: float = 100000.0
 
 
-CONFIG = ArjunaConfig()
+CONFIG = AegisConfig()
 
 # risk_appetite -> (method, name_cap, regime). Low = diversified+defensive, High = concentrated.
 RISK_PROFILE = {"low": ("hrp", 0.04, "global"),
@@ -75,7 +75,7 @@ def apply_risk_appetite():
 
 
 # style -> backtest kwargs. BROAD drops selection (topn=None) and uses equal-weight; the regime
-# overlay (the one real edge) stays ON for both. See docs/ARJUNA_STRATEGY_DECISION.md.
+# overlay (the one real edge) stays ON for both. See docs/AEGIS_STRATEGY_DECISION.md.
 def style_kwargs():
     if CONFIG.style == "broad":
         return dict(method="ew", regime=CONFIG.regime, topn=None, sector_cap=None,

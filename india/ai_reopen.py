@@ -1,9 +1,9 @@
 # india/ai_reopen.py
 """
-ARJUNA AI REOPEN — the signboard, made live.
+AEGIS AI REOPEN — the signboard, made live.
 
 We are NOT abandoning AI. It is TEMPORARILY CLOSED until better DATA arrives (see
-docs/ARJUNA_V4_ROADMAP.md). This script checks which data triggers exist on disk right now and
+docs/AEGIS_V4_ROADMAP.md). This script checks which data triggers exist on disk right now and
 prints which AI model families are CLOSED vs ARMED to reopen. The day a dataset lands, this flips
 to ARMED and tells you exactly which models to (carefully, gated) reopen in the Lab.
 
@@ -42,7 +42,7 @@ TRIGGERS = [
 
 def main():
     print("=" * 70)
-    print("  ARJUNA — AI REOPEN STATUS  (signboard, not tombstone)")
+    print("  AEGIS — AI REOPEN STATUS  (signboard, not tombstone)")
     print("=" * 70)
     print(f"  MODELS_FROZEN_UNTIL_DATA_ARRIVES = {MODELS_FROZEN_UNTIL_DATA_ARRIVES}")
     print("  Doctrine: Data -> Features -> Targets -> Validation -> Models (sophistication LAST)\n")

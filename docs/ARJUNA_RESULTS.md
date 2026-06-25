@@ -1,10 +1,10 @@
-# ARJUNA — Consolidated Backtest Results (2026-06-22)
+# AEGIS — Consolidated Backtest Results (2026-06-22)
 
 All figures computed live from `data/raw/india/` (232 stocks, ~1,358 daily rows, Dec-2020→Jun-2026, Nifty-200, net of 21bps). **Survivorship-inflated levels — trust the relative edges, not absolute CAGR.**
 
 ## 1. Champion vs Nifty (Core v2.2: HRP + regime + 15 stk + sector≤2, quarterly)
 
-| Metric | ARJUNA | Nifty-50 |
+| Metric | AEGIS | Nifty-50 |
 |---|---|---|
 | CAGR | 16.4% | 10.8% |
 | Sharpe | 2.02 | 0.80 |

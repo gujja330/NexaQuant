@@ -39,17 +39,17 @@ def main():
     nf = idx.pct_change().reindex(net.index).fillna(0.0)
 
     print("=" * 72)
-    print("  ARJUNA BACKPAPER — would paper-trading the frozen champion have worked?")
+    print("  AEGIS BACKPAPER — would paper-trading the frozen champion have worked?")
     print("=" * 72)
 
     # 1) year-by-year realized, vs Nifty
     print("\n  1) YEAR-BY-YEAR (realized, net of cost) — incl. the bad years:")
-    print(f"     {'year':<6}{'ARJUNA':>9}{'Nifty':>9}{'edge':>8}{'winner':>9}")
+    print(f"     {'year':<6}{'AEGIS':>9}{'Nifty':>9}{'edge':>8}{'winner':>9}")
     wins = 0; yrs = sorted(set(net.index.year))
     for y in yrs:
         a = 100 * ((1 + net[net.index.year == y]).prod() - 1)
         n = 100 * ((1 + nf[nf.index.year == y]).prod() - 1)
-        w = "ARJUNA" if a > n else "Nifty"
+        w = "AEGIS" if a > n else "Nifty"
         wins += a > n
         print(f"     {y:<6}{a:>+8.1f}%{n:>+8.1f}%{a-n:>+7.1f}%{w:>9}")
     print(f"     -> beat Nifty in {wins}/{len(yrs)} years")
@@ -57,7 +57,7 @@ def main():
     # 2) out-of-sample split: front half vs back half
     mid = net.index[len(net) // 2]
     print(f"\n  2) OUT-OF-SAMPLE SPLIT at {mid.date()} (rules fixed; does the edge persist in back half?):")
-    print(f"     {'window':<10}{'ARJUNA CAGR/Sharpe/DD':>30}{'Nifty CAGR/Sharpe/DD':>28}")
+    print(f"     {'window':<10}{'AEGIS CAGR/Sharpe/DD':>30}{'Nifty CAGR/Sharpe/DD':>28}")
     for label, sl in [("FRONT", net.index < mid), ("BACK (OOS)", net.index >= mid)]:
         a = seg_stats(net[sl], idx); n = seg_stats(nf[sl], idx)
         print(f"     {label:<10}{a[0]:>10.1f}% {a[1]:>6.2f} {a[2]:>6.1f}%"
@@ -65,7 +65,7 @@ def main():
 
     # 3) verdict
     full_a = seg_stats(net, idx); full_n = seg_stats(nf, idx)
-    print(f"\n  3) FULL PERIOD: ARJUNA Sharpe {full_a[1]:.2f} / DD {full_a[2]:.1f}%  vs  "
+    print(f"\n  3) FULL PERIOD: AEGIS Sharpe {full_a[1]:.2f} / DD {full_a[2]:.1f}%  vs  "
           f"Nifty Sharpe {full_n[1]:.2f} / DD {full_n[2]:.1f}%")
     print("\n  HONEST VERDICT:")
     print("  - The edge is RELATIVE + RISK-side (higher Sharpe, ~half the drawdown, beats Nifty in")

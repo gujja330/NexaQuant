@@ -1,6 +1,6 @@
-# ARJUNA — Deep Research: ML in Stock Picking (external report, saved 2026-06-22)
+# AEGIS — Deep Research: ML in Stock Picking (external report, saved 2026-06-22)
 
-> Independent deep-research report commissioned to pressure-test ARJUNA's conclusions against
+> Independent deep-research report commissioned to pressure-test AEGIS's conclusions against
 > recent academic + industry evidence. Verdict: it **confirms** our findings and adds a formal
 > trigger/guardrail protocol for reopening ML. Distilled action summary first; full report below.
 
@@ -57,7 +57,7 @@ consistency, downside-beta) scores 0.664 — i.e. resilience features add **-0.0
 slightly worse). Volatility is 57% of all predictive power. The resilience composite DOES pick
 different stocks (21% overlap with low-vol) but without any predictive edge, so those picks would
 be worse, not better. **Conclusion: resilience ranking just re-derives (slightly worse than) the
-low-vol factor ARJUNA already selects on — not worth a portfolio A/B.** Caveat: target was forward
+low-vol factor AEGIS already selects on — not worth a portfolio A/B.** Caveat: target was forward
 drawdown; a dedicated "fastest-recovery" target is an open follow-up, but vol's dominance makes a
 different result unlikely. Consistent with: risk is predictable, but VOLATILITY is its efficient summary.
 
@@ -79,7 +79,7 @@ on 36 standard factors (15,000 EM stocks, 1990-2021) produced ~1.0-1.2% monthly 
 models. State Street's (2024) ML model using media sentiment showed "strong efficacy" in predicting
 sector-relative returns.
 
-Despite this promise, ML in practice often fails to produce reliable alphas. ARJUNA's own tests found
+Despite this promise, ML in practice often fails to produce reliable alphas. AEGIS's own tests found
 every ML strategy (XGBoost, LSTM, GNN, RL, etc.) essentially hit chance (AUC ~50%) in return
 prediction, while only risk-related targets (volatility, drawdowns) were predictable. Chen et al.
 (2024) show ML performance varies enormously with design choices, top-minus-bottom returns ranging
@@ -87,12 +87,12 @@ prediction, while only risk-related targets (volatility, drawdowns) were predict
 accuracy and "only 13-23% of hyperparameter settings beat buy-and-hold," highlighting rampant
 overfitting. Models often fit noise or look-ahead leakage rather than genuine signals.
 
-Meanwhile, ARJUNA's portfolio-engineering rules (risk-parity weighting, sector caps) achieved very
+Meanwhile, AEGIS's portfolio-engineering rules (risk-parity weighting, sector caps) achieved very
 high Sharpe (~2.0) and low drawdown without any prediction models. HRP with regime-based global
 exposure (quarterly) is robust (Sharpe ~2.0, DD ~11%), whereas all ML-driven stock-picking attempts
 failed. Risk-management rules and constraints matched or outperformed complex ML in real backtests.
 
-Looking forward, ARJUNA's edge likely lies in data, not new models. Point-in-time fundamentals,
+Looking forward, AEGIS's edge likely lies in data, not new models. Point-in-time fundamentals,
 historical news/sentiment, analyst revisions, insider signals, and options flow are potential
 upgrades. Using proper point-in-time financials dramatically changes backtest results. Recommended:
 a strict sandbox process — trigger ML research only on new data or after forward-test failures, use
@@ -119,11 +119,11 @@ economic-significance focus.
 - Label noise / target ambiguity (raw returns noisy; ranking IC ~ zero).
 Guard with purged walk-forward CV, deflated Sharpe, PBO.
 
-### 3. Model-Driven vs Portfolio-Engineering (ARJUNA evidence)
+### 3. Model-Driven vs Portfolio-Engineering (AEGIS evidence)
 All model-driven selection (ML, RL, GNN) failed to produce robust strategies; portfolio-engineering
 (risk parity, sector caps, regime sizing) achieved high Sharpe with acceptable drawdown.
 
-| Method | Data | Assumptions | Strengths | Weaknesses | ARJUNA result |
+| Method | Data | Assumptions | Strengths | Weaknesses | AEGIS result |
 |---|---|---|---|---|---|
 | ML tree classifiers | prices, std factors | stable cross-sectional patterns | non-linear interactions | overfits, lookahead | fails (AUC~0.50) |
 | Deep learning (LSTM/Transformer) | prices, technicals | temporal patterns | sequence modeling | data-hungry, opaque, unstable | no better than random |
@@ -144,9 +144,9 @@ Triggers, candidate tasks, evaluation protocols, and production gating — captu
 section at the top of this file.
 
 ### Conclusion
-ARJUNA Core v2.1 should remain rule-based, not predictive, until new evidence justifies change.
+AEGIS Core v2.1 should remain rule-based, not predictive, until new evidence justifies change.
 Finalize data (PIT fundamentals), continue forward testing, set quantitative triggers, document
 rather than code new models. The brain stays focused on capital allocation and risk management;
 unlock ML only on new timely data or forward-performance failure, with rigorous validation.
 
-*Sources: peer-reviewed studies + industry reports as cited, plus ARJUNA's own backtests.*
+*Sources: peer-reviewed studies + industry reports as cited, plus AEGIS's own backtests.*

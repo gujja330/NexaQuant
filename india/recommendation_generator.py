@@ -1,6 +1,6 @@
 # india/recommendation_generator.py
 """
-ARJUNA RECOMMENDATION PIPELINE — dynamic, config-driven, reusable.
+AEGIS RECOMMENDATION PIPELINE — dynamic, config-driven, reusable.
 
 generate -> evidence-gate -> publish (one timestamped workbook) -> register -> score.
 
@@ -269,7 +269,7 @@ def main():
             for name, df in sheets:
                 (df if not df.empty else pd.DataFrame([["(none)"]])).to_excel(xl, sheet_name=name[:31], index=False)
 
-    stamped = folder / f"ARJUNA_Recommendations_{generated}.xlsx"
+    stamped = folder / f"AEGIS_Recommendations_{generated}.xlsx"
     write_workbook(stamped); shutil.copyfile(stamped, LATEST)
 
     try:

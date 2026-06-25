@@ -1,7 +1,7 @@
-# ARJUNA — Staged Build Plan (v1)
+# AEGIS — Staged Build Plan (v1)
 
 Build order with a **test gate** at the end of every stage. We do NOT move to the next
-stage until the current one passes its test. Spec it implements: [ARJUNA_AI_STRATEGY.md](ARJUNA_AI_STRATEGY.md).
+stage until the current one passes its test. Spec it implements: [AEGIS_AI_STRATEGY.md](AEGIS_AI_STRATEGY.md).
 
 Goals this serves: **pick the best stocks, AVOID bad ones before ordering, decent win rate,
 beat the Nifty net of cost (the real 10/10 bar).**
@@ -82,7 +82,7 @@ drawdown**, net of cost, out-of-sample? Report the honest verdict either way.
 - 2026-06-19: **DECISIVE — AI selection LOSES to owning the basket.** Fair benchmark = equal-weight
   Nifty-100 (same universe). AI long-hold (+60%, Sharpe 0.94) < EW-100 (+73%, 1.39) OOS; IC ~ -0.03.
   AI's "win vs Nifty-50" was mid-cap beta. Dropped AI stock-selection.
-- 2026-06-19: **SHIPPED Arjuna v1 = equal-weight basket + VIX de-risk** (`arjuna_strategy.py`).
+- 2026-06-19: **SHIPPED Aegis v1 = equal-weight basket + VIX de-risk** (`arjuna_strategy.py`).
   Full window net of cost: EW-100 +190%/1.36 (ideal, 100 orders, most survivorship-biased);
   EW-30 quality+VIX +85%/1.00 (DEPLOYABLE, beats Nifty +74/0.80); VIX overlay lifted Sharpe
   0.77->1.00 (kept). `run_arjuna.py` = paper runner (auto-sizes basket to capital; live orders

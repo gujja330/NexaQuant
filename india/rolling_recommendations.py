@@ -4,7 +4,7 @@ ROLLING WALK-FORWARD MONTHLY SIMULATION — the "proof of recommendation".
 
 Not one big backtest. Every month: generate the recommendation portfolio (causal), invest, hold
 HORIZON, exit, score vs Nifty. Repeat to today. This answers "if I'd started any month, how would
-ARJUNA's recommendation have done?" — thousands of rolling decisions, the way institutions validate.
+AEGIS's recommendation have done?" — thousands of rolling decisions, the way institutions validate.
 
 HONESTY (user's caution): we evaluate the ACTUAL MONTHLY PORTFOLIO (all recommended holdings
 together) vs the benchmark — proving PORTFOLIO performance, which has real evidence. We do NOT claim

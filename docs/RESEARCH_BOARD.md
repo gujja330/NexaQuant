@@ -1,4 +1,4 @@
-# ARJUNA — Research Board (the heartbeat)
+# AEGIS — Research Board (the heartbeat)
 
 > One living tracker. Not architecture, not documents — hypotheses, evidence, decisions.
 > **v2 is COMPLETE.** Not because it's perfect — because it answered its research question.
@@ -13,8 +13,8 @@
 
 > **Can point-in-time earnings, events, institutional flows, and fundamentals measurably improve
 > recommendation quality BEYOND the current baseline?**
-> Objective is no longer "build ARJUNA." It is: **find ONE reproducible source of alpha.**
-> If the answer is also "no", that is a valuable result. If "yes", it's ARJUNA Discover's first edge.
+> Objective is no longer "build AEGIS." It is: **find ONE reproducible source of alpha.**
+> If the answer is also "no", that is a valuable result. If "yes", it's AEGIS Discover's first edge.
 
 ## The board
 
@@ -46,21 +46,21 @@ No coding until a hypothesis is clearly defined. A good story is not evidence.
 
 ## The metric that decides a dataset: Incremental Information
 
-Don't ask "does PIT work?" Ask "does PIT improve recommendations *beyond what ARJUNA already
+Don't ask "does PIT work?" Ask "does PIT improve recommendations *beyond what AEGIS already
 knows*?"
 ```
 Portfolio only        RQS 0.50
 Portfolio + dataset   RQS 0.59     ->  incremental +0.09 = the dataset's value
 ```
-A dataset earns a place in ARJUNA Discover ONLY if its incremental RQS is positive AND survives
+A dataset earns a place in AEGIS Discover ONLY if its incremental RQS is positive AND survives
 rolling OOS + forward paper.
 
 ## The three products (a quant research platform, not a "stock picker")
 
-- **ARJUNA Portfolio** — capital allocation (DONE, frozen, forward-paper pending).
-- **ARJUNA Discover** — research candidate generation → a WATCHLIST (data-gated; empty until a
+- **AEGIS Portfolio** — capital allocation (DONE, frozen, forward-paper pending).
+- **AEGIS Discover** — research candidate generation → a WATCHLIST (data-gated; empty until a
   dataset clears the gate).
-- **ARJUNA Evidence** — measures whether ideas actually work: the **Recommendation Registry**
+- **AEGIS Evidence** — measures whether ideas actually work: the **Recommendation Registry**
   (`india/recommendation_registry.py`, every rec stored + scored) and the **RQS scorecard**
   (`india/evidence/recommendation_quality.py`).
 

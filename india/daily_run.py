@@ -1,6 +1,6 @@
 # india/daily_run.py
 """
-ARJUNA daily forward run (paper). Orchestrates the live experiment:
+AEGIS daily forward run (paper). Orchestrates the live experiment:
   1. score news sentiment for the basket  -> appends to news_sentiment.parquet (forward history)
   2. generate the news-FILTERED equal-weight basket (run_arjuna)
   3. append today's basket snapshot to output/paper_log.csv (so we can measure forward P&L later)
@@ -32,7 +32,7 @@ def main():
     ap.add_argument("--capital", default="100000")
     ap.add_argument("--pull", action="store_true", help="refresh Angel prices first (weekly)")
     a = ap.parse_args()
-    print(f"######## ARJUNA DAILY RUN {datetime.now().isoformat(timespec='seconds')} ########", flush=True)
+    print(f"######## AEGIS DAILY RUN {datetime.now().isoformat(timespec='seconds')} ########", flush=True)
 
     if a.pull:
         step("1. refresh prices (Angel, incremental)", ["broker_angelone.py", "--pull"])

@@ -1,4 +1,4 @@
-# ARJUNA — Evidence-Driven Alpha Research (the next phase)
+# AEGIS — Evidence-Driven Alpha Research (the next phase)
 
 > NOT "AI-first." NOT "data-first." **Evidence-first.** Data alone is not enough — every dataset
 > must earn promotion through the same scientific gate. The bottleneck is no longer algorithms; the
@@ -18,7 +18,7 @@ That distinction matters. A good story is not evidence.
 ## Three parallel tracks
 
 ```
-                         ARJUNA Research
+                         AEGIS Research
                                 │
         ┌───────────────────────┼───────────────────────┐
         │                       │                       │
@@ -79,15 +79,15 @@ Each dataset runs the *identical* pipeline; the scorecard decides. Winners survi
 Promotion criteria (all required): IC > 0.05 · RQS lift over baselines · beats standard factors ·
 survives rolling OOS · survives forward paper.
 
-## ARJUNA Discover → outputs a WATCHLIST, not a buy list
+## AEGIS Discover → outputs a WATCHLIST, not a buy list
 
 Research and portfolio management are separate functions (as in real desks):
 ```
-New-data signals → ARJUNA Discover → WATCHLIST (20, with WHY/catalysts/risks/horizon)
-                                          → ARJUNA Portfolio decides → Final Buy List (5)
+New-data signals → AEGIS Discover → WATCHLIST (20, with WHY/catalysts/risks/horizon)
+                                          → AEGIS Portfolio decides → Final Buy List (5)
 ```
 Discover proposes a watchlist; Portfolio disposes. Institutions don't buy everything research
-suggests — and neither should ARJUNA.
+suggests — and neither should AEGIS.
 
 ## The five datasets to acquire (priority)
 
@@ -98,4 +98,4 @@ history · 4. Event database · 5. Sector-rotation indicators (cheapest, lowest 
 
 **Evidence-Driven Alpha Research.** Not AI-first, not data-first — evidence-first. The five
 questions every dataset must answer: (1) new information? (2) improves ranking quality? (3) beats
-existing baselines? (4) survives rolling OOS? (5) survives forward paper? Only then → ARJUNA Discover.
+existing baselines? (4) survives rolling OOS? (5) survives forward paper? Only then → AEGIS Discover.

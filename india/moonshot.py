@@ -1,12 +1,12 @@
 # india/moonshot.py
 """
-ARJUNA MOONSHOT — the VC/power-law way to chase multibaggers (NOT by predicting which one doubles).
+AEGIS MOONSHOT — the VC/power-law way to chase multibaggers (NOT by predicting which one doubles).
 
 Own a broad QUALITY + GROWTH + MOMENTUM basket (40 names, equal-weight, sector-capped, annual
 rebalance, multi-year hold). You can't pick the next BSE/Dixon/Mazdock in advance (proven), but if
 you OWN many quality-growth names, the power-law winners drive the basket.
 
-BARBELL: 70% ARJUNA Core (HRP + regime + global risk) + 30% Moonshot -> stable compounding +
+BARBELL: 70% AEGIS Core (HRP + regime + global risk) + 30% Moonshot -> stable compounding +
 occasional 5-20x. Compared to Nifty, net of cost. (Quality uses snapshot fundamentals -> the
 absolute CAGR is OPTIMISTIC/look-ahead; the structure + multibagger-capture are the honest points.)
 
@@ -81,7 +81,7 @@ def moonshot_backtest():
 
 if __name__ == "__main__":
     print("=" * 72)
-    print("  ARJUNA MOONSHOT — quality+growth+momentum basket (40, equal-wt, annual) + BARBELL")
+    print("  AEGIS MOONSHOT — quality+growth+momentum basket (40, equal-wt, annual) + BARBELL")
     print("=" * 72)
     moon, idx, held = moonshot_backtest()
     core, _ = core_backtest("hrp", regime="global")
@@ -94,7 +94,7 @@ if __name__ == "__main__":
         s = stats(net, idx)
         print(f"  {name:<34}{s['cagr']:>7.1f}%{s['sharpe']:>8.2f}{s['dd']:>8.1f}%   Rs{s['end']:>11,.0f}")
     print(f"  {'sleeve':<34}{'CAGR':>7}{'Sharpe':>8}{'maxDD':>8}   {'Rs1L ->':>13}")
-    line("ARJUNA Core (HRP+regime+global)", core)
+    line("AEGIS Core (HRP+regime+global)", core)
     line("Moonshot (40 quality-growth)", moon)
     line("BARBELL 70% Core + 30% Moonshot", barbell)
     neq = (1 + nifty).cumprod()

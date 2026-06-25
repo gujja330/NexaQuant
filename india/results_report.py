@@ -1,7 +1,7 @@
 # india/results_report.py
 """
 Consolidated RESULTS file generator — runs the key backtests and writes everything to
-output/ARJUNA_RESULTS.md (+ output/ARJUNA_RESULTS_headline.csv). One inspectable artifact.
+output/AEGIS_RESULTS.md (+ output/AEGIS_RESULTS_headline.csv). One inspectable artifact.
 
 Run: python india/results_report.py
 """
@@ -22,7 +22,7 @@ ASOF = "2026-06-22"
 
 
 def main():
-    L = [f"# ARJUNA — Consolidated Backtest Results ({ASOF})",
+    L = [f"# AEGIS — Consolidated Backtest Results ({ASOF})",
          "",
          "All figures computed live from `data/raw/india/` (232 stocks, ~1,358 daily rows, "
          "Dec-2020→Jun-2026, Nifty-200, net of 21bps). **Survivorship-inflated levels — trust the "
@@ -36,7 +36,7 @@ def main():
     # 1 headline
     ns = stats(idx.pct_change().reindex(champ.index).fillna(0), idx)
     L += ["## 1. Champion vs Nifty (Core v2.2: HRP + regime + 15 stk + sector≤2, quarterly)", "",
-          "| Metric | ARJUNA | Nifty-50 |", "|---|---|---|",
+          "| Metric | AEGIS | Nifty-50 |", "|---|---|---|",
           f"| CAGR | {cs['cagr']:.1f}% | {ns['cagr']:.1f}% |",
           f"| Sharpe | {cs['sharpe']:.2f} | {ns['sharpe']:.2f} |",
           f"| max drawdown | {cs['dd']:.1f}% | {ns['dd']:.1f}% |",
@@ -81,10 +81,10 @@ def main():
           "in-sample + survivorship-inflated → forward paper (Q3'26→Q2'27) is the real gate.*"]
 
     OUT.mkdir(exist_ok=True)
-    (OUT / "ARJUNA_RESULTS.md").write_text("\n".join(L), encoding="utf-8")
-    pd.DataFrame([headline]).to_csv(OUT / "ARJUNA_RESULTS_headline.csv", index=False)
-    print(f"  results written -> output/ARJUNA_RESULTS.md  ({len(L)} lines)")
-    print(f"  headline csv     -> output/ARJUNA_RESULTS_headline.csv")
+    (OUT / "AEGIS_RESULTS.md").write_text("\n".join(L), encoding="utf-8")
+    pd.DataFrame([headline]).to_csv(OUT / "AEGIS_RESULTS_headline.csv", index=False)
+    print(f"  results written -> output/AEGIS_RESULTS.md  ({len(L)} lines)")
+    print(f"  headline csv     -> output/AEGIS_RESULTS_headline.csv")
 
 
 if __name__ == "__main__":
