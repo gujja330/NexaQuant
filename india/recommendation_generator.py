@@ -112,6 +112,16 @@ def history_for(reg, idx, capital, closes):
         nif = 100 * (idx.asof(m) / idx.asof(a) - 1)
         contrib = grp.set_index("symbol").eval("weight * actual_ret")     # per-stock contribution
         top_c, worst_c = contrib.idxmax(), contrib.idxmin()
+        winners = int((grp["actual_ret"] > 0).sum()); losers = len(grp) - winners
+        # portfolio drawdown DURING the holding window (what the investor had to endure)
+        syms = [x for x in grp["symbol"] if x in closes.columns]
+        wts = grp.set_index("symbol")["weight"].reindex(syms).fillna(0).values
+        pth = closes[syms].loc[a:m].dropna()
+        if len(pth) > 1 and wts.sum() > 0:
+            pv = ((pth / pth.iloc[0]) * wts).sum(axis=1) / wts.sum()
+            cyc_dd = 100 * float(((pv.cummax() - pv) / pv.cummax()).max())
+        else:
+            cyc_dd = 0.0
         inv_tot = exit_tot = 0.0
         for _, r in grp.sort_values("actual_ret", ascending=False).iterrows():
             sh = int((capital * r["weight"]) // r["buy_price"]) if r["buy_price"] > 0 else 0
@@ -139,6 +149,7 @@ def history_for(reg, idx, capital, closes):
             "Invested Rs": round(inv_tot), "Exit Value Rs": round(exit_tot), "Gain Rs": round(exit_tot - inv_tot),
             "Exit Date": m.strftime("%Y-%m-%d"), "Holding Days": hd,
             "Portfolio Ret %": round(port, 1), "Nifty Ret %": round(nif, 1), "Beat Nifty": "YES" if port > nif else "no",
+            "Max DD During Hold %": round(-cyc_dd, 1), "Win Ratio": f"{winners}/{losers}",
             "Top Contributor": f"{top_c} ({contrib[top_c]:+.1f})", "Worst Contributor": f"{worst_c} ({contrib[worst_c]:+.1f})"})
     cyc = pd.DataFrame(cyc_rows); detail = pd.DataFrame(detail_rows)
     track = {s: g for s, g in h.groupby("symbol")}
@@ -203,34 +214,41 @@ def main():
 
     # ---- Sheet: Today's Recommendations. Disclaimer is on the Dashboard (not repeated per row). ----
     completion = (asof + timedelta(days=int(horizon * C["review_cal_factor"]))).date()
+    daily_vol = hist.std()                                   # for volatility-band entry zone
     rows = []
     for _ord, s in enumerate(w.sort_values(ascending=False).index, 1):
-        px = float(prices[s]); band = px * C["buy_band_pct"] / 100
+        px = float(prices[s]); band = px * float(daily_vol.get(s, 0.01)) * 2     # ~2-sigma daily band
         sh = int((invest * w[s]) // px) if px > 0 else 0
         t = track.get(s); occ = len(t) if t is not None else 0
         rl = "Low" if vol_rank.get(s, 0.5) < 0.33 else ("Medium" if vol_rank.get(s, 0.5) < 0.66 else "High")
         sample_conf = "High" if occ >= 10 else ("Medium" if occ >= 5 else ("Low" if occ >= 1 else "New"))
         NA = "New — no history"            # never expose NaN
+        # dynamic, per-stock Why Selected from REAL computed signals (not a fixed string)
+        why = [f"Lowest-vol name in {sector_of(s)} (vol {100*float(daily_vol.get(s,0))*np.sqrt(252):.0f}%)"]
+        if rs_rank[s] > 0.6:
+            why.append(f"relative strength top {round(100*(1-rs_rank[s]))}% vs Nifty")
+        if bool(above200[s]):
+            why.append("above 200-DMA")
+        why.append("HRP-weighted (low correlation to book)" if _ord <= 3 else "diversifies the portfolio")
         rows.append({"Allocation Order": _ord, "Type": "Risk Allocation Candidate",
-            "Stock": s, "Sector": sector_of(s),
-            "Why Selected": f"Lowest-volatility name in {sector_of(s)} under the sector cap; HRP-weighted",
+            "Stock": s, "Sector": sector_of(s), "Why Selected": "; ".join(why),
             "Weight Reason": "Highest HRP weight (low covariance)" if _ord == 1 else "HRP risk-parity allocation",
             "CMP": round(px, 1), "Entry Zone": f"{px-band:.0f} - {px+band:.0f}",
-            "Allocated Rs": round(sh * px), "Shares": sh, "Weight %": round(100 * w[s], 1),
-            "Generated": str(run_date), "Market Data": str(market_asof), "Valid Until": str(valid_until),
-            "Review Date": str(review), "Expected Completion": str(completion),
-            "Suggested Holding": f"{months} months", "Portfolio Confidence": regime_conf.title(),
-            "Construction Confidence": mode_conf.title(), "3M Momentum %": round(float(mom3[s]), 1),
-            "Rel Strength vs Nifty": f"top {round(100*(1-rs_rank[s]))}%",
+            "Entry Method": "Volatility band (~2 std-dev daily)", "Allocated Rs": round(sh * px), "Shares": sh,
+            "Weight %": round(100 * w[s], 1), "Generated": str(run_date), "Market Data": str(market_asof),
+            "Valid for Entry Until": str(valid_until), "Review Date": str(review),
+            "Expected Completion": str(completion), "Suggested Holding": f"{months} months",
+            "Portfolio Confidence": regime_conf.title(), "Construction Confidence": mode_conf.title(),
+            "3M Momentum %": round(float(mom3[s]), 1), "Rel Strength vs Nifty": f"top {round(100*(1-rs_rank[s]))}%",
             "Above 200-DMA": "Yes" if bool(above200[s]) else "No", "Risk Level": rl,
-            # HISTORICAL EXPECTATION — descriptive stats of SIMILAR PAST RECS (not a forecast)
-            "Past Recs (count)": occ, "Sample Confidence": sample_conf,
-            "Win % (similar past recs)": round(100 * (t["actual_ret"] > 0).mean()) if occ else NA,
-            "Median Ret % (similar past recs)": round(t["actual_ret"].median(), 1) if occ else NA,
-            "Avg Ret % (similar past recs)": round(t["actual_ret"].mean(), 1) if occ else NA,
-            "Best % (similar past recs)": round(t["actual_ret"].max(), 1) if occ else NA,
-            "Worst % (similar past recs)": round(t["actual_ret"].min(), 1) if occ else NA,
-            "Avg Hold d (similar past recs)": round(t["holding_days"].mean()) if occ else NA,
+            # HISTORICAL EXPECTATION — descriptive stats of SIMILAR past recommendations (not a forecast)
+            "Past Observations": occ, "Sample Confidence": sample_conf,
+            "Historical Win % (Similar Recs)": round(100 * (t["actual_ret"] > 0).mean()) if occ else NA,
+            "Historical Median Return % (Similar Recs)": round(t["actual_ret"].median(), 1) if occ else NA,
+            "Historical Avg Return % (Similar Recs)": round(t["actual_ret"].mean(), 1) if occ else NA,
+            "Historical Best % (Similar Recs)": round(t["actual_ret"].max(), 1) if occ else NA,
+            "Historical Worst % (Similar Recs)": round(t["actual_ret"].min(), 1) if occ else NA,
+            "Historical Avg Hold d (Similar Recs)": round(t["holding_days"].mean()) if occ else NA,
             "Status": "Running"})
     live = pd.DataFrame(rows)
 
@@ -327,6 +345,8 @@ def main():
         ["Historical win rate (%s)" % rec_label, f"{er['Win Rate %']:.0f}%" if er is not None else "n/a"],
         ["Expected drawdown", f"~{round(cs['dd'])}% (historical)"], ["Cycles observed", len(cyc)],
         ["Selection RQS (all history)", f"{G['rqs']:.3f} (~random)"], ["Review Date", str(review)],
+        ["Recommendation Status", f"Running — {len(w)} Active · 0 Reviewed · 0 Completed"],
+        ["Sample Confidence key", "High >=10 obs · Medium 5-9 · Low 2-4 · New 0"],
         ["(expectations)", "historical, evidence-based — NOT forecasts/guarantees"]],
         columns=["Field", "Value"])
     # ---- Evidence Badges (what's validated vs experimental vs not evaluated) ----
@@ -363,7 +383,8 @@ def main():
         start = bal; bal *= (1 + r["Portfolio Ret %"] / 100); nbal *= (1 + r["Nifty Ret %"] / 100)
         sr_rows.append({"Cycle": r["Investment Month"], "Start Rs": round(start),
             "Return %": r["Portfolio Ret %"], "End Rs": round(bal), "If Nifty Rs": round(nbal),
-            "Beat Nifty": r["Beat Nifty"], "Largest Winner": r.get("Top Contributor", ""),
+            "Beat Nifty": r["Beat Nifty"], "Win Ratio": r.get("Win Ratio", ""),
+            "Max DD %": r.get("Max DD During Hold %", ""), "Largest Winner": r.get("Top Contributor", ""),
             "Largest Loser": r.get("Worst Contributor", "")})
     strategy_replay = pd.DataFrame(sr_rows)
     if not strategy_replay.empty:
@@ -410,7 +431,8 @@ def main():
         ["Today's Decision", "Hold a risk-managed portfolio (constituents below)"],
         ["Market Regime", regime], ["Recommended Horizon", f"{rec_label} ({months} months)"],
         ["Portfolio", f"{len(w)} stocks"], ["Suggested Capital", rupees(capital)],
-        ["Deploy now", f"Rs{round(invest):,.0f} ({exp:.0%}) · cash Rs{round(capital-invest):,.0f}"],
+        ["Deploy now", f"Rs{round(invest):,.0f} ({exp:.0%})"],
+        ["Remaining Cash (intentional)", f"Rs{round(capital-invest):,.0f} ({1-exp:.0%}) — regime-driven buffer"],
         ["Allocation method", "Equal-risk (HRP), sector-capped"],
         ["Historical win rate (%s)" % rec_label, f"{er['Win Rate %']:.0f}%" if er is not None else "n/a"],
         ["Historical median return (%s)" % rec_label, f"{er['Median Return %']:+.1f}%" if er is not None else "n/a"],
