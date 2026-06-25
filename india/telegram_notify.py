@@ -34,6 +34,43 @@ def load_env():
             if line and not line.startswith("#") and "=" in line:
                 k, v = line.split("=", 1)
                 os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
+    # accept common aliases so a simple .env works (TOKEN/BOT_TOKEN, CHAT_ID/CHAT)
+    if not os.environ.get("TELEGRAM_BOT_TOKEN"):
+        for a in ("TOKEN", "BOT_TOKEN", "TELEGRAM_TOKEN"):
+            if os.environ.get(a):
+                os.environ["TELEGRAM_BOT_TOKEN"] = os.environ[a]; break
+    if not os.environ.get("TELEGRAM_CHAT_ID"):
+        for a in ("CHAT_ID", "CHAT", "TELEGRAM_CHAT"):
+            if os.environ.get(a):
+                os.environ["TELEGRAM_CHAT_ID"] = os.environ[a]; break
+    # sanitize: extract the bare token even if pasted with "...HTTP API:" prefix or stray spaces
+    import re
+    m = re.search(r"\d{6,}:[A-Za-z0-9_-]{20,}", os.environ.get("TELEGRAM_BOT_TOKEN", ""))
+    if m:
+        os.environ["TELEGRAM_BOT_TOKEN"] = m.group(0)
+
+
+def resolve_chat_id():
+    """Find your chat id from the bot's recent messages (getUpdates) — message the bot first."""
+    token = os.environ.get("TELEGRAM_BOT_TOKEN")
+    if not token:
+        print("  no TELEGRAM_BOT_TOKEN / TOKEN set."); return
+    try:
+        with urllib.request.urlopen(f"https://api.telegram.org/bot{token}/getUpdates", timeout=20) as r:
+            data = json.loads(r.read())
+    except Exception:
+        print("  getUpdates failed (network or bad token). Check the token, then re-run."); return
+    chats = {}
+    for u in data.get("result", []):
+        ch = (u.get("message") or u.get("channel_post") or {}).get("chat", {})
+        if ch.get("id"):
+            chats[ch["id"]] = ch.get("first_name") or ch.get("title") or ch.get("username", "")
+    if chats:
+        print("  Found chat id(s) — add the right one to .env.telegram as TELEGRAM_CHAT_ID:")
+        for cid, name in chats.items():
+            print(f"    TELEGRAM_CHAT_ID={cid}   ({name})")
+    else:
+        print("  No chats yet. In Telegram, open your bot and press Start / send 'hi', then re-run --resolve.")
 
 
 def build_message():
@@ -82,14 +119,16 @@ def send(text):
             ok = json.loads(resp.read()).get("ok", False)
         print("  sent." if ok else "  Telegram API returned not-ok.")
         return ok
-    except Exception as e:
-        print(f"  send failed: {e}")
+    except Exception:
+        print("  send failed (network or bad token/chat_id).")
         return False
 
 
 def main():
     load_env()
     msg = build_message()
+    if "--resolve" in sys.argv:
+        resolve_chat_id(); return
     if "--check" in sys.argv:
         have = bool(os.environ.get("TELEGRAM_BOT_TOKEN") and os.environ.get("TELEGRAM_CHAT_ID"))
         print("  config:", "READY" if have else "MISSING TELEGRAM_BOT_TOKEN/CHAT_ID in .env.telegram")
