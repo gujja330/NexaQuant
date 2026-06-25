@@ -34,6 +34,7 @@ from india.confidence_engine import current_regime
 from india.probability_surface import horizon_view, mode_of
 from india.capital_ladder import LADDER, rupees
 from india.config import VERSION
+from india.horizon_matrix import horizon_matrix, recommend, LABELS
 
 REPORTS = ROOT / "reports"
 REG = REPORTS / "recommendation_registry.csv"
@@ -121,8 +122,12 @@ def history_for(reg, idx):
 
 def main():
     capital = arg("--capital", CONFIG["default_capital"], float)
-    horizon = arg("--horizon", CONFIG["default_horizon"], int)
-    C = CONFIG; months = horizon // 21
+    C = CONFIG
+    # DYNAMIC HORIZON: evaluate all holding periods, let evidence choose (unless user overrides)
+    hmat = horizon_matrix(); rec_label, rec_conf = recommend(hmat)
+    days_for = {v: k for k, v in LABELS.items()}
+    horizon = arg("--horizon", days_for.get(rec_label, CONFIG["default_horizon"]), int)
+    months = horizon // 21
     closes, _, _, _, idx, vix, _ = load_panels()
     closes = closes[[c for c in closes.columns if c in set(NIFTY200)]]
     rets = closes.pct_change(); asof = closes.index[-1]; prices = closes.iloc[-1]
@@ -193,7 +198,8 @@ def main():
     # ---- Sheet 1 / 7 ----
     dashboard = pd.DataFrame([
         ["Generated", str(generated)], ["Strategy", f"AEGIS {VERSION.split('(')[0].strip()}"],
-        ["Universe", "Nifty-200"], ["Suggested Holding Window", f"{months} months"],
+        ["Universe", "Nifty-200"], ["Recommended Horizon", f"{rec_label} (confidence {rec_conf})"],
+        ["Suggested Holding Window", f"{months} months"],
         ["Portfolio Grade", G["pf_grade"]], ["Recommendation Grade", G["al_grade"]],
         ["Current Market", regime], ["Exposure", f"{exp:.0%}"], ["Recommended Stocks", len(w)],
         ["Portfolio beat Nifty (history)", f"{beat_n}/{len(cyc)} ({beat_pct}%)"],
@@ -214,7 +220,7 @@ def main():
 
     # ---- write ONE investor workbook ----
     sheets = [("Dashboard", dashboard), ("Live Recommendations", live),
-              ("Historical Performance", cyc), ("Monthly Detail", detail),
+              ("Horizon Matrix", hmat), ("Historical Performance", cyc), ("Monthly Detail", detail),
               ("Why Picked", why), ("Registry", clean), ("Statistics", statistics)]
     out = REPORTS / f"AEGIS_{generated}.xlsx"
     with pd.ExcelWriter(out, engine="openpyxl") as xl:
@@ -227,7 +233,7 @@ def main():
     except Exception:
         k = 0
     print("  HISTORICAL EVIDENCE GATE: PORTFOLIO grade %s · STOCK-ALPHA grade %s" % (G["pf_grade"], G["al_grade"]))
-    print(f"  PUBLISHED -> {out.relative_to(ROOT)}  (7 investor sheets)")
+    print(f"  PUBLISHED -> {out.relative_to(ROOT)}  ({len(sheets)} investor sheets · recommended horizon {rec_label})")
     print(f"  {len(w)} holdings · portfolio beat Nifty {beat_n}/{len(cyc)} ({beat_pct}%) in history · registry +{k}")
 
 
