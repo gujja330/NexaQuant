@@ -163,7 +163,7 @@ def history_for(reg, idx, capital, closes):
 def main():
     capital = arg("--capital", CONFIG["default_capital"], float)
     C = CONFIG
-    # DYNAMIC HORIZON: evaluate all holding periods, let evidence choose (unless user overrides)
+    # DYNAMIC HORIZON: independently backtest ALL holding periods, let evidence choose
     hmat = horizon_matrix(); rec_label, rec_conf = recommend(hmat)
     days_for = {v: k for k, v in LABELS.items()}
     horizon = arg("--horizon", days_for.get(rec_label, CONFIG["default_horizon"]), int)
@@ -272,6 +272,10 @@ def main():
             "Historical Best % (Similar Recs)": round(t["actual_ret"].max(), 1) if occ else NA,
             "Historical Worst % (Similar Recs)": round(t["actual_ret"].min(), 1) if occ else NA,
             "Historical Avg Hold d (Similar Recs)": round(t["holding_days"].mean()) if occ else NA,
+            # PRICE SCENARIOS — current price x historical return (descriptive, NOT a target/forecast)
+            "Hist Median Price (scenario)": round(px * (1 + t["actual_ret"].median() / 100)) if occ else NA,
+            "Hist Best Price (scenario)": round(px * (1 + t["actual_ret"].max() / 100)) if occ else NA,
+            "Hist Worst Price (scenario)": round(px * (1 + t["actual_ret"].min() / 100)) if occ else NA,
             "Status": "Running"})
     live = pd.DataFrame(rows)
 
