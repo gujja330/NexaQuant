@@ -452,41 +452,72 @@ def main():
         ["Honest caveat", "Absolute return levels are survivorship-inflated; trust the RELATIVE edge vs "
          "Nifty. Forward paper (live cycles) is the real, ongoing test."]], columns=["Topic", "Detail"])
 
-    # ---- Decision Summary: the one-screen top sheet (what to do today, at a glance) ----
-    decision_summary = pd.DataFrame([
-        ["Today's Decision", "Hold a risk-managed portfolio (constituents below)"],
-        ["Market Regime", regime], ["Recommended Horizon", f"{rec_label} ({months} months)"],
-        ["Portfolio", f"{len(w)} stocks"], ["Suggested Capital", rupees(capital)],
-        ["Deploy now", f"Rs{round(invest):,.0f} ({exp:.0%})"],
-        ["Remaining Cash (intentional)", f"Rs{round(capital-invest):,.0f} ({1-exp:.0%}) — regime-driven buffer"],
-        ["Allocation method", "Equal-risk (HRP), sector-capped"],
-        ["Historical win rate (%s)" % rec_label, f"{er['Win Rate %']:.0f}%" if er is not None else "n/a"],
-        ["Historical median return (%s)" % rec_label, f"{er['Median Return %']:+.1f}%" if er is not None else "n/a"],
-        ["Review", str(review)],
-        ["Validation", f"Portfolio grade {G['pf_grade']} (validated) · stock-alpha experimental (RQS {G['rqs']:.2f})"],
-        ["Reminder", "Historical = how similar past portfolios did. Evidence, NOT a forecast or guarantee."]],
+    # ================= EXECUTIVE SUMMARY (the one screen 95% of users read) =================
+    exp_med = f"{er['Median Return %']:+.1f}%" if er is not None else "n/a"
+    exp_win = f"{er['Win Rate %']:.0f}%" if er is not None else "n/a"
+    exec_block = pd.DataFrame([
+        ["TODAY'S RECOMMENDATION", f"Hold a {len(w)}-stock risk-managed portfolio"],
+        ["Run Date / Market Data", f"{run_date}  /  {market_asof}"],
+        ["Market Regime", regime], ["Recommended Holding", f"{rec_label} ({months} months)"],
+        ["Suggested Capital", rupees(capital)], ["Deploy now", f"Rs{round(invest):,.0f} ({exp:.0%})"],
+        ["Cash (intentional)", f"Rs{round(capital-invest):,.0f} ({1-exp:.0%})"],
+        ["Review Date", str(review)],
+        ["— HISTORICAL (similar past cycles, NOT a forecast) —", ""],
+        ["Win rate", exp_win], ["Median return", exp_med],
+        ["Worst historical drawdown", f"{round(cs['dd'])}%"],
+        ["— TOP RISKS —", ""],
+        ["1", f"Lags in strong bull markets (low beta {cs['beta']:.2f})"],
+        ["2", "Stock selection is NOT validated alpha (RQS ~0.5) — these are risk constituents"],
+        ["3", "Absolute returns survivorship-inflated; trust the relative edge vs Nifty"],
+        ["VALIDATION", f"Portfolio grade {G['pf_grade']} (validated) · stock-alpha experimental"]],
         columns=["Field", "Value"])
+    # compact recommendation table for the summary
+    et = live.copy()
+    exec_table = pd.DataFrame({
+        "Allocation Order": et["Allocation Order"], "Stock": et["Stock"], "Sector": et["Sector"],
+        "Buy ~Rs": et["CMP"], "Allocation Rs": et["Allocated Rs"], "Weight %": et["Weight %"],
+        "Hist Win %": et["Historical Win % (Similar Recs)"],
+        "Hist Median %": et["Historical Median Return % (Similar Recs)"], "Why": et["Why Selected"]})
 
-    # ---- write ONE investor workbook (named by RUN date) ----
-    # one workbook, four logical sections (Registry stays an INTERNAL csv, not exposed)
-    sheets = [  # 1) EXECUTIVE
-        ("Decision Summary", decision_summary), ("Dashboard", dashboard), ("Market Snapshot", market),
-        # 2) RECOMMENDATIONS
-        ("Today's Recommendations", live), ("Historical Expectation", hist_expect),
-        ("Selection Decision", decision), ("Candidate Universe", funnel), ("Factor Snapshot", why),
-        ("Horizon Matrix", hmat),
-        # 3) EVIDENCE
-        ("Recommendation Replay", cyc), ("Strategy Replay", strategy_replay),
-        ("Recommendation History", detail), ("Portfolio Attribution", attribution),
-        ("Stock Track Record", track_record), ("Yearly Quality", yearly), ("Statistics", statistics),
-        # 4) DOCUMENTATION
-        ("Evidence Badges", badges), ("About AEGIS", about)]
+    methodology = pd.DataFrame([
+        ["Selection", "Pick the lowest trailing-volatility names (the only signal with out-of-sample skill)."],
+        ["Sector cap", f"At most {C['sector_cap']} stocks per sector — forced diversification, not a bet."],
+        ["Weighting", "Hierarchical Risk Parity (HRP): correlation-cluster aware, down-weights crowded risk."],
+        ["Regime overlay", "Scale exposure by market state (India VIX + Nifty 200-DMA + global risk). The "
+         "single biggest validated edge — de-risks in weak regimes."],
+        ["Rebalance", "Quarterly (beats monthly net of cost; less churn)."],
+        ["Evidence gate", "Promote nothing on intuition: DSR / PBO / rolling OOS / forward paper."],
+        ["What it does NOT do", "Predict returns or pick 'winners'. Returns are ~unpredictable on this data; "
+         "risk is. AEGIS forecasts risk, not direction."]], columns=["Component", "How it works"])
+    badge_rows = (pd.DataFrame([[b["Layer"], f"{b['Status']} — {b['Detail']}"] for _, b in badges.iterrows()],
+                  columns=["Topic", "Detail"]) if not badges.empty else pd.DataFrame(columns=["Topic", "Detail"]))
+    about_full = pd.concat([about, pd.DataFrame([["", ""], ["EVIDENCE STATUS", ""]], columns=["Topic", "Detail"]),
+                            badge_rows], ignore_index=True)
+
+    # ================= consolidated 7-sheet workbook (stacked blocks per sheet) =================
+    attr_top = attribution.head(8) if not attribution.empty else attribution
+    attr_bot = attribution.tail(5) if not attribution.empty else attribution
+    horizon_brief = hmat[["Horizon", "Win Rate %", "Median Return %", "Worst Cycle %", "Confidence"]] \
+        if not hmat.empty else hmat
+    sheets = [
+        ("Executive Summary", [exec_block, exec_table]),                       # 1 ⭐
+        ("Today's Recommendations", [live]),                                   # 2 ⭐
+        ("Historical Performance", [cyc, strategy_replay]),                    # 3 ⭐ (replay + money diary)
+        ("Backtested Trades", [detail]),                                       # 4 ⭐ (every historical pick)
+        ("Statistics", [statistics, yearly, attr_top, attr_bot, horizon_brief, market]),  # 5 ⭐
+        ("Methodology", [methodology, funnel]),                                # 6
+        ("About", [about_full]),                                               # 7
+    ]
     out = REPORTS / f"AEGIS_{run_date}.xlsx"
 
     def _write(path):
         with pd.ExcelWriter(path, engine="openpyxl") as xl:
-            for name, df in sheets:
-                (df if not df.empty else pd.DataFrame([["(none)"]])).to_excel(xl, sheet_name=name[:31], index=False)
+            for name, blocks in sheets:
+                row = 0
+                for df in blocks:
+                    d = df if (df is not None and not df.empty) else pd.DataFrame([["(none)"]])
+                    d.to_excel(xl, sheet_name=name[:31], startrow=row, index=False)
+                    row += len(d) + 2
     try:
         _write(out)
     except PermissionError:                          # workbook is open in Excel -> fallback, don't crash
