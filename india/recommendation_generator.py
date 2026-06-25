@@ -28,6 +28,7 @@ sys.path.insert(0, str(ROOT))
 warnings.simplefilter("ignore")
 from india.arjuna_v2 import backtest, stats, weights_for, LOOKBACK
 from india.feature_engine import load_panels
+from india.technical_factors import _rsi
 from india.data_nse import NIFTY200
 from india.sectors import SECTORS, sector_of
 from india.confidence_engine import current_regime
@@ -239,13 +240,20 @@ def main():
             "Avg Return %": ("actual_ret", "mean"), "Median %": ("actual_ret", "median"),
             "Best %": ("actual_ret", "max"), "Worst %": ("actual_ret", "min")})
             .round(1).reset_index().rename(columns={"year": "Year"}))
-        # merge per-year cycle stats: beat-Nifty count + profit Rs (on the reference capital)
+        # merge per-year cycle stats: beat-Nifty count + per-year money (compounded within the year from ref capital)
         if not cyc.empty:
             cy = cyc.assign(Year=cyc["Investment Month"].str[:4].astype(int))
             cyg = cy.groupby("Year").agg(**{"Cycles": ("Investment Month", "count"),
                 "Beat Nifty": ("Beat Nifty", lambda x: f"{int((x=='YES').sum())}/{len(x)}"),
                 "Profit Rs": ("Gain Rs", "sum")}).reset_index()
-            yearly = yearly.merge(cyg, on="Year", how="left")
+
+            def _year_money(g):
+                bal = capital
+                for r in g.sort_values("Investment Month").to_dict("records"):
+                    bal *= (1 + r["Portfolio Ret %"] / 100)
+                return pd.Series({"Year Ret %": round(100 * (bal / capital - 1), 1), "End Rs (from ref)": round(bal)})
+            moneyy = cy.groupby("Year").apply(_year_money).reset_index()
+            yearly = yearly.merge(cyg, on="Year", how="left").merge(moneyy, on="Year", how="left")
 
     # ---- MULTI-LAYER CANDIDATE SCORES (honest: validated driver + context + DATA NOT AVAILABLE) ----
     risk_score = (100 * (1 - hist.std().rank(pct=True))).round()              # low-vol = high (VALIDATED driver)
@@ -276,21 +284,28 @@ def main():
         worst = t["actual_ret"].min() if occ else None
         win = round(100 * (t["actual_ret"] > 0).mean()) if occ else None
         avg = round(t["actual_ret"].mean()) if occ else None
-        # ---- Recommendation STRENGTH (honest tiers). A negative historical analogue is NEVER a BUY. ----
-        pts = 0
-        if occ:
-            pts += 2 if win >= 60 else (1 if win >= 50 else 0)
-            pts += 2 if med > 3 else (1 if med > 0 else 0)
-        pts += 1 if bool(above200[s]) else 0
-        pts += 1 if rs_rank[s] > 0.6 else 0
-        pts += 1 if exp >= 0.85 else 0
+        # ---- technicals for "why today" (descriptive current-state facts, not forecasts) ----
+        ser = closes[s].dropna()
+        ma200 = float(ser.tail(200).mean()); d200 = round(100 * (px / ma200 - 1), 1)
+        rsi = round(_rsi(ser)) if len(ser) > 30 else None
+        hi52, lo52 = float(ser.tail(252).max()), float(ser.tail(252).min())
+        pos52 = round(100 * (px - lo52) / (hi52 - lo52)) if hi52 > lo52 else None
+        volp = round(100 * float(vol_rank.get(s, 0.5)))                  # low pctile = calmest names
+
+        # ---- Recommendation EVIDENCE SCORE (0-100, transparent + documented on Methodology). ----
+        # Components: historical win (30) + historical median return (30) + trend/RS (20) + regime+risk (20).
+        sc_win = (win / 100) * 30 if occ else 12                         # no history -> neutral 12/30
+        sc_ret = max(0, min(30, (med + 5) * 2)) if occ else 12           # +10% median ~ full marks
+        sc_tr = (10 if bool(above200[s]) else 0) + (10 if rs_rank[s] > 0.6 else (5 if rs_rank[s] > 0.4 else 0))
+        sc_risk = round(10 * exp) + (10 if vol_rank.get(s, 0.5) < 0.5 else 5)
+        score = int(round(sc_win + sc_ret + sc_tr + sc_risk))
         if occ and med is not None and med < 0:
-            strength = "WATCH"                        # weak historical analogue -> do NOT say BUY (trust)
-        elif pts >= 5:
+            strength = "WATCH"                        # weak historical analogue -> never a BUY (trust)
+        elif score >= 70 and (not occ or med > 0):
             strength = "STRONG BUY"
-        elif pts >= 3:
+        elif score >= 55:
             strength = "BUY"
-        elif pts >= 1:
+        elif score >= 42:
             strength = "ACCUMULATE"
         else:
             strength = "WATCH"
@@ -298,8 +313,17 @@ def main():
         target = round(px * (1 + med / 100)) if occ else DASH
         upside = round(med, 1) if occ else DASH
         ann = round(((1 + med / 100) ** (252 / horizon) - 1) * 100, 1) if occ else DASH
-        trend = "Above 200-DMA" if bool(above200[s]) else "Below 200-DMA"
+        trend = f"{'Above' if d200 >= 0 else 'Below'} 200-DMA ({d200:+.1f}%)"
         rstr = "Outperforming" if rs_rank[s] > 0.6 else ("In-line" if rs_rank[s] > 0.4 else "Lagging")
+        # ---- WHY TODAY: current-state setup (descriptive context — NOT a forecast) ----
+        setup = [f"{'above' if d200 >= 0 else 'below'} 200-DMA {d200:+.1f}%",
+                 f"{'calm' if volp < 40 else ('elevated' if volp > 66 else 'normal')} vol ({volp}th pctile)"]
+        if pos52 is not None:
+            setup.append("near 52w high" if pos52 >= 80 else ("near 52w low" if pos52 <= 20 else f"{pos52}% of 52w range"))
+        if rsi is not None:
+            setup.append(f"RSI {rsi}" + (" (overbought)" if rsi >= 70 else (" (oversold)" if rsi <= 30 else "")))
+        setup += [f"sector rank {sec_score[s]:.0f}/100", "regime " + ("risk-on" if exp >= 0.85 else "cautious")]
+        today_setup = "; ".join(setup)
         # plain-English WHY-NOW, as bullets (facts, not forecasts)
         wb = [f"Low-risk {sector_of(s)} holding ({rl.lower()} vol)", trend.lower(),
               f"sector strength {sec_score[s]:.0f}/100",
@@ -313,14 +337,17 @@ def main():
         else:
             wb.append("no historical analogue yet (<3 obs)")
         rows.append({
-            "Strength": strength, "Stock": s, "Sector": sector_of(s), "Current Price": round(px, 1),
-            "Buy Range": f"{px-band:.0f} - {px+band:.0f}",
+            "Strength": strength, "Score /100": score, "Stock": s, "Sector": sector_of(s),
+            "Current Price": round(px, 1), "Buy Range": f"{px-band:.0f} - {px+band:.0f}",
             "Hist Target": target, "Upside %": upside, "Hist Median Ret %": round(med, 1) if occ else DASH,
             "Annualized %": ann, "Risk / Reward (hist)": round(med / abs(worst), 1) if (occ and worst < 0) else DASH,
             "Probability Positive %": win if occ else DASH,
             "Probability >10% %": round(100 * (t["actual_ret"] > 10).mean()) if occ else DASH,
             "Best Case %": round(best, 1) if occ else DASH, "Worst Case %": round(worst, 1) if occ else DASH,
+            "Dist 200-DMA %": d200, "RSI": rsi if rsi is not None else DASH, "Vol Pctile": volp,
+            "52W Range Pos %": pos52 if pos52 is not None else DASH,
             "Trend": trend, "Rel Strength": rstr, "Sector Score": f"{sec_score[s]:.0f}/100",
+            "Today's Setup": today_setup,
             "Recommended Holding": f"{months} months ({rec_label})", "Expected Exit": str(completion),
             "Review Date": str(review), "Allocation Rs": round(sh * px), "Shares": sh,
             "Weight %": round(100 * w[s], 1), "Evidence": sample_conf, "Similar Past Cases": occ,
@@ -560,6 +587,8 @@ def main():
         ["Median cycle return", f"{cyc['Portfolio Ret %'].median():+.1f}%" if not cyc.empty else "n/a"],
         ["Avg cycle return", f"{avg_port:+.1f}%" if not np.isnan(avg_port) else "n/a"],
         ["Money diary (ref capital)", f"{rupees(capital)} -> Rs{round(bal):,.0f} ({bal/capital:.2f}x)" if not cyc.empty else "n/a"],
+        ["Backtest CAGR (survivorship-inflated)", f"{cs['cagr']:.1f}%"],
+        ["Backtest Sharpe", f"{cs['sharpe']:.2f}"], ["Backtest max drawdown", f"{cs['dd']:.1f}%"],
         ["Recommended deployment now", f"{exp:.0%} ({regime} regime)"],
         ["Strategy version", f"AEGIS {VERSION.split('(')[0].strip()}"],
         ["— TOP RISKS —", ""],
@@ -584,6 +613,20 @@ def main():
          "single biggest validated edge — de-risks in weak regimes."],
         ["Rebalance", "Quarterly (beats monthly net of cost; less churn)."],
         ["Evidence gate", "Promote nothing on intuition: DSR / PBO / rolling OOS / forward paper."],
+        ["Evidence Score (0-100)", "The Strength label is driven by a transparent score: historical win "
+         "rate (30) + historical median return (30) + trend/relative-strength (20) + regime & low-vol (20). "
+         ">=70 STRONG BUY, >=55 BUY, >=42 ACCUMULATE, else WATCH. HARD RULE: a negative historical median "
+         "is always WATCH (never a BUY), even if held for diversification."],
+        ["Sector Score (x/100)", "Percentile rank of the stock's sector by 3-month sector momentum. CONTEXT "
+         "only — it failed the incremental-value test, so it informs but does not drive selection."],
+        ["Today's Setup", "Descriptive current-state facts (distance from 200-DMA, volatility percentile, "
+         "52-week range position, RSI, sector rank, regime). Context for 'why today', NOT a forecast."],
+        ["Holding period", f"Chosen from the backtested Horizon Matrix each run (currently {rec_label}). "
+         "Evidence-selected, not hand-set; it moves if the evidence moves. Per-STOCK horizons are NOT offered "
+         "— small-sample horizon skill is ~random (RQS 0.5)."],
+        ["Number of holdings", "Driven by how many names clear the low-vol + sector-cap filter (varies by "
+         "breadth), NOT return-optimised. Tested: choosing N by trailing performance LOSES out-of-sample "
+         "(Sharpe 0.95 vs 1.24) — so N is risk-driven, and the validated de-risking lever is exposure/cash."],
         ["What it does NOT do", "Predict returns or pick 'winners'. Returns are ~unpredictable on this data; "
          "risk is. AEGIS forecasts risk, not direction."]], columns=["Component", "How it works"])
     badge_rows = (pd.DataFrame([[b["Layer"], f"{b['Status']} — {b['Detail']}"] for _, b in badges.iterrows()],
