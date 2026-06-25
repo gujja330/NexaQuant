@@ -14,7 +14,7 @@ Optional: AEGIS_SPREADSHEET_ID -> appends a link to the live Google Sheet.
 Run:  python india/telegram_notify.py            # send today's summary
       python india/telegram_notify.py --check    # validate config + print the message (no send)
 """
-import os, sys, json, glob, urllib.parse, urllib.request, warnings
+import os, sys, re, json, glob, urllib.parse, urllib.request, warnings
 from pathlib import Path
 import pandas as pd
 
@@ -73,35 +73,73 @@ def resolve_chat_id():
         print("  No chats yet. In Telegram, open your bot and press Start / send 'hi', then re-run --resolve.")
 
 
+EMOJI = {"STRONG BUY": "🟢", "BUY": "🔵", "ACCUMULATE": "🟡", "WATCH": "⚪"}
+
+
+def _val(r, key, default=""):
+    v = r.get(key, default)
+    return default if (v is None or (isinstance(v, float) and pd.isna(v))) else v
+
+
 def build_message():
     if not CANON.exists():
         return "AEGIS: no recommendations file yet (run recommendation_generator.py)."
     t = pd.read_csv(CANON)
+    if t.empty:
+        return "AEGIS: no recommendations today."
     try:
         from india.confidence_engine import current_regime
         exp, regime, _ = current_regime()
-        head_regime = f"{regime} regime · deploy {exp:.0%}"
+        regime_line = f"Regime <b>{regime}</b> · deploy <b>{exp:.0%}</b> · cash {1-exp:.0%}"
     except Exception:
-        head_regime = ""
-    asof = str(t["Generated"].iloc[0]) if "Generated" in t and len(t) else ""
-    lines = [f"<b>AEGIS — {asof}</b>", head_regime, ""]
-    for _, r in t.head(12).iterrows():
-        rng = r.get("Expected Range (hist)", "—")
-        lines.append(f"<b>{r.get('Strength','')}</b>  {r.get('Stock','')} "
-                     f"({r.get('Sector','')})  buy {r.get('Buy Range','')}  "
-                     f"exp {rng}  conf {r.get('Rec Confidence %','')}%")
-    # what changed since last run
+        regime_line = ""
+    asof = str(_val(t.iloc[0], "Generated"))
+    hold = str(_val(t.iloc[0], "Recommended Holding"))
+    n_buy = int((t["Strength"].isin(["STRONG BUY", "BUY"])).sum()) if "Strength" in t else len(t)
+
+    lines = [f"📊 <b>AEGIS Daily</b> · {asof}", regime_line,
+             f"{len(t)} holdings · {n_buy} buy-rated · horizon {hold} · sorted best-first", ""]
+
+    last_tier = None
+    for i, (_, r) in enumerate(t.iterrows(), 1):
+        strat = str(_val(r, "Strength"))
+        if strat != last_tier:                                  # group header per strength tier
+            lines.append(f"{EMOJI.get(strat, '▫️')} <b>{strat}</b>")
+            last_tier = strat
+        px = _val(r, "Current Price"); rng = str(_val(r, "Expected Range (hist)"))
+        hm = re.search(r"\(([^)]+)\)", str(_val(r, "Recommended Holding")))
+        hold_short = hm.group(1) if hm else str(_val(r, "Recommended Holding"))
+        l1 = f"  <b>{_val(r,'Stock')}</b> · {_val(r,'Sector')} · hold {hold_short}"
+        bits = [f"₹{px}", f"buy {_val(r,'Buy Range')}",
+                f"score {_val(r,'Score /100')}", f"conf {_val(r,'Rec Confidence %')}%",
+                f"{_val(r,'Weight %')}% (₹{_val(r,'Allocation Rs')})"]
+        tgt = str(_val(r, "Hist Target"))
+        if tgt.replace(".", "", 1).isdigit():                   # numeric target only when >=5 analogues
+            bits.insert(2, f"tgt ₹{tgt} in {hold_short}")
+        if "to" in rng:                                         # expected range, tied to the period
+            bits.insert(3 if tgt.replace('.', '', 1).isdigit() else 2, f"exp {rng} over {hold_short}")
+        lines.append(l1)
+        lines.append("    " + " · ".join(str(b) for b in bits))
+
     try:
         from india.recommendation_db import load_db, daily_diff
         d = daily_diff(load_db())
         if d and not d.get("note"):
-            lines += ["", f"<b>Changes:</b> +{d['new'] or '—'}  -{d['removed'] or '—'}"]
+            ch = []
+            if d["new"]:
+                ch.append("➕ " + ", ".join(d["new"]))
+            if d["removed"]:
+                ch.append("➖ " + ", ".join(d["removed"]))
+            if ch:
+                lines += ["", "<b>Changes since last run</b>", "  " + " · ".join(ch)]
     except Exception:
         pass
-    sid = os.environ.get("AEGIS_SPREADSHEET_ID")
+
+    sid = os.environ.get("AEGIS_SPREADSHEET_ID") or os.environ.get("PRISM_SPREADSHEET_ID")
     if sid:
-        lines += ["", f"Live sheet: https://docs.google.com/spreadsheets/d/{sid}"]
-    lines += ["", "<i>Historical evidence, not a forecast. Stock selection experimental.</i>"]
+        lines += ["", f"📈 Live sheet: https://docs.google.com/spreadsheets/d/{sid}"]
+    lines += ["", "<i>Historical evidence, not a forecast. Portfolio process validated; "
+              "individual stock selection experimental.</i>"]
     return "\n".join(x for x in lines if x is not None)
 
 
@@ -125,6 +163,10 @@ def send(text):
 
 
 def main():
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")     # let the Windows console print emoji in --check
+    except Exception:
+        pass
     load_env()
     msg = build_message()
     if "--resolve" in sys.argv:
