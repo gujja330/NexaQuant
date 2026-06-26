@@ -117,7 +117,7 @@ def build_message():
         hold_short = hm.group(1) if hm else str(_val(r, "Recommended Holding"))
         l1 = f"  <b>{_val(r,'Stock')}</b> · {_val(r,'Sector')} · hold {hold_short}"
         bits = [f"₹{px}", f"buy {_val(r,'Buy Range')}",
-                f"score {_val(r,'Score /100')}", f"conf {_val(r,'Rec Confidence %')}%",
+                f"suitability {_val(r,'Score /100')}", f"conf {_val(r,'Rec Confidence %')}%",
                 f"wt {_val(r,'Weight %')}%"]
         tgt = str(_val(r, "Hist Target"))
         if tgt.replace(".", "", 1).isdigit():                   # numeric target only when >=5 analogues

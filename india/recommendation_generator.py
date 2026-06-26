@@ -739,10 +739,13 @@ def main():
          "single biggest validated edge — de-risks in weak regimes."],
         ["Rebalance", "Quarterly (beats monthly net of cost; less churn)."],
         ["Evidence gate", "Promote nothing on intuition: DSR / PBO / rolling OOS / forward paper."],
-        ["Factor breakdown (each 0-100)", "Every pick shows 5 sub-scores so you see WHY, not one opaque "
-         "number: Historical (win rate + median, SHRUNK toward neutral when <5 cases), Technical/Trend "
-         "(200-DMA, relative strength, RSI), Risk/Vol (low volatility = high), Sector, Regime. Overall = "
-         "0.30 Historical + 0.25 Risk + 0.20 Technical + 0.10 Sector + 0.15 Regime."],
+        ["Portfolio Suitability (0-100)", "HONEST NAMING: this score measures how well a stock FITS a "
+         "risk-managed portfolio (risk-fit), NOT how likely it is to outperform. Its largest component is "
+         "always Risk/Vol — AEGIS is a portfolio-allocation engine, not an alpha-discovery engine. Built "
+         "from 5 sub-scores: Historical (win rate + median, shrunk toward neutral when <5 cases), "
+         "Technical/Trend (200-DMA, rel-strength, RSI), Risk/Vol (low volatility = high), Sector, Regime. "
+         "Suitability = 0.30 Historical + 0.25 Risk + 0.20 Technical + 0.10 Sector + 0.15 Regime "
+         "(the Score Breakdown column shows the exact additive parts)."],
         ["Strength tiers", ">=65 STRONG BUY, >=55 BUY, >=45 ACCUMULATE, else WATCH. HARD RULE: a negative "
          "historical median is always WATCH (never a BUY), even if held for diversification."],
         ["Evidence threshold", f"A target price / return range is shown only with >={5} historical analogues; "
@@ -845,7 +848,11 @@ def main():
                  "Expected Range (hist)", "Prob +ve", "Rec Confidence %", "Trend", "RSI",
                  "Recommended Holding", "Review Date", "Allocation Rs", "Shares", "Weight %",
                  "Selected Because", "Not Evaluated", "Why This vs Alternatives", "Why"]
-    recs_wide = live[[c for c in wide_cols if c in live.columns]] if not live.empty else live
+    # HONEST RENAME: the score measures Portfolio Suitability (risk-fit), NOT expected outperformance.
+    recs_wide = (live[[c for c in wide_cols if c in live.columns]]
+                 .rename(columns={"Score /100": "Portfolio Suitability",
+                                  "Score Breakdown": "Suitability Breakdown"})
+                 if not live.empty else live)
     # Dashboard: all KPIs + backtest stats as ONE Field|Value table (each source is already 2-col).
     def _kv(df, sep):
         d = df.copy(); d.columns = ["Field", "Value"]
@@ -885,8 +892,8 @@ def main():
         ["Risk profile", profile_label], ["Holdings", len(w)],
         ["Buy-rated", int((live["Strength"].isin(["STRONG BUY", "BUY"])).sum()) if not live.empty else 0],
         ["Recommended holding", f"{rec_label} ({months} months)"], ["Review date", str(review)],
-        ["Highest conviction", f"{top_pick['Stock']} (score {top_pick['Score /100']})" if top_pick is not None else "—"],
-        ["Weakest holding", f"{weak_pick['Stock']} (score {weak_pick['Score /100']})" if weak_pick is not None else "—"],
+        ["Best risk-fit (suitability)", f"{top_pick['Stock']} ({top_pick['Score /100']})" if top_pick is not None else "—"],
+        ["Weakest holding (suitability)", f"{weak_pick['Stock']} ({weak_pick['Score /100']})" if weak_pick is not None else "—"],
         ["New today", ", ".join(chg_new) or "—"], ["Removed today", ", ".join(chg_removed) or "—"],
         ["Recommendation changes", len(chg_new) + len(chg_removed)],
         ["Portfolio confidence", f"{pconf}%"],
