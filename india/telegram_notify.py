@@ -94,7 +94,8 @@ def build_message():
     except Exception:
         regime_line = ""
     asof = str(_val(t.iloc[0], "Generated"))
-    hold = str(_val(t.iloc[0], "Recommended Holding"))
+    hm0 = re.search(r"\(([^)]+)\)", str(_val(t.iloc[0], "Recommended Holding")))
+    hold = hm0.group(1) if hm0 else str(_val(t.iloc[0], "Recommended Holding"))
     n_buy = int((t["Strength"].isin(["STRONG BUY", "BUY"])).sum()) if "Strength" in t else len(t)
 
     lines = [f"📊 <b>AEGIS Daily</b> · {asof}", regime_line,
@@ -106,13 +107,17 @@ def build_message():
         if strat != last_tier:                                  # group header per strength tier
             lines.append(f"{EMOJI.get(strat, '▫️')} <b>{strat}</b>")
             last_tier = strat
-        px = _val(r, "Current Price"); rng = str(_val(r, "Expected Range (hist)"))
+        rng = str(_val(r, "Expected Range (hist)"))
+        try:
+            px = f"{float(_val(r, 'Current Price')):,.0f}"          # clean whole-rupee price (no .0)
+        except Exception:
+            px = str(_val(r, "Current Price"))
         hm = re.search(r"\(([^)]+)\)", str(_val(r, "Recommended Holding")))
         hold_short = hm.group(1) if hm else str(_val(r, "Recommended Holding"))
         l1 = f"  <b>{_val(r,'Stock')}</b> · {_val(r,'Sector')} · hold {hold_short}"
         bits = [f"₹{px}", f"buy {_val(r,'Buy Range')}",
                 f"score {_val(r,'Score /100')}", f"conf {_val(r,'Rec Confidence %')}%",
-                f"{_val(r,'Weight %')}% (₹{_val(r,'Allocation Rs')})"]
+                f"wt {_val(r,'Weight %')}%"]
         tgt = str(_val(r, "Hist Target"))
         if tgt.replace(".", "", 1).isdigit():                   # numeric target only when >=5 analogues
             bits.insert(2, f"tgt ₹{tgt} in {hold_short}")
