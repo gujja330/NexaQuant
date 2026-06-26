@@ -46,6 +46,7 @@ jobs:
           python india/recommendation_generator.py || echo "engine refresh issue; will send last snapshot"
           python india/recommendation_db.py || echo "db update skipped"
           python india/scorecard.py || echo "scorecard skipped"
+          python india/ops_check.py || echo "ops-check reported issues (see board above)"
 
       - name: Push to Google Sheets (live view) — no-ops if secrets absent
         env:
