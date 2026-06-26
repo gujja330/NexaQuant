@@ -45,6 +45,7 @@ jobs:
         run: |
           python india/recommendation_generator.py || echo "engine refresh issue; will send last snapshot"
           python india/recommendation_db.py || echo "db update skipped"
+          python india/scorecard.py || echo "scorecard skipped"
 
       - name: Push to Google Sheets (live view) — no-ops if secrets absent
         env:
@@ -67,6 +68,6 @@ jobs:
         run: |
           git config user.name  "aegis-bot"
           git config user.email "aegis-bot@users.noreply.github.com"
-          git add reports/AEGIS_*.xlsx data/aegis_*.csv data/raw/india/*_D1.parquet || true
+          git add reports/AEGIS_*.xlsx data/aegis_*.csv data/raw/india/*_D1.parquet docs/ || true
           git diff --cached --quiet || git commit -m "AEGIS daily: append market data + refresh report + DB [skip ci]"
           git push || true

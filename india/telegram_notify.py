@@ -141,6 +141,19 @@ def build_message():
     except Exception:
         pass
 
+    try:                                                   # live track record (evidence loop)
+        from india.scorecard import load_scored, headline, rolling_12m
+        sr = load_scored()
+        if not sr.empty:
+            h = headline(sr); r12 = rolling_12m(sr)
+            tr = (f"📋 <b>Track record</b>: {h['win_rate']:.0f}% win · {h['median_ret']:+.1f}% median "
+                  f"({h['scored_recs']} scored)")
+            if r12:
+                tr += f" · 12M {r12['win_rate']:.0f}%"
+            lines += ["", tr]
+    except Exception:
+        pass
+
     sid = os.environ.get("AEGIS_SPREADSHEET_ID") or os.environ.get("PRISM_SPREADSHEET_ID")
     if sid:
         lines += ["", f"📈 Live sheet: https://docs.google.com/spreadsheets/d/{sid}"]
