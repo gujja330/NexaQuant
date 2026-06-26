@@ -98,7 +98,8 @@ def build_message():
     hold = hm0.group(1) if hm0 else str(_val(t.iloc[0], "Recommended Holding"))
     n_buy = int((t["Strength"].isin(["STRONG BUY", "BUY"])).sum()) if "Strength" in t else len(t)
 
-    lines = [f"📊 <b>AEGIS Daily</b> · {asof}", regime_line,
+    prof = str(_val(t.iloc[0], "Profile")) if "Profile" in t else ""
+    lines = [f"📊 <b>AEGIS Daily</b> · {asof}" + (f" · {prof}" if prof else ""), regime_line,
              f"{len(t)} holdings · {n_buy} buy-rated · horizon {hold} · sorted best-first", ""]
 
     last_tier = None

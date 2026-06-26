@@ -193,7 +193,18 @@ def main():
     months = max(1, horizon // 21)
     n_dyn, breadth = choose_topn(hist, closes, exp, cap=C["sector_cap"])
     n = arg("--topn", n_dyn, int)
-    selected, vol_rank = select_with_watchlist(hist, n, C["sector_cap"])
+    # RISK PROFILE (one engine, three profiles). Shield = production default (calmest names).
+    # Balanced = medium-vol tier (evidence-backed, india/risk_tiers.py). Growth = high-vol (EXPERIMENTAL).
+    profile = arg("--profile", "shield", str).lower()
+    PROFILE = {"shield": (0.0, 0.40, "Shield (Conservative)"),
+               "balanced": (0.34, 0.70, "Balanced"),
+               "growth": (0.60, 1.01, "Growth (Experimental)")}
+    plo, phi, profile_label = PROFILE.get(profile, PROFILE["shield"])
+    pvr = hist.std().rank(pct=True)
+    pool = list(pvr[(pvr > plo) & (pvr <= phi)].index)
+    hist_sel = hist[pool] if len(pool) >= max(n, 8) else hist          # fall back if a tier is too thin
+    selected, _ = select_with_watchlist(hist_sel, n, C["sector_cap"])
+    vol_rank = hist.std().rank(pct=True)                               # FULL-universe rank -> honest risk labels
     w = weights_for("hrp", hist[selected]); w = (w / w.sum()).clip(upper=C["name_cap"]); w = w / w.sum()
     invest = capital * exp
     mode, mode_conf, status = mode_of(horizon)
@@ -291,8 +302,11 @@ def main():
         shrink = min(1.0, o / MIN_ANALOGUES)                       # small sample -> pull toward neutral 50
         hist_sc = int(round(50 + shrink * (hist_raw - 50)))         # honest: 2 cases can't earn a 100
         a200 = bool(sym in closes.columns and closes[sym].iloc[-1] > closes[sym].tail(200).mean())
-        rsr = float(rs_rank.get(sym, 0.5)); vr = float(vol_rank.get(sym, 0.5))
+        rsr = float(rs_rank.get(sym, 0.5)); rsr = 0.5 if pd.isna(rsr) else rsr   # short-history names -> neutral
+        vr = float(vol_rank.get(sym, 0.5)); vr = 0.5 if pd.isna(vr) else vr
         rsv = _rsi(closes[sym].dropna()) if (sym in closes.columns and len(closes[sym].dropna()) > 30) else 50
+        if pd.isna(rsv):
+            rsv = 50
         rsi_pos = 1.0 if 40 <= rsv <= 70 else 0.5
         tech_sc = int(max(0, min(100, round(40 * (1 if a200 else 0) + 40 * rsr + 20 * rsi_pos))))
         risk_sc = int(round(100 * (1 - vr)))                                   # low vol -> high (validated driver)
@@ -420,6 +434,7 @@ def main():
         live["_sr"] = live["Strength"].map(rank).fillna(9)
         live = (live.sort_values(["_sr", "Score /100", "Weight %"], ascending=[True, False, False])
                 .drop(columns="_sr").reset_index(drop=True))
+        live["Profile"] = profile_label
 
     # ---- CLEAN investor view (no 40-column wall): the actionable columns only ----
     clean_cols = ["Strength", "Score /100", "Stock", "Sector", "Current Price", "Buy Range",
@@ -432,8 +447,8 @@ def main():
                    "Why This vs Alternatives"]
     recs_factors = live[[c for c in factor_cols if c in live.columns]] if not live.empty else live
     # canonical machine-readable snapshot (decouples the DB / Telegram / sync from the report layout)
-    canon_cols = ["Generated", "Stock", "Sector", "Strength", "Score /100", "Current Price", "Buy Range",
-                  "Hist Target", "Expected Range (hist)", "Prob +ve", "Rec Confidence %",
+    canon_cols = ["Generated", "Profile", "Stock", "Sector", "Strength", "Score /100", "Current Price",
+                  "Buy Range", "Hist Target", "Expected Range (hist)", "Prob +ve", "Rec Confidence %",
                   "Recommended Holding", "Review Date", "Valid Until", "Allocation Rs", "Shares",
                   "Weight %", "Why"]
     if not live.empty:
@@ -657,6 +672,8 @@ def main():
         columns=["Field", "Value"])
     exec_block = pd.DataFrame([
         ["TODAY'S RECOMMENDATION", f"Hold a {len(w)}-stock risk-managed portfolio"],
+        ["Risk Profile", profile_label + ("  (default)" if profile == "shield" else
+         "  (experimental — not production default)" if profile == "growth" else "  (evidence-backed option)")],
         ["Run Date / Market Data", f"{run_date}  /  {market_asof}"],
         ["Market Regime", regime], ["Recommended Holding", f"{rec_label} ({months} months)"],
         ["Suggested Capital", rupees(capital)], ["Deploy now", f"Rs{round(invest):,.0f} ({exp:.0%})"],
