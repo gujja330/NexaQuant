@@ -164,7 +164,15 @@ def main():
     hmat = horizon_matrix()
     days_for = {v: k for k, v in LABELS.items()}
     closes, highs, lows, vols, idx, vix, spx = load_panels()
-    closes = closes[[c for c in closes.columns if c in set(NIFTY200)]]
+    # DYNAMIC TRADABLE UNIVERSE (liquidity/tradability filters) — not a hard-coded index list
+    from india.universe import build_universe
+    try:
+        UNIV = set(build_universe(closes, vols))
+        if len(UNIV) < 50:
+            UNIV = set(NIFTY200)                          # safety fallback
+    except Exception:
+        UNIV = set(NIFTY200)
+    closes = closes[[c for c in closes.columns if c in UNIV]]
     rets = closes.pct_change(); asof = closes.index[-1]; prices = closes.iloc[-1]
     reg = pd.read_csv(REG) if REG.exists() else pd.DataFrame()
     # AUTO-REFRESH: score any matured recs so history reflects the latest data every run
@@ -211,7 +219,9 @@ def main():
     hv = horizon_view(eqc, horizon, 100000)
     run_date = datetime.now().date(); market_asof = asof.date()    # run date vs data date (no ambiguity)
     valid_until = (asof + timedelta(days=C["expiry_cal_days"])).date()
-    review = (asof + timedelta(days=int(min(horizon, C["rebal"]) * C["review_cal_factor"]))).date()
+    # DYNAMIC REVIEW: weak market -> review sooner (de-risk fast); strong trend -> review later (let it run)
+    review_cal = 30 if exp < 0.65 else (60 if exp < 0.9 else 120)
+    review = (asof + timedelta(days=review_cal)).date()
     rid_today = rec_id(asof, months)
 
     # real, causal technical CONTEXT (computed from price; NOT the selection driver, which is low-vol)
@@ -836,7 +846,44 @@ def main():
                            pd.DataFrame([["— ABOUT / EVIDENCE —", ""]], columns=["Topic", "Detail"]),
                            about_full], ignore_index=True)
 
+    # ===== TODAY — one-glance summary page (the single at-a-glance addition) =====
+    top_pick = live.iloc[0] if not live.empty else None              # already sorted best-first
+    weak_pick = live.sort_values("Score /100").iloc[0] if not live.empty else None
+    try:
+        from india.scorecard import load_scored, headline, rolling_12m
+        _sr = load_scored(); _h = headline(_sr) if not _sr.empty else {}
+        _r12 = rolling_12m(_sr) if not _sr.empty else {}
+    except Exception:
+        _h, _r12 = {}, {}
+    chg_new, chg_removed, chg_rot = [], [], []
+    try:
+        from india.recommendation_db import load_db, daily_diff
+        _db = load_db()
+        if not _db.empty:
+            _last = sorted(_db["recommended_date"].astype(str).unique())[-1]
+            _prev = set(_db[_db["recommended_date"].astype(str) == _last]["symbol"])
+            chg_new = sorted(set(live["Stock"]) - _prev); chg_removed = sorted(_prev - set(live["Stock"]))
+    except Exception:
+        pass
+    pconf = min(96, round(50 + beat_pct * 0.5 + (10 if G["pf_grade"] == "A" else 0)))
+    today_summary = pd.DataFrame([
+        ["Date", str(run_date)],
+        ["Market regime", f"{regime}  ·  deploy {exp:.0%}  ·  cash {1-exp:.0%}"],
+        ["Risk profile", profile_label], ["Holdings", len(w)],
+        ["Buy-rated", int((live["Strength"].isin(["STRONG BUY", "BUY"])).sum()) if not live.empty else 0],
+        ["Recommended holding", f"{rec_label} ({months} months)"], ["Review date", str(review)],
+        ["Highest conviction", f"{top_pick['Stock']} (score {top_pick['Score /100']})" if top_pick is not None else "—"],
+        ["Weakest holding", f"{weak_pick['Stock']} (score {weak_pick['Score /100']})" if weak_pick is not None else "—"],
+        ["New today", ", ".join(chg_new) or "—"], ["Removed today", ", ".join(chg_removed) or "—"],
+        ["Recommendation changes", len(chg_new) + len(chg_removed)],
+        ["Portfolio confidence", f"{pconf}%"],
+        ["Track record (win rate)", f"{_h.get('win_rate', '—')}%  ·  median {_h.get('median_ret', '—')}%"],
+        ["Rolling 12M win rate", f"{_r12.get('win_rate', '—')}%"],
+        ["Note", "One-glance summary. Historical evidence, NOT a forecast. Selection experimental."]],
+        columns=["TODAY", "Value"])
+
     sheets = [                                # each entry = ONE dataframe -> ONE header row, no stacking
+        ("TODAY", [today_summary]),                    # one-glance summary (first thing you read)
         ("Dashboard", [dashboard_tbl]),                # KPIs + backtest stats (Field | Value)
         ("Today's Recommendations", [recs_wide]),      # clean wide decision table
         ("Backtest", [yearly]),                        # per-year money + win/return

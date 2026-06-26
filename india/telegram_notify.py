@@ -132,12 +132,18 @@ def build_message():
         d = daily_diff(load_db())
         if d and not d.get("note"):
             ch = []
-            if d["new"]:
-                ch.append("➕ " + ", ".join(d["new"]))
-            if d["removed"]:
-                ch.append("➖ " + ", ".join(d["removed"]))
+            if d.get("new"):
+                ch.append("➕ in: " + ", ".join(d["new"]))
+            if d.get("removed"):
+                ch.append("➖ out: " + ", ".join(d["removed"]))
+            if d.get("increased"):
+                ch.append("⬆ " + "; ".join(d["increased"][:4]))
+            if d.get("reduced"):
+                ch.append("⬇ " + "; ".join(d["reduced"][:4]))
+            if d.get("rotation"):
+                ch.append("🔄 sectors: " + ", ".join(d["rotation"][:6]))
             if ch:
-                lines += ["", "<b>Changes since last run</b>", "  " + " · ".join(ch)]
+                lines += ["", "<b>What changed since last run</b>"] + ["  " + c for c in ch]
     except Exception:
         pass
 

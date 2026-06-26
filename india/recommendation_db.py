@@ -25,8 +25,8 @@ warnings.simplefilter("ignore")
 DB = ROOT / "data" / "aegis_recommendation_db.csv"
 REPORTS = ROOT / "reports"
 
-COLS = ["recommended_date", "symbol", "action", "horizon", "entry", "target", "review_date",
-        "expiry_date", "confidence", "weight", "status"]
+COLS = ["recommended_date", "symbol", "sector", "action", "score", "horizon", "entry", "target",
+        "review_date", "expiry_date", "confidence", "weight", "status"]
 
 
 def _latest_workbook():
@@ -66,7 +66,8 @@ def _today_rows():
     rows = []
     for _, r in t.iterrows():
         rows.append({
-            "recommended_date": snap, "symbol": g(r, "Stock"), "action": g(r, "Strength"),
+            "recommended_date": snap, "symbol": g(r, "Stock"), "sector": g(r, "Sector"),
+            "action": g(r, "Strength"), "score": g(r, "Score /100"),
             "horizon": g(r, "Recommended Holding"), "entry": g(r, "Current Price"),
             "target": g(r, "Hist Target"), "review_date": g(r, "Review Date"),
             "expiry_date": g(r, "Valid Until"), "confidence": g(r, "Rec Confidence %"),
@@ -104,21 +105,44 @@ def snapshot(today=None):
 
 
 def daily_diff(db):
-    """Compare the two most recent snapshots: NEW, REMOVED, INCREASED, REDUCED (by weight)."""
+    """Explain what changed between the two most recent runs and WHY: NEW / REMOVED, weight
+    INCREASED / REDUCED (with the score & strength move behind it), and SECTOR ROTATION."""
     if db.empty:
         return {}
     snaps = sorted(db["recommended_date"].astype(str).unique())
     if len(snaps) < 2:
         return {"note": "only one snapshot so far — diff begins from the next run"}
-    prev, cur = db[db.recommended_date.astype(str) == snaps[-2]], db[db.recommended_date.astype(str) == snaps[-1]]
+    prev = db[db.recommended_date.astype(str) == snaps[-2]]
+    cur = db[db.recommended_date.astype(str) == snaps[-1]]
     pw = dict(zip(prev.symbol, pd.to_numeric(prev.weight, errors="coerce")))
     cw = dict(zip(cur.symbol, pd.to_numeric(cur.weight, errors="coerce")))
+    psc = dict(zip(prev.symbol, pd.to_numeric(prev.get("score"), errors="coerce")))
+    csc = dict(zip(cur.symbol, pd.to_numeric(cur.get("score"), errors="coerce")))
+    pa = dict(zip(prev.symbol, prev.get("action"))); ca = dict(zip(cur.symbol, cur.get("action")))
+
+    def why(s):
+        bits = []
+        if s in psc and s in csc and not pd.isna(psc[s]) and not pd.isna(csc[s]) and abs(csc[s] - psc[s]) >= 1:
+            bits.append(f"score {psc[s]:.0f}->{csc[s]:.0f}")
+        if pa.get(s) and ca.get(s) and pa.get(s) != ca.get(s):
+            bits.append(f"{pa[s]}->{ca[s]}")
+        return (" (" + ", ".join(bits) + ")") if bits else ""
+
     new = [s for s in cw if s not in pw]
     removed = [s for s in pw if s not in cw]
-    inc = [f"{s} {pw[s]:.0f}->{cw[s]:.0f}%" for s in cw if s in pw and cw[s] - pw[s] > 0.5]
-    red = [f"{s} {pw[s]:.0f}->{cw[s]:.0f}%" for s in cw if s in pw and pw[s] - cw[s] > 0.5]
+    inc = [f"{s} {pw[s]:.0f}->{cw[s]:.0f}%{why(s)}" for s in cw if s in pw and cw[s] - pw[s] > 0.5]
+    red = [f"{s} {pw[s]:.0f}->{cw[s]:.0f}%{why(s)}" for s in cw if s in pw and pw[s] - cw[s] > 0.5]
+    # sector rotation — net weight shift per sector
+    rot = []
+    if "sector" in db.columns:
+        ps = prev.assign(w=pd.to_numeric(prev.weight, errors="coerce")).groupby("sector").w.sum()
+        cs = cur.assign(w=pd.to_numeric(cur.weight, errors="coerce")).groupby("sector").w.sum()
+        for sec in sorted(set(ps.index) | set(cs.index)):
+            d = cs.get(sec, 0.0) - ps.get(sec, 0.0)
+            if abs(d) >= 1.0:
+                rot.append(f"{sec} {d:+.0f}%")
     return {"from": snaps[-2], "to": snaps[-1], "new": new, "removed": removed,
-            "increased": inc, "reduced": red}
+            "increased": inc, "reduced": red, "rotation": rot}
 
 
 def main():
