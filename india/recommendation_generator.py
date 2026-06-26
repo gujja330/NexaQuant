@@ -322,10 +322,13 @@ def main():
         risk_sc = int(round(100 * (1 - vr)))                                   # low vol -> high (validated driver)
         sec_sc = int(sec_score.get(sym, 50))
         regime_sc = int(round(100 * exp))
-        overall = int(round(0.30 * hist_sc + 0.25 * risk_sc + 0.20 * tech_sc +
-                            0.10 * sec_sc + 0.15 * regime_sc))
+        # weighted contributions (sum to overall) -> exact score decomposition, not invented
+        contrib = {"Historical": round(0.30 * hist_sc), "Risk/Vol": round(0.25 * risk_sc),
+                   "Trend/Tech": round(0.20 * tech_sc), "Regime": round(0.15 * regime_sc),
+                   "Sector": round(0.10 * sec_sc)}
+        overall = int(sum(contrib.values()))
         return dict(hist=hist_sc, tech=tech_sc, risk=risk_sc, sector=sec_sc, regime=regime_sc,
-                    overall=overall, occ=o, win=wn, med=md)
+                    overall=overall, contrib=contrib, occ=o, win=wn, med=md)
 
     def evidence_score(sym):
         return score_components(sym)["overall"]
@@ -353,6 +356,12 @@ def main():
 
         # ---- FACTOR BREAKDOWN (each 0-100) -> transparent Overall score (documented on Methodology) ----
         comp = score_components(s); score = comp["overall"]
+        # SCORE DECOMPOSITION + ATTRIBUTION (explainability only — same model, made transparent)
+        cb = comp["contrib"]; ranked_f = sorted(cb, key=cb.get, reverse=True)
+        decomp = " · ".join(f"{k} +{cb[k]}" for k in ranked_f) + f" = {score}"
+        top_factor, weak_factor = ranked_f[0], ranked_f[-1]
+        sel_because = (f"{ranked_f[0]} + {ranked_f[1]} strongest; chosen as a lowest-volatility "
+                       f"{sector_of(s)} name under the sector cap")
         # WHY THIS, NOT THAT? — show the sector alternatives + their scores, but be HONEST that the
         # selector is lowest-volatility under the sector cap, NOT the Evidence Score (which is context).
         peers = [c for c in hist.columns if sector_of(c) == sector_of(s) and c != s]
@@ -426,6 +435,9 @@ def main():
             # FACTOR BREAKDOWN (each 0-100) — the "why this stock" detail behind the Overall score
             "F: Historical": comp["hist"], "F: Technical/Trend": comp["tech"], "F: Risk/Vol": comp["risk"],
             "F: Sector": comp["sector"], "F: Regime": comp["regime"],
+            # ATTRIBUTION + DECOMPOSITION (explainability)
+            "Score Breakdown": decomp, "Top Factor": top_factor, "Weakest Factor": weak_factor,
+            "Selected Because": sel_because, "Not Evaluated": "Fundamentals · Earnings · News · Flows",
             "Dist 200-DMA %": d200, "RSI": rsi if rsi is not None else DASH, "Vol Pctile": volp,
             "52W Range Pos %": pos52 if pos52 is not None else DASH,
             "Trend": trend, "Rel Strength": rstr,
@@ -827,11 +839,12 @@ def main():
     # ===== ONE CLEAN TABLE PER SHEET (single header row) — required for Google Sheets / filters /
     # pivots / programmatic self-learning. No stacked blocks (which put headers mid-sheet). =====
     # Recommendations: clean actionable cols + compact factor scores, all in ONE wide table.
-    wide_cols = ["Strength", "Score /100", "F: Historical", "F: Technical/Trend", "F: Risk/Vol",
-                 "F: Sector", "F: Regime", "Stock", "Sector", "Current Price", "Buy Range",
+    wide_cols = ["Strength", "Score /100", "Score Breakdown", "Top Factor", "Weakest Factor",
+                 "F: Historical", "F: Technical/Trend", "F: Risk/Vol", "F: Sector", "F: Regime",
+                 "Stock", "Sector", "Current Price", "Buy Range",
                  "Expected Range (hist)", "Prob +ve", "Rec Confidence %", "Trend", "RSI",
                  "Recommended Holding", "Review Date", "Allocation Rs", "Shares", "Weight %",
-                 "Why This vs Alternatives", "Why"]
+                 "Selected Because", "Not Evaluated", "Why This vs Alternatives", "Why"]
     recs_wide = live[[c for c in wide_cols if c in live.columns]] if not live.empty else live
     # Dashboard: all KPIs + backtest stats as ONE Field|Value table (each source is already 2-col).
     def _kv(df, sep):
