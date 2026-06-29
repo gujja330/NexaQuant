@@ -7,6 +7,7 @@ Auto-generated (`python tools/trace.py graph`) from the registries + leaderboard
 - **price_ohlcv** (3): t_vol_ann, t_mom_3m, t_rel_str_3m
 
 ## Program success rate (promoted+investigate / results)
+- X-CrossMarket: 1/1 (100%)
 - IND-PortfolioConstruction: 1/4 (25%)
 - A-Fundamentals: 0/10 (0%)
 - IND-UniverseSizing: 0/1 (0%)
@@ -16,8 +17,8 @@ Auto-generated (`python tools/trace.py graph`) from the registries + leaderboard
 - f_rev_growth_yoy: 2
 - f_roe: 2
 - lgbm_learned_blend_purged: 2
+- regime_overlay: 2
 - earnings_surprise_yoy: 2
-- f_net_margin: 1
 
 ## Results held back by LOW confidence (need more power)
 - RC001.1 f_net_margin — 46 (Low) (weak)

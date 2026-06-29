@@ -2,19 +2,19 @@
 
 Everything AEGIS has learned, by concept and market. Auto-generated from `LEADERBOARD.csv` (`python tools/feature_library.py`). Cross-market lift (✅ in BOTH) is the strongest evidence and the path to production.
 
-| Concept | Domain | USA | India | Scope |
-|---|---|---|---|---|
-| Low-volatility selection | Risk | ✅ production | ✅ production | 🌐 Global |
-| Regime timing overlay | Timing | — | ✅ production | India-only |
-| HRP weighting | Risk | — | ❌ rejected | Rejected |
-| Stock selection | Portfolio | — | ❌ rejected | Rejected |
-| Momentum | Technical | ✅ production | ❌ rejected | USA-only |
-| Relative strength | Technical | ✅ production | — | USA-only |
-| Universe sizing | Portfolio | — | ❌ rejected | Rejected |
-| Fundamental ratios (ROE/margin/growth/debt) | Fundamental | ❌ rejected | — | Rejected |
-| Fundamental learned blend | Fundamental/ML | ❌ rejected | — | Rejected |
-| PEAD (earnings surprise) | Event | ❌ rejected | — | Rejected |
-| Insider buying (Form 4) | Alternative | — | — | Untested |
+| Concept | Domain | USA | India | Scope | Confidence |
+|---|---|---|---|---|--:|
+| Low-volatility selection | Risk | ✅ production | ✅ production | 🌐 Global | 90 |
+| Regime timing overlay | Timing | 🟡 research | ✅ production | India-only | 85 |
+| HRP weighting | Risk | — | ❌ rejected | Rejected | 80 |
+| Stock selection | Portfolio | — | ❌ rejected | Rejected | 80 |
+| Momentum | Technical | ✅ production | ❌ rejected | USA-only | 80 |
+| Relative strength | Technical | ✅ production | — | USA-only | 90 |
+| Universe sizing | Portfolio | — | ❌ rejected | Rejected | 80 |
+| Fundamental ratios (ROE/margin/growth/debt) | Fundamental | ❌ rejected | — | Rejected | 83 |
+| Fundamental learned blend | Fundamental/ML | ❌ rejected | — | Rejected | 60 |
+| PEAD (earnings surprise) | Event | ❌ rejected | — | Rejected | 57 |
+| Insider buying (Form 4) | Alternative | — | — | Untested | — |
 
 **Legend:** ✅ production (live engine) / promoted · 🟡 research lead · ❌ rejected (tested, no edge) · — untested · 🌐 Global (works in both markets).
 

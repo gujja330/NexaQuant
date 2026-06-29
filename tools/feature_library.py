@@ -37,6 +37,13 @@ PRODUCTION = {"Low-volatility selection": {"USA", "INDIA"}, "Regime timing overl
 RANK = {"kept": 4, "promoted": 4, "investigate": 2}                     # everything else = rejected (1)
 
 
+def _conf_num(s):
+    try:
+        return int(s.split("(")[0].strip())
+    except (ValueError, AttributeError):
+        return None
+
+
 def market_status(concept, aliases, mkt):
     best = 0
     for r in LB:
@@ -52,6 +59,13 @@ def market_status(concept, aliases, mkt):
     if best == 1:
         return "❌ rejected"
     return "—"
+
+
+def concept_confidence(aliases):
+    """Highest confidence score among the concept's evidence rows (production concepts default high)."""
+    scores = [_conf_num(r.get("confidence", "")) for r in LB if r["factor_or_experiment"] in aliases]
+    scores = [s for s in scores if s is not None]
+    return max(scores) if scores else None
 
 
 def scope(usa, ind):
@@ -73,14 +87,17 @@ def main():
     rows = []
     for concept, domain, aliases in CONCEPTS:
         usa, ind = market_status(concept, aliases, "USA"), market_status(concept, aliases, "INDIA")
-        rows.append((concept, domain, usa, ind, scope(usa, ind)))
+        cf = concept_confidence(aliases)
+        prod = bool(PRODUCTION.get(concept))
+        conf = cf if cf is not None else (90 if prod else "—")
+        rows.append((concept, domain, usa, ind, scope(usa, ind), conf))
     L = ["# AEGIS Feature Library & Cross-Market Promotion Matrix", "",
          "Everything AEGIS has learned, by concept and market. Auto-generated from `LEADERBOARD.csv` "
          "(`python tools/feature_library.py`). Cross-market lift (✅ in BOTH) is the strongest evidence and "
          "the path to production.", "",
-         "| Concept | Domain | USA | India | Scope |", "|---|---|---|---|---|"]
-    for c, d, u, i, s in rows:
-        L.append(f"| {c} | {d} | {u} | {i} | {s} |")
+         "| Concept | Domain | USA | India | Scope | Confidence |", "|---|---|---|---|---|--:|"]
+    for c, d, u, i, s, cf in rows:
+        L.append(f"| {c} | {d} | {u} | {i} | {s} | {cf} |")
     L += ["",
           "**Legend:** ✅ production (live engine) / promoted · 🟡 research lead · ❌ rejected (tested, no "
           "edge) · — untested · 🌐 Global (works in both markets).", "",
