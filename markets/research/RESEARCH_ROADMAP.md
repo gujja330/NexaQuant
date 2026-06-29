@@ -9,6 +9,11 @@ Standards for every experiment live in `docs/AEGIS_RESEARCH_HANDBOOK.md` (PIT, l
 bar, significance). The framework engine (`core/usa_research.py`) is **LOCKED** — experiments parameterize
 it, they don't rewrite it.
 
+**Tracking artifacts:** `registry/DATASET_REGISTRY.csv` (what data exists + status), `registry/
+FEATURE_CATALOG.csv` (every feature + status + IC), `registry/EXPERIMENT_REGISTRY.csv` (planned work, vs
+the Leaderboard which holds results), `datasets/SEC_SCORECARD.md` (score a dataset before using it),
+`RESEARCH_TIMELINE.md` (quarterly view), `RESEARCH_DASHBOARD.md` (auto rollup).
+
 ---
 
 ## Program A — Fundamentals (SEC EDGAR)   ·   STATUS: open, RC001 closed
