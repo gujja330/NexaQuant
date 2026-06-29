@@ -16,13 +16,31 @@ the Leaderboard which holds results), `datasets/SEC_SCORECARD.md` (score a datas
 
 ---
 
-## Program A — Fundamentals (SEC EDGAR)   ·   STATUS: open, RC001 closed
-The first program. Free, official, point-in-time via `filed` dates.
-- **RC001 — composite & decomposition** ✅ CLOSED → `RC001_sec_fundamentals.md`
-  - Verdict: composite NOT PROMOTED (failed by cancellation). Leads: revenue growth (+, 🟡), ROE (inverse,
-    🔴 as a positive factor). Robust to sector/size/regime. Open risk: ROE-inverse may be a 2024–26 artifact.
-- **RC00x (future, same dataset):** valuation factors (P/E, P/B, FCF yield), quality-as-short, the
-  growth-tilt/ROE-inverse blend tested directly — each as a new RC row.
+## Where we are (2026-06-29)
+- **Program 0 — Infrastructure Expansion** ✅ COMPLETE → `experiments/PROGRAM0_comparison.md`. Deeper history
+  (2y→up to 64y) + SEC coverage (74→208) showed **every static-fundamental & naive-earnings lead was a
+  2024–26 small-sample artifact** (all flat under power). The gate held; nothing false was promoted.
+- **Strategic pivot:** stop recombining ROE/margin/EPS/debt/revenue — proven flat on this universe. Move to
+  **genuinely different information domains** (alternative data), one at a time, same discipline.
+- **Now executing:** Program 1.1 — SEC Form 4 insider (RC005).
+- **AI (Program 4) is last** — only after ~100+ validated features exist (today: ~0 USA-validated).
+
+Higher-level program arc (split by information domain): **0 Infrastructure ✓ → 1 Insider (active) →
+2 Analyst → 3 ETF/Holdings → 4 Options/Volatility → 5 Macro → 6 ML Ranking (last)**. Each is a distinct
+data domain, run one at a time, same gate. Phase view: 1 Infrastructure ✓ · 2 Data Acquisition (now) ·
+3 Research · 4 AI. The lettered sections below are the detailed cycle inventory.
+
+## Program A — Fundamentals (SEC EDGAR)   ·   STATUS: ✅ CLOSED — **REJECTED**
+- **RC001 — composite & decomposition** ✅ CLOSED → `RC001_sec_fundamentals.md`. 2y leads (growth +, ROE
+  inverse) were **shown FLAT on 14y by Program 0** → all static ratios NOT PROMOTED (confident rejection).
+- Do NOT spend more cycles recombining these ratios on this universe; the cross-sectional edge is ~0.
+
+## Program 1 — Alternative Data (ACTIVE, priority order)
+1. **RC005 — Insider (SEC Form 4)** ▶ PILOT running. Open-market net buy (P−S), 90d, PIT filed date.
+2. **RC006 — Analyst revisions** (estimate/target/recommendation changes). Needs a source.
+3. **RC007 — Institutional flows (13F)** quarterly holdings / manager changes.
+4. **RC008 — ETF holdings/flows** (sector + thematic).
+5. **RC009 — Macro & market structure** (curve, credit, DXY, VIX) — as a regime conditioner.
 
 ## Program B — Earnings Intelligence   ·   STATUS: designed, not started
 - **RC002 — Surprise:** SUE / surprise vs naive expectation; post-earnings drift 1–60d. PIT = 8-K/10-Q

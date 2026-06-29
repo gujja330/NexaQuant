@@ -37,6 +37,10 @@ def main():
     sec = len(glob.glob(str(ROOT / "markets" / "usa" / "raw" / "fundamentals" / "*.json"))) - 1  # minus cik_map
     promoted = sum(1 for r in lb if r["status"] in ("kept", "promoted"))
     investigating = sum(1 for r in lb if r["status"] == "investigate")
+    superseded = sum(1 for r in lb if r["status"] == "superseded")
+    decided = [r for r in lb if r["status"] != "superseded"]        # exclude superseded re-runs from the rate
+    rejected = sum(1 for r in decided if r["status"] not in ("kept", "promoted", "investigate"))
+    succ = f"{100*promoted//max(1,len(decided))}%"
     pmin, pmax = price_years()
 
     kpis = [
@@ -47,6 +51,8 @@ def main():
         ("Experiments registered", len(exp), 250),
         ("Promoted", promoted, 20),
         ("Investigating", investigating, 10),
+        ("Rejected / closed", rejected, "—"),
+        ("Research success rate", succ, "5-10%"),
         ("SEC coverage (names)", sec, 1000),
         ("Price history (yrs, min-max)", f"{pmin}-{pmax}", "20+ avg"),
     ]

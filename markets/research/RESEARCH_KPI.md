@@ -10,6 +10,8 @@ Auto-computed from registries + leaderboard + cached data — `python tools/kpi.
 | Experiments logged | 17 | 250 |
 | Experiments registered | 22 | 250 |
 | Promoted | 1 | 20 |
-| Investigating | 3 | 10 |
+| Investigating | 0 | 10 |
+| Rejected / closed | 13 | — |
+| Research success rate | 7% | 5-10% |
 | SEC coverage (names) | 227 | 1000 |
 | Price history (yrs, min-max) | 1.9-64.5 | 20+ avg |

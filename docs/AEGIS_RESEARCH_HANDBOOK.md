@@ -83,6 +83,10 @@ production only after an independent forward paper record and a quarterly-review
 6. **Result** — IC / IC-IR / lift / effective N.
 7. **Verdict** — PROMOTE / INVESTIGATE / REJECT + why.
 8. **Leaderboard row appended.**
+9. **Next best experiment** — every report ends by naming the single highest-value follow-up (deepen data,
+   split the factor, test an interaction, or move to a new domain). This keeps the roadmap self-propagating:
+   a rejection points to the next domain, an underpowered result points to more data, a promotion points to
+   robustness/interaction testing. Stored in the `next_best_experiment` column of the Leaderboard.
 
 ## 10. The Leaderboard — single source of truth
 - `markets/research/LEADERBOARD.csv` is permanent institutional memory. **Every** experiment appends a row;
