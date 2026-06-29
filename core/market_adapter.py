@@ -148,7 +148,9 @@ class USAAdapter(MarketAdapter):
         return self.get_market_data()[4]
 
     def get_sector(self, symbol):
-        return USA.SECTORS.get(symbol, "Other")    # full-universe sectors arrive with SEC data (Phase 4)
+        from core.usa_sectors import load_sectors
+        real = load_sectors()                       # real GICS sectors (core/usa_sectors.py --build)
+        return real.get(symbol) or USA.SECTORS.get(symbol, "Other")
 
     def get_calendar(self):
         return self.get_market_data()[0].index
