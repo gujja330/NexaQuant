@@ -48,9 +48,14 @@ class MarketAdapter(ABC):
 class IndiaAdapter(MarketAdapter):
     name = "india"
 
+    def __init__(self):
+        self._md = None
+
     def get_market_data(self):
-        from india.feature_engine import load_panels
-        return load_panels()            # (closes, highs, lows, vols, idx, vix, spx)
+        if self._md is None:            # memoize — load panels once per adapter instance
+            from india.feature_engine import load_panels
+            self._md = load_panels()    # (closes, highs, lows, vols, idx, vix, spx)
+        return self._md
 
     def get_universe(self):
         from india.universe import build_universe
@@ -98,8 +103,11 @@ class USAAdapter(MarketAdapter):
     def __init__(self):
         # use the dynamic universe if it's been built+cached, else the starter mega-caps
         from core.usa_universe import load_universe
+        from core.usa_sectors import load_sectors
         uni = load_universe()
         self.symbols = uni if uni else sorted(USA.SECTORS)
+        self._md = None
+        self._sectors = load_sectors()          # load the sector map ONCE (not per get_sector call)
 
     def download(self, period="5y"):
         """Fetch + cache OHLCV for the universe + index + VIX into data/raw/usa/ (AEGIS schema)."""
@@ -129,6 +137,8 @@ class USAAdapter(MarketAdapter):
         return {Path(f).stem.replace("_D1", ""): pd.read_parquet(f).sort_index() for f in files}
 
     def get_market_data(self):
+        if self._md is not None:
+            return self._md
         d = self._load()
         stocks = [s for s in d if s not in ("SPX", "USVIX")]
         closes = pd.DataFrame({s: d[s]["close"] for s in stocks}).sort_index()
@@ -137,7 +147,8 @@ class USAAdapter(MarketAdapter):
         vols = pd.DataFrame({s: d[s]["tick_volume"] for s in stocks}).reindex(closes.index)
         idx = d["SPX"]["close"].reindex(closes.index).ffill() if "SPX" in d else closes.mean(axis=1)
         vix = d["USVIX"]["close"].reindex(closes.index).ffill() if "USVIX" in d else None
-        return closes, highs, lows, vols, idx, vix, None
+        self._md = (closes, highs, lows, vols, idx, vix, None)      # memoize
+        return self._md
 
     def get_universe(self):
         c, _, _, v, _, _, _ = self.get_market_data()
@@ -148,9 +159,7 @@ class USAAdapter(MarketAdapter):
         return self.get_market_data()[4]
 
     def get_sector(self, symbol):
-        from core.usa_sectors import load_sectors
-        real = load_sectors()                       # real GICS sectors (core/usa_sectors.py --build)
-        return real.get(symbol) or USA.SECTORS.get(symbol, "Other")
+        return self._sectors.get(symbol) or USA.SECTORS.get(symbol, "Other")  # cached in __init__
 
     def get_calendar(self):
         return self.get_market_data()[0].index
