@@ -19,7 +19,7 @@ LB = list(csv.DictReader((RES / "LEADERBOARD.csv").open()))
 # concept -> (domain, {factor_or_experiment aliases}). Concepts group raw factors across markets.
 CONCEPTS = [
     ("Low-volatility selection", "Risk", {"t_vol_ann"}),
-    ("Regime timing overlay", "Timing", {"regime_overlay"}),
+    ("Regime overlay (defensive)", "Risk/Timing", {"regime_overlay", "regime_overlay_portfolio"}),
     ("HRP weighting", "Risk", {"hrp_weighting"}),
     ("Stock selection", "Portfolio", {"stock_selection"}),
     ("Momentum", "Technical", {"pure_momentum_top5", "t_mom_3m"}),
@@ -102,16 +102,17 @@ def main():
           "**Legend:** ✅ production (live engine) / promoted · 🟡 research lead · ❌ rejected (tested, no "
           "edge) · — untested · 🌐 Global (works in both markets).", "",
           "## Reading it today",
-          "- **Validated alpha:** only the **regime timing overlay (India)** — the rest of India's stack "
-          "(HRP, selection, momentum) adds ~nothing over equal-weight; low-vol selection is the shared "
-          "production base in both markets.",
-          "- **USA:** every tested concept (fundamental ratios, learned blend, PEAD) is **rejected** on "
-          "expanded data; insider (Form 4) is in research (deep ingest running).",
-          "- **Cross-market gap:** no concept is yet ✅ in BOTH markets by *research evidence* (low-vol is "
-          "production-shared but not separately gated as alpha). Closing this — e.g. testing the India "
-          "regime overlay on USA — is the highest-value cross-market experiment.",
-          "- **Planned domains (⏳):** analyst revisions, 13F, ETF flows, options, macro, news — each enters "
-          "as its own concept once acquired."]
+          "- **Cross-market validated:** the **regime overlay** now works in BOTH markets — as a "
+          "**DEFENSIVE risk overlay**, not unconditional alpha (RC010/RC010.1: USA portfolio MaxDD "
+          "−55%→−38%, Sortino 1.52→1.97, ~2.5pt CAGR cost; de-risks correctly — Weak regime −118%/yr). "
+          "This is AEGIS's first 🌐 Global concept earned by research, and the closest thing to portable edge.",
+          "- **Validated alpha (return):** still essentially none — even the regime overlay is risk "
+          "management, not return generation. Low-vol selection is the shared production base.",
+          "- **USA factors:** every tested *return* concept (fundamental ratios, learned blend, PEAD) is "
+          "**rejected** on expanded data; insider (Form 4) in research (deep ingest running).",
+          "- **Planned domains (⏳):** analyst revisions, 13F, ETF flows, options, macro, news.",
+          "- **Next:** characterize the overlay by regime (RC010.2/.3/.4 — done in RC010.1's breakdown) and "
+          "adopt it as the standard risk layer above the USA paper engine; forward-track live."]
     out = RES / "FEATURE_LIBRARY.md"
     out.write_text("\n".join(L) + "\n", encoding="utf-8")
     print(f"  wrote {out.relative_to(ROOT)} ({len(rows)} concepts)")

@@ -7,7 +7,7 @@ Auto-generated (`python tools/trace.py graph`) from the registries + leaderboard
 - **price_ohlcv** (3): t_vol_ann, t_mom_3m, t_rel_str_3m
 
 ## Program success rate (promoted+investigate / results)
-- X-CrossMarket: 1/1 (100%)
+- X-CrossMarket: 2/2 (100%)
 - IND-PortfolioConstruction: 1/4 (25%)
 - A-Fundamentals: 0/10 (0%)
 - IND-UniverseSizing: 0/1 (0%)
