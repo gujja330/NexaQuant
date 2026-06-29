@@ -41,6 +41,10 @@ A naive walk-forward once showed IC **+0.287**; embargoing overlapping labels co
   single IC.**
 - **Lift** — forward-return percentile of the factor-tilted selection minus the price-only baseline.
 - **Effective N** — non-overlapping dates × cross-section. Always report it; it bounds every claim.
+- **Confidence** — how much to trust the *verdict* (separate from the verdict itself). Derived from
+  non-overlap power + IC stability: **High** = \|IC-IR\| ≥ 2 and effective N ≥ 6 (a result, promote or
+  reject, you can lean on); **Medium** = \|IC-IR\| ≥ 1 and N ≥ 6 (directional); **Low** = otherwise (too
+  few/unstable). Tells a reader instantly whether "investigate" means *promising* or *can't tell yet*.
 
 ## 5. Promotion criteria (ALL must hold)
 1. mean IC > **0.03**

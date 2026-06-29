@@ -44,6 +44,7 @@ def main():
     rows = list(csv.DictReader(LB.open()))
     prog = defaultdict(lambda: {"n": 0, "promoted": 0, "investigate": 0, "closed": 0,
                                 "market": "", "ic": [], "ir": [], "last": ""})
+    conf = defaultdict(int)
     for r in rows:
         p = prog[r["program"]]
         p["n"] += 1
@@ -51,6 +52,8 @@ def main():
         p["ic"].append(_f(r.get("IC")))
         p["ir"].append(_f(r.get("IC_IR")))
         p["last"] = max(p["last"], r.get("date", ""))
+        cv = r.get("confidence", "")
+        conf[cv.split("(")[-1].rstrip(")").strip() if "(" in cv else (cv.strip() or "—")] += 1
         s = r["status"].strip().lower()
         p["promoted"] += s in PROMOTED
         p["investigate"] += s in INVESTIGATE
@@ -88,6 +91,7 @@ def main():
           f"| Datasets | {ds_ready}/{ds_total} ready |",
           f"| Features | {feat_total} catalogued · {feat_prod} production · {feat_inv} investigating |",
           f"| Experiments | {exp_total} registered · {exp_open} active/designed · {tot['n']} results logged |",
+          f"| Confidence | " + " · ".join(f"{k} {conf[k]}" for k in ('High', 'Medium', 'Low') if conf.get(k)) + " |",
           "",
           f"_Totals: {tot['n']} experiments · {tot['promoted']} promoted · {tot['investigate']} live leads · "
           f"{tot['closed']} closed._"]

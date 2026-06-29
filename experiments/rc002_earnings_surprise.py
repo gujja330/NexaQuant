@@ -25,7 +25,7 @@ warnings.simplefilter("ignore")
 from core.market_adapter import USAAdapter
 from core.usa_fundamentals import RAW
 from core.usa_research import summarize          # reuse locked-framework significance helper
-from run_experiment import publish
+from run_experiment import publish, confidence
 
 HOLD = 42                                          # ~2-month drift window (trading days)
 
@@ -147,10 +147,14 @@ Cross-sectional rank-IC per calendar month; significance on NON-overlapping mont
 Honest scope: naive expectation is weaker than analyst-estimate surprise; a null is "no evidence with this
 proxy/power", not "PEAD is dead." Next in Program B: RC003 guidance, RC004 revisions.
 """
+    # leaderboard uses the NON-overlap figures (the significance read) so IC/IR/N/confidence are consistent
+    ic_row = nonov[0] if nonov else (full[0] if full else None)
+    ir_row = nonov[1] if nonov else 0.0
+    n_row = nonov[2] if nonov else 0
     row = {"market": "USA", "program": "B-Earnings", "cycle": "RC002",
            "factor_or_experiment": "earnings_surprise_yoy", "scope": f"PEAD {HOLD}d",
-           "IC": f"{ic:.3f}" if ic is not None else "", "IC_IR": f"{ir:.2f}" if ir is not None else "",
-           "lift": "", "n": n if n is not None else "", "status": status,
+           "IC": f"{ic_row:.3f}" if ic_row is not None else "", "IC_IR": f"{ir_row:.2f}",
+           "lift": "", "n": n_row, "status": status, "confidence": confidence(ir_row, n_row),
            "date": str(date.today()), "notes": verdict + "; naive YoY expectation; PIT filed-date events"}
     publish(program="B-Earnings", report_slug="RC002_earnings_surprise", report_md=md, rows=[row])
 

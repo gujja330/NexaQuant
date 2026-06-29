@@ -12,9 +12,9 @@ periods. Surprise rank-standardized. Forward drift = 42d return from the trading
 Cross-sectional rank-IC per calendar month; significance on NON-overlapping months (embargo discipline).
 
 ## Result
-- events 359 · names 68 · months 23
-- monthly IC +0.150 (IR +1.86, n=13)
-- non-overlap IC +0.108 (IR +0.99, n=8)
+- events 7799 · names 200 · months 203
+- monthly IC +0.039 (IR +2.13, n=190)
+- non-overlap IC +0.021 (IR +0.84, n=97)
 
 ## Verdict
 directional lead, underpowered. Directional lead; insufficient power to promote (74-name SEC overlap, ~2y).

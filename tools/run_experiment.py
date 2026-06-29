@@ -23,6 +23,27 @@ LB = RES / "LEADERBOARD.csv"
 ARCHIVE = RES / "experiments"
 
 
+def confidence_score(ir, n):
+    """Numeric trust in a verdict (0-100). 40% effective sample (N/12 saturates), 60% IC stability
+    (|IR|/3 saturates). A result can't be 'High' without significance, so |IR|<2 caps the score at 60."""
+    power = min(1.0, (n or 0) / 12.0)
+    consistency = min(1.0, abs(ir or 0) / 3.0)
+    raw = 100 * (0.4 * power + 0.6 * consistency)
+    if abs(ir or 0) < 2:
+        raw = min(raw, 60)
+    return round(raw)
+
+
+def confidence_label(score):
+    return "High" if score >= 70 else ("Medium" if score >= 50 else "Low")
+
+
+def confidence(ir, n):
+    """Combined '83 (High)' string for the leaderboard confidence column."""
+    s = confidence_score(ir, n)
+    return f"{s} ({confidence_label(s)})"
+
+
 def append_leaderboard(rows):
     header = next(csv.reader(LB.open()))            # preserve existing column order
     with LB.open("a", newline="") as f:
