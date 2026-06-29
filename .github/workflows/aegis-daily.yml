@@ -1,54 +1,70 @@
 name: AEGIS Daily
 
-# Zero-cost scheduler for the AEGIS v2 architecture:
-#   GitHub Actions (this) -> run engine + recommendation DB -> regenerate Excel
-#   -> commit back to the repo -> (optional) push to Google Sheets (the live view).
+# Daily automation: refresh market data -> APPEND latest bars -> run engine -> Telegram + Google Sheet
+# -> commit back. Every weekday, automatically.
 #
-# Runs 03:00 UTC = 08:30 IST, Mon-Fri (pre-market). Also runnable on demand (workflow_dispatch).
+# WHY MULTIPLE TIMES: GitHub scheduled runs are BEST-EFFORT — they are often delayed and sometimes
+# DROPPED entirely under load (this is documented GitHub behaviour, not a bug here). So we attempt at
+# several OFF-PEAK times each morning and use a once-per-IST-day guard so the work runs exactly once
+# (no double Telegram / double commit). Missed days self-heal: refresh_data uses a 1-month lookback.
 #
-# NOTE ON DATA: the engine reads the committed parquet panels in data/raw/india/.
-# Until a live data-pull step is added (yfinance/Angel), a daily run reproduces the
-# same output on unchanged data + advances the recommendation DB lifecycle. Add a
-# refresh step under "Refresh market data" to make it truly daily.
+# Attempts (IST): ~08:53 (primary, pre-market) · ~10:53 (backup) · ~13:53 (backup). Manual run anytime.
 #
-# REQUIRED REPO SECRETS (Settings -> Secrets and variables -> Actions):
-#   GOOGLE_SERVICE_ACCOUNT_JSON  -> full contents of the service-account .json   (optional, for Sheets)
-#   AEGIS_SPREADSHEET_ID         -> target Google Sheet id                       (optional, for Sheets)
+# OPTIONAL repo secrets: TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, GOOGLE_SERVICE_ACCOUNT_JSON,
+# AEGIS_SPREADSHEET_ID. Missing ones are skipped gracefully.
 
 on:
   schedule:
-    - cron: "0 3 * * 1-5"   # 03:00 UTC = 08:30 IST, weekdays (pre-market)
+    - cron: "23 3 * * 1-5"    # ~08:53 IST (off the congested :00 to reduce drops)
+    - cron: "23 5 * * 1-5"    # ~10:53 IST (backup 1)
+    - cron: "23 8 * * 1-5"    # ~13:53 IST (backup 2)
   workflow_dispatch:
 
 permissions:
-  contents: write          # allow committing the regenerated workbook back
+  contents: write
 
 jobs:
   refresh:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
+      - name: Guard — run at most once per IST day (manual always runs)
+        id: guard
+        run: |
+          IST=$(TZ=Asia/Kolkata date +%F)
+          echo "ist=$IST" >> $GITHUB_OUTPUT
+          if [ "${{ github.event_name }}" != "workflow_dispatch" ] && [ "$(cat data/.published 2>/dev/null)" = "$IST" ]; then
+            echo "run=false" >> $GITHUB_OUTPUT
+            echo "Already published for $IST — this backup attempt no-ops."
+          else
+            echo "run=true" >> $GITHUB_OUTPUT
+            echo "Running for $IST."
+          fi
+
       - name: Install dependencies (Linux-safe subset)
+        if: steps.guard.outputs.run == 'true'
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements-dashboard.txt gspread google-auth yfinance
 
       - name: Refresh market data (append latest bars)
+        if: steps.guard.outputs.run == 'true'
         run: python india/refresh_data.py || echo "data refresh issue; using last committed data"
 
-      - name: Run AEGIS engine + recommendation database (resilient — Telegram still fires)
+      - name: Run AEGIS engine + database + evidence + ops check
+        if: steps.guard.outputs.run == 'true'
         run: |
-          python india/recommendation_generator.py || echo "engine refresh issue; will send last snapshot"
+          python india/recommendation_generator.py || echo "engine issue; will send last snapshot"
           python india/recommendation_db.py || echo "db update skipped"
           python india/scorecard.py || echo "scorecard skipped"
           python india/ops_check.py || echo "ops-check reported issues (see board above)"
 
-      - name: Push to Google Sheets (live view) — no-ops if secrets absent
+      - name: Push to Google Sheets (no-ops if secrets absent)
+        if: steps.guard.outputs.run == 'true'
         env:
           AEGIS_SPREADSHEET_ID: ${{ secrets.AEGIS_SPREADSHEET_ID }}
           GOOGLE_SERVICE_ACCOUNT_FILE: secrets/prism-sheets-sa.json
@@ -58,17 +74,20 @@ jobs:
           python india/sheets_sync.py || echo "sheets sync skipped/failed (non-fatal)"
           rm -f secrets/prism-sheets-sa.json
 
-      - name: Telegram daily notification — no-ops if secrets absent
+      - name: Telegram daily notification (no-ops if secrets absent)
+        if: steps.guard.outputs.run == 'true'
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           AEGIS_SPREADSHEET_ID: ${{ secrets.AEGIS_SPREADSHEET_ID }}
         run: python india/telegram_notify.py || echo "telegram skipped (non-fatal)"
 
-      - name: Commit regenerated report + database
+      - name: Mark published + commit report/data
+        if: steps.guard.outputs.run == 'true'
         run: |
+          echo "${{ steps.guard.outputs.ist }}" > data/.published
           git config user.name  "aegis-bot"
           git config user.email "aegis-bot@users.noreply.github.com"
-          git add reports/AEGIS_*.xlsx data/aegis_*.csv data/raw/india/*_D1.parquet docs/ || true
+          git add reports/AEGIS_*.xlsx data/aegis_*.csv data/raw/india/*_D1.parquet data/.published docs/ || true
           git diff --cached --quiet || git commit -m "AEGIS daily: append market data + refresh report + DB [skip ci]"
           git push || true
