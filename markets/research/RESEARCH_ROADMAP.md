@@ -27,8 +27,19 @@ the Leaderboard which holds results), `datasets/SEC_SCORECARD.md` (score a datas
 
 Higher-level program arc (split by information domain): **0 Infrastructure ✓ → 1 Insider (active) →
 2 Analyst → 3 ETF/Holdings → 4 Options/Volatility → 5 Macro → 6 ML Ranking (last)**. Each is a distinct
-data domain, run one at a time, same gate. Phase view: 1 Infrastructure ✓ · 2 Data Acquisition (now) ·
-3 Research · 4 AI. The lettered sections below are the detailed cycle inventory.
+data domain, run one at a time, same gate. The lettered sections below are the detailed cycle inventory.
+
+## MACRO ROADMAP — complete BOTH R&D tracks before any market decision (no early optimization)
+The USA-research / India-production split is **DEFERRED** (see `MARKET_DECISION.md`) — it was premature.
+Only the market-agnostic core is locked. The strategic sequence:
+1. **Complete India R&D** — every domain through the identical gate (tracker: `DOMAIN_COVERAGE.md`).
+2. **Complete USA R&D** — same pipeline, same methodology.
+3. **Cross-market validation** — universal vs market-specific factors.
+4. **Portfolio simulation** — India-only / USA-only / 50-50 / 70-30 / dynamic, identical assumptions.
+5. **Capital-allocation & product decision** — where our money goes + what AEGIS recommends, from evidence.
+Immediate order: finish **RC005** → close the ⬜ domains in `DOMAIN_COVERAGE.md` for both markets → freeze
+both libraries → portfolio sims → final decision. Goal: no major research area left unexplored in EITHER
+market before deciding anything.
 
 ## Program A — Fundamentals (SEC EDGAR)   ·   STATUS: ✅ CLOSED — **REJECTED**
 - **RC001 — composite & decomposition** ✅ CLOSED → `RC001_sec_fundamentals.md`. 2y leads (growth +, ROE

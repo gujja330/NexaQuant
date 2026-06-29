@@ -52,12 +52,14 @@ Evidence-based decision on each market's long-term role. MC002 is computed from 
 | Commercial/scale | 3 | 5 | USA |
 | AI potential (data diversity) | 2 | 5 | USA |
 
-## Decision
-**Do NOT pick one market. Stay market-AGNOSTIC (Option D) — which AEGIS already is** (the `MarketAdapter` seam: one research core, markets are adapters). The evidence supports a clear division of roles:
-- **USA = primary RESEARCH market** — richest free PIT data, deepest history, most expandable, best for discovering and stress-testing factors at scale.
-- **India = primary PRODUCTION market** — the mature live engine, automation, and operational track record; keep it as the production adapter.
-- **The core stays market-neutral.** The single strongest argument for this: our one validated edge (the regime overlay) is itself **cross-market** — value lives in the shared research core, not in either market. New domains (insider/analyst/ETF/macro) are best mined in USA (data) and any robust, cross-market-validated factor is promoted into the shared library, then into India production.
+## Decision — DEFERRED (do not optimize early)
+The earlier draft froze a USA-research / India-production split. That is **premature**: with ~17 experiments (mostly rejections) and neither market's R&D close to complete, choosing a market now would be preference, not evidence. The role-split above is a **hypothesis to test**, not a commitment. **Only one thing is locked now — the market-AGNOSTIC core** (the `MarketAdapter` seam), because that is architecture, not a market bet, and the one validated edge (regime overlay) is already cross-market.
 
-**Frozen market strategy:** market-agnostic core · USA-led research · India-led production · promote only cross-market-validated factors to production.
+**The capital-allocation / product decision is postponed until BOTH research libraries are complete and portfolio simulations have run.** Phased plan:
+1. **Complete India R&D** — every domain through the gate (price/trend/momentum/vol/regime/quality/value/growth/seasonality/volume/breadth/insider/macro/ETF/news/ML/ensemble/risk). Goal: no major area left unexplored. (tracker: `DOMAIN_COVERAGE.md`)
+2. **Complete USA R&D** — the IDENTICAL pipeline/methodology, same gate.
+3. **Cross-market validation** — which factors are universal vs India-only vs USA-only.
+4. **Portfolio simulation** — India-only / USA-only / 50-50 / 70-30 / dynamic-allocation, identical assumptions, long history.
+5. **Capital-allocation & product decision** — where *our money* goes and what AEGIS *recommends* — from the completed evidence, not a predefined preference.
 
-_Pending: RC005 (insider) deep ingest still running; its verdict updates MC002 for USA when done — does not change the role decision._
+_Pending: RC005 (insider) deep ingest still running. Next per plan: finish RC005 → complete India R&D → complete USA R&D → freeze libraries → portfolio sims → final decision._
