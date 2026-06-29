@@ -1,13 +1,13 @@
-market,cycle,factor_or_experiment,scope,IC,IC_IR,lift,n,status,date,notes
-USA,RC001.1,revenue_growth_yoy,cross-section 63d,0.108,1.53,pos,7,investigate,2026-06-29,best positive lead; concentrated in Healthcare/Materials; faded 2026; underpowered
-USA,RC001.1,roe,cross-section 63d,-0.134,-3.79,neg,7,reject-as-positive,2026-06-29,reliably INVERSE across most sectors (Tech -0.22) and both regimes; possible fade candidate; may be 2024-26 regime artifact
-USA,RC001.1,net_margin,cross-section 63d,-0.083,-1.11,neg,7,weak,2026-06-29,weak negative
-USA,RC001.1,debt_to_equity,cross-section 63d,0.032,0.41,flat,7,neutral,2026-06-29,low-debt weakly positive but n.s.
-USA,RC001.0,composite_equal_weight,cross-section 63d,0.028,0.69,neg,7,not-promoted,2026-06-29,failed by CANCELLATION (growth+ vs ROE-) not because fundamentals useless
-USA,RC001.2,lgbm_learned_blend_purged,walk-forward 63d,0.083,1.89,pos,15,investigate,2026-06-29,naive 0.287 was overlap leakage; honest 0.083 beats equal-wt directionally but n.s.; edge = down-weight ROE up-weight growth
-USA,RC001.8,growth_x_low_debt,double-sort 63d,,,flat,,no-effect,2026-06-29,low-debt adds -0.006 on top of high-growth; no interaction
-INDIA,decomp,regime_overlay,portfolio timing,,,pos,,kept,2026-06-25,the ENTIRE Sharpe~2.0 edge is defensive regime timing; validated and in production
-INDIA,decomp,hrp_weighting,portfolio,,,flat,,neutral,2026-06-25,adds ~nothing over equal-weight (decomposition proof)
-INDIA,decomp,stock_selection,portfolio,,,flat,,neutral,2026-06-25,adds ~nothing over equal-weight; selection is not the alpha
-INDIA,decomp,pure_momentum_top5,2021-2026,,,neg,,not-promoted,2026-06-25,+23% Sharpe 0.28 LOSES to Nifty buy-and-hold +72% Sharpe 0.79 on every metric
-INDIA,gate,dynamic_top_n,out-of-sample,,,neg,,not-promoted,2026-06-26,dynamic Top-N lost OOS; price optimisation exhausted; frozen-not-rejected
+market,program,cycle,factor_or_experiment,scope,IC,IC_IR,lift,n,status,date,notes
+USA,A-Fundamentals,RC001.1,revenue_growth_yoy,cross-section 63d,0.108,1.53,pos,7,investigate,2026-06-29,best positive lead; concentrated in Healthcare/Materials; faded 2026; underpowered
+USA,A-Fundamentals,RC001.1,roe,cross-section 63d,-0.134,-3.79,neg,7,reject-as-positive,2026-06-29,reliably INVERSE across most sectors (Tech -0.22) all caps both regimes; fade candidate; may be 2024-26 regime artifact
+USA,A-Fundamentals,RC001.1,net_margin,cross-section 63d,-0.083,-1.11,neg,7,weak,2026-06-29,weak negative
+USA,A-Fundamentals,RC001.1,debt_to_equity,cross-section 63d,0.032,0.41,flat,7,neutral,2026-06-29,low-debt weakly positive but n.s.
+USA,A-Fundamentals,RC001.0,composite_equal_weight,cross-section 63d,0.028,0.69,neg,7,not-promoted,2026-06-29,failed by CANCELLATION (growth+ vs ROE-) not because fundamentals useless
+USA,A-Fundamentals,RC001.2,lgbm_learned_blend_purged,walk-forward 63d,0.083,1.89,pos,15,investigate,2026-06-29,naive 0.287 was overlap leakage; honest 0.083 beats equal-wt directionally but n.s.; edge = down-ROE up-growth
+USA,A-Fundamentals,RC001.8,growth_x_low_debt,double-sort 63d,,,flat,,no-effect,2026-06-29,low-debt adds -0.006 on top of high-growth; no interaction
+INDIA,IND-PortfolioConstruction,decomp,regime_overlay,portfolio timing,,,pos,,kept,2026-06-25,the ENTIRE Sharpe~2.0 edge is defensive regime timing; validated and in production
+INDIA,IND-PortfolioConstruction,decomp,hrp_weighting,portfolio,,,flat,,neutral,2026-06-25,adds ~nothing over equal-weight (decomposition proof)
+INDIA,IND-PortfolioConstruction,decomp,stock_selection,portfolio,,,flat,,neutral,2026-06-25,adds ~nothing over equal-weight; selection is not the alpha
+INDIA,IND-PortfolioConstruction,decomp,pure_momentum_top5,2021-2026,,,neg,,not-promoted,2026-06-25,+23% Sharpe 0.28 LOSES to Nifty buy-and-hold +72% Sharpe 0.79 on every metric
+INDIA,IND-UniverseSizing,gate,dynamic_top_n,out-of-sample,,,neg,,not-promoted,2026-06-26,dynamic Top-N lost OOS; price optimisation exhausted; frozen-not-rejected
