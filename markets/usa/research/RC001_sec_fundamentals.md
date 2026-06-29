@@ -78,3 +78,37 @@ caught two false positives the naive version would have promoted — the gate wo
    long-growth/short-quality tilt is the specific thing to validate).
 3. **Move on** to the next dataset (earnings/insider/ETF/macro/news), parking fundamentals as
    "growth is a weak positive lead; ROE inverse; not promoted on current power."
+
+---
+
+# RC001.6 / .7 / .8 — explainability (2026-06-29, `core/usa_explain.py`)
+
+Before widening coverage we asked WHY (analysis, not a framework change). Pooled within-date rank-IC over
+the cached panel (74 names, 21 dates, fwd 63d).
+
+## RC001.6 — WHY is ROE negative? (it is BROAD, not a one-sector fluke)
+ROE-IC by sector: Tech **−0.221**, Healthcare −0.168, Utilities −0.145, Industrials −0.123,
+Consumer Disc −0.113, Financials −0.033, Real Estate −0.016, **Materials +0.145** (only positive).
+Inverse in **both regimes** (−0.149/−0.148) and **every year** (−0.125 → −0.227 worsening into 2026).
+→ In this universe/period high-ROE names systematically underperformed, hardest in Tech — a
+"quality-already-priced-in / mega-cap mean-reversion" signature. **Caveat:** so regime-stable *within* a
+2024–26 rate-driven rotation that it may itself be a regime artifact; longer history must test this.
+
+Revenue-growth-IC by sector: Healthcare **+0.244**, Materials +0.141, Consumer Disc +0.102,
+Industrials +0.074, Financials +0.022, Utilities ~0, Tech −0.009, Real Estate −0.161. Growth pays in
+healthcare/cyclicals, is **absent in Tech**, and **faded in 2026** (+0.13 in 2025 → −0.01).
+
+## RC001.7 — is it a size effect? NO
+ROE inverse in every cap bucket (Mid −0.171, Small −0.159, Mega −0.130, Large −0.076). Growth positive in
+every bucket (Mid +0.136, Mega +0.119, Large +0.078, Small +0.031). Neither finding is driven by one size
+segment → both are robust to size, which strengthens the hypothesis.
+
+## RC001.8 — factor interaction growth × low-debt: NONE
+high-growth+low-debt 0.510 vs high-growth+high-debt 0.519 vs high-growth-any 0.515. Low-debt adds −0.006.
+Debt is not a useful conditioner — parked.
+
+## Net of explainability
+The "growth-tilt / ROE-inverse" lead is **robust across sectors, sizes, and regimes** (growth concentrated
+in healthcare/cyclicals; ROE-inverse broad, strongest in Tech). The one open risk is that ROE-inverse is a
+2024–26 regime artifact — which is precisely what coverage+history expansion must now test. Every result is
+logged in `markets/research/LEADERBOARD.csv`.
