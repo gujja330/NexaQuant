@@ -69,18 +69,8 @@ class IndiaAdapter(MarketAdapter):
 
 
 # ----------------------------- USA (new adapter) -----------------------------
-USA_SECTORS = {
-    "AAPL": "Tech", "MSFT": "Tech", "GOOGL": "Tech", "NVDA": "Tech", "AVGO": "Tech", "ORCL": "Tech",
-    "AMZN": "Consumer Disc", "TSLA": "Consumer Disc", "HD": "Consumer Disc", "MCD": "Consumer Disc",
-    "NKE": "Consumer Disc", "META": "Communication", "NFLX": "Communication", "DIS": "Communication",
-    "T": "Telecom", "VZ": "Telecom", "JPM": "Financials", "BAC": "Financials", "WFC": "Financials",
-    "GS": "Financials", "V": "Financials", "MA": "Financials", "JNJ": "Healthcare", "UNH": "Healthcare",
-    "PFE": "Healthcare", "ABBV": "Healthcare", "MRK": "Healthcare", "LLY": "Healthcare",
-    "XOM": "Energy", "CVX": "Energy", "PG": "Staples", "KO": "Staples", "PEP": "Staples",
-    "WMT": "Staples", "COST": "Staples", "BA": "Industrials", "CAT": "Industrials", "GE": "Industrials",
-    "HON": "Industrials", "UNP": "Industrials",
-}
-USA_INDEX, USA_VIX = "^GSPC", "^VIX"
+from markets.usa import config as USA          # USA market config (markets/usa/config.py)
+USA_INDEX, USA_VIX = USA.INDEX_TICKER, USA.VIX_TICKER
 RAW_USA = ROOT / "data" / "raw" / "usa"
 
 
@@ -106,7 +96,10 @@ class USAAdapter(MarketAdapter):
     name = "usa"
 
     def __init__(self):
-        self.symbols = sorted(USA_SECTORS)
+        # use the dynamic universe if it's been built+cached, else the starter mega-caps
+        from core.usa_universe import load_universe
+        uni = load_universe()
+        self.symbols = uni if uni else sorted(USA.SECTORS)
 
     def download(self, period="5y"):
         """Fetch + cache OHLCV for the universe + index + VIX into data/raw/usa/ (AEGIS schema)."""
@@ -155,7 +148,7 @@ class USAAdapter(MarketAdapter):
         return self.get_market_data()[4]
 
     def get_sector(self, symbol):
-        return USA_SECTORS.get(symbol, "Other")
+        return USA.SECTORS.get(symbol, "Other")    # full-universe sectors arrive with SEC data (Phase 4)
 
     def get_calendar(self):
         return self.get_market_data()[0].index
