@@ -86,7 +86,8 @@ class TechnicalProvider(FeatureProvider):
         hist = rets.tail(120)
         px = closes.iloc[-1]
         nif3 = float(idx.iloc[-1] / idx.iloc[-64] - 1) if len(idx) > 64 else 0.0
-        asof = str(closes.index[-1].date())
+        asof = str(date.today())                  # run-date key (shared by ALL providers so they merge)
+        data_date = str(closes.index[-1].date())  # the actual latest bar (transparency)
         rows = []
         for s in uni:
             ser = closes[s].dropna()
@@ -95,7 +96,7 @@ class TechnicalProvider(FeatureProvider):
             ma200 = float(ser.tail(200).mean()); hi, lo = float(ser.tail(252).max()), float(ser.tail(252).min())
             mom3 = float(px[s] / closes[s].iloc[-64] - 1) if len(closes) > 64 else np.nan
             rows.append({
-                "symbol": s, "date": asof, "sector": adapter.get_sector(s),
+                "symbol": s, "date": asof, "data_date": data_date, "sector": adapter.get_sector(s),
                 "t_vol_ann": round(float(hist[s].std() * np.sqrt(252) * 100), 1),
                 "t_mom_1m": round(float(px[s] / closes[s].iloc[-21] - 1) * 100, 1) if len(closes) > 21 else np.nan,
                 "t_mom_3m": round(mom3 * 100, 1),
