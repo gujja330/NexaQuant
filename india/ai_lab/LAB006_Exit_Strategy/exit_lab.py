@@ -315,21 +315,43 @@ def run_baseline(reg_df, closes, initial_capital=100000, cost_bps=15):
 # --------------------------- ROBUSTNESS HELPERS ---------------------------
 
 def read_trial_manifest_count(manifest_path=None):
-    """Parse trial_manifest.md and return the current strategy-search count.
-    Falls back to a conservative default of 30 if the manifest can't be read (never < actual)."""
-    p = manifest_path or (Path(__file__).parent / "trial_manifest.md")
-    try:
-        text = p.read_text(encoding="utf-8")
-    except Exception:
-        return 30
-    # Look for the line "strategy_search_count (as-of C1 run)" pattern; fallback to (all-time)
+    """Parse the Lab-wide manifest and return `cumulative_strategy_search`. Raises LookupError
+    if the file is missing OR the label can't be parsed — NEVER falls back to a default.
+
+    Silent fallback was a 2026-07-13 audit finding: the old default of 30 masked a label mismatch
+    and reported n_trials=30 when actual was 28. Failing loud is correct here.
+
+    Search order:
+    1. Lab-wide central manifest: india/ai_lab/trial_manifest.md
+    2. Legacy LAB006-local manifest (if central is missing)
+    """
     import re
+    # Default to the central Lab-wide manifest
+    if manifest_path is None:
+        manifest_path = Path(__file__).resolve().parents[1] / "trial_manifest.md"
+    p = Path(manifest_path)
+    if not p.exists():
+        # Legacy fallback: LAB006-local manifest (kept for provenance of pre-2026-07-13 runs)
+        legacy = Path(__file__).parent / "trial_manifest.md"
+        if legacy.exists():
+            p = legacy
+        else:
+            raise LookupError(f"Trial manifest not found at {manifest_path} or legacy {legacy}. "
+                              f"Refusing to guess n_trials — update the manifest first.")
+    text = p.read_text(encoding="utf-8")
+    # PRIMARY: the standardized central-manifest label
+    m = re.search(r"cumulative_strategy_search:\s*(\d+)", text)
+    if m:
+        return int(m.group(1))
+    # LEGACY: LAB006 local manifest labels
     for pattern in (r"strategy_search_count \(as-of.*?\)[^0-9]*(\d+)",
-                    r"strategy_search_count \(all-time\)[^0-9]*(\d+)"):
+                    r"strategy_search_count \(all-time\)[^0-9]*(\d+)",
+                    r"strategy_search_count \(including .+?\)[^0-9]*(\d+)"):
         m = re.search(pattern, text)
         if m:
             return int(m.group(1))
-    return 30
+    raise LookupError(f"Could not parse n_trials from {p}. Add a "
+                      f"'cumulative_strategy_search: N' line at the top of the manifest.")
 
 
 def pbo_across_configs(config_returns_df, S=8):
