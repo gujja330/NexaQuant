@@ -37,6 +37,32 @@ REPORTS.mkdir(exist_ok=True)
 
 # --------------------------- AGGREGATION HELPERS ---------------------------
 
+def select_period_cycles(meta: list, period_start: pd.Timestamp, period_end: pd.Timestamp) -> set:
+    """Return the set of asofs whose cycles are FULLY CONTAINED in [period_start, period_end].
+
+    Corrected per LAB009_PERIOD_BOUNDARY_AUDIT.md (sealed 2026-07-13). A cycle contributes to a
+    declared evaluation period only if BOTH asof >= period_start AND mature_date <= period_end.
+    This closes the maturity-boundary defect at the discovery/confirmation split (analogous to
+    the earlier common_end correction).
+    """
+    ps = pd.Timestamp(period_start).normalize()
+    pe = pd.Timestamp(period_end).normalize()
+    return {pd.Timestamp(m["asof"]).normalize() for m in meta
+            if ps <= pd.Timestamp(m["asof"]).normalize() and
+               pd.Timestamp(m["mature"]).normalize() <= pe}
+
+
+def _assert_period_containment(cycles_meta: list, asof_set: set, period_end: pd.Timestamp, label: str) -> None:
+    """Hard assertion: no included cycle may mature past period_end."""
+    pe = pd.Timestamp(period_end).normalize()
+    offenders = [m for m in cycles_meta
+                 if pd.Timestamp(m["asof"]).normalize() in asof_set
+                    and pd.Timestamp(m["mature"]).normalize() > pe]
+    assert not offenders, (
+        f"[{label}] period-boundary breach: {len(offenders)} cycle(s) mature past {pe.date()} — "
+        f"first: {offenders[0].get('rec_id','?')} asof={offenders[0]['asof']} mature={offenders[0]['mature']}")
+
+
 def _worst_by_direction(values: list, metric: str):
     """Return the WORST value across phases according to metric-specific direction."""
     values = [v for v in values if v is not None and not (isinstance(v, float) and np.isnan(v))]
@@ -171,10 +197,15 @@ def main():
                     e = float(context["exp_series"].reindex([m["asof"]], method="ffill").iloc[0])
                     m["regime"] = config.regime_bucket_for(e)
                 full = metric_suite(eq, meta, trading_days=trading_days)
-                disc_asofs = {pd.Timestamp(m["asof"]).normalize() for m in meta
-                              if pd.Timestamp(m["asof"]).normalize() <= disc_end}
-                conf_asofs = {pd.Timestamp(m["asof"]).normalize() for m in meta
-                              if pd.Timestamp(m["asof"]).normalize() >= conf_start}
+                # CORRECTED per LAB009_PERIOD_BOUNDARY_AUDIT.md (sealed 2026-07-13):
+                # discovery/confirmation cycle membership requires FULL containment
+                # (asof >= period_start AND mature_date <= period_end).
+                # Sealed period ends: disc_end from config; conf_end fixed 2026-01-27 (preregistration).
+                conf_end = pd.Timestamp("2026-01-27").normalize()
+                disc_asofs = select_period_cycles(meta, common_start, disc_end)
+                conf_asofs = select_period_cycles(meta, conf_start, conf_end)
+                _assert_period_containment(meta, disc_asofs, disc_end, "discovery")
+                _assert_period_containment(meta, conf_asofs, conf_end, "confirmation")
                 disc = period_metrics(eq, meta, disc_asofs, trading_days=trading_days)
                 conf = period_metrics(eq, meta, conf_asofs, trading_days=trading_days)
                 # Regime attribution period-metrics
