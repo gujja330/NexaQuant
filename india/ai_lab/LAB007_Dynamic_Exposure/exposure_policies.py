@@ -27,13 +27,17 @@ from india.feature_engine import load_panels
 
 # ==================================== SHARED CONTEXT ====================================
 
-def build_context() -> dict:
-    """Load once, share across all candidate builders + simulator invocations."""
+def build_context(rolling_min_periods: int) -> dict:
+    """Load once, share across all candidate builders + simulator invocations.
+    `rolling_min_periods` MUST be supplied explicitly (from config.policy_parameters)."""
+    if not isinstance(rolling_min_periods, int) or rolling_min_periods <= 0:
+        raise ValueError("rolling_min_periods must be a positive int (from config)")
     closes, _, _, _, idx, vix, _ = load_panels()
     ctx = {
         "closes": closes,
         "nifty_idx": idx,
         "india_vix": vix,
+        "rolling_min_periods": rolling_min_periods,
     }
     try:
         from india.global_risk import global_exposure
@@ -47,6 +51,11 @@ def build_context() -> dict:
 # ==================================== POLICY BUILDERS ====================================
 
 def build_multiplicative_gates_series(candidate_config: dict, context: dict) -> pd.Series:
+    """
+    Notes:
+    - `min_periods` for the trailing rolling windows is read from context, which the caller
+      seeds from `config.policy_parameters.rolling_min_periods` (no silent Python default).
+    """
     """Config-driven reproduction of the production multiplicative-gate exposure formula.
 
     candidate_config schema (see lab007.yaml candidates):
@@ -67,6 +76,10 @@ def build_multiplicative_gates_series(candidate_config: dict, context: dict) -> 
     closes = context["closes"]
     vix = context["india_vix"]
     nifty = context["nifty_idx"]
+    if "rolling_min_periods" not in context:
+        raise LookupError("build_multiplicative_gates_series: context missing 'rolling_min_periods' "
+                          "(seed it from config.policy_parameters.rolling_min_periods)")
+    min_periods = int(context["rolling_min_periods"])
     scale = pd.Series(1.0, index=closes.index)
 
     gates_cfg = candidate_config.get("gates", {})
@@ -77,14 +90,14 @@ def build_multiplicative_gates_series(candidate_config: dict, context: dict) -> 
         window = int(vix_cfg["window_days"])
         mode = vix_cfg["mode"]
         if mode == "discrete":
-            q = vix.rolling(window, min_periods=30).quantile(vix_cfg["threshold_pctile"])
+            q = vix.rolling(window, min_periods=min_periods).quantile(vix_cfg["threshold_pctile"])
             hi = (vix > q).reindex(closes.index).fillna(False)
             m_on = float(vix_cfg["multiplier_on"])
             m_off = float(vix_cfg["multiplier_off"])
             scale *= hi.map({True: m_on, False: m_off})
         elif mode == "smooth_taper":
             # Rolling percentile rank of latest VIX value within trailing window
-            vix_r = vix.rolling(window, min_periods=30).apply(
+            vix_r = vix.rolling(window, min_periods=min_periods).apply(
                 lambda w: (w.iloc[-1] > w).mean(), raw=False)
             pctile = vix_r.reindex(closes.index).ffill().fillna(0.5)
             from_p = float(vix_cfg["from_pctile"])
@@ -129,18 +142,26 @@ def build_constant_series(candidate_config: dict, context: dict) -> pd.Series:
 # ==================================== SIMULATOR ====================================
 
 def simulate_cycle(exp_series: pd.Series, reg_df: pd.DataFrame, closes: pd.DataFrame,
-                   initial_capital: float = 100_000, cash_return_annual: float = 0.0,
-                   cost_bps: float = 15) -> tuple[pd.Series, list]:
-    """Cycle-by-cycle portfolio simulation. IDENTICAL to the historical exposure_lab.py
-    simulate_lab007() — kept verbatim to guarantee numerical parity with the sealed evidence.
+                   *, initial_capital: float, cash_return_annual: float, cost_bps: float,
+                   trading_days_per_year: int) -> tuple[pd.Series, list]:
+    """Cycle-by-cycle portfolio simulation. NO silent defaults — every research-critical parameter
+    is keyword-required. Numerically identical to the historical exposure_lab.py implementation
+    when the same values are supplied (parity-verified 2026-07-13).
 
-    Returns (equity_series, cycles_meta_list).
+    Returns (equity_series, cycles_meta_list). Meta rows include `exp` (raw exposure at asof);
+    regime bucketing is assigned by the runner using config buckets (not by the simulator).
     """
+    if initial_capital <= 0:
+        raise ValueError("initial_capital must be > 0")
+    if trading_days_per_year <= 0:
+        raise ValueError("trading_days_per_year must be > 0")
+    if cost_bps < 0:
+        raise ValueError("cost_bps must be >= 0")
     cycles = reg_df[(reg_df["source"] == "historical") & (reg_df["scored"] == 1)].sort_values("asof")
     if cycles.empty:
         raise RuntimeError("No historical cycles in registry")
 
-    daily_cash_return = (1 + cash_return_annual) ** (1/252) - 1
+    daily_cash_return = (1 + cash_return_annual) ** (1/trading_days_per_year) - 1
     equity = pd.Series(dtype=float)
     metas = []
     current_val = float(initial_capital)
@@ -187,11 +208,10 @@ def simulate_cycle(exp_series: pd.Series, reg_df: pd.DataFrame, closes: pd.DataF
 
         metas.append({
             "rec_id": rec_id, "asof": asof, "mature": mature,
-            "exp": exp_at_asof,
+            "exp": exp_at_asof,           # raw exposure — runner buckets it via config regimes
             "delta_exp": abs(exp_at_asof - (prev_exp if prev_exp is not None else exp_at_asof)),
             "stock_ret_pct": stock_ret_pct, "cash_ret_pct": cash_ret_pct,
             "cycle_ret_pct": cycle_ret_pct,
-            "regime": "Strong" if exp_at_asof >= 0.9 else ("Neutral" if exp_at_asof >= 0.65 else "Weak"),
         })
         current_val = cycle_end_val
         prev_exp = exp_at_asof

@@ -1,26 +1,12 @@
 """
-india/ai_lab/lab_runner.py — generic experiment orchestrator.
+india/ai_lab/lab_runner.py — generic experiment orchestrator (hardened 2026-07-13).
 
-Reads an ExperimentConfig (from lab_config.load_experiment_config), builds candidate policies
-via a registered policy-builder registry, executes the sweep (cash × cost × candidate), and
-returns structured results.
+Reads an ExperimentConfig, builds policies via a plugin registry, executes the sweep (cash ×
+cost × candidate), computes metrics + regime attribution + gate verdicts via an AST-safe
+expression evaluator. All research-critical values are read from config — no silent defaults.
 
-The RUNNER does not know anything experiment-specific. All specifics live in:
-- YAML config (parameters)
-- Registered policy builders (how to convert config → policy input, e.g. exp_series for LAB007)
-- Registered simulator (how to run one policy through the registry cycles)
-
-Register once, run for any Lab.
-
-USAGE (LAB007 example, from run_lab007.py):
-    from india.ai_lab import lab_runner as R
-    from india.ai_lab.LAB007_Dynamic_Exposure import exposure_policies as P
-
-    R.register_policy("multiplicative_gates", P.build_multiplicative_gates_series)
-    R.register_policy("constant", P.build_constant_series)
-    R.register_simulator("exposure_cycle", P.simulate_cycle)
-
-    results = R.run_experiment(config)
+The runner does NOT know experiment-specific values (regime names, canonical/stress costs,
+trading days). Those come from config.
 """
 from __future__ import annotations
 from typing import Callable
@@ -31,69 +17,58 @@ from india.ai_lab.lab_metrics import (
     metric_suite, period_metrics, read_trial_manifest_count,
     pbo_across_configs, sharpe_rank_stability,
 )
+from india.ai_lab.lab_expression import compile_gate_expression
 
 
-# ----------------------- Policy + Simulator plugin registry -----------------------
+# ----------------------- Plugin registry -----------------------
 
 _POLICY_BUILDERS: dict[str, Callable] = {}
 _SIMULATORS: dict[str, Callable] = {}
 
 
 def register_policy(policy_type: str, builder: Callable) -> None:
-    """Register a policy builder. builder(params, context) → policy input for the simulator.
-    e.g. for LAB007 the "policy input" is a pd.Series of exp values."""
     _POLICY_BUILDERS[policy_type] = builder
 
 
 def register_simulator(name: str, simulator: Callable) -> None:
-    """Register a simulator. simulator(policy_input, reg_df, closes, cash_return, cost_bps,
-    initial_capital) → (equity_series, cycles_meta_list)."""
     _SIMULATORS[name] = simulator
 
 
 def get_policy_builder(policy_type: str) -> Callable:
     if policy_type not in _POLICY_BUILDERS:
-        raise KeyError(f"Policy type '{policy_type}' not registered. Available: {list(_POLICY_BUILDERS)}")
+        raise KeyError(f"Policy type '{policy_type}' not registered. "
+                       f"Available: {list(_POLICY_BUILDERS)}")
     return _POLICY_BUILDERS[policy_type]
 
 
 def get_simulator(name: str) -> Callable:
     if name not in _SIMULATORS:
-        raise KeyError(f"Simulator '{name}' not registered. Available: {list(_SIMULATORS)}")
+        raise KeyError(f"Simulator '{name}' not registered. "
+                       f"Available: {list(_SIMULATORS)}")
     return _SIMULATORS[name]
 
 
-# ----------------------- Generic experiment executor -----------------------
+# ----------------------- Executor -----------------------
 
 def build_policies(config: ExperimentConfig, context: dict) -> dict:
-    """Build all candidate policy inputs from config.
-    context = shared data (closes panel, vix series, etc.) passed to each builder.
-    Returns dict {candidate_id: policy_input}."""
-    out = {}
-    for cid, cand in config.candidates.items():
-        builder = get_policy_builder(cand["type"])
-        out[cid] = builder(cand, context)
-    return out
+    return {cid: get_policy_builder(c["type"])(c, context) for cid, c in config.candidates.items()}
 
 
 def run_experiment(config: ExperimentConfig, context: dict, simulator_name: str,
                    registry_df: pd.DataFrame) -> dict:
-    """Execute the full sweep for a config.
-
-    Iterates: cash_return × cost_bps × candidate.
-    For each combo, runs the registered simulator and computes metric suite + period splits.
-    Returns nested dict: results[cash][cost][candidate] = {equity, meta, full, disc, conf, regime, dsr}.
-    """
+    """Execute the full sweep. All parameters flow from config — no hardcoded values."""
     sim = get_simulator(simulator_name)
     policies = build_policies(config, context)
-
     n_trials = _resolve_n_trials(config)
 
+    trading_days = config.trading_days()
     disc_end = pd.Timestamp(config.periods["discovery_end"])
     conf_start = pd.Timestamp(config.periods["confirmation_start"])
     cash_grid = config.simulation["cash_returns_annual"]
     cost_grid = config.simulation["cost_grid_bps"]
     capital = float(config.simulation["initial_capital"])
+    regime_metric_key = config.regimes["metric_key"]
+    regime_names = [b.name for b in config.regimes["buckets"]]
 
     results = {}
     for cash in cash_grid:
@@ -101,52 +76,59 @@ def run_experiment(config: ExperimentConfig, context: dict, simulator_name: str,
         for cost in cost_grid:
             results[cash][cost] = {}
             for cid, policy_input in policies.items():
-                eq, meta = sim(policy_input, registry_df, context["closes"],
-                               initial_capital=capital, cash_return_annual=float(cash),
-                               cost_bps=float(cost))
-                full = metric_suite(eq, meta)
+                eq, meta = sim(
+                    policy_input, registry_df, context["closes"],
+                    initial_capital=capital,
+                    cash_return_annual=float(cash),
+                    cost_bps=float(cost),
+                    trading_days_per_year=trading_days,
+                )
+                # Regime attribution — bucket assignment from config (not hardcoded strings)
+                for m in meta:
+                    if regime_metric_key in m:
+                        m["regime"] = config.regime_bucket_for(m[regime_metric_key])
+                full = metric_suite(eq, meta, trading_days=trading_days)
                 disc_asofs = {pd.Timestamp(m["asof"]) for m in meta
                               if pd.Timestamp(m["asof"]) <= disc_end}
                 conf_asofs = {pd.Timestamp(m["asof"]) for m in meta
                               if pd.Timestamp(m["asof"]) >= conf_start}
-                disc = period_metrics(eq, meta, disc_asofs)
-                conf = period_metrics(eq, meta, conf_asofs)
-                # Regime attribution (if 'regime' key present in meta)
+                disc = period_metrics(eq, meta, disc_asofs, trading_days=trading_days)
+                conf = period_metrics(eq, meta, conf_asofs, trading_days=trading_days)
                 reg_metrics = {}
-                if meta and "regime" in meta[0]:
-                    for reg_name in ("Strong", "Neutral", "Weak"):
-                        reg_asofs = {pd.Timestamp(m["asof"]) for m in meta if m.get("regime") == reg_name}
-                        reg_metrics[reg_name] = period_metrics(eq, meta, reg_asofs)
+                for reg_name in regime_names:
+                    reg_asofs = {pd.Timestamp(m["asof"]) for m in meta if m.get("regime") == reg_name}
+                    reg_metrics[reg_name] = period_metrics(eq, meta, reg_asofs, trading_days=trading_days)
                 dsr_d = _compute_dsr(eq, n_trials)
                 results[cash][cost][cid] = {
                     "equity": eq, "meta": meta,
                     "full": full, "disc": disc, "conf": conf,
                     "regime": reg_metrics, "dsr": dsr_d,
                 }
-    # PBO at canonical (first cost) per cash — per config
+
+    # PBO at CANONICAL cost — explicit from config, not cost_grid[0]
+    canonical_cost = config.canonical_cost()
     pbo_by_cash = {}
     stability_by_cash = {}
-    canonical_cost = cost_grid[0]
+    stab_folds = config.stability_folds()
     for cash in cash_grid:
         eq_by_name = {cid: results[cash][canonical_cost][cid]["equity"] for cid in policies}
         common = None
         for eq in eq_by_name.values():
             common = eq.index if common is None else common.intersection(eq.index)
         if common is not None and len(common) >= 30:
-            R = pd.DataFrame({cid: eq.reindex(common).pct_change() for cid, eq in eq_by_name.items()}).dropna(how="any")
+            R = pd.DataFrame({cid: eq.reindex(common).pct_change()
+                              for cid, eq in eq_by_name.items()}).dropna(how="any")
             pbo_by_cash[cash] = pbo_across_configs(R, S=config.pbo["folds"],
-                                                    min_configs_for_interpretation=config.pbo["min_configs_for_interpretation"])
+                                                   min_configs_for_interpretation=config.pbo["min_configs_for_interpretation"])
         else:
             pbo_by_cash[cash] = {"status": "N/A", "value": float("nan"),
                                  "note": "insufficient common index", "n_configs": 0, "s_folds": 0}
-        stability_by_cash[cash] = sharpe_rank_stability(eq_by_name, n_folds=4)
+        stability_by_cash[cash] = sharpe_rank_stability(eq_by_name, n_folds=stab_folds,
+                                                        trading_days=trading_days)
 
     return {
-        "config": config,
-        "n_trials": n_trials,
-        "results": results,
-        "pbo_by_cash": pbo_by_cash,
-        "stability_by_cash": stability_by_cash,
+        "config": config, "n_trials": n_trials, "results": results,
+        "pbo_by_cash": pbo_by_cash, "stability_by_cash": stability_by_cash,
         "policies": policies,
     }
 
@@ -159,7 +141,7 @@ def _resolve_n_trials(config: ExperimentConfig) -> int:
         return src
     if src == "manifest":
         return read_trial_manifest_count(config.trial_manifest_path)
-    raise ValueError(f"Unknown dsr.n_trials_source: {src!r}. Use 'manifest' or an integer.")
+    raise ValueError(f"Unknown dsr.n_trials_source: {src!r}")
 
 
 def _compute_dsr(equity: pd.Series, n_trials: int) -> dict:
@@ -167,46 +149,42 @@ def _compute_dsr(equity: pd.Series, n_trials: int) -> dict:
     return deflated_sharpe(equity.pct_change().dropna(), n_trials=n_trials)
 
 
-# ----------------------- Gate evaluator (config-driven) -----------------------
+# ----------------------- Gate evaluator (AST-safe) -----------------------
 
-def evaluate_gates(config: ExperimentConfig, cash: float, result: dict, control_result: dict,
-                   cost_50bps_result: dict = None, control_50bps_result: dict = None) -> dict:
-    """Evaluate each promotion gate for one candidate at one cash-return assumption.
+_ALLOWED_GATE_ROOTS = ("cand", "n0", "cand_stress", "n0_stress")
 
-    Each gate has an `expression` string that operates on:
-      cand.full/disc/conf/regime.{cagr,sharpe,max_dd,ulcer,cvar5,dsr,...}
-      n0.full/disc/conf/regime.{...}
-      cand50.{...} (populated only if cost_50bps_result passed)
-      n050.{...}
-    Expression is Python; evaluated in a restricted namespace. Returns bool per gate + overall.
-    """
-    namespace = {
-        "cand": _ns_from_result(result),
-        "n0":   _ns_from_result(control_result),
+
+def evaluate_gates(config: ExperimentConfig, cand_result: dict, ctrl_result: dict,
+                   cand_stress_result: dict = None, ctrl_stress_result: dict = None) -> dict:
+    """Evaluate every gate via AST-safe evaluator. Namespace roots limited to:
+    cand, n0, cand_stress, n0_stress. Attributes accessed downstream MUST come from result dicts."""
+    ns = {
+        "cand": _wrap_ns(cand_result),
+        "n0":   _wrap_ns(ctrl_result),
     }
-    if cost_50bps_result is not None:
-        namespace["cand50"] = _ns_from_result(cost_50bps_result)
-    if control_50bps_result is not None:
-        namespace["n050"] = _ns_from_result(control_50bps_result)
+    if cand_stress_result is not None:
+        ns["cand_stress"] = _wrap_ns(cand_stress_result)
+    if ctrl_stress_result is not None:
+        ns["n0_stress"] = _wrap_ns(ctrl_stress_result)
 
     out = {"gates": {}, "all_pass": True}
     for g in config.gates:
-        expr = g["expression"]
         try:
-            val = bool(eval(expr, {"__builtins__": {}}, namespace))
+            checker = compile_gate_expression(g["expression"], allowed_roots=_ALLOWED_GATE_ROOTS)
+            passed = bool(checker(ns))
+            err = None
         except Exception as e:
-            val = False
-            g_err = str(e)
-        else:
-            g_err = None
-        out["gates"][g["id"]] = {"pass": val, "name": g["name"], "expression": expr, "error": g_err}
-        if not val:
+            passed = False
+            err = f"{type(e).__name__}: {e}"
+        out["gates"][g["id"]] = {"pass": passed, "name": g["name"],
+                                  "expression": g["expression"], "error": err}
+        if not passed:
             out["all_pass"] = False
     return out
 
 
-def _ns_from_result(result: dict):
-    """Wrap the nested result dict in an object with attribute access for gate expressions."""
+def _wrap_ns(result: dict):
+    """Wrap {full/disc/conf/regime/dsr: {metric: val}} for attribute access."""
     class NS:
         pass
     root = NS()

@@ -19,7 +19,7 @@ import pandas as pd
 
 # ==================================== METRIC SUITE ====================================
 
-def metric_suite(equity: pd.Series, cycles_meta: list | None = None, trading_days: int = 252) -> dict:
+def metric_suite(equity: pd.Series, cycles_meta: list | None, trading_days: int) -> dict:
     """Compute the full metric suite from an equity curve + optional per-cycle metadata.
 
     equity: daily-indexed portfolio value series.
@@ -87,17 +87,17 @@ def metric_suite(equity: pd.Series, cycles_meta: list | None = None, trading_day
 
 
 def period_metrics(equity: pd.Series, cycles_meta: list, cycle_asofs_in_period: set,
-                   trading_days: int = 252) -> dict:
+                   trading_days: int) -> dict:
     """Compute metric_suite restricted to cycles whose asof is in the given set.
 
     Slices the equity curve to each in-scope cycle's [asof, mature] window and stitches them
     (compounding across gaps). Preserves per-cycle metadata."""
     if not cycle_asofs_in_period:
-        return metric_suite(pd.Series(dtype=float), None)
+        return metric_suite(pd.Series(dtype=float), None, trading_days=trading_days)
     windows = [(m["asof"], m["mature"]) for m in cycles_meta
                if pd.Timestamp(m["asof"]) in cycle_asofs_in_period]
     if not windows:
-        return metric_suite(pd.Series(dtype=float), None)
+        return metric_suite(pd.Series(dtype=float), None, trading_days=trading_days)
     slices = []; running = 1.0
     for start, end in windows:
         seg = equity.loc[pd.Timestamp(start):pd.Timestamp(end)]
@@ -107,7 +107,7 @@ def period_metrics(equity: pd.Series, cycles_meta: list, cycle_asofs_in_period: 
         slices.append(seg_norm)
         running = float(seg_norm.iloc[-1])
     if not slices:
-        return metric_suite(pd.Series(dtype=float), None)
+        return metric_suite(pd.Series(dtype=float), None, trading_days=trading_days)
     period_eq = pd.concat(slices)
     period_eq = period_eq[~period_eq.index.duplicated(keep="last")].sort_index()
     period_meta = [m for m in cycles_meta if pd.Timestamp(m["asof"]) in cycle_asofs_in_period]
@@ -129,8 +129,8 @@ def read_trial_manifest_count(manifest_path: str | Path) -> int:
                       f"Add a 'cumulative_strategy_search: N' line at the top.")
 
 
-def pbo_across_configs(config_returns_df: pd.DataFrame, S: int = 8,
-                       min_configs_for_interpretation: int = 6) -> dict:
+def pbo_across_configs(config_returns_df: pd.DataFrame, S: int,
+                       min_configs_for_interpretation: int) -> dict:
     """Bailey-López de Prado CSCV PBO across N distinct strategy configs.
 
     Returns dict with:
@@ -159,8 +159,8 @@ def pbo_across_configs(config_returns_df: pd.DataFrame, S: int = 8,
             "n_configs": n_configs, "s_folds": S}
 
 
-def sharpe_rank_stability(equity_by_config: dict, n_folds: int = 4,
-                          trading_days: int = 252) -> tuple[pd.DataFrame, dict]:
+def sharpe_rank_stability(equity_by_config: dict, n_folds: int,
+                          trading_days: int) -> tuple[pd.DataFrame, dict]:
     """Split equity index into n_folds; rank configs by fold Sharpe (1 = best).
     Returns (ranks_df, top_2_fraction)."""
     common = None

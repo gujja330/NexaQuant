@@ -15,11 +15,33 @@ simulation:
   registry_path: data/aegis_registry.csv
   initial_capital: 100000
   cash_returns_annual: [0.0, 0.06]              # dual primary — 0% and 6% annualized
-  cost_grid_bps: [15, 30, 50]                    # 15 is canonical; 30/50 are stress tests
+  cost_grid_bps: [15, 30, 50]                    # 15 is canonical; 50 is promotion-stress
+  trading_days_per_year: 252                     # NSE convention
+  canonical_cost_bps: 15                         # explicit: canonical evaluation cost
+  promotion_stress_cost_bps: 50                  # explicit: stress-scenario cost for Gate 5
 
 periods:
   discovery_end: "2023-10-13"                    # inclusive
   confirmation_start: "2024-01-15"               # inclusive
+
+stability:
+  folds: 4                                       # Sharpe-rank stability folds (reported when PBO N/A)
+
+regimes:
+  metric_key: exp                                # per-cycle meta key holding the regime value
+  buckets:
+    - name: Strong
+      min_inclusive: 0.90
+      max_exclusive: 1.0000001                  # include 1.0 (open interval upper bound)
+    - name: Neutral
+      min_inclusive: 0.65
+      max_exclusive: 0.90
+    - name: Weak
+      min_inclusive: 0.0
+      max_exclusive: 0.65
+
+policy_parameters:
+  rolling_min_periods: 30                        # applied to India VIX rolling quantile/percentile
 
 # ---------------------------------------------------------------------------------------
 # CANDIDATES — first entry (N0) must be_control: true. All others are strategy-search.
@@ -111,7 +133,7 @@ candidates:
 #   cand.full/disc/conf/regime.{cagr, sharpe, sortino, max_dd, cvar5, ulcer, ...}
 #   cand.dsr.dsr
 #   n0.{...}  (production control)
-#   cand50 / n050 — same shape, at the highest cost bucket (index -1 of cost_grid_bps)
+#   cand_stress / n0_stress — same shape, at the highest cost bucket (index -1 of cost_grid_bps)
 # Deltas are computed manually inside the expression (no macros).
 # ---------------------------------------------------------------------------------------
 gates:
@@ -133,7 +155,7 @@ gates:
 
   - id: gate_5
     name: "Gates 1-3 hold at 50 bps"
-    expression: "((n050.conf.ulcer - cand50.conf.ulcer >= 1.0) and (((cand50.conf.max_dd - n050.conf.max_dd) * 100 >= 3.0) or ((cand50.conf.cvar5 - n050.conf.cvar5) * 100 >= 0.5)) and ((cand50.full.cagr - n050.full.cagr) * 100 >= -2.0))"
+    expression: "((n0_stress.conf.ulcer - cand_stress.conf.ulcer >= 1.0) and (((cand_stress.conf.max_dd - n0_stress.conf.max_dd) * 100 >= 3.0) or ((cand_stress.conf.cvar5 - n0_stress.conf.cvar5) * 100 >= 0.5)) and ((cand_stress.full.cagr - n0_stress.full.cagr) * 100 >= -2.0))"
 
   - id: gate_6
     name: "Weak-regime Ulcer improvement > Strong-regime Ulcer improvement"

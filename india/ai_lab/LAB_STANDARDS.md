@@ -19,9 +19,17 @@ Any deviation post-run invalidates the pre-registration and requires a NEW exper
 with its own trial count.
 
 ## 2. Define the experiment matrix in YAML/JSON
-Every experiment-specific value goes in `<lab_id>.yaml`. Python knows nothing about the
-experiment. Config drives everything: candidates, gates, periods, cash assumptions, costs,
-report paths, DSR/PBO settings.
+Every **research-critical** experiment parameter must be explicit in sealed config. Pure
+implementation mechanics (data-type handling, format strings, algorithm micro-details that don't
+affect the research outcome) may remain in reusable Python.
+
+Research-critical values include: candidate matrix, gate thresholds, periods, cash assumptions,
+cost grid + explicit canonical and stress cost, trading-days-per-year, regime bucket definitions,
+stability fold count, PBO fold count, minimum-configs-for-PBO-interpretation, DSR n_trials source,
+policy parameters that affect signals (rolling window min_periods, thresholds, etc.).
+
+Engine conventions that MAY remain in Python (document them in code): metric key names in the
+output dict, allowed AST nodes for gate expressions, framework required-field lists.
 
 ## 3. No silent Python defaults on research-critical values
 `lab_config.load_experiment_config()` raises `LookupError` / `TypeError` on missing or wrong-typed
@@ -97,8 +105,46 @@ distinct hash before any outcomes are visible.
 | `india/ai_lab/<LAB_ID>/preregistration.md` | Sealed hypothesis + methodology |
 | `india/ai_lab/<LAB_ID>/reports/*.md`, `*.csv` | Executed results |
 
+## Additional hardened rules (added 2026-07-13)
+
+### Strict YAML parsing
+Configs are loaded via a custom PyYAML SafeLoader that REJECTS duplicate mapping keys at parse
+time. `lab_config._load_yaml_strict` is the entry point. Never bypass it.
+
+### AST-constrained gate expressions
+Gate expressions in YAML are compiled via `lab_expression.compile_gate_expression`, which walks
+the AST and permits only: numeric constants, arithmetic operators, comparisons, boolean and/or,
+unary +/-/not, attribute access from a whitelisted root name set (`cand`, `n0`, `cand_stress`,
+`n0_stress`), and attribute names that do not start with underscore. Function calls, subscripting,
+comprehensions, lambdas, dunders, and arbitrary bare names are REJECTED at compile time.
+`eval()` is NEVER used on the raw expression string.
+
+### Explicit canonical / stress cost selection
+The canonical evaluation cost and the promotion-stress cost MUST be declared as explicit fields
+(`simulation.canonical_cost_bps`, `simulation.promotion_stress_cost_bps`). Both must appear in
+`simulation.cost_grid_bps`. Code MAY NOT implicitly index the grid (`cost_grid[0]` / `cost_grid[-1]`).
+
+### Parity requirements for framework migrations
+Any refactor that changes the framework code but is intended to preserve historical results MUST
+pass a parity check: refactored diagnostics compared to the sealed historical CSV column-by-column,
+row-by-row, with `abs(old - new) <= 1e-10`. The parity check must enumerate every historical
+numeric column (fail loud if any is missing from refactored output) and report max diff per column.
+Historical reports must NEVER be overwritten by the check; refactored output goes to a scratch
+path (`reports/_parity_scratch/`).
+
+### PBO policy for small candidate matrices
+The framework's `pbo_across_configs` function guards against degenerate CSCV (requires N ≥ 4
+distinct candidate strategies). Below `min_configs_for_interpretation`, results are computed but
+tagged with a CAUTION note. PBO is NEVER a promotion gate. If N is too low, the report explicitly
+says "PBO = N/A · N=X below interpretation threshold" and presents per-fold Sharpe rank stability
+instead. Consistency between code, this standards document, and per-experiment reports is enforced
+by having the framework generate the wording — no per-experiment overrides permitted.
+
 ## Anti-patterns forbidden
 
+- ❌ `eval(expr, {"__builtins__": {}}, ns)` for config expressions — use `lab_expression.compile_gate_expression`
+- ❌ Silent YAML duplicate-key handling — always use the strict loader in `lab_config`
+- ❌ `cost_grid[0]` / `cost_grid[-1]` implicit indexing — read `canonical_cost_bps` / `promotion_stress_cost_bps`
 - ❌ Silent defaults for research-critical values (`return 30` if manifest missing)
 - ❌ Per-candidate Python functions when candidates differ only in parameters
 - ❌ Hardcoded gate thresholds in Python (only in YAML)

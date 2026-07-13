@@ -35,9 +35,9 @@ def main():
     R.register_policy("constant", build_constant_series)
     R.register_simulator("exposure_cycle", simulate_cycle)
 
-    # Load registry + build shared context
+    # Load registry + build shared context (rolling_min_periods MUST come from config)
     reg_df = pd.read_csv(ROOT / config.simulation["registry_path"])
-    context = build_context()
+    context = build_context(rolling_min_periods=int(config.policy_parameters["rolling_min_periods"]))
     print(f"  Registry: {len(reg_df)} rows · price panel: {context['closes'].shape}")
 
     # Execute
@@ -46,16 +46,17 @@ def main():
 
     # Print quick verdict summary (ASCII-safe for Windows console)
     ctrl = config.control_id()
+    canon = config.canonical_cost()
+    stress = config.stress_cost()
     for cid in config.candidate_ids(exclude_control=True):
         cash_grid = config.simulation["cash_returns_annual"]
-        cost_grid = config.simulation["cost_grid_bps"]
         overalls = []
         for cash in cash_grid:
-            cand = bundle["results"][cash][cost_grid[0]][cid]
-            n0 = bundle["results"][cash][cost_grid[0]][ctrl]
-            cand50 = bundle["results"][cash][cost_grid[-1]][cid]
-            n050 = bundle["results"][cash][cost_grid[-1]][ctrl]
-            v = R.evaluate_gates(config, cash, cand, n0, cand50, n050)
+            cand = bundle["results"][cash][canon][cid]
+            n0 = bundle["results"][cash][canon][ctrl]
+            cand_str = bundle["results"][cash][stress][cid]
+            n0_str = bundle["results"][cash][stress][ctrl]
+            v = R.evaluate_gates(config, cand, n0, cand_str, n0_str)
             overalls.append(v["all_pass"])
             print(f"    {cid} cash={100*cash:.0f}%: " +
                   " ".join(f"{g['id']}={'PASS' if v['gates'][g['id']]['pass'] else 'FAIL'}"

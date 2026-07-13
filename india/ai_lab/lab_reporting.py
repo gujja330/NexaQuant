@@ -56,9 +56,11 @@ def write_report(bundle: dict, out_dir: Path = None) -> tuple[Path, Path]:
 
     cash_grid = config.simulation["cash_returns_annual"]
     cost_grid = config.simulation["cost_grid_bps"]
-    canonical_cost = cost_grid[0]
+    canonical_cost = config.canonical_cost()          # explicit config value, not cost_grid[0]
+    stress_cost = config.stress_cost()                 # explicit config value, not cost_grid[-1]
     ctrl_id = config.control_id()
     non_ctrl = config.candidate_ids(exclude_control=True)
+    regime_names = [b.name for b in config.regimes["buckets"]]
 
     out_dir = out_dir or (config.config_path.parent / config.reporting["output_dir"])
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -75,11 +77,11 @@ def write_report(bundle: dict, out_dir: Path = None) -> tuple[Path, Path]:
         for cash in cash_grid:
             cand = results[cash][canonical_cost][cid]
             n0 = results[cash][canonical_cost][ctrl_id]
-            cand50 = results[cash][cost_grid[-1]][cid]
-            n050 = results[cash][cost_grid[-1]][ctrl_id]
-            verdicts[cid][cash] = evaluate_gates(config, cash, cand, n0,
-                                                  cost_50bps_result=cand50,
-                                                  control_50bps_result=n050)
+            cand_str = results[cash][stress_cost][cid]
+            n0_str = results[cash][stress_cost][ctrl_id]
+            verdicts[cid][cash] = evaluate_gates(config, cand, n0,
+                                                  cand_stress_result=cand_str,
+                                                  ctrl_stress_result=n0_str)
 
     lines = [
         f"# {config.lab_id} — {config.lab_name} · Results Report {date}", "",
@@ -144,7 +146,7 @@ def write_report(bundle: dict, out_dir: Path = None) -> tuple[Path, Path]:
                 lines.append("Regime attribution (full period):")
                 lines.append("| Regime | # cycles | CAGR | MaxDD | Ulcer |")
                 lines.append("|---|---|---|---|---|")
-                for reg_name in ("Strong", "Neutral", "Weak"):
+                for reg_name in regime_names:
                     rm = r["regime"].get(reg_name)
                     if rm is None:
                         continue
@@ -231,12 +233,15 @@ def write_report(bundle: dict, out_dir: Path = None) -> tuple[Path, Path]:
                     "dsr": r["dsr"]["dsr"],
                 }
                 if r["regime"]:
-                    w = r["regime"].get("Weak", {})
-                    row.update({
-                        "weak_cagr": w.get("cagr", np.nan),
-                        "weak_dd": w.get("max_dd", np.nan),
-                        "weak_ulcer": w.get("ulcer", np.nan),
-                    })
+                    # Emit regime-specific columns per configured bucket (no hardcoded "Weak")
+                    for rn in regime_names:
+                        rm = r["regime"].get(rn, {})
+                        prefix = rn.lower()
+                        row.update({
+                            f"{prefix}_cagr": rm.get("cagr", np.nan),
+                            f"{prefix}_dd": rm.get("max_dd", np.nan),
+                            f"{prefix}_ulcer": rm.get("ulcer", np.nan),
+                        })
                 diag_rows.append(row)
     pd.DataFrame(diag_rows).to_csv(csv_path, index=False)
 
