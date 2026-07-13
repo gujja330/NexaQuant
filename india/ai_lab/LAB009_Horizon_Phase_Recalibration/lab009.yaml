@@ -1,0 +1,104 @@
+# LAB009 — Horizon Recalibration with Realistic Turnover and Phase Sensitivity
+# Sealed 2026-07-13. Locked before any candidate is executed.
+
+lab_id: LAB009
+lab_name: Horizon Recalibration (turnover + phase)
+
+preregistration_file: preregistration.md
+trial_manifest: ../trial_manifest.md
+
+simulation:
+  # registry_path is a placeholder — LAB009 builds per-(horizon, phase) registries in memory.
+  registry_path: data/aegis_registry.csv
+  initial_capital: 100000
+  cash_returns_annual: [0.0, 0.06]
+  cost_grid_bps: [15, 30, 50]
+  trading_days_per_year: 252
+  canonical_cost_bps: 15
+  promotion_stress_cost_bps: 50
+
+periods:
+  discovery_end: "2023-10-13"
+  confirmation_start: "2024-01-15"
+
+stability:
+  folds: 4                                       # reused for Sharpe rank across configs (diagnostic)
+
+regimes:
+  metric_key: regime_signal
+  buckets:
+    - name: Strong
+      min_inclusive: 0.90
+      max_exclusive: 1.0000001
+    - name: Neutral
+      min_inclusive: 0.65
+      max_exclusive: 0.90
+    - name: Weak
+      min_inclusive: 0.0
+      max_exclusive: 0.65
+
+policy_parameters:
+  rolling_min_periods: 30
+
+# Phase offsets per horizon are computed by LAB009 code as floor([0, H/4, H/2, 3H/4]).
+# Not listed here because they follow deterministically from horizon_days.
+candidates:
+  N0:
+    is_control: true
+    description: "Production horizon 63 trading days (control)"
+    type: horizon_phase
+    horizon_days: 63
+
+  H21:
+    description: "Monthly rebalance (21 trading days)"
+    type: horizon_phase
+    horizon_days: 21
+
+  H42:
+    description: "Bi-monthly rebalance (42 trading days)"
+    type: horizon_phase
+    horizon_days: 42
+
+  H84:
+    description: "Quarterly+ rebalance (84 trading days)"
+    type: horizon_phase
+    horizon_days: 84
+
+# Gates evaluated at HORIZON-AGGREGATE level. Namespace roots: cand, n0, cand_stress, n0_stress.
+# LAB009 doesn't use cand_stress / n0_stress — Gate 6 uses precomputed scalar cost_drag.
+gates:
+  - id: gate_1
+    name: "Candidate median confirmation Sharpe >= N0 median confirmation Sharpe"
+    expression: "cand.median.conf.sharpe >= n0.median.conf.sharpe"
+
+  - id: gate_2
+    name: "Candidate median full CAGR >= N0 median CAGR - 1.0pp"
+    expression: "cand.median.full.cagr >= n0.median.full.cagr - 0.01"
+
+  - id: gate_3
+    name: "Candidate median full Sharpe >= N0 median Sharpe - 0.05"
+    expression: "cand.median.full.sharpe >= n0.median.full.sharpe - 0.05"
+
+  - id: gate_4
+    name: "Candidate worst-phase full MaxDD not worse than N0 worst-phase by more than 3pp"
+    expression: "cand.worst.full.max_dd >= n0.worst.full.max_dd - 0.03"
+
+  - id: gate_5
+    name: "Candidate phase top-2 Sharpe fraction >= 0.50"
+    expression: "cand.phase_top2_sharpe >= 0.50"
+
+  - id: gate_6
+    name: "Candidate cost drag not more than 1pp worse than N0 cost drag"
+    expression: "(cand.cost_drag - n0.cost_drag) <= 0.01"
+
+reporting:
+  output_dir: reports
+  report_name_template: "lab009_{date}.md"
+  diagnostics_name_template: "lab009_diagnostics_{date}.csv"
+
+pbo:
+  folds: 8
+  min_configs_for_interpretation: 6           # 16 configs but phase-dependent → DIAGNOSTIC only
+
+dsr:
+  n_trials_source: manifest

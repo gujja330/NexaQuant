@@ -16,7 +16,7 @@ for reflects the FULL search history across all Labs — not a per-Lab local cou
 ## Cumulative counts
 
 ```
-cumulative_strategy_search: 35
+cumulative_strategy_search: 38
 last_updated: 2026-07-13
 ```
 
@@ -24,7 +24,8 @@ Arithmetic:
 - LAB006 total: 15 (Rule B) + 12 (Rule C provisional) + 0 (Rule C audit rerun, same configs) + 1 (Rule C1) = **28**
 - LAB007 new: 4 (candidates A, B, C, D; N0 is control) = **4**
 - LAB008 new: 3 (candidates H21, H42, H84; N0 is control) = **3**
-- **Total: 28 + 4 + 3 = 35**
+- LAB009 new: 3 (candidates H21, H42, H84 under corrected methodology; N0 is control) = **3**
+- **Total: 28 + 4 + 3 + 3 = 38**
 
 ## Ledger
 
@@ -63,7 +64,17 @@ Arithmetic:
 | H21 — 21 trading-day rebalance | strategy-search | 1 | LAB008-local per-horizon registry (production HOLD=63 untouched) |
 | H42 — 42 trading-day rebalance | strategy-search | 1 | LAB008-local per-horizon registry |
 | H84 — 84 trading-day rebalance | strategy-search | 1 | LAB008-local per-horizon registry |
-| **LAB008 subtotal (new)** | — | **3** | Sealed preregistration before execution. Cumulative Lab-wide n_trials → 35. |
+| **LAB008 subtotal (new)** | — | **3** | Executed 2026-07-13. **ALL 3 REJECTED** under sealed 100%-turnover + calendar-strided methodology. See `LAB008_Horizon_Calibration/reports/lab008_2026-07-13.md`. Post-execution audit (`LAB008_EVIDENCE_AUDIT.md`, commit a2fa686) returned Decision B: methodology limitations identified, LAB009 needed. |
+
+### LAB009 — Horizon Phase Recalibration (opened 2026-07-13, sealed preregistration)
+
+| Config | Category | Count | Notes |
+|---|---|---|---|
+| N0 — production horizon 63d (control) | reference | 0 | Not a new search trial |
+| H21 — 21d rebalance under realistic-turnover cost + phase sensitivity | strategy-search | 1 | 4 phase offsets tested per horizon |
+| H42 — 42d rebalance under realistic-turnover cost + phase sensitivity | strategy-search | 1 | Same |
+| H84 — 84d rebalance under realistic-turnover cost + phase sensitivity | strategy-search | 1 | Same |
+| **LAB009 subtotal (new)** | — | **3** | Sealed preregistration before execution. Cumulative Lab-wide n_trials → 38. Same 3 hypotheses as LAB008 but under methodologically-corrected simulator (realistic turnover, common evaluation window, phase-sensitivity) → new strategy-search trials. |
 
 ## Correction note (2026-07-13)
 

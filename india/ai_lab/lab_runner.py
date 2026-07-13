@@ -184,22 +184,27 @@ def evaluate_gates(config: ExperimentConfig, cand_result: dict, ctrl_result: dic
 
 
 def _wrap_ns(result: dict):
-    """Wrap {full/disc/conf/regime/dsr: {metric: val}} for attribute access."""
+    """Recursively wrap any nested dict into attribute-access namespaces.
+
+    Preserves the earlier behaviour for {full/disc/conf/regime/dsr} results while allowing
+    LAB009-style aggregated results (median/worst/phases/... plus scalar leaves like
+    phase_top2_sharpe or cost_drag) to be referenced cleanly by gate expressions.
+
+    Scalars (int/float/bool/None/str/list/tuple) become direct attribute values.
+    Dicts recurse into nested namespaces.
+    """
     class NS:
         pass
-    root = NS()
-    for period_key in ("full", "disc", "conf", "dsr"):
-        if period_key in result:
-            leaf = NS()
-            for k, v in result[period_key].items():
-                setattr(leaf, k, v)
-            setattr(root, period_key, leaf)
-    if "regime" in result:
-        r = NS()
-        for reg_name, reg_metrics in result["regime"].items():
-            leaf = NS()
-            for k, v in reg_metrics.items():
-                setattr(leaf, k, v)
-            setattr(r, reg_name, leaf)
-        setattr(root, "regime", r)
-    return root
+
+    def _wrap(obj):
+        if isinstance(obj, dict):
+            ns = NS()
+            for k, v in obj.items():
+                if isinstance(k, str) and k.isidentifier():
+                    setattr(ns, k, _wrap(v))
+            return ns
+        return obj
+
+    if not isinstance(result, dict):
+        return _wrap(result)
+    return _wrap(result)
