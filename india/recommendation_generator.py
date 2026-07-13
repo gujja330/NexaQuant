@@ -94,8 +94,14 @@ def rec_id(asof, months):
 
 
 def history_for(reg, idx, capital, closes):
-    """Registry -> per-cycle portfolio (with money), full per-stock LIFECYCLE incl trade path / exit quality."""
+    """Registry -> per-cycle portfolio (with money), full per-stock LIFECYCLE incl trade path / exit quality.
+
+    ISOLATION GUARANTEE: only source=="historical" rows feed the per-stock track record that
+    drives the 30% Historical factor in score_components(). Matured LIVE recs stay quarantined
+    so forward paper evidence never bleeds into future selection (self-reinforcement guard;
+    frozen strategy per docs/ARJUNA_OPERATING.md). Do NOT relax this filter without a Lab test."""
     h = reg[(reg.scored == 1) & (reg.source == "historical")].copy()
+    assert (h["source"] == "historical").all(), "isolation breach: live-source recs must not feed history_for()"
     if h.empty:
         return pd.DataFrame(), pd.DataFrame(), {}, pd.DataFrame()
     cyc_rows, detail_rows = [], []

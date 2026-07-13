@@ -1,23 +1,28 @@
 name: AEGIS Daily
 
-# Daily automation: refresh market data -> APPEND latest bars -> run engine -> Telegram + Google Sheet
-# -> commit back. Every weekday, automatically.
+# Daily automation: refresh market data (yfinance) -> freshness gate -> engine -> DB snapshot ->
+# scorecard -> Google Sheets -> Telegram -> commit. Every weekday, automatically.
 #
-# WHY MULTIPLE TIMES: GitHub scheduled runs are BEST-EFFORT — they are often delayed and sometimes
-# DROPPED entirely under load (this is documented GitHub behaviour, not a bug here). So we attempt at
-# several OFF-PEAK times each morning and use a once-per-IST-day guard so the work runs exactly once
-# (no double Telegram / double commit). Missed days self-heal: refresh_data uses a 1-month lookback.
+# WHY MULTIPLE TIMES: GitHub scheduled runs are BEST-EFFORT — often delayed, sometimes dropped
+# entirely under load. We attempt at off-peak times each morning and use a once-per-IST-day guard
+# so the work runs exactly once. Missed days self-heal: refresh_data uses a 1-month lookback.
 #
-# Attempts (IST): ~08:53 (primary, pre-market) · ~10:53 (backup) · ~13:53 (backup). Manual run anytime.
+# Primary target: ~06:00 IST (operator's stated cadence — data settles by ~10 PM previous day).
+# Backups fire only if the primary was dropped by GitHub's scheduler.
 #
-# OPTIONAL repo secrets: TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, GOOGLE_SERVICE_ACCOUNT_JSON,
-# AEGIS_SPREADSHEET_ID. Missing ones are skipped gracefully.
+# Attempts (IST): ~06:07 (primary) · ~08:53 (backup 1) · ~10:53 (backup 2) · ~13:53 (backup 3).
+# Manual dispatch always runs.
+#
+# Required repo secrets: TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID.
+# Optional:              GOOGLE_SERVICE_ACCOUNT_JSON, AEGIS_SPREADSHEET_ID.
+# Missing optional secrets are skipped gracefully.
 
 on:
   schedule:
-    - cron: "23 3 * * 1-5"    # ~08:53 IST (off the congested :00 to reduce drops)
-    - cron: "23 5 * * 1-5"    # ~10:53 IST (backup 1)
-    - cron: "23 8 * * 1-5"    # ~13:53 IST (backup 2)
+    - cron: "37 0 * * 1-5"    # ~06:07 IST — primary (00:37 UTC; :37 avoids congested :00)
+    - cron: "23 3 * * 1-5"    # ~08:53 IST — backup 1
+    - cron: "23 5 * * 1-5"    # ~10:53 IST — backup 2
+    - cron: "23 8 * * 1-5"    # ~13:53 IST — backup 3
   workflow_dispatch:
 
 permissions:
@@ -51,12 +56,22 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements-dashboard.txt gspread google-auth yfinance
 
-      - name: Refresh market data (append latest bars)
+      - name: Refresh market data (append latest bars via yfinance)
         if: steps.guard.outputs.run == 'true'
-        run: python india/refresh_data.py || echo "data refresh issue; using last committed data"
+        run: python india/refresh_data.py || echo "data refresh issue; will let freshness gate decide"
+
+      - name: Freshness gate — abort if data is stale
+        if: steps.guard.outputs.run == 'true'
+        id: freshness
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          python scripts/check_data_freshness.py
+          echo "fresh=true" >> $GITHUB_OUTPUT
 
       - name: Run AEGIS engine + database + evidence + ops check
-        if: steps.guard.outputs.run == 'true'
+        if: steps.guard.outputs.run == 'true' && steps.freshness.outputs.fresh == 'true'
         run: |
           python india/recommendation_generator.py || echo "engine issue; will send last snapshot"
           python india/recommendation_db.py || echo "db update skipped"
@@ -64,7 +79,7 @@ jobs:
           python india/ops_check.py || echo "ops-check reported issues (see board above)"
 
       - name: Push to Google Sheets (no-ops if secrets absent)
-        if: steps.guard.outputs.run == 'true'
+        if: steps.guard.outputs.run == 'true' && steps.freshness.outputs.fresh == 'true'
         env:
           AEGIS_SPREADSHEET_ID: ${{ secrets.AEGIS_SPREADSHEET_ID }}
           GOOGLE_SERVICE_ACCOUNT_FILE: secrets/prism-sheets-sa.json
@@ -75,7 +90,7 @@ jobs:
           rm -f secrets/prism-sheets-sa.json
 
       - name: Telegram daily notification (no-ops if secrets absent)
-        if: steps.guard.outputs.run == 'true'
+        if: steps.guard.outputs.run == 'true' && steps.freshness.outputs.fresh == 'true'
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
@@ -83,7 +98,7 @@ jobs:
         run: python india/telegram_notify.py || echo "telegram skipped (non-fatal)"
 
       - name: Mark published + commit report/data
-        if: steps.guard.outputs.run == 'true'
+        if: steps.guard.outputs.run == 'true' && steps.freshness.outputs.fresh == 'true'
         run: |
           echo "${{ steps.guard.outputs.ist }}" > data/.published
           git config user.name  "aegis-bot"
