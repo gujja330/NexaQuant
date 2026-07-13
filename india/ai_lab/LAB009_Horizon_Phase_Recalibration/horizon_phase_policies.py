@@ -143,7 +143,13 @@ def simulate_horizon_phase(reg_df: pd.DataFrame, closes: pd.DataFrame, exp_serie
     reg_df["mature_date"] = pd.to_datetime(reg_df["mature_date"]).dt.normalize()
     common_start = pd.Timestamp(common_start_asof).normalize()
     common_end = pd.Timestamp(common_end_asof).normalize()
-    reg_df = reg_df[(reg_df["asof"] >= common_start) & (reg_df["asof"] <= common_end)]
+    # CORRECTED (LAB009 maturity-boundary audit): filter on BOTH asof >= common_start AND
+    # mature_date <= common_end. Ensures realized returns lie within the declared window.
+    reg_df = reg_df[(reg_df["asof"] >= common_start) & (reg_df["mature_date"] <= common_end)]
+    # Hard assertion — no included cycle may mature past common_end.
+    assert (reg_df["mature_date"] <= common_end).all(), (
+        f"included cycle has mature_date > common_end ({common_end}); "
+        f"filter breach on {reg_df[reg_df['mature_date'] > common_end][['rec_id','asof','mature_date']].to_dict('records')}")
 
     daily_cash_return = (1 + cash_return_annual) ** (1 / trading_days_per_year) - 1
     equity = pd.Series(dtype=float)
@@ -208,22 +214,36 @@ def simulate_horizon_phase(reg_df: pd.DataFrame, closes: pd.DataFrame, exp_serie
         prev_eff_w = eff_w_dict
         prev_exp = exp_at_asof
 
-    return equity.sort_index(), metas
+    equity = equity.sort_index()
+    # Hard assertion — no equity observation may exceed common_end.
+    if len(equity):
+        assert equity.index.max() <= common_end, (
+            f"equity index max {equity.index.max()} > common_end {common_end}")
+    return equity, metas
 
 
 # =============== COMMON EVALUATION WINDOW ===============
 
 def compute_common_window(all_registries: dict) -> tuple[pd.Timestamp, pd.Timestamp]:
     """all_registries: {(horizon, phase): registry_df}
-    common_start = MAX over configs of each config's earliest asof (first scorable cycle)
-    common_end   = MIN over configs of each config's latest asof   (last scorable cycle)"""
-    firsts, lasts = [], []
+
+    CORRECTED per LAB009_MATURITY_BOUNDARY_AUDIT.md (sealed 2026-07-13):
+
+    - common_start = MAX over configs of each config's earliest scorable asof (unchanged).
+    - common_end   = MIN over configs of each config's LATEST MATURE_DATE (was: last asof).
+
+    The original asof-based common_end allowed cycles' realized-return paths to extend up
+    to 122 days past the declared window end. Under the corrected rule, common_end is the
+    latest maturity date that ALL configs can reach — ensuring realized returns don't
+    escape the declared evaluation interval."""
+    firsts, mature_lasts = [], []
     for (h, p), reg in all_registries.items():
         asofs = pd.to_datetime(reg["asof"])
+        matures = pd.to_datetime(reg["mature_date"])
         firsts.append(asofs.min())
-        lasts.append(asofs.max())
+        mature_lasts.append(matures.max())
     common_start = pd.Timestamp(max(firsts)).normalize()
-    common_end = pd.Timestamp(min(lasts)).normalize()
+    common_end = pd.Timestamp(min(mature_lasts)).normalize()
     if common_start > common_end:
         raise RuntimeError(f"Empty common window: start={common_start}, end={common_end}")
     return common_start, common_end
