@@ -1,0 +1,161 @@
+# LAB007 — Dynamic Exposure · sealed experiment configuration.
+#
+# This YAML replaces the hardcoded constants in run_lab007.py + exposure_lab.py.
+# Every research-critical value is declared here. Post-run parameter tuning is forbidden.
+#
+# Config hash is computed at load and stamped in the report for provenance.
+
+lab_id: LAB007
+lab_name: Dynamic Exposure
+
+preregistration_file: preregistration.md
+trial_manifest: ../trial_manifest.md
+
+simulation:
+  registry_path: data/aegis_registry.csv
+  initial_capital: 100000
+  cash_returns_annual: [0.0, 0.06]              # dual primary — 0% and 6% annualized
+  cost_grid_bps: [15, 30, 50]                    # 15 is canonical; 30/50 are stress tests
+
+periods:
+  discovery_end: "2023-10-13"                    # inclusive
+  confirmation_start: "2024-01-15"               # inclusive
+
+# ---------------------------------------------------------------------------------------
+# CANDIDATES — first entry (N0) must be_control: true. All others are strategy-search.
+# Policy `type` maps to a builder registered in exposure_policies.py.
+# ---------------------------------------------------------------------------------------
+candidates:
+  N0:
+    is_control: true
+    description: "Production dynamic exposure (control)"
+    type: multiplicative_gates
+    gates:
+      india_vix:
+        mode: discrete
+        window_days: 120
+        threshold_pctile: 0.80
+        multiplier_on: 0.60
+        multiplier_off: 1.0
+      nifty_200dma:
+        mode: discrete
+        window_days: 200
+        multiplier_on: 0.60
+        multiplier_off: 1.0
+      global_exposure:
+        enabled: true
+
+  A:
+    description: "Milder India gates (0.75)"
+    type: multiplicative_gates
+    gates:
+      india_vix:
+        mode: discrete
+        window_days: 120
+        threshold_pctile: 0.80
+        multiplier_on: 0.75              # milder
+        multiplier_off: 1.0
+      nifty_200dma:
+        mode: discrete
+        window_days: 200
+        multiplier_on: 0.75              # milder
+        multiplier_off: 1.0
+      global_exposure:
+        enabled: true
+
+  B:
+    description: "Stronger India gates (0.45)"
+    type: multiplicative_gates
+    gates:
+      india_vix:
+        mode: discrete
+        window_days: 120
+        threshold_pctile: 0.80
+        multiplier_on: 0.45              # stronger
+        multiplier_off: 1.0
+      nifty_200dma:
+        mode: discrete
+        window_days: 200
+        multiplier_on: 0.45              # stronger
+        multiplier_off: 1.0
+      global_exposure:
+        enabled: true
+
+  C:
+    description: "Smooth India-VIX taper"
+    type: multiplicative_gates
+    gates:
+      india_vix:
+        mode: smooth_taper                # linear taper across VIX pctile window
+        window_days: 120
+        from_pctile: 0.60
+        to_pctile: 0.90
+        multiplier_at_from_pctile: 1.0
+        multiplier_at_to_pctile: 0.60
+      nifty_200dma:
+        mode: discrete
+        window_days: 200
+        multiplier_on: 0.60               # unchanged (still discrete)
+        multiplier_off: 1.0
+      global_exposure:
+        enabled: true
+
+  D:
+    description: "Fixed 0.85 constant"
+    type: constant
+    value: 0.85
+
+# ---------------------------------------------------------------------------------------
+# PROMOTION GATES — expressions evaluated per (candidate × cash) in a restricted namespace.
+# Namespace vars:
+#   cand.full/disc/conf/regime.{cagr, sharpe, sortino, max_dd, cvar5, ulcer, ...}
+#   cand.dsr.dsr
+#   n0.{...}  (production control)
+#   cand50 / n050 — same shape, at the highest cost bucket (index -1 of cost_grid_bps)
+# Deltas are computed manually inside the expression (no macros).
+# ---------------------------------------------------------------------------------------
+gates:
+  - id: gate_1
+    name: "Confirmation Ulcer improvement >= 1.0"
+    expression: "n0.conf.ulcer - cand.conf.ulcer >= 1.0"
+
+  - id: gate_2
+    name: "Confirmation MaxDD improvement >= 3pp OR CVaR(5%) improvement >= 0.5pp"
+    expression: "((cand.conf.max_dd - n0.conf.max_dd) * 100 >= 3.0) or ((cand.conf.cvar5 - n0.conf.cvar5) * 100 >= 0.5)"
+
+  - id: gate_3
+    name: "Full-period CAGR sacrifice <= 2pp"
+    expression: "(cand.full.cagr - n0.full.cagr) * 100 >= -2.0"
+
+  - id: gate_4
+    name: "DSR > 0.90"
+    expression: "cand.dsr.dsr > 0.90"
+
+  - id: gate_5
+    name: "Gates 1-3 hold at 50 bps"
+    expression: "((n050.conf.ulcer - cand50.conf.ulcer >= 1.0) and (((cand50.conf.max_dd - n050.conf.max_dd) * 100 >= 3.0) or ((cand50.conf.cvar5 - n050.conf.cvar5) * 100 >= 0.5)) and ((cand50.full.cagr - n050.full.cagr) * 100 >= -2.0))"
+
+  - id: gate_6
+    name: "Weak-regime Ulcer improvement > Strong-regime Ulcer improvement"
+    expression: "(n0.regime.Weak.ulcer - cand.regime.Weak.ulcer) > (n0.regime.Strong.ulcer - cand.regime.Strong.ulcer)"
+
+# ---------------------------------------------------------------------------------------
+# REPORTING
+# ---------------------------------------------------------------------------------------
+reporting:
+  output_dir: reports
+  report_name_template: "lab007_{date}.md"
+  diagnostics_name_template: "lab007_diagnostics_{date}.csv"
+
+# ---------------------------------------------------------------------------------------
+# PBO — CSCV feasibility guard. If #configs < min, PBO reported N/A.
+# ---------------------------------------------------------------------------------------
+pbo:
+  folds: 8
+  min_configs_for_interpretation: 6              # N=5 configs → reported but flagged caution
+
+# ---------------------------------------------------------------------------------------
+# DSR — read cumulative Lab-wide n_trials from central manifest
+# ---------------------------------------------------------------------------------------
+dsr:
+  n_trials_source: manifest

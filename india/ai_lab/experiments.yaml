@@ -87,3 +87,47 @@ labs:
     forward_paper: null
     decision: reject              # on PRICE-only features; revisit once LAB-001..004 contribute kept features
     notes: Runs LAST. Rejected on price alone (expected). Harness = india/ai_lab/rank_model.py (ai-lab branch).
+
+  - id: LAB-006
+    name: Exit Strategy
+    question: Can any intra-cycle exit rule (score-drop / vol-spike / trailing stop / sentiment) beat hold-to-rebalance on risk-adjusted return?
+    dataset: aegis_registry historical cycles + price panel + news_sentiment (LIVE-only) archive
+    gate_layer: exit
+    status: rejected
+    trial_count: 28
+    coverage: 100
+    missing_pct: null
+    ic: null
+    lift: null
+    walk_forward: FAIL
+    forward_paper: null
+    decision: reject
+    notes: |
+      Rule B (vol-spike): rejected on economic evidence (MaxDD unchanged, CAGR loss).
+      Rule C (trailing stop 4x3): PBO 0.229 across 12 configs; no DSR>0.90 config.
+      Rule C1 (regime-gated 5% P3 Weak): 2 of 6 gates pass. Mechanism works in Weak
+      cycles but halves CAGR too. Rules A (score) & D (sentiment) forward-collect only.
+    config_dir: india/ai_lab/LAB006_Exit_Strategy/
+
+  - id: LAB-007
+    name: Dynamic Exposure / Position Sizing
+    question: Does any pre-registered alternative regime->exposure policy beat the current PRODUCTION dynamic exposure?
+    dataset: aegis_registry historical cycles + PIT-reconstructed production exp series
+    gate_layer: exposure
+    status: rejected
+    trial_count: 4
+    coverage: 100
+    missing_pct: null
+    ic: null
+    lift: null
+    walk_forward: FAIL
+    forward_paper: null
+    decision: reject
+    notes: |
+      N0 (control) + 4 candidates (A milder India / B stronger India / C smooth VIX taper / D fixed 0.85).
+      All fail DSR>0.90 (best 0.87). All fail Gate 5 (50bps cost). D shows best headline
+      metrics but fails Gate 6 (no regime input). Full-matrix PBO 0.700 (cash=0%) / 0.871 (cash=6%) —
+      config selection unstable. Confirmation era shows CAGR ~4-8% vs discovery ~22-25% — era effect
+      dominates any exposure calibration signal. Production exposure remains frozen.
+    config_dir: india/ai_lab/LAB007_Dynamic_Exposure/
+    config_file: india/ai_lab/LAB007_Dynamic_Exposure/lab007.yaml
