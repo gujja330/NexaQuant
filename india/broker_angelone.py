@@ -85,24 +85,35 @@ def nse_tokens(symbols):
     return {s: by_name.get(TOKEN_ALIAS.get(s, s)) for s in symbols}
 
 
-def _get_candles_retry(obj, params, tries=6):
-    """One historical call with backoff on Angel's 'exceeding access rate' throttle.
-    The historical endpoint is strict (~1 req every ~1s+); on a rate error we wait
-    progressively longer (2,4,8,16,32s) and retry instead of losing the chunk."""
-    delay = 2.0
+def _get_candles_retry(obj, params, tries=8):
+    """One historical call with backoff on Angel's throttle.
+    Angel's historical endpoint is very strict — some days it caps well below
+    1 req/s. On a rate error we wait progressively longer (3, 6, 12, 24, 45,
+    60, 60s) and retry instead of losing the chunk.
+
+    Also catches 'Too many requests' — Angel now returns this instead of the
+    older 'exceeding access rate' string on the same throttle condition."""
+    delay = 3.0
     for attempt in range(tries):
         try:
             r = obj.getCandleData(params)
             # SmartAPI returns the rate error in the JSON body, not as an exception
             msg = str(r.get("message", "")) if isinstance(r, dict) else str(r)
-            if "exceeding access rate" in msg.lower() or "access denied" in msg.lower():
+            low = msg.lower()
+            if (
+                "exceeding access rate" in low
+                or "access denied" in low
+                or "too many requests" in low
+                or "rate limit" in low
+            ):
                 raise RuntimeError(msg or "access rate")
             return r.get("data") if isinstance(r, dict) else None
         except Exception as e:
             if attempt == tries - 1:
                 raise
             time.sleep(delay)
-            delay = min(delay * 2, 32)
+            # Cap at 60s to keep the total wait bounded on catastrophic throttle
+            delay = min(delay * 2, 60)
     return None
 
 
@@ -125,7 +136,11 @@ def candles(obj, token, interval="ONE_DAY", days=2000, since=None):
                 frames.append(c)
         except Exception as e:
             print(f"    ! chunk {cur.date()}: {e}")
-        time.sleep(1.2)                                # historical endpoint is strict — go slow
+        # Historical endpoint is strict. On days when Angel is under load
+        # even 1.2s between chunks trips 'Too many requests'. 2.0s is a
+        # more conservative baseline; still ~2000 stocks / 2s = ~1 hr max
+        # for the whole basket which is fine for a nightly job.
+        time.sleep(2.0)
         cur = nxt
     if not frames:
         return None
