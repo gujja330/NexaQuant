@@ -1,0 +1,106 @@
+# LAB008 — Horizon Calibration · sealed experiment configuration.
+# Sealed 2026-07-13. Any post-run change invalidates the preregistration.
+
+lab_id: LAB008
+lab_name: Horizon Calibration
+
+preregistration_file: preregistration.md
+trial_manifest: ../trial_manifest.md
+
+simulation:
+  # registry_path is a placeholder — LAB008 builds per-horizon registries in memory (see
+  # horizon_policies._build_registry_for_horizon). The framework requires the field.
+  registry_path: data/aegis_registry.csv
+  initial_capital: 100000
+  cash_returns_annual: [0.0, 0.06]
+  cost_grid_bps: [15, 30, 50]
+  trading_days_per_year: 252
+  canonical_cost_bps: 15
+  promotion_stress_cost_bps: 50
+
+periods:
+  discovery_end: "2023-10-13"
+  confirmation_start: "2024-01-15"
+
+stability:
+  folds: 4
+
+# LAB008 uses the same regime buckets as LAB007. Each cycle's meta stamps `regime_signal`
+# with the PIT-reconstructed production exp value at asof. Runner reads `regime_signal`
+# and assigns a bucket via these definitions.
+regimes:
+  metric_key: regime_signal
+  buckets:
+    - name: Strong
+      min_inclusive: 0.90
+      max_exclusive: 1.0000001
+    - name: Neutral
+      min_inclusive: 0.65
+      max_exclusive: 0.90
+    - name: Weak
+      min_inclusive: 0.0
+      max_exclusive: 0.65
+
+policy_parameters:
+  # Used inside horizon_policies build_context() when reconstructing production exp_series
+  # (rolling India VIX quantile min_periods). SAME value LAB007 used → identical exp_series.
+  rolling_min_periods: 30
+
+candidates:
+  N0:
+    is_control: true
+    description: "Production horizon (63 trading days)"
+    type: horizon
+    horizon_days: 63
+
+  H21:
+    description: "Monthly rebalance (21 trading days)"
+    type: horizon
+    horizon_days: 21
+
+  H42:
+    description: "Bi-monthly rebalance (42 trading days)"
+    type: horizon
+    horizon_days: 42
+
+  H84:
+    description: "Quarterly+ rebalance (84 trading days)"
+    type: horizon
+    horizon_days: 84
+
+gates:
+  - id: gate_1
+    name: "Full-period CAGR not worse than N0 by more than 2pp"
+    expression: "(cand.full.cagr - n0.full.cagr) >= -0.02"
+
+  - id: gate_2
+    name: "Full-period Sharpe not worse than N0 by more than 0.10"
+    expression: "(cand.full.sharpe - n0.full.sharpe) >= -0.10"
+
+  - id: gate_3
+    name: "Confirmation CAGR not worse than N0 by more than 3pp"
+    expression: "(cand.conf.cagr - n0.conf.cagr) >= -0.03"
+
+  - id: gate_4
+    name: "Confirmation MaxDD not worse than N0 by more than 3pp (MaxDD is negative)"
+    expression: "(cand.conf.max_dd - n0.conf.max_dd) >= -0.03"
+
+  - id: gate_5
+    name: "Weak-regime ulcer not worse than N0 by more than 2.0"
+    expression: "(cand.regime.Weak.ulcer - n0.regime.Weak.ulcer) <= 2.0"
+
+  - id: gate_6
+    name: "Cost drag not worse than N0 by more than 1pp"
+    expression: "((cand.full.cagr - cand_stress.full.cagr) - (n0.full.cagr - n0_stress.full.cagr)) <= 0.01"
+
+reporting:
+  output_dir: reports
+  report_name_template: "lab008_{date}.md"
+  diagnostics_name_template: "lab008_diagnostics_{date}.csv"
+
+pbo:
+  folds: 8
+  min_configs_for_interpretation: 6           # N=4 in LAB008 → framework CAUTION note
+
+dsr:
+  n_trials_source: manifest

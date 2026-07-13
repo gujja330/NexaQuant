@@ -16,14 +16,15 @@ for reflects the FULL search history across all Labs — not a per-Lab local cou
 ## Cumulative counts
 
 ```
-cumulative_strategy_search: 32
+cumulative_strategy_search: 35
 last_updated: 2026-07-13
 ```
 
 Arithmetic:
 - LAB006 total: 15 (Rule B) + 12 (Rule C provisional) + 0 (Rule C audit rerun, same configs) + 1 (Rule C1) = **28**
 - LAB007 new: 4 (candidates A, B, C, D; N0 is control) = **4**
-- **Total: 28 + 4 = 32**
+- LAB008 new: 3 (candidates H21, H42, H84; N0 is control) = **3**
+- **Total: 28 + 4 + 3 = 35**
 
 ## Ledger
 
@@ -53,6 +54,16 @@ Arithmetic:
 | D — fixed 0.85 constant | strategy-search | 1 | No regime input |
 | Cost variants (each candidate × {30, 50} bps) | cost-stress | 0 | (not counted) |
 | **LAB007 subtotal (new)** | — | **4** | Executed 2026-07-13. **ALL 4 REJECTED** on locked 6-gate promotion. Production dynamic exposure remains frozen. See `LAB007_Dynamic_Exposure/reports/lab007_2026-07-13.md` |
+
+### LAB008 — Horizon Calibration (opened 2026-07-13, sealed preregistration)
+
+| Config | Category | Count | Notes |
+|---|---|---|---|
+| N0 — production horizon 63d (control) | reference | 0 | Not a new search trial |
+| H21 — 21 trading-day rebalance | strategy-search | 1 | LAB008-local per-horizon registry (production HOLD=63 untouched) |
+| H42 — 42 trading-day rebalance | strategy-search | 1 | LAB008-local per-horizon registry |
+| H84 — 84 trading-day rebalance | strategy-search | 1 | LAB008-local per-horizon registry |
+| **LAB008 subtotal (new)** | — | **3** | Sealed preregistration before execution. Cumulative Lab-wide n_trials → 35. |
 
 ## Correction note (2026-07-13)
 
