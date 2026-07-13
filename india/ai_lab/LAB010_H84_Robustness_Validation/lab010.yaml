@@ -1,0 +1,204 @@
+# LAB010 — H84 Robustness Validation
+# Sealed 2026-07-13. Locked BEFORE any LAB010 execution.
+# Validates LAB009's H84 promote-eligible verdict (commit 413a735) under chronological
+# and cost stress. Not a search. Same H84 hypothesis, same phase offsets, same simulator.
+
+lab_id: LAB010
+lab_name: H84 Robustness Validation (LOBO + cost stress)
+
+preregistration_file: preregistration.md
+trial_manifest: ../trial_manifest.md
+
+simulation:
+  registry_path: data/aegis_registry.csv         # placeholder — per-(cand, phase) registries built in memory
+  initial_capital: 100000
+  cash_returns_annual: [0.0, 0.06]
+  cost_grid_bps: [15, 30, 50]
+  trading_days_per_year: 252
+  canonical_cost_bps: 15
+  promotion_stress_cost_bps: 50
+
+# Chronological blocks — deterministic, sealed BEFORE any block-level performance was inspected.
+# Cycle inclusion per block: block_start <= asof AND mature_date <= block_end.
+blocks:
+  - id: B1
+    start: "2021-10-01"
+    end:   "2023-06-30"
+  - id: B2
+    start: "2023-07-01"
+    end:   "2024-12-31"
+  - id: B3
+    start: "2025-01-01"
+    end:   "2026-03-27"
+
+# LOBO folds — each drops exactly one block.
+lobo_folds:
+  - id: LOBO_dropB1
+    exclude: B1
+  - id: LOBO_dropB2
+    exclude: B2
+  - id: LOBO_dropB3
+    exclude: B3
+
+# LAB009's already-selected H84 candidate. No new candidates. No horizon search.
+candidates:
+  N0:
+    is_control: true
+    description: "Production horizon 63 trading days (control)"
+    type: horizon_phase
+    horizon_days: 63
+
+  H84:
+    description: "LAB009 promote-eligible candidate — horizon 84 trading days"
+    type: horizon_phase
+    horizon_days: 84
+
+# LAB010 validation gates — all thresholds reused from LAB009. No new arbitrary numbers.
+# Namespace roots: cand, n0. Every gate must PASS under BOTH cash assumptions (0.0 and 0.06).
+gates:
+  # V1: LOBO Gate 3 — Sharpe delta under leave-one-block-out. 3 folds × 2 cash = 6 evaluations.
+  - id: v1_lobo_dropB1_gate3
+    name: "LOBO(dropB1): candidate median full Sharpe >= N0 median Sharpe - 0.05"
+    scope: "lobo:LOBO_dropB1,cost:canonical"
+    expression: "cand.median.full.sharpe >= n0.median.full.sharpe - 0.05"
+  - id: v1_lobo_dropB2_gate3
+    name: "LOBO(dropB2): candidate median full Sharpe >= N0 median Sharpe - 0.05"
+    scope: "lobo:LOBO_dropB2,cost:canonical"
+    expression: "cand.median.full.sharpe >= n0.median.full.sharpe - 0.05"
+  - id: v1_lobo_dropB3_gate3
+    name: "LOBO(dropB3): candidate median full Sharpe >= N0 median Sharpe - 0.05"
+    scope: "lobo:LOBO_dropB3,cost:canonical"
+    expression: "cand.median.full.sharpe >= n0.median.full.sharpe - 0.05"
+
+  # V2: LOBO Gate 1 — confirmation Sharpe under LOBO
+  - id: v2_lobo_dropB1_gate1
+    name: "LOBO(dropB1): candidate median conf Sharpe >= N0 median conf Sharpe"
+    scope: "lobo:LOBO_dropB1,cost:canonical"
+    expression: "cand.median.conf.sharpe >= n0.median.conf.sharpe"
+  - id: v2_lobo_dropB2_gate1
+    name: "LOBO(dropB2): candidate median conf Sharpe >= N0 median conf Sharpe"
+    scope: "lobo:LOBO_dropB2,cost:canonical"
+    expression: "cand.median.conf.sharpe >= n0.median.conf.sharpe"
+  - id: v2_lobo_dropB3_gate1
+    name: "LOBO(dropB3): candidate median conf Sharpe >= N0 median conf Sharpe"
+    scope: "lobo:LOBO_dropB3,cost:canonical"
+    expression: "cand.median.conf.sharpe >= n0.median.conf.sharpe"
+
+  # V3: LOBO phase-win-rate — analog of LAB009 Gate 5 adapted to 2-candidate universe.
+  # phase_win_rate = fraction of the 4 phase INDICES where H84's phase-Sharpe >= N0's
+  # phase-Sharpe at the same phase index. Reuses LAB009's 0.50 threshold (2/4 phases).
+  # Under 2-candidate universe, phase_top2_sharpe is trivially 1.0 and cannot serve as a
+  # robustness check — phase_win_rate is the non-degenerate replacement.
+  - id: v3_lobo_dropB1_win_rate
+    name: "LOBO(dropB1): candidate phase win-rate over N0 >= 0.50"
+    scope: "lobo:LOBO_dropB1,cost:canonical"
+    expression: "cand.phase_win_rate >= 0.50"
+  - id: v3_lobo_dropB2_win_rate
+    name: "LOBO(dropB2): candidate phase win-rate over N0 >= 0.50"
+    scope: "lobo:LOBO_dropB2,cost:canonical"
+    expression: "cand.phase_win_rate >= 0.50"
+  - id: v3_lobo_dropB3_win_rate
+    name: "LOBO(dropB3): candidate phase win-rate over N0 >= 0.50"
+    scope: "lobo:LOBO_dropB3,cost:canonical"
+    expression: "cand.phase_win_rate >= 0.50"
+
+  # V4: cost stress — LAB009 Gates 1, 2, 3 must still pass under stress cost=50bps
+  - id: v4_stress_gate1
+    name: "Stress cost: candidate median conf Sharpe >= N0 median conf Sharpe"
+    scope: "full,cost:stress"
+    expression: "cand.median.conf.sharpe >= n0.median.conf.sharpe"
+  - id: v4_stress_gate2
+    name: "Stress cost: candidate median full CAGR >= N0 median CAGR - 0.01"
+    scope: "full,cost:stress"
+    expression: "cand.median.full.cagr >= n0.median.full.cagr - 0.01"
+  - id: v4_stress_gate3
+    name: "Stress cost: candidate median full Sharpe >= N0 median Sharpe - 0.05"
+    scope: "full,cost:stress"
+    expression: "cand.median.full.sharpe >= n0.median.full.sharpe - 0.05"
+
+  # V5: block-level majority — H84 must beat N0 in >= 2 of 3 blocks (raw Sharpe comparison).
+  # Evaluated separately per block; block_majority PASS iff sum of PASS across blocks >= 2.
+  - id: v5_block_B1
+    name: "Block B1: candidate median full Sharpe >= N0 median full Sharpe (per-block win)"
+    scope: "block:B1,cost:canonical"
+    expression: "cand.median.full.sharpe >= n0.median.full.sharpe"
+  - id: v5_block_B2
+    name: "Block B2: candidate median full Sharpe >= N0 median full Sharpe (per-block win)"
+    scope: "block:B2,cost:canonical"
+    expression: "cand.median.full.sharpe >= n0.median.full.sharpe"
+  - id: v5_block_B3
+    name: "Block B3: candidate median full Sharpe >= N0 median full Sharpe (per-block win)"
+    scope: "block:B3,cost:canonical"
+    expression: "cand.median.full.sharpe >= n0.median.full.sharpe"
+
+  # V6: full-window sanity check — all 6 LAB009 gates must still PASS on full common window.
+  - id: v6_full_gate1
+    name: "Full-window: candidate median conf Sharpe >= N0 median conf Sharpe"
+    scope: "full,cost:canonical"
+    expression: "cand.median.conf.sharpe >= n0.median.conf.sharpe"
+  - id: v6_full_gate2
+    name: "Full-window: candidate median full CAGR >= N0 median CAGR - 0.01"
+    scope: "full,cost:canonical"
+    expression: "cand.median.full.cagr >= n0.median.full.cagr - 0.01"
+  - id: v6_full_gate3
+    name: "Full-window: candidate median full Sharpe >= N0 median Sharpe - 0.05"
+    scope: "full,cost:canonical"
+    expression: "cand.median.full.sharpe >= n0.median.full.sharpe - 0.05"
+  - id: v6_full_gate4
+    name: "Full-window: candidate worst full MaxDD >= N0 worst MaxDD - 0.03"
+    scope: "full,cost:canonical"
+    expression: "cand.worst.full.max_dd >= n0.worst.full.max_dd - 0.03"
+  # V6-g5: under 2-candidate LAB010 universe, phase_top2 is degenerate (trivially 1.0).
+  # Kept for byte-identical LAB009 gate_5 semantic reproduction as a LIVENESS SENTINEL
+  # (asserts H84 phase Sharpes are finite). The non-degenerate robustness check is V3.
+  - id: v6_full_gate5
+    name: "Full-window: candidate phase top-2 Sharpe >= 0.50 (liveness sentinel under 2-cand)"
+    scope: "full,cost:canonical"
+    expression: "cand.phase_top2_sharpe >= 0.50"
+  - id: v6_full_gate6
+    name: "Full-window: candidate cost drag not more than 1pp worse than N0"
+    scope: "full,cost:canonical"
+    expression: "(cand.cost_drag - n0.cost_drag) <= 0.01"
+
+# Block-level majority requirement: sum of PASS across v5_block_B1/B2/B3 must be >= 2 per cash.
+# This is enforced in the runner as an aggregate check on top of the per-block gate results.
+block_majority_min_wins: 2
+
+reporting:
+  output_dir: reports
+  report_name_template: "lab010_h84_robustness_{date}.md"
+  diagnostics_name_template: "lab010_h84_robustness_diagnostics_{date}.csv"
+
+# PBO — reported diagnostically only. NOT a gate.
+pbo:
+  folds: 8
+  min_configs_for_interpretation: 6
+
+# DSR: trial count comes from central manifest. LAB010 does NOT increment cumulative_strategy_search.
+dsr:
+  n_trials_source: manifest
+
+periods:
+  discovery_end: "2023-10-13"
+  confirmation_start: "2024-01-15"
+
+policy_parameters:
+  rolling_min_periods: 30
+
+# Required by ExperimentConfig loader. LAB010 does not use stability folds or regime buckets
+# as gates — carried for schema compliance and diagnostic parity with LAB009.
+stability:
+  folds: 4
+
+regimes:
+  metric_key: regime_signal
+  buckets:
+    - name: Strong
+      min_inclusive: 0.90
+      max_exclusive: 1.0000001
+    - name: Neutral
+      min_inclusive: 0.65
+      max_exclusive: 0.90
+    - name: Weak
+      min_inclusive: 0.0
+      max_exclusive: 0.65
