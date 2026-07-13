@@ -115,12 +115,12 @@ def main():
             reg = build_registry_for_horizon_phase(h, p, context["closes"], context["rets"])
             all_registries[(cid, h, p)] = reg
             print(f"    {cid} H={h:>2}d phase={p:>2}: {reg['rec_id'].nunique()} cycles "
-                  f"[{reg['asof'].min()} → {reg['asof'].max()}]")
+                  f"[{reg['asof'].min()} -> {reg['asof'].max()}]")
 
     # ----- Common evaluation window -----
     common_start, common_end = compute_common_window(
         {(h, p): reg for (cid, h, p), reg in all_registries.items()})
-    print(f"\n  COMMON WINDOW: {common_start.date()} → {common_end.date()}")
+    print(f"\n  COMMON WINDOW: {common_start.date()} -> {common_end.date()}")
 
     # ----- Cycle counts inside common window (report) -----
     print("\n  Cycle counts INSIDE common window (H×P × period × regime):")
@@ -356,7 +356,7 @@ def _write_report(config, hp_counts_df, common_start, common_end, horizon_result
         f"- **Config file**: `{config.config_path.name}` · hash `{config.config_hash}`",
         f"- **Preregistration**: `{config.preregistration_file.name}`",
         f"- **n_trials (cumulative Lab-wide)**: **{n_trials}**",
-        f"- **Common evaluation window**: `{common_start.date()}` → `{common_end.date()}`",
+        f"- **Common evaluation window**: `{common_start.date()}` -> `{common_end.date()}`",
         f"- **Cash returns**: {[f'{100*c:.0f}%' for c in cash_grid]}",
         f"- **Cost grid (bps)**: canonical={canon}, stress={stress}",
         f"- **Cost model**: Formulation B EXTENDED (effective portfolio weights incl. cash bucket, one-sided cost basis)",
