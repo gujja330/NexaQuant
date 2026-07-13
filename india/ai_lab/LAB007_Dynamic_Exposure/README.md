@@ -41,3 +41,19 @@ LAB006's exit research demonstrated:
   Discovery = 10 cycles (2021-07-01 → 2023-10-13), Confirmation = 9 cycles (2024-01-15 →
   2026-01-27). Confirmation contains 4 Weak cycles — power limitation acknowledged.
 - **2026-07-13** — Pre-registration sealed. STOP for operator approval before executing.
+- **2026-07-13** — Operator approved (n_trials=32 audited). Preregistration commit: `93028e0`.
+- **2026-07-13** — Executed once per sealed spec. **VERDICT: REJECT all 4 candidates.** None
+  cleared all 6 gates under both cash-return assumptions.
+  - **A** (milder India): Ulcer improvement +0.26 (< gate 1.0). DSR 0.77-0.84. Marginal.
+  - **B** (stronger India): Ulcer WORSENED in confirmation. DSR 0.78-0.87.
+  - **C** (smooth VIX taper): near-zero change vs N0 on all metrics. Gate 6 fails (mechanism unclear).
+  - **D** (fixed 0.85): highest CAGR (+15.6% / +16.6%) and best Ulcer (5.1 / 4.9), but FAILS Gate 6
+    trivially (no regime input → no regime attribution). Also fails DSR (0.83 / 0.87 < 0.90).
+  - **PBO across N=5 configs**: 0.700 (cash=0%) / 0.871 (cash=6%). Both high — additional
+    evidence of config-selection instability. Fold Sharpe ranks confirm: no config leads
+    consistently across all 4 folds.
+  - **Discovery vs confirmation reveals an era effect**: full-period CAGR 13-16% masks
+    Discovery ~22-25% vs Confirmation ~4-8%. Attributable to universe / market regime, NOT
+    fixable via exposure calibration.
+  - Report: `reports/lab007_2026-07-13.md`. Diagnostics: `reports/lab007_diagnostics_2026-07-13.csv`.
+  - **Production dynamic exposure remains frozen.** Central manifest updated.

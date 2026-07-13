@@ -52,7 +52,7 @@ Arithmetic:
 | C — smooth India-VIX taper (linear 1.0→0.6 across trailing 60th→90th VIX pctile) | strategy-search | 1 | Nifty + all global gates unchanged |
 | D — fixed 0.85 constant | strategy-search | 1 | No regime input |
 | Cost variants (each candidate × {30, 50} bps) | cost-stress | 0 | (not counted) |
-| **LAB007 subtotal (new)** | — | **4** | Sealed pre-registration before execution |
+| **LAB007 subtotal (new)** | — | **4** | Executed 2026-07-13. **ALL 4 REJECTED** on locked 6-gate promotion. Production dynamic exposure remains frozen. See `LAB007_Dynamic_Exposure/reports/lab007_2026-07-13.md` |
 
 ## Correction note (2026-07-13)
 
