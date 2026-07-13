@@ -1,0 +1,141 @@
+# MON001 — Forward Paper-Trading + Monitoring · Sealed config
+# Sealed 2026-07-13. Locked BEFORE any MON001 forward evidence is evaluated.
+
+mon_id: MON001
+mon_name: Forward Paper-Trading + Monitoring
+preregistration_file: preregistration.md
+
+# Boundary between "backtest data" and "forward-eligible evidence".
+# Any recommendation with asof >= this date is eligible for the MON001 forward ledger.
+# See preregistration.md §Forward observation boundary.
+forward_boundary_asof: "2026-03-28"
+
+# Trading calendar
+trading_calendar: NSE
+timezone_market: Asia/Kolkata
+trading_days_per_year: 252
+
+# Frozen production baseline reference — used ONLY to construct the fingerprint.
+# Any change to these paths' contents is CONFIG_DRIFT.
+baseline_files:
+  - india/recommendation_registry.py
+  - india/recommendation_generator.py
+  - india/confidence_engine.py
+  - india/arjuna_v2.py
+  - india/data_nse.py
+
+# Frozen production baseline constants (fingerprint inputs)
+baseline_constants:
+  HOLD: 63
+  rebal: 63
+  method: hrp
+  regime: global
+  sector_cap: 2
+  name_cap: 0.30
+
+# Registry (recommendation lifecycle) source
+registry_path: data/aegis_registry.csv
+
+# Evaluation horizons (trading days)
+horizons:
+  T30: 30
+  T63: 63
+  T126: 126
+  T252: 252
+
+# Minimum forward observations per metric (see preregistration §Minimum observation requirements)
+min_evidence:
+  daily_metrics_days: 30
+  turnover_cycles: 1
+  maxdd_days: 126
+  sortino_days: 126
+  cycle_winrate_cycles: 3
+  regime_conditioned_days: 63
+  annualized_sharpe_days: 252
+
+# Baseline envelope — will be built at seal-init from LAB009 State C diagnostics and cached.
+# Byte-identical recomputation required on every subsequent MON001 run.
+baseline_envelope:
+  source_diagnostics: india/ai_lab/LAB009_Horizon_Phase_Recalibration/reports/lab009_period_corrected_diagnostics_2026-07-13.csv
+  candidate: N0
+  horizon_days: 63
+  costs_bps: [15, 30, 50]
+  canonical_cost_bps: 15
+  cash_grid: [0.0, 0.06]
+  cache_path: reports/baseline_envelope_2026-07-13.json
+
+# Drift thresholds (sealed, not tunable post-observation)
+drift:
+  D2_performance:
+    metric: sharpe_forward
+    watch_sd: 1.0
+    diverged_sd: 1.0
+    min_days: 30
+  D3_risk:
+    metric: max_dd_forward
+    watch_buffer: 1.10
+    diverged_buffer: 1.20
+    min_days: 126
+  D4_turnover:
+    watch_multiplier: 1.30
+    diverged_multiplier: 1.50
+    min_cycles: 1
+  D5_cost:
+    watch_multiplier: 1.10
+    diverged_multiplier_stress: true
+    slippage_bps_diverged: 15
+    min_cycles: 1
+  D6_regime_behaviour:
+    watch_abs: 0.10
+    diverged_abs: 0.15
+    min_days_per_bucket: 63
+  D7_concentration:
+    name_cap_tolerance: 0.05
+    sector_cap_over_by: 1
+  D8_data:
+    watch_missing_prices_pct: 0.05
+    diverged_missing_prices_pct: 0.10
+    watch_stale_recs_pct: 0.10
+    diverged_stale_recs_pct: 0.20
+    stale_grace_trading_days: 5
+  D9_execution:
+    paper_only: true
+    slippage_median_bps_diverged: 15
+
+# HALT logic
+halt:
+  consecutive_weekly_reports_for_halt: 4
+  weekly_report_cadence_days: 7
+
+# Benchmarks
+benchmarks:
+  primary: NSEI_TR       # Nifty-50 total-return (backtest benchmark)
+  diagnostic: nifty200_equal_weight
+
+# Ledger — forward observation store
+forward_ledger:
+  path: india/monitoring/MON001_Forward_Validation/ledger/forward_ledger.jsonl
+  corrections_path: india/monitoring/MON001_Forward_Validation/ledger/corrections.jsonl
+  schema_version: 1
+
+# Reporting outputs
+reporting:
+  output_dir: india/monitoring/MON001_Forward_Validation/reports
+  markdown_template: mon001_report_{date}.md
+  json_diagnostics_template: mon001_diagnostics_{date}.json
+  alerts_path: india/monitoring/MON001_Forward_Validation/reports/mon001_alerts.jsonl
+
+# Broker integration status at seal time
+broker:
+  status: PAPER_ONLY
+  module: india/broker_angelone.py
+  reason: "broker_angelone.py order placement is disabled (per module comment: 'Orders are NOT placed here (paper/live runner comes next, after validation).'). Broker fill history not yet ingested. MON001 remains PAPER_ONLY until operator explicitly opts in via a broker integration authorization (out of scope for MON001 seal)."
+
+# Governance
+governance:
+  cumulative_strategy_search_at_seal: 38
+  modifies_production: false
+  increments_trial_count: false
+  can_halt_production: false
+  produces_alert_on_halt: true
+  authorizes_new_lab: false
