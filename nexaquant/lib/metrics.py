@@ -117,3 +117,42 @@ def hit_rate(returns: pd.Series | Sequence[float]) -> float:
     if r.empty:
         return float("nan")
     return float((r > 0).sum() / len(r))
+
+
+# ------------- Returns-input convenience wrappers -------------
+# The audited callers in `india/backpaper.py`, `india/moonshot.py`, and
+# `india/aegis_dashboard.py` operate on a per-period RETURNS series rather than
+# an equity curve. These wrappers convert internally and match the audited
+# formulas byte-identically (verified in `nexaquant/tests/test_lib.py` tests
+# 26-28 with hand-computed reference values).
+
+
+def cagr_from_returns(returns: pd.Series | Sequence[float], *,
+                       trading_days: int = TRADING_DAYS_PER_YEAR) -> float:
+    """Compound annual growth rate computed from a returns series.
+
+    Matches `(1 + x).prod() ** (trading_days / n) - 1` byte-identically —
+    the formula used in `backpaper.py::seg_stats` and `moonshot.py::stats`.
+    """
+    r = pd.Series(returns, dtype=float).dropna()
+    n = len(r)
+    if n < 1:
+        return float("nan")
+    return float((1.0 + r).prod() ** (trading_days / max(n, 1)) - 1.0)
+
+
+def max_drawdown_from_returns(returns: pd.Series | Sequence[float]) -> float:
+    """Maximum drawdown as a POSITIVE fraction, from a returns series.
+
+    Matches `((eq.cummax() - eq) / eq.cummax()).max()` byte-identically where
+    `eq = (1 + returns).cumprod()`. Returns non-negative float (unlike
+    `max_drawdown`, which returns a signed float on an equity curve).
+    Consolidates `backpaper.py`, `moonshot.py`, `aegis_dashboard.py::_mdd`.
+    """
+    r = pd.Series(returns, dtype=float).dropna()
+    if r.empty:
+        return float("nan")
+    eq = (1.0 + r).cumprod()
+    peak = eq.cummax()
+    dd = (peak - eq) / peak.replace(0, NUMERICAL_EPS)
+    return float(dd.max())

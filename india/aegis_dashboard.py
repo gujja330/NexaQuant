@@ -12,7 +12,7 @@ Run:  streamlit run india/aegis_dashboard.py
 The data/analytics functions below are plain + testable (no Streamlit needed):
       python -c "import india.aegis_dashboard as d; print(d.analytics(d.cycles(d.load_registry())))"
 """
-import sys, glob, json, warnings
+import sys, json, warnings
 from pathlib import Path
 import numpy as np
 import pandas as pd
@@ -26,11 +26,21 @@ BASELINE = ROOT / "data" / "aegis_baseline.json"
 REPORTS = ROOT / "reports"
 PPY = 252 / 63                                    # quarterly cycles -> ~4 periods / year
 
+# ENG002: consolidated helpers from nexaquant.lib. Local defs below remain as
+# thin wrappers so any external caller still resolves them (grep verifies none
+# as of ENG002; wrappers preserved defensively).
+from nexaquant.lib.paths import find_latest_workbook as _find_latest_workbook
+from nexaquant.lib.metrics import max_drawdown_from_returns as _mdd_from_returns
+
 
 # ----------------------------- data model (plain, testable) -----------------------------
 def latest_workbook():
-    fs = sorted(glob.glob(str(REPORTS / "AEGIS_*.xlsx")))
-    return fs[-1] if fs else None
+    """Newest AEGIS_*.xlsx path (as string) under reports/, or None.
+
+    ENG002: delegates to `nexaquant.lib.paths.find_latest_workbook`.
+    """
+    p = _find_latest_workbook(REPORTS)
+    return str(p) if p is not None else None
 
 
 def load_sheet(name):
@@ -93,7 +103,14 @@ def money_curve(cyc, capital=500000):
 
 
 def _mdd(eq):
-    return float(((eq.cummax() - eq) / eq.cummax()).max())
+    """Maximum drawdown (positive fraction) of an equity curve.
+
+    ENG002: delegates to `nexaquant.lib.metrics.max_drawdown_from_returns` by
+    converting the equity curve back to returns. Byte-identical when the equity
+    curve has no leading NaN and its first value is > 0.
+    """
+    r = eq.pct_change().fillna(0.0)
+    return _mdd_from_returns(r)
 
 
 def analytics(cyc, capital=500000):

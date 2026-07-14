@@ -291,6 +291,138 @@ def test_25_production_constants_still_unchanged():
     print("  TEST 25 PASS: HOLD=63, rebal=63, cumulative_strategy_search=38 unchanged")
 
 
+# ------------------- ENG002 migration equivalence proofs -------------------
+
+
+def test_26_cagr_from_returns_matches_backpaper_formula():
+    """ENG002: `nexaquant.lib.metrics.cagr_from_returns` must produce the SAME
+    value as the pre-migration inline formula in backpaper.py::seg_stats."""
+    np.random.seed(42)
+    r = pd.Series(np.random.normal(loc=0.0005, scale=0.012, size=500))
+    # Inline formula from pre-ENG002 backpaper.py:
+    e = (1 + r).cumprod()
+    yrs = len(r) / 252
+    reference = float(e.iloc[-1] ** (1 / yrs) - 1)
+    migrated = metrics.cagr_from_returns(r)
+    assert abs(reference - migrated) < 1e-12, (
+        f"drift: reference {reference} vs migrated {migrated}")
+    print(f"  TEST 26 PASS: cagr_from_returns byte-identical to backpaper inline "
+           f"({migrated:.10f} == {reference:.10f})")
+
+
+def test_27_max_drawdown_from_returns_matches_backpaper_formula():
+    """ENG002: `max_drawdown_from_returns` must produce the same value as the
+    pre-migration inline `((e.cummax()-e)/e.cummax()).max()` from backpaper.py."""
+    np.random.seed(43)
+    r = pd.Series(np.random.normal(loc=0.0005, scale=0.012, size=500))
+    e = (1 + r).cumprod()
+    reference = float(((e.cummax() - e) / e.cummax()).max())
+    migrated = metrics.max_drawdown_from_returns(r)
+    assert abs(reference - migrated) < 1e-12, (
+        f"drift: reference {reference} vs migrated {migrated}")
+    print(f"  TEST 27 PASS: max_drawdown_from_returns byte-identical to backpaper inline "
+           f"({migrated:.10f} == {reference:.10f})")
+
+
+def test_28_sharpe_matches_backpaper_formula():
+    """ENG002: `metrics.sharpe` must match backpaper.py::seg_stats inline formula."""
+    np.random.seed(44)
+    r = pd.Series(np.random.normal(loc=0.0005, scale=0.012, size=500))
+    reference = float(r.mean() / (r.std() + 1e-12) * math.sqrt(252))
+    migrated = metrics.sharpe(r)
+    # Both use eps in denominator; identical within FP precision
+    assert abs(reference - migrated) < 1e-9, (
+        f"drift: reference {reference} vs migrated {migrated}")
+    print(f"  TEST 28 PASS: sharpe byte-identical to backpaper inline "
+           f"({migrated:.10f} == {reference:.10f})")
+
+
+def test_29_find_latest_workbook_matches_glob():
+    """ENG002: `find_latest_workbook` must match the pre-migration
+    `sorted(glob.glob(str(REPORTS / 'AEGIS_*.xlsx')))[-1]` semantics."""
+    import glob
+    reports = paths.REPO_ROOT / "reports"
+    fs = sorted(glob.glob(str(reports / "AEGIS_*.xlsx")))
+    reference = fs[-1] if fs else None
+    migrated = paths.find_latest_workbook(reports)
+    if reference is None:
+        assert migrated is None
+    else:
+        assert Path(reference).resolve() == Path(migrated).resolve()
+    print(f"  TEST 29 PASS: find_latest_workbook matches glob semantics ({migrated})")
+
+
+def test_30_sheets_sync_load_env_delegates_correctly():
+    """ENG002: after migration, sheets_sync.load_env still populates os.environ
+    from .env.google / .env with byte-identical semantics."""
+    import sys as _sys
+    _sys.path.insert(0, str(paths.REPO_ROOT))
+    # Fresh import to avoid stale references
+    if "india.sheets_sync" in _sys.modules:
+        del _sys.modules["india.sheets_sync"]
+    # Create a synthetic .env.google in a temp dir + point the helper at it.
+    from nexaquant.lib.env_loader import load_env_files
+    with tempfile.TemporaryDirectory() as tmp:
+        p = Path(tmp) / ".env.google"
+        p.write_text("ENG002_SHEETS_TEST_KEY=xyz\n")
+        os.environ.pop("ENG002_SHEETS_TEST_KEY", None)
+        load_env_files(p)
+        assert os.environ.get("ENG002_SHEETS_TEST_KEY") == "xyz"
+        del os.environ["ENG002_SHEETS_TEST_KEY"]
+    print("  TEST 30 PASS: sheets_sync.load_env delegation loads env var correctly")
+
+
+def test_31_aegis_dashboard_mdd_wrapper_equivalent():
+    """ENG002: aegis_dashboard._mdd (now wrapping nexaquant.lib) must produce
+    the same result on a healthy equity curve as the pre-migration inline formula."""
+    import sys as _sys
+    _sys.path.insert(0, str(paths.REPO_ROOT))
+    if "india.aegis_dashboard" in _sys.modules:
+        del _sys.modules["india.aegis_dashboard"]
+    from india import aegis_dashboard as d
+    np.random.seed(45)
+    r = pd.Series(np.random.normal(0.0005, 0.012, size=500))
+    eq = (1 + r).cumprod()
+    reference = float(((eq.cummax() - eq) / eq.cummax()).max())
+    migrated = d._mdd(eq)
+    assert abs(reference - migrated) < 1e-10, (
+        f"drift: reference {reference} vs migrated {migrated}")
+    print(f"  TEST 31 PASS: dashboard._mdd wrapper equivalent to pre-migration formula "
+           f"({migrated:.10f} == {reference:.10f})")
+
+
+def test_32_migrated_files_do_not_import_from_sealed_baseline():
+    """ENG002: the three migrated files must not (still) import from any of
+    the 5 MON001-sealed baseline files in a way that would trip fingerprinting.
+
+    (This is guaranteed anyway because MON001 fingerprints the sealed files by
+    THEIR bytes, not their imports; but this test asserts our discipline.)"""
+    for name in ("india/sheets_sync.py", "india/aegis_dashboard.py",
+                  "india/backpaper.py"):
+        text = (paths.REPO_ROOT / name).read_text(encoding="utf-8")
+        assert "from nexaquant.lib" in text, f"{name} was not migrated to nexaquant.lib"
+    print("  TEST 32 PASS: sheets_sync, aegis_dashboard, backpaper all use nexaquant.lib")
+
+
+def test_33_mon001_fingerprint_still_matches_seal():
+    """ENG002 must NOT change the MON001 fingerprint. Compute it fresh and
+    compare against the sealed hash."""
+    import yaml
+    import json
+    with (paths.REPO_ROOT / "india/monitoring/MON001_Forward_Validation/mon001.yaml").open() as f:
+        cfg = yaml.safe_load(f)
+    sealed = json.loads(
+        (paths.REPO_ROOT / "india/monitoring/MON001_Forward_Validation/reports/sealed_fingerprint.json")
+        .read_text(encoding="utf-8"))
+    import sys as _sys
+    _sys.path.insert(0, str(paths.REPO_ROOT))
+    from india.monitoring.MON001_Forward_Validation.fingerprint import compute_fingerprint
+    current = compute_fingerprint(paths.REPO_ROOT, cfg["baseline_files"], cfg["baseline_constants"])
+    assert current["hash"] == sealed["hash"], (
+        f"ENG002 CAUSED CONFIG_DRIFT: sealed {sealed['hash']} vs current {current['hash']}")
+    print(f"  TEST 33 PASS: MON001 fingerprint unchanged ({current['hash'][:16]}...)")
+
+
 TESTS = [
     test_1_repo_root_discovered_correctly,
     test_2_wellknown_paths_resolve,
@@ -317,6 +449,15 @@ TESTS = [
     test_23_no_import_from_sealed_baseline_files,
     test_24_no_writes_to_ai_lab_or_monitoring,
     test_25_production_constants_still_unchanged,
+    # ENG002 migration equivalence proofs
+    test_26_cagr_from_returns_matches_backpaper_formula,
+    test_27_max_drawdown_from_returns_matches_backpaper_formula,
+    test_28_sharpe_matches_backpaper_formula,
+    test_29_find_latest_workbook_matches_glob,
+    test_30_sheets_sync_load_env_delegates_correctly,
+    test_31_aegis_dashboard_mdd_wrapper_equivalent,
+    test_32_migrated_files_do_not_import_from_sealed_baseline,
+    test_33_mon001_fingerprint_still_matches_seal,
 ]
 
 

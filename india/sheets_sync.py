@@ -14,7 +14,7 @@ Run:  python india/sheets_sync.py            # push every sheet of the latest wo
       python india/sheets_sync.py --check    # validate config only (no network write)
       python india/sheets_sync.py --create   # create a fresh spreadsheet, print its id+url
 """
-import os, sys, glob, warnings
+import os, sys, warnings
 from pathlib import Path
 import pandas as pd
 
@@ -23,23 +23,31 @@ sys.path.insert(0, str(ROOT))
 warnings.simplefilter("ignore")
 REPORTS = ROOT / "reports"
 
+# ENG002: consolidated env-loader + workbook-glob helpers from nexaquant.lib.
+# The two functions below remain in the module ABI as thin wrappers so any
+# external caller (grep verifies none as of ENG002) still resolves them.
+from nexaquant.lib.env_loader import load_env_files as _load_env_files
+from nexaquant.lib.paths import find_latest_workbook as _find_latest_workbook
+
 
 def load_env():
-    """Read .env.google / .env into os.environ (no python-dotenv dependency). Real env vars win."""
-    for name in (".env.google", ".env"):
-        p = ROOT / name
-        if not p.exists():
-            continue
-        for line in p.read_text(encoding="utf-8", errors="ignore").splitlines():
-            line = line.strip()
-            if line and not line.startswith("#") and "=" in line:
-                k, v = line.split("=", 1)
-                os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
+    """Read .env.google / .env into os.environ (no python-dotenv dependency). Real env vars win.
+
+    ENG002: implementation delegated to `nexaquant.lib.env_loader.load_env_files`.
+    Semantics preserved: existing env values win (override=False), quotes stripped,
+    comments and blank lines ignored.
+    """
+    _load_env_files(ROOT / ".env.google", ROOT / ".env")
 
 
 def latest_workbook():
-    fs = sorted(glob.glob(str(REPORTS / "AEGIS_*.xlsx")))
-    return fs[-1] if fs else None
+    """Path (as string) to the newest AEGIS_*.xlsx in reports/, or None.
+
+    ENG002: implementation delegated to `nexaquant.lib.paths.find_latest_workbook`.
+    Return type coerced to str for byte-identical downstream behaviour.
+    """
+    p = _find_latest_workbook(REPORTS)
+    return str(p) if p is not None else None
 
 
 def _creds_path():

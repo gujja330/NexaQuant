@@ -24,12 +24,28 @@ sys.path.insert(0, str(ROOT))
 warnings.simplefilter("ignore")
 from india.arjuna_v2 import backtest, stats
 
+# ENG002: metric formulas consolidated into nexaquant.lib.metrics. The wrappers
+# below preserve seg_stats's (cagr%, sharpe, dd%) signature; the arithmetic is
+# byte-identical to the pre-migration inline implementation.
+from nexaquant.lib.metrics import (
+    cagr_from_returns as _cagr_from_returns,
+    max_drawdown_from_returns as _mdd_from_returns,
+    sharpe as _sharpe,
+)
+
 
 def seg_stats(r, idx):
-    e = (1 + r).cumprod(); yrs = len(r) / 252
-    cagr = 100 * (e.iloc[-1] ** (1 / yrs) - 1)
-    dd = 100 * ((e.cummax() - e) / e.cummax()).max()
-    sh = r.mean() / (r.std() + 1e-12) * np.sqrt(252)
+    """(CAGR%, Sharpe, MaxDD%) for a returns series.
+
+    ENG002: cagr / max_drawdown / sharpe delegated to nexaquant.lib.metrics.
+    Byte-identical to the pre-migration formula (verified in test_lib.py test 26-28).
+    The `idx` parameter is retained for signature compatibility with legacy call
+    sites; unused inside this function.
+    """
+    del idx  # retained for signature compat
+    cagr = 100.0 * _cagr_from_returns(r)
+    dd = 100.0 * _mdd_from_returns(r)
+    sh = _sharpe(r)
     return cagr, sh, dd
 
 

@@ -61,3 +61,23 @@ def ensure_dir(path: Path | str) -> Path:
     p = Path(path)
     p.mkdir(parents=True, exist_ok=True)
     return p
+
+
+def find_latest_workbook(reports_dir: Path | str | None = None,
+                          pattern: str = "AEGIS_*.xlsx") -> Path | None:
+    """Return the newest matching workbook under `reports_dir` (default: repo `reports/`).
+
+    Consolidates the identical glob idiom repeated in:
+    - `india/aegis_dashboard.py:31-33`
+    - `india/recommendation_db.py:32-34`
+    - `india/sheets_sync.py:40-42`
+
+    Returns None if no file matches. Sort is by filename (ISO-like naming makes this
+    equivalent to chronological order for AEGIS_YYYY-MM-DD.xlsx files). Callers that
+    require modification-time ordering should sort themselves.
+    """
+    root = Path(reports_dir) if reports_dir is not None else REPORTS_DIR
+    if not root.exists():
+        return None
+    files = sorted(root.glob(pattern))
+    return files[-1] if files else None
