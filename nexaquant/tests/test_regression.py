@@ -28,6 +28,8 @@ SUITES = [
     ("Core lab framework",    ROOT / "india/ai_lab/tests/test_lab_framework.py"),
     ("LAB009 maturity",       ROOT / "india/ai_lab/LAB009_Horizon_Phase_Recalibration/test_maturity_correction.py"),
     ("ENG001 lib unit tests", ROOT / "nexaquant/tests/test_lib.py"),
+    ("ENG003 CI discipline",  ROOT / "nexaquant/tests/test_ci_discipline.py"),
+    ("ENG003 governance",     ROOT / "nexaquant/tests/test_governance.py"),
 ]
 
 

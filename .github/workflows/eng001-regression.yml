@@ -1,11 +1,16 @@
 name: ENG001 Regression
 
-# Runs the ENG001 regression harness on every push + PR + weekly cron.
+# Runs the ENG001/ENG002 regression harness on every push + PR + weekly cron.
 # The harness executes all 6 test suites AND verifies the sealed invariants
 # (MON001 fingerprint, production constants, cumulative_strategy_search,
 #  forward boundary, no sealed-file modifications).
 #
 # This workflow does NOT modify production behaviour. It is monitoring-only.
+#
+# ENG003 fix: added pyarrow to the install list. LAB009 tests call
+# india.feature_engine.load_panels() which uses pd.read_parquet on the tracked
+# NIFTY200 parquets in data/raw/india/. Without pyarrow the parquet read fails
+# with 'No module named pyarrow' and the whole regression aborts.
 
 on:
   push:
@@ -34,10 +39,16 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install narrow test-suite deps
+      - name: Install regression deps
         run: |
           python -m pip install --upgrade pip
-          pip install pyyaml pandas numpy
+          # pyarrow is REQUIRED for pd.read_parquet used inside india.feature_engine
+          # (called by LAB009 tests). Do NOT remove without also removing every
+          # parquet-reading test path.
+          pip install pyyaml pandas numpy pyarrow
+
+      - name: Validate workflow discipline (no || echo masks, no continue-on-error abuse)
+        run: python nexaquant/tests/test_ci_discipline.py
 
       - name: nexaquant/lib unit tests
         run: python nexaquant/tests/test_lib.py
@@ -47,3 +58,6 @@ jobs:
 
       - name: MON001 health check
         run: python -m india.monitoring.MON001_Forward_Validation.ops.health_check
+
+      - name: Governance validation
+        run: python nexaquant/tests/test_governance.py
