@@ -1,0 +1,49 @@
+name: ENG001 Regression
+
+# Runs the ENG001 regression harness on every push + PR + weekly cron.
+# The harness executes all 6 test suites AND verifies the sealed invariants
+# (MON001 fingerprint, production constants, cumulative_strategy_search,
+#  forward boundary, no sealed-file modifications).
+#
+# This workflow does NOT modify production behaviour. It is monitoring-only.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "37 5 * * 0"   # Sunday 11:07 IST — sanity check while nobody's editing
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: eng001-regression-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install narrow test-suite deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyyaml pandas numpy
+
+      - name: nexaquant/lib unit tests
+        run: python nexaquant/tests/test_lib.py
+
+      - name: Full regression + invariance guards
+        run: python nexaquant/tests/test_regression.py
+
+      - name: MON001 health check
+        run: python -m india.monitoring.MON001_Forward_Validation.ops.health_check
