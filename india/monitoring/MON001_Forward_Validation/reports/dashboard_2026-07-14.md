@@ -1,5 +1,5 @@
 # MON001 · Operator Dashboard — 2026-07-14
-_Auto-generated 2026-07-14T11:04:41+00:00_
+_Auto-generated 2026-07-14T11:38:12+00:00_
 ## Summary
 - **State**: `INSUFFICIENT_EVIDENCE`
 - **HALT_REVIEW_REQUIRED**: `False`
@@ -27,6 +27,8 @@ _Auto-generated 2026-07-14T11:04:41+00:00_
 | OPS_RUN_FAILED | `WARN` | 1 | — | run_mon001.main raised an exception; MON001 metrics unavailable for this pass. tail: RuntimeError: synthetic — should be caught by daily_runner |
 | OPS_RUN_FAILED | `WARN` | 2 | 2026-07-14 | run_mon001.main raised an exception; MON001 metrics unavailable for this pass. tail: RuntimeError: synthetic — should be caught by daily_runner |
 | OPS_RUN_FAILED | `WARN` | 2 | 2026-07-14 | run_mon001.main raised an exception; MON001 metrics unavailable for this pass. tail: RuntimeError: synthetic — should be caught by daily_runner |
+| OPS_RUN_FAILED | `WARN` | 2 | 2026-07-14 | run_mon001.main raised an exception; MON001 metrics unavailable for this pass. tail: RuntimeError: synthetic — should be caught by daily_runner |
+| OPS_RUN_FAILED | `WARN` | 2 | 2026-07-14 | run_mon001.main raised an exception; MON001 metrics unavailable for this pass. tail: RuntimeError: cert-forced |
 ## Metric evidence timeline
 | Metric | Forward | Status | Sample | Minimum |
 |---|---:|:-:|---:|---:|
