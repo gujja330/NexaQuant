@@ -98,11 +98,18 @@ def _ingest_new_recs(cfg: dict, ledger: ForwardLedger, current_fp_hash: str) -> 
     df = df[df["asof"] >= cfg["forward_boundary_asof"]]
     if df.empty:
         return 0
-    # Deduplicate by rec_id — one snapshot per rec_id under the current fingerprint.
+    # The registry has TWO id columns:
+    #   fingerprint = "REC-YYYYMMDD-NNNN"  (UNIQUE per pick per batch)
+    #   rec_id      = "YYYY-MM-DD_63"      (BATCH identifier, shared across all picks
+    #                                        in one batch — i.e., the portfolio cycle)
+    # In the ledger, `rec_id` must be UNIQUE per row (that's what the duplicate check
+    # enforces). So we use the registry's `fingerprint` column as the ledger rec_id and
+    # the registry's `rec_id` column as the `portfolio_cycle`.
     existing = {(r["rec_id"], r["fingerprint_hash"]) for r in ledger.rows()}
     new_count = 0
     for _, r in df.iterrows():
-        key = (str(r["rec_id"]), current_fp_hash)
+        unique_id = str(r.get("fingerprint", r["rec_id"]))
+        key = (unique_id, current_fp_hash)
         if key in existing:
             continue
         try:
@@ -113,11 +120,10 @@ def _ingest_new_recs(cfg: dict, ledger: ForwardLedger, current_fp_hash: str) -> 
         data_quality = "OK" if pd.notna(r.get("buy_price")) else "MISSING_PRICE"
         obs = make_observation_row(
             asof=str(r["asof"]),
-            rec_id=str(r["rec_id"]),
+            rec_id=unique_id,
             fingerprint_hash=current_fp_hash,
             symbol=str(r["symbol"]),
-            portfolio_cycle=str(r.get("rec_id_group", f"{r['asof']}_63"))
-            if "rec_id_group" in df.columns else f"{r['asof']}_63",
+            portfolio_cycle=str(r["rec_id"]),
             buy_price=float(r.get("buy_price", 0.0) or 0.0),
             intended_weight=float(r.get("weight", 0.0) or 0.0),
             sector=sector,

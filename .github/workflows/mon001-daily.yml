@@ -1,0 +1,78 @@
+name: MON001 Daily
+
+# Monitoring-only workflow. Does NOT modify production strategy behaviour.
+# Runs the resilient MON001 daily runner on a schedule so forward evidence accumulates
+# even if the operator's laptop is offline.
+#
+# On failure the workflow COMMITS the diagnostics + dashboard + alert log anyway so
+# the operator has a paper trail. It never modifies production files.
+#
+# Required repo secrets: none (MON001 is broker-agnostic and does not send Telegram).
+# Optional: `MON001_DASHBOARD_TELEGRAM=true` env — reserved for a future forwarder.
+
+on:
+  schedule:
+    # Trading days only. First slot 06:30 IST (01:00 UTC) — after the primary AEGIS
+    # daily run (~06:07 IST) has published data/aegis_registry.csv.
+    - cron: "0 1 * * 1-5"     # 06:30 IST primary
+    - cron: "0 4 * * 1-5"     # 09:30 IST backup 1
+    - cron: "0 7 * * 1-5"     # 12:30 IST backup 2
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mon001-daily
+  cancel-in-progress: false
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install monitoring deps (narrow subset)
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyyaml pandas numpy
+
+      - name: Guard — MON001 already ran today (manual dispatch bypasses)
+        id: guard
+        run: |
+          IST=$(TZ=Asia/Kolkata date +%F)
+          echo "ist=$IST" >> "$GITHUB_OUTPUT"
+          MARK="india/monitoring/MON001_Forward_Validation/reports/.mon001_published"
+          if [ "${{ github.event_name }}" != "workflow_dispatch" ] && [ "$(cat "$MARK" 2>/dev/null)" = "$IST" ]; then
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "MON001 already published for $IST — no-op."
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            echo "Running MON001 for $IST."
+          fi
+
+      - name: MON001 daily runner
+        if: steps.guard.outputs.run == 'true'
+        run: |
+          python -m india.monitoring.MON001_Forward_Validation.ops.daily_runner || \
+            echo "daily_runner returned non-zero — capturing evidence anyway"
+          mkdir -p india/monitoring/MON001_Forward_Validation/reports
+          echo "${{ steps.guard.outputs.ist }}" > india/monitoring/MON001_Forward_Validation/reports/.mon001_published
+
+      - name: Commit MON001 outputs
+        if: steps.guard.outputs.run == 'true'
+        run: |
+          git config user.name  "mon001-bot"
+          git config user.email "mon001-bot@users.noreply.github.com"
+          git add india/monitoring/MON001_Forward_Validation/ledger/ \
+                  india/monitoring/MON001_Forward_Validation/reports/ || true
+          git diff --cached --quiet || \
+            git commit -m "MON001 daily: forward ledger + diagnostics + dashboard [skip ci]"
+          git push || true
