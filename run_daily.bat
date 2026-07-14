@@ -17,11 +17,22 @@ echo AEGIS run starting %date% %time% >> %LOG%
 echo cwd: %cd% >> %LOG%
 echo ============================================================ >> %LOG%
 
-REM 1. Refresh data + news + basket. --pull gets fresh prices from Angel.
-%PYTHON% india\daily_run.py --pull --capital 100000 >> %LOG% 2>&1
+REM 1. Refresh data via yfinance (same path CI uses). Fast, no rate limits.
+REM    Angel --pull is HEAVY (200 symbols, ~2s pacing, throttled under load).
+REM    Set AEGIS_FORCE_ANGEL_PULL=1 to force the Angel path instead (weekly at most).
+if defined AEGIS_FORCE_ANGEL_PULL (
+    echo Forcing Angel --pull refresh (AEGIS_FORCE_ANGEL_PULL=1) >> %LOG%
+    %PYTHON% india\daily_run.py --pull --capital 100000 >> %LOG% 2>&1
+) else (
+    %PYTHON% india\refresh_data.py >> %LOG% 2>&1
+    if errorlevel 1 (
+        echo WARN: refresh_data.py returned non-zero; freshness gate will decide >> %LOG%
+    )
+    %PYTHON% india\daily_run.py --capital 100000 >> %LOG% 2>&1
+)
 if errorlevel 1 (
     echo ERROR: daily_run.py failed with errorlevel %errorlevel% >> %LOG%
-    echo AEGIS DAILY FAILED at data refresh — see %LOG%
+    echo AEGIS DAILY FAILED at data refresh - see %LOG%
     exit /b 1
 )
 
