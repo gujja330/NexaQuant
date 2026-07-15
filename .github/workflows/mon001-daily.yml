@@ -12,11 +12,13 @@ name: MON001 Daily
 
 on:
   schedule:
-    # Trading days only. First slot 06:30 IST (01:00 UTC) — after the primary AEGIS
-    # daily run (~06:07 IST) has published data/aegis_registry.csv.
-    - cron: "0 1 * * 1-5"     # 06:30 IST primary
-    - cron: "0 4 * * 1-5"     # 09:30 IST backup 1
-    - cron: "0 7 * * 1-5"     # 12:30 IST backup 2
+    # Trading days only. MON001 must run AFTER aegis-daily has committed today's
+    # registry/picks so the ledger ingests them. Aegis-daily slots (post-close):
+    # 16:15 / 18:30 / 21:00 IST. MON001 chases each with a ~30-45 min buffer to
+    # let the [skip ci] auto-commit propagate to origin/main.
+    - cron: "0 11 * * 1-5"    # ~16:30 IST primary (after aegis 16:15)
+    - cron: "15 13 * * 1-5"   # ~18:45 IST backup 1 (after aegis 18:30)
+    - cron: "45 15 * * 1-5"   # ~21:15 IST backup 2 (after aegis 21:00)
   workflow_dispatch:
 
 permissions:

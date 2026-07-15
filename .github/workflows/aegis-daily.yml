@@ -19,10 +19,14 @@ name: AEGIS Daily
 
 on:
   schedule:
-    - cron: "37 0 * * 1-5"    # ~06:07 IST — primary (00:37 UTC; :37 avoids congested :00)
-    - cron: "23 3 * * 1-5"    # ~08:53 IST — backup 1
-    - cron: "23 5 * * 1-5"    # ~10:53 IST — backup 2
-    - cron: "23 8 * * 1-5"    # ~13:53 IST — backup 3
+    # Post-market-close IST slots. NSE closes 15:30 IST; yfinance publishes the
+    # complete daily bar ~30-45 minutes later. Running BEFORE close (the old
+    # 06:07 IST primary) stamped picks with YESTERDAY's asof because today's
+    # bar didn't yet exist. The evening slots below let the generator see
+    # today's session so `asof = closes.index[-1] = today`.
+    - cron: "45 10 * * 1-5"   # ~16:15 IST — primary (post-close + settle buffer)
+    - cron: "0 13 * * 1-5"    # ~18:30 IST — backup 1 (retry if primary was dropped)
+    - cron: "30 15 * * 1-5"   # ~21:00 IST — backup 2 (last chance same IST day)
   workflow_dispatch:
 
 permissions:

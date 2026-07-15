@@ -43,7 +43,7 @@ $launcher = "$repo\india\monitoring\MON001_Forward_Validation\launchers\run_mon0
 $act = New-ScheduledTaskAction `
     -Execute 'powershell.exe' `
     -Argument "-NoProfile -ExecutionPolicy Bypass -File `"$launcher`""
-$trg = New-ScheduledTaskTrigger -Daily -At 06:15am
+$trg = New-ScheduledTaskTrigger -Daily -At 16:30       # 4:30 PM IST post-close
 $set = New-ScheduledTaskSettingsSet `
     -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries `
     -StartWhenAvailable -ExecutionTimeLimit (New-TimeSpan -Hours 1)
@@ -57,19 +57,20 @@ keeps it running when the laptop is unplugged.
 
 ### 2.2 Linux / macOS (cron)
 
-Weekdays at 06:15 IST:
+Weekdays at 16:30 IST (post-NSE-close; aligns with the CI evening schedule):
 
 ```
-15 6 * * 1-5 /path/to/prism/india/monitoring/MON001_Forward_Validation/launchers/run_mon001.sh
+30 16 * * 1-5 /path/to/prism/india/monitoring/MON001_Forward_Validation/launchers/run_mon001.sh
 ```
 
 The launcher writes its own log under `logs/mon001/mon001_<date>.log`.
 
 ### 2.3 GitHub Actions (unattended)
 
-`.github/workflows/mon001-daily.yml` already schedules the runner on 3 slots (IST
-06:30 / 09:30 / 12:30). Once-per-IST-day guard prevents duplicate runs. Manual
-dispatch is available at
+`.github/workflows/mon001-daily.yml` already schedules the runner on 3 slots
+(IST 16:30 primary, 18:45 backup 1, 21:15 backup 2 — chases the aegis-daily
+post-close schedule with a ~30-45 min buffer). Once-per-IST-day guard prevents
+duplicate runs. Manual dispatch is available at
 `https://github.com/praveen330/NexaQuant/actions/workflows/mon001-daily.yml`.
 
 CI commits the fresh ledger + diagnostics + dashboard so the operator has a paper
