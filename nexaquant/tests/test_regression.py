@@ -38,7 +38,7 @@ SUITES = [
 def _run(label: str, path: Path) -> tuple[bool, str]:
     r = subprocess.run([sys.executable, str(path)], capture_output=True, text=True,
                         cwd=str(ROOT))
-    tail = (r.stdout + r.stderr).strip().splitlines()[-4:]
+    tail = (r.stdout + r.stderr).strip().splitlines()[-30:]
     return r.returncode == 0, "\n".join(tail)
 
 
