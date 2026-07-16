@@ -1,0 +1,76 @@
+# OPS001-A · AEGIS daily pipeline definition.
+#
+# This is a REFERENCE pipeline that mirrors the existing aegis-daily workflow
+# WITHOUT modifying it. Once OPS001-B ships a daemon, this pipeline can be
+# invoked locally by NexaQuantService.run_once() as an alternative to the
+# GitHub Actions workflow.
+#
+# Every command wraps an existing script — no new production behaviour.
+
+name: aegis_daily
+description: >
+  Daily AEGIS pipeline: refresh data, freshness gate, engine, DB snapshot,
+  scorecard, ops check, sheets sync, Telegram, MON001 monitor.
+
+stages:
+  - name: refresh_data
+    command: [python, india/refresh_data.py]
+    timeout_s: 900         # 15 min — yfinance can be slow
+    retries: 2
+    backoff_s: [30, 90]
+    continue_on_failure: true   # freshness gate is authoritative
+
+  - name: freshness_gate
+    command: [python, scripts/check_data_freshness.py]
+    timeout_s: 60
+    retries: 0
+    depends_on: [refresh_data]
+
+  - name: recommendation_generator
+    command: [python, india/recommendation_generator.py, --capital, "100000"]
+    timeout_s: 900
+    retries: 1
+    backoff_s: [30]
+    depends_on: [freshness_gate]
+
+  - name: recommendation_db
+    command: [python, india/recommendation_db.py]
+    timeout_s: 300
+    retries: 1
+    backoff_s: [15]
+    depends_on: [recommendation_generator]
+    continue_on_failure: true
+
+  - name: scorecard
+    command: [python, india/scorecard.py]
+    timeout_s: 300
+    retries: 0
+    depends_on: [recommendation_db]
+    continue_on_failure: true
+
+  - name: ops_check
+    command: [python, india/ops_check.py]
+    timeout_s: 120
+    retries: 0
+    depends_on: [recommendation_generator]
+    continue_on_failure: true
+
+  - name: telegram_health_check
+    command: [python, scripts/telegram_health_check.py]
+    timeout_s: 60
+    retries: 0
+    depends_on: [recommendation_generator]
+
+  - name: telegram_notify
+    command: [python, scripts/telegram_send_with_retry.py, --attempts, "4"]
+    timeout_s: 600
+    retries: 0    # send_with_retry does its own retries
+    depends_on: [telegram_health_check]
+
+  - name: mon001_daily
+    command: [python, -m, india.monitoring.MON001_Forward_Validation.ops.daily_runner]
+    timeout_s: 600
+    retries: 1
+    backoff_s: [30]
+    depends_on: [recommendation_generator]
+    continue_on_failure: true
