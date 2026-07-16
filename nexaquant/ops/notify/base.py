@@ -68,7 +68,7 @@ class NotificationChannel(ABC):
         return Severity.INFO
 
     def accepts(self, severity: Severity) -> bool:
-        order = {Severity.INFO: 0, Severity.WARN: 1, Severity.CRITICAL: 2}
+        order = {Severity.INFO: 0, Severity.WARN: 1, Severity.ERROR: 2, Severity.CRITICAL: 3}
         return order.get(severity, 0) >= order.get(self.min_severity, 0)
 
     @abstractmethod

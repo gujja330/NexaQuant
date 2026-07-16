@@ -23,6 +23,7 @@ class StageEvent(str, Enum):
 class Severity(str, Enum):
     INFO = "INFO"
     WARN = "WARN"
+    ERROR = "ERROR"          # OPS001-C: distinct from CRITICAL for finer escalation routing
     CRITICAL = "CRITICAL"
 
 
