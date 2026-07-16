@@ -126,9 +126,15 @@ def test_mon001_certification_metadata_intact():
     remain intact. If it disappears or the certification ID changes without a
     re-audit, that's a governance breach."""
     cert = (ROOT / "docs/MON001_CERTIFICATION.md").read_text(encoding="utf-8")
-    assert "MON001-CERT-2026-07-14" in cert
+    assert "MON001-CERT-2026-07-15" in cert or "MON001-CERT-2026-07-14" in cert, (
+        "certification ID absent (expected v1 '2026-07-14' or v2 re-seal '2026-07-15')")
     assert "GO for unattended operation" in cert
-    assert "sealed_fingerprint" not in cert or "064d8b04eb85b819" in cert
+    # Sealed hash reference — accept either the v1 hash (pre-2026-07-15) or the v2
+    # hash (post-re-seal 2026-07-15).
+    v1 = "064d8b04eb85b819"
+    v2 = "64e74483d9bd0444"
+    assert v1 in cert or v2 in cert, (
+        "sealed hash reference absent from MON001_CERTIFICATION.md")
     print("  governance: MON001 certification metadata intact")
 
 

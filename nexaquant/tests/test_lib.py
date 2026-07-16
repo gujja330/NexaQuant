@@ -27,11 +27,16 @@ from nexaquant.lib import paths, env_loader, metrics, logging_setup, timing
 
 
 def test_1_repo_root_discovered_correctly():
-    assert paths.REPO_ROOT.name == "prism", (
-        f"repo root should end in 'prism', got {paths.REPO_ROOT}")
-    assert (paths.REPO_ROOT / "run_daily.bat").exists()
-    assert (paths.REPO_ROOT / "india").is_dir()
-    print("  TEST 1 PASS: repo root discovered via run_daily.bat marker")
+    # ENG003 fix: repo root is name-agnostic — locally the folder is `prism`
+    # but GitHub Actions checks out to `NexaQuant/NexaQuant`. Verify by content
+    # markers instead.
+    assert (paths.REPO_ROOT / "run_daily.bat").exists(), (
+        f"repo root missing run_daily.bat marker: {paths.REPO_ROOT}")
+    assert (paths.REPO_ROOT / "india").is_dir(), (
+        f"repo root missing india/ marker: {paths.REPO_ROOT}")
+    assert paths.REPO_ROOT.name in ("prism", "NexaQuant"), (
+        f"unexpected repo root name '{paths.REPO_ROOT.name}' (allowed: prism, NexaQuant)")
+    print(f"  TEST 1 PASS: repo root discovered ({paths.REPO_ROOT.name})")
 
 
 def test_2_wellknown_paths_resolve():

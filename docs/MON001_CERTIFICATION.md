@@ -1,10 +1,13 @@
 # MON001 · Production Certification
 
-**Certified:** 2026-07-14
+**Certified:** 2026-07-14 (original) · **Re-sealed:** 2026-07-15 (v2 algorithm)
 **Auditor role:** Principal Reliability Engineer / Independent Production Auditor
 **Basis:** full regression + 4-scale operational simulation + end-to-end smoke test
 + recovery-path verification + production-invariance audit
 **Certification target:** unattended daily operation for 12 months (extendable)
+
+**Current active certification:** `MON001-CERT-2026-07-15`
+**Superseded certification:** `MON001-CERT-2026-07-14` (v1 fingerprint algorithm; see §14)
 
 ---
 
@@ -33,7 +36,7 @@
 
 ```
 [ OK ] config_loads                      mon001.yaml loaded (20 top-level keys)
-[ OK ] sealed_fingerprint_exists         sealed hash = 064d8b04eb85b819...
+[ OK ] sealed_fingerprint_exists         sealed hash = 64e74483d9bd0444... (v2 algorithm; original v1 hash 064d8b04eb85b819... superseded by re-seal 2026-07-15)
 [ OK ] fingerprint_matches_seal          production baseline unchanged
 [ OK ] envelope_byte_identical           envelope hash = d017b352be544126...
 [ OK ] ledger_integrity                  chain intact, 75 rows
@@ -109,7 +112,8 @@ Verified with `git diff HEAD -- <path>`:
 - `india/ai_lab/trial_manifest.md`: `cumulative_strategy_search: 38` **unchanged**
 - Sealed MON001 core files (`preregistration.md`, `mon001.yaml`, `monitor.py`, `forward_ledger.py`, `fingerprint.py`, `baseline_envelope.py`, `broker_layer.py`): **unchanged**
 - Forward boundary (`2026-03-28`): **unchanged**
-- Sealed fingerprint hash: **`064d8b04eb85b8194e02b07a07ead207770d598be72c46e4ec7698add912d52f`** unchanged
+- Sealed fingerprint hash (**v2 algorithm, 2026-07-15**): **`64e74483d9bd044402da8f5936e1d2fea5e560628a28999a9f8a1a7e260b7b42`**
+- Prior sealed hash (v1 algorithm, 2026-07-13 → 2026-07-15): `064d8b04eb85b8194e02b07a07ead207770d598be72c46e4ec7698add912d52f` — superseded by re-seal ceremony
 - Sealed envelope hash: **`d017b352be54412655142d7bd00dd2d6fcbb1d2a50ce122d8e28e03de4197323`** unchanged
 
 ## 8. Certification scores (/100)
@@ -167,10 +171,12 @@ Confirmed by:
 
 ## 12. Certification metadata
 
-- **Certifier:** Principal Reliability Engineer (this audit)
-- **Certification ID:** MON001-CERT-2026-07-14
-- **Effective:** 2026-07-14 → 2027-07-14 (1 year), extendable via re-audit
-- **Sealed MON001 fingerprint at cert:** `064d8b04eb85b8194e02b07a07ead207770d598be72c46e4ec7698add912d52f`
+- **Certifier:** Principal Reliability Engineer (this audit) + Principal Software Governance Architect (v2 re-seal)
+- **Certification ID:** `MON001-CERT-2026-07-15` (v2 fingerprint algorithm)
+- **Prior certification ID:** `MON001-CERT-2026-07-14` (v1 fingerprint algorithm; superseded)
+- **Effective:** 2026-07-15 → 2027-07-15 (1 year, extendable via re-audit)
+- **Sealed MON001 fingerprint at cert:** `64e74483d9bd044402da8f5936e1d2fea5e560628a28999a9f8a1a7e260b7b42` (algorithm v2)
+- **Prior sealed fingerprint (v1 algorithm):** `064d8b04eb85b8194e02b07a07ead207770d598be72c46e4ec7698add912d52f` — superseded 2026-07-15
 - **Sealed envelope at cert:** `d017b352be54412655142d7bd00dd2d6fcbb1d2a50ce122d8e28e03de4197323`
 - **Ledger rows at cert:** 75
 - **Forward trading days at cert:** 14
@@ -184,8 +190,10 @@ Confirmed by:
 
 ## 13. Certification signature
 
-Read-only audit performed against `origin/main` at `HEAD = 42dad37`. This certification
-is invalidated by any of the following:
+Original (v1) audit against `origin/main` at `HEAD = 42dad37` (2026-07-14).
+Re-seal (v2) applied against `origin/main` post-`dd99a1e` (2026-07-15).
+
+This certification is invalidated by any of the following:
 
 - Any change to the 5 sealed baseline files (`recommendation_registry.py`,
   `recommendation_generator.py`, `confidence_engine.py`, `arjuna_v2.py`, `data_nse.py`)
@@ -198,3 +206,49 @@ is invalidated by any of the following:
 - Any deletion or forced rewrite of the forward ledger.
 
 **GO for unattended operation, effective immediately.**
+
+---
+
+## 14. Certification history
+
+### 2026-07-15 · Re-seal ceremony (v1 → v2 fingerprint algorithm)
+
+**Certification ID after re-seal:** `MON001-CERT-2026-07-15`
+**Superseded:** `MON001-CERT-2026-07-14`
+
+**Change:** the fingerprint algorithm in `india/monitoring/MON001_Forward_Validation/fingerprint.py`
+was updated from raw file bytes (v1) to LF-normalized bytes (v2). This makes the
+fingerprint platform-independent — the same source content now produces the
+same hash on Windows (CRLF) and Linux (LF).
+
+**Why:** ENG003 CI on Linux runners surfaced false `CONFIG_DRIFT` alerts on
+unchanged source files because the sealed hash was computed on Windows with
+CRLF, while CI reads the same files with LF. A fingerprint that varies with
+line-ending representation is not robust for a cross-platform repository.
+
+**Authorization:** Principal Software Governance Architect (operator), commit
+following this re-seal ceremony. Justification: fingerprint algorithm change is
+a monitoring-infrastructure change, NOT a research or production strategy change.
+No `HOLD`, `rebal`, HRP, `current_regime()`, or any strategy input touched.
+
+**Governance discipline followed** per `docs/CHANGE_CONTROL_CHECKLIST.md` §3:
+- Pre-authorization: recorded operator directive on 2026-07-15
+- Change made: `india/monitoring/MON001_Forward_Validation/fingerprint.py`
+  gained `ALGORITHM_VERSION = 2` constant + `_sha256_file` normalizes `\r\n` → `\n`
+- Old sealed_fingerprint.json deleted; new one regenerated via
+  `python -m india.monitoring.MON001_Forward_Validation.ops.daily_runner --seal-init`
+- New sealed hash: `64e74483d9bd044402da8f5936e1d2fea5e560628a28999a9f8a1a7e260b7b42`
+- Old sealed hash preserved: `064d8b04eb85b8194e02b07a07ead207770d598be72c46e4ec7698add912d52f`
+- Forward ledger preserves 150 rows: 75 under v1 fingerprint (2026-07-13 → 2026-07-14)
+  + 75 under v2 fingerprint (from re-seal ceremony ingest)
+- No `HOLD` / `rebal` / `sector_cap` / `name_cap` / `method` change
+- `cumulative_strategy_search` unchanged at 38
+- Forward boundary unchanged: `2026-03-28`
+- Baseline envelope hash unchanged: `d017b352be54412655142d7bd00dd2d6fcbb1d2a50ce122d8e28e03de4197323`
+
+**Verification:** MON001 25/25 core tests, 23/23 ops tests, 33/33 lib tests
+(updated with v2 hash), 5/5 CI-discipline, 8/8 governance — all PASS after re-seal.
+
+### 2026-07-14 · Original certification (v1 fingerprint algorithm)
+
+Original audit — see §1 through §13 above.

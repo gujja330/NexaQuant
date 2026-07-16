@@ -232,7 +232,7 @@ Verified by `test_governance.test_required_eng_reports_exist`:
 
 Contradictions found: **none** across ENG001, ENG002, MON001 cert, and
 FUTURE_RESEARCH_ROADMAP. All reports agree on:
-- Sealed fingerprint hash `064d8b04eb85b8194e02b07a07ead207770d598be72c46e4ec7698add912d52f`
+- Sealed fingerprint hash `64e74483d9bd044402da8f5936e1d2fea5e560628a28999a9f8a1a7e260b7b42` (v2 algorithm after 2026-07-15 re-seal; v1 was `064d8b04eb85b8194e02b07a07ead207770d598be72c46e4ec7698add912d52f`)
 - `HOLD = 63`, `rebal = 63`
 - `cumulative_strategy_search = 38`
 - MON001 certification ID `MON001-CERT-2026-07-14`
@@ -402,7 +402,7 @@ Rationale:
 ======================================================================
   ENG001 INVARIANCE GUARDS (still enforced)
 ======================================================================
-  fingerprint: OK (064d8b04eb85b819... == sealed)
+  fingerprint: OK (v1: 064d8b04eb85b819... at ENG003 verification; superseded same day by v2 re-seal to 64e74483d9bd0444...)
   production constants: HOLD=63, rebal=63, method=hrp, sector_cap=2, name_cap=0.30
   cumulative_strategy_search = 38
   MON001 forward_boundary_asof = 2026-03-28

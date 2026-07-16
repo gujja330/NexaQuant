@@ -373,7 +373,7 @@ Full harness output at ENG002 completion:
 ======================================================================
   ENG001 INVARIANCE GUARDS
 ======================================================================
-  fingerprint: OK (064d8b04eb85b819... == sealed)
+  fingerprint: OK (064d8b04eb85b819... == sealed)  # v1 algorithm; superseded 2026-07-15 by v2 hash 64e74483d9bd0444...
   production constants: HOLD=63, rebal=63, sector_cap=2, name_cap=0.30, method=hrp — OK
   cumulative_strategy_search = 38 — OK
   MON001 forward_boundary_asof = 2026-03-28 — OK

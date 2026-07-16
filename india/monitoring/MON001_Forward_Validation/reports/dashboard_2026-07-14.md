@@ -1,5 +1,5 @@
 # MON001 · Operator Dashboard — 2026-07-14
-_Auto-generated 2026-07-14T11:38:12+00:00_
+_Auto-generated 2026-07-14T13:33:44+00:00_
 ## Summary
 - **State**: `INSUFFICIENT_EVIDENCE`
 - **HALT_REVIEW_REQUIRED**: `False`
@@ -24,11 +24,16 @@ _Auto-generated 2026-07-14T11:38:12+00:00_
 ## Active alerts (last 7 days, WARN or higher)
 | Dimension | Severity | Consecutive | First seen | Reason |
 |---|:-:|:-:|:-:|---|
-| OPS_RUN_FAILED | `WARN` | 1 | — | run_mon001.main raised an exception; MON001 metrics unavailable for this pass. tail: RuntimeError: synthetic — should be caught by daily_runner |
 | OPS_RUN_FAILED | `WARN` | 2 | 2026-07-14 | run_mon001.main raised an exception; MON001 metrics unavailable for this pass. tail: RuntimeError: synthetic — should be caught by daily_runner |
 | OPS_RUN_FAILED | `WARN` | 2 | 2026-07-14 | run_mon001.main raised an exception; MON001 metrics unavailable for this pass. tail: RuntimeError: synthetic — should be caught by daily_runner |
 | OPS_RUN_FAILED | `WARN` | 2 | 2026-07-14 | run_mon001.main raised an exception; MON001 metrics unavailable for this pass. tail: RuntimeError: synthetic — should be caught by daily_runner |
 | OPS_RUN_FAILED | `WARN` | 2 | 2026-07-14 | run_mon001.main raised an exception; MON001 metrics unavailable for this pass. tail: RuntimeError: cert-forced |
+| OPS_RUN_FAILED | `WARN` | 2 | 2026-07-14 | run_mon001.main raised an exception; MON001 metrics unavailable for this pass. tail: RuntimeError: synthetic — should be caught by daily_runner |
+| OPS_RUN_FAILED | `WARN` | 2 | 2026-07-14 | run_mon001.main raised an exception; MON001 metrics unavailable for this pass. tail: RuntimeError: synthetic — should be caught by daily_runner |
+| OPS_RUN_FAILED | `WARN` | 2 | 2026-07-14 | run_mon001.main raised an exception; MON001 metrics unavailable for this pass. tail: RuntimeError: synthetic — should be caught by daily_runner |
+| OPS_RUN_FAILED | `WARN` | 2 | 2026-07-14 | run_mon001.main raised an exception; MON001 metrics unavailable for this pass. tail: RuntimeError: synthetic — should be caught by daily_runner |
+| OPS_RUN_FAILED | `WARN` | 2 | 2026-07-14 | run_mon001.main raised an exception; MON001 metrics unavailable for this pass. tail: RuntimeError: synthetic — should be caught by daily_runner |
+| OPS_RUN_FAILED | `WARN` | 2 | 2026-07-14 | run_mon001.main raised an exception; MON001 metrics unavailable for this pass. tail: RuntimeError: synthetic — should be caught by daily_runner |
 ## Metric evidence timeline
 | Metric | Forward | Status | Sample | Minimum |
 |---|---:|:-:|---:|---:|

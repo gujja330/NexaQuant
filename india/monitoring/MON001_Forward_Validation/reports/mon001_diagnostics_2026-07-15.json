@@ -1,0 +1,79 @@
+{
+  "baseline_envelope_hash": "d017b352be54412655142d7bd00dd2d6fcbb1d2a50ce122d8e28e03de4197323",
+  "broker_status": {
+    "available": false,
+    "fills_count": 0,
+    "reason": "broker_angelone.py order placement is disabled; no fill history ingested. MON001 remains PAPER_ONLY at seal time."
+  },
+  "completed_cycles": 0,
+  "drift_alerts": [
+    {
+      "consecutive_reports": 1,
+      "details": {
+        "cycle": "2026-06-23_63",
+        "over_by_sector": {
+          "Cement": 4,
+          "FMCG": 4,
+          "Financials": 4,
+          "Pharma": 4,
+          "Power": 4
+        }
+      },
+      "dimension": "D7_CONCENTRATION_DRIFT",
+      "first_seen": null,
+      "level": "DIVERGED",
+      "reason": "cycle 2026-06-23_63: sector cap 2 exceeded by more than 1: {'Cement': 4, 'FMCG': 4, 'Financials': 4, 'Pharma': 4, 'Power': 4}"
+    }
+  ],
+  "fingerprint_hash_current": "64e74483d9bd044402da8f5936e1d2fea5e560628a28999a9f8a1a7e260b7b42",
+  "fingerprint_hash_sealed": "64e74483d9bd044402da8f5936e1d2fea5e560628a28999a9f8a1a7e260b7b42",
+  "fingerprint_status": "SEALED_NOW",
+  "forward_boundary_asof": "2026-03-28",
+  "forward_days_accumulated": 15,
+  "forward_recs_ingested": 150,
+  "global_state": "DIVERGED",
+  "halt_review_required": false,
+  "ledger_integrity": {
+    "first_bad_index": null,
+    "ok": true,
+    "reason": "chain intact",
+    "rows_checked": 150
+  },
+  "metric_evidence": [
+    {
+      "envelope_max": 1.3352694123910829,
+      "envelope_median": 1.2332208621236629,
+      "envelope_min": 1.0764532756125276,
+      "forward_value": null,
+      "metric": "sharpe_forward",
+      "minimum_required": 30,
+      "reason": "only 15 forward days, need 30",
+      "sample_size": 15,
+      "status": "INSUFFICIENT_EVIDENCE"
+    },
+    {
+      "envelope_max": -0.145860545910969,
+      "envelope_median": -0.15979002464271308,
+      "envelope_min": -0.1682173616596169,
+      "forward_value": null,
+      "metric": "max_dd_forward",
+      "minimum_required": 126,
+      "reason": "only 15 forward days, need 126 for MaxDD",
+      "sample_size": 15,
+      "status": "INSUFFICIENT_EVIDENCE"
+    },
+    {
+      "envelope_max": null,
+      "envelope_median": null,
+      "envelope_min": null,
+      "forward_value": null,
+      "metric": "ulcer_forward",
+      "minimum_required": 126,
+      "reason": "only 15 forward days, need 126",
+      "sample_size": 15,
+      "status": "INSUFFICIENT_EVIDENCE"
+    }
+  ],
+  "reason": "one or more DIVERGED alerts active; HALT_REVIEW_REQUIRED only after 4 consecutive weekly reports of persistent divergence",
+  "run_date_utc": "2026-07-15T09:39:58+00:00"
+}

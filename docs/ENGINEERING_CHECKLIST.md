@@ -36,7 +36,9 @@ authorization documented in the PR body.
 ## 2. Invariance verification
 
 - [ ] MON001 fingerprint byte-identical to sealed hash
-      `064d8b04eb85b8194e02b07a07ead207770d598be72c46e4ec7698add912d52f`
+      `64e74483d9bd044402da8f5936e1d2fea5e560628a28999a9f8a1a7e260b7b42`
+      (algorithm v2, LF-normalized; sealed 2026-07-15; supersedes v1
+      `064d8b04eb85b8194e02b07a07ead207770d598be72c46e4ec7698add912d52f`)
 - [ ] `HOLD = 63` still in `india/recommendation_registry.py`
 - [ ] `rebal=63` still in `india/recommendation_generator.py`
 - [ ] `cumulative_strategy_search: 38` still in `india/ai_lab/trial_manifest.md`
