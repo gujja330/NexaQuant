@@ -21,8 +21,13 @@ from pathlib import Path
 
 import yaml
 
+from . import __version__ as _ops_pkg_version
 from .config import load_pipeline
 from .events import Severity
+
+
+def _ops_version() -> str:
+    return _ops_pkg_version
 from .metrics import MetricsLedger
 from .notify.base import Notification
 from .notify.file import FileChannel
@@ -172,7 +177,7 @@ class NexaQuantService:
                         last_pipeline_success=False,
                         last_pipeline_run_utc=_iso_utc(),
                         stages_ok=0, stages_total=0,
-                        ops_version="0.1.0-ops001a",
+                        ops_version=_ops_version(),
                         active_alerts=[{"source": "ops.service",
                                          "severity": "CRITICAL",
                                          "reason": tb.splitlines()[-1] if tb else ""}],
@@ -201,7 +206,7 @@ class NexaQuantService:
             last_pipeline_duration_s=result.duration_s,
             stages_ok=result.stages_ok,
             stages_total=result.stages_total,
-            ops_version="0.1.0-ops001a",
+            ops_version=_ops_version(),
             active_alerts=active_alerts,
             mon001_state=mon["state"],
             mon001_halt=mon["halt"],

@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  NexaQuant OPS001-B launchd definition for macOS.
+
+  Install (per-user):
+    cp deploy/launchd/com.nexaquant.ops.plist ~/Library/LaunchAgents/
+    launchctl load -w ~/Library/LaunchAgents/com.nexaquant.ops.plist
+
+  Install (system-wide, requires sudo):
+    sudo cp deploy/launchd/com.nexaquant.ops.plist /Library/LaunchDaemons/
+    sudo launchctl load -w /Library/LaunchDaemons/com.nexaquant.ops.plist
+
+  Adjust the WorkingDirectory + ProgramArguments paths + UserName to your environment.
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+                        "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.nexaquant.ops</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/local/bin/python3</string>
+    <string>/opt/nexaquant/scripts/nexaquant_daemon.py</string>
+    <string>start</string>
+  </array>
+
+  <key>WorkingDirectory</key>
+  <string>/opt/nexaquant</string>
+
+  <key>KeepAlive</key>
+  <dict>
+    <key>SuccessfulExit</key>
+    <false/>
+  </dict>
+
+  <key>ThrottleInterval</key>
+  <integer>15</integer>
+
+  <key>StandardOutPath</key>
+  <string>/opt/nexaquant/reports/logs/launchd.stdout.log</string>
+  <key>StandardErrorPath</key>
+  <string>/opt/nexaquant/reports/logs/launchd.stderr.log</string>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PYTHONUNBUFFERED</key>
+    <string>1</string>
+    <key>PYTHONPATH</key>
+    <string>/opt/nexaquant</string>
+  </dict>
+
+  <key>RunAtLoad</key>
+  <true/>
+</dict>
+</plist>

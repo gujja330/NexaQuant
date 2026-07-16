@@ -1,0 +1,45 @@
+# NexaQuant OPS001-B systemd service unit.
+#
+# Install:
+#   sudo cp deploy/systemd/nexaquant.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now nexaquant
+#
+# Inspect:
+#   sudo systemctl status nexaquant
+#   sudo journalctl -u nexaquant -f            # stderr is JSON-per-line
+#   cat /opt/nexaquant/reports/logs/nexaquant_ops.jsonl
+#
+# Stop:
+#   sudo systemctl stop nexaquant              # sends SIGTERM; daemon flushes and exits
+#
+# Adjust User=, WorkingDirectory=, and Environment= for your host.
+
+[Unit]
+Description=NexaQuant operations daemon (OPS001-B)
+Documentation=file:///opt/nexaquant/docs/OPS001B_OPERATIONS.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=nexaquant
+Group=nexaquant
+WorkingDirectory=/opt/nexaquant
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONPATH=/opt/nexaquant
+# Load broker/Telegram/AEGIS secrets from an EnvironmentFile owned by root:nexaquant, mode 0640.
+EnvironmentFile=-/etc/nexaquant/nexaquant.env
+ExecStart=/usr/bin/python3 /opt/nexaquant/scripts/nexaquant_daemon.py start
+ExecStop=/usr/bin/python3 /opt/nexaquant/scripts/nexaquant_daemon.py stop --timeout 60
+Restart=on-failure
+RestartSec=15s
+TimeoutStopSec=90s
+# Hardening
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
