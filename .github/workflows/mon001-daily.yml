@@ -44,10 +44,13 @@ jobs:
       - name: Install monitoring deps (narrow subset)
         run: |
           python -m pip install --upgrade pip
-          # ENG003: pyarrow REQUIRED for pd.read_parquet used by
-          # india.feature_engine.load_panels (called inside daily_runner's
-          # market-data freshness check). Do not remove.
-          pip install pyyaml pandas numpy pyarrow
+          # Transitive dependencies of MON001 daily_runner:
+          #   pyarrow      — feature_engine.load_panels() reads parquets
+          #   scipy        — deflated-sharpe (validation.py)
+          #   scikit-learn — HRP kernel (arjuna_v2.py) imported by any test
+          #                    subprocess spawned by test_regression.py
+          # (ENG003 fix + 2026-07-15 CI-failure follow-up.)
+          pip install pyyaml pandas numpy pyarrow scipy scikit-learn
 
       - name: Guard — MON001 already ran today (manual dispatch bypasses)
         id: guard

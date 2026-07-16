@@ -30,6 +30,7 @@ SUITES = [
     ("ENG001 lib unit tests", ROOT / "nexaquant/tests/test_lib.py"),
     ("ENG003 CI discipline",  ROOT / "nexaquant/tests/test_ci_discipline.py"),
     ("ENG003 governance",     ROOT / "nexaquant/tests/test_governance.py"),
+    ("Telegram reliability",  ROOT / "nexaquant/tests/test_telegram_reliability.py"),
 ]
 
 

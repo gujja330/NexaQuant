@@ -53,8 +53,10 @@ GRANDFATHERED_MASKS: dict[str, dict[tuple[int, str], str]] = {
             "ENG003 debt: ops_check.py is a reporter; non-zero exit is a signal not a failure.",
         (89, "|| echo \"sheets sync skipped/failed (non-fatal)\""):
             "ENG003 debt: Google Sheets is downstream mirror; failure must not stop primary Telegram.",
-        (98, "|| echo \"telegram skipped (non-fatal)\""):
-            "ENG003 debt: Telegram failure must not stop data commits. Documented for ENG005.",
+        # 2026-07-15: line 98 Telegram mask REMOVED. Notify is now routed through
+        # scripts/telegram_send_with_retry.py which has 3 built-in retries and
+        # exits non-zero on total failure. Any Telegram failure now fails the
+        # workflow visibly. See docs/TELEGRAM_RELIABILITY_PLAN.md.
         (106, "|| true"):
             "ENG003 debt: git add masks - allows the workflow to continue if a specific pattern "
             "matched nothing on a given day.",
@@ -62,9 +64,9 @@ GRANDFATHERED_MASKS: dict[str, dict[tuple[int, str], str]] = {
             "ENG003 debt: git push mask - if remote raced, workflow continues; next run reconciles.",
     },
     "mon001-daily.yml": {
-        (65, "|| \\"):
-            "ENG003 debt: MON001 daily_runner already returns exit 0 by design (see MON001 "
-            "certification §11); the shell chain is defensive only.",
+        # Note: the `|| \` line-continuation debt entry was removed 2026-07-15
+        # (the daily_runner call no longer has a mask; the runner returns exit
+        # 0 by design per MON001 certification §11, no shell mask needed).
         (75, "|| true"):
             "ENG003 debt: git add masks — MON001 outputs may legitimately be identical day-to-day.",
         (78, "|| true"):
@@ -110,13 +112,17 @@ def _scan_workflow(path: Path) -> list[tuple[int, str, str]]:
 
 
 def _lookup_grandfather(workflow: str, line_no: int, matched: str) -> str | None:
+    """Match by (workflow_file, mask_content). Line numbers drift as workflows
+    evolve — the mask content itself is the durable signature. Line numbers in
+    GRANDFATHERED_MASKS are informational only."""
     reg = GRANDFATHERED_MASKS.get(workflow, {})
-    # Prefer exact (line_no, matched); tolerate ±5-line drift on same matched text.
-    for (reg_line, reg_pat), rationale in reg.items():
-        if reg_pat == matched and abs(reg_line - line_no) <= 5:
+    matched_norm = matched.strip()
+    for (_reg_line, reg_pat), rationale in reg.items():
+        reg_pat_norm = reg_pat.strip()
+        if reg_pat_norm == matched_norm:
             return rationale
-        # tolerate leading/trailing quote normalisation
-        if reg_pat.split()[0] == matched.split()[0] and abs(reg_line - line_no) <= 5:
+        # Tolerate small trailing-quote / whitespace normalization.
+        if reg_pat_norm.split()[:2] == matched_norm.split()[:2]:
             return rationale
     return None
 

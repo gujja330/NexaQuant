@@ -93,13 +93,31 @@ jobs:
           python india/sheets_sync.py || echo "sheets sync skipped/failed (non-fatal)"
           rm -f secrets/prism-sheets-sa.json
 
-      - name: Telegram daily notification (no-ops if secrets absent)
+      # 2026-07-15 reliability upgrade: pre-notify health check + retry wrapper.
+      # See docs/TELEGRAM_RELIABILITY_PLAN.md for root causes fixed here.
+      - name: Telegram health check (getMe + getChat)
+        if: steps.guard.outputs.run == 'true' && steps.freshness.outputs.fresh == 'true'
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python scripts/telegram_health_check.py
+
+      - name: Telegram daily notification (retry + delivery ledger)
         if: steps.guard.outputs.run == 'true' && steps.freshness.outputs.fresh == 'true'
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           AEGIS_SPREADSHEET_ID: ${{ secrets.AEGIS_SPREADSHEET_ID }}
-        run: python india/telegram_notify.py || echo "telegram skipped (non-fatal)"
+        run: python scripts/telegram_send_with_retry.py --attempts 4
+
+      - name: Upload Telegram delivery ledger (artifact)
+        if: always() && steps.guard.outputs.run == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: telegram-delivery-log
+          path: reports/telegram_delivery_*.jsonl
+          if-no-files-found: ignore
+          retention-days: 30
 
       - name: Mark published + commit report/data
         if: steps.guard.outputs.run == 'true' && steps.freshness.outputs.fresh == 'true'

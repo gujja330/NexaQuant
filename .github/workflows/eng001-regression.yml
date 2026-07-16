@@ -42,10 +42,16 @@ jobs:
       - name: Install regression deps
         run: |
           python -m pip install --upgrade pip
-          # pyarrow is REQUIRED for pd.read_parquet used inside india.feature_engine
-          # (called by LAB009 tests). Do NOT remove without also removing every
-          # parquet-reading test path.
-          pip install pyyaml pandas numpy pyarrow
+          # Transitive test-suite dependencies (do NOT remove any without also
+          # removing every test that imports the transitively-affected module):
+          #   pyarrow      — india.feature_engine.load_panels() reads parquets
+          #                    (LAB009 test_maturity_correction.py fails without)
+          #   scipy        — india.validation uses scipy.stats.norm for
+          #                    deflated-sharpe (LAB010 test_lab010_framework.py
+          #                    imports lab_metrics -> validation)
+          #   scikit-learn — india.arjuna_v2 uses sklearn.covariance for HRP
+          #                    weights (LAB009 tests transitively import)
+          pip install pyyaml pandas numpy pyarrow scipy scikit-learn
 
       - name: Validate workflow discipline (no || echo masks, no continue-on-error abuse)
         run: python nexaquant/tests/test_ci_discipline.py
