@@ -252,3 +252,66 @@ No `HOLD`, `rebal`, HRP, `current_regime()`, or any strategy input touched.
 ### 2026-07-14 · Original certification (v1 fingerprint algorithm)
 
 Original audit — see §1 through §13 above.
+
+## 15. Portability amendment — 2026-07-16
+
+**Amendment ID:** `MON001-AMEND-2026-07-16-portability`
+**Certification remains:** `MON001-CERT-2026-07-15` (still valid — see §15.4)
+**Trigger:** CI health check surfaced a `HALT` on `envelope_byte_identical` on Linux
+runners while the same check reported `INFO` on the sealing Windows host.
+
+### 15.1 Defect
+
+`baseline_envelope.build_envelope` recorded the diagnostics CSV path via
+`str(diagnostics_csv)`, which resolves to a MACHINE-SPECIFIC absolute path
+(`C:\Users\...` on Windows, `/home/runner/work/...` on Linux). The envelope hash
+was computed over a dict containing this string, so the same CSV produced
+different envelope hashes on different filesystems. The sealed cache was
+therefore reproducible only on the original sealing host — defeating the
+byte-identity check's integrity purpose off that one machine.
+
+### 15.2 Fix (portability only)
+
+One-line change in `india/monitoring/MON001_Forward_Validation/baseline_envelope.py`:
+`str(diagnostics_csv)` → `Path(diagnostics_csv).name`. The stored path is now
+the basename only (`lab009_period_corrected_diagnostics_2026-07-13.csv`),
+which is deterministic across every checkout location.
+
+Cache artifact `reports/baseline_envelope_2026-07-13.json` regenerated to reflect
+the new format. New envelope hash:
+`e4ca8ecb97914f4828f6601eb5d05ebe4956099dac7c6df70df13ccaaa482812`
+(supersedes the machine-bound `d017b352...`).
+
+### 15.3 What is NOT changed
+
+- Recommendation logic, HOLD, rebal, HRP, sector caps, name caps, method
+- LAB001–LAB010 outputs, trial manifest, `cumulative_strategy_search = 38`
+- MON001 fingerprint hash `64e74483d9bd044402da8f5936e1d2fea5e560628a28999a9f8a1a7e260b7b42`
+  (`baseline_envelope.py` is not in `mon001.yaml.baseline_files`, so its
+  content does not participate in the sealed fingerprint)
+- Forward boundary `2026-03-28`, forward ledger, sealed_fingerprint.json
+- Governance rules, CHANGE_CONTROL_CHECKLIST, RELEASE_CHECKLIST
+- All health-check semantics, envelope-drift detection semantics, and the
+  numeric envelope metric values (min/median/max per phase remain byte-identical)
+
+### 15.4 Why certification MON001-CERT-2026-07-15 remains valid
+
+- Sealed fingerprint hash is unchanged
+- No research inputs or research outputs mutated
+- No production strategy file touched
+- Envelope metric VALUES (min/median/max/phases per metric) are byte-identical
+  to the pre-amendment cache; only the discardable path metadata differs
+- 188 / 188 regression tests continue to pass
+- 9 / 9 health checks continue to report `INFO`
+
+### 15.5 Verification
+
+Post-amendment:
+- 10 / 10 test suites PASS locally (188 / 188 tests)
+- MON001 health check: 9 / 9 `INFO`, exit code 0
+- `test_13_health_check_current_state_clean`: PASS (was failing on Linux CI)
+- `test_15_daily_runner_exit_0_even_on_synthetic_exception`: PASS (unchanged behaviour)
+- MON001 fingerprint: `64e74483d9bd044402da8f5936e1d2fea5e560628a28999a9f8a1a7e260b7b42` (unchanged)
+- Forward boundary: `2026-03-28` (unchanged)
+- `cumulative_strategy_search`: `38` (unchanged)
+

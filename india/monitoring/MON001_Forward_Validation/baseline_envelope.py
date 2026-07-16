@@ -47,7 +47,9 @@ def build_envelope(diagnostics_csv: Path, candidate: str, horizon_days: int,
 
     envelope: dict = {
         "source": {
-            "diagnostics_csv": str(diagnostics_csv),
+            # Portability amendment: store basename only so the envelope hash is
+            # deterministic across every checkout location (Windows/Linux/CI).
+            "diagnostics_csv": Path(diagnostics_csv).name,
             "candidate": candidate,
             "horizon_days": horizon_days,
             "canonical_cost_bps": canonical_cost_bps,
