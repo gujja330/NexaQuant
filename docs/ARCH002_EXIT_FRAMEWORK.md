@@ -6,6 +6,7 @@
 **Author:** AEGIS engineering
 **Date opened:** 2026-07-17
 **Related work:**
+- **Parent constitution:** [`ARCH001A_INVESTMENT_PHILOSOPHY.md`](ARCH001A_INVESTMENT_PHILOSOPHY.md) — ARCH002 must comply with ARCH001A's Article VI Risk Constitution (Rules 1-10), Article III objective function, and Article VII operational discipline. Where an ARCH002 rule and an ARCH001A article conflict, ARCH001A wins.
 - Grounded in the empirical evidence produced by [`RISK001-A1`](../research/RISK001-A_RESULTS.md) on 285 historical positions
 - Supersedes the exit-controller scoping in [`RISK001-B`](RISK001-B_RISK_CONTROLLER_ARCHITECTURE.md) §3–§8 (kept as component detail; ARCH002 is the framework)
 - References the institutional-practice survey in [`Executive Summary.pdf`](../Executive%20Summary.pdf) (11 pages, tracked in git for durable citation)
@@ -683,6 +684,7 @@ Grounded in the RISK001-A1 evidence, the Executive Summary literature survey, an
 
 | Track | Interaction with ARCH002 |
 |:--|:--|
+| **ARCH001A (Constitution)** | ARCH001A is the constitutional parent. ARCH002's 8-rule Investment Constitution (§1) is a subset of ARCH001A Article VI (10 Rules). ARCH002's objective function assumptions align with ARCH001A §4.2. Any conflict resolves in ARCH001A's favour. |
 | **RISK001-A / A1** | Provides the empirical evidence for L1's threshold band + confirms the STAND-DOWN-vs-RECOMMEND tension that this doc must resolve |
 | **RISK001-B** | Component-level detail for the priority engine; ARCH002 is the framework, RISK001-B is the component. Update RISK001-B §3 with ARCH002's 9-layer numbering. |
 | **RISK001-C** (future implementation) | Blocked on operator's primary-metric decision (§13.1 acceptance) + this doc's approval |

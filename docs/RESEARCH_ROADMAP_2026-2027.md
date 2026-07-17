@@ -25,9 +25,10 @@ Two organising principles for this track:
 
 | ID | Title | Status | Depends on | Design ETA | Impl gate |
 |:--|:--|:-:|:--|:-:|:--|
-| **ARCH001** | Recommendation Lifecycle | ✅ DONE | — | — | shipped as design |
-| **ARCH002** | Exit & Capital-Preservation Framework | 🟢 DRAFT (2026-07-17) | RISK001-A1 evidence | done | operator approval + RISK001-C |
-| **ARCH003** | Enterprise Risk Budgeting | 🟡 SCOPED | ARCH002 | 2026-Q3 | new evidence study |
+| **ARCH001A** | Investment Philosophy & Decision Theory (**CONSTITUTIONAL**) | 🟢 DRAFT (2026-07-17) | — | done | operator approval |
+| **ARCH001** | Recommendation Lifecycle | ✅ DONE | ARCH001A | — | shipped as design |
+| **ARCH002** | Exit & Capital-Preservation Framework | 🟢 DRAFT (2026-07-17) | ARCH001A + RISK001-A1 evidence | done | operator approval + RISK001-C |
+| **ARCH003** | Enterprise Risk Budgeting | 🟡 SCOPED | ARCH001A + ARCH002 | 2026-Q3 | new evidence study |
 | **ARCH004** | Position Sizing | 🟡 SCOPED | ARCH003 | 2026-Q3 | new evidence study |
 | **ARCH005** | Portfolio Construction (beyond HRP) | 🟡 SCOPED | ARCH004 | 2026-Q4 | new evidence study |
 | **ARCH006** | Regime Intelligence | 🟡 SCOPED | ARCH002 | 2026-Q4 | classifier build |
@@ -46,12 +47,13 @@ Two organising principles for this track:
 
 ---
 
-## 2.  Execution order (operator-preferred sequence)
+## 2.  Execution order (operator-preferred sequence, revised 2026-07-17)
 
-Per the operator's directive in the ARCH002-context message:
+Per the operator's revision when ARCH001A was commissioned:
 
 ```
-1.  ARCH002  Exit Framework                  ← delivered 2026-07-17
+0.  ARCH001A Investment Philosophy & Decision Theory  ← CONSTITUTIONAL; delivered 2026-07-17
+1.  ARCH002  Exit Framework                            ← delivered 2026-07-17
 2.  ARCH003  Risk Budgeting
 3.  ARCH004  Position Sizing
 4.  ARCH006  Regime Intelligence
@@ -64,13 +66,33 @@ Per the operator's directive in the ARCH002-context message:
 11. ARCH012–ARCH016  (advanced capabilities)
 ```
 
-This sequence builds capital-preservation capability first (2–4), then adaptive intelligence (6–8), then return-optimising sophistication (5), then robustness and productionisation (10–11), then organisational-scale controls (9), then advanced differentiators (12–16).
+This sequence establishes the constitutional foundation first (ARCH001A), then capital-preservation capability (2-4), then adaptive intelligence (5-7), then return-optimising sophistication (8), then robustness and productionisation (9-10), then organisational-scale controls (11), then advanced differentiators (12).
+
+**Priority rationale (from ARCH001A commissioning message).** *"Without ARCH001A, later research risks optimizing for conflicting goals."* The Constitution defines what "correct" means; without it, every downstream document must re-litigate first principles.
 
 ---
 
 ## 3.  Per-track scoping
 
 Each subsection below is the seed for the eventual full design document. It captures: objective · key research topics · deliverable structure · dependencies · non-goals. A future working session can pick any one of these and produce the full ARCH-doc following the ARCH002 template shape.
+
+### 3.0  ARCH001A — Investment Philosophy & Decision Theory  ✅ DRAFT DELIVERED 2026-07-17 · CONSTITUTIONAL APEX
+
+Full document at [`docs/ARCH001A_INVESTMENT_PHILOSOPHY.md`](ARCH001A_INVESTMENT_PHILOSOPHY.md). Summary:
+
+- **The Constitution of AEGIS** — 10 Articles: Mission · Investment · Decision · Research · Learning · Risk · Operational · Ethics · Governance · Amendments
+- Philosophical foundations distilled from Buffett, Munger, Marks, Dalio, Taleb, Simons, Asness, Thorp, Kelly, Kahneman-Tversky, Thaler, Markowitz, Knight, von Neumann-Morgenstern, and the robust-decision literature
+- Fundamental definitions: risk = *permanent capital loss*, not volatility (Article II)
+- **Objective function chosen:** `maximise E[log W]` subject to `P(ruin ≤ 1%)` and `Max DD ≤ 20%` and Article VI Rules 1-10, at fractional Kelly ≤ 0.25 per position
+- **6-tier decision hierarchy:** Protect Capital → Preserve Optionality → Reduce Tail Risk → Maintain Liquidity → Exploit Edge → Increase Returns
+- **10 INVARIANT non-negotiables** that require Constitution retirement to amend
+- Trade-off resolution matrix (§6) — 11 tensions with declared winners
+- Ethics framework (Article VIII) — transparency, explainability, operator override, AI autonomy floor, calibrated confidence, failure honesty
+- Amendment discipline (Article X)
+
+**Status.** DRAFT pending operator approval. Once approved, this document becomes the constitutional apex — every other ARCH / RISK / LAB / OPS / MON doc inherits from it.
+
+---
 
 ### 3.1  ARCH002 — Exit & Capital-Preservation Framework  ✅ DRAFT DELIVERED 2026-07-17
 
