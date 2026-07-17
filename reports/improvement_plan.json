@@ -1,0 +1,47 @@
+{
+  "run_utc": "2026-07-17T11:48:03.521250+00:00Z",
+  "governance_note": "Advisory. Never auto-applied. ARCH001A Article V clause 5.1.",
+  "n_items": 5,
+  "plan": [
+    {
+      "priority": 218,
+      "failure_category": "overconfidence",
+      "n_occurrences": 218,
+      "evidence": "218 trades lost while confidence >= 0.85",
+      "action": "Add isotonic-regression post-processing to DEV020 confidence output",
+      "target_module": "DEV020 confidence -> DEV029 Confidence Calibration (planned)"
+    },
+    {
+      "priority": 185,
+      "failure_category": "macro_shock",
+      "n_occurrences": 185,
+      "evidence": "185 trades hit by market-wide events",
+      "action": "Track macro-shock cohorts separately \u2014 do not attribute cause to stock selection",
+      "target_module": "monitoring / DEV017"
+    },
+    {
+      "priority": 98,
+      "failure_category": "high_correlation",
+      "n_occurrences": 98,
+      "evidence": "98 losing trades in same-sector concurrent bets",
+      "action": "Apply correlation cap in DEV022 min-var / hrp allocation",
+      "target_module": "DEV022"
+    },
+    {
+      "priority": 65,
+      "failure_category": "wrong_sector",
+      "n_occurrences": 65,
+      "evidence": "65 losing trades entered while parent sector was Weak",
+      "action": "Add sector-score gate to DEV023 recommendation rules",
+      "target_module": "DEV023"
+    },
+    {
+      "priority": 64,
+      "failure_category": "liquidity_shock",
+      "n_occurrences": 64,
+      "evidence": "64 occurrences of liquidity_shock",
+      "action": "Investigate liquidity_shock pattern; propose module fix",
+      "target_module": "TBD"
+    }
+  ]
+}
