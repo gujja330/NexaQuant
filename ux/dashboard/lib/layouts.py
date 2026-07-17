@@ -1,0 +1,178 @@
+"""UX031 · per-route grid layouts.
+
+12-column responsive grid. Each layout defines the row/col span for each
+widget. Frontend renders on desktop → tablet → mobile using the same layout
+data with widgets stacking vertically at narrow breakpoints."""
+from __future__ import annotations
+
+
+def all_layouts() -> dict:
+    return {
+        "executive_overview": {
+            "grid":       {"columns": 12, "row_height_px": 88},
+            "gap":        16,
+            "responsive": {"mobile": "stack", "tablet": "6_col", "desktop": "12_col"},
+            "sections":   [
+                {"title": "Snapshot",       "widgets": [
+                    {"widget_id": "market_regime",    "col": 1,  "col_span": 3,  "row_span": 1},
+                    {"widget_id": "portfolio_grade",  "col": 4,  "col_span": 3,  "row_span": 1},
+                    {"widget_id": "champion_strategy","col": 7,  "col_span": 3,  "row_span": 2},
+                    {"widget_id": "confidence_gauge", "col": 10, "col_span": 3,  "row_span": 1},
+                ]},
+                {"title": "Today",          "widgets": [
+                    {"widget_id": "top_opportunities","col": 1,  "col_span": 6,  "row_span": 4},
+                    {"widget_id": "todays_actions",   "col": 7,  "col_span": 6,  "row_span": 4},
+                ]},
+                {"title": "Structure",      "widgets": [
+                    {"widget_id": "sector_allocation","col": 1,  "col_span": 6,  "row_span": 3},
+                    {"widget_id": "risk_alerts",      "col": 7,  "col_span": 6,  "row_span": 3},
+                ]},
+                {"title": "Performance",    "widgets": [
+                    {"widget_id": "equity_curve",     "col": 1,  "col_span": 12, "row_span": 4},
+                ]},
+            ],
+        },
+        "market_overview": {
+            "grid":       {"columns": 12, "row_height_px": 88},
+            "gap":        16,
+            "responsive": {"mobile": "stack", "tablet": "6_col", "desktop": "12_col"},
+            "sections":   [
+                {"title": "Regime",  "widgets": [
+                    {"widget_id": "market_regime",       "col": 1, "col_span": 12, "row_span": 1},
+                ]},
+                {"title": "Allocation","widgets":[
+                    {"widget_id": "sector_allocation",   "col": 1, "col_span": 6,  "row_span": 3},
+                    {"widget_id": "industry_allocation", "col": 7, "col_span": 6,  "row_span": 3},
+                ]},
+                {"title": "Historical","widgets":[
+                    {"widget_id": "performance_heatmap", "col": 1, "col_span": 6,  "row_span": 3},
+                    {"widget_id": "regime_champions",    "col": 7, "col_span": 6,  "row_span": 2},
+                ]},
+            ],
+        },
+        "portfolio": {
+            "grid":       {"columns": 12, "row_height_px": 88},
+            "gap":        16,
+            "responsive": {"mobile": "stack", "tablet": "6_col", "desktop": "12_col"},
+            "sections":   [
+                {"title": "Snapshot",  "widgets": [
+                    {"widget_id": "portfolio_value",     "col": 1, "col_span": 6, "row_span": 1},
+                    {"widget_id": "portfolio_grade",     "col": 7, "col_span": 6, "row_span": 1},
+                ]},
+                {"title": "Composition","widgets":[
+                    {"widget_id": "sector_allocation",   "col": 1, "col_span": 6, "row_span": 3},
+                    {"widget_id": "industry_allocation", "col": 7, "col_span": 6, "row_span": 3},
+                ]},
+                {"title": "Positions",  "widgets": [
+                    {"widget_id": "holdings_table",              "col": 1, "col_span": 12, "row_span": 5},
+                    {"widget_id": "portfolio_dependency_graph",  "col": 1, "col_span": 12, "row_span": 4},
+                ]},
+            ],
+        },
+        "recommendations": {
+            "grid":  {"columns": 12, "row_height_px": 88}, "gap": 16,
+            "responsive": {"mobile": "stack", "tablet": "6_col", "desktop": "12_col"},
+            "sections": [
+                {"title": "Live", "widgets": [
+                    {"widget_id": "top_opportunities",      "col": 1, "col_span": 6, "row_span": 4},
+                    {"widget_id": "todays_actions",         "col": 7, "col_span": 6, "row_span": 4},
+                ]},
+                {"title": "Timeline", "widgets": [
+                    {"widget_id": "recommendation_timeline","col": 1, "col_span": 12, "row_span": 3},
+                    {"widget_id": "holdings_table",         "col": 1, "col_span": 12, "row_span": 5},
+                ]},
+            ],
+        },
+        "risk": {
+            "grid":  {"columns": 12, "row_height_px": 88}, "gap": 16,
+            "responsive": {"mobile": "stack", "tablet": "6_col", "desktop": "12_col"},
+            "sections": [
+                {"title": "Signals", "widgets": [
+                    {"widget_id": "risk_alerts",     "col": 1, "col_span": 6, "row_span": 3},
+                    {"widget_id": "risk_radar",      "col": 7, "col_span": 6, "row_span": 3},
+                ]},
+                {"title": "Historical", "widgets": [
+                    {"widget_id": "drawdown_curve",  "col": 1, "col_span": 12,"row_span": 3},
+                    {"widget_id": "portfolio_grade", "col": 1, "col_span": 12,"row_span": 1},
+                ]},
+            ],
+        },
+        "performance": {
+            "grid":  {"columns": 12, "row_height_px": 88}, "gap": 16,
+            "responsive": {"mobile": "stack", "tablet": "6_col", "desktop": "12_col"},
+            "sections": [
+                {"title": "Curves", "widgets": [
+                    {"widget_id": "equity_curve",        "col": 1, "col_span": 12,"row_span": 4},
+                ]},
+                {"title": "Metrics","widgets": [
+                    {"widget_id": "win_rate",            "col": 1, "col_span": 3, "row_span": 1},
+                    {"widget_id": "drawdown_curve",      "col": 4, "col_span": 9, "row_span": 3},
+                ]},
+                {"title": "Detail","widgets": [
+                    {"widget_id": "performance_heatmap", "col": 1, "col_span": 6, "row_span": 3},
+                    {"widget_id": "challenger_scoreboard","col": 7,"col_span": 6, "row_span": 4},
+                ]},
+            ],
+        },
+        "champion": {
+            "grid":  {"columns": 12, "row_height_px": 88}, "gap": 16,
+            "responsive": {"mobile": "stack", "tablet": "6_col", "desktop": "12_col"},
+            "sections": [
+                {"title": "Champion", "widgets": [
+                    {"widget_id": "champion_strategy",     "col": 1, "col_span": 6, "row_span": 2},
+                    {"widget_id": "regime_champions",      "col": 7, "col_span": 6, "row_span": 2},
+                ]},
+                {"title": "Field", "widgets": [
+                    {"widget_id": "challenger_scoreboard", "col": 1, "col_span": 12,"row_span": 4},
+                    {"widget_id": "drift_panel",           "col": 1, "col_span": 12,"row_span": 3},
+                ]},
+                {"title": "Track record", "widgets": [
+                    {"widget_id": "equity_curve",          "col": 1, "col_span": 12,"row_span": 4},
+                ]},
+            ],
+        },
+        "knowledge": {
+            "grid":  {"columns": 12, "row_height_px": 88}, "gap": 16,
+            "responsive": {"mobile": "stack", "tablet": "6_col", "desktop": "12_col"},
+            "sections": [
+                {"title": "Explore", "widgets": [
+                    {"widget_id": "knowledge_graph",             "col": 1, "col_span": 12,"row_span": 6},
+                ]},
+                {"title": "Insight", "widgets": [
+                    {"widget_id": "top_influencers",             "col": 1, "col_span": 4, "row_span": 4},
+                    {"widget_id": "portfolio_dependency_graph",  "col": 5, "col_span": 8, "row_span": 4},
+                ]},
+            ],
+        },
+        "historical": {
+            "grid":  {"columns": 12, "row_height_px": 88}, "gap": 16,
+            "responsive": {"mobile": "stack", "tablet": "6_col", "desktop": "12_col"},
+            "sections": [
+                {"title": "Curves", "widgets": [
+                    {"widget_id": "equity_curve",           "col": 1, "col_span": 12,"row_span": 4},
+                ]},
+                {"title": "Detail", "widgets": [
+                    {"widget_id": "recommendation_timeline","col": 1, "col_span": 12,"row_span": 3},
+                    {"widget_id": "performance_heatmap",    "col": 1, "col_span": 6, "row_span": 3},
+                    {"widget_id": "drift_panel",            "col": 7, "col_span": 6, "row_span": 3},
+                ]},
+            ],
+        },
+        "health": {
+            "grid":  {"columns": 12, "row_height_px": 88}, "gap": 16,
+            "responsive": {"mobile": "stack", "tablet": "6_col", "desktop": "12_col"},
+            "sections": [
+                {"title": "Scores", "widgets": [
+                    {"widget_id": "portfolio_grade",  "col": 1, "col_span": 6, "row_span": 1},
+                    {"widget_id": "confidence_gauge", "col": 7, "col_span": 6, "row_span": 1},
+                ]},
+                {"title": "Alerts","widgets":[
+                    {"widget_id": "risk_alerts",      "col": 1, "col_span": 6, "row_span": 3},
+                    {"widget_id": "risk_radar",       "col": 7, "col_span": 6, "row_span": 3},
+                ]},
+                {"title": "Drift","widgets":[
+                    {"widget_id": "drift_panel",      "col": 1, "col_span": 12,"row_span": 3},
+                ]},
+            ],
+        },
+    }

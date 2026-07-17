@@ -1,0 +1,147 @@
+"""UX031 · dashboard theme.
+
+Institutional dark-first color system + typography scale used across every
+widget. Retheme in one place by editing this module."""
+from __future__ import annotations
+
+
+COLORS = {
+    "brand":  {
+        "primary":         "#0F172A",   # slate-900 — dark background base
+        "accent":          "#38BDF8",   # sky-400 — hover / focus
+        "highlight":       "#FBBF24",   # amber-400 — champion badge, star ratings
+    },
+    "surface": {
+        "canvas":          "#0B1220",
+        "card":            "#111827",
+        "border":          "#1F2937",
+        "elevated":        "#1E293B",
+        "muted":           "#334155",
+    },
+    "text": {
+        "primary":         "#E5E7EB",
+        "secondary":       "#94A3B8",
+        "tertiary":        "#64748B",
+        "inverse":         "#0F172A",
+    },
+    "status": {
+        "buy":             "#22C55E",   # green-500
+        "hold":            "#EAB308",   # yellow-500
+        "exit":            "#EF4444",   # red-500
+        "warn":            "#F59E0B",
+        "info":            "#38BDF8",
+        "critical":        "#DC2626",
+    },
+    "regime": {
+        "risk_on":         "#22C55E",
+        "neutral":         "#EAB308",
+        "risk_off":        "#EF4444",
+        "unknown":         "#94A3B8",
+    },
+    "chart": {
+        "series_1":        "#38BDF8",
+        "series_2":        "#A78BFA",
+        "series_3":        "#F472B6",
+        "series_4":        "#FB7185",
+        "series_5":        "#34D399",
+        "series_6":        "#FBBF24",
+        "series_7":        "#60A5FA",
+        "series_8":        "#F87171",
+        "grid":            "#1F2937",
+        "axis":            "#475569",
+        "positive":        "#22C55E",
+        "negative":        "#EF4444",
+    },
+    "gradients": {
+        "champion_badge":  ["#FBBF24", "#F59E0B"],
+        "health_bar_good": ["#22C55E", "#16A34A"],
+        "health_bar_warn": ["#EAB308", "#CA8A04"],
+        "health_bar_bad":  ["#EF4444", "#B91C1C"],
+    },
+}
+
+
+LIGHT_MODE_OVERRIDES = {
+    "surface": {
+        "canvas":   "#F8FAFC",
+        "card":     "#FFFFFF",
+        "border":   "#E2E8F0",
+        "elevated": "#F1F5F9",
+        "muted":    "#CBD5E1",
+    },
+    "text": {
+        "primary":   "#0F172A",
+        "secondary": "#334155",
+        "tertiary":  "#64748B",
+        "inverse":   "#F8FAFC",
+    },
+    "chart": {
+        "grid": "#E2E8F0",
+        "axis": "#94A3B8",
+    },
+}
+
+
+TYPOGRAPHY = {
+    "font_family_body":  "'Inter', 'SF Pro Text', -apple-system, sans-serif",
+    "font_family_mono":  "'JetBrains Mono', 'SF Mono', monospace",
+    "scale": {
+        "display":  {"size": "40px",  "weight": 600,  "line_height": "48px",  "letter_spacing": "-0.02em"},
+        "h1":       {"size": "32px",  "weight": 600,  "line_height": "40px",  "letter_spacing": "-0.015em"},
+        "h2":       {"size": "24px",  "weight": 600,  "line_height": "32px"},
+        "h3":       {"size": "20px",  "weight": 600,  "line_height": "28px"},
+        "h4":       {"size": "16px",  "weight": 600,  "line_height": "24px"},
+        "body":     {"size": "14px",  "weight": 400,  "line_height": "20px"},
+        "small":    {"size": "12px",  "weight": 400,  "line_height": "16px"},
+        "caption":  {"size": "11px",  "weight": 500,  "line_height": "14px", "letter_spacing": "0.05em", "text_transform": "uppercase"},
+        "mono_lg":  {"size": "16px",  "weight": 500,  "line_height": "20px",  "font_family": "mono"},
+        "mono_sm":  {"size": "12px",  "weight": 500,  "line_height": "16px",  "font_family": "mono"},
+    },
+}
+
+
+SPACING = {
+    "unit_px": 4,
+    "steps":   [0, 4, 8, 12, 16, 20, 24, 32, 40, 48, 64, 96, 128],
+}
+
+
+BREAKPOINTS = {
+    "mobile":  "640px",
+    "tablet":  "768px",
+    "laptop":  "1024px",
+    "desktop": "1280px",
+    "wide":    "1536px",
+}
+
+
+MOTION = {
+    "duration": {"fast": "120ms", "base": "200ms", "slow": "320ms"},
+    "easing":   {"standard": "cubic-bezier(0.4, 0, 0.2, 1)",
+                   "enter":    "cubic-bezier(0.0, 0, 0.2, 1)",
+                   "exit":     "cubic-bezier(0.4, 0, 1, 1)"},
+    "reduce_motion_query": "@media (prefers-reduced-motion: reduce)",
+}
+
+
+ELEVATION = {
+    "level_0": "none",
+    "level_1": "0 1px 2px rgba(0,0,0,0.35)",
+    "level_2": "0 4px 6px rgba(0,0,0,0.30)",
+    "level_3": "0 10px 15px rgba(0,0,0,0.30)",
+    "level_4": "0 20px 25px rgba(0,0,0,0.35)",
+}
+
+
+def theme_dict() -> dict:
+    return {
+        "name":                 "aegis-institutional",
+        "default_mode":         "dark",
+        "colors":               COLORS,
+        "light_mode_overrides": LIGHT_MODE_OVERRIDES,
+        "typography":           TYPOGRAPHY,
+        "spacing":              SPACING,
+        "breakpoints":          BREAKPOINTS,
+        "motion":               MOTION,
+        "elevation":            ELEVATION,
+    }

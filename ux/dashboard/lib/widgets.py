@@ -1,0 +1,295 @@
+"""UX031 · widget catalog.
+
+Every dashboard widget is defined once here as a plain Python dict. The
+publish layer emits the catalog as JSON for the frontend to consume.
+
+Each widget declares:
+- `id`            — stable identifier used in layouts + routes
+- `title`         — display title
+- `description`   — 1-line purpose
+- `component`     — frontend component name to render
+- `data_source`   — file(s) under `reports/` the widget reads
+- `metrics`       — extracted metrics / attributes surfaced
+- `visual`        — chart type / visual pattern
+- `size`          — default grid span (rows x cols in a 12-col grid)
+- `refresh`       — expected refresh cadence (`realtime` / `daily` / `on_demand`)
+"""
+from __future__ import annotations
+
+
+def all_widgets() -> list[dict]:
+    return [
+        # ═══ Market Regime + Champion ═══════════════════════════════════
+        {
+            "id":          "market_regime",
+            "title":       "Market Regime",
+            "description": "Current Risk-On / Neutral / Risk-Off posture from DEV017 + DEV030.",
+            "component":   "RegimeBadge",
+            "data_source": ["reports/global_context.json", "reports/champion_strategy.json"],
+            "metrics":     ["posture", "confidence", "vol_regime", "usd"],
+            "visual":      "badge_pill",
+            "size":        {"cols": 3, "rows": 1},
+            "refresh":     "daily",
+        },
+        {
+            "id":          "champion_strategy",
+            "title":       "Champion Strategy",
+            "description": "The current DEV030 champion + composite score + core metrics.",
+            "component":   "ChampionCard",
+            "data_source": ["reports/champion_strategy.json", "reports/promotion_recommendation.json"],
+            "metrics":     ["strategy", "composite_score", "sharpe", "cagr", "max_dd_pct", "win_rate"],
+            "visual":      "kpi_card",
+            "size":        {"cols": 3, "rows": 2},
+            "refresh":     "daily",
+        },
+        {
+            "id":          "portfolio_grade",
+            "title":       "Portfolio Grade",
+            "description": "Overall A/B/C/D grade derived from concentration + regime + risk.",
+            "component":   "GradeCard",
+            "data_source": ["reports/portfolio.json", "reports/portfolio_monitoring.json"],
+            "metrics":     ["overall_grade", "diversification", "risk_level", "health_score"],
+            "visual":      "grade_badge",
+            "size":        {"cols": 3, "rows": 1},
+            "refresh":     "daily",
+        },
+        {
+            "id":          "confidence_gauge",
+            "title":       "Confidence Calibration",
+            "description": "DEV029 calibration — raw ECE vs calibrated ECE.",
+            "component":   "ConfidenceGauge",
+            "data_source": ["reports/confidence_calibration.json"],
+            "metrics":     ["best_method", "raw_ece", "cal_ece", "confidence_bias"],
+            "visual":      "gauge",
+            "size":        {"cols": 3, "rows": 1},
+            "refresh":     "on_demand",
+        },
+
+        # ═══ Portfolio composition ═════════════════════════════════════
+        {
+            "id":          "portfolio_value",
+            "title":       "Portfolio Value",
+            "description": "Total equity value + cash allocation.",
+            "component":   "KpiTile",
+            "data_source": ["reports/portfolio.json"],
+            "metrics":     ["total_equity_weight", "cash_allocation_pct", "n_positions"],
+            "visual":      "kpi_tile",
+            "size":        {"cols": 3, "rows": 1},
+            "refresh":     "daily",
+        },
+        {
+            "id":          "sector_allocation",
+            "title":       "Sector Allocation",
+            "description": "Weight distribution across sectors.",
+            "component":   "SectorTreemap",
+            "data_source": ["reports/portfolio.json"],
+            "metrics":     ["sector", "weight"],
+            "visual":      "treemap",
+            "size":        {"cols": 6, "rows": 3},
+            "refresh":     "daily",
+        },
+        {
+            "id":          "industry_allocation",
+            "title":       "Industry Allocation",
+            "description": "Weight distribution across industries.",
+            "component":   "IndustryTreemap",
+            "data_source": ["reports/portfolio.json"],
+            "metrics":     ["industry", "weight"],
+            "visual":      "treemap",
+            "size":        {"cols": 6, "rows": 3},
+            "refresh":     "daily",
+        },
+        {
+            "id":          "holdings_table",
+            "title":       "Holdings",
+            "description": "All currently-held positions with weight + P&L + confidence.",
+            "component":   "HoldingsTable",
+            "data_source": ["reports/recommendations.json"],
+            "metrics":     ["ticker", "current_weight", "unrealised_pnl_pct", "confidence", "sector"],
+            "visual":      "data_table",
+            "size":        {"cols": 12, "rows": 5},
+            "refresh":     "daily",
+        },
+
+        # ═══ Recommendations ═══════════════════════════════════════════
+        {
+            "id":          "top_opportunities",
+            "title":       "Top Opportunities",
+            "description": "Highest-conviction Strong-Buy / Buy recommendations.",
+            "component":   "OpportunityList",
+            "data_source": ["reports/recommendations.json"],
+            "metrics":     ["ticker", "recommendation", "composite_decision_score",
+                              "conviction_pct", "confidence", "sector"],
+            "visual":      "ranked_list",
+            "size":        {"cols": 6, "rows": 4},
+            "refresh":     "daily",
+        },
+        {
+            "id":          "todays_actions",
+            "title":       "Today's Actions",
+            "description": "Buy / Exit / Reduce actions triggered today.",
+            "component":   "ActionsFeed",
+            "data_source": ["reports/recommendations.json"],
+            "metrics":     ["ticker", "action", "recommendation", "confidence"],
+            "visual":      "action_feed",
+            "size":        {"cols": 6, "rows": 4},
+            "refresh":     "daily",
+        },
+        {
+            "id":          "recommendation_timeline",
+            "title":       "Recommendation Timeline",
+            "description": "Chronological view of recommendations over time.",
+            "component":   "TimelineChart",
+            "data_source": ["reports/recommendations.parquet", "reports/learning.parquet"],
+            "metrics":     ["entry_date", "recommendation", "outcome"],
+            "visual":      "timeline",
+            "size":        {"cols": 12, "rows": 3},
+            "refresh":     "daily",
+        },
+
+        # ═══ Risk ══════════════════════════════════════════════════════
+        {
+            "id":          "risk_alerts",
+            "title":       "Risk Alerts",
+            "description": "Live risk events from DEV024 portfolio monitoring.",
+            "component":   "AlertsPanel",
+            "data_source": ["reports/portfolio_monitoring.json"],
+            "metrics":     ["type", "ticker", "severity", "detail"],
+            "visual":      "alerts_stack",
+            "size":        {"cols": 6, "rows": 3},
+            "refresh":     "realtime",
+        },
+        {
+            "id":          "risk_radar",
+            "title":       "Risk Radar",
+            "description": "Multi-axis radar plot of exposure vs concentration vs drawdown vs regime risk.",
+            "component":   "RadarChart",
+            "data_source": ["reports/portfolio.json", "reports/portfolio_monitoring.json",
+                              "reports/global_context.json"],
+            "metrics":     ["concentration", "regime_exposure", "drawdown", "volatility", "leverage"],
+            "visual":      "radar",
+            "size":        {"cols": 6, "rows": 3},
+            "refresh":     "daily",
+        },
+        {
+            "id":          "drawdown_curve",
+            "title":       "Drawdown Curve",
+            "description": "Rolling drawdown of the champion strategy's equity curve.",
+            "component":   "AreaChart",
+            "data_source": ["reports/backtest_equity_curves.csv", "reports/champion_strategy.json"],
+            "metrics":     ["date", "drawdown_pct"],
+            "visual":      "area",
+            "size":        {"cols": 6, "rows": 3},
+            "refresh":     "daily",
+        },
+
+        # ═══ Performance ═══════════════════════════════════════════════
+        {
+            "id":          "equity_curve",
+            "title":       "Equity Curve",
+            "description": "Cumulative equity for champion + top challengers.",
+            "component":   "LineChart",
+            "data_source": ["reports/backtest_equity_curves.csv"],
+            "metrics":     ["date", "strategy", "equity"],
+            "visual":      "line",
+            "size":        {"cols": 12, "rows": 4},
+            "refresh":     "daily",
+        },
+        {
+            "id":          "win_rate",
+            "title":       "Win Rate",
+            "description": "Historical win rate + expectancy from DEV021 backtest.",
+            "component":   "KpiTile",
+            "data_source": ["reports/backtest_summary.parquet"],
+            "metrics":     ["win_rate", "profit_factor", "expectancy"],
+            "visual":      "kpi_tile",
+            "size":        {"cols": 3, "rows": 1},
+            "refresh":     "daily",
+        },
+        {
+            "id":          "performance_heatmap",
+            "title":       "Performance Heatmap",
+            "description": "Monthly returns heatmap for the champion strategy.",
+            "component":   "HeatmapChart",
+            "data_source": ["reports/backtest_equity_curves.csv"],
+            "metrics":     ["year", "month", "return_pct"],
+            "visual":      "heatmap",
+            "size":        {"cols": 6, "rows": 3},
+            "refresh":     "daily",
+        },
+
+        # ═══ Champion + Challengers ════════════════════════════════════
+        {
+            "id":          "challenger_scoreboard",
+            "title":       "Challenger Scoreboard",
+            "description": "Ranked table of all strategies with composite score + core metrics.",
+            "component":   "LeaderboardTable",
+            "data_source": ["reports/challenger_scoreboard.json"],
+            "metrics":     ["rank", "strategy", "composite_score", "sharpe", "cagr", "max_dd_pct", "win_rate"],
+            "visual":      "data_table",
+            "size":        {"cols": 12, "rows": 4},
+            "refresh":     "daily",
+        },
+        {
+            "id":          "regime_champions",
+            "title":       "Regime Champions",
+            "description": "Which strategy wins in each regime (Risk-On / Off / Neutral).",
+            "component":   "RegimeChampionCards",
+            "data_source": ["reports/regime_comparison.json"],
+            "metrics":     ["regime", "strategy", "cagr"],
+            "visual":      "card_row",
+            "size":        {"cols": 6, "rows": 2},
+            "refresh":     "daily",
+        },
+        {
+            "id":          "drift_panel",
+            "title":       "Strategy Drift",
+            "description": "1st-half vs 2nd-half stability for each strategy.",
+            "component":   "DriftTable",
+            "data_source": ["reports/drift_report.json"],
+            "metrics":     ["strategy", "first_half_sharpe", "second_half_sharpe", "stability_flag"],
+            "visual":      "data_table",
+            "size":        {"cols": 6, "rows": 3},
+            "refresh":     "daily",
+        },
+
+        # ═══ Knowledge Graph (DEV031) ═════════════════════════════════
+        {
+            "id":          "knowledge_graph",
+            "title":       "Knowledge Graph",
+            "description": "Interactive relationship graph across all entities.",
+            "component":   "GraphExplorer",
+            "data_source": ["reports/knowledge_graph.json", "reports/entity_network.json",
+                              "reports/relationship_matrix.json"],
+            "metrics":     ["node", "edge", "influence"],
+            "visual":      "force_directed_graph",
+            "size":        {"cols": 12, "rows": 6},
+            "refresh":     "daily",
+        },
+        {
+            "id":          "top_influencers",
+            "title":       "Top Influencers",
+            "description": "Highest PageRank nodes across the knowledge graph.",
+            "component":   "InfluencerList",
+            "data_source": ["reports/graph_statistics.json"],
+            "metrics":     ["node", "score", "entity_type"],
+            "visual":      "ranked_list",
+            "size":        {"cols": 4, "rows": 4},
+            "refresh":     "daily",
+        },
+        {
+            "id":          "portfolio_dependency_graph",
+            "title":       "Portfolio Dependencies",
+            "description": "Which companies + strategies each portfolio depends on.",
+            "component":   "DependencyGraph",
+            "data_source": ["reports/company_network.json", "reports/relationship_matrix.json"],
+            "metrics":     ["portfolio", "companies", "strategy"],
+            "visual":      "sankey",
+            "size":        {"cols": 6, "rows": 4},
+            "refresh":     "daily",
+        },
+    ]
+
+
+def widgets_by_id() -> dict:
+    return {w["id"]: w for w in all_widgets()}
