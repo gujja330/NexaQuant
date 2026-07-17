@@ -44,7 +44,7 @@ def main():
         net, _ = backtest(method="hrp", regime="global", topn=n, sector_cap=2, rebal=63)
         net = net.dropna()
         s = stats(net, idx)
-        m = (1 + net).resample("M").prod() - 1
+        m = (1 + net).resample("ME").prod() - 1
         avg_m = m.mean()
         worst_m = m.min()
         print(f"  {rupees(cap):<10}{n:>7}{s['cagr']:>8.1f}%{s['dd']:>11.1f}%{100*worst_m:>12.1f}%"

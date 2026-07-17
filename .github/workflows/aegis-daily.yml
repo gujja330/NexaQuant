@@ -74,16 +74,41 @@ jobs:
           python scripts/check_data_freshness.py
           echo "fresh=true" >> $GITHUB_OUTPUT
 
-      - name: Run AEGIS engine + database + evidence + ops check
+      # OPS001-F: recommendation_generator failure MUST fail the workflow.
+      # No `|| echo` masking here — that mask allowed 17 days of silent stale-Telegram.
+      # See docs/OPS001E_ROOT_CAUSE_REPORT.md + docs/OPS001F_IMPLEMENTATION.md.
+      - name: Delete stale outputs (defense-in-depth pre-generator)
         if: steps.guard.outputs.run == 'true' && steps.freshness.outputs.fresh == 'true'
+        run: rm -f data/aegis_today.csv data/aegis_candidates.csv reports/AEGIS_LATEST.xlsx
+
+      - name: Run AEGIS engine (fail-fast — no mask)
+        id: engine
+        if: steps.guard.outputs.run == 'true' && steps.freshness.outputs.fresh == 'true'
+        run: python india/recommendation_generator.py
+
+      - name: Verify aegis_today.csv is fresh (blocks stale Telegram)
+        id: freshcheck
+        if: steps.guard.outputs.run == 'true' && steps.engine.outcome == 'success'
         run: |
-          python india/recommendation_generator.py || echo "engine issue; will send last snapshot"
+          test -f data/aegis_today.csv || (echo "FAIL: data/aegis_today.csv missing after generator"; exit 1)
+          GEN=$(head -2 data/aegis_today.csv | tail -1 | cut -d, -f1)
+          TODAY_IST=$(TZ=Asia/Kolkata date +%Y-%m-%d)
+          if [ "$GEN" != "$TODAY_IST" ]; then
+            echo "FAIL: aegis_today.csv Generated=$GEN but today IST=$TODAY_IST"
+            exit 1
+          fi
+          echo "aegis_today.csv Generated=$GEN matches today IST=$TODAY_IST — proceeding"
+          echo "verified=true" >> $GITHUB_OUTPUT
+
+      - name: Run database + scorecard + ops check (non-critical — masked)
+        if: steps.guard.outputs.run == 'true' && steps.freshcheck.outputs.verified == 'true'
+        run: |
           python india/recommendation_db.py || echo "db update skipped"
           python india/scorecard.py || echo "scorecard skipped"
           python india/ops_check.py || echo "ops-check reported issues (see board above)"
 
       - name: Push to Google Sheets (no-ops if secrets absent)
-        if: steps.guard.outputs.run == 'true' && steps.freshness.outputs.fresh == 'true'
+        if: steps.guard.outputs.run == 'true' && steps.freshcheck.outputs.verified == 'true'
         env:
           AEGIS_SPREADSHEET_ID: ${{ secrets.AEGIS_SPREADSHEET_ID }}
           GOOGLE_SERVICE_ACCOUNT_FILE: secrets/prism-sheets-sa.json
@@ -96,14 +121,14 @@ jobs:
       # 2026-07-15 reliability upgrade: pre-notify health check + retry wrapper.
       # See docs/TELEGRAM_RELIABILITY_PLAN.md for root causes fixed here.
       - name: Telegram health check (getMe + getChat)
-        if: steps.guard.outputs.run == 'true' && steps.freshness.outputs.fresh == 'true'
+        if: steps.guard.outputs.run == 'true' && steps.freshcheck.outputs.verified == 'true'
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: python scripts/telegram_health_check.py
 
       - name: Telegram daily notification (retry + delivery ledger)
-        if: steps.guard.outputs.run == 'true' && steps.freshness.outputs.fresh == 'true'
+        if: steps.guard.outputs.run == 'true' && steps.freshcheck.outputs.verified == 'true'
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
@@ -120,7 +145,7 @@ jobs:
           retention-days: 30
 
       - name: Mark published + commit report/data
-        if: steps.guard.outputs.run == 'true' && steps.freshness.outputs.fresh == 'true'
+        if: steps.guard.outputs.run == 'true' && steps.freshcheck.outputs.verified == 'true'
         run: |
           echo "${{ steps.guard.outputs.ist }}" > data/.published
           git config user.name  "aegis-bot"

@@ -31,6 +31,42 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 REPORTS = ROOT / "reports"
 NOTIFY = ROOT / "india" / "telegram_notify.py"
+AEGIS_TODAY = ROOT / "data" / "aegis_today.csv"
+
+
+def _today_ist_str() -> str:
+    """Today's IST calendar date as YYYY-MM-DD (independent of host TZ).
+    IST is UTC+5:30; no DST in India."""
+    from datetime import timedelta
+    utc = datetime.now(timezone.utc)
+    ist = utc + timedelta(hours=5, minutes=30)
+    return ist.strftime("%Y-%m-%d")
+
+
+def _pre_send_freshness_check() -> tuple[bool, str]:
+    """OPS001-F defense-in-depth: refuse to send if aegis_today.csv is
+    missing or was generated on a date other than today IST.
+
+    Returns (ok, reason). If ok=False the caller MUST NOT send and MUST
+    return a non-zero exit code so the workflow fails visibly.
+    """
+    if not AEGIS_TODAY.exists():
+        return False, f"aegis_today.csv missing at {AEGIS_TODAY}"
+    try:
+        # Row-1 = header; row-2 = first data row; first column is `Generated`.
+        with AEGIS_TODAY.open("r", encoding="utf-8") as f:
+            _hdr = f.readline()
+            first = f.readline()
+    except OSError as e:
+        return False, f"aegis_today.csv unreadable: {e}"
+    if not first.strip():
+        return False, "aegis_today.csv has no data rows"
+    generated = first.split(",", 1)[0].strip().strip('"')
+    today_ist = _today_ist_str()
+    if generated != today_ist:
+        return False, (f"aegis_today.csv Generated={generated!r} != today IST={today_ist!r} "
+                       f"— refusing to send stale recommendations")
+    return True, f"aegis_today.csv Generated={generated} matches today IST={today_ist}"
 
 # Backoff schedule (seconds between attempts). Attempt count = len + 1.
 DEFAULT_BACKOFF: tuple[float, ...] = (5.0, 15.0, 45.0)
@@ -97,6 +133,26 @@ def main() -> int:
     print(f"  Telegram send with retry — up to {n_attempts} attempt(s)")
     print(f"  wrapper started at {_iso_utc()}")
     print("=" * 60)
+
+    # OPS001-F: refuse to send stale recommendations. This is a
+    # defense-in-depth check independent of the workflow-level freshness
+    # gate — protects against any invocation path that bypasses the gate.
+    ok, reason = _pre_send_freshness_check()
+    if not ok:
+        print(f"  FRESHNESS CHECK FAILED: {reason}")
+        _append_ledger({
+            "wrapper_ts_start_utc": _iso_utc(),
+            "attempt": 0,
+            "max_attempts": n_attempts,
+            "verdict": "REFUSED_STALE",
+            "matched_marker": "pre_send_freshness_check",
+            "notify_exit_code": None,
+            "elapsed_s": 0.0,
+            "stdout_tail": [reason],
+            "stderr_tail": [],
+        })
+        return 2
+    print(f"  freshness check: {reason}")
 
     for attempt in range(1, n_attempts + 1):
         ts_start = _iso_utc()

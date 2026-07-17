@@ -42,9 +42,10 @@ GRANDFATHERED_MASKS: dict[str, dict[tuple[int, str], str]] = {
         (61, "|| echo \"data refresh issue; will let freshness gate decide\""):
             "ENG003 debt: refresh_data.py non-fatal so freshness gate can independently decide. "
             "ENG003 report §3.1 tracks this for ENG005 tightening.",
-        (76, "|| echo \"engine issue; will send last snapshot\""):
-            "ENG003 debt: recommendation_generator failure falls through to last-known Telegram send. "
-            "Documented for ENG005.",
+        # 2026-07-17 OPS001-F: recommendation_generator mask REMOVED.
+        # Generator failure now fails the workflow (no `|| echo` fallback).
+        # The downstream freshcheck step also refuses to proceed if
+        # aegis_today.csv Generated != today IST. See docs/OPS001F_IMPLEMENTATION.md.
         (77, "|| echo \"db update skipped\""):
             "ENG003 debt: recommendation_db.py non-fatal — DB rebuild is idempotent. Documented.",
         (78, "|| echo \"scorecard skipped\""):
@@ -203,6 +204,56 @@ def test_workflow_yaml_parses():
     print("  ci-discipline: all workflow YAMLs parse")
 
 
+def test_no_deprecated_pandas_frequency_aliases():
+    """OPS001-F: pandas removed the single-letter offset aliases 'Q', 'Y', 'M',
+    'A', 'H' in favour of end-anchored variants ('QE', 'YE', 'ME', 'YE', 'h').
+    Any resample() or freq= call that uses the removed alias raises
+    ValueError on the CI runner. Enforce end-anchored variants across the
+    repo — the previous silent-fail-then-send-stale-Telegram outage
+    (2026-06-30 → 2026-07-16) was caused by exactly this drift.
+
+    Note: 'M' remains valid inside `to_period("M")` (periods use a
+    different alias table). We only forbid it in resample/freq contexts.
+    """
+    ROOT = Path(__file__).resolve().parents[2]
+    # Match .resample("Q") / .resample('M') / .resample( "Y" ) / etc.
+    resample_pat = re.compile(r"""\.resample\s*\(\s*(['"])([QYMAHTL])\1\s*[,)]""")
+    # Match date_range/bdate_range/pd.Grouper(freq="Q"...) — pandas contexts only,
+    # NOT Python def-parameter defaults where freq="M" is used as a dict key.
+    pandas_freq_pat = re.compile(
+        r"""(date_range|bdate_range|Grouper|to_datetime|PeriodIndex)\s*\([^)]*?"""
+        r"""\bfreq\s*=\s*(['"])([QYMAHTL])\2""")
+    findings: list[str] = []
+    for py in ROOT.rglob("*.py"):
+        parts = set(py.parts)
+        if "__pycache__" in parts or "site-packages" in parts:
+            continue
+        try:
+            text = py.read_text(encoding="utf-8", errors="ignore")
+        except OSError:
+            continue
+        rel = py.relative_to(ROOT).as_posix()
+        # Only flag hits outside of this test file itself (which contains the pattern strings).
+        if rel == "nexaquant/tests/test_ci_discipline.py":
+            continue
+        for i, line in enumerate(text.splitlines(), start=1):
+            stripped = line.strip()
+            # Skip Python def-lines (function-parameter defaults are dict keys,
+            # not pandas args — see india/dataset.py:26 build_dataset(freq="M", ...)).
+            if stripped.startswith("def ") or stripped.startswith("async def "):
+                continue
+            if resample_pat.search(line):
+                findings.append(f"    {rel}:{i}  {stripped}")
+            elif pandas_freq_pat.search(line):
+                findings.append(f"    {rel}:{i}  {stripped}")
+    if findings:
+        raise AssertionError(
+            "OPS001-F: deprecated pandas frequency alias(es) found — pandas now requires "
+            "'QE'/'ME'/'YE' instead of 'Q'/'M'/'Y'. See docs/OPS001F_IMPLEMENTATION.md.\n"
+            + "\n".join(findings))
+    print("  ci-discipline: no deprecated pandas frequency aliases (Q/M/Y/A/H/T/L)")
+
+
 def test_workflows_use_pinned_action_major_versions():
     """Every `uses:` line should reference an action with a version pin
     (uses: owner/repo@v4 or @sha). Unpinned actions are a supply-chain risk."""
@@ -227,6 +278,7 @@ TESTS = [
     test_workflow_masks_grandfathered_only,
     test_eng001_regression_workflow_has_zero_masks,
     test_all_workflows_require_python_and_deps_install,
+    test_no_deprecated_pandas_frequency_aliases,
 ]
 
 

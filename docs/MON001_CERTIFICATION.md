@@ -6,8 +6,9 @@
 + recovery-path verification + production-invariance audit
 **Certification target:** unattended daily operation for 12 months (extendable)
 
-**Current active certification:** `MON001-CERT-2026-07-15`
-**Superseded certification:** `MON001-CERT-2026-07-14` (v1 fingerprint algorithm; see §14)
+**Current active certification:** `MON001-CERT-2026-07-17`
+**Superseded certifications:** `MON001-CERT-2026-07-15` (v2 fingerprint algorithm; see §14) · `MON001-CERT-2026-07-14` (v1 fingerprint algorithm; see §14)
+**Amendments:** `MON001-AMEND-2026-07-16-portability` (§15) · `MON001-AMEND-2026-07-17-pandas-QE` (§16)
 
 ---
 
@@ -314,4 +315,93 @@ Post-amendment:
 - MON001 fingerprint: `64e74483d9bd044402da8f5936e1d2fea5e560628a28999a9f8a1a7e260b7b42` (unchanged)
 - Forward boundary: `2026-03-28` (unchanged)
 - `cumulative_strategy_search`: `38` (unchanged)
+
+## 16. Pandas-QE compatibility amendment — 2026-07-17
+
+**Amendment ID:** `MON001-AMEND-2026-07-17-pandas-QE`
+**Certification (new):** `MON001-CERT-2026-07-17` (supersedes `MON001-CERT-2026-07-15`)
+**Trigger:** OPS001-E forensic captured the CI exception on 2026-07-17:
+```
+ValueError: 'Q' is no longer supported for offsets. Please use 'QE' instead.
+  File india/recommendation_generator.py, line 71, in evidence_gate
+    q = (1 + champ).resample("Q").prod() - 1
+```
+This defect caused `recommendation_generator.py` to fail silently on the CI
+runner for 17+ consecutive aegis-bot runs (2026-06-30 → 2026-07-16). The
+`|| echo "engine issue; will send last snapshot"` mask on the engine step
+hid the failure, and the Telegram sender read the last committed
+`data/aegis_today.csv` (frozen at 2026-07-14) and dispatched it daily.
+
+### 16.1 Defect
+
+Two sealed baseline files used pandas offset aliases that newer pandas
+versions have hard-removed:
+- `india/recommendation_generator.py:71` — `resample("Q")` (Quarter → removed)
+- `india/confidence_engine.py:77` — `resample("M")` (Month → removed)
+
+Locally (pandas 2.2.3) these still worked with a silenced FutureWarning
+(`warnings.simplefilter("ignore")` at generator line 36). CI resolves to
+the latest pandas which raises `ValueError` immediately.
+
+### 16.2 Fix
+
+Replace deprecated frequency aliases with the current end-anchored
+variants. Semantics are identical (`Q ≡ QE`, `M ≡ ME`). No strategy or
+research behaviour changes.
+
+- `india/recommendation_generator.py:71`: `resample("Q")` → `resample("QE")`
+- `india/confidence_engine.py:77`: `resample("M")` → `resample("ME")`
+
+Two non-sealed files were amended for the same class of defect:
+- `india/capital_ladder.py:47`: `resample("M")` → `resample("ME")`
+- `india/evidence/mom_breakdown.py:30, 32`: `resample("M")` → `resample("ME")`
+
+### 16.3 What is NOT changed
+
+- Recommendation logic, HOLD (63), rebal (63), HRP, sector_cap (2),
+  name_cap (0.30), method (hrp) — all byte-verified unchanged
+- LAB001–LAB010 outputs, trial manifest, `cumulative_strategy_search = 38`
+- Forward boundary `2026-03-28`, forward ledger, envelope hash
+  `e4ca8ecb97914f4828f6601eb5d05ebe4956099dac7c6df70df13ccaaa482812`
+- Governance rules, CHANGE_CONTROL_CHECKLIST, RELEASE_CHECKLIST
+- Semantic behaviour of any resample() call (Q ≡ QE, M ≡ ME by pandas definition)
+- MON001 sealed CORE (preregistration, mon001.yaml, monitor.py,
+  forward_ledger.py, fingerprint.py, baseline_envelope.py, broker_layer.py)
+
+### 16.4 What IS changed
+
+- MON001 fingerprint hash:
+  - OLD: `64e74483d9bd044402da8f5936e1d2fea5e560628a28999a9f8a1a7e260b7b42`
+  - NEW: `e4c070673568c52d419dea1e70060d2319b4622dc5268634ecd848327840a8bf`
+- `india/monitoring/MON001_Forward_Validation/reports/sealed_fingerprint.json`
+  updated with new hash + new per-file hashes for the two amended files.
+- Certification ID: `MON001-CERT-2026-07-15` superseded by `MON001-CERT-2026-07-17`
+
+### 16.5 Why the fix is not a strategy change
+
+`resample("Q")` and `resample("QE")` produce identical GroupBy groupings
+in pandas (both label at quarter-end). Same for `M` / `ME`. The pandas
+change is purely syntactic — the `Q` alias was deprecated in favour of
+`QE` for API clarity (`E` = End explicit). Numerical output of
+`evidence_gate` (in `recommendation_generator.py`) is byte-identical
+before and after the change on any pandas version that supports both
+aliases. The strategy has not been re-tuned, re-scored, or re-fit.
+
+### 16.6 Verification
+
+Post-amendment:
+- MON001 health check: 9 / 9 `INFO`, exit 0
+- fingerprint_matches_seal: reports NEW hash `e4c070673568c52d...` matches seal
+- Full regression: all suites PASS (see OPS001F_IMPLEMENTATION for exact counts)
+- `cumulative_strategy_search: 38` unchanged
+- HOLD=63, rebal=63, sector_cap=2, name_cap=0.30, method=hrp unchanged
+- Forward ledger row count unchanged (150), hash chain intact
+
+### 16.7 Certifications history
+
+| Certification ID | Date | Reason |
+|---|---|---|
+| MON001-CERT-2026-07-14 | 2026-07-14 | Original; v1 fingerprint algorithm |
+| MON001-CERT-2026-07-15 | 2026-07-15 | v2 fingerprint algorithm (LF-normalized) |
+| MON001-CERT-2026-07-17 | 2026-07-17 | Pandas-QE compatibility fix (§16) |
 

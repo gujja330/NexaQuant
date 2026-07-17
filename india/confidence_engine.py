@@ -74,7 +74,7 @@ def main():
     med_rec = int(np.median(reps)); worst_uw_mo = int(reps.max() // 21)
 
     # tail
-    m = (1 + net).resample("M").prod() - 1
+    m = (1 + net).resample("ME").prod() - 1
     worst_m = 100 * m.min()
     r = net.values; cvar95 = 100 * r[r <= np.percentile(r, 5)].mean()
     tail = "Low" if cvar95 > -1.2 else ("Medium" if cvar95 > -2.0 else "High")

@@ -68,7 +68,7 @@ def select_with_watchlist(hist, topn, sector_cap):
 
 def evidence_gate(champ, idx, reg):
     s = stats(champ, idx)
-    q = (1 + champ).resample("Q").prod() - 1
+    q = (1 + champ).resample("QE").prod() - 1
     win = 100 * (q > 0).mean(); med_q = 100 * q.median(); cycles = len(q)
     half = champ.index[len(champ) // 2]; oos = champ[champ.index >= half]
     oos_sh = oos.mean() / (oos.std() + 1e-12) * np.sqrt(252)

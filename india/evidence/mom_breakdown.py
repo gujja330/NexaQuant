@@ -27,9 +27,9 @@ REBAL, TOPN, SECTOR_CAP = 63, 15, 2
 
 def mom_table(net, idx, months=18):
     """Monthly returns of strategy vs Nifty."""
-    m = (1 + net).resample("M").prod() - 1
+    m = (1 + net).resample("ME").prod() - 1
     nf = idx.pct_change().reindex(net.index).fillna(0.0)
-    mn = (1 + nf).resample("M").prod() - 1
+    mn = (1 + nf).resample("ME").prod() - 1
     df = pd.DataFrame({"arjuna": 100 * m, "nifty": 100 * mn}).dropna().tail(months)
     return df
 
