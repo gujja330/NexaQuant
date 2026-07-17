@@ -4,13 +4,18 @@ name: AEGIS Daily
 # scorecard -> Google Sheets -> Telegram -> commit. Every weekday, automatically.
 #
 # WHY MULTIPLE TIMES: GitHub scheduled runs are BEST-EFFORT — often delayed, sometimes dropped
-# entirely under load. We attempt at off-peak times each morning and use a once-per-IST-day guard
+# entirely under load. We attempt several times each morning and use a once-per-IST-day guard
 # so the work runs exactly once. Missed days self-heal: refresh_data uses a 1-month lookback.
 #
-# Primary target: ~06:00 IST (operator's stated cadence — data settles by ~10 PM previous day).
-# Backups fire only if the primary was dropped by GitHub's scheduler.
+# 2026-07-17 morning-cadence restoration (operator request 2026-07-17):
+#   Evening delivery is not useful — the operator plans the trading day at
+#   ~06:00 IST before markets open. The daily brief must land THEN, dated for
+#   TODAY IST, using YESTERDAY's session close as the reference bar (normal
+#   morning-brief pattern in Indian institutional flow).
 #
-# Attempts (IST): ~06:07 (primary) · ~08:53 (backup 1) · ~10:53 (backup 2) · ~13:53 (backup 3).
+# Attempts (IST): ~06:00 (primary) · ~06:30 (backup 1) · ~07:00 (backup 2) · ~08:00 (backup 3).
+# Cron UTC = IST - 05:30. All slots after 00:00 UTC so datetime.now().date()
+# in the UTC runner and $(TZ=Asia/Kolkata date +%F) both return TODAY IST.
 # Manual dispatch always runs.
 #
 # Required repo secrets: TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID.
@@ -19,14 +24,13 @@ name: AEGIS Daily
 
 on:
   schedule:
-    # Post-market-close IST slots. NSE closes 15:30 IST; yfinance publishes the
-    # complete daily bar ~30-45 minutes later. Running BEFORE close (the old
-    # 06:07 IST primary) stamped picks with YESTERDAY's asof because today's
-    # bar didn't yet exist. The evening slots below let the generator see
-    # today's session so `asof = closes.index[-1] = today`.
-    - cron: "45 10 * * 1-5"   # ~16:15 IST — primary (post-close + settle buffer)
-    - cron: "0 13 * * 1-5"    # ~18:30 IST — backup 1 (retry if primary was dropped)
-    - cron: "30 15 * * 1-5"   # ~21:00 IST — backup 2 (last chance same IST day)
+    # Morning-IST slots. Yesterday's NSE close (15:30 IST) has published to
+    # yfinance by now; the generator uses that bar and stamps picks with
+    # today's IST date (`Generated = datetime.now().date()`).
+    - cron: "30 0 * * 1-5"    # ~06:00 IST — primary (before market open)
+    - cron: "0 1 * * 1-5"     # ~06:30 IST — backup 1
+    - cron: "30 1 * * 1-5"    # ~07:00 IST — backup 2
+    - cron: "30 2 * * 1-5"    # ~08:00 IST — backup 3 (last morning slot)
   workflow_dispatch:
 
 permissions:
