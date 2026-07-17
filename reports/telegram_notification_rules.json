@@ -1,0 +1,96 @@
+{
+  "priorities": [
+    "CRITICAL",
+    "HIGH",
+    "MEDIUM",
+    "LOW",
+    "SILENT"
+  ],
+  "priority_map": {
+    "buy_strong": "HIGH",
+    "buy": "MEDIUM",
+    "accumulate": "MEDIUM",
+    "exit": "CRITICAL",
+    "reduce": "HIGH",
+    "sell": "CRITICAL",
+    "stop_loss_hit": "CRITICAL",
+    "target_hit": "HIGH",
+    "portfolio_grade_change": "HIGH",
+    "cash_below_min": "HIGH",
+    "regime_flip_to_off": "CRITICAL",
+    "regime_flip_to_on": "HIGH",
+    "regime_neutral": "MEDIUM",
+    "champion_promoted": "HIGH",
+    "champion_hold": "LOW",
+    "drift_detected": "MEDIUM",
+    "daily_summary": "MEDIUM",
+    "weekly_review": "MEDIUM",
+    "monthly_review": "HIGH",
+    "confidence_update": "LOW",
+    "watchlist_add": "LOW",
+    "info": "SILENT"
+  },
+  "by_priority": {
+    "CRITICAL": [
+      "exit",
+      "sell",
+      "stop_loss_hit",
+      "regime_flip_to_off"
+    ],
+    "HIGH": [
+      "buy_strong",
+      "reduce",
+      "target_hit",
+      "portfolio_grade_change",
+      "cash_below_min",
+      "regime_flip_to_on",
+      "champion_promoted",
+      "monthly_review"
+    ],
+    "MEDIUM": [
+      "buy",
+      "accumulate",
+      "regime_neutral",
+      "drift_detected",
+      "daily_summary",
+      "weekly_review"
+    ],
+    "LOW": [
+      "champion_hold",
+      "confidence_update",
+      "watchlist_add"
+    ],
+    "SILENT": [
+      "info"
+    ]
+  },
+  "grouping": {
+    "CRITICAL": {
+      "send_now": true,
+      "coalesce_group": null,
+      "window_min": 0
+    },
+    "HIGH": {
+      "send_now": true,
+      "coalesce_group": "high_30min",
+      "window_min": 30
+    },
+    "MEDIUM": {
+      "send_now": false,
+      "coalesce_group": "daily_summary",
+      "window_min": null
+    },
+    "LOW": {
+      "send_now": false,
+      "coalesce_group": "weekly_review",
+      "window_min": null
+    },
+    "SILENT": {
+      "send_now": false,
+      "coalesce_group": null,
+      "window_min": null
+    }
+  },
+  "governance": "No message ever mutates state; delivery layer is advisory-only.",
+  "run_utc": "2026-07-17T12:41:44.204199+00:00Z"
+}
