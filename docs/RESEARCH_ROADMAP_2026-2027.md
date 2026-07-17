@@ -55,7 +55,8 @@ Three organising principles for this track:
 | **ARCH014** | Scenario & Stress Testing | ⚪ BONUS | ARCH010 | TBD | — |
 | **ARCH015** | Evaluation & Benchmarking | ⚪ BONUS | ARCH008, ARCH009 | TBD | — |
 | **ARCH016** | Human-in-the-Loop Decision Support | ⚪ BONUS | ARCH009 | TBD | — |
-| **ARCH017** | Global Intelligence Engine | 🟡 SCOPED (2026-07-17) | ARCH001A + ARCH002 | 2026-Q3 | data-feed inventory |
+| **ARCH017A** | Market Data Canonical Model (database constitution for Phase 2) | 🟢 DRAFT (2026-07-17) | ARCH001A | done | operator approval |
+| **ARCH017** | Global Intelligence Engine | 🟢 DRAFT (2026-07-17) | ARCH001A + ARCH017A + ARCH002 | done | operator approval + ingest scaffolding |
 | **ARCH018** | Sector Intelligence Engine | 🟡 SCOPED (2026-07-17) | ARCH017 | 2026-Q3 | sector-strength backtest |
 | **ARCH019** | Regime Detection Engine | 🟡 SCOPED (2026-07-17) | ARCH017, ARCH018 · **subsumes ARCH006** | 2026-Q4 | classifier build |
 | **ARCH020** | Market Knowledge Graph | 🟡 SCOPED (2026-07-17) | ARCH017, ARCH018 | 2026-Q4 | graph schema |
@@ -138,8 +139,9 @@ Phase 1 · CAPITAL PRESERVATION
   1.c  ARCH004   Position Sizing
 
 Phase 2 · MARKET INTELLIGENCE  (the "context layer" — the biggest missing piece)
-  2.a  ARCH017   Global Intelligence Engine        ← operator's next priority
-  2.b  ARCH018   Sector Intelligence Engine        ← "probably the highest ROI research"
+  2.a0 ARCH017A  Market Data Canonical Model        ← database constitution; must precede ARCH017
+  2.a  ARCH017   Global Intelligence Engine         ← delivered 2026-07-17
+  2.b  ARCH018   Sector Intelligence Engine         ← "probably the highest ROI research"
   2.c  ARCH019   Regime Detection Engine           (subsumes ARCH006)
   2.d  ARCH020   Market Knowledge Graph
   2.e  ARCH021   Cross-Market Dependency Engine
@@ -441,7 +443,37 @@ Sections: (0) preamble · (1) v1 assumption (operator manually executes; no brok
 
 ---
 
-### 3.12  ARCH017 — Global Intelligence Engine  (Phase 2 · **operator's next priority**)
+### 3.11a  ARCH017A — Market Data Canonical Model  ✅ DRAFT DELIVERED 2026-07-17  (Phase 2 gate)
+
+Full document at [`docs/ARCH017A_MARKET_DATA_CANONICAL_MODEL.md`](ARCH017A_MARKET_DATA_CANONICAL_MODEL.md). Summary:
+
+- The **database constitution** for the Market Intelligence Layer. Every field name, timestamp convention, confidence value, and missing-data behaviour used by ARCH017-030 comes from this document.
+- **8 entity classes**: RawObservation · DerivedMetric · NormalizedIndicator · Classification · CompositeScore · RegimeState · Dependency · MemorySnapshot
+- **Confidence is a first-class field** on every derived entity, computed from 4 components (source × freshness × completeness × agreement)
+- **Missing-data behaviour formalised** — never silently substituted; explicit `Unknown` / `NotFound` / `feed_outage`
+- **Versioning discipline** — schema, formulas, weightings, code SHA all frozen per row
+- **Fail-loud principle** — outages produce explicit events, not stale reads
+- **Full compliance matrix** with ARCH001A Articles I, II, IV, V, VII, VIII
+
+**Status.** DRAFT / v0.9 pending operator approval. Insertion at position 0 of Phase 2 (must precede ARCH017 approval).
+
+**Amendment discipline.** Any downstream ARCH doc that needs a new variable, unit, source, or entity class amends this document first via §14.
+
+---
+
+### 3.12  ARCH017 — Global Intelligence Engine  ✅ DRAFT DELIVERED 2026-07-17  (Phase 2 · **operator's named next priority**)
+
+Full document at [`docs/ARCH017_GLOBAL_INTELLIGENCE_ENGINE.md`](ARCH017_GLOBAL_INTELLIGENCE_ENGINE.md). Summary:
+
+- **The missing top half of AEGIS.** Adds Global / Macroeconomy / Country tiers above AEGIS's existing Sector / Company / Portfolio tiers.
+- **~60 variables inventoried** across 11 tiers: global equities, volatility, currencies, commodities, rates, macro, central-bank, flow (FII/DII), breadth, liquidity proxies, India domestic markers. All registered against ARCH017A §4.4 variable catalogue.
+- **~35 DerivedMetrics** (2s10s slope, VIX MA, DXY MA, real yields, momentum blocks, breadth, FII flow rolling sums, etc.)
+- **~25 NormalizedIndicators** on the [0, 100] scale — direction: higher = more risk-on
+- **5 Classifications**: `global_posture` (Risk-On/Off/Rotating/Neutral/Unknown) · `liquidity` · `usd` · `vol_regime` · `rates`
+- **4 CompositeScores**: `global_risk` · `macro` · `liquidity` · `usd`
+- **Output contract**: daily bundle at 08:30 IST (pre-open) with `contributions.global_risk_top5` for explainability. **Never emits BUY/SELL/EXIT** — only context.
+- **Consumer list**: ARCH018/019/020/021/022/023/024/025/026 + optional consumption by the recommendation engine (advisory-only hints; sealed core untouched)
+- **Rollout plan**: design → ingest scaffolding → backfill → shadow publish (4 weeks) → advisory consumer integration → live only after RISK001-C ships.
 
 **Objective.** Answer "*what is the state of the global environment today?*" as a daily input to every AEGIS decision.
 
@@ -925,3 +957,4 @@ Following the strategic guidance in §0 ("do not write more code; architecture i
 | 2026-07-17 | Initial roadmap; ARCH002 DRAFT; ARCH003-ARCH016 SCOPED / BONUS | AEGIS engineering |
 | 2026-07-17 (revision 1) | ARCH001A added at constitutional apex; execution order revised | AEGIS engineering |
 | 2026-07-17 (revision 2) | **Major.** Added ARCH017-ARCH030 (Market Intelligence Layer + AI Learning Layer). Phase structure formalised (Phase 0-4). ARCH019 subsumes ARCH006; ARCH027/028/030 replace ARCH008; ARCH029 is operational subset of ARCH007. Operator's strategic guidance (§0) preserved verbatim as reference of record. §3-BONUS added: deferred capabilities (RL, autonomous AI, self-modifying models, auto broker execution, options). §6 revised: no new code; design-only cycle. | AEGIS engineering |
+| 2026-07-17 (revision 3) | ARCH017A (Market Data Canonical Model) DRAFT delivered as new Phase-2 gate — the "database constitution" every ARCH017-030 consumer inherits. ARCH017 (Global Intelligence Engine) DRAFT delivered — the missing top half of AEGIS (~60 variables, ~35 DerivedMetrics, ~25 NormalizedIndicators, 5 Classifications, 4 CompositeScores). Roadmap status board and §2.1 execution order updated. §3.11a added, §3.12 updated to reflect delivery. | AEGIS engineering |
