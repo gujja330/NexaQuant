@@ -38,8 +38,21 @@ This constitution is the top-level design principle for every subsystem downstre
 >
 > **Rule 5 — The Risk Controller has veto power over every recommendation.**
 > No score, no confidence value, no HRP weight, no operator override can force the system to hold a position that Level 1 has flagged for exit. Overrides that increase risk are structurally impossible; overrides that decrease risk (early exit) are always allowed.
+>
+> **Rule 6 — When uncertain, reduce risk. Never increase risk because of uncertainty.**
+> Missing data, conflicting signals, unexpected regime, unknown market state, stale feeds, indicator disagreement, or *any* condition the system was not designed to reason about must default to `REDUCE` or `EXIT`, never to `HOLD_LARGER` or `INCREASE_WEIGHT`. The system fails safe, not fails open. Concrete triggers:
+>
+> - Missing bar for one of the position's inputs → REDUCE 25%
+> - Regime classifier returns `UNKNOWN` → REDUCE 25% for every open position
+> - Confidence engine returns `null` where a value was expected → REDUCE 30%
+> - Sector-strength calculator returns NaN → treat as bottom-quintile
+> - Two signals contradict each other beyond a configured tolerance → EXIT the position, not hold
+> - Any newly-observed input distribution that lies outside the training envelope → REDUCE and log a `DISTRIBUTION_DRIFT` audit event
+> - A rule cannot evaluate because its dependency is stale → treat as if the rule fired for exit
+>
+> This rule composes with Rules 1–5: uncertainty never grants a bypass to Level 1, and uncertainty is never a reason to loosen a hard stop.
 
-These rules cannot be relaxed by parameter tuning. Any future proposal that would weaken them (`allow_stop_override=True`, `soft_stop_mode=True`, `disable_risk_controller=True`) is out-of-scope for this design.
+These rules cannot be relaxed by parameter tuning. Any future proposal that would weaken them (`allow_stop_override=True`, `soft_stop_mode=True`, `disable_risk_controller=True`, `treat_missing_data_as_hold=True`) is out-of-scope for this design.
 
 ---
 
@@ -201,8 +214,14 @@ Every exit event emits **exactly one** reason code. The set is fixed; no free-te
 | `SECTOR_CAP` | L4.c | Sector cap enforcement (rare on exits; used mostly on rejects) | sector, cap, current_sector_weight |
 | `NAME_CAP` | L4.d | Name cap enforcement | ticker, cap, current_weight |
 | `MANUAL_OVERRIDE_REDUCE_RISK` | any | Operator manually exited or reduced | operator_id, timestamp, notes |
+| `DATA_MISSING` | L1 (Rule 6) | Required input bar or feed absent | which_input, expected_asof, action=REDUCE_25 |
+| `SIGNAL_CONFLICT` | L1 (Rule 6) | Two signals contradict beyond configured tolerance | signal_a, signal_b, delta, action=EXIT |
+| `DISTRIBUTION_DRIFT` | L1 (Rule 6) | Input distribution outside training envelope | input_name, observed_z, action=REDUCE_25 |
+| `REGIME_UNKNOWN` | L1 (Rule 6) | Regime classifier returned UNKNOWN / null | timestamp, action=REDUCE_25 |
+| `CONFIDENCE_NULL` | L1 (Rule 6) | Confidence engine returned null unexpectedly | position_id, action=REDUCE_30 |
+| `DEPENDENCY_STALE` | L1 (Rule 6) | A rule could not evaluate because its dependency is stale | rule_id, dependency, stale_by_days, action=EXIT (treat as if the rule fired for exit) |
 
-`MANUAL_OVERRIDE_INCREASE_RISK` **does not exist** by design (Rule 5 — no override that increases risk is structurally allowed).
+`MANUAL_OVERRIDE_INCREASE_RISK` **does not exist** by design (Rule 5 — no override that increases risk is structurally allowed). Rule-6 codes (`DATA_MISSING`, `SIGNAL_CONFLICT`, `DISTRIBUTION_DRIFT`, `REGIME_UNKNOWN`, `CONFIDENCE_NULL`, `DEPENDENCY_STALE`) are all Level-1 and cannot be suppressed by any operator flag — uncertainty always defaults to less risk, never more.
 
 ---
 
@@ -397,6 +416,8 @@ The following overrides are **impossible** in the design — no configuration, n
 4. Turn off audit logging
 5. Delete audit rows
 6. Hold a position through a `PORTFOLIO_DD_LIMIT` breach
+7. Suppress any Rule-6 uncertainty REDUCE (`DATA_MISSING`, `SIGNAL_CONFLICT`, `DISTRIBUTION_DRIFT`, `REGIME_UNKNOWN`, `CONFIDENCE_NULL`, `DEPENDENCY_STALE`)
+8. Treat missing data as `HOLD` (a `treat_missing_data_as_hold` flag is not permitted)
 
 Any code path proposing to enable one of these must be rejected in review.
 
