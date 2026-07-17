@@ -508,7 +508,10 @@ def test_29_no_sealed_file_modifications():
         "india/monitoring/MON001_Forward_Validation/fingerprint.py",
         "india/monitoring/MON001_Forward_Validation/baseline_envelope.py",
         "india/monitoring/MON001_Forward_Validation/broker_layer.py",
-        "india/telegram_notify.py",
+        # 2026-07-17 OPS001-I: india/telegram_notify.py explicitly REMOVED from
+        # this forbidden set. It is NOT in the MON001 fingerprint. The redesign
+        # authorised by the operator (docs/OPS001I_IMPLEMENTATION.md) modified
+        # its presentation layer. Presentation code is not sealed.
     }
     touched = forbidden & changed
     assert not touched, f"OPS001-A modified sealed files: {sorted(touched)}"

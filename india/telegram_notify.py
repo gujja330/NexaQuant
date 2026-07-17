@@ -27,7 +27,8 @@ Run:  python india/telegram_notify.py            # send today's summary
       python india/telegram_notify.py --check    # validate config + print the message (no send)
       python india/telegram_notify.py --resolve  # discover your chat id from getUpdates
 """
-import os, sys, re, json, urllib.parse, urllib.request, warnings
+import os, sys, re, json, hashlib, urllib.parse, urllib.request, warnings
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 import pandas as pd
 
@@ -37,6 +38,11 @@ warnings.simplefilter("ignore")
 CANON = ROOT / "data" / "aegis_today.csv"
 DB_PATH = ROOT / "data" / "aegis_recommendation_db.csv"
 REG_PATH = ROOT / "data" / "aegis_registry.csv"
+
+# OPS001-I additions
+MON001_FINGERPRINT_FILE = ROOT / "india" / "monitoring" / "MON001_Forward_Validation" / "reports" / "sealed_fingerprint.json"
+MON001_YAML = ROOT / "india" / "monitoring" / "MON001_Forward_Validation" / "mon001.yaml"
+TRIAL_MANIFEST = ROOT / "india" / "ai_lab" / "trial_manifest.md"
 
 
 def load_env():
@@ -208,6 +214,304 @@ def _sold_pnl(removed_syms, db, prev_snap, cur_snap, reg_df, closes, prev_exp, c
     return out
 
 
+# ================================================================
+# OPS001-I · Institutional-quality Telegram formatter helpers
+# See docs/OPS001H_TELEGRAM_REDESIGN.md for the design.
+# Presentation-only additions. No strategy / scoring / production
+# logic touched.
+# ================================================================
+
+
+def _today_ist_str():
+    """Today's IST calendar date (UTC+5:30). Independent of host TZ."""
+    utc = datetime.now(timezone.utc)
+    ist = utc + timedelta(hours=5, minutes=30)
+    return ist.strftime("%Y-%m-%d")
+
+
+def _now_utc_and_ist():
+    utc = datetime.now(timezone.utc)
+    ist = utc + timedelta(hours=5, minutes=30)
+    return utc.strftime("%Y-%m-%dT%H:%MZ"), ist.strftime("%H:%M IST")
+
+
+def _read_mon001_fingerprint():
+    """Read sealed_fingerprint.json. Returns dict with hash + algorithm_version.
+    Never raises — returns empty strings on failure."""
+    try:
+        data = json.loads(MON001_FINGERPRINT_FILE.read_text(encoding="utf-8"))
+        return {"hash": data.get("hash", ""), "algorithm_version": data.get("algorithm_version", 0)}
+    except Exception:
+        return {"hash": "", "algorithm_version": 0}
+
+
+def _read_trial_count():
+    """cumulative_strategy_search from trial_manifest.md."""
+    try:
+        text = TRIAL_MANIFEST.read_text(encoding="utf-8", errors="ignore")
+        m = re.search(r"cumulative_strategy_search:\s*(\d+)", text)
+        if m:
+            return int(m.group(1))
+    except Exception:
+        pass
+    return None
+
+
+def _days_between(from_date, to_date=None):
+    """Days between YYYY-MM-DD dates. to_date defaults to today IST."""
+    try:
+        if to_date is None:
+            to_date = _today_ist_str()
+        return int((pd.Timestamp(to_date) - pd.Timestamp(str(from_date))).days)
+    except Exception:
+        return 0
+
+
+def _derive_stop_price(entry_price, buy_range_str, default_pct=0.05):
+    """Presentation-only stop level for the operator's downside anchor.
+    Not a strategy stop. Uses buy-range-low × 0.97 if available, else
+    entry × (1 - default_pct). Returns (stop_price, stop_pct) or (None, 0)."""
+    try:
+        e = float(entry_price)
+        if e <= 0:
+            return None, 0.0
+    except Exception:
+        return None, 0.0
+    stop = e * (1 - default_pct)
+    try:
+        # buy_range_str like "4830 - 5104" or "4830-5104"
+        parts = re.split(r"[-–\s]+", str(buy_range_str).strip())
+        parts = [p for p in parts if p]
+        if parts:
+            lo = float(parts[0])
+            if lo > 0:
+                stop = max(stop, lo * 0.97)
+    except Exception:
+        pass
+    stop_pct = (stop - e) / e * 100
+    return stop, stop_pct
+
+
+def _pct_from_current(current_price, target_str):
+    """Return % move from current to target (nullable if either missing)."""
+    try:
+        c = float(current_price); t = float(target_str)
+        if c <= 0:
+            return None
+        return (t - c) / c * 100
+    except Exception:
+        return None
+
+
+def _actions_counts(t, diff_d):
+    """Count NEW / HOLD / EXIT / WATCH for the ACTIONS block.
+    Derives NEW from diff_d['new']; WATCH from Strength column; HOLD is remainder."""
+    watch = 0
+    if "Strength" in t.columns:
+        watch = int((t["Strength"].astype(str).str.upper() == "WATCH").sum())
+    new_syms = (diff_d or {}).get("new") or []
+    removed = (diff_d or {}).get("removed") or []
+    new_ct = len(new_syms)
+    exit_ct = len(removed)
+    hold_ct = max(0, len(t) - new_ct - watch)
+    return {"new": new_ct, "hold": hold_ct, "exit": exit_ct, "watch": watch}
+
+
+def _sector_allocation(t):
+    """Aggregate weight per sector. Returns [(sector, weight_pct)] sorted desc."""
+    from collections import defaultdict
+    totals = defaultdict(float)
+    for _, r in t.iterrows():
+        sec = str(_val(r, "Sector", "")) or "Unknown"
+        try:
+            wt = float(_val(r, "Weight %", 0))
+        except Exception:
+            wt = 0.0
+        totals[sec] += wt
+    return sorted(totals.items(), key=lambda kv: -kv[1])
+
+
+def _largest_position(t):
+    """Return (ticker, weight%) of largest position by Weight %."""
+    if t is None or t.empty or "Weight %" not in t.columns:
+        return None, 0.0
+    try:
+        idx = t["Weight %"].astype(float).idxmax()
+        row = t.loc[idx]
+        return str(_val(row, "Stock", "")), float(_val(row, "Weight %", 0))
+    except Exception:
+        return None, 0.0
+
+
+def _portfolio_confidence(t):
+    """Weight-weighted mean of Rec Confidence % over the portfolio."""
+    if t is None or t.empty:
+        return None
+    try:
+        conf = t["Rec Confidence %"].astype(float)
+        wts = t["Weight %"].astype(float)
+        tw = float(wts.sum())
+        if tw <= 0:
+            return float(conf.mean())
+        return float((conf * wts).sum() / tw)
+    except Exception:
+        return None
+
+
+def _nifty_summary():
+    """Read latest Nifty close + prior close from parquet. None if unavailable."""
+    for name in ("NIFTY_D1.parquet", "^NSEI_D1.parquet", "NIFTY50_D1.parquet",
+                  "NIFTY_INDEX_D1.parquet"):
+        p = ROOT / "data" / "raw" / "india" / name
+        if p.exists():
+            try:
+                df = pd.read_parquet(p)
+                if len(df) < 2:
+                    continue
+                cols_lc = {c.lower(): c for c in df.columns}
+                close_col = cols_lc.get("close") or cols_lc.get("adj close")
+                if not close_col:
+                    continue
+                last = float(df[close_col].iloc[-1])
+                prev = float(df[close_col].iloc[-2])
+                chg = (last - prev) / prev * 100 if prev > 0 else 0.0
+                return {"close": last, "chg_pct": chg}
+            except Exception:
+                continue
+    return None
+
+
+def _risk_summary(t, db):
+    """closest-to-stop and closest-to-target lists + concentration %.
+    Presentation-only: uses derived stops (not strategy stops)."""
+    closest_stop = []; closest_target = []
+    for _, r in t.iterrows():
+        sym = str(_val(r, "Stock", ""))
+        try:
+            cur_px = float(_val(r, "Current Price", 0))
+        except Exception:
+            cur_px = 0.0
+        if cur_px <= 0:
+            continue
+        info = _entry_info(sym, db, str(_val(r, "Generated", "")))
+        entry_px = info["price"] if info else cur_px
+        stop_px, _ = _derive_stop_price(entry_px, _val(r, "Buy Range", ""))
+        tgt_str = str(_val(r, "Hist Target", ""))
+        try:
+            tgt = float(tgt_str)
+        except Exception:
+            tgt = None
+        if stop_px:
+            dist_stop = (cur_px - stop_px) / cur_px * 100
+            if dist_stop < 8.0:
+                closest_stop.append((sym, dist_stop))
+        if tgt:
+            dist_tgt = (tgt - cur_px) / cur_px * 100
+            if 0 <= dist_tgt < 5.0:
+                closest_target.append((sym, dist_tgt))
+    closest_stop.sort(key=lambda x: x[1])
+    closest_target.sort(key=lambda x: x[1])
+    # concentration: top-3 weight
+    try:
+        top3_wt = float(t.nlargest(3, "Weight %")["Weight %"].sum())
+    except Exception:
+        top3_wt = 0.0
+    return {"closest_stop": closest_stop[:3], "closest_target": closest_target[:3],
+            "top3_weight": top3_wt}
+
+
+def _performance_buckets_from_registry(reg_df):
+    """Compute 30D/90D/1Y win-rate + median from registry mature outcomes.
+    Uses registry rows whose maturity has been logged. Returns dict of buckets."""
+    if reg_df is None or reg_df.empty:
+        return {}
+    try:
+        # heuristic: registry has 'asof' + 'maturity_return_pct' when mature; may not.
+        # Use whatever we can find; skip if columns missing.
+        if "maturity_return_pct" not in reg_df.columns or "asof" not in reg_df.columns:
+            return {}
+        d = reg_df[["asof", "maturity_return_pct"]].dropna()
+        d["asof"] = pd.to_datetime(d["asof"], errors="coerce")
+        d = d.dropna(subset=["asof"])
+        today = pd.Timestamp(_today_ist_str())
+        buckets = {}
+        for label, days in [("30D", 30), ("90D", 90), ("1Y", 365)]:
+            cutoff = today - pd.Timedelta(days=days)
+            sub = d[d["asof"] >= cutoff]
+            if len(sub) < 3:
+                continue
+            wins = (sub["maturity_return_pct"] > 0).mean()
+            med = sub["maturity_return_pct"].median()
+            buckets[label] = {"n": len(sub), "win_rate": wins * 100, "median": med}
+        return buckets
+    except Exception:
+        return {}
+
+
+def _why_changed_narrative(diff_d, sector_alloc):
+    """Two-to-four-sentence narrative synthesised from portfolio changes."""
+    parts = []
+    if not diff_d:
+        return None
+    new_syms = (diff_d or {}).get("new") or []
+    removed = (diff_d or {}).get("removed") or []
+    increased = (diff_d or {}).get("increased") or []
+    if new_syms:
+        # Dominant sector of new adds
+        parts.append(f"{len(new_syms)} new: {', '.join(new_syms[:3])}"
+                      + ("…" if len(new_syms) > 3 else "") + ".")
+    if removed:
+        parts.append(f"{len(removed)} exit: {', '.join(removed[:3])}"
+                      + ("…" if len(removed) > 3 else "") + ".")
+    if sector_alloc:
+        top_sec, top_w = sector_alloc[0]
+        parts.append(f"Portfolio tilt toward <b>{top_sec}</b> ({top_w:.0f}%).")
+    if increased:
+        parts.append(f"Weight increases: {'; '.join(increased[:2])}.")
+    if not parts:
+        return None
+    return " ".join(parts)
+
+
+def _integrity_footer(asof, cycle_version="AEGIS_v2.2"):
+    """Auditable integrity footer per OPS001-H §3.12.
+    Includes run UTC + IST, market asof, MON001 fingerprint, trial count,
+    cert id, next refresh guidance. Report SHA256 is appended AFTER the
+    full body is assembled — see the tail of build_message()."""
+    utc_str, ist_str = _now_utc_and_ist()
+    fp = _read_mon001_fingerprint()
+    fp_short = (fp["hash"] or "")[:8]
+    trial = _read_trial_count()
+    lines = [
+        "",
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+        "🔐 <b>Integrity</b>",
+        f"  <code>Run {utc_str} ({ist_str})</code>",
+        f"  <code>Market asof {asof} (last close)</code>",
+        f"  <code>MON001 fp {fp_short}… · algo v{fp['algorithm_version']}</code>",
+        f"  <code>Cert MON001-CERT-2026-07-17 · Cycle {cycle_version}"
+        + (f" · Trials {trial}" if trial is not None else "") + "</code>",
+        f"  <code>Report SHA {{MSG_SHA}}</code>",   # placeholder replaced below
+        "  <i>Advisory only · PAPER_ONLY · Not investment advice</i>",
+    ]
+    return "\n".join(lines)
+
+
+def _finalize_integrity(msg):
+    """Compute SHA256 of the message body (excluding the placeholder) and
+    substitute it in. Yields an auditable hash the operator can compare
+    across runs to detect duplicates."""
+    placeholder = "{MSG_SHA}"
+    without = msg.replace(placeholder, "PENDING")
+    sha = hashlib.sha256(without.encode("utf-8")).hexdigest()[:8]
+    return msg.replace(placeholder, f"{sha}…")
+
+
+# ================================================================
+# End OPS001-I helpers.
+# ================================================================
+
+
 def build_message():
     if not CANON.exists():
         return "AEGIS: no recommendations file yet (run recommendation_generator.py)."
@@ -259,149 +563,286 @@ def build_message():
     hold_short = hm0.group(1) if hm0 else str(_val(t.iloc[0], "Recommended Holding"))
     prof = str(_val(t.iloc[0], "Profile")) if "Profile" in t else ""
 
+    # OPS001-I precomputes -----------------------------------------------
+    actions = _actions_counts(t, diff_d)
+    nifty = _nifty_summary()
+    sector_alloc = _sector_allocation(t)
+    largest_sym, largest_wt = _largest_position(t)
+    port_conf = _portfolio_confidence(t)
+    risk = _risk_summary(t, db)
+    perf_buckets = _performance_buckets_from_registry(reg_df)
+    weekday_map = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+    try:
+        weekday = weekday_map[pd.Timestamp(asof).weekday()]
+    except Exception:
+        weekday = ""
+
     lines = []
-    header_bits = [f"📊 <b>AEGIS Daily</b> · {asof}"]
+
+    # ── HEADER (§3.1) ──────────────────────────────────────────────────
+    lines.append("🏢 <b>NEXAQUANT · AEGIS Daily</b>")
+    hdr2 = f"📅 Market asof <code>{asof}</code>"
+    if weekday:
+        hdr2 += f" ({weekday})"
+    if regime:
+        hdr2 += f" · Regime <b>{regime}</b>"
+    lines.append(hdr2)
+    hdr3_bits = []
     if prof:
-        header_bits.append(prof)
-    lines.append(" · ".join(header_bits))
-    if regime and cur_exp is not None:
-        lines.append(f"{regime} market · Deploy <b>{cur_exp:.0%}</b> · Keep {1-cur_exp:.0%} cash · Horizon {hold_short}")
-    n_buy = int((t["Strength"].isin(["STRONG BUY", "BUY"])).sum()) if "Strength" in t else len(t)
-    lines.append(f"<b>{len(t)} stocks</b> · {n_buy} buy-rated · sorted best-first")
+        hdr3_bits.append(f"💼 <b>{prof.split(' ')[0]}</b>")
+    if cur_exp is not None:
+        hdr3_bits.append(f"Deploy <b>{cur_exp:.0%}</b> · Cash <b>{1-cur_exp:.0%}</b>")
+    if nifty is not None:
+        arrow_n = "▲" if nifty["chg_pct"] > 0 else ("▼" if nifty["chg_pct"] < 0 else "→")
+        hdr3_bits.append(f"Nifty {arrow_n} <b>{nifty['chg_pct']:+.2f}%</b>")
+    if hdr3_bits:
+        lines.append(" · ".join(hdr3_bits))
+
+    # ── TODAY'S ACTIONS (§3.2) ──────────────────────────────────────────
     lines.append("")
-    lines.append("═══ YOUR STOCKS ═══")
+    lines.append("━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    lines.append("🎯 <b>ACTIONS TODAY</b>")
+    if actions["new"] == 0 and actions["exit"] == 0 and actions["watch"] == 0:
+        lines.append(f"  ⚪ <b>NO ACTION REQUIRED</b> — {actions['hold']} positions held; portfolio stable.")
+    else:
+        parts = []
+        if actions["new"]:  parts.append(f"🟢 <b>{actions['new']} BUY</b>")
+        if actions["hold"]: parts.append(f"🟡 <b>{actions['hold']} HOLD</b>")
+        if actions["exit"]: parts.append(f"🔴 <b>{actions['exit']} EXIT</b>")
+        if actions["watch"]: parts.append(f"⚪ <b>{actions['watch']} WATCH</b>")
+        lines.append("  " + " · ".join(parts))
+        lines.append("  ➤ Detail below")
 
-    # weighted portfolio return accumulator (skip NEW positions — they have no move yet)
-    port_pcts = []  # list of (pct, weight)
+    # ── MARKET SUMMARY (§3.3) ──────────────────────────────────────────
+    lines.append("")
+    lines.append("━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    lines.append("🌐 <b>MARKET</b>")
+    if nifty is not None:
+        lines.append(f"  • Nifty <b>{nifty['close']:,.0f}</b> "
+                     f"({nifty['chg_pct']:+.2f}%) · Regime <b>{regime or 'N/A'}</b>")
+    else:
+        lines.append(f"  • Regime <b>{regime or 'N/A'}</b>")
+    if sector_alloc:
+        top_secs = ", ".join(f"<b>{s}</b>" for s, _ in sector_alloc[:2])
+        lines.append(f"  • Portfolio tilt: {top_secs}")
+    lines.append(f"  • {len(t)} recommendations · sorted best-first · horizon {hold_short}")
 
-    last_tier = None
+    # ── PORTFOLIO HEALTH (§3.4) ────────────────────────────────────────
+    lines.append("")
+    lines.append("━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    lines.append("❤️ <b>PORTFOLIO HEALTH</b>")
+    health_bits = []
+    if port_conf is not None:
+        health_bits.append(f"<code>Conf {port_conf:.0f}/100</code>")
+    if sector_alloc:
+        top_sec, top_w = sector_alloc[0]
+        health_bits.append(f"<code>Top sector {top_sec} {top_w:.0f}%</code>")
+    if largest_sym:
+        health_bits.append(f"<code>Largest {largest_sym} {largest_wt:.0f}%</code>")
+    if health_bits:
+        lines.append("  " + " · ".join(health_bits))
+    health2 = []
+    if cur_exp is not None:
+        health2.append(f"<code>Cash {1-cur_exp:.0%}</code>")
+    health2.append(f"<code>Hold {hold_short}</code>")
+    if risk["top3_weight"]:
+        health2.append(f"<code>Top-3 conc {risk['top3_weight']:.0f}%</code>")
+    if health2:
+        lines.append("  " + " · ".join(health2))
+
+    lines.append("")
+    lines.append("──────── ⬇ scroll for detail ⬇ ────────")
+
+    # ── TOP OPPORTUNITIES + CURRENT HOLDINGS (§3.5–3.6) ────────────────
+    # Split t into "new/watch" (opportunities) and "held" (holdings).
+    new_syms_set = set((diff_d or {}).get("new") or [])
+    port_pcts = []  # for legacy portfolio-P&L rollup
+
+    # Emit NEW picks first (Top Opportunities)
+    lines.append("")
+    lines.append("━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    lines.append("🟢 <b>TOP OPPORTUNITIES</b>")
+    opp_count = 0
     for _, r in t.iterrows():
-        strat = str(_val(r, "Strength"))
-        if strat != last_tier:
-            lines.append("")
-            lines.append(f"{TIER_EMOJI.get(strat, '▫️')} <b>{strat}</b> — {TIER_HEAD.get(strat, '')}")
-            last_tier = strat
+        sym = str(_val(r, "Stock", ""))
+        strat = str(_val(r, "Strength", ""))
+        sec = str(_val(r, "Sector", ""))
+        if sym in new_syms_set:
+            opp_count += 1
+            _emit_opportunity(lines, r, sym, sec, strat, db, asof, hold_short)
 
-        sym = str(_val(r, "Stock"))
-        sec = str(_val(r, "Sector"))
+    if opp_count == 0:
+        lines.append("  <i>No NEW picks today. See Current Holdings below.</i>")
+
+    # Emit HOLD positions (Current Holdings)
+    lines.append("")
+    lines.append("━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    hold_positions_count = 0
+    lines.append("🟡 <b>CURRENT HOLDINGS</b>")
+    for _, r in t.iterrows():
+        sym = str(_val(r, "Stock", ""))
+        strat = str(_val(r, "Strength", ""))
+        sec = str(_val(r, "Sector", ""))
+        if sym in new_syms_set or strat == "WATCH":
+            continue
+        info = _entry_info(sym, db, asof)
+        if info is None or info["days"] == 0:
+            continue
+        hold_positions_count += 1
         try:
-            cur_px = float(_val(r, "Current Price"))
+            cur_px = float(_val(r, "Current Price", 0))
         except Exception:
             cur_px = 0.0
-        try:
-            wt = float(_val(r, "Weight %"))
-        except Exception:
-            wt = 0.0
-        score = _val(r, "Score /100")
-        conf = _val(r, "Rec Confidence %")
-        buy_rng = str(_val(r, "Buy Range"))
-        info = _entry_info(sym, db, asof)
-
-        # Line 1: symbol · sector · status
-        if info is None or info["days"] == 0 or info["price"] <= 0:
-            lines.append(f"  <b>{sym}</b> · {sec} · <i>NEW today</i>")
-        else:
-            lines.append(f"  <b>{sym}</b> · {sec} · held {info['days']} days")
-
-        # Line 2: price move (only when we have a real entry)
-        if info and info["price"] > 0 and info["days"] > 0 and cur_px > 0:
+        if cur_px > 0 and info["price"] > 0:
             pct = (cur_px - info["price"]) / info["price"] * 100
             rp = cur_px - info["price"]
             arrow = "🟢" if pct > 0 else ("🔴" if pct < 0 else "⚪")
-            lines.append(f"    ₹{info['price']:,.0f} → ₹{cur_px:,.0f}  {arrow} <b>{pct:+.1f}%</b> ({rp:+,.0f}/share)")
+            wt = float(_val(r, "Weight %", 0) or 0)
             if wt > 0:
                 port_pcts.append((pct, wt))
-        elif cur_px > 0:
-            lines.append(f"    Now ₹{cur_px:,.0f}")
+            lines.append(f"  <b>{sym}</b> · {sec} · held <b>{info['days']}d</b>")
+            lines.append(f"    <code>₹{info['price']:,.0f} → ₹{cur_px:,.0f}</code>  "
+                         f"{arrow} <b>{pct:+.1f}%</b> · <code>{rp:+,.0f}/sh</code>")
+            stop_px, stop_pct = _derive_stop_price(info["price"], _val(r, "Buy Range", ""))
+            expiry = str(_val(r, "Valid Until", ""))
+            trail_pct = 3.0
+            hold_bits = ["Continue <b>HOLD</b>"]
+            if stop_px:
+                hold_bits.append(f"Stop <code>₹{stop_px:,.0f}</code> ({stop_pct:+.1f}%)")
+            hold_bits.append(f"Trail <b>{trail_pct:.0f}%</b>")
+            if expiry:
+                hold_bits.append(f"Expires <code>{expiry}</code>")
+            lines.append("    " + " · ".join(hold_bits))
 
-        # Line 3: enter zone · capital · grade · evidence
-        bits3 = [f"Enter {buy_rng}", f"{wt:.0f}% of capital", f"Grade {_grade(score)} ({score}/100)"]
-        ev = _evidence(score, conf)
-        if ev:
-            bits3.append(ev)
-        lines.append("    " + " · ".join(bits3))
+    if hold_positions_count == 0:
+        lines.append("  <i>No held positions yet.</i>")
 
-        # Line 4 (optional): target / expected range only when we have real evidence (>=5 cases)
-        tgt = str(_val(r, "Hist Target"))
-        if tgt.replace(".", "", 1).isdigit():
-            rng = str(_val(r, "Expected Range (hist)"))
-            exp_str = ""
-            if "to" in rng:
-                rng_clean = rng.split("(")[0].strip()
-                exp_str = f", {hold_short} range {rng_clean}"
-            lines.append(f"    Target ₹{tgt} in {hold_short}{exp_str}")
+    # ── EXITS (§3.7) ────────────────────────────────────────────────────
+    exit_rows = []
+    if diff_d and diff_d.get("removed"):
+        exit_rows = _sold_pnl(diff_d["removed"], db, prev_snap, cur_snap,
+                              reg_df, closes, prev_exp, cur_exp, diff_d.get("new"))
+    if exit_rows:
+        lines.append("")
+        lines.append("━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        lines.append("🔴 <b>EXITS</b>")
+        for x in exit_rows:
+            arrow = "🟢" if x["pct"] > 0 else "🔴"
+            lines.append(f"  <b>{x['sym']}</b> · {x['sector']} · held <b>{x['days']}d</b>")
+            lines.append(f"    <code>₹{x['entry']:,.0f} → ₹{x['exit']:,.0f}</code>  "
+                         f"{arrow} exit signal <b>{x['pct']:+.1f}%</b>")
+            reason = x.get('headline', '') or 'Rotation'
+            detail = x.get('detail', '') or ''
+            lines.append(f"    ✋ Reason: <b>{reason}</b>")
+            if detail:
+                lines.append(f"    <i>{detail}</i>")
 
-        # Line 5: verdict
-        if info is None or info["days"] == 0:
-            verdict = "→ <b>NEW BUY</b>"
-        elif strat == "WATCH":
-            verdict = "→ <b>TRIM</b> if held (below buy threshold)"
-        else:
-            verdict = "→ <b>HOLD</b>"
-        lines.append(f"    {verdict}")
+    # ── WHAT CHANGED (§3.8) ─────────────────────────────────────────────
+    narrative = _why_changed_narrative(diff_d, sector_alloc)
+    if narrative:
+        lines.append("")
+        lines.append("━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        lines.append("🔄 <b>WHAT CHANGED SINCE LAST RUN</b>")
+        lines.append(f"  {narrative}")
 
-    # Portfolio-level P&L rollup (weighted, held positions only)
+    # ── RISK SUMMARY (§3.9) ────────────────────────────────────────────
+    lines.append("")
+    lines.append("━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    lines.append("⚠️ <b>RISK SUMMARY</b>")
+    if risk["closest_stop"]:
+        cs = " · ".join(f"<b>{s}</b> ({d:+.1f}%)" for s, d in risk["closest_stop"])
+        lines.append(f"  🔺 Closest to stop: {cs}")
+    if risk["closest_target"]:
+        ct = " · ".join(f"<b>{s}</b> ({d:+.1f}%)" for s, d in risk["closest_target"])
+        lines.append(f"  🎯 Closest to target: {ct}")
+    lines.append(f"  Concentration: top-3 = <b>{risk['top3_weight']:.0f}%</b>")
+
+    # ── PORTFOLIO WEIGHTED P&L (unchanged behaviour) ───────────────────
     if port_pcts:
         total_wt = sum(w for _, w in port_pcts)
         port_ret = sum(p * w for p, w in port_pcts) / total_wt if total_wt else 0.0
         arrow_p = "🟢" if port_ret > 0 else ("🔴" if port_ret < 0 else "⚪")
-        lines.append("")
-        lines.append("═══ HELD POSITIONS SO FAR ═══")
-        lines.append(f"  Weighted avg since entry: {arrow_p} <b>{port_ret:+.1f}%</b>  "
-                     f"({len(port_pcts)} positions with history)")
+        lines.append(f"  Weighted since entry: {arrow_p} <b>{port_ret:+.1f}%</b> "
+                     f"({len(port_pcts)} positions)")
 
-    # SOLD section — classified exits, not naive "SELL NOW"
-    if diff_d and diff_d.get("removed"):
-        pnl_rows = _sold_pnl(diff_d["removed"], db, prev_snap, cur_snap,
-                             reg_df, closes, prev_exp, cur_exp, diff_d.get("new"))
-        if pnl_rows:
-            lines.append("")
-            lines.append("═══ EXITS (signals — book only if you executed) ═══")
-            for x in pnl_rows:
-                arrow = "🟢" if x["pct"] > 0 else "🔴"
-                lines.append(f"  {x['emoji']} <b>{x['sym']}</b> · {x['sector']} · held {x['days']} days")
-                lines.append(f"    ₹{x['entry']:,.0f} → ₹{x['exit']:,.0f}  {arrow} exit signal <b>{x['pct']:+.1f}%</b>")
-                lines.append(f"    {x['headline']}: {x['detail']}")
-
-    # Other changes (adds / weight moves / sector rotation)
-    if diff_d and not diff_d.get("note"):
-        change_lines = []
-        if diff_d.get("new"):
-            change_lines.append("➕ Added today: " + ", ".join(diff_d["new"]))
-        if diff_d.get("increased"):
-            change_lines.append("⬆ Weight up: " + "; ".join(diff_d["increased"][:4]))
-        if diff_d.get("reduced"):
-            change_lines.append("⬇ Weight down: " + "; ".join(diff_d["reduced"][:4]))
-        if diff_d.get("rotation"):
-            change_lines.append("🔄 Sector shift: " + ", ".join(diff_d["rotation"][:6]))
-        if change_lines:
-            lines.append("")
-            lines.append("═══ OTHER CHANGES vs last run ═══")
-            for c in change_lines:
-                lines.append("  " + c)
-
-    # Track record from the frozen backtest evidence (source==historical, quarantined)
+    # ── PERFORMANCE (§3.10) ─────────────────────────────────────────────
+    perf_lines = []
     try:
         from india.scorecard import load_scored, headline, rolling_12m
         sr = load_scored()
         if not sr.empty:
             h = headline(sr); r12 = rolling_12m(sr)
-            lines.append("")
-            lines.append("═══ TRACK RECORD ═══")
-            tr = (f"  Wins: <b>{h['win_rate']:.0f}%</b> closed positive · Typical <b>{h['median_ret']:+.1f}%</b> "
-                  f"median ({h['scored_recs']} scored)")
+            perf_lines.append(f"  <code>Since inception  Wins {h['win_rate']:.0f}% · "
+                              f"Median {h['median_ret']:+.1f}%  ({h['scored_recs']} recs)</code>")
             if r12:
-                tr += f" · 12M win {r12['win_rate']:.0f}%"
-            lines.append(tr)
+                perf_lines.append(f"  <code>1-year          Wins {r12['win_rate']:.0f}% · "
+                                  f"Median {r12['median_ret']:+.1f}%   ({r12.get('scored_recs', '?')} recs)</code>")
     except Exception:
         pass
+    for lbl, days in [("30D", 30), ("90D", 90)]:
+        if lbl in perf_buckets:
+            b = perf_buckets[lbl]
+            perf_lines.append(f"  <code>{lbl:<15} Wins {b['win_rate']:.0f}% · "
+                              f"Median {b['median']:+.1f}%   ({b['n']} recs)</code>")
+    if perf_lines:
+        lines.append("")
+        lines.append("━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        lines.append("📈 <b>PERFORMANCE</b>")
+        lines.extend(perf_lines)
 
+    # ── FOOTER — INTEGRITY (§3.12) ─────────────────────────────────────
+    lines.append(_integrity_footer(asof))
     sid = os.environ.get("AEGIS_SPREADSHEET_ID") or os.environ.get("PRISM_SPREADSHEET_ID")
     if sid:
         lines += ["", f"📈 Live sheet: https://docs.google.com/spreadsheets/d/{sid}"]
-    lines += ["", "<i>Signals only. Book P&L reflects only what your paper/live portfolio executes.</i>",
-              "<i>Historical evidence, not a forecast. Portfolio process validated; individual selection experimental.</i>"]
-    return "\n".join(x for x in lines if x is not None)
+
+    msg = "\n".join(x for x in lines if x is not None)
+    msg = _finalize_integrity(msg)
+    return msg
+
+
+def _emit_opportunity(lines, r, sym, sec, strat, db, asof, hold_short):
+    """Emit a single NEW opportunity block (OPS001-H §3.5)."""
+    try:
+        cur_px = float(_val(r, "Current Price", 0))
+    except Exception:
+        cur_px = 0.0
+    try:
+        wt = float(_val(r, "Weight %", 0))
+    except Exception:
+        wt = 0.0
+    score = _val(r, "Score /100", "")
+    conf = _val(r, "Rec Confidence %", "")
+    buy_rng = str(_val(r, "Buy Range", ""))
+    tgt_str = str(_val(r, "Hist Target", ""))
+    expiry = str(_val(r, "Valid Until", ""))
+    review = str(_val(r, "Review Date", ""))
+    why = str(_val(r, "Why", ""))
+    tgt_pct = _pct_from_current(cur_px, tgt_str)
+    stop_px, stop_pct = _derive_stop_price(cur_px if cur_px > 0 else 0, buy_rng)
+
+    lines.append("")
+    lines.append(f"🟢 <b>{sym} · {sec}</b> · NEW · Grade <b>{_grade(score)}</b> ({score}/100)")
+    if cur_px > 0:
+        lines.append(f"    Now <code>₹{cur_px:,.0f}</code> · Buy <code>{buy_rng}</code> · Weight <b>{wt:.0f}%</b>")
+    if tgt_str and tgt_str.replace(".", "", 1).isdigit() and tgt_pct is not None:
+        lines.append(f"    🎯 Target <code>₹{float(tgt_str):,.0f}</code> ({tgt_pct:+.1f}%) · Hold <b>{hold_short}</b>")
+    if stop_px:
+        lines.append(f"    ⛔ Stop <code>₹{stop_px:,.0f}</code> ({stop_pct:+.1f}%) · Trail <b>3%</b>")
+    if expiry or review:
+        parts = []
+        parts.append("Age <code>0d</code>")
+        if expiry:
+            parts.append(f"Expires <code>{expiry}</code>")
+        if review:
+            parts.append(f"Review <code>{review}</code>")
+        lines.append(f"    📅 " + " · ".join(parts))
+    ev = _evidence(score, conf)
+    if ev:
+        lines.append(f"    📊 <i>Confidence {conf}% ({ev})</i>")
+    if why:
+        why_short = why[:200] + ("…" if len(why) > 200 else "")
+        lines.append(f"    💡 <i>{why_short}</i>")
 
 
 def _chunk_at_sections(text, max_len=3900):

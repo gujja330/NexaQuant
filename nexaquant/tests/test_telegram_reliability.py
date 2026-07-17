@@ -174,17 +174,26 @@ def test_11_production_constants_still_unchanged():
     print("  TEST 11 PASS: HOLD=63, rebal=63 unchanged")
 
 
-def test_12_telegram_notify_untouched_since_last_commit():
-    """The whole point: this reliability work must NOT modify india/telegram_notify.py.
-    Verified by git diff against HEAD (only commits post-2026-07-15 count)."""
-    r = subprocess.run(
-        ["git", "diff", "HEAD", "--name-only"],
-        cwd=str(ROOT), capture_output=True, text=True)
-    changed = set(l.strip().replace("\\", "/") for l in r.stdout.splitlines() if l.strip())
-    assert "india/telegram_notify.py" not in changed, (
-        "india/telegram_notify.py has uncommitted changes — reliability work "
-        "must be non-invasive")
-    print("  TEST 12 PASS: india/telegram_notify.py has no uncommitted diff")
+def test_12_telegram_notify_module_healthy():
+    """OPS001-I (Telegram redesign) explicitly modified india/telegram_notify.py
+    per operator authorization. The earlier "no uncommitted diff" guard from
+    the Telegram-reliability phase has been retired. Replaced by an
+    import + build_message() smoke test that any future modification
+    must preserve.
+    """
+    import importlib
+    import india.telegram_notify as tn
+    importlib.reload(tn)
+    # Module must have the canonical entry point + it must be callable.
+    assert hasattr(tn, "build_message"), "telegram_notify.py must expose build_message()"
+    assert callable(tn.build_message), "build_message must be callable"
+    # It must be safe to call in a test context (returns a string, not an exception).
+    msg = tn.build_message()
+    assert isinstance(msg, str) and len(msg) > 0, (
+        f"build_message() returned non-string or empty: type={type(msg).__name__}, "
+        f"len={len(msg) if isinstance(msg, str) else 'n/a'}")
+    print("  TEST 12 PASS: telegram_notify.build_message() import + smoke OK "
+          f"({len(msg)} chars)")
 
 
 def test_13_mon001_fingerprint_still_matches_seal():
@@ -214,7 +223,7 @@ TESTS = [
     test_9_health_check_module_imports_cleanly,
     test_10_health_check_exits_1_when_token_missing,
     test_11_production_constants_still_unchanged,
-    test_12_telegram_notify_untouched_since_last_commit,
+    test_12_telegram_notify_module_healthy,
     test_13_mon001_fingerprint_still_matches_seal,
 ]
 

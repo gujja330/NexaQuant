@@ -35,6 +35,7 @@ SUITES = [
     ("OPS001-B daemon",       ROOT / "nexaquant/tests/test_ops_daemon.py"),
     ("OPS001.5 commissioning", ROOT / "nexaquant/tests/test_ops_commissioning.py"),
     ("OPS001-C notify",       ROOT / "nexaquant/tests/test_ops_notify.py"),
+    ("OPS001-I Telegram fmt", ROOT / "nexaquant/tests/test_ops001i_telegram_format.py"),
 ]
 
 
