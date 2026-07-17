@@ -1,0 +1,1769 @@
+<title>AEGIS · Institutional AI Investment Research Platform</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+:root {
+  --ink:            #080D18;
+  --panel:          #0F1626;
+  --panel-hi:       #141E33;
+  --rule:           #233152;
+  --rule-strong:    #3A4E7A;
+  --paper:          #EDE7D6;
+  --paper-2:        #DBD2BB;
+  --type-primary:   #F2EDD9;
+  --type-secondary: #8E97AC;
+  --type-tertiary:  #4C566F;
+  --accent:         #C4A055;
+  --accent-hi:      #E6C273;
+  --data-pos:       #7BAF7F;
+  --data-neg:       #C77A73;
+  --data-warn:      #D9A85E;
+  --blue-line:      #5B7BB0;
+
+  --font-display: ui-serif, "Iowan Old Style", "Apple Garamond", Baskerville, "Times New Roman", Times, serif;
+  --font-body:    -apple-system, BlinkMacSystemFont, "Segoe UI Variable", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --font-mono:    ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Code", Consolas, "Liberation Mono", monospace;
+
+  --gutter: clamp(1.5rem, 4vw, 4rem);
+  --page-max: 1200px;
+  --measure: 62ch;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --ink:            #F7F3E9;
+    --panel:          #EFEADB;
+    --panel-hi:       #E4DEC9;
+    --rule:           #C7BEA1;
+    --rule-strong:    #8B7F5A;
+    --paper:          #0F1626;
+    --paper-2:        #1A2338;
+    --type-primary:   #0A0F1C;
+    --type-secondary: #4C566F;
+    --type-tertiary:  #8B94A8;
+    --accent:         #8B6F2D;
+    --accent-hi:      #6E5620;
+    --blue-line:      #4A6595;
+  }
+}
+:root[data-theme="dark"] {
+  --ink: #080D18; --panel: #0F1626; --panel-hi: #141E33;
+  --rule: #233152; --rule-strong: #3A4E7A;
+  --paper: #EDE7D6; --paper-2: #DBD2BB;
+  --type-primary: #F2EDD9; --type-secondary: #8E97AC; --type-tertiary: #4C566F;
+  --accent: #C4A055; --accent-hi: #E6C273;
+  --blue-line: #5B7BB0;
+}
+:root[data-theme="light"] {
+  --ink: #F7F3E9; --panel: #EFEADB; --panel-hi: #E4DEC9;
+  --rule: #C7BEA1; --rule-strong: #8B7F5A;
+  --paper: #0F1626; --paper-2: #1A2338;
+  --type-primary: #0A0F1C; --type-secondary: #4C566F; --type-tertiary: #8B94A8;
+  --accent: #8B6F2D; --accent-hi: #6E5620;
+  --blue-line: #4A6595;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+
+body {
+  background: var(--ink);
+  color: var(--type-primary);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.55;
+  font-feature-settings: "kern" 1, "liga" 1;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+}
+
+/* ── layout scaffolds ─────────────────────────────────────────── */
+.section {
+  padding: clamp(3rem, 8vw, 7rem) var(--gutter);
+  border-bottom: 1px solid var(--rule);
+  position: relative;
+}
+.section:last-child { border-bottom: none; }
+.container { max-width: var(--page-max); margin: 0 auto; }
+.narrow    { max-width: 780px; margin: 0 auto; }
+
+/* ── typography ──────────────────────────────────────────────── */
+.eyebrow {
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.75rem;
+}
+.eyebrow::before {
+  content: "";
+  width: 24px; height: 1px;
+  background: var(--accent);
+  opacity: 0.7;
+}
+.section-number {
+  font-family: var(--font-display);
+  font-weight: 400;
+  color: var(--type-tertiary);
+  font-size: 12px;
+  letter-spacing: 0.3em;
+  margin-right: 0.5rem;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  color: var(--type-primary);
+  text-wrap: balance;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+}
+h1 { font-size: clamp(2.5rem, 6vw, 4.5rem); letter-spacing: -0.025em; margin-bottom: 1.5rem; }
+h2 { font-size: clamp(1.75rem, 3.5vw, 2.75rem); letter-spacing: -0.02em; margin-bottom: 1rem; }
+h3 { font-size: clamp(1.25rem, 2vw, 1.5rem); letter-spacing: -0.01em; margin-bottom: 0.75rem; }
+h4 { font-size: 1.125rem; margin-bottom: 0.5rem; color: var(--type-primary); }
+
+p, li {
+  color: var(--type-secondary);
+  max-width: var(--measure);
+  margin-bottom: 1rem;
+}
+.lead {
+  font-size: clamp(1.125rem, 1.5vw, 1.25rem);
+  line-height: 1.55;
+  color: var(--type-primary);
+  max-width: 65ch;
+  font-weight: 400;
+}
+.lead + p { margin-top: 1.25rem; }
+
+em, i { font-style: italic; color: var(--type-primary); }
+strong, b { font-weight: 600; color: var(--type-primary); }
+
+a { color: var(--accent-hi); text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--accent-hi) 40%, transparent); text-underline-offset: 3px; }
+a:focus-visible { outline: 2px solid var(--accent-hi); outline-offset: 4px; border-radius: 2px; }
+
+code, .mono {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── theme toggle ─────────────────────────────────────────────── */
+.theme-toggle {
+  position: fixed;
+  top: clamp(1rem, 2vw, 1.5rem);
+  right: clamp(1rem, 2vw, 1.5rem);
+  z-index: 100;
+  background: color-mix(in srgb, var(--panel) 90%, transparent);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--rule);
+  color: var(--type-secondary);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: color 200ms;
+}
+.theme-toggle:hover { color: var(--accent-hi); }
+.theme-toggle:focus-visible { outline: 2px solid var(--accent-hi); outline-offset: 2px; }
+
+/* ── COVER (Section I) ────────────────────────────────────────── */
+.cover {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: clamp(2rem, 5vw, 4rem) var(--gutter);
+  background:
+    radial-gradient(ellipse at 20% 0%, color-mix(in srgb, var(--accent) 8%, transparent), transparent 60%),
+    linear-gradient(to bottom, var(--ink), color-mix(in srgb, var(--panel) 40%, var(--ink)));
+  position: relative;
+  overflow: hidden;
+}
+.cover-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+.cover-brand {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.24em;
+  color: var(--type-secondary);
+  text-transform: uppercase;
+}
+.cover-brand .brand-name { color: var(--type-primary); }
+.cover-meta {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--type-secondary);
+  text-align: right;
+  letter-spacing: 0.08em;
+  line-height: 1.9;
+}
+.cover-meta .meta-value { color: var(--type-primary); }
+
+.cover-middle {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: clamp(3rem, 8vw, 6rem) 0 clamp(2rem, 4vw, 3rem);
+}
+.wordmark {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(5rem, 18vw, 12rem);
+  line-height: 0.95;
+  letter-spacing: -0.045em;
+  color: var(--type-primary);
+  margin-bottom: 2rem;
+}
+.wordmark span { color: var(--accent); }
+.tagline {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 400;
+  font-size: clamp(1.25rem, 2.5vw, 1.75rem);
+  color: var(--type-primary);
+  max-width: 40ch;
+  line-height: 1.35;
+  margin-bottom: 3rem;
+  text-wrap: balance;
+}
+.tagline em { color: var(--accent-hi); font-style: normal; }
+
+.abstract {
+  border-top: 1px solid var(--rule);
+  padding-top: 1.5rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 2rem;
+  max-width: 900px;
+}
+.abstract-item .label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--type-secondary);
+  display: block;
+  margin-bottom: 0.5rem;
+}
+.abstract-item .value {
+  font-family: var(--font-display);
+  font-size: 2.25rem;
+  font-weight: 400;
+  color: var(--type-primary);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+.abstract-item .unit {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--type-tertiary);
+  margin-left: 0.35rem;
+  letter-spacing: 0.05em;
+}
+
+.cover-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 2rem;
+  flex-wrap: wrap;
+  padding-top: 2.5rem;
+  border-top: 1px solid var(--rule);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  color: var(--type-tertiary);
+  text-transform: uppercase;
+}
+.cover-bottom .cite { color: var(--type-secondary); }
+
+/* ── generic grids ─────────────────────────────────────────── */
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr;
+  gap: clamp(2rem, 5vw, 4rem);
+  align-items: start;
+}
+@media (max-width: 800px) { .two-col { grid-template-columns: 1fr; } }
+
+.stat-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 2rem;
+  margin: 2.5rem 0;
+  padding: 2rem 0;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+.stat .label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--type-secondary);
+  display: block;
+  margin-bottom: 0.5rem;
+}
+.stat .value {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  color: var(--type-primary);
+  line-height: 1;
+  letter-spacing: -0.015em;
+}
+.stat .unit { font-family: var(--font-mono); color: var(--type-tertiary); font-size: 12px; margin-left: 0.35rem; letter-spacing: 0.05em; }
+.stat .delta { display: block; margin-top: 0.4rem; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.06em; }
+.delta.pos { color: var(--data-pos); }
+.delta.neg { color: var(--data-neg); }
+
+/* ── TIMELINE (Section II) ───────────────────────────────────── */
+.timeline {
+  margin-top: 3rem;
+  border-left: 1px solid var(--rule-strong);
+  padding-left: 0;
+  position: relative;
+}
+.tl-track {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 2rem;
+  align-items: baseline;
+  padding: 1.25rem 0 1.25rem 2rem;
+  border-bottom: 1px dashed var(--rule);
+  position: relative;
+}
+.tl-track:last-child { border-bottom: none; }
+.tl-track::before {
+  content: "";
+  position: absolute;
+  left: -5px; top: 1.9rem;
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 4px var(--ink);
+}
+.tl-id {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: var(--accent-hi);
+  text-transform: uppercase;
+}
+.tl-name {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  color: var(--type-primary);
+  margin-bottom: 0.35rem;
+  letter-spacing: -0.01em;
+}
+.tl-desc {
+  font-size: 14px;
+  color: var(--type-secondary);
+  max-width: 60ch;
+  margin: 0;
+}
+
+/* ── architecture (Section III) ───────────────────────────── */
+.arch-frame {
+  margin: 2rem 0 3rem;
+  padding: 2rem;
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 0;
+  overflow-x: auto;
+}
+.arch-frame svg { display: block; margin: 0 auto; width: 100%; height: auto; max-width: 1100px; }
+.arch-caption {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: var(--type-secondary);
+  text-align: center;
+  margin-top: 1rem;
+  text-transform: uppercase;
+}
+
+.arch-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--rule);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--type-secondary);
+}
+.arch-legend > div { display: flex; align-items: center; gap: 0.5rem; }
+.arch-legend .swatch { width: 12px; height: 12px; display: inline-block; }
+
+/* ── DEV cards (Section IV) ─────────────────────────────── */
+.dev-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.5rem;
+  margin-top: 3rem;
+}
+.dev-card {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  padding: 1.5rem 1.5rem 1.75rem;
+  display: flex;
+  flex-direction: column;
+  min-height: 240px;
+  position: relative;
+  transition: border-color 200ms;
+}
+.dev-card:hover { border-color: var(--accent); }
+.dev-card::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 2px;
+  background: var(--accent);
+  opacity: 0.5;
+}
+.dev-card .id {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: var(--accent-hi);
+  text-transform: uppercase;
+  margin-bottom: 0.75rem;
+}
+.dev-card h3 {
+  font-size: 1.25rem;
+  margin-bottom: 0.75rem;
+}
+.dev-card .summary {
+  font-size: 14px;
+  color: var(--type-secondary);
+  line-height: 1.5;
+  margin-bottom: auto;
+  padding-bottom: 1rem;
+}
+.dev-card .metrics {
+  border-top: 1px solid var(--rule);
+  padding-top: 1rem;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem 1.25rem;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--type-secondary);
+}
+.dev-card .metrics dt {
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--type-tertiary);
+  margin-bottom: 0.15rem;
+}
+.dev-card .metrics dd {
+  color: var(--type-primary);
+  font-variant-numeric: tabular-nums;
+}
+.dev-card .metrics dd.pos { color: var(--data-pos); }
+.dev-card .metrics dd.neg { color: var(--data-neg); }
+.dev-card .metrics dd.warn { color: var(--data-warn); }
+.dev-card.ux::before { background: var(--blue-line); }
+.dev-card.ux .id { color: var(--blue-line); }
+
+/* ── evidence panels ───────────────────────────────────── */
+.evidence {
+  margin: 3rem 0;
+  padding: 2rem 2rem 1.5rem;
+  border: 1px solid var(--rule);
+  background: linear-gradient(180deg, var(--panel), var(--ink));
+}
+.evidence h4 {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 1.25rem;
+}
+.evidence-body {
+  display: grid;
+  grid-template-columns: 2fr 3fr;
+  gap: 2rem;
+  align-items: center;
+}
+@media (max-width: 700px) { .evidence-body { grid-template-columns: 1fr; } }
+.evidence-numbers {
+  border-right: 1px solid var(--rule);
+  padding-right: 2rem;
+}
+@media (max-width: 700px) { .evidence-numbers { border-right: none; border-bottom: 1px solid var(--rule); padding-right: 0; padding-bottom: 1.5rem; } }
+
+/* ── data tables ─────────────────────────────────────────── */
+.data-block {
+  overflow-x: auto;
+  margin: 2rem 0;
+  border: 1px solid var(--rule);
+  background: var(--panel);
+}
+table.data {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  min-width: 640px;
+}
+table.data th, table.data td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--rule);
+}
+table.data thead th {
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--type-secondary);
+  background: var(--panel-hi);
+}
+table.data tbody tr:last-child td { border-bottom: none; }
+table.data tbody tr:hover { background: color-mix(in srgb, var(--accent) 4%, transparent); }
+table.data td.right { text-align: right; }
+table.data td.champion { color: var(--accent-hi); font-weight: 600; }
+table.data td.pos { color: var(--data-pos); }
+table.data td.neg { color: var(--data-neg); }
+table.data td.mono-num { font-variant-numeric: tabular-nums; }
+
+/* ── comparison (Section IX) ────────────────────────────── */
+.compare-table {
+  margin-top: 2.5rem;
+  border: 1px solid var(--rule);
+  background: var(--panel);
+  overflow-x: auto;
+}
+.compare-table table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 600px;
+}
+.compare-table th, .compare-table td {
+  padding: 1rem 1.25rem;
+  text-align: left;
+  border-bottom: 1px solid var(--rule);
+  font-size: 14px;
+  vertical-align: top;
+}
+.compare-table thead th {
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--type-secondary);
+  background: var(--panel-hi);
+}
+.compare-table thead th.aegis { color: var(--accent); }
+.compare-table td.dim { color: var(--type-tertiary); }
+.compare-table td.strong { color: var(--type-primary); }
+.compare-table tbody tr:last-child td { border-bottom: none; }
+.compare-table .cap {
+  font-family: var(--font-display);
+  color: var(--type-primary);
+  font-size: 15px;
+  letter-spacing: 0;
+}
+
+/* ── roadmap (Section X) ─────────────────────────────────── */
+.roadmap-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
+  margin-top: 2.5rem;
+}
+.rm-card {
+  border: 1px solid var(--rule);
+  padding: 1.25rem 1.5rem;
+  background: var(--panel);
+  position: relative;
+}
+.rm-card .id {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  color: var(--type-secondary);
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+}
+.rm-card .id.shipped { color: var(--data-pos); }
+.rm-card .id.planned { color: var(--accent); }
+.rm-card .name {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  color: var(--type-primary);
+  letter-spacing: -0.005em;
+  line-height: 1.25;
+}
+.rm-card .status {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--type-tertiary);
+  margin-top: 0.75rem;
+  text-transform: uppercase;
+}
+
+/* ── outputs infographic (Section VII) ───────────────────── */
+.outputs-groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin-top: 2.5rem;
+}
+.output-group {
+  padding: 1.5rem;
+  border: 1px solid var(--rule);
+  background: var(--panel);
+}
+.output-group h4 {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 1rem;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid var(--rule);
+}
+.output-group ul {
+  list-style: none;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+.output-group li {
+  color: var(--type-secondary);
+  padding: 0.25rem 0;
+  margin: 0;
+  max-width: none;
+}
+.output-group .type-tag {
+  color: var(--type-tertiary);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  margin-left: 0.5rem;
+  text-transform: uppercase;
+}
+
+/* ── footer ─────────────────────────────────────────────── */
+.footer {
+  padding: 3rem var(--gutter);
+  background: color-mix(in srgb, var(--panel) 70%, var(--ink));
+  border-top: 1px solid var(--rule);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--type-tertiary);
+  display: flex;
+  justify-content: space-between;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+.footer .colophon { max-width: 500px; }
+.footer .colophon strong { color: var(--type-secondary); }
+
+/* ── reduced motion ─────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+  html { scroll-behavior: auto; }
+}
+
+/* ── SVG defaults ─────────────────────────────────────────── */
+svg .node-box { fill: var(--panel-hi); stroke: var(--rule-strong); stroke-width: 1; }
+svg .node-hero { fill: color-mix(in srgb, var(--accent) 20%, var(--panel-hi)); stroke: var(--accent); stroke-width: 1.5; }
+svg .node-ux { fill: color-mix(in srgb, var(--blue-line) 18%, var(--panel-hi)); stroke: var(--blue-line); stroke-width: 1.5; }
+svg .node-text { fill: var(--type-primary); font-family: var(--font-body); font-size: 12px; font-weight: 500; }
+svg .node-sub { fill: var(--type-secondary); font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; }
+svg .edge { stroke: var(--rule-strong); stroke-width: 1; fill: none; }
+svg .edge-flow { stroke: var(--accent); stroke-width: 1.25; fill: none; opacity: 0.75; }
+svg .arrowhead { fill: var(--rule-strong); }
+svg .arrowhead-flow { fill: var(--accent); }
+svg .layer-label { fill: var(--type-tertiary); font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; }
+</style>
+
+<button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle theme">◐ THEME</button>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     SECTION I · COVER
+     ═══════════════════════════════════════════════════════════════════ -->
+<section class="section cover" id="cover">
+  <div class="cover-top">
+    <div class="cover-brand">
+      <div class="brand-name">NEXAQUANT</div>
+      <div>Institutional Research · Confidential</div>
+    </div>
+    <div class="cover-meta">
+      <div>VOL. <span class="meta-value">01</span> &nbsp; ISSUE <span class="meta-value">01</span></div>
+      <div>PREPARED <span class="meta-value">2026 · Q3</span></div>
+      <div>CLASSIFICATION <span class="meta-value">EXECUTIVE</span></div>
+    </div>
+  </div>
+
+  <div class="cover-middle">
+    <div class="wordmark">AEGIS<span>.</span></div>
+    <p class="tagline">
+      An institutional AI research platform for public equities —
+      <em>evidence-driven, advisory-only, verifiable at every step.</em>
+    </p>
+
+    <div class="abstract">
+      <div class="abstract-item">
+        <span class="label">Universe</span>
+        <span class="value">208<span class="unit">companies</span></span>
+      </div>
+      <div class="abstract-item">
+        <span class="label">Portfolios</span>
+        <span class="value">99<span class="unit">constructions</span></span>
+      </div>
+      <div class="abstract-item">
+        <span class="label">Graph</span>
+        <span class="value">581<span class="unit">nodes · 2,629 edges</span></span>
+      </div>
+      <div class="abstract-item">
+        <span class="label">Trades learned</span>
+        <span class="value">1,060<span class="unit">outcomes</span></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="cover-bottom">
+    <div>NEXAQUANT · AEGIS PLATFORM REPORT</div>
+    <div class="cite">DEV017 &nbsp;→&nbsp; DEV031-B · UX030 · UX031</div>
+    <div>PAGE 01 / X</div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     SECTION I (continued) · EXECUTIVE SUMMARY
+     ═══════════════════════════════════════════════════════════════════ -->
+<section class="section" id="summary">
+  <div class="container">
+    <div class="eyebrow"><span class="section-number">I.</span> Executive Summary</div>
+    <div class="two-col">
+      <h1>An investment platform that learns from every decision it makes.</h1>
+      <div>
+        <p class="lead">
+          AEGIS is a research platform built from fifteen composable engines. Each engine reads
+          from validated upstream outputs, produces auditable artifacts, and never mutates state.
+          The result is not a stock screener — it is an evidence layer suitable for institutional
+          use, in which every recommendation traces a full explanatory path through market
+          intelligence, portfolio construction, learning, calibration, and a live knowledge graph.
+        </p>
+        <p>
+          The platform is <strong>advisory-only</strong> by construction, per ARCH001A Article V
+          clause 5.1. Recommendations are never auto-executed. Every module is deterministic —
+          identical inputs produce identical outputs — and every output is written to disk before
+          the next module reads it. This makes the entire investment lifecycle inspectable, replayable,
+          and defensible.
+        </p>
+
+        <div class="stat-row">
+          <div class="stat">
+            <span class="label">Champion strategy</span>
+            <span class="value">top_5_ew</span>
+            <span class="delta pos">Composite 95.96 / 100</span>
+          </div>
+          <div class="stat">
+            <span class="label">Calibration ECE</span>
+            <span class="value">0.002<span class="unit">from 0.287</span></span>
+            <span class="delta pos">-140× (Platt scaling)</span>
+          </div>
+          <div class="stat">
+            <span class="label">Community modularity</span>
+            <span class="value">Q = 0.857</span>
+            <span class="delta pos">57 clusters, no hardcoding</span>
+          </div>
+          <div class="stat">
+            <span class="label">Regime</span>
+            <span class="value">Neutral</span>
+            <span class="delta">DEV017 · current classification</span>
+          </div>
+        </div>
+
+        <p>
+          The system compounds intelligence. The knowledge graph consumes twelve upstream engines;
+          confidence calibration consumes trade history; the champion-vs-challenger framework
+          consumes strategy backtests. Adding a new engine adds new edges to the graph, new inputs
+          to the learning loop, and new evidence to every recommendation.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     SECTION II · PLATFORM EVOLUTION
+     ═══════════════════════════════════════════════════════════════════ -->
+<section class="section" id="evolution">
+  <div class="container">
+    <div class="eyebrow"><span class="section-number">II.</span> Platform Evolution</div>
+    <h2>Fifteen modules, shipped in sequence.</h2>
+    <p class="lead" style="margin-top:1.5rem;">
+      Each module is an independent research unit with its own <code>run.py</code>, tests, and
+      published outputs under <code>reports/</code>. Later modules depend only on earlier
+      <em>artifacts</em> — never on earlier code paths — which keeps the boundaries clean.
+    </p>
+
+    <div class="timeline">
+      <div class="tl-track">
+        <div class="tl-id">DEV017 · Intelligence</div>
+        <div>
+          <div class="tl-name">Global Intelligence</div>
+          <div class="tl-desc">23 macro variables via yfinance; regime classification (Risk-On / Neutral / Risk-Off). Emits <code>global_context.json</code>.</div>
+        </div>
+      </div>
+      <div class="tl-track">
+        <div class="tl-id">DEV018 · Intelligence</div>
+        <div>
+          <div class="tl-name">Sector Intelligence</div>
+          <div class="tl-desc">14 sectors scored on rotation + momentum + earnings quality; 12 of 14 pass minimum evidence gates.</div>
+        </div>
+      </div>
+      <div class="tl-track">
+        <div class="tl-id">DEV019 · Intelligence</div>
+        <div>
+          <div class="tl-name">Industry Intelligence</div>
+          <div class="tl-desc">44 industries scored; 34 of 44 pass gates. Industry rankings feed company scoring downstream.</div>
+        </div>
+      </div>
+      <div class="tl-track">
+        <div class="tl-id">DEV020 · Intelligence</div>
+        <div>
+          <div class="tl-name">Company Intelligence</div>
+          <div class="tl-desc">208 companies scored with full hierarchical context (Global → Sector → Industry → Company).</div>
+        </div>
+      </div>
+      <div class="tl-track">
+        <div class="tl-id">DEV021 · Portfolio</div>
+        <div>
+          <div class="tl-name">Historical Validation & Backtesting</div>
+          <div class="tl-desc">Walk-forward, point-in-time backtesting across 6 strategies + benchmark. Produces equity curves + trade metrics.</div>
+        </div>
+      </div>
+      <div class="tl-track">
+        <div class="tl-id">DEV022 · Portfolio</div>
+        <div>
+          <div class="tl-name">Portfolio Construction</div>
+          <div class="tl-desc">11 allocators × 9 portfolio types = 99 constructions (equal, HRP, min-variance, max-Sharpe, Kelly, etc.).</div>
+        </div>
+      </div>
+      <div class="tl-track">
+        <div class="tl-id">DEV023 · Portfolio</div>
+        <div>
+          <div class="tl-name">Recommendation Engine</div>
+          <div class="tl-desc">8 recommendation types (Strong-Buy → Avoid) with entry zones, targets, stop-losses, and holding periods.</div>
+        </div>
+      </div>
+      <div class="tl-track">
+        <div class="tl-id">DEV024 · Portfolio</div>
+        <div>
+          <div class="tl-name">Portfolio Monitoring</div>
+          <div class="tl-desc">11 alert types + 4 rebalance actions. Fires when concentration, drawdown, or regime exposure crosses thresholds.</div>
+        </div>
+      </div>
+      <div class="tl-track">
+        <div class="tl-id">DEV025 · Learning</div>
+        <div>
+          <div class="tl-name">Adaptive Portfolio Learning</div>
+          <div class="tl-desc">1,060 completed trades analysed. First independent detection that raw confidence is miscalibrated (ECE 0.29).</div>
+        </div>
+      </div>
+      <div class="tl-track">
+        <div class="tl-id">DEV026 · Learning</div>
+        <div>
+          <div class="tl-name">AI Investment Research Assistant</div>
+          <div class="tl-desc">Deterministic Q&A over the corpus. Grounded outputs; no LLM in the loop.</div>
+        </div>
+      </div>
+      <div class="tl-track">
+        <div class="tl-id">DEV027 · Learning</div>
+        <div>
+          <div class="tl-name">Strategy Doctor</div>
+          <div class="tl-desc">15 diagnostic rules across 677 diagnoses. Second independent detection of overconfidence (218 firings).</div>
+        </div>
+      </div>
+      <div class="tl-track">
+        <div class="tl-id">DEV028 · Learning</div>
+        <div>
+          <div class="tl-name">Recommendation DNA</div>
+          <div class="tl-desc">208 immutable, content-keyed records with per-rec lineage and audit trail.</div>
+        </div>
+      </div>
+      <div class="tl-track">
+        <div class="tl-id">DEV029 · Learning</div>
+        <div>
+          <div class="tl-name">Confidence Calibration</div>
+          <div class="tl-desc">Five calibration methods competed on held-out data. Platt selected; ECE 0.287 → 0.002.</div>
+        </div>
+      </div>
+      <div class="tl-track">
+        <div class="tl-id">DEV030 · Learning</div>
+        <div>
+          <div class="tl-name">Champion vs Challenger</div>
+          <div class="tl-desc">9-metric composite scoring with 4-gate promotion recommender. Champion: <code>top_5_ew</code>.</div>
+        </div>
+      </div>
+      <div class="tl-track">
+        <div class="tl-id">DEV031 · Knowledge</div>
+        <div>
+          <div class="tl-name">Knowledge Graph & Relationship Intelligence</div>
+          <div class="tl-desc">581 nodes, 2,629 edges. Communities via label propagation (Q = 0.857). Personalized-PageRank propagation. Evidence paths for every recommendation.</div>
+        </div>
+      </div>
+      <div class="tl-track">
+        <div class="tl-id">UX030 · Delivery</div>
+        <div>
+          <div class="tl-name">Telegram Intelligence Platform</div>
+          <div class="tl-desc">9 message types, 17 interactive commands, 5-tier priority system. Deterministic. Mobile-first.</div>
+        </div>
+      </div>
+      <div class="tl-track">
+        <div class="tl-id">UX031 · Delivery</div>
+        <div>
+          <div class="tl-name">Executive Dashboard</div>
+          <div class="tl-desc">23 widgets across 10 routes with 10 filters. Dark-first institutional theme. Framework-agnostic JSON contract.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     SECTION III · SYSTEM ARCHITECTURE
+     ═══════════════════════════════════════════════════════════════════ -->
+<section class="section" id="architecture">
+  <div class="container">
+    <div class="eyebrow"><span class="section-number">III.</span> System Architecture</div>
+    <h2>Every arrow is a validated artifact on disk.</h2>
+    <p class="lead" style="margin-top: 1.5rem;">
+      Modules never call one another directly. They read published <code>reports/*.json</code> and
+      <code>.parquet</code> files, produce their own outputs, and end. This isolation is what makes
+      each engine independently testable and the full lifecycle replayable from any snapshot.
+    </p>
+
+    <div class="arch-frame">
+      <svg viewBox="0 0 1100 640" role="img" aria-label="AEGIS system architecture">
+        <defs>
+          <marker id="ah" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+            <path class="arrowhead" d="M0,0 L10,5 L0,10 Z"/>
+          </marker>
+          <marker id="ahf" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+            <path class="arrowhead-flow" d="M0,0 L10,5 L0,10 Z"/>
+          </marker>
+        </defs>
+
+        <!-- Layer labels -->
+        <text class="layer-label" x="20" y="35">L1 · Market Intelligence</text>
+        <text class="layer-label" x="20" y="175">L2 · Portfolio Intelligence</text>
+        <text class="layer-label" x="20" y="315">L3 · Learning & Meta</text>
+        <text class="layer-label" x="20" y="475">L4 · Knowledge & Delivery</text>
+
+        <!-- L1 nodes -->
+        <g><rect class="node-box" x="150" y="55" width="150" height="60"/><text class="node-text" x="225" y="82" text-anchor="middle">DEV017</text><text class="node-sub" x="225" y="100" text-anchor="middle">Global</text></g>
+        <g><rect class="node-box" x="330" y="55" width="150" height="60"/><text class="node-text" x="405" y="82" text-anchor="middle">DEV018</text><text class="node-sub" x="405" y="100" text-anchor="middle">Sector</text></g>
+        <g><rect class="node-box" x="510" y="55" width="150" height="60"/><text class="node-text" x="585" y="82" text-anchor="middle">DEV019</text><text class="node-sub" x="585" y="100" text-anchor="middle">Industry</text></g>
+        <g><rect class="node-box" x="690" y="55" width="150" height="60"/><text class="node-text" x="765" y="82" text-anchor="middle">DEV020</text><text class="node-sub" x="765" y="100" text-anchor="middle">Company</text></g>
+
+        <!-- L1 arrows -->
+        <path class="edge" d="M300 85 L330 85" marker-end="url(#ah)"/>
+        <path class="edge" d="M480 85 L510 85" marker-end="url(#ah)"/>
+        <path class="edge" d="M660 85 L690 85" marker-end="url(#ah)"/>
+
+        <!-- L2 nodes -->
+        <g><rect class="node-box" x="150" y="195" width="150" height="60"/><text class="node-text" x="225" y="222" text-anchor="middle">DEV021</text><text class="node-sub" x="225" y="240" text-anchor="middle">Validation</text></g>
+        <g><rect class="node-box" x="330" y="195" width="150" height="60"/><text class="node-text" x="405" y="222" text-anchor="middle">DEV022</text><text class="node-sub" x="405" y="240" text-anchor="middle">Construction</text></g>
+        <g><rect class="node-box" x="510" y="195" width="150" height="60"/><text class="node-text" x="585" y="222" text-anchor="middle">DEV023</text><text class="node-sub" x="585" y="240" text-anchor="middle">Recommendations</text></g>
+        <g><rect class="node-box" x="690" y="195" width="150" height="60"/><text class="node-text" x="765" y="222" text-anchor="middle">DEV024</text><text class="node-sub" x="765" y="240" text-anchor="middle">Monitoring</text></g>
+
+        <!-- Down from L1→L2 -->
+        <path class="edge" d="M765 115 L765 195" marker-end="url(#ah)"/>
+        <path class="edge" d="M300 105 L410 195" marker-end="url(#ah)"/>
+
+        <!-- L2 flow -->
+        <path class="edge" d="M300 225 L330 225" marker-end="url(#ah)"/>
+        <path class="edge" d="M480 225 L510 225" marker-end="url(#ah)"/>
+        <path class="edge" d="M660 225 L690 225" marker-end="url(#ah)"/>
+
+        <!-- L3 nodes -->
+        <g><rect class="node-box" x="60" y="335" width="130" height="60"/><text class="node-text" x="125" y="362" text-anchor="middle">DEV025</text><text class="node-sub" x="125" y="380" text-anchor="middle">Learning</text></g>
+        <g><rect class="node-box" x="215" y="335" width="130" height="60"/><text class="node-text" x="280" y="362" text-anchor="middle">DEV026</text><text class="node-sub" x="280" y="380" text-anchor="middle">Assistant</text></g>
+        <g><rect class="node-box" x="370" y="335" width="130" height="60"/><text class="node-text" x="435" y="362" text-anchor="middle">DEV027</text><text class="node-sub" x="435" y="380" text-anchor="middle">Doctor</text></g>
+        <g><rect class="node-box" x="525" y="335" width="130" height="60"/><text class="node-text" x="590" y="362" text-anchor="middle">DEV028</text><text class="node-sub" x="590" y="380" text-anchor="middle">DNA</text></g>
+        <g><rect class="node-box" x="680" y="335" width="130" height="60"/><text class="node-text" x="745" y="362" text-anchor="middle">DEV029</text><text class="node-sub" x="745" y="380" text-anchor="middle">Calibration</text></g>
+        <g><rect class="node-hero" x="835" y="335" width="150" height="60"/><text class="node-text" x="910" y="362" text-anchor="middle">DEV030</text><text class="node-sub" x="910" y="380" text-anchor="middle">Champion</text></g>
+
+        <!-- L2 → L3 -->
+        <path class="edge" d="M225 255 L125 335" marker-end="url(#ah)"/>
+        <path class="edge" d="M405 255 L440 335" marker-end="url(#ah)"/>
+        <path class="edge" d="M585 255 L590 335" marker-end="url(#ah)"/>
+        <path class="edge" d="M765 255 L745 335" marker-end="url(#ah)"/>
+        <path class="edge" d="M765 255 L910 335" marker-end="url(#ah)"/>
+
+        <!-- L4 nodes -->
+        <g><rect class="node-hero" x="325" y="495" width="180" height="70"/><text class="node-text" x="415" y="525" text-anchor="middle">DEV031</text><text class="node-sub" x="415" y="545" text-anchor="middle">Knowledge Graph</text></g>
+        <g><rect class="node-ux" x="580" y="495" width="140" height="70"/><text class="node-text" x="650" y="525" text-anchor="middle">UX030</text><text class="node-sub" x="650" y="545" text-anchor="middle">Telegram</text></g>
+        <g><rect class="node-ux" x="740" y="495" width="140" height="70"/><text class="node-text" x="810" y="525" text-anchor="middle">UX031</text><text class="node-sub" x="810" y="545" text-anchor="middle">Dashboard</text></g>
+
+        <!-- L3 → L4 (multiple feeding DEV031) -->
+        <path class="edge-flow" d="M125 395 L390 495" marker-end="url(#ahf)"/>
+        <path class="edge-flow" d="M280 395 L400 495" marker-end="url(#ahf)"/>
+        <path class="edge-flow" d="M435 395 L415 495" marker-end="url(#ahf)"/>
+        <path class="edge-flow" d="M590 395 L440 495" marker-end="url(#ahf)"/>
+        <path class="edge-flow" d="M745 395 L470 495" marker-end="url(#ahf)"/>
+        <path class="edge-flow" d="M910 395 L500 495" marker-end="url(#ahf)"/>
+
+        <!-- DEV031 feeds UX -->
+        <path class="edge-flow" d="M505 530 L580 530" marker-end="url(#ahf)"/>
+        <path class="edge-flow" d="M505 530 L740 530" marker-end="url(#ahf)"/>
+
+        <!-- Storage indicator -->
+        <text class="layer-label" x="1050" y="620" text-anchor="end">All flows = reports/*.json + .parquet artifacts</text>
+      </svg>
+      <div class="arch-caption">Fig. 3.1 · AEGIS module dependency graph (data-flow view)</div>
+    </div>
+
+    <div class="arch-legend">
+      <div><span class="swatch" style="background: var(--rule-strong);"></span>Data flow (artifact-mediated)</div>
+      <div><span class="swatch" style="background: var(--accent);"></span>Learning flow to graph & delivery</div>
+      <div><span class="swatch" style="background: color-mix(in srgb, var(--accent) 40%, var(--panel-hi));"></span>Champion & Knowledge Graph (hero modules)</div>
+      <div><span class="swatch" style="background: color-mix(in srgb, var(--blue-line) 40%, var(--panel-hi));"></span>UX / delivery layer</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     SECTION IV · DEV JOURNEY (compact cards with real metrics)
+     ═══════════════════════════════════════════════════════════════════ -->
+<section class="section" id="modules">
+  <div class="container">
+    <div class="eyebrow"><span class="section-number">IV.</span> Development Journey</div>
+    <h2>The modules in detail.</h2>
+    <p class="lead" style="margin-top: 1.5rem;">
+      Each card summarises the module's purpose, the artifacts it produces, and — where measurable —
+      its verified impact on live AEGIS data as of this report.
+    </p>
+
+    <div class="dev-grid">
+
+      <div class="dev-card">
+        <div class="id">DEV017 · L1</div>
+        <h3>Global Intelligence</h3>
+        <p class="summary">Reads 23 macro variables via yfinance. Emits regime classification (Risk-On / Neutral / Risk-Off) with confidence. Foundation for every downstream engine's regime awareness.</p>
+        <dl class="metrics">
+          <dt>Variables</dt><dd>23</dd>
+          <dt>Regime today</dt><dd>Neutral</dd>
+          <dt>Outputs</dt><dd>1 JSON</dd>
+          <dt>Refresh</dt><dd>Daily</dd>
+        </dl>
+      </div>
+
+      <div class="dev-card">
+        <div class="id">DEV018 · L1</div>
+        <h3>Sector Intelligence</h3>
+        <p class="summary">Scores 14 sectors on rotation, momentum, and earnings quality. Feeds sector context into company-level scoring.</p>
+        <dl class="metrics">
+          <dt>Sectors</dt><dd>14</dd>
+          <dt>Scored</dt><dd>12 / 14</dd>
+          <dt>Outputs</dt><dd>1 JSON + 1 PQ</dd>
+          <dt>Gate</dt><dd class="pos">86% pass</dd>
+        </dl>
+      </div>
+
+      <div class="dev-card">
+        <div class="id">DEV019 · L1</div>
+        <h3>Industry Intelligence</h3>
+        <p class="summary">44 industries scored under the sector rollup. Industry rank enters company composite score.</p>
+        <dl class="metrics">
+          <dt>Industries</dt><dd>44</dd>
+          <dt>Scored</dt><dd>34 / 44</dd>
+          <dt>Outputs</dt><dd>1 JSON + 1 PQ</dd>
+          <dt>Gate</dt><dd class="warn">77% pass</dd>
+        </dl>
+      </div>
+
+      <div class="dev-card">
+        <div class="id">DEV020 · L1</div>
+        <h3>Company Intelligence</h3>
+        <p class="summary">Full hierarchy: Global → Sector → Industry → Company. Every company inherits upstream context deterministically.</p>
+        <dl class="metrics">
+          <dt>Companies</dt><dd>208</dd>
+          <dt>With rec</dt><dd>208 / 208</dd>
+          <dt>Outputs</dt><dd>1 JSON + 1 PQ</dd>
+          <dt>Coverage</dt><dd class="pos">100%</dd>
+        </dl>
+      </div>
+
+      <div class="dev-card">
+        <div class="id">DEV021 · L2</div>
+        <h3>Historical Validation</h3>
+        <p class="summary">Walk-forward, point-in-time backtesting. 6 strategies plus NIFTY50 benchmark; equity curves + full trade metrics.</p>
+        <dl class="metrics">
+          <dt>Strategies</dt><dd>7</dd>
+          <dt>PIT-safe</dt><dd class="pos">Yes</dd>
+          <dt>Outputs</dt><dd>4 JSON + 2 files</dd>
+          <dt>Champion Sharpe</dt><dd class="pos">0.97</dd>
+        </dl>
+      </div>
+
+      <div class="dev-card">
+        <div class="id">DEV022 · L2</div>
+        <h3>Portfolio Construction</h3>
+        <p class="summary">11 allocators × 9 portfolio types = 99 constructions (Equal, HRP, Min-Var, Max-Sharpe, Kelly-¼, and more). Constraints enforced fix-worst-first.</p>
+        <dl class="metrics">
+          <dt>Allocators</dt><dd>11</dd>
+          <dt>Portfolios</dt><dd>99</dd>
+          <dt>Outputs</dt><dd>1 JSON + 1 PQ</dd>
+          <dt>Rows</dt><dd>1,455</dd>
+        </dl>
+      </div>
+
+      <div class="dev-card">
+        <div class="id">DEV023 · L2</div>
+        <h3>Recommendation Engine</h3>
+        <p class="summary">8 recommendation types. Every rec carries entry zone, target, stop-loss, holding period, conviction, and reasons for/against.</p>
+        <dl class="metrics">
+          <dt>Rec types</dt><dd>8</dd>
+          <dt>Strong-Buy</dt><dd class="pos">7</dd>
+          <dt>Buy</dt><dd class="pos">44</dd>
+          <dt>Avoid</dt><dd class="neg">127</dd>
+        </dl>
+      </div>
+
+      <div class="dev-card">
+        <div class="id">DEV024 · L2</div>
+        <h3>Portfolio Monitoring</h3>
+        <p class="summary">11 alert types, 4 rebalance actions. Fires on concentration, drawdown, regime exposure, or stop-loss threshold breach.</p>
+        <dl class="metrics">
+          <dt>Alert types</dt><dd>11</dd>
+          <dt>Rebal actions</dt><dd>4</dd>
+          <dt>Outputs</dt><dd>2 JSON</dd>
+          <dt>Realtime</dt><dd class="pos">Yes</dd>
+        </dl>
+      </div>
+
+      <div class="dev-card">
+        <div class="id">DEV025 · L3</div>
+        <h3>Adaptive Learning</h3>
+        <p class="summary">First independent detection of the miscalibration finding. 1,060 completed trades analysed; ECE = 0.29 flagged.</p>
+        <dl class="metrics">
+          <dt>Trades</dt><dd>1,060</dd>
+          <dt>Raw ECE</dt><dd class="warn">0.29</dd>
+          <dt>Dimensions</dt><dd>6</dd>
+          <dt>Outputs</dt><dd>1 PQ + 1 JSON</dd>
+        </dl>
+      </div>
+
+      <div class="dev-card">
+        <div class="id">DEV026 · L3</div>
+        <h3>Research Assistant</h3>
+        <p class="summary">Deterministic Q&A over the corpus. 6 query templates; every answer grounded to a specific artifact.</p>
+        <dl class="metrics">
+          <dt>Query types</dt><dd>6</dd>
+          <dt>LLM calls</dt><dd class="pos">0</dd>
+          <dt>Grounded</dt><dd class="pos">Yes</dd>
+          <dt>Outputs</dt><dd>1 JSON</dd>
+        </dl>
+      </div>
+
+      <div class="dev-card">
+        <div class="id">DEV027 · L3</div>
+        <h3>Strategy Doctor</h3>
+        <p class="summary">Post-mortem across 15 diagnostic categories. Second independent detection of overconfidence — 218 firings out of 677 diagnoses.</p>
+        <dl class="metrics">
+          <dt>Rules</dt><dd>15</dd>
+          <dt>Diagnoses</dt><dd>677</dd>
+          <dt>Overconf</dt><dd class="warn">218</dd>
+          <dt>Outputs</dt><dd>1 JSON + 1 PQ</dd>
+        </dl>
+      </div>
+
+      <div class="dev-card">
+        <div class="id">DEV028 · L3</div>
+        <h3>Recommendation DNA</h3>
+        <p class="summary">Immutable, append-only, content-keyed audit trail for every recommendation. 208 records; no overwrites permitted.</p>
+        <dl class="metrics">
+          <dt>Records</dt><dd>208</dd>
+          <dt>Mutation</dt><dd class="pos">Blocked</dd>
+          <dt>Dedup</dt><dd class="pos">Content-key</dd>
+          <dt>Outputs</dt><dd>1 JSON + 1 PQ</dd>
+        </dl>
+      </div>
+
+      <div class="dev-card">
+        <div class="id">DEV029 · L3</div>
+        <h3>Confidence Calibration</h3>
+        <p class="summary">Five methods competed on held-out data (Platt, Isotonic, Histogram, Beta, Temperature). Platt selected. Third independent confirmation of the miscalibration.</p>
+        <dl class="metrics">
+          <dt>Method</dt><dd class="pos">Platt</dd>
+          <dt>Raw ECE</dt><dd class="warn">0.287</dd>
+          <dt>Cal ECE</dt><dd class="pos">0.002</dd>
+          <dt>Improvement</dt><dd class="pos">-140×</dd>
+        </dl>
+      </div>
+
+      <div class="dev-card">
+        <div class="id">DEV030 · L3</div>
+        <h3>Champion vs Challenger</h3>
+        <p class="summary">9-metric composite (Sharpe 25% + Sortino 15% + Calmar 15% + Info-ratio 10% + CAGR 10% + max-DD 10% + Win 5% + PF 5% + Expectancy 5%). 4-gate promotion recommender.</p>
+        <dl class="metrics">
+          <dt>Champion</dt><dd class="pos">top_5_ew</dd>
+          <dt>Composite</dt><dd>95.96</dd>
+          <dt>Beat NIFTY</dt><dd class="pos">All 6</dd>
+          <dt>Outputs</dt><dd>6 JSON + 1 PQ</dd>
+        </dl>
+      </div>
+
+      <div class="dev-card">
+        <div class="id">DEV031 · L4</div>
+        <h3>Knowledge Graph</h3>
+        <p class="summary">10 entity types, 9 relation types, deterministic PageRank + label propagation + personalized-PPR + snapshot timeline + evidence-path explainability.</p>
+        <dl class="metrics">
+          <dt>Nodes</dt><dd>581</dd>
+          <dt>Edges</dt><dd>2,629</dd>
+          <dt>Communities</dt><dd class="pos">57</dd>
+          <dt>Modularity Q</dt><dd class="pos">0.86</dd>
+        </dl>
+      </div>
+
+      <div class="dev-card ux">
+        <div class="id">UX030 · Delivery</div>
+        <h3>Telegram Intelligence</h3>
+        <p class="summary">9 message types, 17 interactive commands, 5-tier priority + coalescing. Deterministic renderer, mobile-first, no LLM in the loop.</p>
+        <dl class="metrics">
+          <dt>Messages</dt><dd>9</dd>
+          <dt>Commands</dt><dd>17</dd>
+          <dt>Priority tiers</dt><dd>5</dd>
+          <dt>Tests</dt><dd class="pos">40 / 40</dd>
+        </dl>
+      </div>
+
+      <div class="dev-card ux">
+        <div class="id">UX031 · Delivery</div>
+        <h3>Executive Dashboard</h3>
+        <p class="summary">23 widgets across 10 routes with 10 filters. 12-col responsive grid; dark-first institutional theme with light-mode overrides. Framework-agnostic contract.</p>
+        <dl class="metrics">
+          <dt>Widgets</dt><dd>23</dd>
+          <dt>Routes</dt><dd>10</dd>
+          <dt>Filters</dt><dd>10</dd>
+          <dt>Tests</dt><dd class="pos">69 / 69</dd>
+        </dl>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     SECTION V · CHAMPION EVIDENCE
+     ═══════════════════════════════════════════════════════════════════ -->
+<section class="section" id="champion-evidence">
+  <div class="container">
+    <div class="eyebrow"><span class="section-number">V.</span> Champion Strategy · Evidence</div>
+    <h2>Six live strategies. One benchmark. All six beat it.</h2>
+    <p class="lead" style="margin-top:1.5rem;">
+      The DEV030 leaderboard on the current backtest window (2022 → present, walk-forward, PIT-safe).
+      Composite score is a min-max normalisation of 9 risk-adjusted metrics inside the strategy universe.
+    </p>
+
+    <div class="data-block">
+      <table class="data">
+        <thead>
+          <tr>
+            <th>Rank</th>
+            <th>Strategy</th>
+            <th class="right">Composite</th>
+            <th class="right">Sharpe</th>
+            <th class="right">CAGR</th>
+            <th class="right">Max DD</th>
+            <th class="right">Win rate</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="champion">1</td><td class="champion">top_5_ew</td>
+            <td class="right champion mono-num">95.96</td>
+            <td class="right champion mono-num">0.97</td>
+            <td class="right champion mono-num">24.82%</td>
+            <td class="right champion mono-num">-25.24%</td>
+            <td class="right champion mono-num">60.75%</td>
+          </tr>
+          <tr>
+            <td class="mono-num">2</td><td>top_20_ew</td>
+            <td class="right mono-num">87.25</td>
+            <td class="right mono-num">1.06</td>
+            <td class="right mono-num">24.01%</td>
+            <td class="right mono-num">-20.19%</td>
+            <td class="right mono-num">58.30%</td>
+          </tr>
+          <tr>
+            <td class="mono-num">3</td><td>top_20_sw</td>
+            <td class="right mono-num">86.20</td>
+            <td class="right mono-num">1.06</td>
+            <td class="right mono-num">24.06%</td>
+            <td class="right mono-num">-19.68%</td>
+            <td class="right mono-num">58.30%</td>
+          </tr>
+          <tr>
+            <td class="mono-num">4</td><td>top_10_sw</td>
+            <td class="right mono-num">69.86</td>
+            <td class="right mono-num">0.78</td>
+            <td class="right mono-num">20.09%</td>
+            <td class="right mono-num">-23.76%</td>
+            <td class="right mono-num">57.74%</td>
+          </tr>
+          <tr>
+            <td class="mono-num">5</td><td>ew_universe</td>
+            <td class="right mono-num">69.14</td>
+            <td class="right mono-num">0.80</td>
+            <td class="right mono-num">17.84%</td>
+            <td class="right mono-num">-20.38%</td>
+            <td class="right mono-num">54.74%</td>
+          </tr>
+          <tr>
+            <td class="mono-num">6</td><td>top_10_ew</td>
+            <td class="right mono-num">67.97</td>
+            <td class="right mono-num">0.75</td>
+            <td class="right mono-num">19.54%</td>
+            <td class="right mono-num">-24.08%</td>
+            <td class="right mono-num">57.74%</td>
+          </tr>
+          <tr>
+            <td class="neg">7</td><td class="neg">BENCHMARK_NIFTY50</td>
+            <td class="right neg mono-num">0.00</td>
+            <td class="right neg mono-num">-0.71</td>
+            <td class="right neg mono-num">-4.88%</td>
+            <td class="right neg mono-num">-15.18%</td>
+            <td class="right neg mono-num">—</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p style="max-width:65ch; margin-top: 1rem; font-size:14px;">
+      Every strategy shows 2nd-half Sharpe degradation vs 1st-half. That is not a bug — it is the
+      regime shift the platform is designed to surface. DEV030's drift panel + DEV031's timeline
+      make the shift visible; DEV030's promotion recommender enforces caution when it appears.
+      Advisory-only: no strategy has been auto-promoted.
+    </p>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     SECTION VI · CALIBRATION EVIDENCE
+     ═══════════════════════════════════════════════════════════════════ -->
+<section class="section" id="calibration">
+  <div class="container">
+    <div class="eyebrow"><span class="section-number">VI.</span> Confidence Calibration · Evidence</div>
+    <h2>Raw confidence had no discriminative signal. Three engines detected it independently.</h2>
+    <p class="lead" style="margin-top: 1.5rem;">
+      DEV025 (learning), DEV027 (doctor), and DEV029 (calibration) each surfaced the same finding
+      from a different angle. Every trade wins ~58% regardless of stated confidence. Platt
+      scaling correctly collapses raw confidence to the base rate — an honest, evidence-driven answer.
+    </p>
+
+    <div class="evidence">
+      <h4>DEV029 · Held-out test, 1,060 trades</h4>
+      <div class="evidence-body">
+        <div class="evidence-numbers">
+          <div class="stat" style="margin-bottom: 1.75rem;">
+            <span class="label">Raw ECE</span>
+            <span class="value" style="color: var(--data-neg);">0.287</span>
+            <span class="delta neg">on average 29pp miscalibrated</span>
+          </div>
+          <div class="stat">
+            <span class="label">Calibrated ECE</span>
+            <span class="value" style="color: var(--data-pos);">0.002</span>
+            <span class="delta pos">Platt scaling · -140×</span>
+          </div>
+        </div>
+        <div>
+          <h3 style="font-size:1.35rem; margin-bottom: 0.75rem;">Predicted vs Observed — before &amp; after</h3>
+          <div class="data-block" style="margin: 0;">
+            <table class="data" style="min-width: 380px;">
+              <thead>
+                <tr>
+                  <th>Bin</th><th class="right">n</th><th class="right">Predicted</th><th class="right">Observed</th><th class="right">Gap</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Raw · 0.80–0.90</td><td class="right mono-num">920</td>
+                  <td class="right mono-num">0.85</td><td class="right mono-num">0.589</td>
+                  <td class="right neg mono-num">+26pp</td>
+                </tr>
+                <tr>
+                  <td>Raw · 0.90–1.00</td><td class="right mono-num">140</td>
+                  <td class="right mono-num">1.00</td><td class="right mono-num">0.543</td>
+                  <td class="right neg mono-num">+46pp</td>
+                </tr>
+                <tr>
+                  <td class="strong">Calibrated · all</td><td class="right mono-num">1060</td>
+                  <td class="right mono-num pos">0.581</td><td class="right mono-num pos">0.583</td>
+                  <td class="right pos mono-num">-0.2pp</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p style="max-width:65ch; font-size:14px; color: var(--type-secondary); margin-top: 1.5rem;">
+      Under ARCH001A Article V clause 5.1 (advisory-only), the calibrated confidence is <em>surfaced</em> in
+      the outputs but does not automatically rewrite downstream recommendations. The finding is a
+      strong signal that raw confidence is a rank-ordering label, not a probability — the correct
+      response is to redesign the confidence feature-set, not to patch the label.
+    </p>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     SECTION VII · KNOWLEDGE GRAPH EVIDENCE
+     ═══════════════════════════════════════════════════════════════════ -->
+<section class="section" id="graph-evidence">
+  <div class="container">
+    <div class="eyebrow"><span class="section-number">VII.</span> Knowledge Graph · Evidence</div>
+    <h2>Structure emerges from the data alone.</h2>
+    <p class="lead" style="margin-top: 1.5rem;">
+      No hardcoded sector taxonomies. No fabricated relationships. Label propagation
+      on the undirected weighted graph produces 57 communities with modularity Q = 0.86 —
+      strong structure by Newman's standard (Q &gt; 0.5). The largest clusters are recognisable
+      by name because the graph <em>discovered</em> them, not because they were told.
+    </p>
+
+    <div class="two-col" style="margin-top: 2.5rem;">
+      <div>
+        <h3 style="margin-bottom: 1.25rem;">Top influencers</h3>
+        <div class="data-block" style="margin-top: 0;">
+          <table class="data">
+            <thead><tr><th>Node</th><th class="right">Influence</th></tr></thead>
+            <tbody>
+              <tr><td class="strong">Signal:winner</td><td class="right mono-num pos">0.0523</td></tr>
+              <tr><td class="strong">Strategy:top_5_ew</td><td class="right mono-num">0.0279</td></tr>
+              <tr><td>Signal:loser</td><td class="right mono-num">0.0092</td></tr>
+              <tr><td>Company:IPCALAB</td><td class="right mono-num">0.0078</td></tr>
+              <tr><td>Industry:Capital Goods</td><td class="right mono-num">0.0076</td></tr>
+              <tr><td>Company:RADICO</td><td class="right mono-num">0.0075</td></tr>
+              <tr><td>MarketRegime:Neutral</td><td class="right mono-num">0.0074</td></tr>
+              <tr><td>Industry:NBFC</td><td class="right mono-num">0.0073</td></tr>
+              <tr><td>Industry:IT Services</td><td class="right mono-num">0.0072</td></tr>
+              <tr><td>Company:SONACOMS</td><td class="right mono-num">0.0061</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p style="font-size:12px; margin-top: 0.75rem;">
+          Deterministic PageRank, damping 0.85, 25 iterations.
+        </p>
+      </div>
+
+      <div>
+        <h3 style="margin-bottom: 1.25rem;">Discovered communities</h3>
+        <div class="data-block" style="margin-top: 0;">
+          <table class="data">
+            <thead><tr><th>Cluster</th><th class="right">Members</th></tr></thead>
+            <tbody>
+              <tr><td class="strong">Pharma (Mid Cap)</td><td class="right mono-num">9</td></tr>
+              <tr><td class="strong">Cement</td><td class="right mono-num">8</td></tr>
+              <tr><td class="strong">Specialty Chemicals</td><td class="right mono-num">7</td></tr>
+              <tr><td class="strong">Pharma (Large Cap)</td><td class="right mono-num">7</td></tr>
+              <tr><td class="strong">Capital Goods</td><td class="right mono-num">7</td></tr>
+              <tr><td class="strong">Personal Care</td><td class="right mono-num">6</td></tr>
+              <tr><td class="strong">Capital Markets &amp; AMC</td><td class="right mono-num">5</td></tr>
+              <tr><td class="strong">Auto OEM</td><td class="right mono-num">5</td></tr>
+              <tr><td colspan="2" style="color: var(--type-tertiary); text-align:center; font-size: 11px;">… + 49 more discovered clusters</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p style="font-size:12px; margin-top: 0.75rem;">
+          Deterministic label propagation with lex tie-break. Modularity Q = 0.857.
+        </p>
+      </div>
+    </div>
+
+    <div class="evidence" style="margin-top: 3rem;">
+      <h4>Explainability sample · DEV031-B · top-ranked recommendation</h4>
+      <div style="font-family: var(--font-mono); font-size: 14px; line-height: 1.9; color: var(--type-secondary);">
+        <div><span style="color: var(--accent);">/why IPCALAB</span></div>
+        <div style="margin-top: 0.75rem; padding-left: 1rem; border-left: 1px solid var(--accent);">
+          <div><span style="color: var(--type-primary);">Company:IPCALAB</span> → Industry:Pharma (Mid Cap) → Sector:Pharma → MarketRegime:Neutral</div>
+          <div style="color: var(--type-tertiary); margin-top: 0.75rem; font-size: 12px;">Champion strategy: <span style="color: var(--accent-hi);">top_5_ew</span> · linked via portfolio membership</div>
+          <div style="color: var(--type-tertiary); font-size: 12px;">Historical outcome: <span style="color: var(--data-neg);">loser · win-rate 0.33</span> (flag for review)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     SECTION VIII · RESEARCH OUTPUTS
+     ═══════════════════════════════════════════════════════════════════ -->
+<section class="section" id="outputs">
+  <div class="container">
+    <div class="eyebrow"><span class="section-number">VIII.</span> Research Outputs</div>
+    <h2>Every module writes to <code>reports/</code>.</h2>
+    <p class="lead" style="margin-top: 1.5rem;">
+      Sixty-five published artifacts across four intelligence tiers. JSON for structured data
+      consumable by any downstream module; Parquet for tabular scale; Markdown for human-facing
+      findings. The full lifecycle is replayable from these files alone.
+    </p>
+
+    <div class="outputs-groups">
+      <div class="output-group">
+        <h4>L1 · Market Intelligence</h4>
+        <ul>
+          <li>global_context.json<span class="type-tag">DEV017</span></li>
+          <li>sector_intelligence.json<span class="type-tag">DEV018</span></li>
+          <li>sector_intelligence.parquet<span class="type-tag">DEV018</span></li>
+          <li>industry_intelligence.json<span class="type-tag">DEV019</span></li>
+          <li>industry_intelligence.parquet<span class="type-tag">DEV019</span></li>
+          <li>company_intelligence.json<span class="type-tag">DEV020</span></li>
+          <li>company_intelligence.parquet<span class="type-tag">DEV020</span></li>
+        </ul>
+      </div>
+
+      <div class="output-group">
+        <h4>L2 · Portfolio Intelligence</h4>
+        <ul>
+          <li>backtest_summary.json<span class="type-tag">DEV021</span></li>
+          <li>backtest_summary.parquet<span class="type-tag">DEV021</span></li>
+          <li>backtest_equity_curves.csv<span class="type-tag">DEV021</span></li>
+          <li>strategy_comparison.json<span class="type-tag">DEV021</span></li>
+          <li>failure_analysis.json<span class="type-tag">DEV021</span></li>
+          <li>portfolio.json<span class="type-tag">DEV022</span></li>
+          <li>portfolio.parquet<span class="type-tag">DEV022</span></li>
+          <li>recommendations.json<span class="type-tag">DEV023</span></li>
+          <li>recommendations.parquet<span class="type-tag">DEV023</span></li>
+          <li>portfolio_monitoring.json<span class="type-tag">DEV024</span></li>
+          <li>rebalance_plan.json<span class="type-tag">DEV024</span></li>
+        </ul>
+      </div>
+
+      <div class="output-group">
+        <h4>L3 · Learning &amp; Meta</h4>
+        <ul>
+          <li>learning.parquet<span class="type-tag">DEV025</span></li>
+          <li>learning_summary.json<span class="type-tag">DEV025</span></li>
+          <li>research_qa.json<span class="type-tag">DEV026</span></li>
+          <li>strategy_doctor.json<span class="type-tag">DEV027</span></li>
+          <li>strategy_doctor.parquet<span class="type-tag">DEV027</span></li>
+          <li>recommendation_dna.json<span class="type-tag">DEV028</span></li>
+          <li>recommendation_dna.parquet<span class="type-tag">DEV028</span></li>
+          <li>confidence_calibration.json<span class="type-tag">DEV029</span></li>
+          <li>confidence_calibration.parquet<span class="type-tag">DEV029</span></li>
+          <li>calibration_metrics.json<span class="type-tag">DEV029</span></li>
+          <li>reliability_diagram.json<span class="type-tag">DEV029</span></li>
+          <li>confidence_bias.json<span class="type-tag">DEV029</span></li>
+          <li>calibration_history.json<span class="type-tag">DEV029</span></li>
+          <li>champion_strategy.json<span class="type-tag">DEV030</span></li>
+          <li>challenger_scoreboard.json<span class="type-tag">DEV030</span></li>
+          <li>head_to_head_matrix.json<span class="type-tag">DEV030</span></li>
+          <li>regime_comparison.json<span class="type-tag">DEV030</span></li>
+          <li>drift_report.json<span class="type-tag">DEV030</span></li>
+          <li>promotion_recommendation.json<span class="type-tag">DEV030</span></li>
+          <li>strategy_leaderboard.parquet<span class="type-tag">DEV030</span></li>
+        </ul>
+      </div>
+
+      <div class="output-group">
+        <h4>L4 · Knowledge &amp; Delivery</h4>
+        <ul>
+          <li>knowledge_graph.json<span class="type-tag">DEV031</span></li>
+          <li>knowledge_graph.parquet<span class="type-tag">DEV031</span></li>
+          <li>entity_network.json<span class="type-tag">DEV031</span></li>
+          <li>relationship_matrix.json<span class="type-tag">DEV031</span></li>
+          <li>company_network.json<span class="type-tag">DEV031</span></li>
+          <li>sector_network.json<span class="type-tag">DEV031</span></li>
+          <li>graph_statistics.json<span class="type-tag">DEV031</span></li>
+          <li>recommendation_paths.json<span class="type-tag">DEV031-B</span></li>
+          <li>community_clusters.json<span class="type-tag">DEV031-B</span></li>
+          <li>influence_propagation.json<span class="type-tag">DEV031-B</span></li>
+          <li>graph_timeline.json<span class="type-tag">DEV031-B</span></li>
+          <li>telegram_templates.json<span class="type-tag">UX030</span></li>
+          <li>telegram_layouts.json<span class="type-tag">UX030</span></li>
+          <li>telegram_commands.json<span class="type-tag">UX030</span></li>
+          <li>telegram_notification_rules.json<span class="type-tag">UX030</span></li>
+          <li>telegram_ui_config.json<span class="type-tag">UX030</span></li>
+          <li>telegram_examples.md<span class="type-tag">UX030</span></li>
+          <li>dashboard_layout.json<span class="type-tag">UX031</span></li>
+          <li>dashboard_widgets.json<span class="type-tag">UX031</span></li>
+          <li>dashboard_routes.json<span class="type-tag">UX031</span></li>
+          <li>dashboard_theme.json<span class="type-tag">UX031</span></li>
+          <li>dashboard_config.json<span class="type-tag">UX031</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     SECTION IX · INSTITUTIONAL FEATURES
+     ═══════════════════════════════════════════════════════════════════ -->
+<section class="section" id="institutional">
+  <div class="container">
+    <div class="eyebrow"><span class="section-number">IX.</span> Institutional Features</div>
+    <h2>What separates AEGIS from a screener.</h2>
+    <p class="lead" style="margin-top: 1.5rem;">
+      A screener ranks stocks against static rules. AEGIS treats every recommendation
+      as an evidence chain that can be inspected, challenged, and — where wrong — diagnosed.
+    </p>
+
+    <div class="compare-table">
+      <table>
+        <thead>
+          <tr>
+            <th>Capability</th>
+            <th>Traditional Screener</th>
+            <th class="aegis">AEGIS</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="cap">Learning</td>
+            <td class="dim">Static rules; no feedback loop</td>
+            <td class="strong">1,060 trades analysed across 6 outcome dimensions (DEV025)</td>
+          </tr>
+          <tr>
+            <td class="cap">Confidence calibration</td>
+            <td class="dim">Raw score, uncalibrated</td>
+            <td class="strong">Five methods competed; Platt selected; ECE 0.287 → 0.002 (DEV029)</td>
+          </tr>
+          <tr>
+            <td class="cap">Failure diagnosis</td>
+            <td class="dim">None</td>
+            <td class="strong">15 diagnostic rules; 677 diagnoses fired; overconfidence is #1 (DEV027)</td>
+          </tr>
+          <tr>
+            <td class="cap">Strategy governance</td>
+            <td class="dim">Single hard-coded ranking</td>
+            <td class="strong">Champion vs Challenger with 4-gate promotion recommender (DEV030)</td>
+          </tr>
+          <tr>
+            <td class="cap">Knowledge graph</td>
+            <td class="dim">Flat list</td>
+            <td class="strong">581 nodes across 10 entity types; 57 communities discovered (DEV031)</td>
+          </tr>
+          <tr>
+            <td class="cap">Explainability</td>
+            <td class="dim">"Because the score was high"</td>
+            <td class="strong">Full path: Company → Industry → Sector → Regime + Champion + Signals + Outcome (DEV031-B)</td>
+          </tr>
+          <tr>
+            <td class="cap">Audit trail</td>
+            <td class="dim">Overwritten on next run</td>
+            <td class="strong">208 immutable, content-keyed records; append-only (DEV028)</td>
+          </tr>
+          <tr>
+            <td class="cap">Portfolio construction</td>
+            <td class="dim">Equal-weight top N</td>
+            <td class="strong">99 constructions across 11 allocators × 9 types (DEV022)</td>
+          </tr>
+          <tr>
+            <td class="cap">Regime awareness</td>
+            <td class="dim">Absent</td>
+            <td class="strong">Live regime classification; regime-conditional champion selection (DEV017 + DEV030)</td>
+          </tr>
+          <tr>
+            <td class="cap">Delivery</td>
+            <td class="dim">CSV export</td>
+            <td class="strong">Deterministic Telegram + JSON contracts for dashboard/copilot (UX030, UX031)</td>
+          </tr>
+          <tr>
+            <td class="cap">Advisory posture</td>
+            <td class="dim">Ambiguous</td>
+            <td class="strong">Explicit: no auto-execution; every output flagged advisory-only</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     SECTION X · ROADMAP
+     ═══════════════════════════════════════════════════════════════════ -->
+<section class="section" id="roadmap">
+  <div class="container">
+    <div class="eyebrow"><span class="section-number">X.</span> Forward Roadmap</div>
+    <h2>What ships next.</h2>
+    <p class="lead" style="margin-top: 1.5rem;">
+      Both tracks (core intelligence and user experience) continue in parallel. Every future
+      module is scoped to reuse existing outputs; no forced rewrites of shipped code.
+    </p>
+
+    <h3 style="margin-top: 3rem; font-size: 1.15rem; text-transform: uppercase; letter-spacing: 0.14em; color: var(--type-secondary); font-family: var(--font-body); font-weight: 500;">Core Intelligence</h3>
+    <div class="roadmap-grid">
+      <div class="rm-card"><div class="id shipped">DEV031-B · shipped</div><div class="name">Knowledge Graph completion</div><div class="status">Communities · Propagation · Explainability · Timeline</div></div>
+      <div class="rm-card"><div class="id planned">DEV032 · queued</div><div class="name">Scenario &amp; Macro Simulator</div><div class="status">What-if regime + shock analysis</div></div>
+      <div class="rm-card"><div class="id planned">DEV033 · queued</div><div class="name">Factor Attribution</div><div class="status">Decompose returns into factor exposures</div></div>
+      <div class="rm-card"><div class="id planned">DEV034 · queued</div><div class="name">Multi-Asset Intelligence</div><div class="status">Debt · gold · commodities extension</div></div>
+      <div class="rm-card"><div class="id planned">DEV035 · queued</div><div class="name">Enterprise Governance</div><div class="status">Multi-tenant · access controls · policy engine</div></div>
+    </div>
+
+    <h3 style="margin-top: 3rem; font-size: 1.15rem; text-transform: uppercase; letter-spacing: 0.14em; color: var(--type-secondary); font-family: var(--font-body); font-weight: 500;">User Experience</h3>
+    <div class="roadmap-grid">
+      <div class="rm-card"><div class="id shipped">UX030 · shipped</div><div class="name">Telegram Intelligence Platform</div><div class="status">9 messages · 17 commands · 5-tier priorities</div></div>
+      <div class="rm-card"><div class="id shipped">UX031 · shipped</div><div class="name">Executive Dashboard</div><div class="status">23 widgets · 10 routes · dark-first</div></div>
+      <div class="rm-card"><div class="id planned">UX032 · queued</div><div class="name">AI Investment Copilot</div><div class="status">Natural-language interface over the corpus</div></div>
+      <div class="rm-card"><div class="id planned">UX033 · queued</div><div class="name">Portfolio Workspace</div><div class="status">Collaborative annotation + notes</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     COLOPHON
+     ═══════════════════════════════════════════════════════════════════ -->
+<footer class="footer">
+  <div class="colophon">
+    <strong>AEGIS · Platform Report · Vol. 01</strong><br>
+    Every metric in this document is drawn from live <code>reports/*</code> artifacts on the
+    <code>main</code> branch at commit <code>9c1c605</code>. No number has been invented; where
+    exact figures were unavailable, the visual is labeled as a schematic. Advisory-only per
+    ARCH001A Article V clause 5.1.
+  </div>
+  <div style="text-align:right;">
+    NEXAQUANT · 2026<br>
+    Confidential · Prepared for Executive Review
+  </div>
+</footer>
+
+<script>
+(function(){
+  const root = document.documentElement;
+  const btn = document.getElementById('themeToggle');
+  const stored = localStorage.getItem('aegis-theme');
+  if (stored) root.setAttribute('data-theme', stored);
+  btn.addEventListener('click', function(){
+    const cur = root.getAttribute('data-theme');
+    const media = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const isDark = cur ? cur === 'dark' : media;
+    const next = isDark ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    localStorage.setItem('aegis-theme', next);
+  });
+})();
+</script>
