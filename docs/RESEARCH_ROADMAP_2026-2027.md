@@ -57,7 +57,9 @@ Three organising principles for this track:
 | **ARCH016** | Human-in-the-Loop Decision Support | ⚪ BONUS | ARCH009 | TBD | — |
 | **ARCH017A** | Market Data Canonical Model (database constitution for Phase 2) | 🟢 DRAFT (2026-07-17) | ARCH001A | done | operator approval |
 | **ARCH017** | Global Intelligence Engine | 🟢 DRAFT (2026-07-17) | ARCH001A + ARCH017A + ARCH002 | done | operator approval + ingest scaffolding |
-| **ARCH018** | Sector Intelligence Engine | 🟡 SCOPED (2026-07-17) | ARCH017 | 2026-Q3 | sector-strength backtest |
+| **ARCH018** | Sector Intelligence Engine | 🟢 DRAFT (2026-07-17) | ARCH017 + ARCH017A | done | operator approval + LAB015-B evidence |
+| **ARCH018A** | Company Intelligence Engine | 🟡 SCOPED (2026-07-17) | ARCH018 | 2026-Q3 | new design cycle |
+| **ARCH031** | Investment Research Pipeline (academic papers, sell-side, transcripts, regulatory) | 🟡 SCOPED (2026-07-17, operator suggestion) | ARCH026 | 2027-Q2 | separate design cycle |
 | **ARCH019** | Regime Detection Engine | 🟡 SCOPED (2026-07-17) | ARCH017, ARCH018 · **subsumes ARCH006** | 2026-Q4 | classifier build |
 | **ARCH020** | Market Knowledge Graph | 🟡 SCOPED (2026-07-17) | ARCH017, ARCH018 | 2026-Q4 | graph schema |
 | **ARCH021** | Cross-Market Dependency Engine | 🟡 SCOPED (2026-07-17) | ARCH020 | 2027-Q1 | dependency graph validation |
