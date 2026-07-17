@@ -125,11 +125,11 @@ Create `/.env` at the repo root. **NEVER commit this file.**
 
 ```dotenv
 # Required for Telegram send
-TELEGRAM_BOT_TOKEN=123456789:AA...your bot token
-TELEGRAM_CHAT_ID=123456789
+TELEGRAM_BOT_TOKEN=<your-bot-token-from-BotFather>
+TELEGRAM_CHAT_ID=<your-personal-chat-id-from-@userinfobot>
 
 # Optional — enables Google Sheets sync (skip if you don't use Sheets)
-AEGIS_SPREADSHEET_ID=1abc...
+AEGIS_SPREADSHEET_ID=<your-sheet-id>
 GOOGLE_SERVICE_ACCOUNT_FILE=/path/to/service-account.json
 ```
 

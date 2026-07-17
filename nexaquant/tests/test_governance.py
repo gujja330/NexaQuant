@@ -157,8 +157,15 @@ def test_no_pat_or_credentials_committed():
     patterns = ("ghp_", "github_pat_", "TELEGRAM_BOT_TOKEN=", "ANGEL_API_KEY=")
     findings: list[str] = []
     for f in tracked:
-        # Skip the checklist files themselves — they document what NOT to commit.
-        if f.startswith("docs/") and ("CHECKLIST" in f or "PUSH_INSTRUCTIONS" in f):
+        # Skip documentation files that legitimately contain the pattern as an
+        # example (checklists document what NOT to commit; HOW_TO_RUN shows the
+        # user which env vars to set locally). This whitelist is intentionally
+        # narrow — every entry is a specific file, not a directory wildcard.
+        if f.startswith("docs/") and (
+            "CHECKLIST" in f
+            or "PUSH_INSTRUCTIONS" in f
+            or "HOW_TO_RUN_PIPELINE_LOCALLY" in f
+        ):
             continue
         # Skip test files that mention patterns as string literals
         if f.startswith("nexaquant/tests/"):
