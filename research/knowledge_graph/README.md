@@ -1,11 +1,26 @@
-# DEV031 — Knowledge Graph & Relationship Intelligence
+# DEV031 — Knowledge Graph & Relationship Intelligence · v0.2
 
 **Sprint 16 · Knowledge track.** Central intelligence layer that connects
-every entity AEGIS reasons about into one queryable graph. No internet
-scraping — pure integration of validated `reports/` outputs from DEV017-DEV030.
+every entity AEGIS reasons about into one queryable, versioned graph with
+community detection, influence propagation, and evidence-based
+explanations for every recommendation.
 
 > Advisory-only per ARCH001A Article V clause 5.1. Deterministic,
 > explainable, evidence-based. Reuses DEV017-DEV030 utilities.
+
+## v0.2 (DEV031-B) additions
+
+- **Community detection** — deterministic label propagation finds clusters
+  (Pharma / Cement / Chemicals / Banks etc.) from graph topology alone.
+  57 communities detected on live data, modularity Q = 0.86.
+- **Influence propagation** — personalized PageRank shows how signals
+  cascade through the graph (regime → sectors → companies).
+- **Recommendation explainability** — every top rec traces a full evidence
+  path: Company → Industry → Sector → Regime + linked Portfolio → Champion
+  + connected Signals + historical outcome.
+- **Graph timeline** — append-only snapshot history in
+  `data/market_intelligence/derived/graph_snapshots.parquet` with a diff
+  report vs the prior run.
 
 ---
 
@@ -49,10 +64,11 @@ signal propagation.
 - `reports/portfolio_monitoring.json` (DEV024) — risk factors
 - `reports/sector_intelligence.json` (DEV018), `industry_intelligence.json` (DEV019) — sector/industry attributes
 
-## Outputs (7)
+## Outputs (11)
 
 Written to `reports/`:
 
+Core (v0.1):
 - **`knowledge_graph.json`** — headline stats + governance
 - **`entity_network.json`** — all nodes with influence + degree + strength
 - **`relationship_matrix.json`** — full edge list with weights + attributes
@@ -60,6 +76,16 @@ Written to `reports/`:
 - **`sector_network.json`** — sector subgraph adjacency
 - **`graph_statistics.json`** — top influencers + entity/relation counts
 - **`knowledge_graph.parquet`** — edges as tabular rows for downstream analysis
+
+DEV031-B additions (v0.2):
+- **`recommendation_paths.json`** — evidence paths for top-25 recs
+  (Company → Industry → Sector → Regime + Champion + Signals + Outcome)
+- **`community_clusters.json`** — auto-discovered clusters with dominant
+  industry/sector + modularity score
+- **`influence_propagation.json`** — personalized PageRank reach from key
+  sources (regime, champion strategy, signals)
+- **`graph_timeline.json`** — diff vs prior run: added/removed entities,
+  rank changes among top-20 influencers, drop-outs
 
 ## Algorithms
 

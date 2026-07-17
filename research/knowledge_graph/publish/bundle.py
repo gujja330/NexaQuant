@@ -118,9 +118,54 @@ def build_and_publish(result: dict) -> dict:
             })
         pd.DataFrame(rows).to_parquet(REPORTS / "knowledge_graph.parquet", index=False)
 
+    # ── DEV031-B additions ─────────────────────────────────────────────
+
+    # recommendation_paths.json
+    if "recommendation_paths" in result:
+        with (REPORTS / "recommendation_paths.json").open("w", encoding="utf-8") as f:
+            json.dump(_sanitize({
+                "run_utc":  result["run_utc"],
+                "paths":    result["recommendation_paths"],
+                "count":    len(result["recommendation_paths"]),
+                "governance": "Advisory only; graph traversal explains existing recs. No inference.",
+            }), f, indent=2, default=str)
+
+    # community_clusters.json
+    if "communities" in result:
+        with (REPORTS / "community_clusters.json").open("w", encoding="utf-8") as f:
+            json.dump(_sanitize({
+                "run_utc":     result["run_utc"],
+                "algorithm":   "deterministic label propagation",
+                "modularity":  result.get("community_modularity"),
+                "communities": result["communities"],
+                "count":       len(result["communities"]),
+            }), f, indent=2, default=str)
+
+    # influence_propagation.json
+    if "propagation" in result:
+        with (REPORTS / "influence_propagation.json").open("w", encoding="utf-8") as f:
+            json.dump(_sanitize({
+                "run_utc":     result["run_utc"],
+                "algorithm":   "personalized PageRank (damping=0.85, iterations=30)",
+                "propagation": result["propagation"],
+                "count":       len(result["propagation"]),
+            }), f, indent=2, default=str)
+
+    # graph_timeline.json
+    if "timeline_diff" in result:
+        with (REPORTS / "graph_timeline.json").open("w", encoding="utf-8") as f:
+            json.dump(_sanitize({
+                "run_utc":  result["run_utc"],
+                "diff":     result["timeline_diff"],
+            }), f, indent=2, default=str)
+
     return {
-        "n_nodes":        len(nodes_json),
-        "n_edges":        len(edges_json),
-        "top_influencer": (result["graph_stats"]["top_influencers"][0]["node"]
-                            if result["graph_stats"]["top_influencers"] else None),
+        "n_nodes":         len(nodes_json),
+        "n_edges":         len(edges_json),
+        "n_communities":   len(result.get("communities", [])),
+        "modularity":      result.get("community_modularity"),
+        "n_explanations":  len(result.get("recommendation_paths", [])),
+        "n_propagations":  len(result.get("propagation", [])),
+        "top_influencer":  (result["graph_stats"]["top_influencers"][0]["node"]
+                             if result["graph_stats"]["top_influencers"] else None),
     }

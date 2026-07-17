@@ -12,7 +12,8 @@ from pathlib import Path
 _ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(_ROOT / "research"))
 
-from knowledge_graph.lib import entities, relationships, algorithms                    # noqa: E402
+from knowledge_graph.lib import (entities, relationships, algorithms,                    # noqa: E402
+                                     explainability, community, propagation, timeline)
 
 
 def _git_sha() -> str:
@@ -72,10 +73,29 @@ def run(verbose: bool = True) -> dict:
         print(f"    top influencer: {top_influencers[0][0] if top_influencers else 'none'}")
 
     if verbose:
-        print("  step 4/4 · extract subgraphs")
+        print("  step 4/7 · extract subgraphs")
     company_subgraph = algorithms.subgraph_by_type(adj, "Company")
     sector_subgraph = algorithms.subgraph_by_type(adj, "Sector")
     industry_subgraph = algorithms.subgraph_by_type(adj, "Industry")
+
+    if verbose:
+        print("  step 5/7 · detect communities (deterministic label propagation)")
+    communities = community.detect_communities(adj, node_lookup,
+                                                    subset_prefix="Company:", min_size=2)
+    company_labels = community.label_propagation(adj, subset_prefix="Company:")
+    q = community.modularity(algorithms.subgraph_by_type(adj, "Company"),
+                                {k: v for k, v in company_labels.items()
+                                  if k.startswith("Company:")})
+    if verbose:
+        print(f"    {len(communities)} communities discovered, modularity Q = {q}")
+
+    if verbose:
+        print("  step 6/7 · explain top-K recommendations")
+    explanations = explainability.explain_top_recommendations(adj, node_lookup, top_k=25)
+
+    if verbose:
+        print("  step 7/7 · influence propagation from key sources")
+    propagation_rep = propagation.propagation_report(adj, node_lookup, top_k=10)
 
     graph_stats = {
         "n_nodes":     n_nodes,
@@ -92,10 +112,10 @@ def run(verbose: bool = True) -> dict:
                               sorted({e.relation for e in edges})},
     }
 
-    return {
+    result = {
         "run_utc":            datetime.now(timezone.utc).isoformat() + "Z",
         "code_sha":           _git_sha(),
-        "dev_version":        "DEV031 v0.1",
+        "dev_version":        "DEV031 v0.2",
         "nodes":              nodes,
         "edges":              edges,
         "adjacency":          adj,
@@ -107,4 +127,16 @@ def run(verbose: bool = True) -> dict:
         "sector_subgraph":    sector_subgraph,
         "industry_subgraph":  industry_subgraph,
         "graph_stats":        graph_stats,
+        # ─── DEV031-B additions ─────────────────────────────────
+        "communities":            communities,
+        "community_modularity":   q,
+        "recommendation_paths":   explanations,
+        "propagation":            propagation_rep,
     }
+
+    # ── snapshot + diff ────────────────────────────────────────────
+    snap_row = timeline.snapshot_current(result)
+    timeline.append_snapshot(snap_row)
+    result["timeline_diff"] = timeline.diff_vs_prior(snap_row)
+
+    return result
