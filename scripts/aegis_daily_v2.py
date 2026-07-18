@@ -149,6 +149,13 @@ STEPS = [
         "requires": ["reports/learning.parquet", "data/raw/india/NSEI_D1.parquet"],
     },
     {
+        "name": "morning_report",
+        "desc": "Morning Research Report v1.0 (daily HTML + Markdown digest)",
+        "script": "research/morning_report/run.py",
+        "produces": ["reports/morning_latest.md", "reports/morning_latest.html"],
+        "requires": ["reports/recommendations.json", "reports/benchmark.json"],
+    },
+    {
         "name": "telegram",
         "desc": "UX030 Telegram delivery (5 messages, opt-in)",
         "script": "scripts/telegram_send_ux030.py",
