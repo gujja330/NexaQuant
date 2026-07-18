@@ -66,22 +66,36 @@ def build_dashboard() -> str:
     active_alerts = bus.active("WARN")
 
     latest_asof = max((r["asof"] for r in ledger_rows), default="—")
-    latest_run = latest["run_date_utc"][:10] if latest else "—"
-    fwd_days = latest["forward_days_accumulated"] if latest else 0
-    state = latest["global_state"] if latest else "INSUFFICIENT_EVIDENCE"
-    halt = latest["halt_review_required"] if latest else False
+    # Every field below uses .get() with a default so partial payloads
+    # (e.g. MARKET_CLOSED days) render a dashboard instead of KeyError-ing.
+    latest = latest or {}
+    run_kind = latest.get("run_kind", "FULL")
+    latest_run = (latest.get("run_date_utc") or "—")[:10]
+    fwd_days = latest.get("forward_days_accumulated", 0)
+    state = latest.get("global_state", "INSUFFICIENT_EVIDENCE")
+    halt = latest.get("halt_review_required", False)
 
     sharpe_target = cfg["min_evidence"]["daily_metrics_days"]
     maxdd_target = cfg["min_evidence"]["maxdd_days"]
 
-    fp_status = latest["fingerprint_status"] if latest else "UNKNOWN"
-    broker_status = latest["broker_status"] if latest else {"available": False, "reason": ""}
+    fp_status = latest.get("fingerprint_status", "UNKNOWN")
+    fp_sealed = latest.get("fingerprint_hash_sealed") or ""
+    fp_current = latest.get("fingerprint_hash_current") or ""
+    broker_status = latest.get("broker_status", {"available": False, "reason": ""})
 
     lines: list[str] = [
         f"# MON001 · Operator Dashboard — {date.today().isoformat()}",
         "",
         f"_Auto-generated {datetime.now(timezone.utc).isoformat(timespec='seconds')}_",
         "",
+    ]
+    if run_kind == "MARKET_CLOSED":
+        lines += [
+            "> **MARKET_CLOSED**: metric engine skipped for a non-trading day. "
+            "Fingerprint + ledger checks still ran; forward-day counters unchanged.",
+            "",
+        ]
+    lines += [
         "## Summary",
         "",
         f"- **State**: `{state}`",
@@ -107,8 +121,8 @@ def build_dashboard() -> str:
         "## Baseline fingerprint",
         "",
         f"- **Status**: `{fp_status}`",
-        f"- **Sealed hash**: `{latest['fingerprint_hash_sealed'][:16]}...`" if latest else "",
-        f"- **Current hash**: `{latest['fingerprint_hash_current'][:16]}...`" if latest else "",
+        f"- **Sealed hash**: `{fp_sealed[:16]}...`" if fp_sealed else "- **Sealed hash**: `—`",
+        f"- **Current hash**: `{fp_current[:16]}...`" if fp_current else "- **Current hash**: `—`",
         "",
         "## Broker status",
         "",
