@@ -775,6 +775,32 @@ function el(tag, opts = {}, ...children) {
   return e;
 }
 
+// ── Investment Decision Score ─────────────────────────────────────
+// ONE canonical score per recommendation. Blends whatever is available
+// (intelligence, research composite, historical evidence, engine
+// confidence) into a single 0-100 number. Missing components renormalise.
+// This is what the investor sees. Everything else is Detail-view fodder.
+function computeInvestmentDecisionScore(r) {
+  const components = [];
+  if (r.intelligence_score != null)            components.push({v: r.intelligence_score, w: 0.55});
+  else if (r.score_raw != null)                components.push({v: r.score_raw, w: 0.55});
+
+  if (r.historical_wr != null && r.n_historical >= 3) components.push({v: r.historical_wr * 100, w: 0.20});
+  if (r.confidence != null)                    components.push({v: r.confidence * 100,  w: 0.15});
+  if (r.reliability != null)                   components.push({v: (r.reliability / 5) * 100, w: 0.10});
+
+  if (!components.length) return null;
+  const totalW = components.reduce((s, c) => s + c.w, 0);
+  const raw    = components.reduce((s, c) => s + c.v * c.w, 0) / totalW;
+  return Math.max(0, Math.min(100, Math.round(raw)));
+}
+
+function starsForScore(score, max = 5) {
+  if (score == null) return '☆'.repeat(max);
+  const n = Math.max(0, Math.min(max, Math.round(score / (100 / max))));
+  return '★'.repeat(n) + '☆'.repeat(max - n);
+}
+
 function scoreBadge(v) {
   if (v == null) return `<span class="score na">—</span>`;
   const cls = v >= 70 ? 'hi' : v >= 50 ? 'med' : 'lo';
@@ -918,10 +944,10 @@ function buildCanonicalList() {
     };
   });
 
-  // Sort by intelligence score (fallback to raw score)
+  // Sort by canonical Investment Decision Score (falls back to intelligence / raw)
   enriched.sort((a, b) => {
-    const av = a.intelligence_score ?? a.score_raw ?? 0;
-    const bv = b.intelligence_score ?? b.score_raw ?? 0;
+    const av = computeInvestmentDecisionScore(a) ?? a.intelligence_score ?? a.score_raw ?? 0;
+    const bv = computeInvestmentDecisionScore(b) ?? b.intelligence_score ?? b.score_raw ?? 0;
     return bv - av;
   });
   return enriched;
@@ -985,7 +1011,7 @@ function humanizeReason(tok) {
 // Dashboard filter/sort state — persisted across renders on a single page load
 const DASH = {
   filter: 'today_buy',
-  sort: 'intel_desc',
+  sort: 'decision_desc',
 };
 
 function datesStrip() {
@@ -1357,6 +1383,8 @@ const OPP_FILTERS = [
 
 // Sort definitions — each returns a comparator.
 const OPP_SORTS = [
+  {key: 'decision_desc', label: 'Decision Score ↓',
+    cmp: (a, b) => (computeInvestmentDecisionScore(b) ?? -1) - (computeInvestmentDecisionScore(a) ?? -1)},
   {key: 'intel_desc',    label: 'Intelligence ↓',
     cmp: (a, b) => (b.intelligence_score ?? -1) - (a.intelligence_score ?? -1)},
   {key: 'upside_desc',   label: 'Expected Return ↓',
@@ -1425,43 +1453,132 @@ function attributionMiniBar(contribs) {
     </div>`;
 }
 
+// ── Card-level dates from recommendations.json run_utc + expected hold days
+function cardDates(r) {
+  const genISO = STATE.recommendations && STATE.recommendations.run_utc;
+  const gen = genISO ? new Date(genISO) : null;
+  // Valid Until = next scheduled 06:00 IST run (00:30 UTC)
+  const validUntil = gen ? (() => {
+    const v = new Date(gen); v.setDate(v.getDate() + 1);
+    v.setUTCHours(0, 30, 0, 0);
+    return v;
+  })() : null;
+
+  // Recommendation Age from IM's first_seen_date
+  let ageDays = null;
+  if (r.first_seen_date && genISO) {
+    try {
+      const fs = new Date(r.first_seen_date);
+      const now = new Date(genISO);
+      ageDays = Math.max(0, Math.round((now - fs) / (1000 * 60 * 60 * 24)));
+    } catch (_) {}
+  }
+  return {
+    generated:  gen  ? gen.toLocaleDateString(undefined, {day: 'numeric', month: 'short'})  : '—',
+    valid_until: validUntil ? validUntil.toLocaleDateString(undefined, {day: 'numeric', month: 'short'}) : '—',
+    age_days:   ageDays,
+  };
+}
+
+// ── Historical Reliability block (investor language)
+function reliabilityBlock(r) {
+  const stars = r.reliability != null ? starsForScore((r.reliability / 5) * 100) : '☆☆☆☆☆';
+  const wr    = r.historical_wr != null ? Math.round(r.historical_wr * 100) + '%' : '—';
+  const n     = r.n_historical || 0;
+  const wins  = n && r.historical_wr != null ? Math.round(n * r.historical_wr) : null;
+  const losses = wins != null ? n - wins : null;
+  const avgRet  = r.avg_return_pct;
+  const avgHold = r.avg_holding_d;
+  if (!n) {
+    return `<div style="text-align: center; padding: 8px 0; color: var(--type-3); font-size: 11px;">No historical recommendations yet</div>`;
+  }
+  return `
+    <div style="display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; align-items: baseline;">
+      <div style="color: var(--warn); font-size: 15px; letter-spacing: 1.5px; font-family: ui-monospace, monospace;">${stars}</div>
+      <div style="font: 11px ui-monospace, monospace; color: var(--type-1); letter-spacing: 0.02em;">
+        ${wr} success · ${n} rec${n !== 1 ? 's' : ''}
+      </div>
+      <div style="grid-column: 2; font: 10px ui-monospace, monospace; color: var(--type-3);">
+        ${wins != null ? `${wins} winner${wins !== 1 ? 's' : ''} · ${losses} loser${losses !== 1 ? 's' : ''}` : ''}
+        ${avgRet != null ? ` · avg <b style="color: ${avgRet > 0 ? 'var(--pos)' : 'var(--neg)'}">${(avgRet * 100).toFixed(1)}%</b>` : ''}
+        ${avgHold != null ? ` · ~${Math.round(avgHold)}d hold` : ''}
+      </div>
+    </div>`;
+}
+
+// ── Top Contributors (top 3 subsystems from Decision Attribution)
+function topContributorsBlock(r) {
+  if (!r.da_contributions) return '';
+  const contribs = r.da_contributions;
+  const top = Object.keys(contribs)
+    .map(k => ({k, v: contribs[k] || 0}))
+    .filter(x => x.v > 0)
+    .sort((a, b) => b.v - a.v)
+    .slice(0, 3);
+  if (!top.length) return '';
+  const rows = top.map(({k, v}) => `
+    <div style="display: grid; grid-template-columns: 90px 1fr auto; gap: 8px; align-items: center;">
+      <span style="font: 10px ui-monospace, monospace; color: var(--type-2); letter-spacing: 0.02em;">${DA_LABELS[k] || k}</span>
+      <div style="height: 4px; background: var(--rule); border-radius: 2px; position: relative;">
+        <div style="position: absolute; left: 0; top: 0; height: 100%; width: ${Math.min(100, v)}%; background: ${DA_COLORS[k]}; border-radius: 2px;"></div>
+      </div>
+      <span style="font: 10px ui-monospace, monospace; color: ${DA_COLORS[k]}; min-width: 30px; text-align: right;">${v.toFixed(0)}%</span>
+    </div>`).join('');
+  return `<div style="display: grid; gap: 5px;">${rows}</div>`;
+}
+
+// ── Top Reasons / Concerns — humanized language, not raw scores
+function reasonsConcernsBlock(r) {
+  const posReasons = (r.reasons_for || []).slice(0, 3).map(t => `<li>${humanizeReason(t)}</li>`).join('');
+  const negReasons = (r.reasons_against || []).slice(0, 2).map(t => `<li>${humanizeReason(t)}</li>`).join('');
+  return `
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px;">
+      <div>
+        <div style="font: 9px ui-monospace, monospace; letter-spacing: 0.12em; color: var(--pos); text-transform: uppercase; margin-bottom: 4px;">✔ Top Reasons</div>
+        ${posReasons ? `<ul style="list-style: none; padding: 0; margin: 0; font-size: 11px; color: var(--type-1); line-height: 1.5;">${posReasons}</ul>` : '<div style="color: var(--type-3); font-size: 11px;">—</div>'}
+      </div>
+      <div>
+        <div style="font: 9px ui-monospace, monospace; letter-spacing: 0.12em; color: var(--warn); text-transform: uppercase; margin-bottom: 4px;">⚠ Concerns</div>
+        ${negReasons ? `<ul style="list-style: none; padding: 0; margin: 0; font-size: 11px; color: var(--type-1); line-height: 1.5;">${negReasons}</ul>` : '<div style="color: var(--type-3); font-size: 11px;">none flagged</div>'}
+      </div>
+    </div>`;
+}
+
 function decisionCardHtml(r, i) {
   const upside = upsideFor(r);
-  const rr = riskRewardFor(r);
-  const conf = r.confidence != null ? r.confidence * 100 : null;
-  const cls = String(r.action || '').toLowerCase().replace(/[^a-z-]/g, '');
-
   const dayCls  = r.day_change_pct == null ? '' : (r.day_change_pct > 0 ? 'pos' : r.day_change_pct < 0 ? 'neg' : '');
   const dayStr  = r.day_change_pct == null ? '' :
                     `${r.day_change_pct > 0 ? '+' : ''}${(r.day_change_pct * 100).toFixed(2)}%`;
-  const distHi  = r.distance_from_52w_high;   // negative (e.g. -0.08)
-  const distLo  = r.distance_from_52w_low;    // positive (e.g. +0.35)
-  // Position on 52-week band: 0 at low, 100 at high
   const bandPos = (r.cmp != null && r.high_52w && r.low_52w && r.high_52w > r.low_52w)
     ? Math.max(0, Math.min(100, ((r.cmp - r.low_52w) / (r.high_52w - r.low_52w)) * 100))
     : null;
 
-  // Top 3 humanized reasons
-  const reasonsPos = (r.reasons_for || []).slice(0, 3).map(t =>
-    `<span class="rc pos">${humanizeReason(t)}</span>`).join('');
-  const reasonsNeg = (r.reasons_against || []).slice(0, 2).map(t =>
-    `<span class="rc neg">${humanizeReason(t)}</span>`).join('');
+  // ── THE canonical Investment Decision Score
+  const ids = computeInvestmentDecisionScore(r);
+  const idsColor = ids == null ? 'var(--type-3)' :
+                     ids >= 75 ? 'var(--pos)' :
+                     ids >= 55 ? 'var(--type-1)' :
+                     ids >= 40 ? 'var(--warn)' : 'var(--neg)';
+  const idsStars = starsForScore(ids);
+  const posSize  = r.target_weight != null ? (r.target_weight * 100).toFixed(2) + '%' : '—';
+  const dates = cardDates(r);
 
-  const relStars = r.reliability ? '★'.repeat(Math.max(0, Math.min(5, Math.round(r.reliability)))) + '☆'.repeat(5 - Math.max(0, Math.min(5, Math.round(r.reliability)))) : '—';
-  const wrPct = r.historical_wr != null ? Math.round(r.historical_wr * 100) + '%' : '—';
-
-  // Institutional Memory badge: NEW (day 1) or D_n
+  // Institutional Memory badge: NEW (day 1) or D+n
   const lcBadge = (() => {
     if (r.days_active == null) return '';
     if (r.days_active <= 1) return `<span style="font: 9px ui-monospace,monospace; padding: 2px 6px; margin-left: 6px; background: color-mix(in srgb, var(--pos) 15%, transparent); color: var(--pos); border-radius: 2px; letter-spacing: 0.12em;">NEW</span>`;
     return `<span style="font: 9px ui-monospace,monospace; padding: 2px 6px; margin-left: 6px; color: var(--type-3); border: 1px solid var(--rule); border-radius: 2px; letter-spacing: 0.06em;">D+${r.days_active}</span>`;
   })();
 
+  // Investor question hierarchy — every element answers one of the seven questions IN ORDER:
+  //   Q1 Should I buy? · Q2 How much? · Q3 Where? · Q4 Where to exit? ·
+  //   Q5 Can I trust it? · Q6 Why? · Q7 Historical evidence
   return `
+    <!-- Q1: Should I buy? → Ticker + Action + Investment Decision Score -->
     <div class="dc-head">
       <div>
         <div class="dc-tick">${r.ticker}${lcBadge}</div>
-        <div class="dc-sect">${r.sector || '—'}${r.industry ? ' · ' + r.industry : ''}${r.first_seen_date ? ' · seen ' + r.first_seen_date : ''}</div>
+        <div class="dc-sect">${r.sector || '—'}${r.industry ? ' · ' + r.industry : ''}</div>
       </div>
       <div style="text-align:right;">
         ${pillFor(r.action)}
@@ -1469,6 +1586,20 @@ function decisionCardHtml(r, i) {
       </div>
     </div>
 
+    <div style="display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: center; padding: 12px 0 10px; border-bottom: 1px solid var(--rule);">
+      <div style="text-align: center;">
+        <div style="font-family: ui-serif, Baskerville, serif; font-size: 34px; line-height: 1; color: ${idsColor}; letter-spacing: -0.02em;">${ids != null ? ids : '—'}</div>
+        <div style="font: 8px ui-monospace, monospace; letter-spacing: 0.16em; color: var(--type-3); text-transform: uppercase; margin-top: 2px;">Decision Score</div>
+      </div>
+      <div>
+        <div style="color: var(--warn); font-size: 18px; letter-spacing: 3px; font-family: ui-monospace, monospace;">${idsStars}</div>
+        <div style="font: 10px ui-monospace, monospace; color: var(--type-3); margin-top: 4px; letter-spacing: 0.02em;">
+          ${ids != null ? (ids >= 75 ? 'High conviction' : ids >= 55 ? 'Moderate conviction' : ids >= 40 ? 'Cautious' : 'Low conviction') : '—'}
+        </div>
+      </div>
+    </div>
+
+    <!-- Q3: At what price? -->
     <div class="dc-price-row">
       <div class="dc-cmp">${fmt.price(r.cmp)}</div>
       <div class="dc-day ${dayCls}">${dayStr}</div>
@@ -1481,40 +1612,44 @@ function decisionCardHtml(r, i) {
       <span class="lo">Low ${fmt.price(r.low_52w)}</span>
       &nbsp;·&nbsp;
       <span class="hi">High ${fmt.price(r.high_52w)}</span>
-      ${distHi != null ? ` &nbsp;·&nbsp; ${(distHi * 100).toFixed(1)}% from high` : ''}
+      ${r.distance_from_52w_high != null ? ` &nbsp;·&nbsp; ${(r.distance_from_52w_high * 100).toFixed(1)}% from high` : ''}
     </div>
 
+    <!-- Q3 + Q4 + Q2: Buy zone · Target · Stop · Hold + Position Size -->
     <div class="dc-levels">
-      <div class="dc-lvl"><div class="lbl">Buy Below</div><div class="val mono">${fmt.price(r.buy_high)}</div></div>
+      <div class="dc-lvl"><div class="lbl">Buy Zone</div><div class="val mono">${fmt.price(r.buy_low)}-${fmt.price(r.buy_high)}</div></div>
       <div class="dc-lvl"><div class="lbl">Target</div><div class="val pos">${fmt.price(r.target_1)}${upside != null ? ` <span style="opacity:0.75;font-size:10px">(${(upside * 100).toFixed(1)}%)</span>` : ''}</div></div>
       <div class="dc-lvl"><div class="lbl">Stop</div><div class="val neg">${fmt.price(r.stop_loss)}</div></div>
-      <div class="dc-lvl"><div class="lbl">Hold</div><div class="val mono">${r.expected_hold_days ? r.expected_hold_days + 'd' : '—'}</div></div>
+      <div class="dc-lvl"><div class="lbl">Hold · Size</div><div class="val mono">${r.expected_hold_days ? r.expected_hold_days + 'd' : '—'} · ${posSize}</div></div>
     </div>
 
-    <div class="dc-scores">
-      <div class="dc-sc"><span class="lbl">Intel</span><span class="val">${scoreBadge(r.intelligence_score)}</span></div>
-      <div class="dc-sc"><span class="lbl">Confidence</span><span class="val">${scoreBadge(conf)}</span></div>
-      <div class="dc-sc"><span class="lbl">Reliability</span><span class="val stars">${relStars}</span></div>
-      <div class="dc-sc"><span class="lbl">Win Rate</span><span class="val">${wrPct}${r.n_historical ? ` <span style="color:var(--type-3);font-size:9px">(${r.n_historical})</span>` : ''}</span></div>
+    <!-- Q5: Can I trust this? → Historical Reliability -->
+    <div style="padding: 10px 0; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule);">
+      <div style="font: 9px ui-monospace, monospace; letter-spacing: 0.14em; color: var(--type-3); text-transform: uppercase; margin-bottom: 6px;">Historical Reliability</div>
+      ${reliabilityBlock(r)}
     </div>
 
-    <div class="dc-why">
-      ${reasonsPos || '<span class="rc" style="opacity:0.5">No explicit reasons emitted</span>'}
-      ${reasonsNeg}
-    </div>
+    <!-- Q6: Why? → Top Reasons + Concerns -->
+    ${reasonsConcernsBlock(r)}
 
+    <!-- Q7: Historical evidence → Winner Genome (plain-language, never a #17) -->
     ${r.wg_n_signatures > 0 ? `
     <div style="margin-top: 10px; padding: 8px 10px; border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); border-radius: 3px; background: color-mix(in srgb, var(--accent) 6%, transparent);">
       <div style="font: 9px ui-monospace, monospace; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent-hi); margin-bottom: 3px;">Winner Genome</div>
-      <div style="font-size: 11px; color: var(--type-1);">Looks similar to <b>${r.wg_n_hist_winners}</b> historical top-decile winners · hist. avg <b style="color:var(--pos)">${(r.wg_best_avg_return * 100).toFixed(1)}%</b> · success <b>${(r.wg_hist_success * 100).toFixed(0)}%</b></div>
-      <div style="font: 10px ui-monospace, monospace; color: var(--type-3); margin-top: 3px; letter-spacing: 0.04em;">Matches ${r.wg_n_signatures} signature${r.wg_n_signatures > 1 ? 's' : ''} · lift ${r.wg_avg_lift.toFixed(2)}</div>
+      <div style="font-size: 11px; color: var(--type-1);">Looks similar to <b>${r.wg_n_hist_winners}</b> historical winners · hist. avg <b style="color:var(--pos)">${(r.wg_best_avg_return * 100).toFixed(1)}%</b> · success <b>${(r.wg_hist_success * 100).toFixed(0)}%</b></div>
     </div>` : ''}
 
-    ${r.da_contributions ? attributionMiniBar(r.da_contributions) : ''}
+    <!-- Attribution: only top contributors (never raw engine scores) -->
+    ${r.da_contributions ? `
+    <div style="margin-top: 10px;">
+      <div style="font: 9px ui-monospace, monospace; letter-spacing: 0.14em; text-transform: uppercase; color: var(--type-3); margin-bottom: 6px;">Top Contributors</div>
+      ${topContributorsBlock(r)}
+    </div>` : ''}
 
-    <div class="dc-foot">
-      <span>R:R ${rr != null ? fmt.num(rr, 2) : '—'}${r.currently_held ? ' · <span style="color:var(--accent-hi)">HELD</span>' : ''}</span>
-      <span class="go">Open detail →</span>
+    <!-- Dates + Open Details -->
+    <div style="margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--rule); display: flex; justify-content: space-between; align-items: center; font: 10px ui-monospace, monospace; color: var(--type-3); letter-spacing: 0.03em;">
+      <span>Gen ${dates.generated} · Valid ${dates.valid_until}${dates.age_days != null ? ' · age ' + dates.age_days + 'd' : ''}</span>
+      <span style="color: var(--accent-hi);">Open Details →</span>
     </div>`;
 }
 
@@ -1585,14 +1720,14 @@ function todaysOpportunities(canonical) {
     const table = el('table', {class: 'decision'});
     table.innerHTML = `<thead><tr>
       <th>#</th><th>Ticker</th><th>Sector</th>
+      <th class="center">Score</th>
       <th class="right">CMP</th>
       <th class="right">Day</th>
       <th class="right">Target</th>
       <th class="right">Upside</th>
       <th class="right">Stop</th>
       <th class="right">R:R</th>
-      <th class="center">Intel</th>
-      <th class="center">Rel.</th>
+      <th class="center">Reliability</th>
       <th class="center">Action</th>
     </tr></thead>`;
     const tbody = el('tbody');
@@ -1602,19 +1737,20 @@ function todaysOpportunities(canonical) {
       const dayCls = r.day_change_pct == null ? '' : (r.day_change_pct > 0 ? 'pos' : 'neg');
       const dayStr = r.day_change_pct == null ? '—' :
                        `${r.day_change_pct > 0 ? '+' : ''}${(r.day_change_pct * 100).toFixed(2)}%`;
-      const stars = r.reliability ? '★'.repeat(Math.round(r.reliability)) : '—';
+      const stars = r.reliability != null ? starsForScore((r.reliability / 5) * 100) : '☆☆☆☆☆';
+      const ids = computeInvestmentDecisionScore(r);
       const tr = el('tr', {onclick: () => location.hash = '#/stock/' + r.ticker});
       tr.innerHTML = `
         <td class="rank">${TOP + i + 1}</td>
         <td class="ticker">${r.ticker}</td>
         <td class="company">${r.sector || '—'}</td>
+        <td class="center">${scoreBadge(ids)}</td>
         <td class="right">${fmt.price(r.cmp)}</td>
         <td class="right ${dayCls}">${dayStr}</td>
         <td class="right">${fmt.price(r.target_1)}</td>
         <td class="right ${upside > 0 ? 'pos' : 'neg'}">${upside != null ? fmt.pct(upside, 1) : '—'}</td>
         <td class="right neg">${fmt.price(r.stop_loss)}</td>
         <td class="right">${rr != null ? fmt.num(rr, 2) : '—'}</td>
-        <td class="center">${scoreBadge(r.intelligence_score)}</td>
         <td class="center" style="color:var(--warn); letter-spacing:1px;">${stars}</td>
         <td class="center">${pillFor(r.action)}</td>`;
       tbody.appendChild(tr);
@@ -1722,6 +1858,17 @@ function portfolioHealth() {
     <span class="label">Live Drift</span>
     <div class="value mono">${drift ? drift.flag : '—'}</div>
     <div class="sub">${drift ? `1st ${fmt.num(drift.first_half_sharpe, 2)} → 2nd ${fmt.num(drift.second_half_sharpe, 2)}` : 'insufficient evidence yet'}</div>`}));
+
+  // Prediction Accuracy — from Institutional Memory recommendation_history (global avg over per-ticker accuracy)
+  const rh = STATE.recommendation_history;
+  if (rh && rh.global_avg_accuracy != null) {
+    const pa = rh.global_avg_accuracy;
+    const paCls = pa >= 0.60 ? 'pos' : pa < 0.40 ? 'neg' : '';
+    strip.appendChild(el('div', {class: 'tile', html: `
+      <span class="label">Prediction Accuracy</span>
+      <div class="value ${paCls}">${Math.round(pa * 100)}<span class="unit">%</span></div>
+      <div class="sub">${rh.n_tickers_with_history} tickers · avg over per-stock accuracy</div>`}));
+  }
 
   // Alpha Capture Rate — from Institutional Memory v1.0
   const im = STATE.recommendation_lifecycle;
@@ -1855,7 +2002,9 @@ function renderStockDetail(ticker) {
     return;
   }
 
-  // Header
+  // Header — leads with Investment Decision Score
+  const ids = computeInvestmentDecisionScore(r);
+  const idsStars = starsForScore(ids);
   const head = el('div', {class: 'detail-head'});
   head.appendChild(el('div', {html: `
     <a href="#/" class="detail-back">← DASHBOARD</a>
@@ -1863,28 +2012,133 @@ function renderStockDetail(ticker) {
     <div class="detail-subtitle">${r.sector || '—'} · ${r.industry || '—'}</div>`}));
   head.appendChild(el('div', {style: 'text-align: right;', html: `
     ${pillFor(r.action)}
-    <div style="margin-top: 8px; font: 10px ui-monospace, monospace; color: var(--type-3); letter-spacing: 0.12em;">
-      INTELLIGENCE ${scoreBadge(r.intelligence_score)}
+    <div style="margin-top: 8px;">
+      <div style="font-family: ui-serif, Baskerville, serif; font-size: 26px; color: var(--type-1); letter-spacing: -0.01em; line-height: 1;">${ids != null ? ids : '—'}</div>
+      <div style="font: 9px ui-monospace, monospace; letter-spacing: 0.14em; color: var(--type-3); text-transform: uppercase; margin-top: 2px;">Decision Score · ${idsStars}</div>
     </div>`}));
   main.appendChild(head);
 
-  // Section 1 — Price (institutional decision surface)
+  // Section 1 — Price (Q3+Q4: at what price / where to exit)
   main.appendChild(sectionPrice(r));
 
-  // Section 2 — Why Buy (10 dimension breakdown)
+  // Section 2 — Recommendation Timeline (Q7: what happened before / from IM archive)
+  main.appendChild(sectionRecommendationTimeline(r));
+
+  // Section 3 — Prediction Accuracy on this ticker
+  main.appendChild(sectionPredictionAccuracy(r));
+
+  // Section 4 — Decision Breakdown = the 10-dimension chain (moved here from front card)
   main.appendChild(sectionWhyBuy(r));
 
-  // Section 3 — Portfolio Impact (from sizing engine)
+  // Section 5 — Portfolio Impact (from sizing engine)
   main.appendChild(sectionPortfolioImpact(r));
 
-  // Section 4 — Explainability (reasons + conflicts)
+  // Section 6 — Explainability (reasons + conflicts)
   main.appendChild(sectionExplainability(r));
 
-  // Section 5 — Historical validation (per-ticker rollup)
+  // Section 7 — Historical validation (per-ticker rollup + individual trade timeline + failures + similar trades)
   main.appendChild(sectionValidationSummary(r));
   main.appendChild(sectionValidationTimeline(r));
   main.appendChild(sectionValidationFailures(r));
   main.appendChild(sectionValidationSimilar(r));
+}
+
+// ── Recommendation Timeline (from Institutional Memory archive)
+function sectionRecommendationTimeline(r) {
+  const rh = STATE.recommendation_history;
+  const info = rh && rh.tickers && rh.tickers[r.ticker];
+
+  const wrap = el('div', {class: 'section'});
+  const head = el('div', {class: 'section-head'});
+  head.appendChild(el('h2', {text: 'Recommendation Timeline'}));
+  head.appendChild(el('div', {class: 'meta',
+    text: `What AEGIS said on each archived day · from Institutional Memory${info ? ' · ' + (info.timeline || []).length + ' entries' : ''}`}));
+  wrap.appendChild(head);
+
+  const card = el('div', {class: 'card'});
+  if (!info || !info.timeline || info.timeline.length === 0) {
+    card.appendChild(el('div', {class: 'empty',
+      text: 'No archived days yet for this ticker. Timeline populates as daily runs accumulate.'}));
+    wrap.appendChild(card);
+    return wrap;
+  }
+
+  const scrollWrap = el('div', {class: 'scroll-x'});
+  const tbl = el('table', {class: 'decision'});
+  tbl.innerHTML = `<thead><tr>
+    <th>Date</th>
+    <th class="center">Recommendation</th>
+    <th class="right">Intel</th>
+    <th class="right">Conf</th>
+    <th class="right">CMP</th>
+    <th class="right">Target</th>
+    <th class="right">Stop</th>
+  </tr></thead>`;
+  const tbody = el('tbody');
+  for (const row of info.timeline.slice().reverse()) {   // newest first
+    tbody.innerHTML += `<tr>
+      <td class="mute">${row.date}</td>
+      <td class="center">${row.action ? pillFor(row.action) : '<span class="mute">—</span>'}</td>
+      <td class="right">${row.intel != null ? Math.round(row.intel) : '—'}</td>
+      <td class="right">${row.confidence != null ? Math.round(row.confidence * 100) + '%' : '—'}</td>
+      <td class="right">${fmt.price(row.cmp)}</td>
+      <td class="right pos">${fmt.price(row.target_1)}</td>
+      <td class="right neg">${fmt.price(row.stop_loss)}</td>
+    </tr>`;
+  }
+  tbl.appendChild(tbody);
+  scrollWrap.appendChild(tbl);
+  card.appendChild(scrollWrap);
+  wrap.appendChild(card);
+  return wrap;
+}
+
+// ── Prediction Accuracy for this specific ticker
+function sectionPredictionAccuracy(r) {
+  const rh = STATE.recommendation_history;
+  const info = rh && rh.tickers && rh.tickers[r.ticker];
+  if (!info) {
+    const wrap = el('div', {class: 'section'});
+    const head = el('div', {class: 'section-head'});
+    head.appendChild(el('h2', {text: 'Prediction Accuracy'}));
+    wrap.appendChild(head);
+    const card = el('div', {class: 'card'});
+    card.appendChild(el('div', {class: 'empty', text: 'No historical prediction record for this ticker yet.'}));
+    wrap.appendChild(card);
+    return wrap;
+  }
+  const acc = info.accuracy || {};
+
+  const wrap = el('div', {class: 'section'});
+  const head = el('div', {class: 'section-head'});
+  head.appendChild(el('h2', {text: 'Prediction Accuracy'}));
+  head.appendChild(el('div', {class: 'meta',
+    text: `${info.n_closed} historical closed recommendation${info.n_closed !== 1 ? 's' : ''} on ${r.ticker}`}));
+  wrap.appendChild(head);
+
+  const strip = el('div', {class: 'strip'});
+  strip.appendChild(el('div', {class: 'tile', html: `
+    <span class="label">Accuracy</span>
+    <div class="value ${acc.accuracy != null && acc.accuracy >= 0.6 ? 'pos' : acc.accuracy != null && acc.accuracy < 0.4 ? 'neg' : ''}">${acc.accuracy != null ? Math.round(acc.accuracy * 100) + '%' : '—'}</div>
+    <div class="sub">${acc.n_correct}/${acc.n_recommendations} correct</div>`}));
+  strip.appendChild(el('div', {class: 'tile', html: `
+    <span class="label">Avg Return</span>
+    <div class="value ${acc.avg_return_pct > 0 ? 'pos' : acc.avg_return_pct < 0 ? 'neg' : ''}">${acc.avg_return_pct != null ? (acc.avg_return_pct * 100).toFixed(2) + '%' : '—'}</div>
+    <div class="sub">across closed trades</div>`}));
+  strip.appendChild(el('div', {class: 'tile', html: `
+    <span class="label">Median Return</span>
+    <div class="value">${acc.median_return_pct != null ? (acc.median_return_pct * 100).toFixed(2) + '%' : '—'}</div>
+    <div class="sub">50th percentile</div>`}));
+  strip.appendChild(el('div', {class: 'tile', html: `
+    <span class="label">Best Trade</span>
+    <div class="value pos">${acc.best_return_pct != null ? '+' + (acc.best_return_pct * 100).toFixed(2) + '%' : '—'}</div>
+    <div class="sub">peak realized win</div>`}));
+  strip.appendChild(el('div', {class: 'tile', html: `
+    <span class="label">Worst Trade</span>
+    <div class="value neg">${acc.worst_return_pct != null ? (acc.worst_return_pct * 100).toFixed(2) + '%' : '—'}</div>
+    <div class="sub">peak realized loss</div>`}));
+  wrap.appendChild(strip);
+  return wrap;
 }
 
 // ==========================================================================
