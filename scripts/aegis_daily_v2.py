@@ -120,10 +120,11 @@ STEPS = [
     },
     {
         "name": "institutional_memory",
-        "desc": "Institutional Memory v1.0 (daily archive + lifecycle + missed-opps)",
+        "desc": "Institutional Memory v1.0 (archive + lifecycle + missed-opps + per-ticker history)",
         "script": "research/institutional_memory/run.py",
         "produces": ["reports/recommendation_lifecycle.json",
-                       "reports/missed_opportunities.json"],
+                       "reports/missed_opportunities.json",
+                       "reports/recommendation_history.json"],
         "requires": ["reports/recommendations.json"],
     },
     {

@@ -25,7 +25,7 @@ except Exception:
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent))
 
-from institutional_memory.lib import archive, lifecycle, missed_opportunities   # noqa: E402
+from institutional_memory.lib import archive, lifecycle, missed_opportunities, recommendation_history   # noqa: E402
 
 
 _ROOT = Path(__file__).resolve().parents[2]
@@ -39,7 +39,7 @@ def main() -> int:
     print("=" * 68)
 
     # ── Step 1: archive today's bundle
-    print("\n[1/3] Archive today's bundle")
+    print("\n[1/4] Archive today's bundle")
     m = archive.archive_today()
     if m.get("already_archived"):
         print(f"      already archived · {m['run_date']} · {m['n_files']} files "
@@ -49,7 +49,7 @@ def main() -> int:
               f"size={m['total_bytes'] / 1024:.1f} KB  code_sha={m['code_sha']}")
 
     # ── Step 2: rebuild lifecycle ledger
-    print("\n[2/3] Rebuild recommendation lifecycle ledger")
+    print("\n[2/4] Rebuild recommendation lifecycle ledger")
     df = lifecycle.build_lifecycle()
     summary = lifecycle.build_summary(df)
     if not df.empty:
@@ -67,7 +67,7 @@ def main() -> int:
           f"avg_alpha_capture={summary.get('avg_alpha_capture')}")
 
     # ── Step 3: mine missed opportunities
-    print("\n[3/3] Mine missed opportunities")
+    print("\n[3/4] Mine missed opportunities")
     missed = missed_opportunities.mine_missed()
     missed["engine"]  = "institutional_memory"
     missed["version"] = "v1.0"
@@ -85,6 +85,19 @@ def main() -> int:
         print("      blocking-reason breakdown:")
         for k, v in list(breakdown.items())[:6]:
             print(f"        {k:36s} {v}")
+
+    # ── Step 4: per-ticker recommendation history + accuracy
+    print("\n[4/4] Build per-ticker recommendation history + accuracy")
+    rh = recommendation_history.build_recommendation_history()
+    rh["engine"]  = "institutional_memory"
+    rh["version"] = "v1.0"
+    rh["run_utc"] = datetime.now(timezone.utc).isoformat(timespec="seconds") + "Z"
+    (REPORTS / "recommendation_history.json").write_text(
+        json.dumps(rh, indent=2, default=str), encoding="utf-8")
+    print(f"      tickers:                {rh['n_tickers']}")
+    print(f"      with closed history:    {rh['n_tickers_with_history']}")
+    print(f"      days archived:          {rh['n_days_archived']}")
+    print(f"      global avg accuracy:    {rh.get('global_avg_accuracy')}")
 
     print(f"\nElapsed: {time.time() - t0:.2f}s")
     return 0

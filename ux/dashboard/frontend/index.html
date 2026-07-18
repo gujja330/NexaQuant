@@ -735,6 +735,7 @@ async function loadState() {
     'recommendation_lifecycle.json',
     'missed_opportunities.json',
     'winner_genome.json',
+    'recommendation_history.json',
   ];
   const entries = await Promise.all(targets.map(async n => [n.replace(/\.json$/, ''), await fetchJson(n)]));
   for (const [k, v] of entries) STATE[k] = v;
@@ -2345,8 +2346,17 @@ function renderAdminPage() {
   main.innerHTML = '';
 
   const head = el('h1', {style: 'font-family: ui-monospace, monospace; font-size: 18px; letter-spacing: 0.04em; color: var(--type-1); padding-bottom: 12px; border-bottom: 1px solid var(--rule); margin-bottom: 20px;',
-    html: 'Validation Lab <span style="font-size: 10px; padding: 3px 8px; background: color-mix(in srgb, var(--warn) 20%, transparent); border: 1px solid var(--warn); color: var(--warn); letter-spacing: 0.14em; margin-left: 12px; border-radius: 2px; vertical-align: middle;">INTERNAL · MODEL TRUSTWORTHINESS</span>'});
+    html: 'Validation Lab <span style="font-size: 10px; padding: 3px 8px; background: color-mix(in srgb, var(--warn) 20%, transparent); border: 1px solid var(--warn); color: var(--warn); letter-spacing: 0.14em; margin-left: 12px; border-radius: 2px; vertical-align: middle;">STOCK-FIRST · MODEL TRUSTWORTHINESS</span>'});
   main.appendChild(head);
+
+  // ─── PRIMARY: Stock-first search + per-ticker timeline
+  main.appendChild(adminStockSearch());
+
+  // ─── SECONDARY: system-level diagnostics
+  const divider = el('div', {style: 'margin: 32px 0 12px; padding-top: 20px; border-top: 1px dashed var(--rule);'});
+  divider.appendChild(el('div', {style: 'font: 10px ui-monospace, monospace; letter-spacing: 0.16em; color: var(--type-3); text-transform: uppercase;',
+    text: '── System diagnostics ── secondary reference — the stock-search above is primary ──'}));
+  main.appendChild(divider);
 
   main.appendChild(adminTrustworthinessVerdict());
   main.appendChild(adminPipelineHealth());
@@ -2360,6 +2370,205 @@ function renderAdminPage() {
   main.appendChild(adminFusionQuality());
   main.appendChild(adminFeatureImportance());
   main.appendChild(adminKnowledgeGraphHealth());
+}
+
+// ==========================================================================
+// STOCK SEARCH — the primary Validation Lab entry point
+// Bloomberg-style: type/pick a ticker → everything for that ticker loads below
+// ==========================================================================
+const STOCK_SEARCH = { ticker: null };
+
+function adminStockSearch() {
+  const rh = STATE.recommendation_history;
+  const tickersDict = (rh && rh.tickers) || {};
+  const allTickers = Object.keys(tickersDict).sort();
+
+  // Choose a default ticker: prefer one with closed history, else first
+  if (!STOCK_SEARCH.ticker) {
+    const withHist = allTickers.find(t => (tickersDict[t]?.n_closed || 0) > 0);
+    STOCK_SEARCH.ticker = withHist || allTickers[0] || null;
+  }
+
+  const wrap = el('div', {class: 'section'});
+  const head = el('div', {class: 'section-head'});
+  head.appendChild(el('h2', {text: 'Stock-Level Validation'}));
+  head.appendChild(el('div', {class: 'meta',
+    text: `${rh?.n_tickers_with_history || 0} tickers with closed history · ${rh?.n_days_archived || 0} archived days · global accuracy ${rh?.global_avg_accuracy != null ? Math.round(rh.global_avg_accuracy * 100) + '%' : '—'}`}));
+  wrap.appendChild(head);
+
+  // ── Search bar
+  const searchBar = el('div', {class: 'card', style: 'display: flex; gap: 12px; align-items: center;'});
+  searchBar.appendChild(el('span', {style: 'font: 10px ui-monospace, monospace; letter-spacing: 0.16em; color: var(--type-3); text-transform: uppercase; white-space: nowrap;',
+    text: 'Search Stock →'}));
+
+  // Datalist for autocomplete
+  const dl = el('datalist', {id: 'admin-ticker-list'});
+  allTickers.forEach(t => {
+    const info = tickersDict[t];
+    const opt = document.createElement('option');
+    opt.value = t;
+    opt.label = `${t} · ${info.n_closed || 0} trades${info.accuracy?.accuracy != null ? ' · ' + Math.round(info.accuracy.accuracy * 100) + '%' : ''}`;
+    dl.appendChild(opt);
+  });
+  searchBar.appendChild(dl);
+
+  const input = el('input', {type: 'text', placeholder: 'Type ticker (e.g. IPCALAB, RADICO, RELIANCE)',
+    list: 'admin-ticker-list',
+    style: 'flex: 1; background: transparent; border: 1px solid var(--rule); border-radius: 3px; padding: 8px 12px; color: var(--type-1); font-family: ui-monospace, monospace; font-size: 13px; letter-spacing: 0.05em;'});
+  input.value = STOCK_SEARCH.ticker || '';
+  input.oninput = (e) => {
+    const v = e.target.value.trim().toUpperCase();
+    if (allTickers.includes(v)) {
+      STOCK_SEARCH.ticker = v;
+      renderAdminPage();
+    }
+  };
+  input.onkeydown = (e) => {
+    if (e.key === 'Enter') {
+      const v = e.target.value.trim().toUpperCase();
+      if (allTickers.includes(v)) {
+        STOCK_SEARCH.ticker = v;
+        renderAdminPage();
+      }
+    }
+  };
+  searchBar.appendChild(input);
+  wrap.appendChild(searchBar);
+
+  const t = STOCK_SEARCH.ticker;
+  if (!t || !tickersDict[t]) {
+    const empty = el('div', {class: 'card'});
+    empty.appendChild(el('div', {class: 'empty', text: 'Type a ticker above to see its full recommendation history, prediction accuracy, and outcomes.'}));
+    wrap.appendChild(empty);
+    return wrap;
+  }
+
+  const info = tickersDict[t];
+  const acc = info.accuracy || {};
+
+  // ── Header card: ticker + accuracy summary
+  const summary = el('div', {class: 'card'});
+  summary.innerHTML = `
+    <div style="display: flex; justify-content: space-between; align-items: baseline; padding-bottom: 12px; border-bottom: 1px solid var(--rule);">
+      <div>
+        <div style="font-family: ui-serif, Baskerville, serif; font-size: 26px; color: var(--type-1); letter-spacing: -0.01em;">${t}</div>
+        <div style="font: 10px ui-monospace, monospace; letter-spacing: 0.12em; color: var(--type-3); margin-top: 4px;">
+          ${info.n_closed} closed trades · ${info.n_days_seen} archived days in universe
+        </div>
+      </div>
+      <div style="text-align: right;">
+        <div style="font: 9px ui-monospace, monospace; letter-spacing: 0.16em; color: var(--type-3); text-transform: uppercase;">Prediction Accuracy</div>
+        <div style="font-family: ui-serif, Baskerville, serif; font-size: 26px; color: ${acc.accuracy != null && acc.accuracy >= 0.6 ? 'var(--pos)' : acc.accuracy != null && acc.accuracy < 0.4 ? 'var(--neg)' : 'var(--type-1)'};">
+          ${acc.accuracy != null ? Math.round(acc.accuracy * 100) + '%' : '—'}
+        </div>
+        <div style="font: 10px ui-monospace, monospace; color: var(--type-3); margin-top: 2px;">
+          ${acc.n_correct}/${acc.n_recommendations} correct
+        </div>
+      </div>
+    </div>
+    <div class="strip" style="padding-top: 14px; margin-bottom: 0;">
+      <div class="tile"><span class="label">Avg Return</span>
+        <div class="value ${acc.avg_return_pct > 0 ? 'pos' : acc.avg_return_pct < 0 ? 'neg' : ''}">${acc.avg_return_pct != null ? (acc.avg_return_pct * 100).toFixed(2) + '%' : '—'}</div>
+        <div class="sub">across closed trades</div></div>
+      <div class="tile"><span class="label">Median Return</span>
+        <div class="value">${acc.median_return_pct != null ? (acc.median_return_pct * 100).toFixed(2) + '%' : '—'}</div>
+        <div class="sub">50th percentile</div></div>
+      <div class="tile"><span class="label">Best Trade</span>
+        <div class="value pos">${acc.best_return_pct != null ? '+' + (acc.best_return_pct * 100).toFixed(2) + '%' : '—'}</div>
+        <div class="sub">peak realized win</div></div>
+      <div class="tile"><span class="label">Worst Trade</span>
+        <div class="value neg">${acc.worst_return_pct != null ? (acc.worst_return_pct * 100).toFixed(2) + '%' : '—'}</div>
+        <div class="sub">peak realized loss</div></div>
+    </div>`;
+  wrap.appendChild(summary);
+
+  // ── Recommendation Timeline (archive-based; will grow daily)
+  const tlCard = el('div', {class: 'card'});
+  tlCard.appendChild(el('h3', {html:
+    `Recommendation Timeline <span class="count">${info.timeline.length} archived day${info.timeline.length !== 1 ? 's' : ''}</span>`}));
+  if (info.timeline.length === 0) {
+    tlCard.appendChild(el('div', {class: 'empty',
+      text: 'No archived days yet. Timeline populates from Institutional Memory as daily runs accumulate.'}));
+  } else {
+    const scrollWrap = el('div', {class: 'scroll-x'});
+    const tbl = el('table', {class: 'decision'});
+    tbl.innerHTML = `<thead><tr>
+      <th>Date</th>
+      <th class="center">Action</th>
+      <th class="right">Intel</th>
+      <th class="right">Conf</th>
+      <th class="right">CMP</th>
+      <th class="right">Target</th>
+      <th class="right">Stop</th>
+      <th>Note</th>
+    </tr></thead>`;
+    const tbody = el('tbody');
+    // Newest first
+    for (const row of info.timeline.slice().reverse()) {
+      const note = row.in_universe ? '' : 'not in rec set';
+      tbody.innerHTML += `<tr>
+        <td class="mute">${row.date}</td>
+        <td class="center">${row.action ? pillFor(row.action) : '<span class="mute">—</span>'}</td>
+        <td class="right">${row.intel != null ? Math.round(row.intel) : '—'}</td>
+        <td class="right">${row.confidence != null ? Math.round(row.confidence * 100) + '%' : '—'}</td>
+        <td class="right">${fmt.price(row.cmp)}</td>
+        <td class="right pos">${fmt.price(row.target_1)}</td>
+        <td class="right neg">${fmt.price(row.stop_loss)}</td>
+        <td class="mute" style="font-size: 11px;">${note}</td>
+      </tr>`;
+    }
+    tbl.appendChild(tbody);
+    scrollWrap.appendChild(tbl);
+    tlCard.appendChild(scrollWrap);
+  }
+  wrap.appendChild(tlCard);
+
+  // ── Historical closed trades (from learning.parquet, with correctness marked)
+  const trCard = el('div', {class: 'card'});
+  trCard.appendChild(el('h3', {html:
+    `Historical Closed Trades <span class="count">${info.n_closed} trade${info.n_closed !== 1 ? 's' : ''}</span>`}));
+  if (info.n_closed === 0) {
+    trCard.appendChild(el('div', {class: 'empty', text: 'No historical closed trades for this ticker.'}));
+  } else {
+    const scrollWrap = el('div', {class: 'scroll-x'});
+    const tbl = el('table', {class: 'decision'});
+    tbl.innerHTML = `<thead><tr>
+      <th>Entry</th>
+      <th>Exit</th>
+      <th class="center">Recommended</th>
+      <th class="right">Entry ₹</th>
+      <th class="right">Exit ₹</th>
+      <th class="right">Return</th>
+      <th class="right">MFE</th>
+      <th class="right">MAE</th>
+      <th class="right">Days</th>
+      <th class="center">Outcome</th>
+    </tr></thead>`;
+    const tbody = el('tbody');
+    for (const tr of info.closed_trades) {
+      const win = tr.is_winner;
+      const winPill = win === true ? '<span class="pill buy">✔ WIN</span>' :
+                        win === false ? '<span class="pill sell">✖ LOSS</span>' : '—';
+      tbody.innerHTML += `<tr>
+        <td class="mute">${tr.entry_date}</td>
+        <td class="mute">${tr.exit_date}</td>
+        <td class="center">${pillFor(tr.recommended_action)}</td>
+        <td class="right">${fmt.price(tr.entry_price)}</td>
+        <td class="right">${fmt.price(tr.exit_price)}</td>
+        <td class="right ${tr.return_pct > 0 ? 'pos' : 'neg'}">${tr.return_pct != null ? (tr.return_pct * 100).toFixed(2) + '%' : '—'}</td>
+        <td class="right pos">${tr.mfe_pct != null ? '+' + (tr.mfe_pct * 100).toFixed(1) + '%' : '—'}</td>
+        <td class="right neg">${tr.mae_pct != null ? (tr.mae_pct * 100).toFixed(1) + '%' : '—'}</td>
+        <td class="right mute">${tr.n_bars_held || '—'}d</td>
+        <td class="center">${winPill}</td>
+      </tr>`;
+    }
+    tbl.appendChild(tbody);
+    scrollWrap.appendChild(tbl);
+    trCard.appendChild(scrollWrap);
+  }
+  wrap.appendChild(trCard);
+
+  return wrap;
 }
 
 // Compact admin tile that reuses the .strip/.tile CSS from the investor UI
