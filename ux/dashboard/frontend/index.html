@@ -847,6 +847,7 @@ async function loadState() {
     'winner_genome.json',
     'recommendation_history.json',
     'decision_attribution.json',
+    'benchmark.json',
   ];
   const entries = await Promise.all(targets.map(async n => [n.replace(/\.json$/, ''), await fetchJson(n)]));
   for (const [k, v] of entries) STATE[k] = v;
@@ -961,6 +962,8 @@ function buildCanonicalList() {
   const wgMatchByTicker = winnerGenome.matches || {};
   // Decision Attribution v1.0 — per-ticker subsystem contribution
   const daByTicker = (STATE.decision_attribution && STATE.decision_attribution.per_recommendation) || {};
+  // Continuous Benchmark v1.0 — per-ticker historical alpha vs NIFTY
+  const bmByTicker = (STATE.benchmark && STATE.benchmark.per_ticker) || {};
 
   const enriched = recs.map(r => {
     const ii_r = iiByTicker.get(String(r.ticker));
@@ -971,6 +974,7 @@ function buildCanonicalList() {
     const lc = lifecycleByTicker[r.ticker] || null;
     const wg = wgMatchByTicker[r.ticker] || null;
     const da = daByTicker[r.ticker] || null;
+    const bm = bmByTicker[r.ticker] || null;
 
     // CMP prefers the freshest live parquet price; falls back to backtester's latest_close.
     const cmp = (pc && pc.available && pc.cmp != null) ? pc.cmp : ee.latest_close;
@@ -1036,6 +1040,15 @@ function buildCanonicalList() {
       da_contributions:    da ? da.contributions : null,
       da_raw_signals:      da ? da.raw_signals : null,
       da_decision_strength: da ? da.decision_strength : null,
+
+      // Continuous Benchmark v1.0 — historical alpha vs NIFTY
+      bm_n_trades:            bm ? bm.n_trades : 0,
+      bm_aegis_avg_return:    bm ? bm.aegis_avg_return : null,
+      bm_nifty_avg_return:    bm ? bm.nifty_avg_return : null,
+      bm_sector_avg_return:   bm ? bm.sector_avg_return : null,
+      bm_excess_alpha_avg:    bm ? bm.excess_alpha_avg : null,
+      bm_pct_beat_nifty:      bm ? bm.pct_beat_nifty : null,
+      bm_verdict:             bm ? bm.verdict : null,
 
       // From fusion (v2.1) — the canonical intelligence score
       intelligence_score: ii_r ? ii_r.intelligence_score : null,
@@ -1516,6 +1529,8 @@ const OPP_SORTS = [
   {key: 'wg_desc',       label: 'Winner Genome Match ↓',
     cmp: (a, b) => ((b.wg_n_signatures || 0) - (a.wg_n_signatures || 0))
                 || ((b.wg_avg_lift || 0) - (a.wg_avg_lift || 0))},
+  {key: 'alpha_desc',    label: 'Alpha vs NIFTY ↓',
+    cmp: (a, b) => (b.bm_excess_alpha_avg ?? -9) - (a.bm_excess_alpha_avg ?? -9)},
 ];
 
 // Decision Attribution mini stacked bar — visualises per-subsystem contribution %.
@@ -1742,7 +1757,19 @@ function decisionCardHtml(r, i) {
     <!-- Q6: Why? → Top Reasons + Concerns -->
     ${reasonsConcernsBlock(r)}
 
-    <!-- Q7: Historical evidence → Winner Genome (plain-language, never a #17) -->
+    <!-- Q7a: Alpha vs NIFTY (from Continuous Benchmark, historical closed trades) -->
+    ${r.bm_n_trades > 0 && r.bm_excess_alpha_avg != null ? `
+    <div style="margin-top: 10px; padding: 8px 10px; border: 1px solid ${r.bm_excess_alpha_avg > 0.02 ? 'color-mix(in srgb, var(--pos) 30%, transparent)' : r.bm_excess_alpha_avg < -0.02 ? 'color-mix(in srgb, var(--neg) 30%, transparent)' : 'var(--rule)'}; border-radius: 3px; background: ${r.bm_excess_alpha_avg > 0.02 ? 'color-mix(in srgb, var(--pos) 5%, transparent)' : r.bm_excess_alpha_avg < -0.02 ? 'color-mix(in srgb, var(--neg) 5%, transparent)' : 'transparent'};">
+      <div style="font: 9px ui-monospace, monospace; letter-spacing: 0.14em; text-transform: uppercase; color: var(--type-3); margin-bottom: 3px;">Alpha vs NIFTY <span class="vs-tag bt">Backtester</span></div>
+      <div style="font-size: 11px; color: var(--type-1);">
+        AEGIS <b style="color: ${r.bm_aegis_avg_return > 0 ? 'var(--pos)' : 'var(--neg)'}">${r.bm_aegis_avg_return > 0 ? '+' : ''}${(r.bm_aegis_avg_return * 100).toFixed(1)}%</b>
+        · NIFTY <b>${r.bm_nifty_avg_return > 0 ? '+' : ''}${(r.bm_nifty_avg_return * 100).toFixed(1)}%</b>
+        · α <b style="color: ${r.bm_excess_alpha_avg > 0 ? 'var(--pos)' : 'var(--neg)'}">${r.bm_excess_alpha_avg > 0 ? '+' : ''}${(r.bm_excess_alpha_avg * 100).toFixed(1)}%</b>
+        <span style="color: var(--type-3); margin-left: 6px;">${r.bm_n_trades} trade${r.bm_n_trades !== 1 ? 's' : ''} · beat ${Math.round((r.bm_pct_beat_nifty || 0) * 100)}%</span>
+      </div>
+    </div>` : ''}
+
+    <!-- Q7b: Historical evidence → Winner Genome (plain-language, never a #17) -->
     ${r.wg_n_signatures > 0 ? `
     <div style="margin-top: 10px; padding: 8px 10px; border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); border-radius: 3px; background: color-mix(in srgb, var(--accent) 6%, transparent);">
       <div style="font: 9px ui-monospace, monospace; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent-hi); margin-bottom: 3px;">Winner Genome</div>
@@ -1981,6 +2008,19 @@ function portfolioHealth() {
       <span class="label">Prediction Accuracy</span>
       <div class="value ${paCls}">${Math.round(pa * 100)}<span class="unit">%</span></div>
       <div class="sub">${rh.n_tickers_with_history} tickers · avg over per-stock accuracy</div>`}));
+  }
+
+  // Continuous Benchmark v1.0 — Alpha vs NIFTY (the primary KPI)
+  const bm = STATE.benchmark;
+  if (bm && bm.available && bm.portfolio) {
+    const bp = bm.portfolio;
+    const alphaBps = bp.excess_alpha_avg;
+    const alphaCls = alphaBps == null ? '' : alphaBps > 0.02 ? 'pos' : alphaBps < -0.02 ? 'neg' : 'warn';
+    const beatCls  = bp.pct_beat_nifty == null ? '' : bp.pct_beat_nifty >= 0.55 ? 'pos' : bp.pct_beat_nifty < 0.45 ? 'neg' : 'warn';
+    strip.appendChild(el('div', {class: 'tile', html: `
+      <span class="label">Alpha vs NIFTY <span class="vs-tag bt">Backtester</span></span>
+      <div class="value ${alphaCls}">${alphaBps != null ? (alphaBps > 0 ? '+' : '') + (alphaBps * 100).toFixed(2) + '%' : '—'}</div>
+      <div class="sub ${beatCls}">${bp.pct_beat_nifty != null ? Math.round(bp.pct_beat_nifty * 100) + '% of ' + bp.n_trades_benchmarked + ' trades beat NIFTY' : '—'} · ${bp.verdict || '—'}</div>`}));
   }
 
   // Alpha Capture Rate — from Institutional Memory v1.0
@@ -2323,6 +2363,31 @@ function renderValidationSheet(ticker) {
       </div>`;
   }
   wrap.appendChild(wgSection);
+
+  // ── Section 4b: Benchmark Comparison (Alpha vs NIFTY + sector peers)
+  const bmSection = el('div', {class: 'vs-section'});
+  if (r.bm_n_trades > 0) {
+    bmSection.innerHTML = `
+      <h3>Benchmark Comparison ${TAG_BT}</h3>
+      <div class="vs-grid-2">
+        <div>
+          ${row('AEGIS avg return',    (r.bm_aegis_avg_return * 100).toFixed(2) + '%', r.bm_aegis_avg_return > 0 ? 'pos' : 'neg')}
+          ${row('NIFTY over same window', (r.bm_nifty_avg_return * 100).toFixed(2) + '%')}
+          ${r.bm_sector_avg_return != null ? row('Sector peers (synthetic)', (r.bm_sector_avg_return * 100).toFixed(2) + '%') : ''}
+        </div>
+        <div>
+          ${row('Excess α (vs NIFTY)',    (r.bm_excess_alpha_avg > 0 ? '+' : '') + (r.bm_excess_alpha_avg * 100).toFixed(2) + '%', r.bm_excess_alpha_avg > 0.02 ? 'pos' : r.bm_excess_alpha_avg < -0.02 ? 'neg' : 'warn')}
+          ${row('Beat NIFTY',             Math.round((r.bm_pct_beat_nifty || 0) * 100) + '% of trades')}
+          ${row('Sample',                 r.bm_n_trades + ' historical closed trades')}
+          ${row('Verdict',                (r.bm_verdict || '—').replace(/_/g, ' '), r.bm_verdict === 'alpha_generated' ? 'pos' : r.bm_verdict === 'underperformed_nifty' ? 'neg' : 'warn')}
+        </div>
+      </div>`;
+  } else {
+    bmSection.innerHTML = `
+      <h3>Benchmark Comparison ${TAG_BT}</h3>
+      <div style="color: var(--type-3); font-size: 12px;">No historical closed trades to benchmark against NIFTY yet.</div>`;
+  }
+  wrap.appendChild(bmSection);
 
   // ── Section 5: Decision Attribution
   const daSection = el('div', {class: 'vs-section'});
@@ -3033,6 +3098,9 @@ function renderAdminPage() {
   // ─── DECISION ATTRIBUTION: which subsystems are creating alpha?
   main.appendChild(adminDecisionAttribution());
 
+  // ─── CONTINUOUS BENCHMARK: AEGIS vs NIFTY ranking
+  main.appendChild(adminBenchmark());
+
   // ─── SECONDARY: system-level diagnostics
   const divider = el('div', {style: 'margin: 32px 0 12px; padding-top: 20px; border-top: 1px dashed var(--rule);'});
   divider.appendChild(el('div', {style: 'font: 10px ui-monospace, monospace; letter-spacing: 0.16em; color: var(--type-3); text-transform: uppercase;',
@@ -3336,6 +3404,138 @@ function adminDecisionAttribution() {
   wCard.appendChild(el('div', {style: 'margin-top: 12px; color: var(--type-3); font-size: 11px; letter-spacing: 0.02em; line-height: 1.5;',
     html: `Weights are fixed at v1.0. Future refinement (post-lock) can bias them based on the alpha_created evidence above — e.g. down-weight subsystems that persistently show negative alpha.`}));
   wrap.appendChild(wCard);
+
+  return wrap;
+}
+
+// ==========================================================================
+// CONTINUOUS BENCHMARK — AEGIS vs NIFTY per-trade + top/bottom rankings
+// ==========================================================================
+function adminBenchmark() {
+  const bm = STATE.benchmark;
+  const wrap = el('div', {class: 'section'});
+  const head = el('div', {class: 'section-head'});
+  head.appendChild(el('h2', {text: 'Continuous Benchmark'}));
+  head.appendChild(el('div', {class: 'meta',
+    text: 'AEGIS vs NIFTY · historical closed trades · this is the primary KPI'}));
+  wrap.appendChild(head);
+
+  if (!bm || !bm.available) {
+    const card = el('div', {class: 'card'});
+    card.appendChild(el('div', {class: 'empty', text: bm && bm.reason ? bm.reason : 'Continuous Benchmark not run yet.'}));
+    wrap.appendChild(card);
+    return wrap;
+  }
+
+  const p = bm.portfolio || {};
+
+  // ── Portfolio-level strip
+  const strip = el('div', {class: 'strip'});
+  strip.appendChild(adminTile('AEGIS Avg Return',
+    (p.aegis_avg_return * 100).toFixed(2) + '%',
+    p.aegis_avg_return > 0 ? 'pos' : 'neg',
+    `median ${(p.aegis_median_return * 100).toFixed(2)}%`));
+  strip.appendChild(adminTile('NIFTY (same windows)',
+    p.nifty_avg_return != null ? (p.nifty_avg_return * 100).toFixed(2) + '%' : '—',
+    '', 'passive benchmark'));
+  strip.appendChild(adminTile('Excess Alpha',
+    p.excess_alpha_avg != null ? (p.excess_alpha_avg > 0 ? '+' : '') + (p.excess_alpha_avg * 100).toFixed(2) + '%' : '—',
+    p.excess_alpha_avg > 0.02 ? 'pos' : p.excess_alpha_avg < -0.02 ? 'neg' : 'warn',
+    `median ${((p.excess_alpha_median || 0) * 100).toFixed(2)}%`));
+  strip.appendChild(adminTile('Beat NIFTY',
+    p.pct_beat_nifty != null ? Math.round(p.pct_beat_nifty * 100) + '%' : '—',
+    p.pct_beat_nifty >= 0.55 ? 'pos' : p.pct_beat_nifty < 0.45 ? 'neg' : 'warn',
+    `${p.n_beat_nifty} of ${p.n_trades_benchmarked}`));
+  strip.appendChild(adminTile('Verdict',
+    (p.verdict || '—').replace(/_/g, ' '),
+    p.verdict === 'alpha_generated' ? 'pos' : p.verdict === 'underperformed_nifty' ? 'neg' : 'warn'));
+  wrap.appendChild(strip);
+
+  // ── Top alpha creators
+  const topCard = el('div', {class: 'card'});
+  topCard.appendChild(el('h3', {html: `Top Alpha Creators <span class="count">min 3 trades</span>`}));
+  const topScroll = el('div', {class: 'scroll-x'});
+  const topTbl = el('table', {class: 'decision'});
+  topTbl.innerHTML = `<thead><tr>
+    <th>#</th><th>Ticker</th>
+    <th class="right">Excess α</th>
+    <th class="right">Trades</th>
+    <th class="right">Beat NIFTY</th>
+  </tr></thead>`;
+  const topBody = el('tbody');
+  (bm.top_alpha || []).forEach((e, i) => {
+    topBody.innerHTML += `<tr onclick="location.hash='#/sheet/${e.ticker}'">
+      <td class="rank">${i + 1}</td>
+      <td class="ticker">${e.ticker}</td>
+      <td class="right pos">+${(e.excess_alpha_avg * 100).toFixed(2)}%</td>
+      <td class="right">${e.n_trades}</td>
+      <td class="right">${Math.round(e.pct_beat_nifty * 100)}%</td>
+    </tr>`;
+  });
+  topTbl.appendChild(topBody);
+  topScroll.appendChild(topTbl);
+  topCard.appendChild(topScroll);
+  wrap.appendChild(topCard);
+
+  // ── Bottom alpha destroyers
+  const botCard = el('div', {class: 'card'});
+  botCard.appendChild(el('h3', {html: `Bottom Alpha Destroyers <span class="count">min 3 trades</span>`}));
+  const botScroll = el('div', {class: 'scroll-x'});
+  const botTbl = el('table', {class: 'decision'});
+  botTbl.innerHTML = `<thead><tr>
+    <th>#</th><th>Ticker</th>
+    <th class="right">Excess α</th>
+    <th class="right">Trades</th>
+    <th class="right">Beat NIFTY</th>
+  </tr></thead>`;
+  const botBody = el('tbody');
+  (bm.bottom_alpha || []).forEach((e, i) => {
+    botBody.innerHTML += `<tr onclick="location.hash='#/sheet/${e.ticker}'">
+      <td class="rank">${i + 1}</td>
+      <td class="ticker">${e.ticker}</td>
+      <td class="right neg">${(e.excess_alpha_avg * 100).toFixed(2)}%</td>
+      <td class="right">${e.n_trades}</td>
+      <td class="right">${Math.round(e.pct_beat_nifty * 100)}%</td>
+    </tr>`;
+  });
+  botTbl.appendChild(botBody);
+  botScroll.appendChild(botTbl);
+  botCard.appendChild(botScroll);
+  wrap.appendChild(botCard);
+
+  // ── By-sector aggregate
+  if (bm.by_sector && Object.keys(bm.by_sector).length) {
+    const secCard = el('div', {class: 'card'});
+    secCard.appendChild(el('h3', {text: 'By Sector'}));
+    const scroll = el('div', {class: 'scroll-x'});
+    const tbl = el('table', {class: 'decision'});
+    tbl.innerHTML = `<thead><tr>
+      <th>Sector</th>
+      <th class="right">Trades</th>
+      <th class="right">AEGIS</th>
+      <th class="right">NIFTY</th>
+      <th class="right">Excess α</th>
+      <th class="right">Beat NIFTY</th>
+    </tr></thead>`;
+    const body = el('tbody');
+    const rows = Object.entries(bm.by_sector).sort((a, b) => (b[1].excess_alpha_avg ?? -9) - (a[1].excess_alpha_avg ?? -9));
+    for (const [s, v] of rows) {
+      const ea = v.excess_alpha_avg;
+      const cls = ea == null ? '' : ea > 0.02 ? 'pos' : ea < -0.02 ? 'neg' : '';
+      body.innerHTML += `<tr>
+        <td class="ticker">${s}</td>
+        <td class="right">${v.n_trades}</td>
+        <td class="right">${v.aegis_avg_return != null ? (v.aegis_avg_return * 100).toFixed(2) + '%' : '—'}</td>
+        <td class="right">${v.nifty_avg_return != null ? (v.nifty_avg_return * 100).toFixed(2) + '%' : '—'}</td>
+        <td class="right ${cls}">${ea != null ? (ea > 0 ? '+' : '') + (ea * 100).toFixed(2) + '%' : '—'}</td>
+        <td class="right">${v.pct_beat_nifty != null ? Math.round(v.pct_beat_nifty * 100) + '%' : '—'}</td>
+      </tr>`;
+    }
+    tbl.appendChild(body);
+    scroll.appendChild(tbl);
+    secCard.appendChild(scroll);
+    wrap.appendChild(secCard);
+  }
 
   return wrap;
 }

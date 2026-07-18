@@ -142,6 +142,13 @@ STEPS = [
         "requires": ["reports/recommendations.json"],
     },
     {
+        "name": "benchmark",
+        "desc": "Continuous Benchmark v1.0 (AEGIS vs NIFTY + synthetic sector per-trade alpha)",
+        "script": "research/benchmark/run.py",
+        "produces": ["reports/benchmark.json"],
+        "requires": ["reports/learning.parquet", "data/raw/india/NSEI_D1.parquet"],
+    },
+    {
         "name": "telegram",
         "desc": "UX030 Telegram delivery (5 messages, opt-in)",
         "script": "scripts/telegram_send_ux030.py",
