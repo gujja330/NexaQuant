@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AEGIS · Executive Dashboard</title>
+<style>
+:root {
+  --ink:         #080D18;
+  --panel:       #0F1626;
+  --panel-hi:    #141E33;
+  --rule:        #233152;
+  --rule-strong: #3A4E7A;
+  --paper:       #EDE7D6;
+  --paper-2:     #DBD2BB;
+  --type-1:      #F2EDD9;
+  --type-2:      #8E97AC;
+  --type-3:      #4C566F;
+  --accent:      #C4A055;
+  --accent-hi:   #E6C273;
+  --pos:         #7BAF7F;
+  --neg:         #C77A73;
+  --warn:        #D9A85E;
+  --info:        #5B7BB0;
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    --ink: #F7F3E9; --panel: #EFEADB; --panel-hi: #E4DEC9;
+    --rule: #C7BEA1; --rule-strong: #8B7F5A;
+    --paper: #0F1626; --type-1: #0A0F1C; --type-2: #4C566F; --type-3: #8A8C90;
+    --accent: #8B6F2D; --accent-hi: #6E5620;
+  }
+}
+:root[data-theme="dark"] {
+  --ink: #080D18; --panel: #0F1626; --panel-hi: #141E33;
+  --rule: #233152; --rule-strong: #3A4E7A;
+  --paper: #EDE7D6; --paper-2: #DBD2BB;
+  --type-1: #F2EDD9; --type-2: #8E97AC; --type-3: #4C566F;
+  --accent: #C4A055; --accent-hi: #E6C273;
+}
+:root[data-theme="light"] {
+  --ink: #F7F3E9; --panel: #EFEADB; --panel-hi: #E4DEC9;
+  --rule: #C7BEA1; --rule-strong: #8B7F5A;
+  --paper: #0F1626; --paper-2: #1A2338;
+  --type-1: #0A0F1C; --type-2: #4C566F; --type-3: #8A8C90;
+  --accent: #8B6F2D; --accent-hi: #6E5620;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  background: var(--ink);
+  color: var(--type-1);
+  font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI Variable", "Segoe UI", "Helvetica Neue", sans-serif;
+  font-feature-settings: "kern" 1;
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  overflow-x: hidden;
+}
+.sidebar {
+  background: color-mix(in srgb, var(--panel) 80%, var(--ink));
+  border-right: 1px solid var(--rule);
+  padding: 24px 16px;
+  position: sticky; top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.brand {
+  font-family: ui-serif, "Iowan Old Style", Baskerville, "Times New Roman", serif;
+  font-size: 22px;
+  letter-spacing: -0.02em;
+  color: var(--type-1);
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--rule);
+}
+.brand .dot { color: var(--accent); }
+.brand small {
+  display: block;
+  font-family: ui-monospace, "SF Mono", Consolas, monospace;
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  color: var(--type-2);
+  margin-top: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+}
+nav a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  color: var(--type-2);
+  text-decoration: none;
+  font-size: 13px;
+  border-radius: 3px;
+  border-left: 2px solid transparent;
+  transition: all 150ms;
+}
+nav a:hover { color: var(--type-1); background: color-mix(in srgb, var(--accent) 6%, transparent); }
+nav a.active { color: var(--accent-hi); border-left-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); }
+nav a .glyph { color: var(--type-3); font-family: ui-monospace, monospace; font-size: 12px; }
+nav a.active .glyph { color: var(--accent); }
+.sidebar-footer {
+  margin-top: auto;
+  font-family: ui-monospace, monospace;
+  font-size: 10px;
+  color: var(--type-3);
+  letter-spacing: 0.08em;
+  border-top: 1px solid var(--rule);
+  padding-top: 12px;
+}
+.sidebar-footer button {
+  background: transparent;
+  color: var(--type-2);
+  border: 1px solid var(--rule);
+  padding: 6px 10px;
+  font-family: inherit; font-size: 10px;
+  cursor: pointer;
+  border-radius: 3px;
+  letter-spacing: 0.14em;
+  transition: color 150ms;
+}
+.sidebar-footer button:hover { color: var(--accent-hi); border-color: var(--accent); }
+
+main { padding: 24px 32px; min-width: 0; }
+.page-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--rule);
+  margin-bottom: 24px;
+  gap: 16px;
+}
+.page-head h1 {
+  font-family: ui-serif, "Iowan Old Style", Baskerville, serif;
+  font-size: 28px;
+  font-weight: 400;
+  letter-spacing: -0.015em;
+  color: var(--type-1);
+}
+.page-head .meta {
+  font-family: ui-monospace, monospace;
+  font-size: 10px;
+  color: var(--type-2);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-align: right;
+}
+.page-head .meta strong { color: var(--type-1); }
+
+.grid { display: grid; gap: 16px; grid-template-columns: repeat(12, 1fr); }
+.card {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  padding: 18px 20px;
+  border-radius: 3px;
+  min-width: 0;
+  overflow: hidden;
+}
+.card .card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--rule);
+  margin-bottom: 14px;
+  gap: 12px;
+}
+.card h3 {
+  font-family: ui-serif, "Iowan Old Style", Baskerville, serif;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--type-1);
+  letter-spacing: -0.005em;
+}
+.card .card-source {
+  font-family: ui-monospace, monospace;
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  color: var(--type-3);
+  text-transform: uppercase;
+}
+
+.kpi { text-align: left; }
+.kpi .value {
+  font-family: ui-serif, "Iowan Old Style", Baskerville, serif;
+  font-size: 32px;
+  color: var(--type-1);
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+.kpi .unit {
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  color: var(--type-3);
+  margin-left: 4px;
+}
+.kpi .sub {
+  font-family: ui-monospace, monospace;
+  font-size: 10px;
+  color: var(--type-2);
+  margin-top: 6px;
+  letter-spacing: 0.06em;
+}
+.kpi .sub.pos { color: var(--pos); }
+.kpi .sub.neg { color: var(--neg); }
+.kpi .sub.warn { color: var(--warn); }
+
+/* Grid spans */
+.col-2  { grid-column: span 2; }
+.col-3  { grid-column: span 3; }
+.col-4  { grid-column: span 4; }
+.col-6  { grid-column: span 6; }
+.col-8  { grid-column: span 8; }
+.col-12 { grid-column: span 12; }
+@media (max-width: 900px) {
+  body { grid-template-columns: 1fr; }
+  .sidebar { position: static; height: auto; border-right: none; border-bottom: 1px solid var(--rule); }
+  .col-2, .col-3, .col-4, .col-6, .col-8 { grid-column: span 12; }
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+th, td {
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--rule);
+}
+thead th {
+  font-family: -apple-system, sans-serif;
+  font-weight: 500;
+  font-size: 10px;
+  color: var(--type-2);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--rule-strong);
+}
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover { background: color-mix(in srgb, var(--accent) 4%, transparent); }
+td.right { text-align: right; }
+td.pos { color: var(--pos); }
+td.neg { color: var(--neg); }
+td.warn { color: var(--warn); }
+td.champion { color: var(--accent-hi); font-weight: 600; }
+
+.pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-family: ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent-hi);
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+}
+.pill.pos { background: color-mix(in srgb, var(--pos) 12%, transparent); color: var(--pos); border-color: color-mix(in srgb, var(--pos) 30%, transparent); }
+.pill.neg { background: color-mix(in srgb, var(--neg) 12%, transparent); color: var(--neg); border-color: color-mix(in srgb, var(--neg) 30%, transparent); }
+.pill.warn { background: color-mix(in srgb, var(--warn) 12%, transparent); color: var(--warn); border-color: color-mix(in srgb, var(--warn) 30%, transparent); }
+.pill.info { background: color-mix(in srgb, var(--info) 12%, transparent); color: var(--info); border-color: color-mix(in srgb, var(--info) 30%, transparent); }
+
+.bar {
+  height: 6px;
+  background: var(--panel-hi);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 6px;
+}
+.bar .fill { height: 100%; background: var(--accent); transition: width 300ms; }
+.bar .fill.pos { background: var(--pos); }
+.bar .fill.warn { background: var(--warn); }
+.bar .fill.neg { background: var(--neg); }
+
+.reason-list { list-style: none; font-size: 12px; color: var(--type-2); }
+.reason-list li { padding: 4px 0; border-bottom: 1px dashed var(--rule); }
+.reason-list li:last-child { border-bottom: none; }
+.reason-list .ticker {
+  color: var(--type-1); font-family: ui-monospace, monospace; margin-right: 8px;
+}
+
+.explain {
+  background: color-mix(in srgb, var(--panel-hi) 60%, var(--panel));
+  border-left: 2px solid var(--accent);
+  padding: 12px 16px;
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  color: var(--type-2);
+  border-radius: 0 2px 2px 0;
+  margin-top: 8px;
+  line-height: 1.7;
+}
+
+.empty {
+  text-align: center;
+  padding: 32px;
+  color: var(--type-3);
+  font-style: italic;
+}
+.loading {
+  text-align: center;
+  padding: 20px;
+  color: var(--type-3);
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+}
+.error {
+  color: var(--neg);
+  padding: 12px;
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  border: 1px dashed var(--neg);
+  border-radius: 3px;
+}
+
+.scroll { max-height: 420px; overflow-y: auto; }
+.scroll::-webkit-scrollbar { width: 6px; }
+.scroll::-webkit-scrollbar-track { background: transparent; }
+.scroll::-webkit-scrollbar-thumb { background: var(--rule); border-radius: 3px; }
+
+/* Sparkline */
+svg.spark { display: block; width: 100%; height: 60px; }
+svg.spark .line { fill: none; stroke: var(--accent); stroke-width: 1.5; }
+svg.spark .area { fill: var(--accent); opacity: 0.12; }
+svg.spark .grid { stroke: var(--rule); stroke-width: 0.5; opacity: 0.4; }
+
+/* Progress dashboard for tier discrimination */
+.tier-row {
+  display: grid;
+  grid-template-columns: 100px 1fr 70px;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 0;
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+}
+.tier-row .tier-label { color: var(--type-2); font-size: 11px; letter-spacing: 0.08em; }
+.tier-row .tier-bar { height: 8px; background: var(--panel-hi); border-radius: 4px; overflow: hidden; }
+.tier-row .tier-bar .fill { height: 100%; background: var(--accent); }
+.tier-row .tier-value { text-align: right; font-variant-numeric: tabular-nums; color: var(--type-1); }
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="brand">
+    AEGIS<span class="dot">.</span>
+    <small>Executive · UX031</small>
+  </div>
+  <nav id="nav">
+    <a href="#/" data-route="/"><span class="glyph">·</span> Overview</a>
+    <a href="#/portfolio" data-route="/portfolio"><span class="glyph">·</span> Portfolio</a>
+    <a href="#/recommendations" data-route="/recommendations"><span class="glyph">·</span> Recommendations</a>
+    <a href="#/risk" data-route="/risk"><span class="glyph">·</span> Risk</a>
+    <a href="#/validation" data-route="/validation"><span class="glyph">·</span> Validation</a>
+    <a href="#/champion" data-route="/champion"><span class="glyph">·</span> Champion</a>
+    <a href="#/knowledge" data-route="/knowledge"><span class="glyph">·</span> Knowledge Graph</a>
+  </nav>
+  <div class="sidebar-footer">
+    <div style="margin-bottom: 8px;">
+      Advisory only.<br>
+      Reads reports/*.json.
+    </div>
+    <button id="themeToggle" type="button">◐ THEME</button>
+  </div>
+</aside>
+
+<main id="main">
+  <div class="loading">Loading AEGIS state…</div>
+</main>
+
+<script>
+// ==========================================================================
+// State
+// ==========================================================================
+const REPORTS_BASE = new URL('../../../reports/', location.href).href;
+
+const STATE = {};
+async function fetchJson(name) {
+  try {
+    const r = await fetch(REPORTS_BASE + name, {cache: 'no-store'});
+    if (!r.ok) return null;
+    return await r.json();
+  } catch (e) {
+    return null;
+  }
+}
+
+async function loadState() {
+  const targets = [
+    'recommendations.json',
+    'portfolio.json',
+    'portfolio_monitoring.json',
+    'global_context.json',
+    'champion_strategy.json',
+    'challenger_scoreboard.json',
+    'confidence_calibration.json',
+    'graph_statistics.json',
+    'community_clusters.json',
+    'knowledge_graph.json',
+    'adaptive_rec_v2_signal.json',
+    'adaptive_rec_v2_scoreboard.json',
+    'adaptive_rec_v2_feature_importance.json',
+    'validation_v2_latest.json',
+    'risk_capital_v2_latest.json',
+    'backtest_summary.json',
+    'regime_comparison.json',
+    'strategy_doctor.json',
+  ];
+  const entries = await Promise.all(targets.map(async n => [n.replace(/\.json$/, ''), await fetchJson(n)]));
+  for (const [k, v] of entries) STATE[k] = v;
+}
+
+// ==========================================================================
+// Helpers
+// ==========================================================================
+const fmt = {
+  pct: (v, digits=1) => v == null ? '—' : (Math.abs(v) < 3 ? (v*100).toFixed(digits) + '%' : v.toFixed(digits) + '%'),
+  num: (v, digits=2) => v == null ? '—' : Number(v).toFixed(digits),
+  int: (v) => v == null ? '—' : Number(v).toLocaleString(),
+  arrow: v => v == null ? '—' : (v > 0.001 ? '▲' : v < -0.001 ? '▼' : '—'),
+  cls: v => v == null ? '' : (v > 0.001 ? 'pos' : v < -0.001 ? 'neg' : ''),
+};
+
+function regimeLabel(gc) {
+  if (!gc) return { text: 'Unknown', cls: '' };
+  const c = (gc.classifications || {}).global_posture;
+  const label = typeof c === 'string' ? c : (c && c.label) || 'Unknown';
+  const clsMap = { 'Risk-On': 'pos', 'Neutral': 'warn', 'Risk-Off': 'neg' };
+  return { text: label, cls: clsMap[label] || 'info' };
+}
+
+function el(tag, opts = {}, ...children) {
+  const e = document.createElement(tag);
+  if (opts.class) e.className = opts.class;
+  if (opts.text != null) e.textContent = opts.text;
+  if (opts.html != null) e.innerHTML = opts.html;
+  if (opts.style) e.style.cssText = opts.style;
+  if (opts.attrs) for (const [k, v] of Object.entries(opts.attrs)) e.setAttribute(k, v);
+  for (const c of children) if (c) e.appendChild(c);
+  return e;
+}
+
+function card(title, source, ...children) {
+  const c = el('div', {class: 'card'});
+  const head = el('div', {class: 'card-head'});
+  head.appendChild(el('h3', {text: title}));
+  if (source) head.appendChild(el('div', {class: 'card-source', text: source}));
+  c.appendChild(head);
+  for (const child of children) if (child) c.appendChild(child);
+  return c;
+}
+
+function kpi(value, unit, sub, subCls) {
+  const wrap = el('div', {class: 'kpi'});
+  const v = el('div', {class: 'value'});
+  v.innerHTML = value + (unit ? `<span class="unit">${unit}</span>` : '');
+  wrap.appendChild(v);
+  if (sub) wrap.appendChild(el('div', {class: 'sub' + (subCls ? ' ' + subCls : ''), text: sub}));
+  return wrap;
+}
+
+function tableFrom(cols, rows) {
+  const t = el('table');
+  const thead = el('thead');
+  const trh = el('tr');
+  for (const c of cols) trh.appendChild(el('th', {text: c.label, style: c.right ? 'text-align: right;' : ''}));
+  thead.appendChild(trh);
+  t.appendChild(thead);
+  const tbody = el('tbody');
+  for (const r of rows) {
+    const tr = el('tr');
+    for (const c of cols) {
+      const v = c.get(r);
+      const td = el('td', {class: (c.right ? 'right ' : '') + (c.clsFn ? c.clsFn(r) : '')});
+      td.innerHTML = v == null ? '<span style="color: var(--type-3)">—</span>' : v;
+      tr.appendChild(td);
+    }
+    tbody.appendChild(tr);
+  }
+  t.appendChild(tbody);
+  return t;
+}
+
+// Sparkline SVG for a series [{x, y}]
+function sparkline(values) {
+  if (!values || values.length < 2) return el('div', {class: 'empty', text: 'no data'});
+  const w = 300, h = 60, pad = 4;
+  const min = Math.min(...values), max = Math.max(...values);
+  const range = (max - min) || 1;
+  const step = (w - pad*2) / (values.length - 1);
+  const points = values.map((v, i) => [pad + i*step, pad + (h - pad*2) * (1 - (v - min)/range)]);
+  const linePath = 'M ' + points.map(p => p.join(' ')).join(' L ');
+  const areaPath = linePath + ` L ${points[points.length-1][0]} ${h-pad} L ${points[0][0]} ${h-pad} Z`;
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+  svg.setAttribute('class', 'spark');
+  svg.setAttribute('preserveAspectRatio', 'none');
+  const area = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  area.setAttribute('d', areaPath); area.setAttribute('class', 'area');
+  const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  line.setAttribute('d', linePath); line.setAttribute('class', 'line');
+  svg.appendChild(area); svg.appendChild(line);
+  return svg;
+}
+
+// ==========================================================================
+// Widgets
+// ==========================================================================
+
+function widgetRegime() {
+  const r = regimeLabel(STATE.global_context);
+  return card('Market Regime', 'DEV017', kpi(
+    `<span class="pill ${r.cls}">${r.text}</span>`, '', 'current classification'));
+}
+
+function widgetChampion() {
+  const c = STATE.champion_strategy && STATE.champion_strategy.champion;
+  if (!c) return card('Champion Strategy', 'DEV030', el('div', {class: 'empty', text: 'no champion data'}));
+  const cagr = c.cagr != null ? (c.cagr * 100).toFixed(1) + '%' : '—';
+  return card('Champion Strategy', 'DEV030',
+    kpi(`<span style="font-family: ui-monospace, monospace; font-size: 22px; color: var(--accent-hi)">${c.strategy}</span>`,
+        '', `composite ${fmt.num(c.composite_score)}  ·  Sharpe ${fmt.num(c.sharpe)}  ·  CAGR ${cagr}`,
+        'pos'));
+}
+
+function widgetCalibration() {
+  const c = STATE.confidence_calibration;
+  if (!c) return card('Confidence Calibration', 'DEV029', el('div', {class: 'empty', text: 'not run'}));
+  const raw = c.raw_metrics && c.raw_metrics.ece;
+  const cal = c.calibrated_metrics && c.calibrated_metrics.ece;
+  return card('Confidence Calibration · ECE', 'DEV029', kpi(
+    `${fmt.num(raw, 3)} → <span style="color: var(--pos)">${fmt.num(cal, 4)}</span>`,
+    '', `${c.best_method || '—'}  ·  ${((raw - cal) / (raw || 1) * 100).toFixed(1)}% improvement`, 'pos'));
+}
+
+function widgetPortfolio() {
+  const p = STATE.portfolio;
+  const port = p && p.portfolios && p.portfolios[0];
+  if (!port) return card('Portfolio', 'DEV022', el('div', {class: 'empty', text: 'no portfolio'}));
+  return card('Portfolio · Balanced HRP', 'DEV022', kpi(
+    fmt.int(port.n_positions), 'positions',
+    `${fmt.num(port.cash_allocation_pct, 1)}% cash  ·  ${(p.portfolios || []).length} constructions available`));
+}
+
+function widgetTopBuys() {
+  const r = STATE.recommendations && STATE.recommendations.recommendations || [];
+  const strong = r.filter(x => x.recommendation === 'Strong-Buy' || x.recommendation === 'Buy')
+                   .sort((a, b) => (b.composite_decision_score || 0) - (a.composite_decision_score || 0))
+                   .slice(0, 10);
+  if (!strong.length) return card('Top Opportunities', 'DEV023', el('div', {class: 'empty', text: 'none'}));
+  const rows = strong.map(x => `
+    <li><span class="ticker">${x.ticker}</span>
+        <span class="pill ${x.recommendation === 'Strong-Buy' ? 'pos' : ''}">${x.recommendation}</span>
+        <span style="float:right; color: var(--type-2)">
+          score ${fmt.num(x.composite_decision_score, 1)}
+          · conf ${fmt.num(x.conviction_pct, 0)}%
+        </span></li>`).join('');
+  return card('Top Opportunities', 'DEV023',
+    el('ul', {class: 'reason-list', html: rows}));
+}
+
+function widgetExits() {
+  const r = STATE.recommendations && STATE.recommendations.recommendations || [];
+  const outs = r.filter(x => (x.recommendation === 'Sell' || x.recommendation === 'Reduce') && x.currently_held);
+  if (!outs.length) return card('Exits Today', 'DEV023', el('div', {class: 'empty', text: 'no exits'}));
+  const rows = outs.slice(0, 10).map(x => `
+    <li><span class="ticker">${x.ticker}</span>
+        <span class="pill neg">${x.recommendation}</span>
+        <span style="float:right; color: var(--type-2)">
+          weight ${fmt.pct(x.current_weight, 1)}
+          · P&L ${fmt.arrow(x.unrealised_pnl_pct)} ${fmt.pct(x.unrealised_pnl_pct, 1)}
+        </span></li>`).join('');
+  return card('Exits Today', 'DEV023',
+    el('ul', {class: 'reason-list', html: rows}));
+}
+
+function widgetAdaptiveV2() {
+  const a = STATE.adaptive_rec_v2_signal;
+  if (!a) return card('Adaptive Rec v2.0', 'v2.0', el('div', {class: 'empty', text: 'not run'}));
+  const best = a.best_model_summary || {};
+  const base = a.baseline_summary || {};
+  return card('Adaptive Rec v2.0', 'v2.0 · P@10 lift',
+    kpi(
+      `${fmt.num(base.precision_at_10, 3)} → <span style="color: var(--pos)">${fmt.num(best.precision_at_10, 3)}</span>`,
+      'P@10', `+${((best.precision_at_10 - base.precision_at_10) * 100).toFixed(1)}pp vs baseline · ${a.best_model}`,
+      'pos'));
+}
+
+function widgetRiskBudget() {
+  const r = STATE.risk_capital_v2_latest;
+  if (!r) return card('Risk Budget', 'v2.0', el('div', {class: 'empty', text: 'not run'}));
+  const pr = r.portfolio_risk || {};
+  const util = pr.budget_utilisation && pr.budget_utilisation.total_budget_utilisation;
+  const clsFn = util > 1 ? 'neg' : util > 0.8 ? 'warn' : 'pos';
+  const fillPct = Math.min(100, (util || 0) * 100);
+  const wrap = el('div');
+  wrap.appendChild(kpi(
+    fmt.num(pr.portfolio_vol_annual, 4),
+    'ann vol',
+    `VaR 95% ${fmt.num(pr.var_95, 3)}  ·  CVaR 95% ${fmt.num(pr.cvar_95, 3)}`));
+  const bar = el('div', {class: 'bar'});
+  bar.innerHTML = `<div class="fill ${clsFn}" style="width: ${fillPct}%"></div>`;
+  wrap.appendChild(bar);
+  wrap.appendChild(el('div', {class: 'card-source',
+    style: 'margin-top: 6px; font-size: 10px;',
+    text: `budget utilisation ${(util * 100 || 0).toFixed(1)}%  ·  verdict ${pr.verdict}`}));
+  return card('Portfolio Risk Budget', 'v2.0', wrap);
+}
+
+function widgetValidation() {
+  const v = STATE.validation_v2_latest;
+  if (!v) return card('Validation Harness', 'v2.0', el('div', {class: 'empty', text: 'not run'}));
+  const pnl = v.portfolio_pnl_pct || 0;
+  const drift = (v.metric_drift || {}).flag;
+  return card('Validation Harness', 'v2.0',
+    kpi(
+      `${fmt.int(v.n_open_positions)}`,
+      'open', `${v.n_closed_trades || 0} closed  ·  P&L ${fmt.pct(pnl, 2)}  ·  drift ${drift || '—'}`));
+}
+
+function widgetGraph() {
+  const gs = STATE.graph_statistics && STATE.graph_statistics.graph_stats;
+  if (!gs) return card('Knowledge Graph', 'DEV031', el('div', {class: 'empty', text: 'not built'}));
+  return card('Knowledge Graph', 'DEV031-B',
+    kpi(
+      `${fmt.int(gs.n_nodes)} <span class="unit">nodes</span> · ${fmt.int(gs.n_edges)} <span class="unit">edges</span>`,
+      '',
+      `${gs.n_entity_types} entity types  ·  ${gs.n_relation_types} relations  ·  avg degree ${fmt.num(gs.avg_degree, 2)}`));
+}
+
+function widgetHoldingsTable() {
+  const r = STATE.recommendations && STATE.recommendations.recommendations || [];
+  const held = r.filter(x => x.currently_held);
+  if (!held.length) return card('Holdings', 'DEV023', el('div', {class: 'empty', text: 'no holdings'}));
+  const cols = [
+    {label: 'Ticker', get: x => `<span style="color: var(--type-1)">${x.ticker}</span>`, clsFn: () => ''},
+    {label: 'Sector', get: x => `<span style="color: var(--type-2)">${x.sector || '—'}</span>`, clsFn: () => ''},
+    {label: 'Rec', get: x => `<span class="pill ${x.recommendation==='Strong-Buy'?'pos': x.recommendation==='Sell'||x.recommendation==='Reduce'?'neg':''}">${x.recommendation}</span>`, clsFn: () => ''},
+    {label: 'Weight', get: x => fmt.pct(x.current_weight, 2), right: true, clsFn: () => ''},
+    {label: 'P&L', get: x => `${fmt.arrow(x.unrealised_pnl_pct)} ${fmt.pct(x.unrealised_pnl_pct, 2)}`, right: true, clsFn: x => fmt.cls(x.unrealised_pnl_pct)},
+    {label: 'Score', get: x => fmt.num(x.composite_decision_score, 1), right: true, clsFn: () => ''},
+  ];
+  const scroll = el('div', {class: 'scroll'});
+  scroll.appendChild(tableFrom(cols, held.sort((a,b) => (b.current_weight||0)-(a.current_weight||0))));
+  return card('Holdings · ' + held.length, 'DEV023', scroll);
+}
+
+function widgetChallengerBoard() {
+  const lb = STATE.challenger_scoreboard && STATE.challenger_scoreboard.leaderboard || [];
+  if (!lb.length) return card('Strategy Leaderboard', 'DEV030', el('div', {class: 'empty', text: 'not run'}));
+  const cols = [
+    {label: '#', get: x => x.rank},
+    {label: 'Strategy', get: x => `<span style="color: ${x.rank===1?'var(--accent-hi)':'var(--type-1)'}">${x.strategy}</span>`},
+    {label: 'Composite', get: x => fmt.num(x.composite_score, 2), right: true},
+    {label: 'Sharpe', get: x => fmt.num(x.sharpe, 2), right: true},
+    {label: 'CAGR', get: x => fmt.pct(x.cagr, 1), right: true},
+    {label: 'Max DD', get: x => fmt.num(x.max_dd_pct, 1) + '%', right: true},
+    {label: 'Win rate', get: x => fmt.pct(x.win_rate/100, 1), right: true},
+  ];
+  return card('Strategy Leaderboard', 'DEV030', tableFrom(cols, lb));
+}
+
+function widgetCommunities() {
+  const cc = STATE.community_clusters && STATE.community_clusters.communities || [];
+  if (!cc.length) return card('Communities', 'DEV031-B', el('div', {class: 'empty', text: 'not detected'}));
+  const rows = cc.slice(0, 10).map(c => `
+    <li><span class="ticker">${c.name}</span>
+        <span style="float:right; color: var(--type-2)">${c.size} members  ·  ${c.dominant_industry || '—'}</span></li>`).join('');
+  return card(`Communities · ${cc.length} (Q=${STATE.community_clusters.modularity || '—'})`, 'DEV031-B',
+    el('ul', {class: 'reason-list', html: rows}));
+}
+
+function widgetInfluencers() {
+  const infl = STATE.graph_statistics && STATE.graph_statistics.graph_stats && STATE.graph_statistics.graph_stats.top_influencers || [];
+  if (!infl.length) return card('Top Influencers', 'DEV031', el('div', {class: 'empty', text: 'not computed'}));
+  const rows = infl.slice(0, 10).map(x => `
+    <li><span class="ticker">${x.node}</span>
+        <span style="float:right; color: var(--type-2)">${fmt.num(x.score, 4)}</span></li>`).join('');
+  return card('Top Influencers · PageRank', 'DEV031',
+    el('ul', {class: 'reason-list', html: rows}));
+}
+
+function widgetOpportunityCost() {
+  const oc = STATE.validation_v2_latest && STATE.validation_v2_latest.opportunity_cost;
+  if (!oc || !oc.n_missed_edges) return card('Opportunity Cost', 'v2.0', el('div', {class: 'empty', text: 'no missed edges'}));
+  const rows = (oc.top_missed || []).slice(0, 8).map(x => `
+    <li><span class="ticker">${x.ticker}</span>
+        <span style="float:right; color: var(--type-2)">
+          wr ${fmt.num(x.win_rate, 2)}
+          · exp ${fmt.pct(x.expectancy, 2)}
+        </span></li>`).join('');
+  return card(`Opportunity Cost · ${oc.n_missed_edges} missed`, 'v2.0',
+    el('ul', {class: 'reason-list', html: rows}));
+}
+
+function widgetFeatureImportance() {
+  const fi = STATE.adaptive_rec_v2_feature_importance;
+  if (!fi) return card('Feature Importance', 'v2.0', el('div', {class: 'empty', text: 'not run'}));
+  const top = (fi.feature_importance || []).slice(0, 8);
+  if (!top.length) return card('Feature Importance', 'v2.0', el('div', {class: 'empty', text: 'no data'}));
+  const wrap = el('div');
+  const max = top[0].importance || 1;
+  for (const f of top) {
+    wrap.appendChild(el('div', {class: 'tier-row', html: `
+      <div class="tier-label">${f.feature.slice(0, 24)}</div>
+      <div class="tier-bar"><div class="fill" style="width: ${(f.importance/max*100).toFixed(1)}%"></div></div>
+      <div class="tier-value">${fmt.num(f.importance, 3)}</div>`}));
+  }
+  return card('Feature Importance · v2.0', 'permutation', wrap);
+}
+
+function widgetSizingPositions() {
+  const r = STATE.risk_capital_v2_latest;
+  if (!r || !r.sizing) return card('Position Sizing', 'v2.0', el('div', {class: 'empty', text: 'not run'}));
+  const top = r.sizing.slice().sort((a,b) => b.target_weight - a.target_weight).slice(0, 10);
+  const cols = [
+    {label: 'Ticker', get: x => x.ticker},
+    {label: 'Target', get: x => (x.target_weight * 100).toFixed(2) + '%', right: true},
+    {label: 'Verdict', get: x => `<span class="pill ${x.verdict==='PASS'?'pos':x.verdict==='BLOCK'?'neg':'warn'}">${x.verdict}</span>`},
+    {label: 'Why', get: x => `<span style="color: var(--type-2); font-size: 10px;">${x.factors.map(f => `${f.name.slice(0,3)}=${f.value}`).join(' · ')}</span>`},
+  ];
+  return card('Position Sizing · v2.0', 'top-10 by weight', tableFrom(cols, top));
+}
+
+// ==========================================================================
+// Routes
+// ==========================================================================
+const ROUTES = {
+  '/': {
+    title: 'Executive Overview',
+    render() {
+      const g = el('div', {class: 'grid'});
+      const wrap = (w, c) => { const d = el('div', {class: c}); d.appendChild(w); return d; };
+      g.appendChild(wrap(widgetRegime(), 'col-3'));
+      g.appendChild(wrap(widgetChampion(), 'col-6'));
+      g.appendChild(wrap(widgetCalibration(), 'col-3'));
+      g.appendChild(wrap(widgetPortfolio(), 'col-3'));
+      g.appendChild(wrap(widgetAdaptiveV2(), 'col-3'));
+      g.appendChild(wrap(widgetRiskBudget(), 'col-3'));
+      g.appendChild(wrap(widgetValidation(), 'col-3'));
+      g.appendChild(wrap(widgetTopBuys(), 'col-6'));
+      g.appendChild(wrap(widgetExits(), 'col-6'));
+      return g;
+    },
+  },
+  '/portfolio': {
+    title: 'Portfolio',
+    render() {
+      const g = el('div', {class: 'grid'});
+      const wrap = (w, c) => { const d = el('div', {class: c}); d.appendChild(w); return d; };
+      g.appendChild(wrap(widgetPortfolio(), 'col-4'));
+      g.appendChild(wrap(widgetRiskBudget(), 'col-4'));
+      g.appendChild(wrap(widgetChampion(), 'col-4'));
+      g.appendChild(wrap(widgetHoldingsTable(), 'col-12'));
+      g.appendChild(wrap(widgetSizingPositions(), 'col-12'));
+      return g;
+    },
+  },
+  '/recommendations': {
+    title: 'Recommendations',
+    render() {
+      const g = el('div', {class: 'grid'});
+      const wrap = (w, c) => { const d = el('div', {class: c}); d.appendChild(w); return d; };
+      g.appendChild(wrap(widgetTopBuys(), 'col-6'));
+      g.appendChild(wrap(widgetExits(), 'col-6'));
+      g.appendChild(wrap(widgetAdaptiveV2(), 'col-6'));
+      g.appendChild(wrap(widgetFeatureImportance(), 'col-6'));
+      return g;
+    },
+  },
+  '/risk': {
+    title: 'Risk',
+    render() {
+      const g = el('div', {class: 'grid'});
+      const wrap = (w, c) => { const d = el('div', {class: c}); d.appendChild(w); return d; };
+      g.appendChild(wrap(widgetRiskBudget(), 'col-6'));
+      g.appendChild(wrap(widgetRegime(), 'col-6'));
+      g.appendChild(wrap(widgetSizingPositions(), 'col-12'));
+
+      // Risk alerts
+      const alerts = STATE.risk_capital_v2_latest && STATE.risk_capital_v2_latest.portfolio_risk && STATE.risk_capital_v2_latest.portfolio_risk.alerts || [];
+      if (alerts.length) {
+        const rows = alerts.slice(0, 15).map(a => `
+          <li><span class="pill ${a.severity==='HIGH'?'neg':'warn'}">${a.severity}</span>
+              <span class="ticker" style="margin-left: 8px;">${a.entity}</span>
+              <span style="color: var(--type-2)">${a.kind}</span></li>`).join('');
+        const c = card(`Risk Alerts · ${alerts.length}`, 'v2.0',
+          el('ul', {class: 'reason-list', html: rows}));
+        const d = el('div', {class: 'col-12'}); d.appendChild(c); g.appendChild(d);
+      }
+      return g;
+    },
+  },
+  '/validation': {
+    title: 'Validation',
+    render() {
+      const g = el('div', {class: 'grid'});
+      const wrap = (w, c) => { const d = el('div', {class: c}); d.appendChild(w); return d; };
+      g.appendChild(wrap(widgetValidation(), 'col-4'));
+      g.appendChild(wrap(widgetOpportunityCost(), 'col-4'));
+      g.appendChild(wrap(widgetCalibration(), 'col-4'));
+
+      // Rolling edge sparkline
+      const rolling = STATE.validation_v2_latest && STATE.validation_v2_latest.rolling_edge || [];
+      if (rolling.length) {
+        const exps = rolling.map(r => r.window_expectancy);
+        const wrs = rolling.map(r => r.window_winrate);
+        const c1 = card('Rolling 20-trade Expectancy', 'v2.0', sparkline(exps),
+          el('div', {class: 'card-source', style: 'margin-top: 4px;', text: `${exps.length} points`}));
+        const c2 = card('Rolling 20-trade Win Rate', 'v2.0', sparkline(wrs),
+          el('div', {class: 'card-source', style: 'margin-top: 4px;', text: `${wrs.length} points`}));
+        g.appendChild(wrap(c1, 'col-6'));
+        g.appendChild(wrap(c2, 'col-6'));
+      }
+      return g;
+    },
+  },
+  '/champion': {
+    title: 'Champion Strategy',
+    render() {
+      const g = el('div', {class: 'grid'});
+      const wrap = (w, c) => { const d = el('div', {class: c}); d.appendChild(w); return d; };
+      g.appendChild(wrap(widgetChampion(), 'col-6'));
+      g.appendChild(wrap(widgetRegime(), 'col-3'));
+      g.appendChild(wrap(widgetCalibration(), 'col-3'));
+      g.appendChild(wrap(widgetChallengerBoard(), 'col-12'));
+
+      // Regime champions
+      const rc = STATE.regime_comparison && STATE.regime_comparison.regime_report;
+      if (rc && rc.regime_champions) {
+        const champs = Object.entries(rc.regime_champions).map(([regime, info]) => `
+          <li><span class="pill ${regime==='Risk-On'?'pos':regime==='Risk-Off'?'neg':'warn'}">${regime}</span>
+              <span class="ticker" style="margin-left: 8px;">${info.strategy}</span>
+              <span style="float:right; color: var(--type-2)">CAGR ${fmt.pct(info.cagr, 2)}</span></li>`).join('');
+        const c = card('Regime Champions', 'DEV030',
+          el('ul', {class: 'reason-list', html: champs}));
+        const d = el('div', {class: 'col-6'}); d.appendChild(c); g.appendChild(d);
+      }
+      return g;
+    },
+  },
+  '/knowledge': {
+    title: 'Knowledge Graph',
+    render() {
+      const g = el('div', {class: 'grid'});
+      const wrap = (w, c) => { const d = el('div', {class: c}); d.appendChild(w); return d; };
+      g.appendChild(wrap(widgetGraph(), 'col-4'));
+      g.appendChild(wrap(widgetCommunities(), 'col-4'));
+      g.appendChild(wrap(widgetInfluencers(), 'col-4'));
+
+      // Entity counts breakdown
+      const gs = STATE.graph_statistics && STATE.graph_statistics.graph_stats;
+      if (gs && gs.entity_counts) {
+        const entries = Object.entries(gs.entity_counts).sort((a,b)=>b[1]-a[1]);
+        const rows = entries.map(([type, count]) => `
+          <li><span class="ticker">${type}</span>
+              <span style="float:right; color: var(--type-2)">${count}</span></li>`).join('');
+        const c = card('Entity Types', 'DEV031',
+          el('ul', {class: 'reason-list', html: rows}));
+        const d = el('div', {class: 'col-6'}); d.appendChild(c); g.appendChild(d);
+      }
+      if (gs && gs.relation_counts) {
+        const entries = Object.entries(gs.relation_counts).sort((a,b)=>b[1]-a[1]);
+        const rows = entries.map(([type, count]) => `
+          <li><span class="ticker">${type}</span>
+              <span style="float:right; color: var(--type-2)">${count}</span></li>`).join('');
+        const c = card('Relation Types', 'DEV031',
+          el('ul', {class: 'reason-list', html: rows}));
+        const d = el('div', {class: 'col-6'}); d.appendChild(c); g.appendChild(d);
+      }
+      return g;
+    },
+  },
+};
+
+// ==========================================================================
+// Router
+// ==========================================================================
+function currentRoute() {
+  const h = location.hash.replace(/^#/, '');
+  return ROUTES[h] ? h : '/';
+}
+
+function renderRoute() {
+  const path = currentRoute();
+  document.querySelectorAll('#nav a').forEach(a =>
+    a.classList.toggle('active', a.dataset.route === path));
+
+  const main = document.getElementById('main');
+  main.innerHTML = '';
+  const head = el('div', {class: 'page-head'});
+  head.appendChild(el('h1', {text: ROUTES[path].title}));
+  const meta = el('div', {class: 'meta'});
+  const now = new Date().toLocaleString();
+  meta.innerHTML = `<strong>${now}</strong><br>advisory only  ·  reads reports/*.json`;
+  head.appendChild(meta);
+  main.appendChild(head);
+
+  try {
+    main.appendChild(ROUTES[path].render());
+  } catch (e) {
+    main.appendChild(el('div', {class: 'error', text: 'Render error: ' + e.message}));
+    console.error(e);
+  }
+}
+
+// ==========================================================================
+// Boot
+// ==========================================================================
+(async function boot() {
+  const btn = document.getElementById('themeToggle');
+  const stored = localStorage.getItem('aegis-dashboard-theme');
+  if (stored) document.documentElement.setAttribute('data-theme', stored);
+  btn.onclick = () => {
+    const cur = document.documentElement.getAttribute('data-theme');
+    const media = matchMedia('(prefers-color-scheme: dark)').matches;
+    const dark = cur ? cur === 'dark' : media;
+    const next = dark ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('aegis-dashboard-theme', next);
+  };
+
+  await loadState();
+  window.addEventListener('hashchange', renderRoute);
+  renderRoute();
+})();
+</script>
+</body>
+</html>
