@@ -135,6 +135,13 @@ STEPS = [
         "requires": ["reports/learning.parquet", "reports/recommendations.json"],
     },
     {
+        "name": "decision_attribution",
+        "desc": "Decision Attribution v1.0 (per-rec contributions + subsystem alpha creators/destroyers)",
+        "script": "research/decision_attribution/run.py",
+        "produces": ["reports/decision_attribution.json"],
+        "requires": ["reports/recommendations.json"],
+    },
+    {
         "name": "telegram",
         "desc": "UX030 Telegram delivery (5 messages, opt-in)",
         "script": "scripts/telegram_send_ux030.py",

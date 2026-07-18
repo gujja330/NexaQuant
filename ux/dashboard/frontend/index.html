@@ -736,6 +736,7 @@ async function loadState() {
     'missed_opportunities.json',
     'winner_genome.json',
     'recommendation_history.json',
+    'decision_attribution.json',
   ];
   const entries = await Promise.all(targets.map(async n => [n.replace(/\.json$/, ''), await fetchJson(n)]));
   for (const [k, v] of entries) STATE[k] = v;
@@ -822,6 +823,8 @@ function buildCanonicalList() {
   // Winner Genome matches by ticker (Recommendation DNA v2.0)
   const winnerGenome = STATE.winner_genome || {};
   const wgMatchByTicker = winnerGenome.matches || {};
+  // Decision Attribution v1.0 — per-ticker subsystem contribution
+  const daByTicker = (STATE.decision_attribution && STATE.decision_attribution.per_recommendation) || {};
 
   const enriched = recs.map(r => {
     const ii_r = iiByTicker.get(String(r.ticker));
@@ -831,6 +834,7 @@ function buildCanonicalList() {
     const pc = priceCtx[r.ticker] || null;
     const lc = lifecycleByTicker[r.ticker] || null;
     const wg = wgMatchByTicker[r.ticker] || null;
+    const da = daByTicker[r.ticker] || null;
 
     // CMP prefers the freshest live parquet price; falls back to backtester's latest_close.
     const cmp = (pc && pc.available && pc.cmp != null) ? pc.cmp : ee.latest_close;
@@ -891,6 +895,11 @@ function buildCanonicalList() {
       wg_avg_lift:         wg ? wg.avg_signature_lift : 0,
       wg_best_avg_return:  wg ? wg.best_avg_return : 0,
       wg_plain_language:   wg ? wg.plain_language : null,
+
+      // Decision Attribution v1.0 — per-subsystem contribution %
+      da_contributions:    da ? da.contributions : null,
+      da_raw_signals:      da ? da.raw_signals : null,
+      da_decision_strength: da ? da.decision_strength : null,
 
       // From fusion (v2.1) — the canonical intelligence score
       intelligence_score: ii_r ? ii_r.intelligence_score : null,
@@ -1371,6 +1380,51 @@ const OPP_SORTS = [
                 || ((b.wg_avg_lift || 0) - (a.wg_avg_lift || 0))},
 ];
 
+// Decision Attribution mini stacked bar — visualises per-subsystem contribution %.
+// Palette keyed by subsystem so the same colour represents the same subsystem
+// everywhere on the page.
+const DA_COLORS = {
+  research:      '#5b8def',   // blue
+  fusion:        '#7c5cff',   // violet
+  winner_genome: '#3aa675',   // green
+  validation:    '#e0a800',   // amber
+  risk:          '#c94b4b',   // red
+  dna:           '#a06cd5',   // lavender
+  sector:        '#4bb2c9',   // teal
+  market:        '#8c8c8c',   // grey
+};
+const DA_LABELS = {
+  research: 'Research', fusion: 'Fusion', winner_genome: 'Winner Genome',
+  validation: 'Validation', risk: 'Risk', dna: 'DNA',
+  sector: 'Sector', market: 'Market',
+};
+function attributionMiniBar(contribs) {
+  if (!contribs || typeof contribs !== 'object') return '';
+  const order = ['research','fusion','winner_genome','validation','risk','dna','sector','market'];
+  const cells = order
+    .filter(k => (contribs[k] || 0) > 0)
+    .map(k => {
+      const pct = contribs[k];
+      return `<div title="${DA_LABELS[k]} ${pct.toFixed(1)}%" style="flex: ${pct}; background: ${DA_COLORS[k]}; min-width: 2px;"></div>`;
+    }).join('');
+  // Compact legend under the bar (only top-3 by contribution)
+  const top3 = order
+    .map(k => ({k, v: contribs[k] || 0}))
+    .sort((a, b) => b.v - a.v)
+    .slice(0, 3)
+    .filter(x => x.v > 0)
+    .map(x => `<span style="color: ${DA_COLORS[x.k]}; font-family: ui-monospace, monospace; font-size: 9px; letter-spacing: 0.03em;">${DA_LABELS[x.k]} ${x.v.toFixed(0)}%</span>`)
+    .join(' · ');
+  return `
+    <div style="margin-top: 10px;">
+      <div style="font: 9px ui-monospace, monospace; letter-spacing: 0.14em; text-transform: uppercase; color: var(--type-3); margin-bottom: 4px;">Attribution</div>
+      <div style="display: flex; height: 6px; border-radius: 3px; overflow: hidden; background: var(--rule);">
+        ${cells}
+      </div>
+      <div style="margin-top: 4px; color: var(--type-2);">${top3}</div>
+    </div>`;
+}
+
 function decisionCardHtml(r, i) {
   const upside = upsideFor(r);
   const rr = riskRewardFor(r);
@@ -1455,6 +1509,8 @@ function decisionCardHtml(r, i) {
       <div style="font-size: 11px; color: var(--type-1);">Looks similar to <b>${r.wg_n_hist_winners}</b> historical top-decile winners · hist. avg <b style="color:var(--pos)">${(r.wg_best_avg_return * 100).toFixed(1)}%</b> · success <b>${(r.wg_hist_success * 100).toFixed(0)}%</b></div>
       <div style="font: 10px ui-monospace, monospace; color: var(--type-3); margin-top: 3px; letter-spacing: 0.04em;">Matches ${r.wg_n_signatures} signature${r.wg_n_signatures > 1 ? 's' : ''} · lift ${r.wg_avg_lift.toFixed(2)}</div>
     </div>` : ''}
+
+    ${r.da_contributions ? attributionMiniBar(r.da_contributions) : ''}
 
     <div class="dc-foot">
       <span>R:R ${rr != null ? fmt.num(rr, 2) : '—'}${r.currently_held ? ' · <span style="color:var(--accent-hi)">HELD</span>' : ''}</span>
@@ -1698,6 +1754,22 @@ function portfolioHealth() {
         <span class="label">Winner Genome</span>
         <div class="value">${wgSum.n_signatures || 0}<span class="unit">signatures</span></div>
         <div class="sub">${wgSum.n_top_decile || 0} historical winners &gt; ${((wgSum.top_decile_threshold || 0) * 100).toFixed(1)}% · ${wgSum.n_current_matched || 0} recs match today</div>`}));
+    }
+  }
+  // Decision Attribution — top alpha creator today
+  const da = STATE.decision_attribution;
+  if (da) {
+    const topCreator = (da.top_alpha_creators || [])[0];
+    const topDestroyer = (da.top_alpha_destroyers || [])[0];
+    strip.appendChild(el('div', {class: 'tile', html: `
+      <span class="label">Alpha Creator</span>
+      <div class="value pos" style="font-size: 16px;">${topCreator ? DA_LABELS[topCreator.subsystem] || topCreator.subsystem : '—'}</div>
+      <div class="sub pos">${topCreator ? `+${(topCreator.alpha_created * 100).toFixed(1)}% α · lift ${topCreator.lift.toFixed(2)}` : 'unavailable'}</div>`}));
+    if (topDestroyer) {
+      strip.appendChild(el('div', {class: 'tile', html: `
+        <span class="label">Alpha Destroyer</span>
+        <div class="value neg" style="font-size: 16px;">${DA_LABELS[topDestroyer.subsystem] || topDestroyer.subsystem}</div>
+        <div class="sub neg">${(topDestroyer.alpha_created * 100).toFixed(1)}% α · lift ${topDestroyer.lift.toFixed(2)}</div>`}));
     }
   }
 
@@ -2352,6 +2424,9 @@ function renderAdminPage() {
   // ─── PRIMARY: Stock-first search + per-ticker timeline
   main.appendChild(adminStockSearch());
 
+  // ─── DECISION ATTRIBUTION: which subsystems are creating alpha?
+  main.appendChild(adminDecisionAttribution());
+
   // ─── SECONDARY: system-level diagnostics
   const divider = el('div', {style: 'margin: 32px 0 12px; padding-top: 20px; border-top: 1px dashed var(--rule);'});
   divider.appendChild(el('div', {style: 'font: 10px ui-monospace, monospace; letter-spacing: 0.16em; color: var(--type-3); text-transform: uppercase;',
@@ -2567,6 +2642,94 @@ function adminStockSearch() {
     trCard.appendChild(scrollWrap);
   }
   wrap.appendChild(trCard);
+
+  return wrap;
+}
+
+// ==========================================================================
+// DECISION ATTRIBUTION — which subsystems are creating vs destroying alpha?
+// ==========================================================================
+function adminDecisionAttribution() {
+  const da = STATE.decision_attribution;
+  const wrap = el('div', {class: 'section'});
+  const head = el('div', {class: 'section-head'});
+  head.appendChild(el('h2', {text: 'Decision Attribution'}));
+  head.appendChild(el('div', {class: 'meta',
+    text: 'Which subsystem is creating alpha · which is destroying it'}));
+  wrap.appendChild(head);
+
+  if (!da) {
+    const card = el('div', {class: 'card'});
+    card.appendChild(el('div', {class: 'empty', text: 'Decision Attribution has not run yet.'}));
+    wrap.appendChild(card);
+    return wrap;
+  }
+
+  const acc = da.subsystem_accuracy || {};
+  const subs = acc.subsystems || {};
+
+  // ── Subsystem accuracy table
+  const card = el('div', {class: 'card'});
+  card.appendChild(el('h3', {html:
+    `Subsystem Alpha Contribution <span class="count">baseline WR ${acc.baseline_wr != null ? Math.round(acc.baseline_wr * 100) + '%' : '—'} · ${acc.n_trades || 0} historical trades</span>`}));
+  if (Object.keys(subs).length === 0) {
+    card.appendChild(el('div', {class: 'empty', text: 'No subsystem signals available in historical trades yet.'}));
+  } else {
+    const scrollWrap = el('div', {class: 'scroll-x'});
+    const tbl = el('table', {class: 'decision'});
+    tbl.innerHTML = `<thead><tr>
+      <th>Subsystem</th>
+      <th class="right">WR (high signal)</th>
+      <th class="right">WR (low signal)</th>
+      <th class="right">Lift</th>
+      <th class="right">Alpha Created</th>
+      <th class="right">Avg Return (high)</th>
+      <th class="right">Avg Return (low)</th>
+      <th>Sample</th>
+      <th class="center">Verdict</th>
+    </tr></thead>`;
+    const tbody = el('tbody');
+    const ordered = Object.entries(subs).sort((a, b) => b[1].alpha_created - a[1].alpha_created);
+    for (const [name, info] of ordered) {
+      const verdictCls = info.verdict === 'alpha_creator' ? 'buy' :
+                          info.verdict === 'alpha_destroyer' ? 'sell' : 'watchlist';
+      tbody.innerHTML += `<tr>
+        <td class="ticker" style="text-transform: capitalize;">${DA_LABELS[name] || name.replace(/_/g, ' ')}</td>
+        <td class="right">${(info.wr_high * 100).toFixed(1)}%</td>
+        <td class="right">${(info.wr_low * 100).toFixed(1)}%</td>
+        <td class="right">${info.lift.toFixed(2)}</td>
+        <td class="right ${info.alpha_created > 0 ? 'pos' : info.alpha_created < 0 ? 'neg' : ''}">${info.alpha_created > 0 ? '+' : ''}${(info.alpha_created * 100).toFixed(2)}%</td>
+        <td class="right ${info.avg_return_high != null && info.avg_return_high > 0 ? 'pos' : 'neg'}">${info.avg_return_high != null ? (info.avg_return_high * 100).toFixed(2) + '%' : '—'}</td>
+        <td class="right ${info.avg_return_low != null && info.avg_return_low > 0 ? 'pos' : 'neg'}">${info.avg_return_low != null ? (info.avg_return_low * 100).toFixed(2) + '%' : '—'}</td>
+        <td class="mute" style="font-size: 11px;">${info.n_high_signal} high · ${info.n_low_signal} low</td>
+        <td class="center"><span class="pill ${verdictCls}">${info.verdict.replace(/_/g, ' ')}</span></td>
+      </tr>`;
+    }
+    tbl.appendChild(tbody);
+    scrollWrap.appendChild(tbl);
+    card.appendChild(scrollWrap);
+
+    // Legend on how to read
+    card.appendChild(el('div', {style: 'margin-top: 12px; color: var(--type-3); font-size: 11px; letter-spacing: 0.02em; line-height: 1.5;',
+      html: `<b>How to read:</b> "high signal" = subsystem's signal above its 60th percentile. Alpha Created = win-rate lift on high-signal cohort minus baseline. Positive = subsystem calls winners; negative = it's actively signaling in the wrong direction.`}));
+  }
+  wrap.appendChild(card);
+
+  // ── Subsystem weight breakdown
+  const wCard = el('div', {class: 'card'});
+  wCard.appendChild(el('h3', {text: 'Current Subsystem Weights'}));
+  const strip = el('div', {class: 'strip'});
+  const weights = da.subsystem_weights || {};
+  for (const [k, v] of Object.entries(weights).sort((a, b) => b[1] - a[1])) {
+    strip.appendChild(el('div', {class: 'tile', html: `
+      <span class="label">${DA_LABELS[k] || k}</span>
+      <div class="value" style="color: ${DA_COLORS[k]}">${(v * 100).toFixed(0)}<span class="unit">%</span></div>
+      <div class="sub">weight in fused decision</div>`}));
+  }
+  wCard.appendChild(strip);
+  wCard.appendChild(el('div', {style: 'margin-top: 12px; color: var(--type-3); font-size: 11px; letter-spacing: 0.02em; line-height: 1.5;',
+    html: `Weights are fixed at v1.0. Future refinement (post-lock) can bias them based on the alpha_created evidence above — e.g. down-weight subsystems that persistently show negative alpha.`}));
+  wrap.appendChild(wCard);
 
   return wrap;
 }
