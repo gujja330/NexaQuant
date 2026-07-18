@@ -13,7 +13,8 @@ _ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(_ROOT / "research"))
 
 from knowledge_graph.lib import (entities, relationships, algorithms,                    # noqa: E402
-                                     explainability, community, propagation, timeline)
+                                     explainability, community, propagation, timeline,
+                                     stress)
 
 
 def _git_sha() -> str:
@@ -94,8 +95,19 @@ def run(verbose: bool = True) -> dict:
     explanations = explainability.explain_top_recommendations(adj, node_lookup, top_k=25)
 
     if verbose:
-        print("  step 7/7 · influence propagation from key sources")
+        print("  step 7/8 · influence propagation from key sources")
     propagation_rep = propagation.propagation_report(adj, node_lookup, top_k=10)
+
+    if verbose:
+        print("  step 8/8 · stress cascade scenarios")
+    stress_scenarios = stress.run_all_scenarios(adj, node_lookup)
+    if verbose:
+        for s in stress_scenarios:
+            src = s.get("source", "?")
+            exp = s.get("portfolio_exposure", 0)
+            n_hits = s.get("n_impacted_positions", 0)
+            print(f"    scenario '{s.get('scenario')}' -> "
+                    f"portfolio exposure {exp*100:.2f}%, {n_hits} positions hit")
 
     graph_stats = {
         "n_nodes":     n_nodes,
@@ -115,7 +127,7 @@ def run(verbose: bool = True) -> dict:
     result = {
         "run_utc":            datetime.now(timezone.utc).isoformat() + "Z",
         "code_sha":           _git_sha(),
-        "dev_version":        "DEV031 v0.2",
+        "dev_version":        "DEV031 v1.6 (Research Foundation v1.6 · stress propagation)",
         "nodes":              nodes,
         "edges":              edges,
         "adjacency":          adj,
@@ -132,6 +144,8 @@ def run(verbose: bool = True) -> dict:
         "community_modularity":   q,
         "recommendation_paths":   explanations,
         "propagation":            propagation_rep,
+        # ─── DEV031 v1.6 additions ─────────────────────────────
+        "stress_scenarios":       stress_scenarios,
     }
 
     # ── snapshot + diff ────────────────────────────────────────────

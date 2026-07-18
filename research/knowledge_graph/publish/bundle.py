@@ -159,6 +159,17 @@ def build_and_publish(result: dict) -> dict:
                 "diff":     result["timeline_diff"],
             }), f, indent=2, default=str)
 
+    # stress_scenarios.json (v1.6)
+    if "stress_scenarios" in result:
+        with (REPORTS / "stress_scenarios.json").open("w", encoding="utf-8") as f:
+            json.dump(_sanitize({
+                "run_utc":    result["run_utc"],
+                "algorithm":  "personalized PageRank cascade + portfolio overlay",
+                "scenarios":  result["stress_scenarios"],
+                "count":      len(result["stress_scenarios"]),
+                "governance": "Advisory. Simulated stress cascades. Not price forecasts.",
+            }), f, indent=2, default=str)
+
     return {
         "n_nodes":         len(nodes_json),
         "n_edges":         len(edges_json),
