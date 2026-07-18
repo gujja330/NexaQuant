@@ -1,0 +1,1227 @@
+{
+  "run_utc": "2026-07-18T02:53:57.602195+00:00Z",
+  "code_sha": "a04a5da477cb",
+  "engine": "Risk & Capital Engine",
+  "version": "v2.0",
+  "as_of": "2026-07-18",
+  "regime": "Neutral",
+  "n_candidates": 20,
+  "sizing": [
+    {
+      "ticker": "IPCALAB",
+      "base_weight": 0.05,
+      "target_weight": 0.0975,
+      "floor": 0.01,
+      "ceiling": 0.15,
+      "factors": [
+        {
+          "name": "confidence",
+          "value": 1.5,
+          "explanation": "calibrated confidence 1.000 vs base 0.58 -> factor 1.500 (bounded [0.5, 1.5])"
+        },
+        {
+          "name": "regime",
+          "value": 1.0,
+          "explanation": "regime='Neutral' -> factor 1.00"
+        },
+        {
+          "name": "volatility",
+          "value": 1.3,
+          "explanation": "annualised vol 0.268 vs reference 0.35 -> factor 1.300 (bounded [0.6, 1.3])"
+        },
+        {
+          "name": "sector_concentration",
+          "value": 1.0,
+          "explanation": "sector share 0.00% of cap 30% -> factor 1.000"
+        }
+      ],
+      "counterfactuals": {
+        "at_4pct": {
+          "target_weight": 0.04,
+          "needed_multiplier": 0.8,
+          "current_multiplier": 1.95,
+          "delta_multiplier": 0.4103,
+          "reasoning": "to size at 4%, the composite factor would need to become 0.800x base (currently 1.950x). Change ratio: 0.41x on the current stack."
+        },
+        "at_12pct": {
+          "target_weight": 0.12,
+          "needed_multiplier": 2.4,
+          "current_multiplier": 1.95,
+          "delta_multiplier": 1.2308,
+          "reasoning": "to size at 12%, the composite factor would need to become 2.400x base (currently 1.950x). Change ratio: 1.23x on the current stack."
+        }
+      },
+      "verdict": "PASS",
+      "explanation": "target 9.75% = base 5% \u00d7 (confidence=1.5 \u00b7 regime=1.0 \u00b7 volatility=1.3 \u00b7 sector_concentration=1.0) -> PASS"
+    },
+    {
+      "ticker": "KALYANKJIL",
+      "base_weight": 0.05,
+      "target_weight": 0.045,
+      "floor": 0.01,
+      "ceiling": 0.15,
+      "factors": [
+        {
+          "name": "confidence",
+          "value": 1.5,
+          "explanation": "calibrated confidence 1.000 vs base 0.58 -> factor 1.500 (bounded [0.5, 1.5])"
+        },
+        {
+          "name": "regime",
+          "value": 1.0,
+          "explanation": "regime='Neutral' -> factor 1.00"
+        },
+        {
+          "name": "volatility",
+          "value": 0.6,
+          "explanation": "annualised vol 0.611 vs reference 0.35 -> factor 0.600 (bounded [0.6, 1.3])"
+        },
+        {
+          "name": "sector_concentration",
+          "value": 1.0,
+          "explanation": "sector share 0.00% of cap 30% -> factor 1.000"
+        }
+      ],
+      "counterfactuals": {
+        "at_4pct": {
+          "target_weight": 0.04,
+          "needed_multiplier": 0.8,
+          "current_multiplier": 0.9,
+          "delta_multiplier": 0.8889,
+          "reasoning": "to size at 4%, the composite factor would need to become 0.800x base (currently 0.900x). Change ratio: 0.89x on the current stack."
+        },
+        "at_12pct": {
+          "target_weight": 0.12,
+          "needed_multiplier": 2.4,
+          "current_multiplier": 0.9,
+          "delta_multiplier": 2.6667,
+          "reasoning": "to size at 12%, the composite factor would need to become 2.400x base (currently 0.900x). Change ratio: 2.67x on the current stack."
+        }
+      },
+      "verdict": "PASS",
+      "explanation": "target 4.50% = base 5% \u00d7 (confidence=1.5 \u00b7 regime=1.0 \u00b7 volatility=0.6 \u00b7 sector_concentration=1.0) -> PASS"
+    },
+    {
+      "ticker": "LODHA",
+      "base_weight": 0.05,
+      "target_weight": 0.07013,
+      "floor": 0.01,
+      "ceiling": 0.15,
+      "factors": [
+        {
+          "name": "confidence",
+          "value": 1.5,
+          "explanation": "calibrated confidence 1.000 vs base 0.58 -> factor 1.500 (bounded [0.5, 1.5])"
+        },
+        {
+          "name": "regime",
+          "value": 1.0,
+          "explanation": "regime='Neutral' -> factor 1.00"
+        },
+        {
+          "name": "volatility",
+          "value": 0.935,
+          "explanation": "annualised vol 0.374 vs reference 0.35 -> factor 0.935 (bounded [0.6, 1.3])"
+        },
+        {
+          "name": "sector_concentration",
+          "value": 1.0,
+          "explanation": "sector share 0.00% of cap 30% -> factor 1.000"
+        }
+      ],
+      "counterfactuals": {
+        "at_4pct": {
+          "target_weight": 0.04,
+          "needed_multiplier": 0.8,
+          "current_multiplier": 1.4025,
+          "delta_multiplier": 0.5704,
+          "reasoning": "to size at 4%, the composite factor would need to become 0.800x base (currently 1.403x). Change ratio: 0.57x on the current stack."
+        },
+        "at_12pct": {
+          "target_weight": 0.12,
+          "needed_multiplier": 2.4,
+          "current_multiplier": 1.4025,
+          "delta_multiplier": 1.7112,
+          "reasoning": "to size at 12%, the composite factor would need to become 2.400x base (currently 1.403x). Change ratio: 1.71x on the current stack."
+        }
+      },
+      "verdict": "PASS",
+      "explanation": "target 7.01% = base 5% \u00d7 (confidence=1.5 \u00b7 regime=1.0 \u00b7 volatility=0.935 \u00b7 sector_concentration=1.0) -> PASS"
+    },
+    {
+      "ticker": "GLAND",
+      "base_weight": 0.05,
+      "target_weight": 0.03841,
+      "floor": 0.01,
+      "ceiling": 0.15,
+      "factors": [
+        {
+          "name": "confidence",
+          "value": 1.5,
+          "explanation": "calibrated confidence 1.000 vs base 0.58 -> factor 1.500 (bounded [0.5, 1.5])"
+        },
+        {
+          "name": "regime",
+          "value": 1.0,
+          "explanation": "regime='Neutral' -> factor 1.00"
+        },
+        {
+          "name": "volatility",
+          "value": 0.7587,
+          "explanation": "annualised vol 0.461 vs reference 0.35 -> factor 0.759 (bounded [0.6, 1.3])"
+        },
+        {
+          "name": "sector_concentration",
+          "value": 0.675,
+          "explanation": "sector share 9.75% of cap 30% -> factor 0.675"
+        }
+      ],
+      "counterfactuals": {
+        "at_4pct": {
+          "target_weight": 0.04,
+          "needed_multiplier": 0.8,
+          "current_multiplier": 0.7682,
+          "delta_multiplier": 1.0414,
+          "reasoning": "to size at 4%, the composite factor would need to become 0.800x base (currently 0.768x). Change ratio: 1.04x on the current stack."
+        },
+        "at_12pct": {
+          "target_weight": 0.12,
+          "needed_multiplier": 2.4,
+          "current_multiplier": 0.7682,
+          "delta_multiplier": 3.1243,
+          "reasoning": "to size at 12%, the composite factor would need to become 2.400x base (currently 0.768x). Change ratio: 3.12x on the current stack."
+        }
+      },
+      "verdict": "PASS",
+      "explanation": "target 3.84% = base 5% \u00d7 (confidence=1.5 \u00b7 regime=1.0 \u00b7 volatility=0.7587 \u00b7 sector_concentration=0.675) -> PASS"
+    },
+    {
+      "ticker": "SONACOMS",
+      "base_weight": 0.05,
+      "target_weight": 0.09523,
+      "floor": 0.01,
+      "ceiling": 0.15,
+      "factors": [
+        {
+          "name": "confidence",
+          "value": 1.5,
+          "explanation": "calibrated confidence 1.000 vs base 0.58 -> factor 1.500 (bounded [0.5, 1.5])"
+        },
+        {
+          "name": "regime",
+          "value": 1.0,
+          "explanation": "regime='Neutral' -> factor 1.00"
+        },
+        {
+          "name": "volatility",
+          "value": 1.2697,
+          "explanation": "annualised vol 0.276 vs reference 0.35 -> factor 1.270 (bounded [0.6, 1.3])"
+        },
+        {
+          "name": "sector_concentration",
+          "value": 1.0,
+          "explanation": "sector share 0.00% of cap 30% -> factor 1.000"
+        }
+      ],
+      "counterfactuals": {
+        "at_4pct": {
+          "target_weight": 0.04,
+          "needed_multiplier": 0.8,
+          "current_multiplier": 1.9045,
+          "delta_multiplier": 0.42,
+          "reasoning": "to size at 4%, the composite factor would need to become 0.800x base (currently 1.905x). Change ratio: 0.42x on the current stack."
+        },
+        "at_12pct": {
+          "target_weight": 0.12,
+          "needed_multiplier": 2.4,
+          "current_multiplier": 1.9045,
+          "delta_multiplier": 1.2601,
+          "reasoning": "to size at 12%, the composite factor would need to become 2.400x base (currently 1.905x). Change ratio: 1.26x on the current stack."
+        }
+      },
+      "verdict": "PASS",
+      "explanation": "target 9.52% = base 5% \u00d7 (confidence=1.5 \u00b7 regime=1.0 \u00b7 volatility=1.2697 \u00b7 sector_concentration=1.0) -> PASS"
+    },
+    {
+      "ticker": "EXIDEIND",
+      "base_weight": 0.05,
+      "target_weight": 0.04778,
+      "floor": 0.01,
+      "ceiling": 0.15,
+      "factors": [
+        {
+          "name": "confidence",
+          "value": 1.5,
+          "explanation": "calibrated confidence 1.000 vs base 0.58 -> factor 1.500 (bounded [0.5, 1.5])"
+        },
+        {
+          "name": "regime",
+          "value": 1.0,
+          "explanation": "regime='Neutral' -> factor 1.00"
+        },
+        {
+          "name": "volatility",
+          "value": 0.9332,
+          "explanation": "annualised vol 0.375 vs reference 0.35 -> factor 0.933 (bounded [0.6, 1.3])"
+        },
+        {
+          "name": "sector_concentration",
+          "value": 0.6826,
+          "explanation": "sector share 9.52% of cap 30% -> factor 0.683"
+        }
+      ],
+      "counterfactuals": {
+        "at_4pct": {
+          "target_weight": 0.04,
+          "needed_multiplier": 0.8,
+          "current_multiplier": 0.9555,
+          "delta_multiplier": 0.8373,
+          "reasoning": "to size at 4%, the composite factor would need to become 0.800x base (currently 0.956x). Change ratio: 0.84x on the current stack."
+        },
+        "at_12pct": {
+          "target_weight": 0.12,
+          "needed_multiplier": 2.4,
+          "current_multiplier": 0.9555,
+          "delta_multiplier": 2.5118,
+          "reasoning": "to size at 12%, the composite factor would need to become 2.400x base (currently 0.956x). Change ratio: 2.51x on the current stack."
+        }
+      },
+      "verdict": "PASS",
+      "explanation": "target 4.78% = base 5% \u00d7 (confidence=1.5 \u00b7 regime=1.0 \u00b7 volatility=0.9332 \u00b7 sector_concentration=0.6826) -> PASS"
+    },
+    {
+      "ticker": "ZYDUSLIFE",
+      "base_weight": 0.05,
+      "target_weight": 0.05333,
+      "floor": 0.01,
+      "ceiling": 0.15,
+      "factors": [
+        {
+          "name": "confidence",
+          "value": 1.5,
+          "explanation": "calibrated confidence 1.000 vs base 0.58 -> factor 1.500 (bounded [0.5, 1.5])"
+        },
+        {
+          "name": "regime",
+          "value": 1.0,
+          "explanation": "regime='Neutral' -> factor 1.00"
+        },
+        {
+          "name": "volatility",
+          "value": 1.3,
+          "explanation": "annualised vol 0.247 vs reference 0.35 -> factor 1.300 (bounded [0.6, 1.3])"
+        },
+        {
+          "name": "sector_concentration",
+          "value": 0.547,
+          "explanation": "sector share 13.59% of cap 30% -> factor 0.547"
+        }
+      ],
+      "counterfactuals": {
+        "at_4pct": {
+          "target_weight": 0.04,
+          "needed_multiplier": 0.8,
+          "current_multiplier": 1.0667,
+          "delta_multiplier": 0.75,
+          "reasoning": "to size at 4%, the composite factor would need to become 0.800x base (currently 1.067x). Change ratio: 0.75x on the current stack."
+        },
+        "at_12pct": {
+          "target_weight": 0.12,
+          "needed_multiplier": 2.4,
+          "current_multiplier": 1.0667,
+          "delta_multiplier": 2.25,
+          "reasoning": "to size at 12%, the composite factor would need to become 2.400x base (currently 1.067x). Change ratio: 2.25x on the current stack."
+        }
+      },
+      "verdict": "PASS",
+      "explanation": "target 5.33% = base 5% \u00d7 (confidence=1.5 \u00b7 regime=1.0 \u00b7 volatility=1.3 \u00b7 sector_concentration=0.547) -> PASS"
+    },
+    {
+      "ticker": "GODREJPROP",
+      "base_weight": 0.05,
+      "target_weight": 0.06117,
+      "floor": 0.01,
+      "ceiling": 0.15,
+      "factors": [
+        {
+          "name": "confidence",
+          "value": 1.5,
+          "explanation": "calibrated confidence 1.000 vs base 0.58 -> factor 1.500 (bounded [0.5, 1.5])"
+        },
+        {
+          "name": "regime",
+          "value": 1.0,
+          "explanation": "regime='Neutral' -> factor 1.00"
+        },
+        {
+          "name": "volatility",
+          "value": 1.0645,
+          "explanation": "annualised vol 0.329 vs reference 0.35 -> factor 1.065 (bounded [0.6, 1.3])"
+        },
+        {
+          "name": "sector_concentration",
+          "value": 0.7662,
+          "explanation": "sector share 7.01% of cap 30% -> factor 0.766"
+        }
+      ],
+      "counterfactuals": {
+        "at_4pct": {
+          "target_weight": 0.04,
+          "needed_multiplier": 0.8,
+          "current_multiplier": 1.2234,
+          "delta_multiplier": 0.6539,
+          "reasoning": "to size at 4%, the composite factor would need to become 0.800x base (currently 1.223x). Change ratio: 0.65x on the current stack."
+        },
+        "at_12pct": {
+          "target_weight": 0.12,
+          "needed_multiplier": 2.4,
+          "current_multiplier": 1.2234,
+          "delta_multiplier": 1.9617,
+          "reasoning": "to size at 12%, the composite factor would need to become 2.400x base (currently 1.223x). Change ratio: 1.96x on the current stack."
+        }
+      },
+      "verdict": "PASS",
+      "explanation": "target 6.12% = base 5% \u00d7 (confidence=1.5 \u00b7 regime=1.0 \u00b7 volatility=1.0645 \u00b7 sector_concentration=0.7662) -> PASS"
+    },
+    {
+      "ticker": "LAURUSLABS",
+      "base_weight": 0.05,
+      "target_weight": 0.03491,
+      "floor": 0.01,
+      "ceiling": 0.15,
+      "factors": [
+        {
+          "name": "confidence",
+          "value": 1.5,
+          "explanation": "calibrated confidence 1.000 vs base 0.58 -> factor 1.500 (bounded [0.5, 1.5])"
+        },
+        {
+          "name": "regime",
+          "value": 1.0,
+          "explanation": "regime='Neutral' -> factor 1.00"
+        },
+        {
+          "name": "volatility",
+          "value": 1.2607,
+          "explanation": "annualised vol 0.278 vs reference 0.35 -> factor 1.261 (bounded [0.6, 1.3])"
+        },
+        {
+          "name": "sector_concentration",
+          "value": 0.3692,
+          "explanation": "sector share 18.92% of cap 30% -> factor 0.369"
+        }
+      ],
+      "counterfactuals": {
+        "at_4pct": {
+          "target_weight": 0.04,
+          "needed_multiplier": 0.8,
+          "current_multiplier": 0.6982,
+          "delta_multiplier": 1.1458,
+          "reasoning": "to size at 4%, the composite factor would need to become 0.800x base (currently 0.698x). Change ratio: 1.15x on the current stack."
+        },
+        "at_12pct": {
+          "target_weight": 0.12,
+          "needed_multiplier": 2.4,
+          "current_multiplier": 0.6982,
+          "delta_multiplier": 3.4375,
+          "reasoning": "to size at 12%, the composite factor would need to become 2.400x base (currently 0.698x). Change ratio: 3.44x on the current stack."
+        }
+      },
+      "verdict": "PASS",
+      "explanation": "target 3.49% = base 5% \u00d7 (confidence=1.5 \u00b7 regime=1.0 \u00b7 volatility=1.2607 \u00b7 sector_concentration=0.3692) -> PASS"
+    },
+    {
+      "ticker": "AJANTPHARM",
+      "base_weight": 0.05,
+      "target_weight": 0.02744,
+      "floor": 0.01,
+      "ceiling": 0.15,
+      "factors": [
+        {
+          "name": "confidence",
+          "value": 1.5,
+          "explanation": "calibrated confidence 1.000 vs base 0.58 -> factor 1.500 (bounded [0.5, 1.5])"
+        },
+        {
+          "name": "regime",
+          "value": 1.0,
+          "explanation": "regime='Neutral' -> factor 1.00"
+        },
+        {
+          "name": "volatility",
+          "value": 1.2196,
+          "explanation": "annualised vol 0.287 vs reference 0.35 -> factor 1.220 (bounded [0.6, 1.3])"
+        },
+        {
+          "name": "sector_concentration",
+          "value": 0.3,
+          "explanation": "sector share 22.42% of cap 30% -> factor 0.300"
+        }
+      ],
+      "counterfactuals": {
+        "at_4pct": {
+          "target_weight": 0.04,
+          "needed_multiplier": 0.8,
+          "current_multiplier": 0.5488,
+          "delta_multiplier": 1.4577,
+          "reasoning": "to size at 4%, the composite factor would need to become 0.800x base (currently 0.549x). Change ratio: 1.46x on the current stack."
+        },
+        "at_12pct": {
+          "target_weight": 0.12,
+          "needed_multiplier": 2.4,
+          "current_multiplier": 0.5488,
+          "delta_multiplier": 4.373,
+          "reasoning": "to size at 12%, the composite factor would need to become 2.400x base (currently 0.549x). Change ratio: 4.37x on the current stack."
+        }
+      },
+      "verdict": "PASS",
+      "explanation": "target 2.74% = base 5% \u00d7 (confidence=1.5 \u00b7 regime=1.0 \u00b7 volatility=1.2196 \u00b7 sector_concentration=0.3) -> PASS"
+    },
+    {
+      "ticker": "PHOENIXLTD",
+      "base_weight": 0.05,
+      "target_weight": 0.05482,
+      "floor": 0.01,
+      "ceiling": 0.15,
+      "factors": [
+        {
+          "name": "confidence",
+          "value": 1.5,
+          "explanation": "calibrated confidence 1.000 vs base 0.58 -> factor 1.500 (bounded [0.5, 1.5])"
+        },
+        {
+          "name": "regime",
+          "value": 1.0,
+          "explanation": "regime='Neutral' -> factor 1.00"
+        },
+        {
+          "name": "volatility",
+          "value": 1.3,
+          "explanation": "annualised vol 0.254 vs reference 0.35 -> factor 1.300 (bounded [0.6, 1.3])"
+        },
+        {
+          "name": "sector_concentration",
+          "value": 0.5623,
+          "explanation": "sector share 13.13% of cap 30% -> factor 0.562"
+        }
+      ],
+      "counterfactuals": {
+        "at_4pct": {
+          "target_weight": 0.04,
+          "needed_multiplier": 0.8,
+          "current_multiplier": 1.0965,
+          "delta_multiplier": 0.7296,
+          "reasoning": "to size at 4%, the composite factor would need to become 0.800x base (currently 1.096x). Change ratio: 0.73x on the current stack."
+        },
+        "at_12pct": {
+          "target_weight": 0.12,
+          "needed_multiplier": 2.4,
+          "current_multiplier": 1.0965,
+          "delta_multiplier": 2.1888,
+          "reasoning": "to size at 12%, the composite factor would need to become 2.400x base (currently 1.096x). Change ratio: 2.19x on the current stack."
+        }
+      },
+      "verdict": "PASS",
+      "explanation": "target 5.48% = base 5% \u00d7 (confidence=1.5 \u00b7 regime=1.0 \u00b7 volatility=1.3 \u00b7 sector_concentration=0.5623) -> PASS"
+    },
+    {
+      "ticker": "SUNPHARMA",
+      "base_weight": 0.05,
+      "target_weight": 0.02925,
+      "floor": 0.01,
+      "ceiling": 0.15,
+      "factors": [
+        {
+          "name": "confidence",
+          "value": 1.5,
+          "explanation": "calibrated confidence 1.000 vs base 0.58 -> factor 1.500 (bounded [0.5, 1.5])"
+        },
+        {
+          "name": "regime",
+          "value": 1.0,
+          "explanation": "regime='Neutral' -> factor 1.00"
+        },
+        {
+          "name": "volatility",
+          "value": 1.3,
+          "explanation": "annualised vol 0.220 vs reference 0.35 -> factor 1.300 (bounded [0.6, 1.3])"
+        },
+        {
+          "name": "sector_concentration",
+          "value": 0.3,
+          "explanation": "sector share 25.16% of cap 30% -> factor 0.300"
+        }
+      ],
+      "counterfactuals": {
+        "at_4pct": {
+          "target_weight": 0.04,
+          "needed_multiplier": 0.8,
+          "current_multiplier": 0.585,
+          "delta_multiplier": 1.3675,
+          "reasoning": "to size at 4%, the composite factor would need to become 0.800x base (currently 0.585x). Change ratio: 1.37x on the current stack."
+        },
+        "at_12pct": {
+          "target_weight": 0.12,
+          "needed_multiplier": 2.4,
+          "current_multiplier": 0.585,
+          "delta_multiplier": 4.1026,
+          "reasoning": "to size at 12%, the composite factor would need to become 2.400x base (currently 0.585x). Change ratio: 4.10x on the current stack."
+        }
+      },
+      "verdict": "PASS",
+      "explanation": "target 2.93% = base 5% \u00d7 (confidence=1.5 \u00b7 regime=1.0 \u00b7 volatility=1.3 \u00b7 sector_concentration=0.3) -> PASS"
+    },
+    {
+      "ticker": "BIOCON",
+      "base_weight": 0.05,
+      "target_weight": 0.02925,
+      "floor": 0.01,
+      "ceiling": 0.15,
+      "factors": [
+        {
+          "name": "confidence",
+          "value": 1.5,
+          "explanation": "calibrated confidence 1.000 vs base 0.58 -> factor 1.500 (bounded [0.5, 1.5])"
+        },
+        {
+          "name": "regime",
+          "value": 1.0,
+          "explanation": "regime='Neutral' -> factor 1.00"
+        },
+        {
+          "name": "volatility",
+          "value": 1.3,
+          "explanation": "annualised vol 0.247 vs reference 0.35 -> factor 1.300 (bounded [0.6, 1.3])"
+        },
+        {
+          "name": "sector_concentration",
+          "value": 0.3,
+          "explanation": "sector share 28.08% of cap 30% -> factor 0.300"
+        }
+      ],
+      "counterfactuals": {
+        "at_4pct": {
+          "target_weight": 0.04,
+          "needed_multiplier": 0.8,
+          "current_multiplier": 0.585,
+          "delta_multiplier": 1.3675,
+          "reasoning": "to size at 4%, the composite factor would need to become 0.800x base (currently 0.585x). Change ratio: 1.37x on the current stack."
+        },
+        "at_12pct": {
+          "target_weight": 0.12,
+          "needed_multiplier": 2.4,
+          "current_multiplier": 0.585,
+          "delta_multiplier": 4.1026,
+          "reasoning": "to size at 12%, the composite factor would need to become 2.400x base (currently 0.585x). Change ratio: 4.10x on the current stack."
+        }
+      },
+      "verdict": "PASS",
+      "explanation": "target 2.93% = base 5% \u00d7 (confidence=1.5 \u00b7 regime=1.0 \u00b7 volatility=1.3 \u00b7 sector_concentration=0.3) -> PASS"
+    },
+    {
+      "ticker": "RADICO",
+      "base_weight": 0.05,
+      "target_weight": 0.09531,
+      "floor": 0.01,
+      "ceiling": 0.15,
+      "factors": [
+        {
+          "name": "confidence",
+          "value": 1.5,
+          "explanation": "calibrated confidence 1.000 vs base 0.58 -> factor 1.500 (bounded [0.5, 1.5])"
+        },
+        {
+          "name": "regime",
+          "value": 1.0,
+          "explanation": "regime='Neutral' -> factor 1.00"
+        },
+        {
+          "name": "volatility",
+          "value": 1.2708,
+          "explanation": "annualised vol 0.275 vs reference 0.35 -> factor 1.271 (bounded [0.6, 1.3])"
+        },
+        {
+          "name": "sector_concentration",
+          "value": 1.0,
+          "explanation": "sector share 0.00% of cap 30% -> factor 1.000"
+        }
+      ],
+      "counterfactuals": {
+        "at_4pct": {
+          "target_weight": 0.04,
+          "needed_multiplier": 0.8,
+          "current_multiplier": 1.9062,
+          "delta_multiplier": 0.4197,
+          "reasoning": "to size at 4%, the composite factor would need to become 0.800x base (currently 1.906x). Change ratio: 0.42x on the current stack."
+        },
+        "at_12pct": {
+          "target_weight": 0.12,
+          "needed_multiplier": 2.4,
+          "current_multiplier": 1.9062,
+          "delta_multiplier": 1.259,
+          "reasoning": "to size at 12%, the composite factor would need to become 2.400x base (currently 1.906x). Change ratio: 1.26x on the current stack."
+        }
+      },
+      "verdict": "PASS",
+      "explanation": "target 9.53% = base 5% \u00d7 (confidence=1.5 \u00b7 regime=1.0 \u00b7 volatility=1.2708 \u00b7 sector_concentration=1.0) -> PASS"
+    },
+    {
+      "ticker": "ABBOTINDIA",
+      "base_weight": 0.05,
+      "target_weight": 0.01,
+      "floor": 0.01,
+      "ceiling": 0.15,
+      "factors": [
+        {
+          "name": "confidence",
+          "value": 1.5,
+          "explanation": "calibrated confidence 1.000 vs base 0.58 -> factor 1.500 (bounded [0.5, 1.5])"
+        },
+        {
+          "name": "regime",
+          "value": 1.0,
+          "explanation": "regime='Neutral' -> factor 1.00"
+        },
+        {
+          "name": "volatility",
+          "value": 1.3,
+          "explanation": "annualised vol 0.215 vs reference 0.35 -> factor 1.300 (bounded [0.6, 1.3])"
+        },
+        {
+          "name": "sector_concentration",
+          "value": 0.0,
+          "explanation": "sector at cap 30% \u2014 BLOCK further concentration"
+        }
+      ],
+      "counterfactuals": {
+        "at_4pct": {
+          "target_weight": 0.04,
+          "needed_multiplier": 0.8,
+          "current_multiplier": 0.0,
+          "delta_multiplier": 800000.0,
+          "reasoning": "to size at 4%, the composite factor would need to become 0.800x base (currently 0.000x). Change ratio: 800000.00x on the current stack."
+        },
+        "at_12pct": {
+          "target_weight": 0.12,
+          "needed_multiplier": 2.4,
+          "current_multiplier": 0.0,
+          "delta_multiplier": 2400000.0,
+          "reasoning": "to size at 12%, the composite factor would need to become 2.400x base (currently 0.000x). Change ratio: 2400000.00x on the current stack."
+        }
+      },
+      "verdict": "BLOCK",
+      "explanation": "target 1.00% = base 5% \u00d7 (confidence=1.5 \u00b7 regime=1.0 \u00b7 volatility=1.3 \u00b7 sector_concentration=0.0) -> BLOCK"
+    },
+    {
+      "ticker": "RELAXO",
+      "base_weight": 0.05,
+      "target_weight": 0.03825,
+      "floor": 0.01,
+      "ceiling": 0.15,
+      "factors": [
+        {
+          "name": "confidence",
+          "value": 1.5,
+          "explanation": "calibrated confidence 1.000 vs base 0.58 -> factor 1.500 (bounded [0.5, 1.5])"
+        },
+        {
+          "name": "regime",
+          "value": 1.0,
+          "explanation": "regime='Neutral' -> factor 1.00"
+        },
+        {
+          "name": "volatility",
+          "value": 0.6,
+          "explanation": "annualised vol 0.584 vs reference 0.35 -> factor 0.600 (bounded [0.6, 1.3])"
+        },
+        {
+          "name": "sector_concentration",
+          "value": 0.85,
+          "explanation": "sector share 4.50% of cap 30% -> factor 0.850"
+        }
+      ],
+      "counterfactuals": {
+        "at_4pct": {
+          "target_weight": 0.04,
+          "needed_multiplier": 0.8,
+          "current_multiplier": 0.765,
+          "delta_multiplier": 1.0458,
+          "reasoning": "to size at 4%, the composite factor would need to become 0.800x base (currently 0.765x). Change ratio: 1.05x on the current stack."
+        },
+        "at_12pct": {
+          "target_weight": 0.12,
+          "needed_multiplier": 2.4,
+          "current_multiplier": 0.765,
+          "delta_multiplier": 3.1373,
+          "reasoning": "to size at 12%, the composite factor would need to become 2.400x base (currently 0.765x). Change ratio: 3.14x on the current stack."
+        }
+      },
+      "verdict": "PASS",
+      "explanation": "target 3.82% = base 5% \u00d7 (confidence=1.5 \u00b7 regime=1.0 \u00b7 volatility=0.6 \u00b7 sector_concentration=0.85) -> PASS"
+    },
+    {
+      "ticker": "TORNTPHARM",
+      "base_weight": 0.05,
+      "target_weight": 0.01,
+      "floor": 0.01,
+      "ceiling": 0.15,
+      "factors": [
+        {
+          "name": "confidence",
+          "value": 1.5,
+          "explanation": "calibrated confidence 1.000 vs base 0.58 -> factor 1.500 (bounded [0.5, 1.5])"
+        },
+        {
+          "name": "regime",
+          "value": 1.0,
+          "explanation": "regime='Neutral' -> factor 1.00"
+        },
+        {
+          "name": "volatility",
+          "value": 1.3,
+          "explanation": "annualised vol 0.243 vs reference 0.35 -> factor 1.300 (bounded [0.6, 1.3])"
+        },
+        {
+          "name": "sector_concentration",
+          "value": 0.0,
+          "explanation": "sector at cap 30% \u2014 BLOCK further concentration"
+        }
+      ],
+      "counterfactuals": {
+        "at_4pct": {
+          "target_weight": 0.04,
+          "needed_multiplier": 0.8,
+          "current_multiplier": 0.0,
+          "delta_multiplier": 800000.0,
+          "reasoning": "to size at 4%, the composite factor would need to become 0.800x base (currently 0.000x). Change ratio: 800000.00x on the current stack."
+        },
+        "at_12pct": {
+          "target_weight": 0.12,
+          "needed_multiplier": 2.4,
+          "current_multiplier": 0.0,
+          "delta_multiplier": 2400000.0,
+          "reasoning": "to size at 12%, the composite factor would need to become 2.400x base (currently 0.000x). Change ratio: 2400000.00x on the current stack."
+        }
+      },
+      "verdict": "BLOCK",
+      "explanation": "target 1.00% = base 5% \u00d7 (confidence=1.5 \u00b7 regime=1.0 \u00b7 volatility=1.3 \u00b7 sector_concentration=0.0) -> BLOCK"
+    },
+    {
+      "ticker": "APOLLOHOSP",
+      "base_weight": 0.05,
+      "target_weight": 0.0975,
+      "floor": 0.01,
+      "ceiling": 0.15,
+      "factors": [
+        {
+          "name": "confidence",
+          "value": 1.5,
+          "explanation": "calibrated confidence 0.920 vs base 0.58 -> factor 1.500 (bounded [0.5, 1.5])"
+        },
+        {
+          "name": "regime",
+          "value": 1.0,
+          "explanation": "regime='Neutral' -> factor 1.00"
+        },
+        {
+          "name": "volatility",
+          "value": 1.3,
+          "explanation": "annualised vol 0.166 vs reference 0.35 -> factor 1.300 (bounded [0.6, 1.3])"
+        },
+        {
+          "name": "sector_concentration",
+          "value": 1.0,
+          "explanation": "sector share 0.00% of cap 30% -> factor 1.000"
+        }
+      ],
+      "counterfactuals": {
+        "at_4pct": {
+          "target_weight": 0.04,
+          "needed_multiplier": 0.8,
+          "current_multiplier": 1.95,
+          "delta_multiplier": 0.4103,
+          "reasoning": "to size at 4%, the composite factor would need to become 0.800x base (currently 1.950x). Change ratio: 0.41x on the current stack."
+        },
+        "at_12pct": {
+          "target_weight": 0.12,
+          "needed_multiplier": 2.4,
+          "current_multiplier": 1.95,
+          "delta_multiplier": 1.2308,
+          "reasoning": "to size at 12%, the composite factor would need to become 2.400x base (currently 1.950x). Change ratio: 1.23x on the current stack."
+        }
+      },
+      "verdict": "PASS",
+      "explanation": "target 9.75% = base 5% \u00d7 (confidence=1.5 \u00b7 regime=1.0 \u00b7 volatility=1.3 \u00b7 sector_concentration=1.0) -> PASS"
+    },
+    {
+      "ticker": "BHARATFORG",
+      "base_weight": 0.05,
+      "target_weight": 0.05102,
+      "floor": 0.01,
+      "ceiling": 0.15,
+      "factors": [
+        {
+          "name": "confidence",
+          "value": 1.5,
+          "explanation": "calibrated confidence 1.000 vs base 0.58 -> factor 1.500 (bounded [0.5, 1.5])"
+        },
+        {
+          "name": "regime",
+          "value": 1.0,
+          "explanation": "regime='Neutral' -> factor 1.00"
+        },
+        {
+          "name": "volatility",
+          "value": 1.3,
+          "explanation": "annualised vol 0.254 vs reference 0.35 -> factor 1.300 (bounded [0.6, 1.3])"
+        },
+        {
+          "name": "sector_concentration",
+          "value": 0.5233,
+          "explanation": "sector share 14.30% of cap 30% -> factor 0.523"
+        }
+      ],
+      "counterfactuals": {
+        "at_4pct": {
+          "target_weight": 0.04,
+          "needed_multiplier": 0.8,
+          "current_multiplier": 1.0204,
+          "delta_multiplier": 0.784,
+          "reasoning": "to size at 4%, the composite factor would need to become 0.800x base (currently 1.020x). Change ratio: 0.78x on the current stack."
+        },
+        "at_12pct": {
+          "target_weight": 0.12,
+          "needed_multiplier": 2.4,
+          "current_multiplier": 1.0204,
+          "delta_multiplier": 2.3519,
+          "reasoning": "to size at 12%, the composite factor would need to become 2.400x base (currently 1.020x). Change ratio: 2.35x on the current stack."
+        }
+      },
+      "verdict": "PASS",
+      "explanation": "target 5.10% = base 5% \u00d7 (confidence=1.5 \u00b7 regime=1.0 \u00b7 volatility=1.3 \u00b7 sector_concentration=0.5233) -> PASS"
+    },
+    {
+      "ticker": "NYKAA",
+      "base_weight": 0.05,
+      "target_weight": 0.0975,
+      "floor": 0.01,
+      "ceiling": 0.15,
+      "factors": [
+        {
+          "name": "confidence",
+          "value": 1.5,
+          "explanation": "calibrated confidence 1.000 vs base 0.58 -> factor 1.500 (bounded [0.5, 1.5])"
+        },
+        {
+          "name": "regime",
+          "value": 1.0,
+          "explanation": "regime='Neutral' -> factor 1.00"
+        },
+        {
+          "name": "volatility",
+          "value": 1.3,
+          "explanation": "annualised vol 0.266 vs reference 0.35 -> factor 1.300 (bounded [0.6, 1.3])"
+        },
+        {
+          "name": "sector_concentration",
+          "value": 1.0,
+          "explanation": "sector share 0.00% of cap 30% -> factor 1.000"
+        }
+      ],
+      "counterfactuals": {
+        "at_4pct": {
+          "target_weight": 0.04,
+          "needed_multiplier": 0.8,
+          "current_multiplier": 1.95,
+          "delta_multiplier": 0.4103,
+          "reasoning": "to size at 4%, the composite factor would need to become 0.800x base (currently 1.950x). Change ratio: 0.41x on the current stack."
+        },
+        "at_12pct": {
+          "target_weight": 0.12,
+          "needed_multiplier": 2.4,
+          "current_multiplier": 1.95,
+          "delta_multiplier": 1.2308,
+          "reasoning": "to size at 12%, the composite factor would need to become 2.400x base (currently 1.950x). Change ratio: 1.23x on the current stack."
+        }
+      },
+      "verdict": "PASS",
+      "explanation": "target 9.75% = base 5% \u00d7 (confidence=1.5 \u00b7 regime=1.0 \u00b7 volatility=1.3 \u00b7 sector_concentration=1.0) -> PASS"
+    }
+  ],
+  "portfolio_risk": {
+    "portfolio_vol_annual": 0.1926,
+    "var_95": 0.3168,
+    "var_99": 0.4481,
+    "cvar_95": 0.3973,
+    "per_position": [
+      {
+        "ticker": "ABBOTINDIA",
+        "weight": 0.01,
+        "annualised_vol": 0.2154,
+        "var_contribution": 0.0058,
+        "sector": "Pharma",
+        "budget_utilisation": 0.1162
+      },
+      {
+        "ticker": "AJANTPHARM",
+        "weight": 0.02744,
+        "annualised_vol": 0.287,
+        "var_contribution": 0.0221,
+        "sector": "Pharma",
+        "budget_utilisation": 0.4416
+      },
+      {
+        "ticker": "APOLLOHOSP",
+        "weight": 0.0975,
+        "annualised_vol": 0.1661,
+        "var_contribution": 0.048,
+        "sector": "Healthcare",
+        "budget_utilisation": 0.959
+      },
+      {
+        "ticker": "BHARATFORG",
+        "weight": 0.05102,
+        "annualised_vol": 0.2539,
+        "var_contribution": 0.0376,
+        "sector": "Auto",
+        "budget_utilisation": 0.7515
+      },
+      {
+        "ticker": "BIOCON",
+        "weight": 0.02925,
+        "annualised_vol": 0.2473,
+        "var_contribution": 0.0202,
+        "sector": "Pharma",
+        "budget_utilisation": 0.404
+      },
+      {
+        "ticker": "EXIDEIND",
+        "weight": 0.04778,
+        "annualised_vol": 0.375,
+        "var_contribution": 0.0536,
+        "sector": "Auto",
+        "budget_utilisation": 1.0729
+      },
+      {
+        "ticker": "GLAND",
+        "weight": 0.03841,
+        "annualised_vol": 0.4613,
+        "var_contribution": 0.053,
+        "sector": "Pharma",
+        "budget_utilisation": 1.0595
+      },
+      {
+        "ticker": "GODREJPROP",
+        "weight": 0.06117,
+        "annualised_vol": 0.3288,
+        "var_contribution": 0.061,
+        "sector": "Realty",
+        "budget_utilisation": 1.2208
+      },
+      {
+        "ticker": "IPCALAB",
+        "weight": 0.0975,
+        "annualised_vol": 0.2675,
+        "var_contribution": 0.0821,
+        "sector": "Pharma",
+        "budget_utilisation": 1.6422
+      },
+      {
+        "ticker": "KALYANKJIL",
+        "weight": 0.045,
+        "annualised_vol": 0.6109,
+        "var_contribution": 0.0873,
+        "sector": "Consumption",
+        "budget_utilisation": 1.7452
+      },
+      {
+        "ticker": "LAURUSLABS",
+        "weight": 0.03491,
+        "annualised_vol": 0.2776,
+        "var_contribution": 0.0275,
+        "sector": "Pharma",
+        "budget_utilisation": 0.5502
+      },
+      {
+        "ticker": "LODHA",
+        "weight": 0.07013,
+        "annualised_vol": 0.3743,
+        "var_contribution": 0.0827,
+        "sector": "Realty",
+        "budget_utilisation": 1.6544
+      },
+      {
+        "ticker": "NYKAA",
+        "weight": 0.0975,
+        "annualised_vol": 0.2661,
+        "var_contribution": 0.0816,
+        "sector": "IT",
+        "budget_utilisation": 1.6322
+      },
+      {
+        "ticker": "PHOENIXLTD",
+        "weight": 0.05482,
+        "annualised_vol": 0.2543,
+        "var_contribution": 0.0407,
+        "sector": "Realty",
+        "budget_utilisation": 0.8138
+      },
+      {
+        "ticker": "RADICO",
+        "weight": 0.09531,
+        "annualised_vol": 0.2754,
+        "var_contribution": 0.0827,
+        "sector": "FMCG",
+        "budget_utilisation": 1.6543
+      },
+      {
+        "ticker": "RELAXO",
+        "weight": 0.03825,
+        "annualised_vol": 0.5836,
+        "var_contribution": 0.0687,
+        "sector": "Consumption",
+        "budget_utilisation": 1.3735
+      },
+      {
+        "ticker": "SONACOMS",
+        "weight": 0.09523,
+        "annualised_vol": 0.2756,
+        "var_contribution": 0.0827,
+        "sector": "Auto",
+        "budget_utilisation": 1.6542
+      },
+      {
+        "ticker": "SUNPHARMA",
+        "weight": 0.02925,
+        "annualised_vol": 0.2198,
+        "var_contribution": 0.0179,
+        "sector": "Pharma",
+        "budget_utilisation": 0.3571
+      },
+      {
+        "ticker": "TORNTPHARM",
+        "weight": 0.01,
+        "annualised_vol": 0.2431,
+        "var_contribution": 0.0066,
+        "sector": "Pharma",
+        "budget_utilisation": 0.1314
+      },
+      {
+        "ticker": "ZYDUSLIFE",
+        "weight": 0.05333,
+        "annualised_vol": 0.2473,
+        "var_contribution": 0.0383,
+        "sector": "Pharma",
+        "budget_utilisation": 0.7659
+      }
+    ],
+    "per_sector": [
+      {
+        "sector": "Pharma",
+        "var_contribution": 0.2734,
+        "budget_utilisation": 0.9114
+      },
+      {
+        "sector": "Realty",
+        "var_contribution": 0.1844,
+        "budget_utilisation": 0.6148
+      },
+      {
+        "sector": "Auto",
+        "var_contribution": 0.1739,
+        "budget_utilisation": 0.5798
+      },
+      {
+        "sector": "Consumption",
+        "var_contribution": 0.1559,
+        "budget_utilisation": 0.5198
+      },
+      {
+        "sector": "FMCG",
+        "var_contribution": 0.0827,
+        "budget_utilisation": 0.2757
+      },
+      {
+        "sector": "IT",
+        "var_contribution": 0.0816,
+        "budget_utilisation": 0.272
+      },
+      {
+        "sector": "Healthcare",
+        "var_contribution": 0.048,
+        "budget_utilisation": 0.1598
+      }
+    ],
+    "budget_utilisation": {
+      "total_portfolio_vol": 0.1926,
+      "budget_total_vol": 0.2,
+      "total_budget_utilisation": 0.9631,
+      "per_position_budget": 0.05,
+      "per_sector_budget": 0.3
+    },
+    "alerts": [
+      {
+        "kind": "POSITION_VAR_BUDGET_BREACH",
+        "entity": "EXIDEIND",
+        "detail": "EXIDEIND contributes 0.0536 exceeding per-position budget 0.05",
+        "severity": "MEDIUM"
+      },
+      {
+        "kind": "POSITION_VAR_BUDGET_BREACH",
+        "entity": "GLAND",
+        "detail": "GLAND contributes 0.0530 exceeding per-position budget 0.05",
+        "severity": "MEDIUM"
+      },
+      {
+        "kind": "POSITION_VAR_BUDGET_BREACH",
+        "entity": "GODREJPROP",
+        "detail": "GODREJPROP contributes 0.0610 exceeding per-position budget 0.05",
+        "severity": "MEDIUM"
+      },
+      {
+        "kind": "POSITION_VAR_BUDGET_BREACH",
+        "entity": "IPCALAB",
+        "detail": "IPCALAB contributes 0.0821 exceeding per-position budget 0.05",
+        "severity": "MEDIUM"
+      },
+      {
+        "kind": "POSITION_VAR_BUDGET_BREACH",
+        "entity": "KALYANKJIL",
+        "detail": "KALYANKJIL contributes 0.0873 exceeding per-position budget 0.05",
+        "severity": "MEDIUM"
+      },
+      {
+        "kind": "POSITION_VAR_BUDGET_BREACH",
+        "entity": "LODHA",
+        "detail": "LODHA contributes 0.0827 exceeding per-position budget 0.05",
+        "severity": "MEDIUM"
+      },
+      {
+        "kind": "POSITION_VAR_BUDGET_BREACH",
+        "entity": "NYKAA",
+        "detail": "NYKAA contributes 0.0816 exceeding per-position budget 0.05",
+        "severity": "MEDIUM"
+      },
+      {
+        "kind": "POSITION_VAR_BUDGET_BREACH",
+        "entity": "RADICO",
+        "detail": "RADICO contributes 0.0827 exceeding per-position budget 0.05",
+        "severity": "MEDIUM"
+      },
+      {
+        "kind": "POSITION_VAR_BUDGET_BREACH",
+        "entity": "RELAXO",
+        "detail": "RELAXO contributes 0.0687 exceeding per-position budget 0.05",
+        "severity": "MEDIUM"
+      },
+      {
+        "kind": "POSITION_VAR_BUDGET_BREACH",
+        "entity": "SONACOMS",
+        "detail": "SONACOMS contributes 0.0827 exceeding per-position budget 0.05",
+        "severity": "MEDIUM"
+      }
+    ],
+    "verdict": "WARNING"
+  },
+  "governance": "Advisory only. This is a target allocation, not an execution instruction."
+}
