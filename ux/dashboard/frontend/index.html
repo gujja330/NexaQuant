@@ -336,6 +336,223 @@ table.decision td.rank {
   color: var(--type-3); font: 10px ui-monospace, monospace;
 }
 
+/* Dates strip — Generated / Valid Until / Backtested Until / Last Updated */
+.dates-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 12px 14px;
+  margin-bottom: 20px;
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+}
+.dates-strip .date-item {
+  display: flex; flex-direction: column; gap: 2px;
+  padding-right: 18px; border-right: 1px solid var(--rule);
+}
+.dates-strip .date-item:last-child { border-right: none; padding-right: 0; }
+.dates-strip .date-item .k {
+  font: 9px ui-monospace, monospace;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--type-3);
+}
+.dates-strip .date-item .v {
+  font-family: ui-monospace, monospace;
+  color: var(--type-1);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+}
+
+/* Filter chip bar + sort dropdown */
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+}
+.filter-bar .chip {
+  padding: 6px 12px;
+  border: 1px solid var(--rule);
+  border-radius: 16px;
+  font: 11px ui-monospace, monospace;
+  letter-spacing: 0.06em;
+  color: var(--type-2);
+  cursor: pointer;
+  background: transparent;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  user-select: none;
+}
+.filter-bar .chip:hover { color: var(--type-1); border-color: var(--rule-hi); }
+.filter-bar .chip.active {
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+  border-color: var(--accent);
+  color: var(--accent-hi);
+}
+.filter-bar .chip .n {
+  color: var(--type-3);
+  margin-left: 6px;
+  font-size: 10px;
+}
+.filter-bar .chip.active .n { color: var(--accent-hi); opacity: 0.85; }
+.filter-bar .sep { flex: 1; }
+.filter-bar select {
+  background: transparent;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 6px 10px;
+  color: var(--type-1);
+  font: 11px ui-monospace, monospace;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+}
+
+/* Decision Cards — one card per actionable stock */
+.decision-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 14px;
+  margin-bottom: 24px;
+}
+.decision-card {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--rule);
+  border-radius: 4px;
+  padding: 16px 18px;
+  cursor: pointer;
+  transition: border-color 0.12s, transform 0.12s;
+  min-width: 0;
+  overflow: hidden;
+}
+.decision-card:hover { border-color: var(--rule-hi); transform: translateY(-1px); }
+.decision-card.strong-buy { border-left-color: var(--pos); }
+.decision-card.buy        { border-left-color: color-mix(in srgb, var(--pos) 70%, transparent); }
+.decision-card.accumulate { border-left-color: color-mix(in srgb, var(--pos) 45%, transparent); }
+.decision-card.hold       { border-left-color: var(--warn); }
+.decision-card.reduce     { border-left-color: color-mix(in srgb, var(--neg) 70%, transparent); }
+.decision-card.sell       { border-left-color: var(--neg); }
+
+.dc-head {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  gap: 12px; margin-bottom: 12px;
+}
+.dc-tick {
+  font-family: ui-monospace, monospace;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--type-1);
+  letter-spacing: 0.03em;
+}
+.dc-sect { font-size: 10px; color: var(--type-3); letter-spacing: 0.05em; margin-top: 2px; }
+
+.dc-price-row {
+  display: flex; align-items: baseline; gap: 12px;
+  padding: 10px 0 8px; border-bottom: 1px solid var(--rule);
+}
+.dc-cmp {
+  font-family: ui-serif, Baskerville, serif;
+  font-size: 22px; color: var(--type-1); letter-spacing: -0.01em; line-height: 1;
+}
+.dc-day { font: 11px ui-monospace, monospace; letter-spacing: 0.04em; }
+.dc-day.pos { color: var(--pos); }
+.dc-day.neg { color: var(--neg); }
+.dc-yest { font: 10px ui-monospace, monospace; color: var(--type-3); margin-left: auto; }
+
+.dc-52w {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--rule);
+  font: 10px ui-monospace, monospace;
+  color: var(--type-3);
+  letter-spacing: 0.04em;
+}
+.dc-52w .bar {
+  position: relative;
+  height: 4px;
+  background: color-mix(in srgb, var(--type-3) 15%, transparent);
+  border-radius: 2px;
+  margin: 4px 0 6px;
+}
+.dc-52w .bar .dot {
+  position: absolute;
+  top: -2px;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--accent-hi);
+  transform: translateX(-50%);
+  box-shadow: 0 0 0 2px var(--panel);
+}
+.dc-52w .lo, .dc-52w .hi { color: var(--type-2); }
+
+.dc-levels {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+  padding: 10px 0;
+}
+.dc-lvl .lbl {
+  font: 9px ui-monospace, monospace;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--type-3);
+}
+.dc-lvl .val {
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  color: var(--type-1);
+  margin-top: 2px;
+}
+.dc-lvl .val.pos { color: var(--pos); }
+.dc-lvl .val.neg { color: var(--neg); }
+.dc-lvl .val.mono { font-family: ui-monospace, monospace; }
+
+.dc-scores {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;
+  padding: 10px 0; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule);
+}
+.dc-sc {
+  text-align: center;
+  padding: 4px 0;
+}
+.dc-sc .lbl {
+  font: 9px ui-monospace, monospace;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--type-3);
+  display: block;
+  margin-bottom: 4px;
+}
+.dc-sc .val { font: 11px ui-monospace, monospace; color: var(--type-1); }
+.dc-sc .stars { color: var(--warn); letter-spacing: 1px; font-size: 12px; }
+
+.dc-why {
+  padding-top: 12px;
+  display: flex; flex-wrap: wrap; gap: 6px;
+}
+.dc-why .rc {
+  font: 10px ui-monospace, monospace;
+  padding: 3px 8px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  color: var(--type-2);
+  letter-spacing: 0.03em;
+}
+.dc-why .rc.pos { color: var(--pos); border-color: color-mix(in srgb, var(--pos) 30%, transparent); }
+.dc-why .rc.neg { color: var(--neg); border-color: color-mix(in srgb, var(--neg) 30%, transparent); }
+
+.dc-foot {
+  margin-top: 10px;
+  display: flex; justify-content: space-between; align-items: center;
+  font: 10px ui-monospace, monospace;
+  color: var(--type-3);
+  letter-spacing: 0.04em;
+}
+.dc-foot .go { color: var(--accent-hi); }
+
 /* Stock Detail page */
 .detail-head {
   display: grid;
@@ -514,6 +731,7 @@ async function loadState() {
     'decision_center_today.json',
     'decision_center_notifications.json',
     'stock_validation.json',
+    'price_context.json',
   ];
   const entries = await Promise.all(targets.map(async n => [n.replace(/\.json$/, ''), await fetchJson(n)]));
   for (const [k, v] of entries) STATE[k] = v;
@@ -591,9 +809,20 @@ function buildCanonicalList() {
   const sizeByTicker = new Map();
   for (const s of sizing) sizeByTicker.set(String(s.ticker), s);
 
+  // Index per-ticker validation history + live price context
+  const stockVal = (STATE.stock_validation && STATE.stock_validation.tickers) || {};
+  const priceCtx = (STATE.price_context && STATE.price_context.tickers) || {};
+
   const enriched = recs.map(r => {
     const ii_r = iiByTicker.get(String(r.ticker));
     const size = sizeByTicker.get(String(r.ticker));
+    const ee = r.entry_exit || {};
+    const sv = stockVal[r.ticker] || null;
+    const pc = priceCtx[r.ticker] || null;
+
+    // CMP prefers the freshest live parquet price; falls back to backtester's latest_close.
+    const cmp = (pc && pc.available && pc.cmp != null) ? pc.cmp : ee.latest_close;
+
     return {
       ticker: r.ticker,
       sector: r.sector,
@@ -601,18 +830,40 @@ function buildCanonicalList() {
       action: r.recommendation,
       score_raw: r.composite_decision_score,
       confidence: r.confidence,
-      entry_price: r.entry_price,
-      buy_low: r.ideal_entry_low,
-      buy_high: r.ideal_entry_high,
-      target_1: r.target_1,
-      target_2: r.target_2,
-      stop_loss: r.stop_loss,
-      expected_hold_days: r.expected_hold_days,
+      // Price levels — from entry_exit block
+      entry_price: cmp,
+      latest_close: ee.latest_close,
+      buy_low: ee.ideal_entry_low,
+      buy_high: ee.ideal_entry_high,
+      target_1: ee.target_1,
+      target_2: ee.target_2,
+      stop_loss: ee.stop_loss,
+      stop_loss_pct: ee.stop_loss_pct,
+      expected_hold_days: ee.expected_holding_days,
+      maximum_hold_days: ee.maximum_holding_days,
+      annualised_vol_pct: ee.annualised_vol_pct,
       currently_held: r.currently_held,
       current_weight: r.current_weight,
       unrealised_pnl_pct: r.unrealised_pnl_pct,
       reasons_for: r.reasons_for || [],
       reasons_against: r.reasons_against || [],
+
+      // Live price context (v1.0)
+      cmp: cmp,
+      previous_close:         pc ? pc.previous_close : null,
+      day_change_pct:         pc ? pc.day_change_pct : null,
+      high_52w:               pc ? pc.high_52w : null,
+      low_52w:                pc ? pc.low_52w : null,
+      distance_from_52w_high: pc ? pc.distance_from_52w_high : null,
+      distance_from_52w_low:  pc ? pc.distance_from_52w_low : null,
+      price_asof:             pc ? pc.latest_date : null,
+
+      // Per-ticker validation rollup (v1.0)
+      reliability:   sv ? sv.reliability_stars : null,
+      historical_wr: sv ? sv.win_rate : null,
+      n_historical:  sv ? sv.n_trades : null,
+      avg_return_pct:  sv ? sv.avg_return_pct : null,
+      avg_holding_d:   sv ? sv.avg_holding_days : null,
 
       // From fusion (v2.1) — the canonical intelligence score
       intelligence_score: ii_r ? ii_r.intelligence_score : null,
@@ -646,6 +897,108 @@ function upsideFor(r) {
   }
   return null;
 }
+
+// Humanize reason tokens like "company_score_top_decile:83.5" or "high_confidence:1.00"
+const _REASON_LABELS = {
+  company_score_top_decile:  'Company score in top decile',
+  company_score_top_quartile:'Company score in top quartile',
+  high_confidence:           'High engine confidence',
+  industry_strong:           'Industry regime strong',
+  industry_bullish:          'Industry regime bullish',
+  sector_strong:             'Sector regime strong',
+  sector_bullish:            'Sector regime bullish',
+  global_bullish:            'Global posture bullish',
+  positive_momentum:         'Positive price momentum',
+  trend_up:                  'Uptrend intact',
+  earnings_growth:           'Earnings growth on track',
+  strong_fundamentals:       'Fundamentals rated strong',
+  cheap_valuation:           'Valuation below peer median',
+  liquidity_ok:              'Adequate trading liquidity',
+  volatility_moderate:       'Volatility inside band',
+  drawdown_manageable:       'Historical drawdown contained',
+  low_reliability:           'Limited historical reliability',
+  weak_win_rate:             'Historical win rate weak',
+  crowded_trade:             'Crowded positioning risk',
+  overbought:                'Approaching overbought zone',
+  breakout_pending:          'Breakout not yet confirmed',
+  low_confidence:            'Engine confidence low',
+  sector_weak:               'Sector regime weak',
+  industry_weak:             'Industry regime weak',
+  global_bearish:            'Global posture bearish',
+};
+
+function humanizeReason(tok) {
+  if (!tok) return '';
+  const [rawK, rawV] = String(tok).split(':');
+  const key = rawK.trim();
+  const label = _REASON_LABELS[key];
+  if (label) {
+    if (rawV != null && rawV !== '') {
+      // Extract numeric part if it's a value; otherwise pass through
+      const n = parseFloat(rawV);
+      if (!isNaN(n)) return `${label} (${n.toFixed(n < 10 ? 2 : 1)})`;
+      return `${label} — ${rawV}`;
+    }
+    return label;
+  }
+  // Fallback: prettify the raw token
+  const pretty = key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  return rawV != null && rawV !== '' ? `${pretty} — ${rawV}` : pretty;
+}
+
+// Dashboard filter/sort state — persisted across renders on a single page load
+const DASH = {
+  filter: 'today_buy',
+  sort: 'intel_desc',
+};
+
+function datesStrip() {
+  const wrap = el('div', {class: 'dates-strip'});
+  const rec = STATE.recommendations;
+  const dc  = STATE.decision_center_today;
+  const val = STATE.validation_v2_latest;
+  const pc  = STATE.price_context;
+
+  const gen = rec && rec.run_utc;
+  // Valid until = next scheduled morning run. Backend runs 06:00 IST daily.
+  // From `Generated`, valid until the same/next 06:00 IST.
+  const validUntil = (() => {
+    if (!gen) return null;
+    const g = new Date(gen);
+    const next = new Date(g); next.setDate(next.getDate() + 1);
+    next.setUTCHours(0, 30, 0, 0);  // 06:00 IST = 00:30 UTC
+    return next;
+  })();
+  // Backtested until = latest date in per-ticker validation
+  const bt = val && (val.backtested_until || val.as_of || val.run_utc);
+  const lastUpd = pc && pc.run_utc || gen;
+
+  const fmtDate = (d) => {
+    if (!d) return '—';
+    const dt = typeof d === 'string' ? new Date(d) : d;
+    if (isNaN(dt)) return '—';
+    return dt.toLocaleDateString(undefined, {day: 'numeric', month: 'short', year: 'numeric'});
+  };
+  const fmtDateTime = (d) => {
+    if (!d) return '—';
+    const dt = typeof d === 'string' ? new Date(d) : d;
+    if (isNaN(dt)) return '—';
+    return dt.toLocaleString(undefined, {day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'});
+  };
+
+  const items = [
+    {k: 'Generated',        v: fmtDateTime(gen)},
+    {k: 'Valid Until',      v: fmtDateTime(validUntil) + ' IST run'},
+    {k: 'Backtested Until', v: fmtDate(bt)},
+    {k: 'Last Updated',     v: fmtDateTime(lastUpd)},
+  ];
+  items.forEach(it => {
+    wrap.appendChild(el('div', {class: 'date-item', html: `
+      <span class="k">${it.k}</span>
+      <span class="v">${it.v}</span>`}));
+  });
+  return wrap;
+}
 function riskRewardFor(r) {
   if (r.entry_price && r.target_1 && r.stop_loss) {
     const up = r.target_1 - r.entry_price;
@@ -668,25 +1021,26 @@ function renderDashboard() {
   main.innerHTML = '';
   const canonical = buildCanonicalList();
 
-  // ---------- Section 0: Daily Decision Center (Overnight) ----------
+  // ---------- Section 0: Dates strip (Generated / Valid Until / Backtested / Last Updated)
+  main.appendChild(datesStrip());
+
+  // ---------- Section 1: Daily Decision Center (Overnight) ----------
   main.appendChild(decisionCenter(canonical));
 
-  // ---------- Section 1: Market Summary strip ----------
+  // ---------- Section 2: Market Summary strip ----------
   main.appendChild(marketSummary(canonical));
 
-  // ---------- Section 2: Today's Investment Opportunities ----------
-  const buys = canonical.filter(r =>
-    ['Strong-Buy','Buy','Accumulate'].includes(r.action));
-  main.appendChild(todaysOpportunities(buys));
+  // ---------- Section 3: Today's Investment Opportunities (Decision Cards) ----------
+  main.appendChild(todaysOpportunities(canonical));
 
-  // ---------- Section 3: Current Portfolio ----------
+  // ---------- Section 4: Current Portfolio ----------
   const holdings = canonical.filter(r => r.currently_held);
   main.appendChild(currentPortfolio(holdings));
 
-  // ---------- Section 4: Portfolio Health ----------
+  // ---------- Section 5: Portfolio Health ----------
   main.appendChild(portfolioHealth());
 
-  // ---------- Section 5: Today's Alerts ----------
+  // ---------- Section 6: Today's Alerts ----------
   main.appendChild(todaysAlerts(canonical));
 }
 
@@ -945,66 +1299,228 @@ function marketSummary(canonical) {
   return wrap;
 }
 
-function todaysOpportunities(buys) {
-  const wrap = el('div', {class: 'section'});
+// Quick filter definitions — each returns a predicate over the canonical list.
+const OPP_FILTERS = [
+  {key: 'today_buy',   label: "Today's Buys",
+    fn: r => ['Strong-Buy','Buy','Accumulate'].includes(r.action)},
+  {key: 'strong_buy',  label: 'Strong Buy Only',
+    fn: r => r.action === 'Strong-Buy'},
+  {key: 'held',        label: 'Held Positions',
+    fn: r => !!r.currently_held},
+  {key: 'sell',        label: "Today's Sells",
+    fn: r => ['Reduce','Sell','Avoid'].includes(r.action)},
+  {key: 'watchlist',   label: 'Watchlist',
+    fn: r => ['Hold','Watchlist','Accumulate'].includes(r.action) && !r.currently_held},
+  {key: 'all',         label: 'All',
+    fn: r => true},
+];
+
+// Sort definitions — each returns a comparator.
+const OPP_SORTS = [
+  {key: 'intel_desc',    label: 'Intelligence ↓',
+    cmp: (a, b) => (b.intelligence_score ?? -1) - (a.intelligence_score ?? -1)},
+  {key: 'upside_desc',   label: 'Expected Return ↓',
+    cmp: (a, b) => (upsideFor(b) ?? -1) - (upsideFor(a) ?? -1)},
+  {key: 'reliability_desc', label: 'Reliability ↓',
+    cmp: (a, b) => (b.reliability ?? -1) - (a.reliability ?? -1)},
+  {key: 'winrate_desc',  label: 'Win Rate ↓',
+    cmp: (a, b) => (b.historical_wr ?? -1) - (a.historical_wr ?? -1)},
+  {key: 'cmp_desc',      label: 'CMP ↓',
+    cmp: (a, b) => (b.cmp ?? 0) - (a.cmp ?? 0)},
+  {key: 'target_desc',   label: 'Target Upside ↓',
+    cmp: (a, b) => (upsideFor(b) ?? -1) - (upsideFor(a) ?? -1)},
+  {key: 'hold_asc',      label: 'Holding Days ↑',
+    cmp: (a, b) => (a.expected_hold_days ?? 999) - (b.expected_hold_days ?? 999)},
+  {key: 'conf_desc',     label: 'Confidence ↓',
+    cmp: (a, b) => (b.confidence ?? -1) - (a.confidence ?? -1)},
+  {key: 'sector_asc',    label: 'Sector A → Z',
+    cmp: (a, b) => String(a.sector || '').localeCompare(String(b.sector || ''))},
+];
+
+function decisionCardHtml(r, i) {
+  const upside = upsideFor(r);
+  const rr = riskRewardFor(r);
+  const conf = r.confidence != null ? r.confidence * 100 : null;
+  const cls = String(r.action || '').toLowerCase().replace(/[^a-z-]/g, '');
+
+  const dayCls  = r.day_change_pct == null ? '' : (r.day_change_pct > 0 ? 'pos' : r.day_change_pct < 0 ? 'neg' : '');
+  const dayStr  = r.day_change_pct == null ? '' :
+                    `${r.day_change_pct > 0 ? '+' : ''}${(r.day_change_pct * 100).toFixed(2)}%`;
+  const distHi  = r.distance_from_52w_high;   // negative (e.g. -0.08)
+  const distLo  = r.distance_from_52w_low;    // positive (e.g. +0.35)
+  // Position on 52-week band: 0 at low, 100 at high
+  const bandPos = (r.cmp != null && r.high_52w && r.low_52w && r.high_52w > r.low_52w)
+    ? Math.max(0, Math.min(100, ((r.cmp - r.low_52w) / (r.high_52w - r.low_52w)) * 100))
+    : null;
+
+  // Top 3 humanized reasons
+  const reasonsPos = (r.reasons_for || []).slice(0, 3).map(t =>
+    `<span class="rc pos">${humanizeReason(t)}</span>`).join('');
+  const reasonsNeg = (r.reasons_against || []).slice(0, 2).map(t =>
+    `<span class="rc neg">${humanizeReason(t)}</span>`).join('');
+
+  const relStars = r.reliability ? '★'.repeat(Math.max(0, Math.min(5, Math.round(r.reliability)))) + '☆'.repeat(5 - Math.max(0, Math.min(5, Math.round(r.reliability)))) : '—';
+  const wrPct = r.historical_wr != null ? Math.round(r.historical_wr * 100) + '%' : '—';
+
+  return `
+    <div class="dc-head">
+      <div>
+        <div class="dc-tick">${r.ticker}</div>
+        <div class="dc-sect">${r.sector || '—'}${r.industry ? ' · ' + r.industry : ''}</div>
+      </div>
+      <div style="text-align:right;">
+        ${pillFor(r.action)}
+        <div style="margin-top:4px; font:9px ui-monospace,monospace; color: var(--type-3); letter-spacing:0.08em;">#${i + 1}</div>
+      </div>
+    </div>
+
+    <div class="dc-price-row">
+      <div class="dc-cmp">${fmt.price(r.cmp)}</div>
+      <div class="dc-day ${dayCls}">${dayStr}</div>
+      <div class="dc-yest">Yest ${fmt.price(r.previous_close)}</div>
+    </div>
+
+    <div class="dc-52w">
+      52-Week Range
+      <div class="bar">${bandPos != null ? `<div class="dot" style="left:${bandPos}%"></div>` : ''}</div>
+      <span class="lo">Low ${fmt.price(r.low_52w)}</span>
+      &nbsp;·&nbsp;
+      <span class="hi">High ${fmt.price(r.high_52w)}</span>
+      ${distHi != null ? ` &nbsp;·&nbsp; ${(distHi * 100).toFixed(1)}% from high` : ''}
+    </div>
+
+    <div class="dc-levels">
+      <div class="dc-lvl"><div class="lbl">Buy Below</div><div class="val mono">${fmt.price(r.buy_high)}</div></div>
+      <div class="dc-lvl"><div class="lbl">Target</div><div class="val pos">${fmt.price(r.target_1)}${upside != null ? ` <span style="opacity:0.75;font-size:10px">(${(upside * 100).toFixed(1)}%)</span>` : ''}</div></div>
+      <div class="dc-lvl"><div class="lbl">Stop</div><div class="val neg">${fmt.price(r.stop_loss)}</div></div>
+      <div class="dc-lvl"><div class="lbl">Hold</div><div class="val mono">${r.expected_hold_days ? r.expected_hold_days + 'd' : '—'}</div></div>
+    </div>
+
+    <div class="dc-scores">
+      <div class="dc-sc"><span class="lbl">Intel</span><span class="val">${scoreBadge(r.intelligence_score)}</span></div>
+      <div class="dc-sc"><span class="lbl">Confidence</span><span class="val">${scoreBadge(conf)}</span></div>
+      <div class="dc-sc"><span class="lbl">Reliability</span><span class="val stars">${relStars}</span></div>
+      <div class="dc-sc"><span class="lbl">Win Rate</span><span class="val">${wrPct}${r.n_historical ? ` <span style="color:var(--type-3);font-size:9px">(${r.n_historical})</span>` : ''}</span></div>
+    </div>
+
+    <div class="dc-why">
+      ${reasonsPos || '<span class="rc" style="opacity:0.5">No explicit reasons emitted</span>'}
+      ${reasonsNeg}
+    </div>
+
+    <div class="dc-foot">
+      <span>R:R ${rr != null ? fmt.num(rr, 2) : '—'}${r.currently_held ? ' · <span style="color:var(--accent-hi)">HELD</span>' : ''}</span>
+      <span class="go">Open detail →</span>
+    </div>`;
+}
+
+function todaysOpportunities(canonical) {
+  const wrap = el('div', {class: 'section', id: 'opportunities-section'});
   const head = el('div', {class: 'section-head'});
-  head.appendChild(el('h2', {text: `Today's Investment Opportunities`}));
-  head.appendChild(el('div', {class: 'meta', text: `${buys.length} candidates · click a row for details`}));
+  head.appendChild(el('h2', {text: `Investment Opportunities`}));
+
+  // Count actionable for the header meta
+  const actionableN = canonical.filter(r =>
+    ['Strong-Buy','Buy','Accumulate'].includes(r.action)).length;
+  head.appendChild(el('div', {class: 'meta',
+    text: `${actionableN} actionable of ${canonical.length} · click a card for details`}));
   wrap.appendChild(head);
 
-  const card = el('div', {class: 'card'});
-  if (!buys.length) {
-    card.appendChild(el('div', {class: 'empty', text: 'No fresh Strong-Buy / Buy / Accumulate signals today.'}));
+  // ── Filter chip bar (with live counts) + sort dropdown
+  const bar = el('div', {class: 'filter-bar'});
+  const filterCounts = {};
+  OPP_FILTERS.forEach(f => { filterCounts[f.key] = canonical.filter(f.fn).length; });
+  OPP_FILTERS.forEach(f => {
+    const chip = el('button', {class: 'chip' + (DASH.filter === f.key ? ' active' : ''),
+      html: `${f.label}<span class="n">${filterCounts[f.key]}</span>`});
+    chip.onclick = () => { DASH.filter = f.key; renderDashboard(); };
+    bar.appendChild(chip);
+  });
+  bar.appendChild(el('div', {class: 'sep'}));
+  const sortSel = el('select', {title: 'Sort by'});
+  OPP_SORTS.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s.key;
+    opt.textContent = 'Sort · ' + s.label;
+    if (DASH.sort === s.key) opt.selected = true;
+    sortSel.appendChild(opt);
+  });
+  sortSel.onchange = () => { DASH.sort = sortSel.value; renderDashboard(); };
+  bar.appendChild(sortSel);
+  wrap.appendChild(bar);
+
+  // ── Apply filter + sort
+  const f  = OPP_FILTERS.find(x => x.key === DASH.filter) || OPP_FILTERS[0];
+  const so = OPP_SORTS.find(x => x.key === DASH.sort) || OPP_SORTS[0];
+  const filtered = canonical.filter(f.fn).slice().sort(so.cmp);
+
+  if (!filtered.length) {
+    const card = el('div', {class: 'card'});
+    card.appendChild(el('div', {class: 'empty', text: `No stocks match "${f.label}" today.`}));
     wrap.appendChild(card);
     return wrap;
   }
 
-  const scrollWrap = el('div', {class: 'scroll-x'});
-  const table = el('table', {class: 'decision'});
-  table.innerHTML = `<thead><tr>
-    <th>#</th><th>Ticker</th><th>Sector</th>
-    <th class="right">CMP</th>
-    <th class="right">Buy Below</th>
-    <th class="right">Target</th>
-    <th class="right">Stop</th>
-    <th class="right">Upside</th>
-    <th class="right">R:R</th>
-    <th class="right">Hold</th>
-    <th class="center">Intel</th>
-    <th class="center">Conf</th>
-    <th class="center">Action</th>
-  </tr></thead>`;
-  const tbody = el('tbody');
-  buys.slice(0, 30).forEach((r, i) => {
-    const upside = upsideFor(r);
-    const rr = riskRewardFor(r);
-    const conf = r.confidence != null ? r.confidence * 100 : null;
-    const tr = el('tr', {onclick: () => location.hash = '#/stock/' + r.ticker});
-    tr.innerHTML = `
-      <td class="rank">${i + 1}</td>
-      <td class="ticker">${r.ticker}</td>
-      <td class="company">${r.sector || '—'}</td>
-      <td class="right">${fmt.price(r.entry_price)}</td>
-      <td class="right">${fmt.price(r.buy_high)}</td>
-      <td class="right">${fmt.price(r.target_1)}</td>
-      <td class="right neg">${fmt.price(r.stop_loss)}</td>
-      <td class="right ${upside > 0 ? 'pos' : 'neg'}">${upside != null ? fmt.pct(upside, 1) : '—'}</td>
-      <td class="right">${rr != null ? fmt.num(rr, 2) : '—'}</td>
-      <td class="right mute">${r.expected_hold_days ? r.expected_hold_days + 'd' : '—'}</td>
-      <td class="center">${scoreBadge(r.intelligence_score)}</td>
-      <td class="center">${scoreBadge(conf)}</td>
-      <td class="center">${pillFor(r.action)}</td>`;
-    tbody.appendChild(tr);
+  // ── Decision Card grid (top 12)
+  const grid = el('div', {class: 'decision-grid'});
+  const TOP = 12;
+  filtered.slice(0, TOP).forEach((r, i) => {
+    const cls = String(r.action || '').toLowerCase().replace(/[^a-z-]/g, '');
+    const card = el('div', {class: 'decision-card ' + cls, html: decisionCardHtml(r, i)});
+    card.onclick = () => location.hash = '#/stock/' + r.ticker;
+    grid.appendChild(card);
   });
-  table.appendChild(tbody);
-  scrollWrap.appendChild(table);
-  card.appendChild(scrollWrap);
+  wrap.appendChild(grid);
 
-  if (buys.length > 30) {
-    card.appendChild(el('div', {class: 'empty', style: 'padding-top: 12px; text-align: right; font-style: normal;',
-      text: `Showing top 30 of ${buys.length}. Search a ticker above for its detail page.`}));
+  // ── Compact overflow table for the remainder
+  if (filtered.length > TOP) {
+    const tblCard = el('div', {class: 'card'});
+    tblCard.appendChild(el('h3', {html:
+      `More Opportunities <span class="count">${filtered.length - TOP} more</span>`}));
+    const scrollWrap = el('div', {class: 'scroll-x'});
+    const table = el('table', {class: 'decision'});
+    table.innerHTML = `<thead><tr>
+      <th>#</th><th>Ticker</th><th>Sector</th>
+      <th class="right">CMP</th>
+      <th class="right">Day</th>
+      <th class="right">Target</th>
+      <th class="right">Upside</th>
+      <th class="right">Stop</th>
+      <th class="right">R:R</th>
+      <th class="center">Intel</th>
+      <th class="center">Rel.</th>
+      <th class="center">Action</th>
+    </tr></thead>`;
+    const tbody = el('tbody');
+    filtered.slice(TOP).forEach((r, i) => {
+      const upside = upsideFor(r);
+      const rr = riskRewardFor(r);
+      const dayCls = r.day_change_pct == null ? '' : (r.day_change_pct > 0 ? 'pos' : 'neg');
+      const dayStr = r.day_change_pct == null ? '—' :
+                       `${r.day_change_pct > 0 ? '+' : ''}${(r.day_change_pct * 100).toFixed(2)}%`;
+      const stars = r.reliability ? '★'.repeat(Math.round(r.reliability)) : '—';
+      const tr = el('tr', {onclick: () => location.hash = '#/stock/' + r.ticker});
+      tr.innerHTML = `
+        <td class="rank">${TOP + i + 1}</td>
+        <td class="ticker">${r.ticker}</td>
+        <td class="company">${r.sector || '—'}</td>
+        <td class="right">${fmt.price(r.cmp)}</td>
+        <td class="right ${dayCls}">${dayStr}</td>
+        <td class="right">${fmt.price(r.target_1)}</td>
+        <td class="right ${upside > 0 ? 'pos' : 'neg'}">${upside != null ? fmt.pct(upside, 1) : '—'}</td>
+        <td class="right neg">${fmt.price(r.stop_loss)}</td>
+        <td class="right">${rr != null ? fmt.num(rr, 2) : '—'}</td>
+        <td class="center">${scoreBadge(r.intelligence_score)}</td>
+        <td class="center" style="color:var(--warn); letter-spacing:1px;">${stars}</td>
+        <td class="center">${pillFor(r.action)}</td>`;
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    scrollWrap.appendChild(table);
+    tblCard.appendChild(scrollWrap);
+    wrap.appendChild(tblCard);
   }
-  wrap.appendChild(card);
+
   return wrap;
 }
 
@@ -1026,6 +1542,7 @@ function currentPortfolio(holdings) {
   table.innerHTML = `<thead><tr>
     <th>Ticker</th><th>Sector</th>
     <th class="right">CMP</th>
+    <th class="right">Day</th>
     <th class="right">Weight</th>
     <th class="right">P/L</th>
     <th class="right">Target</th>
@@ -1036,11 +1553,15 @@ function currentPortfolio(holdings) {
   const tbody = el('tbody');
   holdings.forEach(r => {
     const pnl = r.unrealised_pnl_pct;
+    const dayCls = r.day_change_pct == null ? '' : (r.day_change_pct > 0 ? 'pos' : 'neg');
+    const dayStr = r.day_change_pct == null ? '—' :
+                     `${r.day_change_pct > 0 ? '+' : ''}${(r.day_change_pct * 100).toFixed(2)}%`;
     const tr = el('tr', {onclick: () => location.hash = '#/stock/' + r.ticker});
     tr.innerHTML = `
       <td class="ticker">${r.ticker}</td>
       <td class="company">${r.sector || '—'}</td>
-      <td class="right">${fmt.price(r.entry_price)}</td>
+      <td class="right">${fmt.price(r.cmp)}</td>
+      <td class="right ${dayCls}">${dayStr}</td>
       <td class="right">${fmt.pct(r.current_weight, 2)}</td>
       <td class="right ${pnl > 0 ? 'pos' : pnl < 0 ? 'neg' : ''}">${pnl != null ? (fmt.arrow(pnl) + ' ' + fmt.pct(pnl, 2)) : '—'}</td>
       <td class="right pos">${fmt.price(r.target_1)}</td>
@@ -1436,10 +1957,23 @@ function sectionPrice(r) {
 
   const strip = el('div', {class: 'strip'});
 
-  strip.appendChild(el('div', {class: 'tile', html: `
-    <span class="label">Current Price</span>
-    <div class="value">${fmt.price(r.entry_price)}</div>
-    <div class="sub">Last close · ${r.ticker}</div>`}));
+  {
+    const dayCls = r.day_change_pct == null ? '' : (r.day_change_pct > 0 ? 'pos' : r.day_change_pct < 0 ? 'neg' : '');
+    const dayStr = r.day_change_pct == null ? 'day change n/a' :
+                     `${r.day_change_pct > 0 ? '+' : ''}${(r.day_change_pct * 100).toFixed(2)}% · yest ${fmt.price(r.previous_close)}`;
+    strip.appendChild(el('div', {class: 'tile', html: `
+      <span class="label">Current Price</span>
+      <div class="value">${fmt.price(r.cmp)}</div>
+      <div class="sub ${dayCls}">${dayStr}</div>`}));
+  }
+  {
+    const distHiStr = r.distance_from_52w_high != null ?
+      `${(r.distance_from_52w_high * 100).toFixed(1)}% from high` : '—';
+    strip.appendChild(el('div', {class: 'tile', html: `
+      <span class="label">52-Week Range</span>
+      <div class="value mono">${fmt.price(r.low_52w)} — ${fmt.price(r.high_52w)}</div>
+      <div class="sub">${distHiStr}</div>`}));
+  }
 
   strip.appendChild(el('div', {class: 'tile', html: `
     <span class="label">Buy Range</span>
@@ -1630,7 +2164,7 @@ function sectionExplainability(r) {
   if (r.reasons_for && r.reasons_for.length) {
     for (const rf of r.reasons_for.slice(0, 5)) {
       const li = el('li');
-      li.innerHTML = `<span class="dim">SIGNAL</span> ${rf}`;
+      li.innerHTML = `<span class="dim">SIGNAL</span> ${humanizeReason(rf)}`;
       ul1.appendChild(li);
     }
   }
@@ -1653,7 +2187,7 @@ function sectionExplainability(r) {
   if (r.reasons_against && r.reasons_against.length) {
     for (const ra of r.reasons_against.slice(0, 5)) {
       const li = el('li');
-      li.innerHTML = `<span class="dim" style="color: var(--neg);">RISK</span> ${ra}`;
+      li.innerHTML = `<span class="dim" style="color: var(--neg);">RISK</span> ${humanizeReason(ra)}`;
       ul2.appendChild(li);
     }
   }

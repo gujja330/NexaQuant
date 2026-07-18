@@ -104,6 +104,13 @@ STEPS = [
         "requires": ["reports/learning.parquet"],
     },
     {
+        "name": "price_context",
+        "desc": "Per-ticker CMP + 52W high/low from raw data",
+        "script": "research/validation_v2/run_price_context.py",
+        "produces": ["reports/price_context.json"],
+        "requires": ["reports/recommendations.json"],
+    },
+    {
         "name": "decision_center",
         "desc": "Decision Center v1.0 (overnight diff + exit center + watchlist)",
         "script": "research/decision_center/run.py",
