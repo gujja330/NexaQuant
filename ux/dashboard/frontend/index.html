@@ -362,6 +362,7 @@ svg.spark .grid { stroke: var(--rule); stroke-width: 0.5; opacity: 0.4; }
     <a href="#/recommendations" data-route="/recommendations"><span class="glyph">·</span> Recommendations</a>
     <a href="#/risk" data-route="/risk"><span class="glyph">·</span> Risk</a>
     <a href="#/validation" data-route="/validation"><span class="glyph">·</span> Validation</a>
+    <a href="#/intelligence" data-route="/intelligence"><span class="glyph">*</span> Intelligence · v2.1</a>
     <a href="#/champion" data-route="/champion"><span class="glyph">·</span> Champion</a>
     <a href="#/knowledge" data-route="/knowledge"><span class="glyph">·</span> Knowledge Graph</a>
   </nav>
@@ -370,7 +371,17 @@ svg.spark .grid { stroke: var(--rule); stroke-width: 0.5; opacity: 0.4; }
       Advisory only.<br>
       Reads reports/*.json.
     </div>
-    <button id="themeToggle" type="button">◐ THEME</button>
+    <div id="lastRefresh" style="margin-bottom: 8px; color: var(--type-3); font-size: 9px;">
+      last: —
+    </div>
+    <div style="display: flex; gap: 6px; margin-bottom: 8px;">
+      <button id="themeToggle" type="button" style="flex: 1;">◐ THEME</button>
+      <button id="refreshNow" type="button" style="flex: 1;" title="Force reload reports/*.json">↻ NOW</button>
+    </div>
+    <label style="font-size: 9px; color: var(--type-3); display: flex; gap: 6px; align-items: center;">
+      <input type="checkbox" id="autoRefresh" checked style="accent-color: var(--accent);">
+      Auto-refresh every 60s
+    </label>
   </div>
 </aside>
 
@@ -415,6 +426,12 @@ async function loadState() {
     'backtest_summary.json',
     'regime_comparison.json',
     'strategy_doctor.json',
+    'investment_intelligence.json',
+    'intelligence_summary.json',
+    'intelligence_conflicts.json',
+    'intelligence_explanation.json',
+    'stress_scenarios.json',
+    'recommendation_dna_feedback.json',
   ];
   const entries = await Promise.all(targets.map(async n => [n.replace(/\.json$/, ''), await fetchJson(n)]));
   for (const [k, v] of entries) STATE[k] = v;
@@ -733,6 +750,142 @@ function widgetSizingPositions() {
 }
 
 // ==========================================================================
+// v2.1 Intelligence Fusion widgets
+// ==========================================================================
+function widgetIntelligenceSummary() {
+  const s = STATE.intelligence_summary;
+  if (!s) return card('Investment Intelligence', 'v2.1', el('div', {class: 'empty', text: 'fusion not run'}));
+  const dist = s.by_decision || {};
+  const total = Object.values(dist).reduce((a,b) => a+b, 0) || 1;
+  const wrap = el('div');
+  wrap.appendChild(kpi(
+    fmt.num(s.avg_intelligence, 1), '/100',
+    `${s.n_recs} recs · median ${fmt.num(s.median_intelligence, 1)}`));
+
+  // Decision distribution bars
+  const decisions = [
+    ['Strong-Buy', 'pos'], ['Buy', 'pos'], ['Hold', 'warn'], ['Reduce', 'neg'], ['Avoid', 'neg']
+  ];
+  const bars = el('div', {style: 'margin-top: 12px;'});
+  for (const [d, cls] of decisions) {
+    const n = dist[d] || 0;
+    if (n === 0) continue;
+    const pct = (n / total * 100).toFixed(0);
+    bars.appendChild(el('div', {class: 'tier-row', html: `
+      <div class="tier-label">${d}</div>
+      <div class="tier-bar"><div class="fill ${cls}" style="width: ${pct}%"></div></div>
+      <div class="tier-value">${n}</div>`}));
+  }
+  wrap.appendChild(bars);
+  return card('Investment Intelligence', 'v2.1 · fusion score', wrap);
+}
+
+function widgetFusionConflicts() {
+  const s = STATE.intelligence_summary;
+  if (!s || !s.conflict_summary) return card('Fusion Conflicts', 'v2.1', el('div', {class: 'empty', text: 'no conflicts computed'}));
+  const cs = s.conflict_summary;
+  const wrap = el('div');
+  const grid = el('div', {style: 'display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;'});
+  grid.appendChild(kpi(`<span style="color: var(--neg)">${cs.n_critical}</span>`, '', 'CRITICAL'));
+  grid.appendChild(kpi(`<span style="color: var(--warn)">${cs.n_medium}</span>`, '', 'MEDIUM'));
+  grid.appendChild(kpi(`<span style="color: var(--type-2)">${cs.n_minor}</span>`, '', 'MINOR'));
+  wrap.appendChild(grid);
+  wrap.appendChild(el('div', {class: 'card-source', style: 'margin-top: 12px;',
+    text: `${cs.n_tickers_with_critical} tickers with CRITICAL disagreement`}));
+  return card('Fusion Conflicts', 'v2.1', wrap);
+}
+
+function widgetIntelligenceTop() {
+  const s = STATE.intelligence_summary;
+  const top = (s && s.top_10) || [];
+  if (!top.length) return card('Top by Intelligence Score', 'v2.1', el('div', {class: 'empty', text: 'no data'}));
+  const cols = [
+    {label: 'Ticker', get: r => `<span style="color: var(--type-1)">${r.ticker}</span>`, clsFn: () => ''},
+    {label: 'Score', get: r => `<span style="color: var(--accent-hi)">${fmt.num(r.score, 1)}</span>`, right: true, clsFn: () => ''},
+    {label: 'Raw', get: r => r.raw_recommendation, clsFn: () => ''},
+    {label: 'Fusion', get: r => `<span class="pill ${r.decision==='Strong-Buy'||r.decision==='Buy'?'pos':r.decision==='Reduce'||r.decision==='Avoid'?'neg':'warn'}">${r.decision}</span>`, clsFn: () => ''},
+  ];
+  return card('Top by Intelligence Score', 'v2.1',
+    tableFrom(cols, top));
+}
+
+function widgetTopConflicts() {
+  const c = STATE.intelligence_conflicts;
+  if (!c || !c.all_conflicts) return card('Top Conflicts', 'v2.1', el('div', {class: 'empty', text: 'no conflicts'}));
+  const criticals = c.all_conflicts.filter(x => x.severity === 'CRITICAL').slice(0, 10);
+  if (!criticals.length) return card('Top Conflicts', 'v2.1', el('div', {class: 'empty', text: 'no CRITICAL conflicts'}));
+  const rows = criticals.map(x => `
+    <li><span class="pill neg">${x.severity}</span>
+        <span class="ticker" style="margin-left: 8px;">${x.ticker}</span>
+        <span style="color: var(--type-2); font-size: 11px;">${x.rule}</span>
+        <div style="color: var(--type-3); font-size: 11px; margin-top: 4px;">${x.detail}</div>
+    </li>`).join('');
+  return card('Top CRITICAL Conflicts', 'v2.1',
+    el('ul', {class: 'reason-list', style: 'font-size: 12px;', html: rows}));
+}
+
+function widgetIntelligenceExplain() {
+  const e = STATE.intelligence_explanation;
+  if (!e || !e.top_20) return card('Why · Top Rec Breakdown', 'v2.1', el('div', {class: 'empty', text: 'no explanation'}));
+  const top = e.top_20[0];
+  if (!top) return card('Why · Top Rec', 'v2.1', el('div', {class: 'empty', text: 'no data'}));
+  const wrap = el('div');
+  wrap.appendChild(el('div', {html: `
+    <div style="font-family: ui-mono, monospace; margin-bottom: 12px;">
+      <span style="color: var(--type-1); font-size: 16px;">${top.ticker}</span>
+      <span style="color: var(--accent-hi); margin-left: 12px; font-size: 20px;">${fmt.num(top.score, 1)}</span>
+      <span style="color: var(--type-2); font-size: 11px;"> / 100</span>
+      <span class="pill pos" style="margin-left: 12px;">${top.decision}</span>
+    </div>`}));
+  const why = top.why_this || [];
+  if (why.length) {
+    wrap.appendChild(el('div', {class: 'card-source', style: 'margin-top: 8px;', text: 'WHY THIS RECOMMENDATION'}));
+    const rows = why.map(w => `
+      <li><span style="color: var(--pos); font-family: ui-mono, monospace; margin-right: 8px;">${w.name}</span>
+          <span style="color: var(--accent-hi)">${fmt.num(w.score, 0)}</span>
+          <div style="color: var(--type-3); font-size: 11px; margin-top: 2px;">${w.why}</div></li>`).join('');
+    wrap.appendChild(el('ul', {class: 'reason-list', style: 'font-size: 12px; margin-top: 4px;', html: rows}));
+  }
+  const notStronger = top.why_not_stronger || [];
+  if (notStronger.length) {
+    wrap.appendChild(el('div', {class: 'card-source', style: 'margin-top: 12px;', text: 'WHY NOT STRONGER'}));
+    const rows = notStronger.map(w => `
+      <li><span style="color: var(--neg); font-family: ui-mono, monospace; margin-right: 8px;">${w.name}</span>
+          <span style="color: var(--accent-hi)">${fmt.num(w.score, 0)}</span>
+          <div style="color: var(--type-3); font-size: 11px; margin-top: 2px;">${w.why}</div></li>`).join('');
+    wrap.appendChild(el('ul', {class: 'reason-list', style: 'font-size: 12px; margin-top: 4px;', html: rows}));
+  }
+  return card(`Why · ${top.ticker}`, 'v2.1 · fusion breakdown', wrap);
+}
+
+function widgetFusionWeights() {
+  const s = STATE.intelligence_summary;
+  const w = (s && s.weights) || {};
+  if (!Object.keys(w).length) return card('Fusion Weights', 'v2.1', el('div', {class: 'empty', text: 'default weights'}));
+  const wrap = el('div');
+  const entries = Object.entries(w).sort((a,b) => b[1] - a[1]);
+  for (const [name, weight] of entries) {
+    wrap.appendChild(el('div', {class: 'tier-row', html: `
+      <div class="tier-label">${name}</div>
+      <div class="tier-bar"><div class="fill" style="width: ${(weight * 100).toFixed(1)}%"></div></div>
+      <div class="tier-value">${(weight * 100).toFixed(0)}%</div>`}));
+  }
+  return card('Fusion Weights', 'v2.1 · editable via reports/fusion_weights.json', wrap);
+}
+
+function widgetStressScenarios() {
+  const s = STATE.stress_scenarios;
+  if (!s || !s.scenarios) return card('Stress Scenarios', 'KG v1.6', el('div', {class: 'empty', text: 'not run'}));
+  const cols = [
+    {label: 'Scenario', get: x => `<span style="color: var(--type-1)">${x.scenario.replace(/_/g, ' ')}</span>`, clsFn: () => ''},
+    {label: 'Exposure', get: x => `<span style="color: ${x.portfolio_exposure > 0.5 ? 'var(--neg)' : x.portfolio_exposure > 0.2 ? 'var(--warn)' : 'var(--type-1)'}">${fmt.pct(x.portfolio_exposure, 1)}</span>`, right: true, clsFn: () => ''},
+    {label: 'Hits', get: x => x.n_impacted_positions, right: true, clsFn: () => ''},
+    {label: 'Top contagion', get: x => (x.sector_contagion && x.sector_contagion[0]) ? x.sector_contagion[0].sector : '—', clsFn: () => ''},
+  ];
+  return card('Stress Scenarios', 'KG v1.6', tableFrom(cols, s.scenarios));
+}
+
+// ==========================================================================
 // Routes
 // ==========================================================================
 const ROUTES = {
@@ -849,6 +1002,21 @@ const ROUTES = {
       return g;
     },
   },
+  '/intelligence': {
+    title: 'Investment Intelligence · v2.1',
+    render() {
+      const g = el('div', {class: 'grid'});
+      const wrap = (w, c) => { const d = el('div', {class: c}); d.appendChild(w); return d; };
+      g.appendChild(wrap(widgetIntelligenceSummary(), 'col-6'));
+      g.appendChild(wrap(widgetFusionConflicts(), 'col-6'));
+      g.appendChild(wrap(widgetIntelligenceTop(), 'col-8'));
+      g.appendChild(wrap(widgetFusionWeights(), 'col-4'));
+      g.appendChild(wrap(widgetIntelligenceExplain(), 'col-6'));
+      g.appendChild(wrap(widgetTopConflicts(), 'col-6'));
+      g.appendChild(wrap(widgetStressScenarios(), 'col-12'));
+      return g;
+    },
+  },
   '/knowledge': {
     title: 'Knowledge Graph',
     render() {
@@ -917,11 +1085,19 @@ function renderRoute() {
 // ==========================================================================
 // Boot
 // ==========================================================================
+async function refreshAll() {
+  const stamp = document.getElementById('lastRefresh');
+  if (stamp) stamp.textContent = 'loading…';
+  await loadState();
+  renderRoute();
+  if (stamp) stamp.textContent = 'last: ' + new Date().toLocaleTimeString();
+}
+
 (async function boot() {
-  const btn = document.getElementById('themeToggle');
+  const themeBtn = document.getElementById('themeToggle');
   const stored = localStorage.getItem('aegis-dashboard-theme');
   if (stored) document.documentElement.setAttribute('data-theme', stored);
-  btn.onclick = () => {
+  themeBtn.onclick = () => {
     const cur = document.documentElement.getAttribute('data-theme');
     const media = matchMedia('(prefers-color-scheme: dark)').matches;
     const dark = cur ? cur === 'dark' : media;
@@ -930,9 +1106,41 @@ function renderRoute() {
     localStorage.setItem('aegis-dashboard-theme', next);
   };
 
-  await loadState();
+  const refreshBtn = document.getElementById('refreshNow');
+  refreshBtn.onclick = () => refreshAll();
+
+  const autoBox = document.getElementById('autoRefresh');
+  let autoTimer = null;
+  const REFRESH_INTERVAL_MS = 60 * 1000;
+
+  function armTimer() {
+    if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
+    if (autoBox.checked) {
+      autoTimer = setInterval(refreshAll, REFRESH_INTERVAL_MS);
+    }
+  }
+  autoBox.onchange = () => {
+    localStorage.setItem('aegis-dashboard-auto', autoBox.checked ? '1' : '0');
+    armTimer();
+  };
+  // Restore checkbox from storage
+  const auto = localStorage.getItem('aegis-dashboard-auto');
+  if (auto !== null) autoBox.checked = auto === '1';
+
+  // Pause auto-refresh when the tab is hidden — save cycles + bandwidth.
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
+    } else {
+      armTimer();
+      if (autoBox.checked) refreshAll();
+    }
+  });
+
   window.addEventListener('hashchange', renderRoute);
-  renderRoute();
+
+  await refreshAll();
+  armTimer();
 })();
 </script>
 </body>
