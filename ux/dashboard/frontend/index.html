@@ -468,6 +468,8 @@ async function loadState() {
     'adaptive_rec_v2_feature_importance.json',
     'backtest_summary.json',
     'strategy_doctor.json',
+    'decision_center_today.json',
+    'decision_center_notifications.json',
   ];
   const entries = await Promise.all(targets.map(async n => [n.replace(/\.json$/, ''), await fetchJson(n)]));
   for (const [k, v] of entries) STATE[k] = v;
@@ -621,6 +623,9 @@ function renderDashboard() {
   main.innerHTML = '';
   const canonical = buildCanonicalList();
 
+  // ---------- Section 0: Daily Decision Center (Overnight) ----------
+  main.appendChild(decisionCenter(canonical));
+
   // ---------- Section 1: Market Summary strip ----------
   main.appendChild(marketSummary(canonical));
 
@@ -638,6 +643,202 @@ function renderDashboard() {
 
   // ---------- Section 5: Today's Alerts ----------
   main.appendChild(todaysAlerts(canonical));
+}
+
+// ==========================================================================
+// DAILY DECISION CENTER — what changed overnight
+// ==========================================================================
+function decisionCenter(canonical) {
+  const dc = STATE.decision_center_today;
+  const wrap = el('div', {class: 'section'});
+
+  if (!dc) {
+    // Graceful placeholder if the backend hasn't run
+    const head = el('div', {class: 'section-head'});
+    head.appendChild(el('h2', {text: `Daily Decision Center`}));
+    wrap.appendChild(head);
+    const card = el('div', {class: 'card'});
+    card.appendChild(el('div', {class: 'empty',
+      text: 'Decision Center backend has not run yet. Run: python scripts/aegis_daily_v2.py'}));
+    wrap.appendChild(card);
+    return wrap;
+  }
+
+  // ── Header
+  const head = el('div', {class: 'section-head'});
+  head.appendChild(el('h2', {text: `Daily Decision Center${dc.first_run ? ' · baseline' : ''}`}));
+  head.appendChild(el('div', {class: 'meta',
+    text: dc.yesterday_date ? `vs ${dc.yesterday_date}` : 'first day'}));
+  wrap.appendChild(head);
+
+  // ── Overnight paragraph
+  const card = el('div', {class: 'card'});
+  card.appendChild(el('div', {style: 'font-size: 15px; line-height: 1.6; color: var(--type-1); font-family: ui-serif, Baskerville, serif; padding-bottom: 4px;',
+    text: dc.overnight_summary || ''}));
+  wrap.appendChild(card);
+
+  // ── Today's Actions strip (action_counts_today)
+  const actionCounts = dc.action_counts_today || {};
+  if (Object.keys(actionCounts).length) {
+    const strip = el('div', {class: 'strip'});
+    const actionOrder = ['Strong-Buy', 'Buy', 'Accumulate', 'Hold', 'Watchlist', 'Reduce', 'Sell', 'Avoid'];
+    const clsMap = {
+      'Strong-Buy': 'strong-buy', 'Buy': 'buy', 'Accumulate': 'accumulate',
+      'Hold': 'hold', 'Watchlist': 'watchlist',
+      'Reduce': 'reduce', 'Sell': 'sell', 'Avoid': 'avoid',
+    };
+    actionOrder.forEach(action => {
+      const n = actionCounts[action] || 0;
+      if (n === 0) return;
+      const yesterdayN = (dc.action_counts_yesterday || {})[action];
+      let delta = '';
+      if (yesterdayN != null && !dc.first_run) {
+        const d = n - yesterdayN;
+        if (d !== 0) {
+          const cls = d > 0 ? 'pos' : 'neg';
+          delta = `<div class="sub ${cls}">${d > 0 ? '+' : ''}${d} vs yesterday</div>`;
+        } else {
+          delta = `<div class="sub">unchanged</div>`;
+        }
+      }
+      strip.appendChild(el('div', {class: 'tile', html: `
+        <span class="label">${action}</span>
+        <div class="value"><span class="pill ${clsMap[action]}">${n}</span></div>
+        ${delta}`}));
+    });
+    wrap.appendChild(strip);
+  }
+
+  // ── What Changed table
+  if (dc.changes && dc.changes.length) {
+    const changeCard = el('div', {class: 'card'});
+    changeCard.appendChild(el('h3', {html: `What Changed Overnight <span class="count">${dc.changes.length}</span>`}));
+
+    const scrollWrap = el('div', {class: 'scroll-x'});
+    const table = el('table', {class: 'decision'});
+    table.innerHTML = `<thead><tr>
+      <th>Ticker</th><th>Kind</th>
+      <th>Yesterday</th><th>Today</th>
+      <th>Reason</th>
+      <th class="center">Intel</th>
+    </tr></thead>`;
+    const tbody = el('tbody');
+    // Prioritise: NEW / UPGRADED / TARGET_HIT / STOP_HIT / DOWNGRADED then others
+    const priorityOrder = ['NEW', 'UPGRADED', 'TARGET_HIT', 'STOP_HIT', 'NEW_HELD',
+                              'DOWNGRADED', 'EXITED', 'REMOVED', 'INTELLIGENCE_UP',
+                              'INTELLIGENCE_DOWN', 'CONFIDENCE_UP', 'CONFIDENCE_DOWN',
+                              'SIZING_WARNING'];
+    const sortedChanges = dc.changes.slice().sort((a, b) =>
+      priorityOrder.indexOf(a.kind) - priorityOrder.indexOf(b.kind));
+    for (const c of sortedChanges.slice(0, 40)) {
+      const kindCls = {
+        'NEW': 'buy', 'UPGRADED': 'buy', 'NEW_HELD': 'buy',
+        'TARGET_HIT': 'buy', 'INTELLIGENCE_UP': 'buy', 'CONFIDENCE_UP': 'buy',
+        'DOWNGRADED': 'sell', 'STOP_HIT': 'sell', 'EXITED': 'sell', 'REMOVED': 'sell',
+        'INTELLIGENCE_DOWN': 'sell', 'CONFIDENCE_DOWN': 'sell',
+        'SIZING_WARNING': 'hold',
+      }[c.kind] || 'watchlist';
+      const tr = el('tr', {onclick: () => location.hash = '#/stock/' + c.ticker});
+      tr.innerHTML = `
+        <td class="ticker">${c.ticker}</td>
+        <td><span class="pill ${kindCls}">${c.kind.replace(/_/g, ' ')}</span></td>
+        <td class="mute">${c.yesterday_action || '—'}</td>
+        <td>${c.today_action ? pillFor(c.today_action) : '—'}</td>
+        <td class="company">${c.reason}</td>
+        <td class="center">${scoreBadge(c.today_intelligence)}</td>`;
+      tbody.appendChild(tr);
+    }
+    table.appendChild(tbody);
+    scrollWrap.appendChild(table);
+    changeCard.appendChild(scrollWrap);
+    if (dc.changes.length > 40) {
+      changeCard.appendChild(el('div', {style: 'padding-top: 12px; text-align: right; color: var(--type-3); font-size: 11px;',
+        text: `Showing top 40 of ${dc.changes.length} changes.`}));
+    }
+    wrap.appendChild(changeCard);
+  } else if (!dc.first_run) {
+    const stableCard = el('div', {class: 'card'});
+    stableCard.appendChild(el('div', {class: 'empty', text: 'No material changes overnight — recommendation set is stable.'}));
+    wrap.appendChild(stableCard);
+  }
+
+  // ── Exit Center + Watchlist side by side
+  const grid = el('div', {class: 'grid-2'});
+
+  // Exit Center
+  const exitCard = el('div', {class: 'card'});
+  exitCard.appendChild(el('h3', {html: `Exit Center <span class="count">${(dc.exit_center || []).length}</span>`}));
+  if (!dc.exit_center || !dc.exit_center.length) {
+    exitCard.appendChild(el('div', {class: 'empty', text: 'No positions require action today.'}));
+  } else {
+    const ul = el('ul', {class: 'alert-list'});
+    for (const x of dc.exit_center.slice(0, 8)) {
+      const sevCls = x.severity === 'CRITICAL' ? 'sell' :
+                       x.severity === 'HIGH' ? 'reduce' :
+                       x.severity === 'MEDIUM' ? 'hold' : 'watchlist';
+      const li = el('li');
+      li.innerHTML = `<span class="pill ${sevCls}">${x.severity}</span>
+                        <span class="ticker-name" onclick="location.hash='#/stock/${x.ticker}'; return false;" style="cursor:pointer;">${x.ticker}</span>
+                        <span class="detail">${x.reasons.join(' · ')}</span>`;
+      ul.appendChild(li);
+    }
+    exitCard.appendChild(ul);
+  }
+  const exitWrap = el('div');
+  exitWrap.appendChild(exitCard);
+  grid.appendChild(exitWrap);
+
+  // Watchlist
+  const watchCard = el('div', {class: 'card'});
+  watchCard.appendChild(el('h3', {html: `Watchlist <span class="count">${(dc.watchlist || []).length}</span>`}));
+  if (!dc.watchlist || !dc.watchlist.length) {
+    watchCard.appendChild(el('div', {class: 'empty', text: 'No near-buy candidates today.'}));
+  } else {
+    const ul = el('ul', {class: 'alert-list'});
+    for (const w of dc.watchlist.slice(0, 8)) {
+      const trendCls = w.intel_trend > 0 ? 'pos' : w.intel_trend < 0 ? 'neg' : '';
+      const trendStr = w.intel_trend != null ? `${w.intel_trend > 0 ? '+' : ''}${w.intel_trend.toFixed(1)}` : '—';
+      const li = el('li');
+      li.innerHTML = `<span class="pill watchlist">${w.current_action}</span>
+                        <span class="ticker-name" onclick="location.hash='#/stock/${w.ticker}'; return false;" style="cursor:pointer;">${w.ticker}</span>
+                        <span class="detail">Intel ${Math.round(w.intelligence_score)} · gap ${w.gap_to_buy.toFixed(1)} to Buy · trend <span class="${trendCls}">${trendStr}</span></span>`;
+      ul.appendChild(li);
+    }
+    watchCard.appendChild(ul);
+  }
+  const watchWrap = el('div');
+  watchWrap.appendChild(watchCard);
+  grid.appendChild(watchWrap);
+
+  wrap.appendChild(grid);
+
+  // ── Notifications (priority-tiered)
+  if (dc.notifications && dc.notifications.length) {
+    const notifCard = el('div', {class: 'card', style: 'margin-top: 16px;'});
+    const critN = dc.notifications.filter(n => n.priority === 'CRITICAL').length;
+    const highN = dc.notifications.filter(n => n.priority === 'HIGH').length;
+    notifCard.appendChild(el('h3', {html:
+      `Notifications <span class="count">${critN} CRITICAL · ${highN} HIGH · ${dc.notifications.length} total</span>`}));
+    const ul = el('ul', {class: 'alert-list'});
+    const ordered = dc.notifications.slice().sort((a, b) => {
+      const rank = {'CRITICAL': 0, 'HIGH': 1, 'MEDIUM': 2, 'LOW': 3};
+      return rank[a.priority] - rank[b.priority];
+    }).slice(0, 12);
+    for (const n of ordered) {
+      const cls = n.priority === 'CRITICAL' ? 'sell' :
+                    n.priority === 'HIGH' ? 'buy' :
+                    n.priority === 'MEDIUM' ? 'hold' : 'watchlist';
+      const li = el('li');
+      li.innerHTML = `<span class="pill ${cls}">${n.priority}</span>
+                        <span class="ticker-name" onclick="location.hash='#/stock/${n.ticker}'; return false;" style="cursor:pointer;">${n.ticker}</span>
+                        <span class="detail">${n.detail}</span>`;
+      ul.appendChild(li);
+    }
+    notifCard.appendChild(ul);
+    wrap.appendChild(notifCard);
+  }
+
+  return wrap;
 }
 
 function marketSummary(canonical) {

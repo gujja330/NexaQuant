@@ -97,6 +97,14 @@ STEPS = [
         "requires": [],   # will use whatever is available
     },
     {
+        "name": "decision_center",
+        "desc": "Decision Center v1.0 (overnight diff + exit center + watchlist)",
+        "script": "research/decision_center/run.py",
+        "produces": ["reports/decision_center_today.json",
+                       "reports/decision_center_notifications.json"],
+        "requires": [],   # runs even without prior snapshot (baseline mode)
+    },
+    {
         "name": "telegram",
         "desc": "UX030 Telegram delivery (5 messages, opt-in)",
         "script": "scripts/telegram_send_ux030.py",
