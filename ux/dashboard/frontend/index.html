@@ -336,6 +336,116 @@ table.decision td.rank {
   color: var(--type-3); font: 10px ui-monospace, monospace;
 }
 
+/* Validation Sheet — Bloomberg-style single-page per-ticker view */
+.vs-sheet {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 8px 0;
+}
+.vs-hero {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 20px;
+  align-items: center;
+  padding-bottom: 16px;
+  margin-bottom: 20px;
+  border-bottom: 2px solid var(--type-1);
+}
+.vs-ticker { font-family: ui-serif, Baskerville, serif; font-size: 42px; letter-spacing: -0.02em; color: var(--type-1); line-height: 1; }
+.vs-sub    { color: var(--type-2); font-size: 13px; margin-top: 4px; font-family: ui-monospace, monospace; letter-spacing: 0.03em; }
+.vs-score  { text-align: center; padding: 0 12px; border-left: 1px solid var(--rule); border-right: 1px solid var(--rule); }
+.vs-score-n { font-family: ui-serif, Baskerville, serif; font-size: 44px; line-height: 1; letter-spacing: -0.02em; }
+.vs-score-l { font: 8px ui-monospace, monospace; letter-spacing: 0.16em; color: var(--type-3); text-transform: uppercase; margin-top: 4px; }
+.vs-score-stars { color: var(--warn); font-size: 16px; letter-spacing: 2px; margin-top: 4px; font-family: ui-monospace, monospace; }
+
+.vs-section { margin-bottom: 24px; }
+.vs-section h3 {
+  font-family: ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--type-3);
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 6px;
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+.vs-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px; }
+.vs-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px 24px; }
+.vs-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 3px 0;
+  border-bottom: 1px dotted var(--rule);
+}
+.vs-row .k {
+  font: 11px ui-monospace, monospace;
+  color: var(--type-2);
+  letter-spacing: 0.04em;
+}
+.vs-row .v {
+  font: 11px ui-monospace, monospace;
+  color: var(--type-1);
+  font-weight: 500;
+}
+.vs-row .v.pos { color: var(--pos); }
+.vs-row .v.neg { color: var(--neg); }
+.vs-row .v.warn { color: var(--warn); }
+
+.vs-tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 5px;
+  border-radius: 2px;
+  font: 8px ui-monospace, monospace;
+  letter-spacing: 0.1em;
+  vertical-align: middle;
+  text-transform: uppercase;
+}
+.vs-tag.live { color: var(--pos); border: 1px solid color-mix(in srgb, var(--pos) 40%, transparent); }
+.vs-tag.bt   { color: var(--type-3); border: 1px solid var(--rule); }
+
+.vs-attrib-row {
+  display: grid;
+  grid-template-columns: 120px 1fr 50px;
+  gap: 10px;
+  align-items: center;
+  padding: 4px 0;
+}
+.vs-attrib-row .k { font: 11px ui-monospace, monospace; color: var(--type-2); }
+.vs-attrib-row .bar { height: 5px; background: var(--rule); border-radius: 2px; position: relative; }
+.vs-attrib-row .bar > div { position: absolute; left: 0; top: 0; height: 100%; border-radius: 2px; }
+.vs-attrib-row .v { font: 11px ui-monospace, monospace; text-align: right; font-weight: 500; }
+
+.vs-actions {
+  display: flex; gap: 8px; align-items: center;
+  padding-bottom: 16px; margin-bottom: 20px;
+  border-bottom: 1px solid var(--rule);
+}
+.vs-actions button, .vs-actions a {
+  background: transparent;
+  border: 1px solid var(--rule);
+  color: var(--type-1);
+  padding: 6px 12px;
+  border-radius: 3px;
+  font: 11px ui-monospace, monospace;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  text-decoration: none;
+}
+.vs-actions button:hover, .vs-actions a:hover { border-color: var(--accent-hi); color: var(--accent-hi); }
+
+/* Print — clean PDF export */
+@media print {
+  body { background: white !important; color: black !important; }
+  .vs-sheet { max-width: 100%; padding: 0; }
+  .vs-actions, #topbar, #tabbar, #brand-strip { display: none !important; }
+  .vs-section h3 { color: #666 !important; }
+  .vs-row { border-color: #ddd !important; }
+  .vs-hero { border-color: #000 !important; }
+}
+
 /* Dates strip — Generated / Valid Until / Backtested Until / Last Updated */
 .dates-strip {
   display: flex;
@@ -1646,10 +1756,13 @@ function decisionCardHtml(r, i) {
       ${topContributorsBlock(r)}
     </div>` : ''}
 
-    <!-- Dates + Open Details -->
+    <!-- Dates + Open Details / Sheet -->
     <div style="margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--rule); display: flex; justify-content: space-between; align-items: center; font: 10px ui-monospace, monospace; color: var(--type-3); letter-spacing: 0.03em;">
       <span>Gen ${dates.generated} · Valid ${dates.valid_until}${dates.age_days != null ? ' · age ' + dates.age_days + 'd' : ''}</span>
-      <span style="color: var(--accent-hi);">Open Details →</span>
+      <span>
+        <a href="#/sheet/${r.ticker}" onclick="event.stopPropagation()" style="color: var(--type-2); text-decoration: none; padding: 2px 8px; border: 1px solid var(--rule); border-radius: 2px; margin-right: 6px;">📄 Sheet</a>
+        <span style="color: var(--accent-hi);">Open Details →</span>
+      </span>
     </div>`;
 }
 
@@ -2009,7 +2122,9 @@ function renderStockDetail(ticker) {
   head.appendChild(el('div', {html: `
     <a href="#/" class="detail-back">← DASHBOARD</a>
     <div class="detail-title">${r.ticker}</div>
-    <div class="detail-subtitle">${r.sector || '—'} · ${r.industry || '—'}</div>`}));
+    <div class="detail-subtitle">${r.sector || '—'} · ${r.industry || '—'}
+      <a href="#/sheet/${r.ticker}" style="margin-left: 12px; padding: 2px 8px; border: 1px solid var(--rule); border-radius: 2px; font: 10px ui-monospace, monospace; color: var(--type-2); text-decoration: none; letter-spacing: 0.06em; vertical-align: middle;">📄 One-Page Sheet</a>
+    </div>`}));
   head.appendChild(el('div', {style: 'text-align: right;', html: `
     ${pillFor(r.action)}
     <div style="margin-top: 8px;">
@@ -2041,6 +2156,240 @@ function renderStockDetail(ticker) {
   main.appendChild(sectionValidationTimeline(r));
   main.appendChild(sectionValidationFailures(r));
   main.appendChild(sectionValidationSimilar(r));
+}
+
+// ==========================================================================
+// VALIDATION SHEET — one consolidated per-ticker page (Bloomberg-style).
+// Aggregates existing artifacts into a single view. No new backend engines.
+// Every metric is tagged with its source (LIVE archive vs BACKTESTER).
+// Print-friendly: browser Print → PDF is the export path.
+// ==========================================================================
+function renderValidationSheet(ticker) {
+  const main = document.getElementById('main');
+  main.innerHTML = '';
+  const canonical = buildCanonicalList();
+  const r = canonical.find(x => String(x.ticker) === String(ticker));
+
+  if (!r) {
+    main.appendChild(el('div', {class: 'empty',
+      html: `No data for <strong>${ticker}</strong>. <a href="#/" style="color: var(--accent-hi)">← back to dashboard</a>`}));
+    return;
+  }
+
+  const rh   = STATE.recommendation_history;
+  const info = rh && rh.tickers && rh.tickers[r.ticker];
+  const acc  = (info && info.accuracy) || {};
+  const timeline = (info && info.timeline) || [];
+  const closed   = (info && info.closed_trades) || [];
+  const nArchive = (rh && rh.n_days_archived) || 0;
+
+  const ids = computeInvestmentDecisionScore(r);
+  const idsColor = ids == null ? 'var(--type-3)' :
+                     ids >= 75 ? 'var(--pos)' :
+                     ids >= 55 ? 'var(--type-1)' :
+                     ids >= 40 ? 'var(--warn)' : 'var(--neg)';
+  const dates = cardDates(r);
+  const upside = upsideFor(r);
+  const rr     = riskRewardFor(r);
+
+  // Data-source tagging helper
+  const TAG_LIVE = '<span class="vs-tag live">Live</span>';
+  const TAG_BT   = '<span class="vs-tag bt">Backtester</span>';
+
+  const wrap = el('div', {class: 'vs-sheet'});
+
+  // ── Action bar (print + back + open detail)
+  const actions = el('div', {class: 'vs-actions'});
+  actions.innerHTML = `
+    <a href="#/" style="margin-right: auto;">← Dashboard</a>
+    <a href="#/stock/${r.ticker}">Full Detail →</a>
+    <button onclick="window.print()">📄 Print / Save as PDF</button>`;
+  wrap.appendChild(actions);
+
+  // ── Hero header
+  const hero = el('div', {class: 'vs-hero'});
+  hero.innerHTML = `
+    <div>
+      <div class="vs-ticker">${r.ticker}</div>
+      <div class="vs-sub">${r.sector || '—'}${r.industry ? ' · ' + r.industry : ''}</div>
+      <div style="margin-top: 6px;">${pillFor(r.action)}</div>
+    </div>
+    <div class="vs-score">
+      <div class="vs-score-n" style="color: ${idsColor};">${ids != null ? ids : '—'}</div>
+      <div class="vs-score-l">Decision Score</div>
+      <div class="vs-score-stars">${starsForScore(ids)}</div>
+    </div>
+    <div style="text-align: right;">
+      <div style="font: 10px ui-monospace, monospace; color: var(--type-3); letter-spacing: 0.1em;">GENERATED</div>
+      <div style="font: 12px ui-monospace, monospace; color: var(--type-1);">${dates.generated}</div>
+      <div style="font: 10px ui-monospace, monospace; color: var(--type-3); letter-spacing: 0.1em; margin-top: 6px;">VALID UNTIL</div>
+      <div style="font: 12px ui-monospace, monospace; color: var(--type-1);">${dates.valid_until}</div>
+      ${dates.age_days != null ? `<div style="font: 10px ui-monospace, monospace; color: var(--type-3); margin-top: 6px;">Age ${dates.age_days}d</div>` : ''}
+    </div>`;
+  wrap.appendChild(hero);
+
+  // Helper to render a row
+  const row = (k, v, cls, sub) => `
+    <div class="vs-row">
+      <span class="k">${k}${sub ? ' <span style="opacity:0.6">' + sub + '</span>' : ''}</span>
+      <span class="v ${cls || ''}">${v}</span>
+    </div>`;
+
+  // ── Section 1: Price & Levels
+  const priceSection = el('div', {class: 'vs-section'});
+  const dayStr  = r.day_change_pct == null ? '—' :
+                    `${r.day_change_pct > 0 ? '+' : ''}${(r.day_change_pct * 100).toFixed(2)}%`;
+  const dayCls  = r.day_change_pct == null ? '' : (r.day_change_pct > 0 ? 'pos' : 'neg');
+  priceSection.innerHTML = `
+    <h3>Price & Levels ${TAG_LIVE}</h3>
+    <div class="vs-grid-2">
+      <div>
+        ${row('CMP',            fmt.price(r.cmp))}
+        ${row('Day Change',     dayStr, dayCls)}
+        ${row('Previous Close', fmt.price(r.previous_close))}
+        ${row('52W High',       fmt.price(r.high_52w))}
+        ${row('52W Low',        fmt.price(r.low_52w))}
+      </div>
+      <div>
+        ${row('Buy Zone',       fmt.price(r.buy_low) + ' – ' + fmt.price(r.buy_high))}
+        ${row('Target',         fmt.price(r.target_1), 'pos', upside != null ? '+' + (upside * 100).toFixed(1) + '%' : '')}
+        ${row('Stop Loss',      fmt.price(r.stop_loss), 'neg')}
+        ${row('R : R',          rr != null ? rr.toFixed(2) : '—')}
+        ${row('Expected Hold',  r.expected_hold_days ? r.expected_hold_days + ' days' : '—')}
+      </div>
+    </div>`;
+  wrap.appendChild(priceSection);
+
+  // ── Section 2: Historical Reliability (BACKTESTER — 1060 trades from learning.parquet)
+  const relSection = el('div', {class: 'vs-section'});
+  const relStars = r.reliability != null ? starsForScore((r.reliability / 5) * 100) : '☆☆☆☆☆';
+  const nHist = r.n_historical || 0;
+  const wins  = nHist && r.historical_wr != null ? Math.round(nHist * r.historical_wr) : 0;
+  const losses = nHist ? nHist - wins : 0;
+  relSection.innerHTML = `
+    <h3>Historical Reliability ${TAG_BT}</h3>
+    <div class="vs-grid-2">
+      <div>
+        ${row('Reliability',       `<span style="color:var(--warn); letter-spacing:2px; font-family: ui-monospace, monospace;">${relStars}</span>`)}
+        ${row('Total Trades',      nHist)}
+        ${row('Winners',           wins, 'pos')}
+        ${row('Losers',            losses, 'neg')}
+      </div>
+      <div>
+        ${row('Historical Win Rate', r.historical_wr != null ? Math.round(r.historical_wr * 100) + '%' : '—', r.historical_wr >= 0.5 ? 'pos' : 'neg')}
+        ${row('Avg Return',          r.avg_return_pct != null ? (r.avg_return_pct * 100).toFixed(2) + '%' : '—', r.avg_return_pct > 0 ? 'pos' : 'neg')}
+        ${row('Avg Holding',         r.avg_holding_d != null ? Math.round(r.avg_holding_d) + ' days' : '—')}
+        ${row('Best Trade',          acc.best_return_pct != null ? '+' + (acc.best_return_pct * 100).toFixed(2) + '%' : '—', 'pos')}
+        ${row('Worst Trade',         acc.worst_return_pct != null ? (acc.worst_return_pct * 100).toFixed(2) + '%' : '—', 'neg')}
+      </div>
+    </div>`;
+  wrap.appendChild(relSection);
+
+  // ── Section 3: Prediction Accuracy (BACKTESTER)
+  const paSection = el('div', {class: 'vs-section'});
+  paSection.innerHTML = `
+    <h3>Prediction Accuracy ${TAG_BT}</h3>
+    <div class="vs-grid-2">
+      <div>
+        ${row('Accuracy',            acc.accuracy != null ? Math.round(acc.accuracy * 100) + '%' : '—', acc.accuracy >= 0.6 ? 'pos' : acc.accuracy < 0.4 ? 'neg' : '')}
+        ${row('Correct',             acc.n_correct || 0, 'pos')}
+        ${row('Incorrect',           acc.n_incorrect || 0, 'neg')}
+      </div>
+      <div>
+        ${row('Median Return',       acc.median_return_pct != null ? (acc.median_return_pct * 100).toFixed(2) + '%' : '—')}
+        ${row('Live Archive Days',   `${nArchive} <span style="opacity:0.6">day${nArchive !== 1 ? 's' : ''} since 2026-07-18</span>`)}
+      </div>
+    </div>`;
+  wrap.appendChild(paSection);
+
+  // ── Section 4: Winner Genome (BACKTESTER; will become LIVE post-30d)
+  const wgSection = el('div', {class: 'vs-section'});
+  if (r.wg_n_signatures > 0) {
+    wgSection.innerHTML = `
+      <h3>Winner Genome ${TAG_BT}</h3>
+      <div style="padding: 8px 10px; background: color-mix(in srgb, var(--accent) 5%, transparent); border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent); border-radius: 3px; font-size: 12px; color: var(--type-1); line-height: 1.6;">
+        Looks similar to <b>${r.wg_n_hist_winners}</b> historical top-decile winners.
+        Historical avg return <b style="color:var(--pos)">${(r.wg_best_avg_return * 100).toFixed(1)}%</b>,
+        historical success <b>${(r.wg_hist_success * 100).toFixed(0)}%</b>.
+        Matches <b>${r.wg_n_signatures}</b> signature${r.wg_n_signatures > 1 ? 's' : ''} at lift <b>${r.wg_avg_lift.toFixed(2)}</b>.
+      </div>`;
+  } else {
+    wgSection.innerHTML = `
+      <h3>Winner Genome ${TAG_BT}</h3>
+      <div style="padding: 8px 10px; font-size: 12px; color: var(--type-3);">
+        No signature match today. This ticker's pre-trade profile does not
+        currently resemble any of the ${STATE.winner_genome?.n_signatures || 0}
+        mined top-decile signatures.
+      </div>`;
+  }
+  wrap.appendChild(wgSection);
+
+  // ── Section 5: Decision Attribution
+  const daSection = el('div', {class: 'vs-section'});
+  if (r.da_contributions) {
+    const contribs = r.da_contributions;
+    const order = ['research','fusion','winner_genome','validation','risk','dna','sector','market'];
+    const rows = order.map(k => {
+      const v = contribs[k] || 0;
+      return `<div class="vs-attrib-row">
+        <span class="k">${DA_LABELS[k]}</span>
+        <div class="bar"><div style="width: ${v}%; background: ${DA_COLORS[k]};"></div></div>
+        <span class="v" style="color: ${DA_COLORS[k]}">${v.toFixed(1)}%</span>
+      </div>`;
+    }).join('');
+    daSection.innerHTML = `<h3>Decision Attribution ${TAG_LIVE}</h3>${rows}`;
+  } else {
+    daSection.innerHTML = `<h3>Decision Attribution</h3><div style="color: var(--type-3); font-size: 12px;">Not available.</div>`;
+  }
+  wrap.appendChild(daSection);
+
+  // ── Section 6: Recommendation Timeline (LIVE archive — will be sparse today)
+  const tlSection = el('div', {class: 'vs-section'});
+  const tlHeader = `<h3>Recommendation Timeline ${TAG_LIVE} <span style="text-transform: none; letter-spacing: normal; margin-left: 8px; opacity: 0.6;">(populates as archive grows)</span></h3>`;
+  if (timeline.length === 0) {
+    tlSection.innerHTML = tlHeader + `<div style="color: var(--type-3); font-size: 12px;">No archived days yet — will populate on daily runs.</div>`;
+  } else {
+    const tlRows = timeline.slice().reverse().map(row => `
+      <div class="vs-row">
+        <span class="k">${row.date}</span>
+        <span class="v">${row.action ? pillFor(row.action) : '<span style="opacity:0.5">—</span>'}${row.cmp != null ? ' <span style="opacity:0.7; margin-left: 12px;">CMP ' + fmt.price(row.cmp) + '</span>' : ''}${row.intel != null ? ' <span style="opacity:0.7; margin-left: 12px;">Intel ' + Math.round(row.intel) + '</span>' : ''}</span>
+      </div>`).join('');
+    tlSection.innerHTML = tlHeader + tlRows;
+  }
+  wrap.appendChild(tlSection);
+
+  // ── Section 7: Historical Closed Trades (BACKTESTER)
+  if (closed.length) {
+    const tSection = el('div', {class: 'vs-section'});
+    let tRows = '';
+    for (const t of closed.slice(0, 10)) {
+      const outcomeCls = t.is_winner ? 'pos' : 'neg';
+      const outcomeIco = t.is_winner ? '✔' : '✖';
+      tRows += `<div class="vs-row">
+        <span class="k">${t.entry_date} → ${t.exit_date}</span>
+        <span class="v ${outcomeCls}">${outcomeIco} ${t.return_pct != null ? (t.return_pct * 100).toFixed(2) + '%' : '—'}</span>
+      </div>`;
+    }
+    if (closed.length > 10) {
+      tRows += `<div style="text-align: right; padding-top: 8px; font: 10px ui-monospace, monospace; color: var(--type-3);">+ ${closed.length - 10} older trades — see Full Detail →</div>`;
+    }
+    tSection.innerHTML = `<h3>Historical Closed Trades ${TAG_BT} <span style="text-transform: none; letter-spacing: normal; margin-left: 8px; opacity: 0.6;">newest first</span></h3>${tRows}`;
+    wrap.appendChild(tSection);
+  }
+
+  // ── Section 8: Metadata / provenance footer
+  const meta = el('div', {class: 'vs-section', style: 'margin-top: 32px; padding-top: 12px; border-top: 1px solid var(--rule);'});
+  meta.innerHTML = `
+    <div style="font: 9px ui-monospace, monospace; letter-spacing: 0.12em; color: var(--type-3); text-transform: uppercase; margin-bottom: 6px;">Provenance</div>
+    <div style="font: 10px ui-monospace, monospace; color: var(--type-3); line-height: 1.7;">
+      <b>${TAG_LIVE}</b> = data from live AEGIS runs archived since 2026-07-18 (${nArchive} day${nArchive !== 1 ? 's' : ''}). <br>
+      <b>${TAG_BT}</b> = data from historical backtester (learning.parquet · ${STATE.winner_genome?.n_trades || 1060} closed trades). <br>
+      Sheet aggregated from: recommendations.json · investment_intelligence.json · risk_capital_v2_latest.json · stock_validation.json · winner_genome.json · decision_attribution.json · recommendation_history.json · price_context.json. <br>
+      Generated ${new Date().toLocaleString()}.
+    </div>`;
+  wrap.appendChild(meta);
+
+  main.appendChild(wrap);
 }
 
 // ── Recommendation Timeline (from Institutional Memory archive)
@@ -2656,6 +3005,9 @@ function renderRoute() {
 
   if (path === '/admin') {
     renderAdminPage();
+  } else if (path.startsWith('/sheet/')) {
+    const ticker = decodeURIComponent(path.substring('/sheet/'.length));
+    renderValidationSheet(ticker);
   } else if (path.startsWith('/stock/')) {
     const ticker = decodeURIComponent(path.substring('/stock/'.length));
     renderStockDetail(ticker);
