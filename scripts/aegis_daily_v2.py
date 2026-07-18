@@ -97,6 +97,13 @@ STEPS = [
         "requires": [],   # will use whatever is available
     },
     {
+        "name": "stock_validation",
+        "desc": "Per-ticker historical validation rollup",
+        "script": "research/validation_v2/run_stock_history.py",
+        "produces": ["reports/stock_validation.json"],
+        "requires": ["reports/learning.parquet"],
+    },
+    {
         "name": "decision_center",
         "desc": "Decision Center v1.0 (overnight diff + exit center + watchlist)",
         "script": "research/decision_center/run.py",

@@ -513,6 +513,7 @@ async function loadState() {
     'strategy_doctor.json',
     'decision_center_today.json',
     'decision_center_notifications.json',
+    'stock_validation.json',
   ];
   const entries = await Promise.all(targets.map(async n => [n.replace(/\.json$/, ''), await fetchJson(n)]));
   for (const [k, v] of entries) STATE[k] = v;
@@ -1204,8 +1205,224 @@ function renderStockDetail(ticker) {
   // Section 4 — Explainability (reasons + conflicts)
   main.appendChild(sectionExplainability(r));
 
-  // Section 5 — Historical
-  main.appendChild(sectionHistorical(r));
+  // Section 5 — Historical validation (per-ticker rollup)
+  main.appendChild(sectionValidationSummary(r));
+  main.appendChild(sectionValidationTimeline(r));
+  main.appendChild(sectionValidationFailures(r));
+  main.appendChild(sectionValidationSimilar(r));
+}
+
+// ==========================================================================
+// Stock-level Historical Validation sections
+// ==========================================================================
+function _stockValidation(ticker) {
+  const sv = STATE.stock_validation;
+  if (!sv || !sv.tickers) return null;
+  return sv.tickers[ticker] || null;
+}
+
+function _starBadge(n) {
+  const filled = '★'.repeat(n);
+  const empty  = '☆'.repeat(5 - n);
+  const cls = n >= 4 ? 'pos' : n >= 3 ? 'warn' : n > 0 ? 'neg' : 'mute';
+  return `<span class="${cls}" style="letter-spacing: 0.1em; font-size: 18px;">${filled}${empty}</span>`;
+}
+
+function sectionValidationSummary(r) {
+  const wrap = el('div', {class: 'section'});
+  const head = el('div', {class: 'section-head'});
+  head.appendChild(el('h2', {text: 'Historical Validation'}));
+  head.appendChild(el('div', {class: 'meta', text: 'Has AEGIS recommended this before? Did it work?'}));
+  wrap.appendChild(head);
+
+  const v = _stockValidation(r.ticker);
+  if (!v || v.n_trades === 0) {
+    const card = el('div', {class: 'card'});
+    card.appendChild(el('div', {class: 'empty',
+      text: `No historical recommendations for ${r.ticker} in the learning corpus. ` +
+             `This will be its first tracked trade.`}));
+    wrap.appendChild(card);
+    return wrap;
+  }
+
+  const strip = el('div', {class: 'strip'});
+  const wrPct = (v.win_rate * 100).toFixed(0);
+  const wrCls = v.win_rate >= 0.7 ? 'pos' : v.win_rate >= 0.5 ? 'warn' : 'neg';
+  strip.appendChild(el('div', {class: 'tile', html: `
+    <span class="label">Reliability</span>
+    <div style="line-height: 1.4;">${_starBadge(v.reliability_stars)}</div>
+    <div class="sub">${v.reliability_stars}/5 · based on ${v.n_trades} historical trades</div>`}));
+  strip.appendChild(el('div', {class: 'tile', html: `
+    <span class="label">Historical Win Rate</span>
+    <div class="value ${wrCls}">${wrPct}<span class="unit">%</span></div>
+    <div class="sub">${v.n_winners} winners · ${v.n_losers} losers</div>`}));
+  strip.appendChild(el('div', {class: 'tile', html: `
+    <span class="label">Average Return</span>
+    <div class="value ${v.avg_return_pct > 0 ? 'pos' : 'neg'}">${(v.avg_return_pct * 100).toFixed(2)}<span class="unit">%</span></div>
+    <div class="sub">per trade · over ${v.n_trades} recommendations</div>`}));
+  strip.appendChild(el('div', {class: 'tile', html: `
+    <span class="label">Average Holding</span>
+    <div class="value">${v.avg_holding_days}<span class="unit">days</span></div>
+    <div class="sub">typical trade duration</div>`}));
+  strip.appendChild(el('div', {class: 'tile', html: `
+    <span class="label">Largest Gain</span>
+    <div class="value pos">${(v.largest_gain_pct * 100).toFixed(1)}<span class="unit">%</span></div>`}));
+  strip.appendChild(el('div', {class: 'tile', html: `
+    <span class="label">Largest Loss</span>
+    <div class="value neg">${(v.largest_loss_pct * 100).toFixed(1)}<span class="unit">%</span></div>`}));
+  strip.appendChild(el('div', {class: 'tile', html: `
+    <span class="label">Current Confidence</span>
+    <div class="value">${v.current_confidence != null ? (v.current_confidence * 100).toFixed(0) + '%' : '—'}</div>
+    <div class="sub">historical avg ${v.historical_confidence != null ? (v.historical_confidence * 100).toFixed(0) + '%' : '—'}</div>`}));
+  strip.appendChild(el('div', {class: 'tile', html: `
+    <span class="label">MFE (avg peak)</span>
+    <div class="value pos">${(v.avg_mfe_pct * 100).toFixed(1)}<span class="unit">%</span></div>
+    <div class="sub">avg MAE ${(v.avg_mae_pct * 100).toFixed(1)}%</div>`}));
+  wrap.appendChild(strip);
+  return wrap;
+}
+
+function sectionValidationTimeline(r) {
+  const v = _stockValidation(r.ticker);
+  if (!v || !v.trades || !v.trades.length) return el('span');
+
+  const wrap = el('div', {class: 'section'});
+  const head = el('div', {class: 'section-head'});
+  head.appendChild(el('h2', {text: 'Recommendation Timeline'}));
+  head.appendChild(el('div', {class: 'meta', text: `${v.trades.length} past · newest first`}));
+  wrap.appendChild(head);
+
+  const card = el('div', {class: 'card'});
+  const scrollWrap = el('div', {class: 'scroll-x'});
+  const table = el('table', {class: 'decision'});
+  table.innerHTML = `<thead><tr>
+    <th>Entry Date</th>
+    <th>Exit Date</th>
+    <th class="right">Return</th>
+    <th class="right">Days Held</th>
+    <th class="right">MFE Peak</th>
+    <th class="right">MAE Low</th>
+    <th class="center">Result</th>
+    <th>Reason</th>
+  </tr></thead>`;
+  const tbody = el('tbody');
+  const sorted = v.trades.slice().reverse();   // newest first
+  for (const t of sorted) {
+    const winCls  = t.is_winner ? 'pos' : 'neg';
+    const winPill = t.is_winner ? '<span class="pill buy">✔ WIN</span>'
+                                    : '<span class="pill sell">✖ LOSS</span>';
+    const reason = t.is_winner ? (t.success_reason || '—') : (t.failure_reason || '—');
+    tbody.innerHTML += `<tr>
+      <td>${t.entry_date}</td>
+      <td class="mute">${t.exit_date}</td>
+      <td class="right ${winCls}">${(t.return_pct * 100).toFixed(2)}%</td>
+      <td class="right mute">${t.n_bars_held}d</td>
+      <td class="right pos">${(t.mfe_pct * 100).toFixed(1)}%</td>
+      <td class="right neg">${(t.mae_pct * 100).toFixed(1)}%</td>
+      <td class="center">${winPill}</td>
+      <td class="mute" style="font-size: 11px;">${reason}</td>
+    </tr>`;
+  }
+  table.appendChild(tbody);
+  scrollWrap.appendChild(table);
+  card.appendChild(scrollWrap);
+  wrap.appendChild(card);
+  return wrap;
+}
+
+function sectionValidationFailures(r) {
+  const v = _stockValidation(r.ticker);
+  if (!v || !v.past_failures || !v.past_failures.length) return el('span');
+
+  const wrap = el('div', {class: 'section'});
+  const head = el('div', {class: 'section-head'});
+  head.appendChild(el('h2', {text: 'Failure Analysis'}));
+  head.appendChild(el('div', {class: 'meta', text: 'What went wrong before · are those conditions present today?'}));
+  wrap.appendChild(head);
+
+  const grid = el('div', {class: 'grid-2'});
+
+  // Left: past failures list
+  const failCard = el('div', {class: 'card'});
+  failCard.appendChild(el('h3', {html: `Past Failures <span class="count">${v.past_failures.length}</span>`}));
+  const ul = el('ul', {class: 'reason-list'});
+  for (const f of v.past_failures.slice().reverse().slice(0, 6)) {
+    const li = el('li');
+    li.innerHTML = `<span class="pill sell">${(f.return_pct * 100).toFixed(2)}%</span>
+                      <span class="ticker" style="margin-left: 8px;">${f.entry_date} → ${f.exit_date}</span>
+                      <div style="color: var(--type-2); font-size: 12px; margin-top: 4px;">
+                        ${f.failure_reason || 'Ordinary loser'}
+                      </div>`;
+    ul.appendChild(li);
+  }
+  failCard.appendChild(ul);
+  grid.appendChild(failCard);
+
+  // Right: current setup check
+  const chk = v.current_setup_check || {};
+  const chkCard = el('div', {class: 'card'});
+  chkCard.appendChild(el('h3', {text: 'Current Setup vs Past Failures'}));
+  if (!chk.recurrence_flags || !chk.recurrence_flags.length) {
+    chkCard.appendChild(el('div', {style: 'padding: 12px 0;', html: `
+      <span class="pill buy">${chk.verdict || 'NO KNOWN FAILURE PATTERNS'}</span>
+      <div style="color: var(--type-2); font-size: 12px; margin-top: 8px;">
+        The failure conditions that hurt this ticker before do not obviously
+        apply to today's setup. Standard risk management applies.
+      </div>`}));
+  } else {
+    for (const c of chk.recurrence_flags) {
+      chkCard.innerHTML += `<div style="padding: 8px 0; border-bottom: 1px dashed var(--rule);">
+        <div style="font: 10px ui-monospace, monospace; letter-spacing: 0.12em; color: var(--warn); text-transform: uppercase;">${c.past}</div>
+        <div style="color: var(--type-1); font-size: 12px; margin-top: 4px;">${c.current}</div>
+      </div>`;
+    }
+  }
+  grid.appendChild(chkCard);
+
+  wrap.appendChild(grid);
+  return wrap;
+}
+
+function sectionValidationSimilar(r) {
+  const v = _stockValidation(r.ticker);
+  if (!v || !v.similar_trades || !v.similar_trades.length) return el('span');
+
+  const wrap = el('div', {class: 'section'});
+  const head = el('div', {class: 'section-head'});
+  head.appendChild(el('h2', {text: 'Similar Historical Trades'}));
+  head.appendChild(el('div', {class: 'meta',
+    text: 'Recent trades from the same sector · what to expect for a fresh setup'}));
+  wrap.appendChild(head);
+
+  const card = el('div', {class: 'card'});
+  const table = el('table', {class: 'decision'});
+  table.innerHTML = `<thead><tr>
+    <th>Ticker</th>
+    <th>Sector</th>
+    <th>Entry</th>
+    <th>Exit</th>
+    <th class="right">Return</th>
+    <th class="right">Held</th>
+    <th class="center">Result</th>
+  </tr></thead>`;
+  const tbody = el('tbody');
+  for (const s of v.similar_trades) {
+    const cls = s.is_winner ? 'pos' : 'neg';
+    const pill = s.is_winner ? '<span class="pill buy">✔ WIN</span>' : '<span class="pill sell">✖ LOSS</span>';
+    tbody.innerHTML += `<tr onclick="location.hash='#/stock/${s.ticker}'" style="cursor:pointer;">
+      <td class="ticker">${s.ticker}</td>
+      <td class="mute">${s.sector}</td>
+      <td>${s.entry_date}</td>
+      <td class="mute">${s.exit_date}</td>
+      <td class="right ${cls}">${(s.return_pct * 100).toFixed(2)}%</td>
+      <td class="right mute">${s.n_bars_held}d</td>
+      <td class="center">${pill}</td>
+    </tr>`;
+  }
+  table.appendChild(tbody);
+  card.appendChild(el('div', {class: 'scroll-x'}, table));
+  wrap.appendChild(card);
+  return wrap;
 }
 
 function sectionPrice(r) {
@@ -1466,37 +1683,8 @@ function sectionExplainability(r) {
   return wrap;
 }
 
-function sectionHistorical(r) {
-  const wrap = el('div', {class: 'section'});
-  const head = el('div', {class: 'section-head'});
-  head.appendChild(el('h2', {text: 'Historical Performance'}));
-  wrap.appendChild(head);
-
-  // Pull DNA feedback for this ticker
-  const dnaAll = (STATE.recommendation_dna_feedback && STATE.recommendation_dna_feedback.priors_all) || [];
-  const dna = dnaAll.find(p => String(p.ticker) === String(r.ticker));
-
-  const strip = el('div', {class: 'strip'});
-  strip.appendChild(el('div', {class: 'tile', html: `
-    <span class="label">Historical Trades</span>
-    <div class="value">${dna ? dna.n_historical : '—'}</div>
-    <div class="sub">${dna && dna.hist_evidence ? 'Sample size' : 'No history for this pattern'}</div>`}));
-  strip.appendChild(el('div', {class: 'tile', html: `
-    <span class="label">Historical Win Rate</span>
-    <div class="value">${dna && dna.prior_win_rate != null ? fmt.pct(dna.prior_win_rate, 1) : '—'}</div>
-    <div class="sub">${dna ? `Pattern: ${dna.pattern}` : '—'}</div>`}));
-  strip.appendChild(el('div', {class: 'tile', html: `
-    <span class="label">Historical Expectancy</span>
-    <div class="value ${dna && dna.prior_expectancy > 0 ? 'pos' : 'neg'}">${dna && dna.prior_expectancy != null ? fmt.pct(dna.prior_expectancy, 2) : '—'}</div>
-    <div class="sub">Average return per trade</div>`}));
-  strip.appendChild(el('div', {class: 'tile', html: `
-    <span class="label">Similar Patterns Seen</span>
-    <div class="value">${dna ? dna.n_similar_dna : '—'}</div>
-    <div class="sub">Recommendations with same signature</div>`}));
-
-  wrap.appendChild(strip);
-  return wrap;
-}
+// (Old thin sectionHistorical removed — superseded by the four
+// sectionValidation* functions above which read stock_validation.json)
 
 // ==========================================================================
 // Router
