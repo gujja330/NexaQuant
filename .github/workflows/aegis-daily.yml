@@ -122,6 +122,22 @@ jobs:
           python india/sheets_sync.py || echo "sheets sync skipped/failed (non-fatal)"
           rm -f secrets/prism-sheets-sa.json
 
+      # 2026-07-18 · Phase 2 v2 engines orchestrator.
+      # Runs Adaptive Rec v2.0 -> Validation v2.0 -> Risk & Capital v2.0 ->
+      # DNA feedback v1.5 -> Knowledge Graph v1.6 -> Fusion v2.1.
+      # Telegram (UX030) is the last step of aegis_daily_v2.py itself and
+      # is skipped there because we prefer the sealed retry wrapper below
+      # for delivery reliability. --continue means a Phase 2 failure
+      # cannot block the base pipeline's Telegram delivery.
+      - name: Run Phase 2 v2 orchestrator (Adaptive Rec v2.0 -> Fusion v2.1)
+        if: steps.guard.outputs.run == 'true' && steps.freshcheck.outputs.verified == 'true'
+        env:
+          # deliberately NOT passing TELEGRAM_* so the Phase 2 telegram step
+          # skips gracefully -- delivery is owned by the sealed wrapper below.
+          TELEGRAM_BOT_TOKEN: ""
+          TELEGRAM_CHAT_ID:   ""
+        run: python scripts/aegis_daily_v2.py --continue || echo "Phase 2 orchestrator reported issues (non-fatal)"
+
       # 2026-07-15 reliability upgrade: pre-notify health check + retry wrapper.
       # See docs/TELEGRAM_RELIABILITY_PLAN.md for root causes fixed here.
       - name: Telegram health check (getMe + getChat)
@@ -155,5 +171,13 @@ jobs:
           git config user.name  "aegis-bot"
           git config user.email "aegis-bot@users.noreply.github.com"
           git add reports/AEGIS_*.xlsx data/aegis_*.csv data/raw/india/*_D1.parquet data/.published docs/ || true
+          # Phase 2 v2 artifacts (best-effort; skip if any are missing on a given day)
+          git add reports/investment_intelligence.json reports/intelligence_summary.json reports/intelligence_conflicts.json reports/intelligence_explanation.json reports/investment_intelligence.parquet 2>/dev/null || true
+          git add reports/adaptive_rec_v2_signal.json reports/adaptive_rec_v2_scoreboard.json reports/adaptive_rec_v2_feature_importance.json reports/adaptive_rec_v2_reliability.json reports/adaptive_rec_v2_signal.parquet reports/adaptive_rec_v2_migration.md 2>/dev/null || true
+          git add reports/validation_v2_latest.json reports/validation_v2_daily_*.json reports/validation_v2_daily_*.md 2>/dev/null || true
+          git add reports/risk_capital_v2_latest.json reports/risk_capital_v2_*.json reports/risk_capital_v2_explanation_*.md reports/risk_capital_v2_sizing.parquet 2>/dev/null || true
+          git add reports/recommendation_dna_feedback.json 2>/dev/null || true
+          git add reports/knowledge_graph.json reports/knowledge_graph.parquet reports/community_clusters.json reports/stress_scenarios.json reports/graph_statistics.json reports/entity_network.json reports/company_network.json reports/sector_network.json reports/relationship_matrix.json reports/recommendation_paths.json reports/influence_propagation.json reports/graph_timeline.json 2>/dev/null || true
+          git add reports/aegis_daily_v2_history.jsonl 2>/dev/null || true
           git diff --cached --quiet || git commit -m "AEGIS daily: append market data + refresh report + DB [skip ci]"
           git push || true

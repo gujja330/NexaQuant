@@ -1,0 +1,326 @@
+"""AEGIS Daily · Phase 2 v2 engines orchestrator.
+
+Runs every Phase 2 v2 module in the correct dependency order, once
+per day. The old daily pipeline (india/recommendation_generator.py +
+DEV017-DEV031) is unchanged — this script runs AFTER it to produce
+the new v2 artifacts on top of the fresh base recommendations.
+
+Dependency order:
+  1. adaptive_rec_v2/run.py           (needs learning.parquet)
+  2. validation_v2/run.py             (needs recommendations.json + raw prices)
+  3. risk_capital_v2/run.py           (needs recommendations.json + global_context.json)
+  4. recommendation_dna/run_feedback.py  (needs DNA + learning + recommendations)
+  5. knowledge_graph/run.py           (needs recommendations + portfolio + backtest)
+  6. adaptive_rec_v2/run_fusion.py    (needs ALL of the above)
+
+Usage:
+  python scripts/aegis_daily_v2.py                # run all, fail-fast
+  python scripts/aegis_daily_v2.py --continue     # keep going on failure
+  python scripts/aegis_daily_v2.py --only fusion  # run only fusion
+  python scripts/aegis_daily_v2.py --list         # print the plan and exit
+  python scripts/aegis_daily_v2.py --dry-run      # print each command without running
+
+Every step prints a banner + captures stdout/stderr, and the final
+summary reports per-step verdict + elapsed time + a full run ledger
+appended to reports/aegis_daily_v2_history.jsonl for auditability.
+"""
+from __future__ import annotations
+
+import argparse
+import io
+import json
+import os
+import subprocess
+import sys
+import time
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+
+try:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+except Exception:
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
+
+
+_ROOT = Path(__file__).resolve().parents[1]
+LEDGER = _ROOT / "reports" / "aegis_daily_v2_history.jsonl"
+
+
+# ─── Pipeline definition ────────────────────────────────────────
+# Ordered list of steps. Each step declares its script + a short name
+# + the artifacts it produces (for post-run verification).
+STEPS = [
+    {
+        "name": "adaptive_rec_v2",
+        "desc": "Adaptive Rec Engine v2.0 (confidence rebuild + Precision@K)",
+        "script": "research/adaptive_rec_v2/run.py",
+        "produces": ["reports/adaptive_rec_v2_signal.json"],
+        "requires": ["reports/learning.parquet"],
+    },
+    {
+        "name": "validation_v2",
+        "desc": "Validation Engine v2.0 (paper harness + drift + opportunity cost)",
+        "script": "research/validation_v2/run.py",
+        "produces": ["reports/validation_v2_latest.json"],
+        "requires": ["reports/recommendations.json"],
+    },
+    {
+        "name": "risk_capital_v2",
+        "desc": "Risk & Capital Engine v2.0 (position sizing + budget)",
+        "script": "research/risk_capital_v2/run.py",
+        "produces": ["reports/risk_capital_v2_latest.json"],
+        "requires": ["reports/recommendations.json", "reports/global_context.json"],
+    },
+    {
+        "name": "dna_feedback",
+        "desc": "DNA feedback loop v1.5 (pattern priors from DEV028)",
+        "script": "research/recommendation_dna/run_feedback.py",
+        "produces": ["reports/recommendation_dna_feedback.json"],
+        "requires": ["reports/recommendation_dna.parquet"],
+    },
+    {
+        "name": "knowledge_graph",
+        "desc": "Knowledge Graph v1.6 (communities + propagation + stress)",
+        "script": "research/knowledge_graph/run.py",
+        "produces": ["reports/knowledge_graph.json",
+                       "reports/stress_scenarios.json",
+                       "reports/community_clusters.json"],
+        "requires": ["reports/recommendations.json"],
+    },
+    {
+        "name": "fusion",
+        "desc": "Adaptive Rec Engine v2.1 (Intelligence Fusion — final decision)",
+        "script": "research/adaptive_rec_v2/run_fusion.py",
+        "produces": ["reports/investment_intelligence.json",
+                       "reports/intelligence_summary.json",
+                       "reports/intelligence_conflicts.json"],
+        "requires": [],   # will use whatever is available
+    },
+    {
+        "name": "telegram",
+        "desc": "UX030 Telegram delivery (5 messages, opt-in)",
+        "script": "scripts/telegram_send_ux030.py",
+        "produces": [],   # no reports/*.json artifact; writes delivery ledger
+        "requires": [],
+        "requires_env": ["TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID"],
+        "optional": True,   # gracefully skip if env is missing
+    },
+]
+
+
+# ─── Utilities ──────────────────────────────────────────────────
+def _iso_utc() -> str:
+    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
+def _now_ist() -> str:
+    return (datetime.now(timezone.utc) + timedelta(hours=5, minutes=30)).strftime("%H:%M:%S IST")
+
+
+def _banner(msg: str) -> None:
+    print(); print("=" * 78); print(f"  {msg}"); print("=" * 78)
+
+
+def _mtime_iso(path: Path) -> str | None:
+    if not path.exists():
+        return None
+    try:
+        return datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc).isoformat(timespec="seconds")
+    except Exception:
+        return None
+
+
+def _check_requires(step: dict) -> list[str]:
+    missing = []
+    for req in step.get("requires", []):
+        if not (_ROOT / req).exists():
+            missing.append(req)
+    return missing
+
+
+def _check_produced(step: dict, before_mtimes: dict[str, str | None]) -> dict:
+    """Verify each declared artifact was refreshed since `before_mtimes` was captured."""
+    results = {}
+    for art in step.get("produces", []):
+        p = _ROOT / art
+        after = _mtime_iso(p)
+        before = before_mtimes.get(art)
+        exists = p.exists()
+        refreshed = exists and (before != after)
+        results[art] = {"exists": exists, "before": before,
+                          "after": after, "refreshed": refreshed}
+    return results
+
+
+def _run_step(step: dict, dry_run: bool = False) -> dict:
+    """Run one step, capture verdict + timing."""
+    script = _ROOT / step["script"]
+    if not script.exists():
+        return {
+            "name": step["name"], "verdict": "MISSING_SCRIPT",
+            "elapsed_s": 0.0, "returncode": None,
+            "note": f"script not found: {step['script']}",
+        }
+
+    # Optional steps skip gracefully if their env is not configured
+    missing_env = [k for k in step.get("requires_env", []) if not os.environ.get(k)]
+    if missing_env:
+        return {
+            "name": step["name"],
+            "verdict": "SKIPPED_OPTIONAL" if step.get("optional") else "MISSING_ENV",
+            "elapsed_s": 0.0, "returncode": None,
+            "missing_env": missing_env,
+            "note": f"env vars not set: {', '.join(missing_env)}",
+        }
+
+    before_mtimes = {art: _mtime_iso(_ROOT / art) for art in step.get("produces", [])}
+    missing_reqs = _check_requires(step)
+    if missing_reqs:
+        return {
+            "name": step["name"], "verdict": "MISSING_INPUTS",
+            "elapsed_s": 0.0, "returncode": None,
+            "missing_inputs": missing_reqs,
+        }
+
+    if dry_run:
+        return {
+            "name": step["name"], "verdict": "DRY_RUN",
+            "elapsed_s": 0.0, "returncode": None,
+            "command": [sys.executable, str(script)],
+        }
+
+    ts_start = _iso_utc()
+    t0 = time.perf_counter()
+    r = subprocess.run(
+        [sys.executable, str(script)],
+        cwd=str(_ROOT),
+        capture_output=True, text=True,
+        timeout=600,
+    )
+    elapsed = time.perf_counter() - t0
+
+    # Echo the child's stdout so operators see everything in the CI log
+    for line in (r.stdout or "").splitlines():
+        print(f"    | {line}")
+    if r.stderr:
+        for line in r.stderr.splitlines():
+            print(f"  ERR: {line}")
+
+    produced = _check_produced(step, before_mtimes)
+    all_refreshed = all(v["refreshed"] for v in produced.values()) if produced else True
+
+    if r.returncode == 0 and all_refreshed:
+        verdict = "SUCCESS"
+    elif r.returncode == 0 and not all_refreshed:
+        verdict = "SUCCESS_NO_REFRESH"
+    else:
+        verdict = "FAILURE"
+
+    return {
+        "name":            step["name"],
+        "desc":            step["desc"],
+        "verdict":         verdict,
+        "ts_start":        ts_start,
+        "elapsed_s":       round(elapsed, 2),
+        "returncode":      r.returncode,
+        "produced":        produced,
+        "stdout_tail":     (r.stdout or "").splitlines()[-8:],
+        "stderr_tail":     (r.stderr or "").splitlines()[-4:],
+    }
+
+
+def _append_ledger(entry: dict) -> None:
+    LEDGER.parent.mkdir(parents=True, exist_ok=True)
+    with LEDGER.open("a", encoding="utf-8") as f:
+        f.write(json.dumps(entry, default=str) + "\n")
+
+
+# ─── Main ───────────────────────────────────────────────────────
+def main() -> int:
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--continue", dest="cont", action="store_true",
+                     help="continue on step failure (default: fail-fast)")
+    ap.add_argument("--only", metavar="NAME",
+                     help="run only the named step (repeatable, comma-separated)")
+    ap.add_argument("--list", action="store_true",
+                     help="print the plan and exit")
+    ap.add_argument("--dry-run", action="store_true",
+                     help="print each step's command without running")
+    args = ap.parse_args()
+
+    only = set()
+    if args.only:
+        only = set(x.strip() for x in args.only.split(","))
+
+    plan = [s for s in STEPS if not only or s["name"] in only]
+    if not plan:
+        print(f"no steps match --only={args.only!r}")
+        return 2
+
+    _banner("AEGIS DAILY · PHASE 2 v2 · orchestrator")
+    print(f"  wall clock (IST): {_now_ist()}")
+    print(f"  plan: {' -> '.join(s['name'] for s in plan)}")
+    print(f"  mode: {'DRY-RUN' if args.dry_run else 'LIVE'}")
+    print(f"  continue-on-failure: {args.cont}")
+
+    if args.list:
+        for i, s in enumerate(plan, 1):
+            print(f"  {i}. {s['name']:<24} {s['desc']}")
+        return 0
+
+    results = []
+    t_all = time.perf_counter()
+    for i, step in enumerate(plan, 1):
+        _banner(f"STEP {i}/{len(plan)} · {step['name']} · {step['desc']}")
+        result = _run_step(step, dry_run=args.dry_run)
+        results.append(result)
+
+        verdict = result["verdict"]
+        print(f"    verdict={verdict}  elapsed={result.get('elapsed_s', 0)}s")
+
+        if verdict == "FAILURE" and not args.cont:
+            print(f"    fail-fast: aborting remaining steps. Use --continue to override.")
+            break
+        if verdict == "MISSING_INPUTS":
+            print(f"    missing: {result.get('missing_inputs')}")
+            if not args.cont:
+                print(f"    fail-fast: aborting.")
+                break
+
+    total_elapsed = time.perf_counter() - t_all
+
+    _banner("SUMMARY")
+    print(f"  {'step':<20} {'verdict':<20} {'elapsed_s':>10}")
+    print(f"  {'-' * 55}")
+    n_success = 0; n_fail = 0
+    for r in results:
+        v = r["verdict"]
+        if v == "SUCCESS":
+            n_success += 1
+        elif v in ("FAILURE", "MISSING_SCRIPT", "MISSING_INPUTS"):
+            n_fail += 1
+        print(f"  {r['name']:<20} {v:<20} {r.get('elapsed_s', 0):>10.2f}")
+    print(f"  {'-' * 55}")
+    print(f"  {'total':<20} {'':<20} {total_elapsed:>10.2f}")
+    print()
+    print(f"  {n_success} step(s) succeeded, {n_fail} failed/missing")
+    print(f"  ledger: reports/aegis_daily_v2_history.jsonl")
+
+    _append_ledger({
+        "run_utc":       _iso_utc(),
+        "n_steps":       len(results),
+        "n_success":     n_success,
+        "n_failure":     n_fail,
+        "total_elapsed_s": round(total_elapsed, 2),
+        "results":       results,
+    })
+
+    if n_fail > 0:
+        return 1
+    _banner("DONE — dashboards will pick up new data within 60s (auto-refresh) "
+              "or on manual refresh")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
