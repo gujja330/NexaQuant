@@ -403,8 +403,73 @@ table.decision td.rank {
   vertical-align: middle;
   text-transform: uppercase;
 }
-.vs-tag.live { color: var(--pos); border: 1px solid color-mix(in srgb, var(--pos) 40%, transparent); }
-.vs-tag.bt   { color: var(--type-3); border: 1px solid var(--rule); }
+.vs-tag.live  { color: var(--pos); border: 1px solid color-mix(in srgb, var(--pos) 40%, transparent); }
+.vs-tag.bt    { color: var(--type-3); border: 1px solid var(--rule); }
+.vs-tag.mixed { color: var(--warn); border: 1px solid color-mix(in srgb, var(--warn) 40%, transparent); }
+.vs-tag.model { color: var(--info); border: 1px solid color-mix(in srgb, var(--info) 40%, transparent); }
+
+/* Archive maturity progress bar */
+.maturity-card {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 14px 18px;
+  margin-bottom: 20px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 16px;
+  align-items: center;
+}
+.maturity-card .label {
+  font: 9px ui-monospace, monospace;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--type-3);
+}
+.maturity-card .stage {
+  font-family: ui-serif, Baskerville, serif;
+  font-size: 22px;
+  color: var(--type-1);
+  letter-spacing: -0.01em;
+  line-height: 1;
+  margin-top: 4px;
+}
+.maturity-card .progress {
+  height: 8px;
+  background: var(--rule);
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+}
+.maturity-card .progress > .fill {
+  height: 100%;
+  background: linear-gradient(90deg,
+    var(--accent) 0%,
+    color-mix(in srgb, var(--accent-hi) 100%, transparent) 100%);
+  transition: width 0.4s ease;
+}
+.maturity-card .rhs {
+  text-align: right;
+}
+.maturity-card .rhs .n {
+  font-family: ui-serif, Baskerville, serif;
+  font-size: 22px;
+  color: var(--type-1);
+  letter-spacing: -0.01em;
+  line-height: 1;
+}
+.maturity-card .rhs .n .unit {
+  font: 10px ui-monospace, monospace;
+  color: var(--type-3);
+  margin-left: 4px;
+  letter-spacing: 0.06em;
+}
+.maturity-card .rhs .sub {
+  font: 10px ui-monospace, monospace;
+  color: var(--type-3);
+  margin-top: 4px;
+  letter-spacing: 0.04em;
+}
 
 .vs-attrib-row {
   display: grid;
@@ -1222,6 +1287,9 @@ function renderDashboard() {
   const holdings = canonical.filter(r => r.currently_held);
   main.appendChild(currentPortfolio(holdings));
 
+  // ---------- Section 4b: Archive Maturation (post-LOCK gate to Alpha Signature v2.1)
+  main.appendChild(archiveMaturityCard());
+
   // ---------- Section 5: Portfolio Health ----------
   main.appendChild(portfolioHealth());
 
@@ -1956,6 +2024,53 @@ function currentPortfolio(holdings) {
   return wrap;
 }
 
+// ── Archive Maturation counter — gates Alpha Signature v2.1
+// Post-LOCK operational indicator. Surfaces "N/30 archived days" prominently
+// so the operator can see when the archive is deep enough to unlock Alpha
+// Signature (which mines the archive, not learning.parquet).
+function archiveMaturityCard() {
+  const lc = STATE.recommendation_lifecycle;
+  const rh = STATE.recommendation_history;
+  const days = (lc && lc.coverage && lc.coverage.n_days_archived)
+             || (rh && rh.n_days_archived)
+             || 0;
+  const target = 30;
+  const pct = Math.min(100, (days / target) * 100);
+  const remaining = Math.max(0, target - days);
+  const unlocked = days >= target;
+
+  const stageText  = unlocked
+    ? 'Alpha Signature v2.1 unlockable'
+    : (days < 5   ? 'Baseline'
+    : days < 15   ? 'Warming'
+    : days < 25   ? 'Maturing'
+                  : 'Nearly ready');
+
+  const wrap = el('div', {class: 'maturity-card'});
+  wrap.innerHTML = `
+    <div>
+      <div class="label">Institutional Memory · Archive Maturation</div>
+      <div class="stage">${stageText}</div>
+    </div>
+    <div>
+      <div class="progress"><div class="fill" style="width: ${pct}%;"></div></div>
+      <div style="margin-top: 6px; display: flex; justify-content: space-between; font: 10px ui-monospace, monospace; color: var(--type-3); letter-spacing: 0.04em;">
+        <span>Day 1 · 2026-07-18</span>
+        <span>${Math.round(pct)}% · target ${target} live archive days</span>
+        <span>Alpha Signature gate</span>
+      </div>
+    </div>
+    <div class="rhs">
+      <div class="n">${days}<span class="unit">/ ${target}</span></div>
+      <div class="sub">
+        ${unlocked
+          ? '<span style="color: var(--pos)">✓ Ready to unlock</span>'
+          : `${remaining} trading day${remaining !== 1 ? 's' : ''} remaining`}
+      </div>
+    </div>`;
+  return wrap;
+}
+
 function portfolioHealth() {
   const wrap = el('div', {class: 'section'});
   const head = el('div', {class: 'section-head'});
@@ -1970,32 +2085,32 @@ function portfolioHealth() {
   const strip = el('div', {class: 'strip'});
 
   strip.appendChild(el('div', {class: 'tile', html: `
-    <span class="label">Historical Win Rate</span>
+    <span class="label">Historical Win Rate <span class="vs-tag bt">Backtester</span></span>
     <div class="value">${champ ? Math.round(champ.win_rate) : '—'}<span class="unit">%</span></div>
     <div class="sub">Champion track record</div>`}));
 
   strip.appendChild(el('div', {class: 'tile', html: `
-    <span class="label">Sharpe</span>
+    <span class="label">Sharpe <span class="vs-tag bt">Backtester</span></span>
     <div class="value">${champ ? fmt.num(champ.sharpe, 2) : '—'}</div>
     <div class="sub">Champion strategy</div>`}));
 
   strip.appendChild(el('div', {class: 'tile', html: `
-    <span class="label">Max Drawdown</span>
+    <span class="label">Max Drawdown <span class="vs-tag bt">Backtester</span></span>
     <div class="value">${champ ? fmt.num(champ.max_dd_pct, 1) : '—'}<span class="unit">%</span></div>
     <div class="sub">Historical worst case</div>`}));
 
   strip.appendChild(el('div', {class: 'tile', html: `
-    <span class="label">CAGR</span>
+    <span class="label">CAGR <span class="vs-tag bt">Backtester</span></span>
     <div class="value">${champ ? fmt.pct(champ.cagr, 1) : '—'}</div>
     <div class="sub">Compound annual return</div>`}));
 
   strip.appendChild(el('div', {class: 'tile', html: `
-    <span class="label">VaR 95%</span>
+    <span class="label">VaR 95% <span class="vs-tag model">Model</span></span>
     <div class="value">${risk ? fmt.pct(risk.var_95, 1) : '—'}</div>
     <div class="sub">Value at Risk</div>`}));
 
   strip.appendChild(el('div', {class: 'tile', html: `
-    <span class="label">Live Drift</span>
+    <span class="label">Live Drift <span class="vs-tag ${drift && drift.flag !== 'insufficient_evidence' ? 'live' : 'mixed'}">${drift && drift.flag !== 'insufficient_evidence' ? 'Live' : 'Warming'}</span></span>
     <div class="value mono">${drift ? drift.flag : '—'}</div>
     <div class="sub">${drift ? `1st ${fmt.num(drift.first_half_sharpe, 2)} → 2nd ${fmt.num(drift.second_half_sharpe, 2)}` : 'insufficient evidence yet'}</div>`}));
 
@@ -2005,7 +2120,7 @@ function portfolioHealth() {
     const pa = rh.global_avg_accuracy;
     const paCls = pa >= 0.60 ? 'pos' : pa < 0.40 ? 'neg' : '';
     strip.appendChild(el('div', {class: 'tile', html: `
-      <span class="label">Prediction Accuracy</span>
+      <span class="label">Prediction Accuracy <span class="vs-tag bt">Backtester</span></span>
       <div class="value ${paCls}">${Math.round(pa * 100)}<span class="unit">%</span></div>
       <div class="sub">${rh.n_tickers_with_history} tickers · avg over per-stock accuracy</div>`}));
   }
@@ -2030,14 +2145,14 @@ function portfolioHealth() {
     const acStr = ac != null ? `${(ac * 100).toFixed(0)}%` : '—';
     const acCls = ac == null ? '' : ac >= 1.0 ? 'pos' : ac >= 0.5 ? '' : 'neg';
     strip.appendChild(el('div', {class: 'tile', html: `
-      <span class="label">Alpha Capture Rate</span>
+      <span class="label">Alpha Capture Rate <span class="vs-tag live">Live</span></span>
       <div class="value ${acCls}">${acStr}</div>
       <div class="sub">${im.n_exited || 0} closed of ${im.n_total || 0} · ${im.coverage?.n_days_archived || 0} archived days</div>`}));
   }
   const mo = STATE.missed_opportunities;
   if (mo) {
     strip.appendChild(el('div', {class: 'tile', html: `
-      <span class="label">Missed Opportunities</span>
+      <span class="label">Missed Opportunities <span class="vs-tag live">Live</span></span>
       <div class="value">${mo.n_events || 0}<span class="unit">events</span></div>
       <div class="sub">${mo.n_days_scanned || 0} days scanned · &gt;${((mo.threshold_pct || 0) * 100).toFixed(0)}% forward return</div>`}));
   }
@@ -2046,12 +2161,12 @@ function portfolioHealth() {
   if (wgSum) {
     if (wgSum.mode === 'insufficient_data') {
       strip.appendChild(el('div', {class: 'tile', html: `
-        <span class="label">Winner Genome</span>
+        <span class="label">Winner Genome <span class="vs-tag bt">Backtester</span></span>
         <div class="value mono" style="font-size: 14px;">warming up</div>
         <div class="sub">${wgSum.note || 'accumulating trade evidence'}</div>`}));
     } else {
       strip.appendChild(el('div', {class: 'tile', html: `
-        <span class="label">Winner Genome</span>
+        <span class="label">Winner Genome <span class="vs-tag bt">Backtester</span></span>
         <div class="value">${wgSum.n_signatures || 0}<span class="unit">signatures</span></div>
         <div class="sub">${wgSum.n_top_decile || 0} historical winners &gt; ${((wgSum.top_decile_threshold || 0) * 100).toFixed(1)}% · ${wgSum.n_current_matched || 0} recs match today</div>`}));
     }
@@ -2062,12 +2177,12 @@ function portfolioHealth() {
     const topCreator = (da.top_alpha_creators || [])[0];
     const topDestroyer = (da.top_alpha_destroyers || [])[0];
     strip.appendChild(el('div', {class: 'tile', html: `
-      <span class="label">Alpha Creator</span>
+      <span class="label">Alpha Creator <span class="vs-tag bt">Backtester</span></span>
       <div class="value pos" style="font-size: 16px;">${topCreator ? DA_LABELS[topCreator.subsystem] || topCreator.subsystem : '—'}</div>
       <div class="sub pos">${topCreator ? `+${(topCreator.alpha_created * 100).toFixed(1)}% α · lift ${topCreator.lift.toFixed(2)}` : 'unavailable'}</div>`}));
     if (topDestroyer) {
       strip.appendChild(el('div', {class: 'tile', html: `
-        <span class="label">Alpha Destroyer</span>
+        <span class="label">Alpha Destroyer <span class="vs-tag bt">Backtester</span></span>
         <div class="value neg" style="font-size: 16px;">${DA_LABELS[topDestroyer.subsystem] || topDestroyer.subsystem}</div>
         <div class="sub neg">${(topDestroyer.alpha_created * 100).toFixed(1)}% α · lift ${topDestroyer.lift.toFixed(2)}</div>`}));
     }
