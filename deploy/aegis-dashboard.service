@@ -1,0 +1,36 @@
+# AEGIS · systemd unit for the dashboard HTTP server
+#
+# Copy to /etc/systemd/system/aegis-dashboard.service, then:
+#   systemctl daemon-reload
+#   systemctl enable --now aegis-dashboard.service
+
+[Unit]
+Description=AEGIS Executive Dashboard (HTTP :8765)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=aegis
+Group=aegis
+WorkingDirectory=/opt/aegis
+Environment="PYTHONIOENCODING=utf-8"
+ExecStart=/opt/aegis/.venv/bin/python /opt/aegis/ux/dashboard/frontend/serve.py 8765
+
+# Restart if it crashes; don't spin-loop
+Restart=on-failure
+RestartSec=5
+StartLimitInterval=60
+StartLimitBurst=5
+
+# Sandbox
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/aegis/reports
+
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

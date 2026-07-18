@@ -1,0 +1,21 @@
+# AEGIS · systemd timer for the daily pipeline
+#
+# Copy to /etc/systemd/system/aegis-pipeline.timer, then:
+#   systemctl daemon-reload
+#   systemctl enable --now aegis-pipeline.timer
+#
+# Fires ~06:00 IST every weekday. Persistent means a missed run
+# (host was down) fires as soon as the machine is back up.
+
+[Unit]
+Description=Daily AEGIS pipeline (~06:00 IST · weekdays)
+Requires=aegis-pipeline.service
+
+[Timer]
+# ~06:00 IST = 00:30 UTC — Monday through Friday
+OnCalendar=Mon..Fri *-*-* 00:30:00 UTC
+Persistent=true
+AccuracySec=5min
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AEGIS · Validation Lab (Admin)</title>
+<style>
+:root {
+  --ink:       #0A1220;
+  --panel:     #131C30;
+  --panel-hi:  #1A253F;
+  --rule:      #2A3654;
+  --rule-hi:   #4A5F8A;
+  --type-1:    #E8ECF3;
+  --type-2:    #8E97AC;
+  --type-3:    #4C566F;
+  --accent:    #58A6FF;   /* Admin uses institutional blue, not gold */
+  --accent-hi: #79B8FF;
+  --pos:       #7EE2A0;
+  --neg:       #FF7B72;
+  --warn:      #F0B36E;
+  --info:      #B392F0;
+}
+:root[data-theme="light"] {
+  --ink: #F5F7FA; --panel: #EAF0F6; --panel-hi: #DCE5EF;
+  --rule: #C5D0DE; --rule-hi: #8899AE;
+  --type-1: #0A1220; --type-2: #4C566F; --type-3: #8A94A8;
+  --accent: #1F6FEB; --accent-hi: #0757CB;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --ink: #F5F7FA; --panel: #EAF0F6; --panel-hi: #DCE5EF;
+    --rule: #C5D0DE; --rule-hi: #8899AE;
+    --type-1: #0A1220; --type-2: #4C566F; --type-3: #8A94A8;
+    --accent: #1F6FEB; --accent-hi: #0757CB;
+  }
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--ink);
+  color: var(--type-1);
+  font: 13px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI Variable", "Segoe UI", sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 14px 32px;
+  background: color-mix(in srgb, var(--panel) 90%, var(--ink));
+  border-bottom: 1px solid var(--rule);
+  position: sticky; top: 0; z-index: 50;
+  backdrop-filter: blur(6px);
+}
+.topbar .brand {
+  font-family: ui-monospace, "SF Mono", Consolas, monospace;
+  font-size: 14px;
+  letter-spacing: 0.06em;
+  color: var(--type-1);
+}
+.topbar .brand .badge {
+  display: inline-block;
+  background: color-mix(in srgb, var(--accent) 25%, transparent);
+  border: 1px solid var(--accent);
+  color: var(--accent-hi);
+  padding: 2px 8px;
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  margin-left: 10px;
+  border-radius: 2px;
+}
+.topbar .nav-links { display: flex; gap: 4px; margin-left: 24px; }
+.topbar .nav-links a {
+  color: var(--type-2);
+  padding: 6px 12px;
+  text-decoration: none;
+  font-size: 12px;
+  font-family: ui-monospace, monospace;
+  letter-spacing: 0.06em;
+  border-radius: 3px;
+}
+.topbar .nav-links a.active { color: var(--accent-hi); background: color-mix(in srgb, var(--accent) 15%, transparent); }
+.topbar .nav-links a:hover { color: var(--type-1); }
+.topbar .grow { flex: 1; }
+.topbar .status {
+  font: 10px ui-monospace, monospace;
+  color: var(--type-3);
+  text-align: right;
+  letter-spacing: 0.06em;
+}
+.topbar .status strong { color: var(--accent-hi); }
+.topbar button {
+  background: transparent;
+  color: var(--type-2);
+  border: 1px solid var(--rule);
+  padding: 5px 10px;
+  font: 10px ui-monospace, monospace;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  border-radius: 3px;
+}
+
+main { padding: 20px 32px 48px; max-width: 1600px; margin: 0 auto; }
+h1 {
+  font-family: ui-monospace, monospace;
+  font-size: 20px;
+  letter-spacing: 0.02em;
+  color: var(--type-1);
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--rule);
+  margin-bottom: 24px;
+}
+h1 .warn-badge {
+  font-size: 10px;
+  padding: 3px 8px;
+  background: color-mix(in srgb, var(--warn) 20%, transparent);
+  border: 1px solid var(--warn);
+  color: var(--warn);
+  letter-spacing: 0.14em;
+  margin-left: 16px;
+  border-radius: 2px;
+  vertical-align: middle;
+}
+
+.section {
+  margin-bottom: 24px;
+  padding-bottom: 12px;
+  border-bottom: 1px dashed var(--rule);
+}
+.section > h2 {
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--type-2);
+  margin-bottom: 12px;
+}
+.section > h2 .n {
+  color: var(--type-3);
+  font-size: 10px;
+  margin-left: 8px;
+  letter-spacing: 0.1em;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+.tile {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  padding: 12px 14px;
+}
+.tile .label {
+  font: 9px ui-monospace, monospace;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--type-2);
+  margin-bottom: 4px;
+}
+.tile .value {
+  font-family: ui-monospace, monospace;
+  font-size: 20px;
+  color: var(--type-1);
+  line-height: 1.1;
+  font-weight: 500;
+}
+.tile .value.pos { color: var(--pos); }
+.tile .value.neg { color: var(--neg); }
+.tile .value.warn { color: var(--warn); }
+.tile .value.info { color: var(--accent-hi); }
+.tile .value .unit { color: var(--type-3); font-size: 11px; margin-left: 4px; }
+.tile .sub {
+  font: 10px ui-monospace, monospace;
+  color: var(--type-3);
+  margin-top: 4px;
+}
+.tile .sub.pos { color: var(--pos); }
+.tile .sub.neg { color: var(--neg); }
+
+.pill {
+  display: inline-block;
+  padding: 2px 8px;
+  font: 10px ui-monospace, monospace;
+  letter-spacing: 0.08em;
+  border-radius: 2px;
+  border: 1px solid transparent;
+  font-weight: 500;
+}
+.pill.pass { background: color-mix(in srgb, var(--pos) 18%, transparent); color: var(--pos); border-color: color-mix(in srgb, var(--pos) 40%, transparent); }
+.pill.fail { background: color-mix(in srgb, var(--neg) 18%, transparent); color: var(--neg); border-color: color-mix(in srgb, var(--neg) 40%, transparent); }
+.pill.warn { background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn); border-color: color-mix(in srgb, var(--warn) 40%, transparent); }
+.pill.info { background: color-mix(in srgb, var(--info) 15%, transparent); color: var(--info); border-color: color-mix(in srgb, var(--info) 35%, transparent); }
+
+table.data {
+  width: 100%;
+  border-collapse: collapse;
+  font: 12px ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
+table.data th {
+  font-family: -apple-system, sans-serif;
+  font-weight: 500;
+  font-size: 10px;
+  color: var(--type-2);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--rule-hi);
+  background: color-mix(in srgb, var(--panel-hi) 70%, var(--panel));
+}
+table.data td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--rule);
+}
+table.data tr:last-child td { border-bottom: none; }
+table.data td.right { text-align: right; }
+table.data td.pos { color: var(--pos); }
+table.data td.neg { color: var(--neg); }
+table.data td.warn { color: var(--warn); }
+table.data td.mute { color: var(--type-3); }
+
+.step-list { list-style: none; padding: 0; margin: 0; }
+.step-list li {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--rule);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font: 12px ui-monospace, monospace;
+}
+.step-list li:last-child { border-bottom: none; }
+.step-list .step-name { color: var(--type-1); flex: 1; }
+.step-list .step-time { color: var(--type-3); font-size: 10px; }
+
+.bar {
+  height: 6px;
+  background: var(--panel-hi);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 4px;
+}
+.bar > div { height: 100%; }
+.bar > div.pos { background: var(--pos); }
+.bar > div.neg { background: var(--neg); }
+.bar > div.warn { background: var(--warn); }
+.bar > div.info { background: var(--accent); }
+
+.empty { padding: 16px; text-align: center; color: var(--type-3); font-style: italic; font-size: 11px; }
+.loading { padding: 12px; text-align: center; color: var(--type-3); font: 10px ui-monospace, monospace; letter-spacing: 0.14em; }
+
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">AEGIS<span class="badge">ADMIN · Validation Lab</span></div>
+  <div class="nav-links">
+    <a href="index.html">Investor Dashboard</a>
+    <a href="admin.html" class="active">Validation Lab</a>
+  </div>
+  <div class="grow"></div>
+  <div class="status">
+    <div>Updated <strong id="lastRefresh">—</strong></div>
+    <div id="pipelineStatus" style="margin-top: 2px;">—</div>
+  </div>
+  <button id="refreshNow" type="button" title="Refresh">↻</button>
+  <button id="themeToggle" type="button" title="Toggle theme">◐</button>
+</div>
+
+<main id="main"><div class="loading">Loading validation state…</div></main>
+
+<script>
+// State loading
+const REPORTS_BASE = new URL('../../../reports/', location.href).href;
+const STATE = {};
+async function fetchJson(name) {
+  try {
+    const r = await fetch(REPORTS_BASE + name, {cache: 'no-store'});
+    if (!r.ok) return null;
+    return await r.json();
+  } catch (e) { return null; }
+}
+async function fetchText(name) {
+  try {
+    const r = await fetch(REPORTS_BASE + name, {cache: 'no-store'});
+    if (!r.ok) return null;
+    return await r.text();
+  } catch (e) { return null; }
+}
+
+async function loadState() {
+  const jsonTargets = [
+    'aegis_daily_v2_history.jsonl', // handled via fetchText
+    'backtest_summary.json', 'strategy_comparison.json',
+    'confidence_calibration.json',
+    'validation_v2_latest.json',
+    'adaptive_rec_v2_signal.json', 'adaptive_rec_v2_scoreboard.json',
+    'adaptive_rec_v2_feature_importance.json',
+    'champion_strategy.json', 'challenger_scoreboard.json',
+    'promotion_recommendation.json',
+    'drift_report.json',
+    'regime_comparison.json',
+    'strategy_doctor.json',
+    'recommendation_dna_feedback.json',
+    'graph_statistics.json',
+    'community_clusters.json',
+    'stress_scenarios.json',
+    'intelligence_summary.json',
+    'intelligence_conflicts.json',
+    'decision_center_today.json',
+    'decision_center_notifications.json',
+    'recommendations.json',
+  ];
+  const entries = await Promise.all(jsonTargets.map(async n => {
+    if (n.endsWith('.jsonl')) return [n.replace(/\.jsonl$/, ''), await fetchText(n)];
+    return [n.replace(/\.json$/, ''), await fetchJson(n)];
+  }));
+  for (const [k, v] of entries) STATE[k] = v;
+}
+
+// Helpers
+const fmt = {
+  pct: (v, d=1) => v == null ? '—' : (Math.abs(v) < 3 ? (v*100).toFixed(d) + '%' : v.toFixed(d) + '%'),
+  num: (v, d=2) => v == null ? '—' : Number(v).toFixed(d),
+  int: v => v == null ? '—' : Number(v).toLocaleString(),
+};
+
+function el(tag, opts = {}, ...children) {
+  const e = document.createElement(tag);
+  if (opts.class) e.className = opts.class;
+  if (opts.text != null) e.textContent = opts.text;
+  if (opts.html != null) e.innerHTML = opts.html;
+  for (const c of children) if (c) e.appendChild(c);
+  return e;
+}
+
+function tile(label, value, valueCls, sub, subCls) {
+  return el('div', {class: 'tile', html: `
+    <div class="label">${label}</div>
+    <div class="value ${valueCls || ''}">${value}</div>
+    ${sub ? `<div class="sub ${subCls || ''}">${sub}</div>` : ''}`});
+}
+
+// ==========================================================================
+// SECTIONS
+// ==========================================================================
+
+function sectionPipelineHealth() {
+  const s = el('div', {class: 'section'});
+  s.appendChild(el('h2', {text: `1 · Daily Validation Summary`}));
+
+  // Parse the last orchestrator run
+  const ledger = STATE.aegis_daily_v2_history || '';
+  const lines = ledger.trim().split('\n').filter(Boolean);
+  const last = lines.length ? (() => { try { return JSON.parse(lines[lines.length - 1]); } catch { return null; }})() : null;
+
+  if (!last) {
+    s.appendChild(el('div', {class: 'empty', text: 'No pipeline runs on ledger yet.'}));
+    return s;
+  }
+
+  const grid = el('div', {class: 'grid'});
+  const overallCls = last.n_failure === 0 ? 'pos' : 'neg';
+  grid.appendChild(tile('Pipeline Overall',
+    last.n_failure === 0 ? '<span class="pill pass">PASS</span>' : '<span class="pill fail">FAIL</span>',
+    overallCls,
+    `${last.n_success}/${last.n_steps} steps · ${last.total_elapsed_s}s · ${(last.run_utc || '').slice(0, 19)}`));
+
+  for (const r of last.results || []) {
+    const cls = r.verdict === 'SUCCESS' ? 'pos' :
+                  r.verdict === 'SKIPPED_OPTIONAL' ? 'info' :
+                  r.verdict === 'FAILURE' ? 'neg' : 'warn';
+    const pillCls = r.verdict === 'SUCCESS' ? 'pass' :
+                       r.verdict === 'FAILURE' ? 'fail' : 'warn';
+    grid.appendChild(tile(r.name,
+      `<span class="pill ${pillCls}">${r.verdict}</span>`, cls,
+      `${r.elapsed_s || 0}s`));
+  }
+  s.appendChild(grid);
+  return s;
+}
+
+function sectionBacktestPerformance() {
+  const s = el('div', {class: 'section'});
+  s.appendChild(el('h2', {text: `2 · Backtest Performance (Champion)`}));
+
+  const bt = STATE.backtest_summary;
+  const champ = STATE.champion_strategy && STATE.champion_strategy.champion;
+  const adaptV2 = STATE.adaptive_rec_v2_signal;
+
+  const grid = el('div', {class: 'grid'});
+  if (champ) {
+    grid.appendChild(tile('Win Rate', champ.win_rate ? champ.win_rate.toFixed(1) + '%' : '—', 'pos',
+      `Champion: ${champ.strategy}`));
+    grid.appendChild(tile('Sharpe', fmt.num(champ.sharpe, 2), 'pos', 'Champion strategy'));
+    grid.appendChild(tile('CAGR', champ.cagr ? (champ.cagr * 100).toFixed(1) + '%' : '—', 'pos'));
+    grid.appendChild(tile('Max Drawdown', fmt.num(champ.max_dd_pct, 1) + '%', 'neg'));
+  }
+  if (adaptV2 && adaptV2.best_model_summary) {
+    const m = adaptV2.best_model_summary;
+    grid.appendChild(tile('Precision@5', fmt.num(m.precision_at_5, 2), 'info',
+      `${adaptV2.best_model} · v2.0 rebuild`));
+    grid.appendChild(tile('Precision@10', fmt.num(m.precision_at_10, 2), 'info'));
+    grid.appendChild(tile('Precision@20', fmt.num(m.precision_at_20, 2), 'info'));
+    grid.appendChild(tile('Log Loss', fmt.num(m.log_loss, 3), '', 'held-out test set'));
+    grid.appendChild(tile('Brier', fmt.num(m.brier, 3), '', 'held-out test set'));
+    grid.appendChild(tile('AUC ROC', fmt.num(m.auc, 3), 'warn', 'near 0.5 = chance'));
+  }
+  s.appendChild(grid);
+  return s;
+}
+
+function sectionStrategyComparison() {
+  const s = el('div', {class: 'section'});
+  s.appendChild(el('h2', {text: `3 · Strategy Comparison (Leaderboard)`}));
+
+  const lb = (STATE.challenger_scoreboard && STATE.challenger_scoreboard.leaderboard) || [];
+  if (!lb.length) {
+    s.appendChild(el('div', {class: 'empty', text: 'No leaderboard available.'}));
+    return s;
+  }
+
+  const table = el('table', {class: 'data'});
+  table.innerHTML = `<thead><tr>
+    <th>#</th><th>Strategy</th>
+    <th class="right">Composite</th>
+    <th class="right">Sharpe</th>
+    <th class="right">CAGR</th>
+    <th class="right">Max DD</th>
+    <th class="right">Win rate</th>
+    <th>Status</th>
+  </tr></thead>`;
+  const tbody = el('tbody');
+  const champStrat = (STATE.champion_strategy && STATE.champion_strategy.champion && STATE.champion_strategy.champion.strategy) || null;
+  for (const row of lb) {
+    const isChamp = row.strategy === champStrat;
+    const isBenchmark = String(row.strategy || '').toUpperCase().includes('BENCHMARK');
+    tbody.innerHTML += `<tr>
+      <td>${row.rank}</td>
+      <td style="color: ${isChamp ? 'var(--accent-hi)' : isBenchmark ? 'var(--type-3)' : 'var(--type-1)'}; font-weight: ${isChamp ? '600' : 'normal'};">${row.strategy}</td>
+      <td class="right">${fmt.num(row.composite_score, 2)}</td>
+      <td class="right ${row.sharpe > 0 ? 'pos' : 'neg'}">${fmt.num(row.sharpe, 2)}</td>
+      <td class="right ${row.cagr > 0 ? 'pos' : 'neg'}">${fmt.pct(row.cagr, 1)}</td>
+      <td class="right neg">${fmt.num(row.max_dd_pct, 1)}%</td>
+      <td class="right">${row.win_rate != null ? row.win_rate.toFixed(1) + '%' : '—'}</td>
+      <td>${isChamp ? '<span class="pill pass">CHAMPION</span>' : isBenchmark ? '<span class="pill warn">BENCHMARK</span>' : '<span class="pill info">CHALLENGER</span>'}</td>
+    </tr>`;
+  }
+  table.appendChild(tbody);
+  s.appendChild(table);
+  return s;
+}
+
+function sectionCalibration() {
+  const s = el('div', {class: 'section'});
+  s.appendChild(el('h2', {text: `4 · Confidence Calibration`}));
+
+  const c = STATE.confidence_calibration;
+  if (!c) {
+    s.appendChild(el('div', {class: 'empty', text: 'Calibration engine has not run.'}));
+    return s;
+  }
+
+  const grid = el('div', {class: 'grid'});
+  const raw = (c.raw_metrics || {}).ece;
+  const cal = (c.calibrated_metrics || {}).ece;
+  const imp = raw && cal ? ((raw - cal) / raw * 100).toFixed(1) : '—';
+  grid.appendChild(tile('Raw ECE', fmt.num(raw, 3), 'warn', 'before calibration'));
+  grid.appendChild(tile('Calibrated ECE', fmt.num(cal, 4), 'pos', 'after calibration'));
+  grid.appendChild(tile('Improvement', imp + '%', 'pos', c.best_method || '—'));
+  grid.appendChild(tile('Sample size', fmt.int(c.n_trades_total), '', 'trades in learning corpus'));
+  grid.appendChild(tile('Method Selected', c.best_method || '—', 'info', 'chosen among 5 by Brier score'));
+  const brier_raw = (c.raw_metrics || {}).brier_score;
+  const brier_cal = (c.calibrated_metrics || {}).brier_score;
+  grid.appendChild(tile('Brier', `${fmt.num(brier_raw, 3)} → ${fmt.num(brier_cal, 3)}`, 'pos'));
+  s.appendChild(grid);
+  return s;
+}
+
+function sectionPaperTrading() {
+  const s = el('div', {class: 'section'});
+  s.appendChild(el('h2', {text: `5 · Daily Paper Trading (Live Validation)`}));
+
+  const v = STATE.validation_v2_latest;
+  if (!v) {
+    s.appendChild(el('div', {class: 'empty', text: 'Validation harness has not run.'}));
+    return s;
+  }
+
+  const grid = el('div', {class: 'grid'});
+  grid.appendChild(tile('Open Positions', fmt.int(v.n_open_positions), 'info', 'currently tracked'));
+  grid.appendChild(tile('Closed Trades', fmt.int(v.n_closed_trades), '', 'lifetime · paper book'));
+  grid.appendChild(tile('New Opens Today', fmt.int(v.n_new_opens), 'pos'));
+  grid.appendChild(tile('New Closes Today', fmt.int(v.n_new_closes), 'warn'));
+  grid.appendChild(tile('Portfolio P&L',
+    v.portfolio_pnl_pct ? (v.portfolio_pnl_pct * 100).toFixed(2) + '%' : '0.00%',
+    v.portfolio_pnl_pct > 0 ? 'pos' : v.portfolio_pnl_pct < 0 ? 'neg' : '',
+    'MTM · open positions'));
+
+  const rec = v.reconciliation || {};
+  const withinTol = rec.within_5pp_tolerance;
+  grid.appendChild(tile('Reconciled Trades', fmt.int(rec.n),
+    withinTol === true ? 'pos' : withinTol === false ? 'neg' : '',
+    withinTol === true ? 'within 5pp tolerance' : withinTol === false ? 'divergent' : 'insufficient'));
+
+  const oc = v.opportunity_cost || {};
+  grid.appendChild(tile('Missed Winners', fmt.int(oc.n_missed_edges), oc.n_missed_edges > 0 ? 'warn' : 'pos',
+    `total missed exp ${oc.total_missed_expectancy != null ? (oc.total_missed_expectancy * 100).toFixed(2) + '%' : '—'}`));
+  s.appendChild(grid);
+  return s;
+}
+
+function sectionDrift() {
+  const s = el('div', {class: 'section'});
+  s.appendChild(el('h2', {text: `6 · Drift Monitoring`}));
+
+  const v = STATE.validation_v2_latest;
+  const dr = STATE.drift_report;
+  const grid = el('div', {class: 'grid'});
+
+  // Live drift (Validation v2.0)
+  if (v && v.metric_drift) {
+    const md = v.metric_drift;
+    const cls = md.flag === 'stable' ? 'pos' :
+                  md.flag === 'improving' ? 'pos' :
+                  md.flag === 'degrading' ? 'neg' :
+                  md.flag === 'insufficient_evidence' ? 'warn' : '';
+    const pill = md.flag === 'stable' ? 'pass' :
+                    md.flag === 'improving' ? 'pass' :
+                    md.flag === 'degrading' ? 'fail' : 'warn';
+    grid.appendChild(tile('Live Prediction Drift',
+      `<span class="pill ${pill}">${(md.flag || '?').toUpperCase()}</span>`, cls,
+      `1st ${fmt.num(md.first_half_sharpe, 2)} → 2nd ${fmt.num(md.second_half_sharpe, 2)}`));
+  } else {
+    grid.appendChild(tile('Live Prediction Drift', '<span class="pill warn">—</span>', 'warn', 'harness data pending'));
+  }
+
+  // Historical strategy drift (DEV030)
+  if (dr && dr.metric_drift) {
+    const strategies = Object.entries(dr.metric_drift || {});
+    const degrading = strategies.filter(([k, v]) => v.stability_flag === 'degrading').length;
+    const stable = strategies.filter(([k, v]) => v.stability_flag === 'stable').length;
+    grid.appendChild(tile('Strategy Drift',
+      degrading > 0 ? `<span class="pill fail">${degrading} DEGRADING</span>` : '<span class="pill pass">STABLE</span>',
+      degrading > 0 ? 'neg' : 'pos',
+      `${strategies.length} strategies · ${degrading} degrading · ${stable} stable`));
+  }
+
+  // Confidence drift (via last calibration_history entry)
+  const c = STATE.confidence_calibration;
+  grid.appendChild(tile('Confidence Drift',
+    c ? '<span class="pill pass">CALIBRATED</span>' : '<span class="pill warn">—</span>',
+    c ? 'pos' : 'warn',
+    c ? `ECE ${fmt.num(c.calibrated_metrics?.ece, 4)}` : 'not yet run'));
+
+  // Rank drift
+  if (dr && dr.rank_drift) {
+    const rd = dr.rank_drift;
+    grid.appendChild(tile('Rank Drift',
+      rd.note ? '<span class="pill warn">' + (rd.note.split(' — ')[0]) + '</span>' :
+                `${(rd.changes || []).length} rank changes`,
+      'info', 'ranking stability vs prior run'));
+  }
+  s.appendChild(grid);
+  return s;
+}
+
+function sectionRecommendationHistory() {
+  const s = el('div', {class: 'section'});
+  s.appendChild(el('h2', {text: `7 · Overnight Recommendation Changes`}));
+
+  const dc = STATE.decision_center_today;
+  if (!dc) {
+    s.appendChild(el('div', {class: 'empty', text: 'Decision center has not run.'}));
+    return s;
+  }
+
+  const grid = el('div', {class: 'grid'});
+  const counts = dc.counts_by_kind || {};
+  grid.appendChild(tile('Total Recs Today', fmt.int(Object.values(dc.action_counts_today || {}).reduce((a, b) => a + b, 0)), 'info',
+    `yesterday: ${Object.values(dc.action_counts_yesterday || {}).reduce((a, b) => a + b, 0) || '—'}`));
+  grid.appendChild(tile('New', fmt.int(counts.NEW || 0), (counts.NEW || 0) > 0 ? 'pos' : ''));
+  grid.appendChild(tile('Removed', fmt.int(counts.REMOVED || 0), (counts.REMOVED || 0) > 0 ? 'warn' : ''));
+  grid.appendChild(tile('Upgraded', fmt.int(counts.UPGRADED || 0), 'pos'));
+  grid.appendChild(tile('Downgraded', fmt.int(counts.DOWNGRADED || 0), 'neg'));
+  grid.appendChild(tile('Target Hit', fmt.int(counts.TARGET_HIT || 0), 'pos'));
+  grid.appendChild(tile('Stop Hit', fmt.int(counts.STOP_HIT || 0), 'neg'));
+  grid.appendChild(tile('Intel Up', fmt.int(counts.INTELLIGENCE_UP || 0), 'pos'));
+  grid.appendChild(tile('Intel Down', fmt.int(counts.INTELLIGENCE_DOWN || 0), 'neg'));
+  s.appendChild(grid);
+  return s;
+}
+
+function sectionLearning() {
+  const s = el('div', {class: 'section'});
+  s.appendChild(el('h2', {text: `8 · Learning & DNA`}));
+
+  const dna = STATE.recommendation_dna_feedback;
+  const doc = STATE.strategy_doctor;
+  const grid = el('div', {class: 'grid'});
+
+  if (dna) {
+    grid.appendChild(tile('DNA Records', fmt.int(dna.n_dna_records), 'info', 'immutable content-keyed'));
+    grid.appendChild(tile('Patterns Discovered', fmt.int(dna.n_patterns), 'info',
+      `${dna.n_with_evidence} with historical evidence`));
+    grid.appendChild(tile('High-Prior Recs', fmt.int(dna.n_high_prior), 'pos', 'win rate ≥ 0.65'));
+    grid.appendChild(tile('Low-Prior Recs', fmt.int(dna.n_low_prior), 'neg', 'win rate ≤ 0.35'));
+  }
+  if (doc && doc.diagnoses) {
+    const byCat = {};
+    for (const d of doc.diagnoses) {
+      byCat[d.category || 'unknown'] = (byCat[d.category || 'unknown'] || 0) + 1;
+    }
+    const topCat = Object.entries(byCat).sort((a, b) => b[1] - a[1])[0];
+    grid.appendChild(tile('Total Diagnoses', fmt.int(doc.diagnoses.length), 'warn', 'strategy doctor'));
+    grid.appendChild(tile('Top Failure Mode', topCat ? topCat[0].replace(/_/g, ' ') : '—', 'neg',
+      topCat ? `${topCat[1]} occurrences` : ''));
+  }
+  const c = STATE.confidence_calibration;
+  if (c) {
+    grid.appendChild(tile('Trades Learned', fmt.int(c.n_trades_total), 'info', 'DEV025 corpus'));
+  }
+  s.appendChild(grid);
+  return s;
+}
+
+function sectionFusionQuality() {
+  const s = el('div', {class: 'section'});
+  s.appendChild(el('h2', {text: `9 · Fusion Quality`}));
+
+  const isum = STATE.intelligence_summary;
+  const iconf = STATE.intelligence_conflicts;
+  if (!isum) {
+    s.appendChild(el('div', {class: 'empty', text: 'Fusion has not run.'}));
+    return s;
+  }
+
+  const grid = el('div', {class: 'grid'});
+  grid.appendChild(tile('Fusion Avg Score', fmt.num(isum.avg_intelligence, 1), 'info',
+    `median ${fmt.num(isum.median_intelligence, 1)} · ${isum.n_scored} recs`));
+
+  const cs = isum.conflict_summary || {};
+  grid.appendChild(tile('CRITICAL Conflicts', fmt.int(cs.n_critical),
+    (cs.n_critical || 0) > 0 ? 'neg' : 'pos',
+    `${cs.n_tickers_with_critical || 0} tickers affected`));
+  grid.appendChild(tile('MEDIUM Conflicts', fmt.int(cs.n_medium), (cs.n_medium || 0) > 0 ? 'warn' : ''));
+  grid.appendChild(tile('MINOR Conflicts', fmt.int(cs.n_minor), 'mute'));
+
+  // Decision distribution
+  const dist = isum.by_decision || {};
+  for (const [d, n] of Object.entries(dist).sort((a, b) => b[1] - a[1])) {
+    const cls = ['Strong-Buy', 'Buy', 'Accumulate'].includes(d) ? 'pos' :
+                  ['Reduce', 'Sell', 'Avoid'].includes(d) ? 'neg' :
+                  d === 'Hold' ? 'warn' : 'info';
+    grid.appendChild(tile(`Decision · ${d}`, fmt.int(n), cls));
+  }
+  s.appendChild(grid);
+  return s;
+}
+
+function sectionFeatureImportance() {
+  const s = el('div', {class: 'section'});
+  s.appendChild(el('h2', {text: `10 · Feature Importance (v2.0 Model)`}));
+
+  const fi = STATE.adaptive_rec_v2_feature_importance;
+  if (!fi) {
+    s.appendChild(el('div', {class: 'empty', text: 'Feature importance not computed.'}));
+    return s;
+  }
+  const top = (fi.feature_importance || []).slice(0, 12);
+  if (!top.length) {
+    s.appendChild(el('div', {class: 'empty', text: 'No feature importance data.'}));
+    return s;
+  }
+
+  const max = top[0].importance || 1;
+  const wrap = el('div', {class: 'tile', html: `<div class="label">Top ${top.length} features · permutation importance</div>`});
+  for (const f of top) {
+    const w = (f.importance / max * 100).toFixed(1);
+    wrap.innerHTML += `
+      <div style="display: grid; grid-template-columns: 200px 1fr 70px; align-items: center; gap: 10px; padding: 4px 0;">
+        <div style="color: var(--type-2); font: 11px ui-monospace, monospace;">${f.feature.slice(0, 30)}</div>
+        <div class="bar"><div class="info" style="width: ${w}%"></div></div>
+        <div style="text-align: right; font: 11px ui-monospace, monospace; color: var(--type-1);">${fmt.num(f.importance, 3)}</div>
+      </div>`;
+  }
+  s.appendChild(wrap);
+  return s;
+}
+
+function sectionKnowledgeGraphHealth() {
+  const s = el('div', {class: 'section'});
+  s.appendChild(el('h2', {text: `11 · Knowledge Graph Health`}));
+
+  const gs = STATE.graph_statistics && STATE.graph_statistics.graph_stats;
+  const cc = STATE.community_clusters;
+  const ss = STATE.stress_scenarios;
+
+  const grid = el('div', {class: 'grid'});
+  if (gs) {
+    grid.appendChild(tile('Graph Nodes', fmt.int(gs.n_nodes), 'info', `${gs.n_entity_types} entity types`));
+    grid.appendChild(tile('Graph Edges', fmt.int(gs.n_edges), 'info', `${gs.n_relation_types} relation types`));
+    grid.appendChild(tile('Avg Degree', fmt.num(gs.avg_degree, 2), 'info'));
+  }
+  if (cc) {
+    const q = cc.modularity;
+    grid.appendChild(tile('Communities', fmt.int(cc.count), 'info', `Q = ${fmt.num(q, 3)}`));
+    grid.appendChild(tile('Modularity',
+      `<span class="pill ${q >= 0.5 ? 'pass' : q >= 0.3 ? 'warn' : 'fail'}">${q >= 0.5 ? 'STRONG' : q >= 0.3 ? 'MODERATE' : 'WEAK'}</span>`,
+      q >= 0.5 ? 'pos' : q >= 0.3 ? 'warn' : 'neg',
+      `Newman Q = ${fmt.num(q, 3)}`));
+  }
+  if (ss && ss.scenarios) {
+    const worst = ss.scenarios.reduce((a, b) => (b.portfolio_exposure || 0) > (a.portfolio_exposure || 0) ? b : a, {});
+    grid.appendChild(tile('Worst Stress Exposure',
+      fmt.pct(worst.portfolio_exposure, 1),
+      (worst.portfolio_exposure || 0) > 0.8 ? 'neg' : (worst.portfolio_exposure || 0) > 0.3 ? 'warn' : 'pos',
+      worst.scenario ? worst.scenario.replace(/_/g, ' ') : '—'));
+  }
+  s.appendChild(grid);
+  return s;
+}
+
+function sectionAlerts() {
+  const s = el('div', {class: 'section'});
+  s.appendChild(el('h2', {text: `12 · Model Trustworthiness · Verdict`}));
+
+  const alerts = [];
+  // Aggregate every signal into a single trustworthiness verdict
+  const isum = STATE.intelligence_summary;
+  const dc = STATE.decision_center_today;
+  const c = STATE.confidence_calibration;
+  const v = STATE.validation_v2_latest;
+  const dr = STATE.drift_report;
+
+  let score = 100;
+
+  // Deductions
+  const criticalConflicts = ((isum && isum.conflict_summary) || {}).n_critical || 0;
+  if (criticalConflicts > 0) {
+    score -= Math.min(20, criticalConflicts);
+    alerts.push({sev: 'HIGH', text: `${criticalConflicts} CRITICAL fusion conflicts (raw vs fusion disagreement)`});
+  }
+  const rawEce = c && c.raw_metrics && c.raw_metrics.ece;
+  if (rawEce && rawEce > 0.10) {
+    alerts.push({sev: 'INFO', text: `Raw confidence ECE ${rawEce.toFixed(3)} — signal is a rank-order label, not a probability`});
+  }
+  const driftFlag = v && v.metric_drift && v.metric_drift.flag;
+  if (driftFlag === 'degrading') {
+    score -= 15;
+    alerts.push({sev: 'HIGH', text: 'Live prediction drift is DEGRADING'});
+  } else if (driftFlag === 'insufficient_evidence') {
+    alerts.push({sev: 'INFO', text: 'Live drift: insufficient closed trades yet · verdict pending'});
+  }
+  const strategyDrift = dr && dr.metric_drift ? Object.values(dr.metric_drift) : [];
+  const degrading = strategyDrift.filter(x => x.stability_flag === 'degrading').length;
+  if (degrading > 0) {
+    score -= Math.min(15, degrading * 3);
+    alerts.push({sev: 'MEDIUM', text: `${degrading} strategies show 2nd-half degradation vs 1st-half`});
+  }
+  if (dc && dc.first_run) {
+    alerts.push({sev: 'INFO', text: 'Decision center · first day of tracking · diff kicks in tomorrow'});
+  }
+  const dna = STATE.recommendation_dna_feedback;
+  const patterns = dna && dna.n_patterns;
+  if (patterns && patterns > 0) {
+    alerts.push({sev: 'OK', text: `${patterns} DNA patterns discovered · learning loop active`});
+  }
+
+  score = Math.max(0, Math.min(100, score));
+  const cls = score >= 80 ? 'pos' : score >= 60 ? 'warn' : 'neg';
+  const verdict = score >= 80 ? 'TRUSTWORTHY' : score >= 60 ? 'DEGRADED' : 'UNTRUSTWORTHY';
+  const pillCls = score >= 80 ? 'pass' : score >= 60 ? 'warn' : 'fail';
+
+  const t = el('div', {class: 'tile', html: `
+    <div class="label">Model Trustworthiness Score</div>
+    <div class="value ${cls}"><span class="pill ${pillCls}">${verdict}</span> · ${score}/100</div>
+    <div class="sub">Computed from conflicts + drift + calibration + learning signals</div>`});
+  s.appendChild(t);
+
+  if (alerts.length) {
+    const ul = el('div', {style: 'margin-top: 12px;'});
+    for (const a of alerts) {
+      const p = a.sev === 'HIGH' ? 'fail' : a.sev === 'MEDIUM' ? 'warn' : a.sev === 'OK' ? 'pass' : 'info';
+      ul.appendChild(el('div', {style: 'padding: 6px 0; font: 11px ui-monospace, monospace;', html: `
+        <span class="pill ${p}">${a.sev}</span>
+        <span style="color: var(--type-2); margin-left: 8px;">${a.text}</span>`}));
+    }
+    s.appendChild(ul);
+  }
+  return s;
+}
+
+// ==========================================================================
+// RENDER
+// ==========================================================================
+function renderPage() {
+  const main = document.getElementById('main');
+  main.innerHTML = '';
+
+  const h = el('h1', {html: 'Validation Lab <span class="warn-badge">ADMIN · Internal · Confidential</span>'});
+  main.appendChild(h);
+
+  main.appendChild(sectionAlerts());
+  main.appendChild(sectionPipelineHealth());
+  main.appendChild(sectionBacktestPerformance());
+  main.appendChild(sectionStrategyComparison());
+  main.appendChild(sectionCalibration());
+  main.appendChild(sectionPaperTrading());
+  main.appendChild(sectionDrift());
+  main.appendChild(sectionRecommendationHistory());
+  main.appendChild(sectionLearning());
+  main.appendChild(sectionFusionQuality());
+  main.appendChild(sectionFeatureImportance());
+  main.appendChild(sectionKnowledgeGraphHealth());
+}
+
+function updatePipelineStatus() {
+  const ledger = STATE.aegis_daily_v2_history || '';
+  const lines = ledger.trim().split('\n').filter(Boolean);
+  const last = lines.length ? (() => { try { return JSON.parse(lines[lines.length - 1]); } catch { return null; } })() : null;
+  const target = document.getElementById('pipelineStatus');
+  if (!last) { target.textContent = 'pipeline: —'; return; }
+  const failed = last.n_failure || 0;
+  const cls = failed ? 'style="color: var(--neg);"' : 'style="color: var(--pos);"';
+  target.innerHTML = `<span ${cls}>pipeline ${last.n_success}/${last.n_steps}</span>`;
+}
+
+async function refreshAll() {
+  document.getElementById('lastRefresh').textContent = 'loading…';
+  await loadState();
+  renderPage();
+  updatePipelineStatus();
+  document.getElementById('lastRefresh').textContent = new Date().toLocaleTimeString();
+}
+
+(async function boot() {
+  const themeBtn = document.getElementById('themeToggle');
+  const stored = localStorage.getItem('aegis-dashboard-theme');
+  if (stored) document.documentElement.setAttribute('data-theme', stored);
+  themeBtn.onclick = () => {
+    const cur = document.documentElement.getAttribute('data-theme');
+    const dark = cur ? cur === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+    const next = dark ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('aegis-dashboard-theme', next);
+  };
+
+  document.getElementById('refreshNow').onclick = () => refreshAll();
+
+  const REFRESH_MS = 60 * 1000;
+  let autoTimer = null;
+  const arm = () => { if (autoTimer) clearInterval(autoTimer); autoTimer = setInterval(refreshAll, REFRESH_MS); };
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) { if (autoTimer) { clearInterval(autoTimer); autoTimer = null; } }
+    else { arm(); refreshAll(); }
+  });
+
+  await refreshAll();
+  arm();
+})();
+</script>
+</body>
+</html>

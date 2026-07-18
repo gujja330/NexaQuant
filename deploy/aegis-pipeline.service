@@ -1,0 +1,46 @@
+# AEGIS · systemd unit for the daily pipeline
+#
+# Copy to /etc/systemd/system/aegis-pipeline.service
+# Trigger by aegis-pipeline.timer OR call directly:
+#   systemctl start aegis-pipeline.service
+#
+# Assumes:
+#   - Repo at /opt/aegis
+#   - Python venv at /opt/aegis/.venv
+#   - User "aegis" owns the tree
+#   - .env.telegram at /opt/aegis/.env.telegram (mode 0600, owned by aegis)
+
+[Unit]
+Description=AEGIS daily Phase 2 orchestrator
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=aegis
+Group=aegis
+WorkingDirectory=/opt/aegis
+Environment="PYTHONIOENCODING=utf-8"
+Environment="TZ=Asia/Kolkata"
+EnvironmentFile=-/opt/aegis/.env.telegram
+
+# Run the orchestrator; --continue keeps a partial failure from breaking Telegram
+ExecStart=/opt/aegis/.venv/bin/python /opt/aegis/scripts/aegis_daily_v2.py --continue
+
+# Then the sealed Telegram delivery (if env is set)
+ExecStartPost=/bin/sh -c '[ -n "$TELEGRAM_BOT_TOKEN" ] && /opt/aegis/.venv/bin/python /opt/aegis/scripts/telegram_send_with_retry.py --attempts 4 || true'
+
+# Reasonable timeouts + retention
+TimeoutStartSec=1800
+Nice=10
+StandardOutput=journal
+StandardError=journal
+
+# Sandbox hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/aegis/reports /opt/aegis/data /opt/aegis/india
+
+[Install]
+WantedBy=multi-user.target

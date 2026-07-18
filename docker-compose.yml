@@ -1,0 +1,60 @@
+# AEGIS · docker-compose (production)
+#
+# Three services:
+#   dashboard  — long-running HTTP server on :8765
+#   pipeline   — one-shot: runs the daily orchestrator (schedule externally)
+#   telegram   — one-shot: sends daily Telegram brief (schedule externally)
+#
+# Volumes:
+#   ./reports          — daily artifact outputs (bind-mounted so the host
+#                          can inspect them without exec into the container)
+#   ./data             — market data + derived state
+#
+# Env:
+#   TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID — set in .env at repo root
+
+version: "3.9"
+
+services:
+  dashboard:
+    build: .
+    image: aegis:v2.1.0-rc1
+    container_name: aegis-dashboard
+    restart: unless-stopped
+    ports:
+      - "8765:8765"
+    volumes:
+      - ./reports:/app/reports:ro   # dashboard reads only
+      - ./data:/app/data:ro
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8765/ux/dashboard/frontend/index.html', timeout=5)"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+    command: ["python", "ux/dashboard/frontend/serve.py"]
+
+  pipeline:
+    build: .
+    image: aegis:v2.1.0-rc1
+    container_name: aegis-pipeline
+    volumes:
+      - ./reports:/app/reports
+      - ./data:/app/data
+    env_file:
+      - ./.env.telegram
+    # profile "cron" so this doesn't start with `docker compose up`
+    # you invoke it via `docker compose run --rm pipeline`
+    profiles: ["cron"]
+    command: ["python", "scripts/aegis_daily_v2.py"]
+
+  telegram:
+    build: .
+    image: aegis:v2.1.0-rc1
+    container_name: aegis-telegram
+    volumes:
+      - ./reports:/app/reports:ro
+      - ./data:/app/data:ro
+    env_file:
+      - ./.env.telegram
+    profiles: ["cron"]
+    command: ["python", "scripts/telegram_send_with_retry.py", "--attempts", "4"]
