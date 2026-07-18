@@ -732,6 +732,8 @@ async function loadState() {
     'decision_center_notifications.json',
     'stock_validation.json',
     'price_context.json',
+    'recommendation_lifecycle.json',
+    'missed_opportunities.json',
   ];
   const entries = await Promise.all(targets.map(async n => [n.replace(/\.json$/, ''), await fetchJson(n)]));
   for (const [k, v] of entries) STATE[k] = v;
@@ -813,12 +815,16 @@ function buildCanonicalList() {
   const stockVal = (STATE.stock_validation && STATE.stock_validation.tickers) || {};
   const priceCtx = (STATE.price_context && STATE.price_context.tickers) || {};
 
+  // Index Institutional Memory lifecycle by ticker (first-seen, state, days active)
+  const lifecycleByTicker = (STATE.recommendation_lifecycle && STATE.recommendation_lifecycle.by_ticker) || {};
+
   const enriched = recs.map(r => {
     const ii_r = iiByTicker.get(String(r.ticker));
     const size = sizeByTicker.get(String(r.ticker));
     const ee = r.entry_exit || {};
     const sv = stockVal[r.ticker] || null;
     const pc = priceCtx[r.ticker] || null;
+    const lc = lifecycleByTicker[r.ticker] || null;
 
     // CMP prefers the freshest live parquet price; falls back to backtester's latest_close.
     const cmp = (pc && pc.available && pc.cmp != null) ? pc.cmp : ee.latest_close;
@@ -864,6 +870,12 @@ function buildCanonicalList() {
       n_historical:  sv ? sv.n_trades : null,
       avg_return_pct:  sv ? sv.avg_return_pct : null,
       avg_holding_d:   sv ? sv.avg_holding_days : null,
+
+      // Institutional Memory lifecycle
+      first_seen_date: lc ? lc.first_seen_date : null,
+      days_active:     lc ? lc.days_active : null,
+      lifecycle_state: lc ? lc.state : null,
+      alpha_capture:   lc ? lc.alpha_capture : null,
 
       // From fusion (v2.1) — the canonical intelligence score
       intelligence_score: ii_r ? ii_r.intelligence_score : null,
@@ -1305,6 +1317,8 @@ const OPP_FILTERS = [
     fn: r => ['Strong-Buy','Buy','Accumulate'].includes(r.action)},
   {key: 'strong_buy',  label: 'Strong Buy Only',
     fn: r => r.action === 'Strong-Buy'},
+  {key: 'new_today',   label: 'New Today',
+    fn: r => r.days_active != null && r.days_active <= 1},
   {key: 'held',        label: 'Held Positions',
     fn: r => !!r.currently_held},
   {key: 'sell',        label: "Today's Sells",
@@ -1362,11 +1376,18 @@ function decisionCardHtml(r, i) {
   const relStars = r.reliability ? '★'.repeat(Math.max(0, Math.min(5, Math.round(r.reliability)))) + '☆'.repeat(5 - Math.max(0, Math.min(5, Math.round(r.reliability)))) : '—';
   const wrPct = r.historical_wr != null ? Math.round(r.historical_wr * 100) + '%' : '—';
 
+  // Institutional Memory badge: NEW (day 1) or D_n
+  const lcBadge = (() => {
+    if (r.days_active == null) return '';
+    if (r.days_active <= 1) return `<span style="font: 9px ui-monospace,monospace; padding: 2px 6px; margin-left: 6px; background: color-mix(in srgb, var(--pos) 15%, transparent); color: var(--pos); border-radius: 2px; letter-spacing: 0.12em;">NEW</span>`;
+    return `<span style="font: 9px ui-monospace,monospace; padding: 2px 6px; margin-left: 6px; color: var(--type-3); border: 1px solid var(--rule); border-radius: 2px; letter-spacing: 0.06em;">D+${r.days_active}</span>`;
+  })();
+
   return `
     <div class="dc-head">
       <div>
-        <div class="dc-tick">${r.ticker}</div>
-        <div class="dc-sect">${r.sector || '—'}${r.industry ? ' · ' + r.industry : ''}</div>
+        <div class="dc-tick">${r.ticker}${lcBadge}</div>
+        <div class="dc-sect">${r.sector || '—'}${r.industry ? ' · ' + r.industry : ''}${r.first_seen_date ? ' · seen ' + r.first_seen_date : ''}</div>
       </div>
       <div style="text-align:right;">
         ${pillFor(r.action)}
@@ -1618,6 +1639,25 @@ function portfolioHealth() {
     <span class="label">Live Drift</span>
     <div class="value mono">${drift ? drift.flag : '—'}</div>
     <div class="sub">${drift ? `1st ${fmt.num(drift.first_half_sharpe, 2)} → 2nd ${fmt.num(drift.second_half_sharpe, 2)}` : 'insufficient evidence yet'}</div>`}));
+
+  // Alpha Capture Rate — from Institutional Memory v1.0
+  const im = STATE.recommendation_lifecycle;
+  if (im) {
+    const ac = im.avg_alpha_capture;
+    const acStr = ac != null ? `${(ac * 100).toFixed(0)}%` : '—';
+    const acCls = ac == null ? '' : ac >= 1.0 ? 'pos' : ac >= 0.5 ? '' : 'neg';
+    strip.appendChild(el('div', {class: 'tile', html: `
+      <span class="label">Alpha Capture Rate</span>
+      <div class="value ${acCls}">${acStr}</div>
+      <div class="sub">${im.n_exited || 0} closed of ${im.n_total || 0} · ${im.coverage?.n_days_archived || 0} archived days</div>`}));
+  }
+  const mo = STATE.missed_opportunities;
+  if (mo) {
+    strip.appendChild(el('div', {class: 'tile', html: `
+      <span class="label">Missed Opportunities</span>
+      <div class="value">${mo.n_events || 0}<span class="unit">events</span></div>
+      <div class="sub">${mo.n_days_scanned || 0} days scanned · &gt;${((mo.threshold_pct || 0) * 100).toFixed(0)}% forward return</div>`}));
+  }
 
   wrap.appendChild(strip);
   return wrap;

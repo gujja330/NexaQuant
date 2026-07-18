@@ -119,6 +119,14 @@ STEPS = [
         "requires": [],   # runs even without prior snapshot (baseline mode)
     },
     {
+        "name": "institutional_memory",
+        "desc": "Institutional Memory v1.0 (daily archive + lifecycle + missed-opps)",
+        "script": "research/institutional_memory/run.py",
+        "produces": ["reports/recommendation_lifecycle.json",
+                       "reports/missed_opportunities.json"],
+        "requires": ["reports/recommendations.json"],
+    },
+    {
         "name": "telegram",
         "desc": "UX030 Telegram delivery (5 messages, opt-in)",
         "script": "scripts/telegram_send_ux030.py",
