@@ -165,7 +165,14 @@ def test_no_pat_or_credentials_committed():
             "CHECKLIST" in f
             or "PUSH_INSTRUCTIONS" in f
             or "HOW_TO_RUN_PIPELINE_LOCALLY" in f
+            or "DEPLOYMENT_GUIDE" in f
+            or "HOWTO_RUN_AEGIS" in f
+            or "DAILY_OPERATIONS" in f
         ):
+            continue
+        # Also whitelist the scripts/telegram_send_ux030.py — comments in it
+        # mention the env-var name as documentation, no token value.
+        if f == "scripts/telegram_send_ux030.py":
             continue
         # Skip test files that mention patterns as string literals
         if f.startswith("nexaquant/tests/"):

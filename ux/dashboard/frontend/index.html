@@ -414,10 +414,48 @@ svg.mini .area { fill: var(--accent); opacity: 0.1; }
 </head>
 <body>
 
+<style>
+/* Tab bar & admin mode overrides */
+.tabbar {
+  display: flex;
+  gap: 4px;
+  margin: 0 20px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--panel-hi) 60%, transparent);
+  padding: 3px;
+  border: 1px solid var(--rule);
+}
+.tabbar a {
+  padding: 6px 14px;
+  font: 11px ui-monospace, monospace;
+  letter-spacing: 0.14em;
+  color: var(--type-2);
+  text-decoration: none;
+  border-radius: 3px;
+  transition: color 150ms, background 150ms;
+}
+.tabbar a:hover { color: var(--type-1); }
+.tabbar a.active {
+  background: color-mix(in srgb, var(--accent) 25%, transparent);
+  color: var(--accent-hi);
+}
+/* Admin mode: switch accent from gold to institutional blue */
+body[data-mode="admin"] {
+  --accent: #58A6FF;
+  --accent-hi: #79B8FF;
+}
+body[data-mode="admin"] .brand small { color: var(--accent-hi); }
+body[data-mode="admin"] .search { display: none; }  /* search is investor-only */
+</style>
+
 <div class="topbar">
   <div class="brand">
     AEGIS<span class="dot">.</span>
-    <small>Investment Dashboard</small>
+    <small id="brandTag">Investment Dashboard</small>
+  </div>
+  <div class="tabbar" id="tabbar">
+    <a href="#/" data-tab="/" class="active">DASHBOARD</a>
+    <a href="#/admin" data-tab="/admin">VALIDATION LAB</a>
   </div>
   <div class="search">
     <input id="searchBox" type="search" placeholder="Search ticker or company…" autocomplete="off">
@@ -427,8 +465,6 @@ svg.mini .area { fill: var(--accent); opacity: 0.1; }
       <div>Updated <strong id="lastRefresh">—</strong></div>
       <div id="pipelineStatus" style="margin-top: 2px;">—</div>
     </div>
-    <a href="admin.html" title="Open Validation Lab (admin)"
-        style="text-decoration:none; color: var(--type-2); border: 1px solid var(--rule); padding: 6px 12px; font: 10px ui-monospace, monospace; letter-spacing: 0.12em; border-radius: 3px;">ADMIN</a>
     <button id="refreshNow" type="button" title="Refresh now">↻</button>
     <button id="themeToggle" type="button" title="Toggle theme">◐</button>
   </div>
@@ -467,19 +503,25 @@ async function loadState() {
     'stress_scenarios.json',
     'recommendation_dna_feedback.json',
     'adaptive_rec_v2_signal.json',
+    'adaptive_rec_v2_scoreboard.json',
     'adaptive_rec_v2_feature_importance.json',
     'backtest_summary.json',
+    'challenger_scoreboard.json',
+    'promotion_recommendation.json',
+    'drift_report.json',
+    'regime_comparison.json',
     'strategy_doctor.json',
     'decision_center_today.json',
     'decision_center_notifications.json',
   ];
   const entries = await Promise.all(targets.map(async n => [n.replace(/\.json$/, ''), await fetchJson(n)]));
   for (const [k, v] of entries) STATE[k] = v;
-  // Also try to load the daily ledger for the status indicator
+  // Also try to load the daily ledger for the status indicator + Admin tab
   try {
     const r = await fetch(new URL('aegis_daily_v2_history.jsonl', REPORTS_BASE).href, {cache: 'no-store'});
     if (r.ok) {
       const text = await r.text();
+      STATE.aegis_daily_v2_history_raw = text;
       const lines = text.trim().split('\n').filter(Boolean);
       STATE.__last_run = lines.length ? JSON.parse(lines[lines.length - 1]) : null;
     }
@@ -1466,12 +1508,375 @@ function currentRoute() {
 
 function renderRoute() {
   const path = currentRoute();
-  if (path.startsWith('/stock/')) {
+  // Toggle admin visual mode based on route
+  if (path === '/admin' || path.startsWith('/admin/')) {
+    document.body.setAttribute('data-mode', 'admin');
+    document.getElementById('brandTag').textContent = 'Validation Lab · Admin';
+  } else {
+    document.body.setAttribute('data-mode', 'investor');
+    document.getElementById('brandTag').textContent = 'Investment Dashboard';
+  }
+  // Highlight active tab
+  document.querySelectorAll('#tabbar a').forEach(a => {
+    const key = a.dataset.tab;
+    const active = (key === '/admin' && path.startsWith('/admin'))
+                 || (key === '/' && !path.startsWith('/admin'));
+    a.classList.toggle('active', active);
+  });
+
+  if (path === '/admin') {
+    renderAdminPage();
+  } else if (path.startsWith('/stock/')) {
     const ticker = decodeURIComponent(path.substring('/stock/'.length));
     renderStockDetail(ticker);
   } else {
     renderDashboard();
   }
+}
+
+// ==========================================================================
+// Validation Lab (admin) — all sections inline; render on /admin route
+// ==========================================================================
+function renderAdminPage() {
+  const main = document.getElementById('main');
+  main.innerHTML = '';
+
+  const head = el('h1', {style: 'font-family: ui-monospace, monospace; font-size: 18px; letter-spacing: 0.04em; color: var(--type-1); padding-bottom: 12px; border-bottom: 1px solid var(--rule); margin-bottom: 20px;',
+    html: 'Validation Lab <span style="font-size: 10px; padding: 3px 8px; background: color-mix(in srgb, var(--warn) 20%, transparent); border: 1px solid var(--warn); color: var(--warn); letter-spacing: 0.14em; margin-left: 12px; border-radius: 2px; vertical-align: middle;">INTERNAL · MODEL TRUSTWORTHINESS</span>'});
+  main.appendChild(head);
+
+  main.appendChild(adminTrustworthinessVerdict());
+  main.appendChild(adminPipelineHealth());
+  main.appendChild(adminBacktestPerformance());
+  main.appendChild(adminStrategyComparison());
+  main.appendChild(adminCalibration());
+  main.appendChild(adminPaperTrading());
+  main.appendChild(adminDrift());
+  main.appendChild(adminRecommendationHistory());
+  main.appendChild(adminLearning());
+  main.appendChild(adminFusionQuality());
+  main.appendChild(adminFeatureImportance());
+  main.appendChild(adminKnowledgeGraphHealth());
+}
+
+// Compact admin tile that reuses the .strip/.tile CSS from the investor UI
+function adminTile(label, value, valueCls, sub, subCls) {
+  return el('div', {class: 'tile', html: `
+    <span class="label">${label}</span>
+    <div class="value ${valueCls || ''}">${value}</div>
+    ${sub ? `<div class="sub ${subCls || ''}">${sub}</div>` : ''}`});
+}
+function adminSection(title, body) {
+  const s = el('div', {class: 'section'});
+  const h = el('div', {class: 'section-head'});
+  h.appendChild(el('h2', {text: title}));
+  s.appendChild(h);
+  if (body) s.appendChild(body);
+  return s;
+}
+
+function adminTrustworthinessVerdict() {
+  const isum = STATE.intelligence_summary;
+  const dc = STATE.decision_center_today;
+  const c = STATE.confidence_calibration;
+  const v = STATE.validation_v2_latest;
+  const dr = STATE.drift_report;
+
+  const alerts = [];
+  let score = 100;
+  const criticals = ((isum && isum.conflict_summary) || {}).n_critical || 0;
+  if (criticals > 0) { score -= Math.min(20, criticals); alerts.push({sev: 'HIGH', text: `${criticals} CRITICAL fusion conflicts (raw vs fusion disagreement)`}); }
+  const rawEce = c && c.raw_metrics && c.raw_metrics.ece;
+  if (rawEce && rawEce > 0.10) alerts.push({sev: 'INFO', text: `Raw confidence ECE ${rawEce.toFixed(3)} — rank-order label, not probability`});
+  const driftFlag = v && v.metric_drift && v.metric_drift.flag;
+  if (driftFlag === 'degrading') { score -= 15; alerts.push({sev: 'HIGH', text: 'Live prediction drift is DEGRADING'}); }
+  else if (driftFlag === 'insufficient_evidence') alerts.push({sev: 'INFO', text: 'Live drift: insufficient closed trades yet'});
+  const strategyDrift = dr && dr.metric_drift ? Object.values(dr.metric_drift) : [];
+  const degrading = strategyDrift.filter(x => x.stability_flag === 'degrading').length;
+  if (degrading > 0) { score -= Math.min(15, degrading * 3); alerts.push({sev: 'MEDIUM', text: `${degrading} strategies show 2nd-half degradation`}); }
+  if (dc && dc.first_run) alerts.push({sev: 'INFO', text: 'Decision center · first day of tracking · diff kicks in tomorrow'});
+  const dna = STATE.recommendation_dna_feedback;
+  if (dna && dna.n_patterns) alerts.push({sev: 'OK', text: `${dna.n_patterns} DNA patterns · learning loop active`});
+
+  score = Math.max(0, Math.min(100, score));
+  const verdict = score >= 80 ? 'TRUSTWORTHY' : score >= 60 ? 'DEGRADED' : 'UNTRUSTWORTHY';
+  const cls = score >= 80 ? 'pos' : score >= 60 ? 'warn' : 'neg';
+  const pill = score >= 80 ? 'buy' : score >= 60 ? 'hold' : 'sell';
+
+  const s = adminSection(`Model Trustworthiness Verdict`);
+  const card = el('div', {class: 'card'});
+  card.appendChild(el('div', {html: `
+    <span class="label" style="font: 9px ui-monospace, monospace; letter-spacing: 0.16em; text-transform: uppercase; color: var(--type-2);">TRUSTWORTHINESS SCORE</span>
+    <div style="font-family: ui-serif, Baskerville, serif; font-size: 32px; color: var(--type-1); margin-top: 6px;">
+      <span class="pill ${pill}">${verdict}</span>
+      <span class="${cls}" style="margin-left: 12px;">${score}<span style="color: var(--type-3); font-size: 14px;">/100</span></span>
+    </div>
+    <div style="color: var(--type-3); font-size: 11px; margin-top: 8px; font-family: ui-monospace, monospace;">Aggregated from conflicts + drift + calibration + learning signals</div>`}));
+
+  if (alerts.length) {
+    const ul = el('div', {style: 'margin-top: 16px; border-top: 1px solid var(--rule); padding-top: 12px;'});
+    for (const a of alerts) {
+      const p = a.sev === 'HIGH' ? 'sell' : a.sev === 'MEDIUM' ? 'hold' : a.sev === 'OK' ? 'buy' : 'watchlist';
+      ul.appendChild(el('div', {style: 'padding: 6px 0; font-size: 12px;', html: `<span class="pill ${p}">${a.sev}</span> <span style="color: var(--type-2); margin-left: 8px;">${a.text}</span>`}));
+    }
+    card.appendChild(ul);
+  }
+  s.appendChild(card);
+  return s;
+}
+
+function adminPipelineHealth() {
+  const s = adminSection('1 · Daily Validation Summary');
+  const raw = STATE.aegis_daily_v2_history_raw;
+  if (!raw) {
+    // Load ledger separately since loadState may not include it
+    const target = el('div', {class: 'empty', text: 'Ledger not loaded. Refresh.'});
+    s.appendChild(target);
+    return s;
+  }
+  const lines = raw.trim().split('\n').filter(Boolean);
+  const last = lines.length ? (() => { try { return JSON.parse(lines[lines.length - 1]); } catch { return null; }})() : null;
+  if (!last) { s.appendChild(el('div', {class: 'empty', text: 'No pipeline runs yet.'})); return s; }
+  const strip = el('div', {class: 'strip'});
+  const overallCls = last.n_failure === 0 ? 'pos' : 'neg';
+  strip.appendChild(adminTile('Pipeline Overall',
+    last.n_failure === 0 ? '<span class="pill buy">PASS</span>' : '<span class="pill sell">FAIL</span>',
+    overallCls,
+    `${last.n_success}/${last.n_steps} steps · ${last.total_elapsed_s}s`));
+  for (const r of last.results || []) {
+    const cls = r.verdict === 'SUCCESS' ? 'pos' : r.verdict === 'SKIPPED_OPTIONAL' ? 'watchlist' : r.verdict === 'FAILURE' ? 'neg' : 'warn';
+    const pill = r.verdict === 'SUCCESS' ? 'buy' : r.verdict === 'FAILURE' ? 'sell' : 'hold';
+    strip.appendChild(adminTile(r.name, `<span class="pill ${pill}">${r.verdict}</span>`, cls, `${r.elapsed_s || 0}s`));
+  }
+  s.appendChild(strip);
+  return s;
+}
+
+function adminBacktestPerformance() {
+  const s = adminSection('2 · Backtest Performance (Champion)');
+  const champ = STATE.champion_strategy && STATE.champion_strategy.champion;
+  const adaptV2 = STATE.adaptive_rec_v2_signal;
+  const strip = el('div', {class: 'strip'});
+  if (champ) {
+    strip.appendChild(adminTile('Win Rate', champ.win_rate ? champ.win_rate.toFixed(1) + '%' : '—', 'pos', 'Champion: ' + champ.strategy));
+    strip.appendChild(adminTile('Sharpe', fmt.num(champ.sharpe, 2), 'pos'));
+    strip.appendChild(adminTile('CAGR', champ.cagr ? (champ.cagr * 100).toFixed(1) + '%' : '—', 'pos'));
+    strip.appendChild(adminTile('Max Drawdown', fmt.num(champ.max_dd_pct, 1) + '%', 'neg'));
+  }
+  if (adaptV2 && adaptV2.best_model_summary) {
+    const m = adaptV2.best_model_summary;
+    strip.appendChild(adminTile('Precision@5', fmt.num(m.precision_at_5, 2), '', 'v2.0 rebuild'));
+    strip.appendChild(adminTile('Precision@10', fmt.num(m.precision_at_10, 2)));
+    strip.appendChild(adminTile('Precision@20', fmt.num(m.precision_at_20, 2)));
+    strip.appendChild(adminTile('Brier', fmt.num(m.brier, 3), '', 'held-out test'));
+    strip.appendChild(adminTile('AUC ROC', fmt.num(m.auc, 3), 'warn', 'near 0.5 = chance'));
+  }
+  s.appendChild(strip);
+  return s;
+}
+
+function adminStrategyComparison() {
+  const s = adminSection('3 · Strategy Leaderboard');
+  const lb = (STATE.challenger_scoreboard && STATE.challenger_scoreboard.leaderboard) || [];
+  if (!lb.length) { s.appendChild(el('div', {class: 'empty', text: 'No leaderboard.'})); return s; }
+  const card = el('div', {class: 'card'});
+  const table = el('table', {class: 'decision'});
+  const champStrat = (STATE.champion_strategy && STATE.champion_strategy.champion && STATE.champion_strategy.champion.strategy) || null;
+  table.innerHTML = `<thead><tr>
+    <th>#</th><th>Strategy</th>
+    <th class="right">Composite</th><th class="right">Sharpe</th>
+    <th class="right">CAGR</th><th class="right">Max DD</th>
+    <th class="right">Win rate</th><th>Status</th>
+  </tr></thead>`;
+  const tbody = el('tbody');
+  for (const row of lb) {
+    const isChamp = row.strategy === champStrat;
+    const isBench = String(row.strategy || '').toUpperCase().includes('BENCHMARK');
+    tbody.innerHTML += `<tr>
+      <td class="rank">${row.rank}</td>
+      <td class="ticker" style="color: ${isChamp ? 'var(--accent-hi)' : isBench ? 'var(--type-3)' : 'var(--type-1)'};">${row.strategy}</td>
+      <td class="right">${fmt.num(row.composite_score, 2)}</td>
+      <td class="right ${row.sharpe > 0 ? 'pos' : 'neg'}">${fmt.num(row.sharpe, 2)}</td>
+      <td class="right ${row.cagr > 0 ? 'pos' : 'neg'}">${fmt.pct(row.cagr, 1)}</td>
+      <td class="right neg">${fmt.num(row.max_dd_pct, 1)}%</td>
+      <td class="right">${row.win_rate != null ? row.win_rate.toFixed(1) + '%' : '—'}</td>
+      <td>${isChamp ? '<span class="pill buy">CHAMPION</span>' : isBench ? '<span class="pill hold">BENCHMARK</span>' : '<span class="pill watchlist">CHALLENGER</span>'}</td>
+    </tr>`;
+  }
+  table.appendChild(tbody);
+  card.appendChild(el('div', {class: 'scroll-x'}, table));
+  s.appendChild(card);
+  return s;
+}
+
+function adminCalibration() {
+  const s = adminSection('4 · Confidence Calibration');
+  const c = STATE.confidence_calibration;
+  if (!c) { s.appendChild(el('div', {class: 'empty', text: 'Calibration not run.'})); return s; }
+  const raw = (c.raw_metrics || {}).ece;
+  const cal = (c.calibrated_metrics || {}).ece;
+  const imp = raw && cal ? ((raw - cal) / raw * 100).toFixed(1) : '—';
+  const strip = el('div', {class: 'strip'});
+  strip.appendChild(adminTile('Raw ECE', fmt.num(raw, 3), 'warn'));
+  strip.appendChild(adminTile('Calibrated ECE', fmt.num(cal, 4), 'pos'));
+  strip.appendChild(adminTile('Improvement', imp + '%', 'pos', c.best_method || '—'));
+  strip.appendChild(adminTile('Sample size', fmt.int(c.n_trades_total), '', 'trades'));
+  strip.appendChild(adminTile('Method', c.best_method || '—', '', 'chosen by Brier score'));
+  s.appendChild(strip);
+  return s;
+}
+
+function adminPaperTrading() {
+  const s = adminSection('5 · Live Paper Trading (Validation Harness)');
+  const v = STATE.validation_v2_latest;
+  if (!v) { s.appendChild(el('div', {class: 'empty', text: 'Harness not running.'})); return s; }
+  const strip = el('div', {class: 'strip'});
+  strip.appendChild(adminTile('Open Positions', fmt.int(v.n_open_positions), '', 'currently tracked'));
+  strip.appendChild(adminTile('Closed Trades', fmt.int(v.n_closed_trades)));
+  strip.appendChild(adminTile('New Opens', fmt.int(v.n_new_opens), 'pos'));
+  strip.appendChild(adminTile('New Closes', fmt.int(v.n_new_closes), 'warn'));
+  strip.appendChild(adminTile('Portfolio P/L', v.portfolio_pnl_pct ? (v.portfolio_pnl_pct * 100).toFixed(2) + '%' : '0.00%',
+    v.portfolio_pnl_pct > 0 ? 'pos' : v.portfolio_pnl_pct < 0 ? 'neg' : ''));
+  const rec = v.reconciliation || {};
+  strip.appendChild(adminTile('Reconciled', fmt.int(rec.n), '',
+    rec.within_5pp_tolerance === true ? 'within 5pp tolerance' : rec.within_5pp_tolerance === false ? 'divergent' : 'insufficient'));
+  const oc = v.opportunity_cost || {};
+  strip.appendChild(adminTile('Missed Winners', fmt.int(oc.n_missed_edges),
+    (oc.n_missed_edges || 0) > 0 ? 'warn' : 'pos'));
+  s.appendChild(strip);
+  return s;
+}
+
+function adminDrift() {
+  const s = adminSection('6 · Drift Monitoring');
+  const v = STATE.validation_v2_latest;
+  const dr = STATE.drift_report;
+  const strip = el('div', {class: 'strip'});
+  if (v && v.metric_drift) {
+    const md = v.metric_drift;
+    const pill = md.flag === 'stable' ? 'buy' : md.flag === 'improving' ? 'buy' : md.flag === 'degrading' ? 'sell' : 'hold';
+    strip.appendChild(adminTile('Live Prediction Drift', `<span class="pill ${pill}">${(md.flag || '?').toUpperCase()}</span>`,
+      md.flag === 'degrading' ? 'neg' : 'pos'));
+  }
+  if (dr && dr.metric_drift) {
+    const strategies = Object.entries(dr.metric_drift || {});
+    const degrading = strategies.filter(([_, v]) => v.stability_flag === 'degrading').length;
+    strip.appendChild(adminTile('Strategy Drift',
+      degrading > 0 ? `<span class="pill sell">${degrading} DEGRADING</span>` : '<span class="pill buy">STABLE</span>',
+      degrading > 0 ? 'neg' : 'pos', `${strategies.length} strategies`));
+  }
+  const c = STATE.confidence_calibration;
+  strip.appendChild(adminTile('Confidence Drift',
+    c ? '<span class="pill buy">CALIBRATED</span>' : '<span class="pill hold">—</span>',
+    c ? 'pos' : 'warn'));
+  s.appendChild(strip);
+  return s;
+}
+
+function adminRecommendationHistory() {
+  const s = adminSection('7 · Overnight Recommendation Changes');
+  const dc = STATE.decision_center_today;
+  if (!dc) { s.appendChild(el('div', {class: 'empty', text: 'Decision center not run.'})); return s; }
+  const counts = dc.counts_by_kind || {};
+  const strip = el('div', {class: 'strip'});
+  strip.appendChild(adminTile('New', fmt.int(counts.NEW || 0), (counts.NEW || 0) > 0 ? 'pos' : ''));
+  strip.appendChild(adminTile('Removed', fmt.int(counts.REMOVED || 0), (counts.REMOVED || 0) > 0 ? 'warn' : ''));
+  strip.appendChild(adminTile('Upgraded', fmt.int(counts.UPGRADED || 0), 'pos'));
+  strip.appendChild(adminTile('Downgraded', fmt.int(counts.DOWNGRADED || 0), 'neg'));
+  strip.appendChild(adminTile('Target Hit', fmt.int(counts.TARGET_HIT || 0), 'pos'));
+  strip.appendChild(adminTile('Stop Hit', fmt.int(counts.STOP_HIT || 0), 'neg'));
+  strip.appendChild(adminTile('Intel Up', fmt.int(counts.INTELLIGENCE_UP || 0), 'pos'));
+  strip.appendChild(adminTile('Intel Down', fmt.int(counts.INTELLIGENCE_DOWN || 0), 'neg'));
+  s.appendChild(strip);
+  return s;
+}
+
+function adminLearning() {
+  const s = adminSection('8 · Learning & DNA');
+  const dna = STATE.recommendation_dna_feedback;
+  const doc = STATE.strategy_doctor;
+  const strip = el('div', {class: 'strip'});
+  if (dna) {
+    strip.appendChild(adminTile('DNA Records', fmt.int(dna.n_dna_records), '', 'immutable'));
+    strip.appendChild(adminTile('Patterns', fmt.int(dna.n_patterns), '', `${dna.n_with_evidence} with evidence`));
+    strip.appendChild(adminTile('High-Prior', fmt.int(dna.n_high_prior), 'pos', 'wr ≥ 0.65'));
+    strip.appendChild(adminTile('Low-Prior', fmt.int(dna.n_low_prior), 'neg', 'wr ≤ 0.35'));
+  }
+  if (doc && doc.diagnoses) {
+    const byCat = {};
+    for (const d of doc.diagnoses) byCat[d.category || 'unknown'] = (byCat[d.category || 'unknown'] || 0) + 1;
+    const top = Object.entries(byCat).sort((a, b) => b[1] - a[1])[0];
+    strip.appendChild(adminTile('Diagnoses', fmt.int(doc.diagnoses.length), 'warn'));
+    strip.appendChild(adminTile('Top Failure', top ? top[0].replace(/_/g, ' ') : '—', 'neg', top ? `${top[1]} occurrences` : ''));
+  }
+  s.appendChild(strip);
+  return s;
+}
+
+function adminFusionQuality() {
+  const s = adminSection('9 · Fusion Quality');
+  const isum = STATE.intelligence_summary;
+  if (!isum) { s.appendChild(el('div', {class: 'empty', text: 'Fusion not run.'})); return s; }
+  const cs = isum.conflict_summary || {};
+  const strip = el('div', {class: 'strip'});
+  strip.appendChild(adminTile('Avg Score', fmt.num(isum.avg_intelligence, 1), '', `${isum.n_scored} recs`));
+  strip.appendChild(adminTile('CRITICAL Conflicts', fmt.int(cs.n_critical), (cs.n_critical || 0) > 0 ? 'neg' : 'pos'));
+  strip.appendChild(adminTile('MEDIUM Conflicts', fmt.int(cs.n_medium), (cs.n_medium || 0) > 0 ? 'warn' : ''));
+  strip.appendChild(adminTile('MINOR Conflicts', fmt.int(cs.n_minor)));
+  const dist = isum.by_decision || {};
+  for (const [d, n] of Object.entries(dist).sort((a, b) => b[1] - a[1])) {
+    const cls = ['Strong-Buy', 'Buy', 'Accumulate'].includes(d) ? 'pos' : ['Reduce', 'Sell', 'Avoid'].includes(d) ? 'neg' : d === 'Hold' ? 'warn' : '';
+    strip.appendChild(adminTile(`Decision · ${d}`, fmt.int(n), cls));
+  }
+  s.appendChild(strip);
+  return s;
+}
+
+function adminFeatureImportance() {
+  const s = adminSection('10 · Feature Importance (v2.0 Model)');
+  const fi = STATE.adaptive_rec_v2_feature_importance;
+  if (!fi) { s.appendChild(el('div', {class: 'empty', text: 'Not computed.'})); return s; }
+  const top = (fi.feature_importance || []).slice(0, 12);
+  if (!top.length) { s.appendChild(el('div', {class: 'empty', text: 'No data.'})); return s; }
+  const card = el('div', {class: 'card'});
+  const max = top[0].importance || 1;
+  for (const f of top) {
+    const w = (f.importance / max * 100).toFixed(1);
+    card.appendChild(el('div', {style: 'display: grid; grid-template-columns: 220px 1fr 70px; align-items: center; gap: 12px; padding: 5px 0;', html: `
+      <div style="color: var(--type-2); font: 11px ui-monospace, monospace;">${f.feature.slice(0, 30)}</div>
+      <div class="bar"><div class="fill" style="width: ${w}%"></div></div>
+      <div style="text-align: right; font: 11px ui-monospace, monospace; color: var(--type-1);">${fmt.num(f.importance, 3)}</div>`}));
+  }
+  s.appendChild(card);
+  return s;
+}
+
+function adminKnowledgeGraphHealth() {
+  const s = adminSection('11 · Knowledge Graph Health');
+  const gs = STATE.graph_statistics && STATE.graph_statistics.graph_stats;
+  const cc = STATE.community_clusters;
+  const ss_ = STATE.stress_scenarios;
+  const strip = el('div', {class: 'strip'});
+  if (gs) {
+    strip.appendChild(adminTile('Nodes', fmt.int(gs.n_nodes), '', `${gs.n_entity_types} types`));
+    strip.appendChild(adminTile('Edges', fmt.int(gs.n_edges), '', `${gs.n_relation_types} relations`));
+    strip.appendChild(adminTile('Avg Degree', fmt.num(gs.avg_degree, 2)));
+  }
+  if (cc) {
+    const q = cc.modularity;
+    strip.appendChild(adminTile('Communities', fmt.int(cc.count), '', `Q = ${fmt.num(q, 3)}`));
+    strip.appendChild(adminTile('Modularity',
+      `<span class="pill ${q >= 0.5 ? 'buy' : q >= 0.3 ? 'hold' : 'sell'}">${q >= 0.5 ? 'STRONG' : q >= 0.3 ? 'MODERATE' : 'WEAK'}</span>`,
+      q >= 0.5 ? 'pos' : q >= 0.3 ? 'warn' : 'neg'));
+  }
+  if (ss_ && ss_.scenarios) {
+    const worst = ss_.scenarios.reduce((a, b) => (b.portfolio_exposure || 0) > (a.portfolio_exposure || 0) ? b : a, {});
+    strip.appendChild(adminTile('Worst Stress Exposure', fmt.pct(worst.portfolio_exposure, 1),
+      (worst.portfolio_exposure || 0) > 0.8 ? 'neg' : (worst.portfolio_exposure || 0) > 0.3 ? 'warn' : 'pos',
+      worst.scenario ? worst.scenario.replace(/_/g, ' ') : '—'));
+  }
+  s.appendChild(strip);
+  return s;
 }
 
 // ==========================================================================
