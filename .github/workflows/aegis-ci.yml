@@ -1,0 +1,87 @@
+name: AEGIS CI
+
+# Runs on every push + pull request. Verifies the pipeline artifacts on disk
+# pass the operational-hardening gate:
+#   - all required artifacts exist
+#   - JSON schemas valid
+#   - MON001 fingerprint unchanged (if seal file present)
+#   - orchestrator ledger not full of failures
+#
+# Does NOT re-run the full pipeline (that's aegis-daily.yml's job) —
+# CI verifies that whatever a commit changed didn't break the current
+# artifacts on origin.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "research/**"
+      - "scripts/**"
+      - "ux/dashboard/frontend/index.html"
+      - ".github/workflows/aegis-ci.yml"
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ops-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install minimal deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas numpy pyarrow scikit-learn
+
+      - name: Run Operational Hardening Check
+        run: python scripts/aegis_ops_check.py
+
+      - name: Verify SPA JS parses
+        run: |
+          node --version
+          python - <<'PY'
+          import re, subprocess, tempfile, os
+          html = open('ux/dashboard/frontend/index.html', encoding='utf-8').read()
+          scripts = re.findall(r'<script[^>]*>(.*?)</script>', html, flags=re.DOTALL)
+          combined = '\n'.join(scripts)
+          with tempfile.NamedTemporaryFile(mode='w', suffix='.js', delete=False, encoding='utf-8') as f:
+              f.write(combined); tmp = f.name
+          try:
+              r = subprocess.run(['node', '--check', tmp], capture_output=True, text=True, timeout=30)
+              if r.returncode:
+                  print(r.stderr)
+                  raise SystemExit(1)
+              print(f"SPA JS OK · {len(scripts)} <script> blocks, {len(combined) / 1024:.1f} KB")
+          finally:
+              os.unlink(tmp)
+          PY
+
+      - name: Verify Morning Report generator runs
+        run: python research/morning_report/run.py
+
+      - name: Upload ops_check artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ops-check-report
+          path: reports/ops_check.json
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Summarise verdict
+        if: always()
+        run: |
+          if [ -f reports/ops_check.json ]; then
+            VERDICT=$(python -c "import json; print(json.load(open('reports/ops_check.json')).get('verdict', 'UNKNOWN'))")
+            echo "## AEGIS Ops Check verdict: $VERDICT" >> $GITHUB_STEP_SUMMARY
+            python -c "import json; d = json.load(open('reports/ops_check.json')); print(f\"Artifacts: {d['artifacts']['n_present']}/{d['artifacts']['n_required']} present · {d['artifacts']['n_invalid']} invalid\"); print(f\"Schemas: {d['schemas']['n_pass']}/{d['schemas']['n_schemas']} pass\"); print(f\"Fingerprint: {'OK' if d['fingerprint'].get('match') else 'not-checked-or-drift'}\"); print(f\"Health: {d['health'].get('n_ok', '—')}/{d['health'].get('n_steps', '—')} steps ok\")" >> $GITHUB_STEP_SUMMARY
+          fi

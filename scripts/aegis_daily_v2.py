@@ -156,6 +156,13 @@ STEPS = [
         "requires": ["reports/recommendations.json", "reports/benchmark.json"],
     },
     {
+        "name": "ops_check",
+        "desc": "Operational Hardening (artifact + schema + fingerprint + health rollup)",
+        "script": "scripts/aegis_ops_check.py",
+        "produces": ["reports/ops_check.json"],
+        "requires": [],
+    },
+    {
         "name": "telegram",
         "desc": "UX030 Telegram delivery (5 messages, opt-in)",
         "script": "scripts/telegram_send_ux030.py",
