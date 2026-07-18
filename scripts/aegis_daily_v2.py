@@ -127,6 +127,13 @@ STEPS = [
         "requires": ["reports/recommendations.json"],
     },
     {
+        "name": "winner_genome",
+        "desc": "Recommendation DNA v2.0 · Winner Genome (Alpha Signatures + per-rec match)",
+        "script": "research/recommendation_dna/run_winner_genome.py",
+        "produces": ["reports/winner_genome.json"],
+        "requires": ["reports/learning.parquet", "reports/recommendations.json"],
+    },
+    {
         "name": "telegram",
         "desc": "UX030 Telegram delivery (5 messages, opt-in)",
         "script": "scripts/telegram_send_ux030.py",

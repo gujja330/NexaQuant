@@ -734,6 +734,7 @@ async function loadState() {
     'price_context.json',
     'recommendation_lifecycle.json',
     'missed_opportunities.json',
+    'winner_genome.json',
   ];
   const entries = await Promise.all(targets.map(async n => [n.replace(/\.json$/, ''), await fetchJson(n)]));
   for (const [k, v] of entries) STATE[k] = v;
@@ -817,6 +818,9 @@ function buildCanonicalList() {
 
   // Index Institutional Memory lifecycle by ticker (first-seen, state, days active)
   const lifecycleByTicker = (STATE.recommendation_lifecycle && STATE.recommendation_lifecycle.by_ticker) || {};
+  // Winner Genome matches by ticker (Recommendation DNA v2.0)
+  const winnerGenome = STATE.winner_genome || {};
+  const wgMatchByTicker = winnerGenome.matches || {};
 
   const enriched = recs.map(r => {
     const ii_r = iiByTicker.get(String(r.ticker));
@@ -825,6 +829,7 @@ function buildCanonicalList() {
     const sv = stockVal[r.ticker] || null;
     const pc = priceCtx[r.ticker] || null;
     const lc = lifecycleByTicker[r.ticker] || null;
+    const wg = wgMatchByTicker[r.ticker] || null;
 
     // CMP prefers the freshest live parquet price; falls back to backtester's latest_close.
     const cmp = (pc && pc.available && pc.cmp != null) ? pc.cmp : ee.latest_close;
@@ -876,6 +881,15 @@ function buildCanonicalList() {
       days_active:     lc ? lc.days_active : null,
       lifecycle_state: lc ? lc.state : null,
       alpha_capture:   lc ? lc.alpha_capture : null,
+
+      // Winner Genome v2.0 · Alpha Signature match
+      wg_n_signatures:     wg ? wg.n_signatures_matched : 0,
+      wg_signature_ids:    wg ? wg.signature_ids : [],
+      wg_n_hist_winners:   wg ? wg.n_historical_winners : 0,
+      wg_hist_success:     wg ? wg.historical_success : 0,
+      wg_avg_lift:         wg ? wg.avg_signature_lift : 0,
+      wg_best_avg_return:  wg ? wg.best_avg_return : 0,
+      wg_plain_language:   wg ? wg.plain_language : null,
 
       // From fusion (v2.1) — the canonical intelligence score
       intelligence_score: ii_r ? ii_r.intelligence_score : null,
@@ -1319,6 +1333,8 @@ const OPP_FILTERS = [
     fn: r => r.action === 'Strong-Buy'},
   {key: 'new_today',   label: 'New Today',
     fn: r => r.days_active != null && r.days_active <= 1},
+  {key: 'winner_match', label: 'Winner Match',
+    fn: r => (r.wg_n_signatures || 0) > 0},
   {key: 'held',        label: 'Held Positions',
     fn: r => !!r.currently_held},
   {key: 'sell',        label: "Today's Sells",
@@ -1349,6 +1365,9 @@ const OPP_SORTS = [
     cmp: (a, b) => (b.confidence ?? -1) - (a.confidence ?? -1)},
   {key: 'sector_asc',    label: 'Sector A → Z',
     cmp: (a, b) => String(a.sector || '').localeCompare(String(b.sector || ''))},
+  {key: 'wg_desc',       label: 'Winner Genome Match ↓',
+    cmp: (a, b) => ((b.wg_n_signatures || 0) - (a.wg_n_signatures || 0))
+                || ((b.wg_avg_lift || 0) - (a.wg_avg_lift || 0))},
 ];
 
 function decisionCardHtml(r, i) {
@@ -1428,6 +1447,13 @@ function decisionCardHtml(r, i) {
       ${reasonsPos || '<span class="rc" style="opacity:0.5">No explicit reasons emitted</span>'}
       ${reasonsNeg}
     </div>
+
+    ${r.wg_n_signatures > 0 ? `
+    <div style="margin-top: 10px; padding: 8px 10px; border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); border-radius: 3px; background: color-mix(in srgb, var(--accent) 6%, transparent);">
+      <div style="font: 9px ui-monospace, monospace; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent-hi); margin-bottom: 3px;">Winner Genome</div>
+      <div style="font-size: 11px; color: var(--type-1);">Looks similar to <b>${r.wg_n_hist_winners}</b> historical top-decile winners · hist. avg <b style="color:var(--pos)">${(r.wg_best_avg_return * 100).toFixed(1)}%</b> · success <b>${(r.wg_hist_success * 100).toFixed(0)}%</b></div>
+      <div style="font: 10px ui-monospace, monospace; color: var(--type-3); margin-top: 3px; letter-spacing: 0.04em;">Matches ${r.wg_n_signatures} signature${r.wg_n_signatures > 1 ? 's' : ''} · lift ${r.wg_avg_lift.toFixed(2)}</div>
+    </div>` : ''}
 
     <div class="dc-foot">
       <span>R:R ${rr != null ? fmt.num(rr, 2) : '—'}${r.currently_held ? ' · <span style="color:var(--accent-hi)">HELD</span>' : ''}</span>
@@ -1657,6 +1683,21 @@ function portfolioHealth() {
       <span class="label">Missed Opportunities</span>
       <div class="value">${mo.n_events || 0}<span class="unit">events</span></div>
       <div class="sub">${mo.n_days_scanned || 0} days scanned · &gt;${((mo.threshold_pct || 0) * 100).toFixed(0)}% forward return</div>`}));
+  }
+  // Winner Genome — Alpha Signature library health
+  const wgSum = STATE.winner_genome;
+  if (wgSum) {
+    if (wgSum.mode === 'insufficient_data') {
+      strip.appendChild(el('div', {class: 'tile', html: `
+        <span class="label">Winner Genome</span>
+        <div class="value mono" style="font-size: 14px;">warming up</div>
+        <div class="sub">${wgSum.note || 'accumulating trade evidence'}</div>`}));
+    } else {
+      strip.appendChild(el('div', {class: 'tile', html: `
+        <span class="label">Winner Genome</span>
+        <div class="value">${wgSum.n_signatures || 0}<span class="unit">signatures</span></div>
+        <div class="sub">${wgSum.n_top_decile || 0} historical winners &gt; ${((wgSum.top_decile_threshold || 0) * 100).toFixed(1)}% · ${wgSum.n_current_matched || 0} recs match today</div>`}));
+    }
   }
 
   wrap.appendChild(strip);
