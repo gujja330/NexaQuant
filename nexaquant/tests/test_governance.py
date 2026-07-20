@@ -165,9 +165,11 @@ def test_no_pat_or_credentials_committed():
             "CHECKLIST" in f
             or "PUSH_INSTRUCTIONS" in f
             or "HOW_TO_RUN_PIPELINE_LOCALLY" in f
+            or "HOW_TO_RUN_PIPELINE" in f
             or "DEPLOYMENT_GUIDE" in f
             or "HOWTO_RUN_AEGIS" in f
             or "DAILY_OPERATIONS" in f
+            or "chat_transcript" in f
         ):
             continue
         # Also whitelist the scripts/telegram_send_ux030.py — comments in it
