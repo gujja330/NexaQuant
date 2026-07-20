@@ -28,6 +28,10 @@ except Exception:
 _ROOT = Path(__file__).resolve().parents[2]
 REPORTS = _ROOT / "reports"
 
+# Import scoreboard aggregator (extension of the Morning Report per Constitution)
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from lib import scoreboard as _scoreboard          # noqa: E402
+
 
 def _load(name: str) -> dict | None:
     p = REPORTS / name
@@ -185,7 +189,11 @@ def build_report() -> dict:
     n_missed = mo.get("n_events") or 0
     missed_examples = (mo.get("top_missed") or [])[:5]
 
+    # Lifecycle scoreboard — day-by-day trajectory of today's Top-10 recs
+    lifecycle_scoreboard = _scoreboard.build_scoreboard(top_n=10)
+
     return {
+        "scoreboard":          lifecycle_scoreboard,
         "date_ist":            (datetime.now(timezone.utc) + timedelta(hours=5, minutes=30)).strftime("%Y-%m-%d %H:%M IST"),
         "date_short":          datetime.now(timezone.utc).strftime("%Y-%m-%d"),
         "portfolio_summary":   portfolio_summary,
@@ -253,6 +261,28 @@ def render_markdown(ctx: dict) -> str:
                  f"{_price(r.get('_target_1'))} | {_price(r.get('_stop'))} | "
                  f"{r.get('_hold_days') or '—'}d | "
                  f"{_pct(alpha, sign=True) if alpha is not None else '—'} |")
+    L.append("")
+
+    # Recommendation Lifecycle Scoreboard — day-by-day trajectory
+    L.append("## Recommendation Lifecycle Scoreboard  🟢 Live")
+    L.append("")
+    L.append("| # | Ticker | Sector | Age | Entry | Day+1 | Day+3 | Day+5 | Day+10 | Current | MaxGain | MaxDD | Status |")
+    L.append("|---|---|---|---|---|---|---|---|---|---|---|---|---|")
+    for i, r in enumerate(ctx.get("scoreboard") or [], 1):
+        age = f"{r.get('age_days')}/{r.get('expected_hold') or '—'}d" if r.get('age_days') is not None else "—"
+        L.append(f"| {i} | **{r['ticker']}** | {r.get('sector', '—')} | {age} | "
+                 f"{_price(r.get('entry_price'))} | "
+                 f"{_pct(r.get('d1'), sign=True) if r.get('d1') is not None else '—'} | "
+                 f"{_pct(r.get('d3'), sign=True) if r.get('d3') is not None else '—'} | "
+                 f"{_pct(r.get('d5'), sign=True) if r.get('d5') is not None else '—'} | "
+                 f"{_pct(r.get('d10'), sign=True) if r.get('d10') is not None else '—'} | "
+                 f"{_pct(r.get('current_return'), sign=True) if r.get('current_return') is not None else '—'} | "
+                 f"{_pct(r.get('max_gain'), sign=True) if r.get('max_gain') is not None else '—'} | "
+                 f"{_pct(r.get('max_dd'), sign=True) if r.get('max_dd') is not None else '—'} | "
+                 f"{r.get('status', '—')} |")
+    L.append("")
+    L.append("_Day+N columns are trading-day forward returns from first_seen_date. "
+             "Populate as archive matures — expect empty until Day 10 of live operation._")
     L.append("")
 
     # Overnight Changes
@@ -472,6 +502,34 @@ def render_html(ctx: dict) -> str:
                         f"<td>{r.get('_hold_days') or '—'}d</td>"
                         f"<td class='{alpha_cls}'>{_pct(alpha, sign=True) if alpha is not None else '—'}</td></tr>")
     parts.append("</tbody></table>")
+
+    # Recommendation Lifecycle Scoreboard
+    parts.append("<h2>Recommendation Lifecycle Scoreboard <span class='tag live'>Live</span></h2>")
+    parts.append("<table><thead><tr>"
+                    "<th>#</th><th>Ticker</th><th>Sector</th><th>Age</th>"
+                    "<th>Entry</th><th>D+1</th><th>D+3</th><th>D+5</th><th>D+10</th>"
+                    "<th>Current</th><th>MaxGain</th><th>MaxDD</th><th>Status</th>"
+                    "</tr></thead><tbody>")
+    for i, r in enumerate(ctx.get("scoreboard") or [], 1):
+        def _cell(v):
+            if v is None: return "<td>—</td>"
+            cls = "pos" if v > 0 else "neg" if v < 0 else ""
+            return f"<td class='{cls}'>{_pct(v, sign=True)}</td>"
+        age = f"{r.get('age_days')}/{r.get('expected_hold') or '—'}d" if r.get('age_days') is not None else "—"
+        parts.append(
+            f"<tr><td>{i}</td>"
+            f"<td><b>{r['ticker']}</b></td>"
+            f"<td>{r.get('sector', '—')}</td>"
+            f"<td>{age}</td>"
+            f"<td>{_price(r.get('entry_price'))}</td>"
+            f"{_cell(r.get('d1'))}{_cell(r.get('d3'))}{_cell(r.get('d5'))}{_cell(r.get('d10'))}"
+            f"{_cell(r.get('current_return'))}{_cell(r.get('max_gain'))}{_cell(r.get('max_dd'))}"
+            f"<td>{r.get('status', '—')}</td></tr>"
+        )
+    parts.append("</tbody></table>")
+    parts.append("<p style='color:var(--type-3); font-size: 11px; margin-top: 4px;'>"
+                    "Day+N columns are trading-day forward returns from <code>first_seen_date</code>. "
+                    "Populate as archive matures — expect empty until Day 10+ of live operation.</p>")
 
     # Overnight changes
     parts.append("<h2>Overnight Changes</h2>")
