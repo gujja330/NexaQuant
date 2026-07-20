@@ -43,7 +43,38 @@ def load_env() -> None:
             os.environ.setdefault(k, v)
 
 
+def _consolidate(header: str, sections: list[tuple[str, str]], budget: int = 3900) -> str:
+    """Merge N section bodies into ONE Telegram-safe message. Priority-ordered:
+    earlier sections keep full text; later ones truncate/drop if we run out of budget."""
+    parts: list[str] = [f"*{header}*"]
+    remaining = budget - len(parts[0])
+    dropped: list[str] = []
+    for name, body in sections:
+        if not body: continue
+        body = body.strip()
+        divider = f"\n\n━━━━━━━━━━\n*{name}*\n"
+        need = len(divider) + len(body)
+        if need <= remaining:
+            parts.append(divider + body)
+            remaining -= need
+            continue
+        if remaining > 200:
+            keep = remaining - len(divider) - 40
+            if keep > 0:
+                parts.append(divider + body[:keep].rstrip() + "\n_...truncated_")
+                remaining = 0
+                dropped.append(name + " (partial)")
+                continue
+        dropped.append(name)
+    if dropped:
+        parts.append(f"\n\n_(omitted for length: {', '.join(dropped)})_")
+    return "".join(parts)
+
+
 def send_message(token: str, chat_id: str, text: str) -> tuple[bool, str]:
+    # Telegram hard cap is 4096 chars; keep a safety margin.
+    if len(text) > 4000:
+        text = text[:3900] + "\n\n_...truncated for delivery_"
     url = f"https://api.telegram.org/bot{token}/sendMessage"
     data = urllib.parse.urlencode({
         "chat_id":                  chat_id,
@@ -74,46 +105,48 @@ def main() -> int:
     print("  AEGIS USA · Telegram send · USD · S&P 500 benchmark")
     print("=" * 70)
 
-    messages = renderer.render_all()
-    ok = 0; total_chars = 0
-    ledger = []
-    for label, text in messages:
-        t0 = time.time()
-        success, resp = send_message(token, chat_id, text)
-        elapsed = time.time() - t0
-        chars = len(text)
-        if success:
-            print(f"  [{label}] sent ({chars} chars, {elapsed:.2f}s)")
-            ok += 1; total_chars += chars
-        else:
-            print(f"  [{label}] cannot send: {resp[:120]}")
-        ledger.append({
-            "label":     label,
-            "chars":     chars,
-            "ok":        success,
-            "elapsed_s": round(elapsed, 3),
-            "response":  resp[:200] if not success else "OK",
-        })
-        time.sleep(0.3)   # gentle rate-limit
+    # Per operator directive 2026-07-20: send ONE full-length message per market,
+    # not part-splits. Sections priority-ordered top-down.
+    sections_ordered = [
+        ("Executive Summary", "executive_summary"),
+        ("Top Opportunities", "top_opportunities"),
+        ("Portfolio Health",  "portfolio_health"),
+        ("Benchmark",         "benchmark"),
+        ("Morning Brief",     "morning_brief"),
+    ]
+    label_to_body = {label: body for label, body in renderer.render_all()}
+    sections = [(disp, label_to_body.get(key, "")) for disp, key in sections_ordered]
+
+    body = _consolidate("🇺🇸 AEGIS USA · Daily Brief (USD)", sections, budget=3900)
+
+    t0 = time.time()
+    success, resp = send_message(token, chat_id, body)
+    elapsed = time.time() - t0
+    if success:
+        print(f"  [usa_brief] sent ({len(body)} chars, {elapsed:.2f}s)")
+    else:
+        print(f"  [usa_brief] cannot send: {resp[:120]}")
 
     date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     ledger_path = _USA / "reports" / f"telegram_delivery_{date}.jsonl"
     ledger_path.parent.mkdir(parents=True, exist_ok=True)
     with ledger_path.open("a", encoding="utf-8") as f:
         f.write(json.dumps({
-            "run_utc":       datetime.now(timezone.utc).isoformat(timespec="seconds") + "Z",
-            "market":        "USA",
-            "n_messages":    len(messages),
-            "n_sent":        ok,
-            "total_chars":   total_chars,
-            "entries":       ledger,
+            "run_utc":     datetime.now(timezone.utc).isoformat(timespec="seconds") + "Z",
+            "market":      "USA",
+            "mode":        "consolidated",
+            "ok":          success,
+            "chars":       len(body),
+            "elapsed_s":   round(elapsed, 3),
+            "sections":    [disp for disp, b in sections if b],
+            "response":    resp[:200] if not success else "OK",
         }, default=str) + "\n")
 
-    if ok == len(messages):
-        print(f"\n  sent ({total_chars} chars across {ok} messages)")
+    if success:
+        print(f"\n  sent ({len(body)} chars in one consolidated message)")
         return 0
-    print(f"\n  cannot send: {len(messages) - ok} of {len(messages)} messages failed")
-    return 1 if ok == 0 else 0    # partial delivery still exit 0
+    print(f"\n  cannot send: {resp[:120]}")
+    return 1
 
 
 if __name__ == "__main__":

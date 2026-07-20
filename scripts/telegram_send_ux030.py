@@ -112,6 +112,41 @@ def send_markdown(token: str, chat_id: str, text: str) -> tuple[bool, str]:
         return False, f"{type(e).__name__}: {e}"
 
 
+def _consolidate(header: str, sections: list[tuple[str, str]], budget: int = 3900) -> str:
+    """Merge N section bodies into ONE Telegram-safe message.
+
+    Priority: sections are consumed in order; earlier ones get their full text,
+    later ones get truncated / dropped if we run out of budget. A visible
+    _..truncated_ tail is appended if anything was cut.
+    """
+    parts: list[str] = [f"*{header}*"]
+    remaining = budget - len(parts[0])
+    dropped: list[str] = []
+    for name, body in sections:
+        if not body:
+            continue
+        body = body.strip()
+        # each section gets a divider + bold name + blank line
+        divider = f"\n\n━━━━━━━━━━\n*{name}*\n"
+        need = len(divider) + len(body)
+        if need <= remaining:
+            parts.append(divider + body)
+            remaining -= need
+            continue
+        # partial fit: fit what we can, tail-truncate
+        if remaining > 200:
+            keep = remaining - len(divider) - 40    # room for the "..." marker
+            if keep > 0:
+                parts.append(divider + body[:keep].rstrip() + "\n_...truncated_")
+                remaining = 0
+                dropped.append(name + " (partial)")
+                continue
+        dropped.append(name)
+    if dropped:
+        parts.append(f"\n\n_(omitted for length: {', '.join(dropped)})_")
+    return "".join(parts)
+
+
 def _log_delivery(record: dict) -> None:
     reports = _ROOT / "reports"
     reports.mkdir(parents=True, exist_ok=True)
@@ -135,50 +170,43 @@ def main() -> int:
         print("  cannot send: no reports/recommendations.json or champion_strategy.json")
         return 3
 
-    # Build the message set — 3 messages, in reverse-priority order so
-    # the executive summary lands last (chat displays newest first).
-    messages = [
-        ("morning_brief",       renderer.render_morning_brief(ctx)),
-        ("new_buys_summary",    renderer.render_new_buys_summary(ctx, n=8)),
-        ("champion_update",     renderer.render_champion_update(ctx)),
-        ("portfolio_health",    renderer.render_portfolio_health(ctx)),
-        ("executive_summary",   renderer.render_executive_summary(ctx)),
+    # Build all sections, then consolidate into ONE Telegram message per market.
+    # Priority-ordered top-down so the reader sees Executive Summary first.
+    # Per operator directive 2026-07-20: one full-length message, not part-splits.
+    sections = [
+        ("Executive Summary",  renderer.render_executive_summary(ctx)),
+        ("New Buys",           renderer.render_new_buys_summary(ctx, n=8)),
+        ("Portfolio Health",   renderer.render_portfolio_health(ctx)),
+        ("Champion Update",    renderer.render_champion_update(ctx)),
+        ("Morning Brief",      renderer.render_morning_brief(ctx)),
     ]
+    body = _consolidate("🇮🇳 AEGIS INDIA · Daily Brief", sections, budget=3900)
 
-    total_chars = 0
-    ok_all = True
-    details = []
-
-    for kind, body in messages:
-        if not body:
-            continue
-        t0 = time.perf_counter()
-        ok, detail = send_markdown(token, chat, body)
-        elapsed = time.perf_counter() - t0
-        details.append({"kind": kind, "ok": ok, "chars": len(body),
-                          "elapsed_s": round(elapsed, 3), "detail_head": detail[:200]})
-        if ok:
-            total_chars += len(body)
-            print(f"  [{kind}] sent ({len(body)} chars, {elapsed:.2f}s)")
-        else:
-            ok_all = False
-            print(f"  [{kind}] cannot send: {detail}")
+    t0 = time.perf_counter()
+    ok, detail = send_markdown(token, chat, body)
+    elapsed = time.perf_counter() - t0
+    if ok:
+        print(f"  [india_brief] sent ({len(body)} chars, {elapsed:.2f}s)")
+    else:
+        print(f"  [india_brief] cannot send: {detail}")
 
     _log_delivery({
-        "ts_utc":        datetime.now(timezone.utc).isoformat(),
-        "sender":        "ux030",
-        "ok_all":        ok_all,
-        "n_messages":    len(messages),
-        "total_chars":   total_chars,
-        "per_message":   details,
+        "ts_utc":       datetime.now(timezone.utc).isoformat(),
+        "sender":       "ux030",
+        "mode":         "consolidated",
+        "market":       "india",
+        "ok":           ok,
+        "chars":        len(body),
+        "elapsed_s":    round(elapsed, 3),
+        "detail_head":  detail[:200],
+        "sections":     [n for n, s in sections if s],
     })
 
-    if ok_all:
-        print(f"  sent ({total_chars} chars across {len(messages)} messages)")
+    if ok:
+        print(f"  sent ({len(body)} chars in one consolidated message)")
         return 0
-    else:
-        print(f"  cannot send: {sum(1 for d in details if not d['ok'])} of {len(details)} messages failed")
-        return 1
+    print(f"  cannot send: {detail[:120]}")
+    return 1
 
 
 if __name__ == "__main__":
