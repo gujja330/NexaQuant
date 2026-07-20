@@ -919,6 +919,9 @@ async function loadState() {
     'ai_market_narrative.json',
     'feature_store_summary.json',
     'ai_feature_narrative.json',
+    'feature_intelligence_summary.json',
+    'selected_features.json',
+    'ai_feature_research.json',
   ];
   const entries = await Promise.all(targets.map(async n => [n.replace(/\.json$/, ''), await fetchJson(n)]));
   for (const [k, v] of entries) STATE[k] = v;
@@ -2155,6 +2158,19 @@ function portfolioHealth() {
       <span class="label">Feature Store <span class="vs-tag live">Sprint 2.5</span></span>
       <div class="value ${vCls}" style="font-size: 16px;">${v}</div>
       <div class="sub">${fs.n_rows || 0} tickers · ${fs.n_features || 0} features · ${nulls}% null</div>`}));
+  }
+
+  // Feature Intelligence — Sprint 2.6 (selected subset + drift verdict)
+  const fi = STATE.feature_intelligence_summary;
+  if (fi) {
+    const gov = fi.governance_verdict || '—';
+    const drift = fi.drift_verdict || '—';
+    const cls = (gov === 'PASS' && (drift === 'PASS' || drift === 'NO_REFERENCE')) ? 'pos'
+              : (drift === 'FAIL' || gov === 'FAIL') ? 'neg' : 'warn';
+    strip.appendChild(el('div', {class: 'tile', html: `
+      <span class="label">Feature Intelligence <span class="vs-tag live">Sprint 2.6</span></span>
+      <div class="value ${cls}" style="font-size: 15px;">${fi.n_selected}/${fi.n_input} selected</div>
+      <div class="sub">gov ${gov} · drift ${drift} · rationale ${fi.governance_coverage_rationale_pct || 0}%</div>`}));
   }
 
   // Prediction Accuracy — from Institutional Memory recommendation_history (global avg over per-ticker accuracy)

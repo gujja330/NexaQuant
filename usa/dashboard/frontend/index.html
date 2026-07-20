@@ -174,6 +174,7 @@ const REPORT_FILES = [
   "ops_check.json", "backend_validation_summary.json",
   "market_intelligence_summary.json", "ai_market_narrative.json",
   "feature_store_summary.json", "ai_feature_narrative.json",
+  "feature_intelligence_summary.json", "selected_features.json", "ai_feature_research.json",
 ];
 
 async function loadState() {
@@ -384,6 +385,16 @@ function renderDashboard() {
       return `<div class="tile"><span class="label">Feature Store</span>
         <div class="value ${vCls}" style="font-size:16px;">${v}</div>
         <div class="sub">${fs.n_rows || 0} tickers · ${fs.n_features || 0} features · ${nulls}% null</div></div>`;
+    })() : ''}
+    ${STATE.feature_intelligence_summary ? (() => {
+      const fi = STATE.feature_intelligence_summary;
+      const gov = fi.governance_verdict || '—';
+      const drift = fi.drift_verdict || '—';
+      const cls = (gov === 'PASS' && (drift === 'PASS' || drift === 'NO_REFERENCE')) ? 'pos'
+                : (drift === 'FAIL' || gov === 'FAIL') ? 'neg' : 'warn';
+      return `<div class="tile"><span class="label">Feature Intelligence</span>
+        <div class="value ${cls}" style="font-size:15px;">${fi.n_selected}/${fi.n_input} selected</div>
+        <div class="sub">gov ${gov} · drift ${drift} · rat ${fi.governance_coverage_rationale_pct || 0}%</div></div>`;
     })() : ''}
     <div class="tile"><span class="label">Positions Sized</span>
       <div class="value">${risk.n_positions ?? 0}</div>

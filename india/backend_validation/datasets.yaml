@@ -342,3 +342,41 @@ datasets:
     schema:
       required_keys: [engine, version, market, run_utc, agents]
     consumers: [ux/dashboard]
+
+  # ── SPRINT 2.6 · Feature Intelligence + Research ────────────────
+  - name: feature_intelligence
+    path: reports/feature_intelligence.json
+    producer: india/feature_intelligence/run.py
+    kind: feature_intelligence
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, version, market, run_utc, asof, governance, quality, drift, importance, selection]
+    consumers: [ux/dashboard]
+
+  - name: feature_intelligence_summary
+    path: reports/feature_intelligence_summary.json
+    producer: india/feature_intelligence/run.py
+    kind: feature_intelligence
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, market, asof, governance_verdict, drift_verdict, n_selected]
+    consumers: [ux/dashboard, scripts/aegis_ops_check]
+
+  - name: selected_features
+    path: reports/selected_features.json
+    producer: india/feature_intelligence/run.py
+    kind: feature_intelligence
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, market, asof, n_selected, selected]
+    consumers: [ux/dashboard, research/adaptive_rec_v2 (future)]
+    notes: The subset of features downstream engines are allowed to consume. Sprint 3+ reads this.
+
+  - name: ai_feature_research
+    path: reports/ai_feature_research.json
+    producer: india/feature_intelligence/run.py
+    kind: ai_narrative
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, version, market, run_utc, output]
+    consumers: [ux/dashboard]

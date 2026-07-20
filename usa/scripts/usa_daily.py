@@ -158,6 +158,17 @@ STEPS = [
         "optional": True,
     },
     {
+        "name":     "feature_intelligence",
+        "desc":     "Sprint 2.6 · USA Feature Intelligence (governance + quality + drift + importance + selection + research)",
+        "script":   "usa/research/feature_intelligence/run.py",
+        "produces": ["usa/reports/feature_intelligence.json",
+                       "usa/reports/feature_intelligence_summary.json",
+                       "usa/reports/selected_features.json",
+                       "usa/reports/ai_feature_research.json"],
+        "requires": ["usa/reports/feature_store_summary.json"],
+        "optional": True,
+    },
+    {
         "name":     "recommendations",
         "desc":     "USA Adaptive Recommendation Engine (technicals-based)",
         "script":   "usa/research/recommendations/run.py",

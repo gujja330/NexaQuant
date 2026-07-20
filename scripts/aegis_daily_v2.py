@@ -112,6 +112,17 @@ STEPS = [
         "optional": True,
     },
     {
+        "name": "feature_intelligence",
+        "desc": "Sprint 2.6 · Feature Intelligence (governance + quality + drift + importance + selection + research)",
+        "script": "india/feature_intelligence/run.py",
+        "produces": ["reports/feature_intelligence.json",
+                       "reports/feature_intelligence_summary.json",
+                       "reports/selected_features.json",
+                       "reports/ai_feature_research.json"],
+        "requires": ["reports/feature_store_summary.json"],
+        "optional": True,
+    },
+    {
         "name": "adaptive_rec_v2",
         "desc": "Adaptive Rec Engine v2.0 (confidence rebuild + Precision@K)",
         "script": "research/adaptive_rec_v2/run.py",

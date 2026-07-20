@@ -9,7 +9,7 @@ Categories map to the per-category computers under
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 
 
@@ -27,15 +27,46 @@ class FeatureCategory(str, Enum):
     HISTORICAL       = "historical"         # winner genome, DNA (if available)
 
 
+class FeatureStatus(str, Enum):
+    """Feature lifecycle status (Sprint 2.6 governance).
+
+    ACTIVE       — promoted, consumed by downstream engines
+    EXPERIMENTAL — new candidate, present in snapshot but excluded from decisions
+    DEPRECATED   — kept for historical replay but not used going forward
+    """
+    ACTIVE       = "active"
+    EXPERIMENTAL = "experimental"
+    DEPRECATED   = "deprecated"
+
+
 @dataclass(frozen=True)
 class Feature:
+    """Feature governance record (Sprint 2.6).
+
+    Every feature the platform uses is described here. Sprint 2.6's Governance
+    Engine will WARN on features missing `business_rationale` or
+    `economic_intuition` — those are the anti-overfitting anchors.
+    """
+    # ── Sprint 2.5 base ────────────────────────────────────────
     name:      str
     category:  FeatureCategory
     dtype:     str                # "float", "int", "str"
-    producer:  str                # "backend.feature_store.features.technical", etc.
+    producer:  str                # module path, e.g. "backend.feature_store.features.technical"
     unit:      str = ""           # "%", "USD", "days", "zscore"
     nullable:  bool = True        # some features are naturally missing (e.g. RSI for young tickers)
     description: str = ""
+
+    # ── Sprint 2.6 governance ─────────────────────────────────
+    version:            str  = "1.0.0"
+    status:             FeatureStatus = FeatureStatus.ACTIVE
+    owner:              str  = "aegis-core"
+    created:            str  = "2026-07-20"        # ISO date
+    last_updated:       str  = "2026-07-20"
+    confidence:         float = 1.0                 # governance confidence (0..1)
+    formula:            str  = ""                   # human-readable formula / definition
+    dependencies:       tuple = ()                  # upstream feature names this depends on
+    business_rationale: str  = ""                   # WHY this predicts returns or risk
+    economic_intuition: str  = ""                   # what market behavior it represents
 
 
 # ─── The registry (add features here, never elsewhere) ────────────
@@ -62,6 +93,15 @@ def list_categories() -> list[FeatureCategory]:
         if f.category not in seen:
             seen.append(f.category)
     return seen
+
+
+def list_by_status(status: FeatureStatus) -> list[Feature]:
+    return [f for f in FEATURE_REGISTRY if f.status == status]
+
+
+def active_feature_names() -> list[str]:
+    """The feature subset downstream engines are allowed to consume."""
+    return [f.name for f in FEATURE_REGISTRY if f.status == FeatureStatus.ACTIVE]
 
 
 # ─── Identity columns (always present) ────────────────────────────

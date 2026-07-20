@@ -265,6 +265,44 @@ datasets:
       required_keys: [engine, version, market, run_utc, agents]
     consumers: [usa/dashboard/frontend]
 
+  # ── SPRINT 2.6 · Feature Intelligence + Research ────────────────
+  - name: feature_intelligence
+    path: usa/reports/feature_intelligence.json
+    producer: usa/research/feature_intelligence/run.py
+    kind: feature_intelligence
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, version, market, run_utc, asof, governance, quality, drift, importance, selection]
+    consumers: [usa/dashboard/frontend]
+
+  - name: feature_intelligence_summary
+    path: usa/reports/feature_intelligence_summary.json
+    producer: usa/research/feature_intelligence/run.py
+    kind: feature_intelligence
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, market, asof, governance_verdict, drift_verdict, n_selected]
+    consumers: [usa/dashboard/frontend, usa/scripts/usa_ops_check]
+
+  - name: selected_features
+    path: usa/reports/selected_features.json
+    producer: usa/research/feature_intelligence/run.py
+    kind: feature_intelligence
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, market, asof, n_selected, selected]
+    consumers: [usa/dashboard/frontend, usa/research/recommendations (future)]
+    notes: The subset of features downstream engines are allowed to consume. Sprint 3+ reads this.
+
+  - name: ai_feature_research
+    path: usa/reports/ai_feature_research.json
+    producer: usa/research/feature_intelligence/run.py
+    kind: ai_narrative
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, version, market, run_utc, output]
+    consumers: [usa/dashboard/frontend]
+
   # ── SPRINT 1B · INGESTION LAYER (all WIRED into usa_daily.py) ─────
   - name: fundamentals
     path: usa/reports/fundamentals.json

@@ -1,0 +1,178 @@
+{
+  "engine": "ai_feature_research",
+  "version": "v1.0",
+  "market": "india",
+  "run_utc": "2026-07-20T10:11:34+00:00",
+  "asof": "2026-07-20",
+  "output": {
+    "agent": "feature_research",
+    "version": "v1.0",
+    "market": "india",
+    "asof": "2026-07-20",
+    "headline": "5/5 feature hypotheses ready to backtest \u00b7 2 governance actions \u00b7 1 deprecation batches",
+    "narrative": "5/5 feature hypotheses ready to backtest \u00b7 2 governance actions \u00b7 1 deprecation batches.\n\nThe AI Research Agent proposes candidate features \u2014 it does NOT promote them. Each hypothesis carries a formula + business rationale + economic intuition, matching the governance schema. Route each accepted candidate through: backtest \u2192 walk-forward \u2192 statistical validation \u2192 promotion gate \u2192 active feature set.\n\nNote: this template bank is deterministic. A later swap to an LLM-driven hypothesis generator can plug in with the same output shape \u2014 see backend/ai/base.py `determinism` field.",
+    "findings": [
+      {
+        "type": "hypothesis",
+        "candidate_name": "global_stress_index",
+        "formula": "z(macro_vix) + z(macro_move) - z(macro_dxy_change) - z(macro_wti_change)",
+        "business_rationale": "When equity vol, bond vol, and dollar strength all rise while oil weakens, risk-off dominates and equities discount future cashflows more heavily.",
+        "economic_intuition": "Cross-asset stress composite \u2014 historically a leading indicator for equity drawdowns.",
+        "dependencies": [
+          "macro_vix",
+          "macro_move",
+          "macro_dxy",
+          "macro_wti_oil"
+        ],
+        "deps_present": 4,
+        "deps_total": 4,
+        "readiness": "READY"
+      },
+      {
+        "type": "hypothesis",
+        "candidate_name": "institutional_fear_index",
+        "formula": "z(insider_net_90d < 0) + z(news_sentiment < 0) + z(fii_net_5d < 0)",
+        "business_rationale": "When insiders sell, sentiment is negative, and FIIs exit simultaneously, institutional players have information the tape hasn't priced in.",
+        "economic_intuition": "Composite of three information sources with different latencies \u2014 concurrent negative signal is high-conviction.",
+        "dependencies": [
+          "insider_net_90d",
+          "news_sentiment",
+          "fii_net_5d"
+        ],
+        "deps_present": 3,
+        "deps_total": 3,
+        "readiness": "READY"
+      },
+      {
+        "type": "hypothesis",
+        "candidate_name": "momentum_confirmation",
+        "formula": "return_20d_pct \u00d7 (mi_breadth_above_20ma_pct > 60) \u00d7 (rsi_14 in [50, 70])",
+        "business_rationale": "Individual momentum matters more when it's happening with the market, not against it, and when the stock isn't already overbought.",
+        "economic_intuition": "Trend-following in confirming regimes has higher expected reward than trend-following against the tape.",
+        "dependencies": [
+          "return_20d_pct",
+          "mi_breadth_above_20ma_pct",
+          "rsi_14"
+        ],
+        "deps_present": 3,
+        "deps_total": 3,
+        "readiness": "READY"
+      },
+      {
+        "type": "hypothesis",
+        "candidate_name": "quality_at_reasonable_price",
+        "formula": "fund_quality_score \u00d7 (1 / fund_trailing_pe) \u00d7 (1 / fund_price_to_book)",
+        "business_rationale": "Buffett's core investment logic: quality companies at reasonable valuations outperform poor companies bought cheaply.",
+        "economic_intuition": "GARP factor \u2014 decades of academic evidence supports quality-at-value premium.",
+        "dependencies": [
+          "fund_quality_score",
+          "fund_trailing_pe",
+          "fund_price_to_book"
+        ],
+        "deps_present": 3,
+        "deps_total": 3,
+        "readiness": "READY"
+      },
+      {
+        "type": "hypothesis",
+        "candidate_name": "post_earnings_drift_setup",
+        "formula": "(earn_last_surprise_pct > 5) \u00d7 (0 < earn_days_to_next < 90) \u00d7 return_5d_pct",
+        "business_rationale": "PEAD is one of the most durable market anomalies \u2014 surprises trigger gradual re-pricing over weeks, not seconds.",
+        "economic_intuition": "Anchoring bias + slow analyst updates = predictable drift in the direction of the surprise.",
+        "dependencies": [
+          "earn_last_surprise_pct",
+          "earn_days_to_next",
+          "return_5d_pct"
+        ],
+        "deps_present": 3,
+        "deps_total": 3,
+        "readiness": "READY"
+      },
+      {
+        "type": "governance_action",
+        "recommended_step": "fill_business_rationale",
+        "affected": [
+          "close",
+          "volume",
+          "return_1d_pct",
+          "return_5d_pct",
+          "return_10d_pct",
+          "return_20d_pct",
+          "return_60d_pct",
+          "volatility_20d",
+          "volatility_60d",
+          "rsi_14",
+          "sma_20",
+          "sma_50",
+          "sma_200",
+          "price_above_sma20",
+          "price_above_sma50",
+          "price_above_sma200",
+          "atr_14_pct",
+          "adx_14",
+          "macd",
+          "macd_signal"
+        ],
+        "count": 76,
+        "note": "Features without business rationale are more prone to spurious selection. Fill these to reduce overfitting risk."
+      },
+      {
+        "type": "governance_action",
+        "recommended_step": "fill_economic_intuition",
+        "affected": [
+          "close",
+          "volume",
+          "return_1d_pct",
+          "return_5d_pct",
+          "return_10d_pct",
+          "return_20d_pct",
+          "return_60d_pct",
+          "volatility_20d",
+          "volatility_60d",
+          "rsi_14",
+          "sma_20",
+          "sma_50",
+          "sma_200",
+          "price_above_sma20",
+          "price_above_sma50",
+          "price_above_sma200",
+          "atr_14_pct",
+          "adx_14",
+          "macd",
+          "macd_signal"
+        ],
+        "count": 76
+      },
+      {
+        "type": "deprecation_candidates",
+        "recommended_step": "review_for_deprecation",
+        "affected": [
+          "fii_net_5d",
+          "dii_net_5d",
+          "mi_composite_score",
+          "mi_breadth_above_20ma_pct",
+          "mi_breadth_at_52w_high_pct",
+          "mi_liquidity_5v20_pct",
+          "mi_news_pulse",
+          "mi_benchmark_1m_pct"
+        ],
+        "count": 8,
+        "note": "Low dispersion \u00d7 low uniqueness = redundant. Consider marking these features EXPERIMENTAL and testing whether removing them hurts walk-forward."
+      }
+    ],
+    "evidence": {
+      "n_hypotheses": 5,
+      "n_governance_gaps": 152
+    },
+    "citations": [
+      "backend/feature_intelligence",
+      "backend/feature_store/feature_registry"
+    ],
+    "confidence": 0.8,
+    "caveats": [
+      "hypotheses are proposals only \u2014 approval required via promotion_gate",
+      "template bank; LLM-driven generation deferred"
+    ],
+    "determinism": "template"
+  }
+}
