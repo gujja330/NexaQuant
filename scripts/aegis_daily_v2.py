@@ -103,6 +103,15 @@ STEPS = [
         "optional": True,   # non-blocking for legacy engines
     },
     {
+        "name": "feature_store",
+        "desc": "Sprint 2.5 · Feature Store snapshot + AI (anomaly + quality + importance + conflict)",
+        "script": "india/feature_store/run.py",
+        "produces": ["reports/feature_store_summary.json",
+                       "reports/ai_feature_narrative.json"],
+        "requires": ["reports/market_intelligence.json"],   # market_intel joined into features
+        "optional": True,
+    },
+    {
         "name": "adaptive_rec_v2",
         "desc": "Adaptive Rec Engine v2.0 (confidence rebuild + Precision@K)",
         "script": "research/adaptive_rec_v2/run.py",

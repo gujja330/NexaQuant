@@ -1,0 +1,293 @@
+{
+  "engine": "ai_feature_narrative",
+  "version": "v1.0",
+  "market": "usa",
+  "run_utc": "2026-07-20T09:21:11+00:00",
+  "asof": "2026-07-20",
+  "agents": {
+    "anomaly": {
+      "agent": "feature_anomaly",
+      "version": "v1.0",
+      "market": "usa",
+      "asof": "2026-07-20",
+      "headline": "1 feature outlier(s) flagged (top 1 shown).",
+      "narrative": "1 data points across the universe carry |z|>5 vs their column mean.\n\n  \u00b7 INTC: earn_last_surprise_pct = 2108.68 (z=5.07)\n\nHigh z-scores are not necessarily wrong (a real 52-week high can be a legitimate extreme), but they warrant a look before downstream engines act on them.",
+      "findings": [
+        {
+          "ticker": "INTC",
+          "feature": "earn_last_surprise_pct",
+          "value": 2108.68,
+          "z": 5.07
+        }
+      ],
+      "evidence": {
+        "n_outliers": 1,
+        "z_threshold": 5.0,
+        "n_rows": 30,
+        "n_numeric_cols_scanned": 68
+      },
+      "citations": [
+        "backend/feature_store"
+      ],
+      "confidence": 1.0,
+      "caveats": [],
+      "determinism": "template"
+    },
+    "quality": {
+      "agent": "feature_quality",
+      "version": "v1.0",
+      "market": "usa",
+      "asof": "2026-07-20",
+      "headline": "Feature Store quality PASS \u00b7 30 rows \u00b7 76 features.",
+      "narrative": "Feature Store quality PASS \u00b7 30 rows \u00b7 76 features.\n\nCategory coverage:\n  \u00b7 historical         avg coverage 0.0%\n  \u00b7 corporate_action   avg coverage 45.0%\n  \u00b7 institutional      avg coverage 71.4%\n  \u00b7 technical          avg coverage 92.3%\n  \u00b7 fundamental        avg coverage 96.7%\n  \u00b7 earnings           avg coverage 97.5%\n  \u00b7 identity           avg coverage 100.0%\n  \u00b7 news               avg coverage 100.0%\n  \u00b7 macro              avg coverage 100.0%\n  \u00b7 sector             avg coverage 100.0%\n  \u00b7 market_intel       avg coverage 100.0%\n\nStrongest category is 'identity' at 100.0% coverage \u2014 solid.\n\nWeakest category is 'historical' at 0.0% coverage \u2014 downstream engines relying on this category should degrade gracefully.",
+      "findings": [
+        {
+          "category": "identity",
+          "coverage": 1.0
+        },
+        {
+          "category": "technical",
+          "coverage": 0.9231
+        },
+        {
+          "category": "fundamental",
+          "coverage": 0.9667
+        },
+        {
+          "category": "news",
+          "coverage": 1.0
+        },
+        {
+          "category": "earnings",
+          "coverage": 0.975
+        },
+        {
+          "category": "macro",
+          "coverage": 1.0
+        },
+        {
+          "category": "sector",
+          "coverage": 1.0
+        },
+        {
+          "category": "institutional",
+          "coverage": 0.7143
+        },
+        {
+          "category": "corporate_action",
+          "coverage": 0.45
+        },
+        {
+          "category": "market_intel",
+          "coverage": 1.0
+        },
+        {
+          "category": "historical",
+          "coverage": 0.0
+        }
+      ],
+      "evidence": {
+        "verdict": "PASS",
+        "null_pct_overall": 0.1259,
+        "n_rows": 30,
+        "n_features": 76,
+        "n_outliers": 0
+      },
+      "citations": [
+        "backend/feature_store/feature_validation.py"
+      ],
+      "confidence": 1.0,
+      "caveats": [],
+      "determinism": "template"
+    },
+    "importance": {
+      "agent": "feature_importance",
+      "version": "v1.0",
+      "market": "usa",
+      "asof": "2026-07-20",
+      "headline": "Top 15 most differentiating features by dispersion (categories: technical=8, institutional=2, fundamental=2, earnings=2, sector=1)",
+      "narrative": "Top 15 most differentiating features by dispersion (categories: technical=8, institutional=2, fundamental=2, earnings=2, sector=1)\n\n  \u00b7 insider_net_90d                score=9946.4792  cv=3.059  iqr=32340088.0000\n  \u00b7 insider_sell_90d               score=9945.1182  cv=3.058  iqr=32340088.0000\n  \u00b7 volume                         score=6001.2359  cv=1.490  iqr=24169775.0000\n  \u00b7 sector_return_1m_pct           score=16.4974  cv=33.642  iqr=8.0900\n  \u00b7 fund_debt_to_equity            score=13.2805  cv=1.158  iqr=152.3253\n  \u00b7 close                          score=13.2700  cv=0.805  iqr=218.6675\n  \u00b7 sma_20                         score=13.1629  cv=0.826  iqr=209.8770\n  \u00b7 sma_50                         score=12.5919  cv=0.806  iqr=196.7240\n  \u00b7 return_20d_pct                 score=9.5647  cv=9.473  iqr=9.6571\n  \u00b7 earn_last_surprise_pct         score=8.5654  cv=3.827  iqr=19.1700\n  \u00b7 fund_price_to_book             score=8.3109  cv=5.293  iqr=13.0484\n  \u00b7 return_60d_pct                 score=6.1739  cv=2.170  iqr=17.5669\n  \u00b7 return_5d_pct                  score=6.0394  cv=8.383  iqr=4.3513\n  \u00b7 return_10d_pct                 score=5.4594  cv=5.738  iqr=5.1939\n  \u00b7 earn_days_to_next              score=5.0642  cv=1.140  iqr=22.5000\n\nDispersion tells us where the universe DIFFERS in this snapshot \u2014 high dispersion means the feature carries information downstream engines can act on. This is NOT outcome-based importance (that comes from the Learning Engine).",
+      "findings": [
+        {
+          "feature": "insider_net_90d",
+          "std": 202643484.49577,
+          "iqr": 32340088.0,
+          "cv": 3.05913,
+          "score": 9946.47922,
+          "n_non_null": 30
+        },
+        {
+          "feature": "insider_sell_90d",
+          "std": 202640896.03347,
+          "iqr": 32340088.0,
+          "cv": 3.05829,
+          "score": 9945.11824,
+          "n_non_null": 30
+        },
+        {
+          "feature": "volume",
+          "std": 33882628.82801,
+          "iqr": 24169775.0,
+          "cv": 1.49008,
+          "score": 6001.23592,
+          "n_non_null": 30
+        },
+        {
+          "feature": "sector_return_1m_pct",
+          "std": 6.16768,
+          "iqr": 8.09,
+          "cv": 33.64187,
+          "score": 16.49736,
+          "n_non_null": 30
+        },
+        {
+          "feature": "fund_debt_to_equity",
+          "std": 213.68569,
+          "iqr": 152.32525,
+          "cv": 1.15786,
+          "score": 13.28048,
+          "n_non_null": 28
+        },
+        {
+          "feature": "close",
+          "std": 221.0294,
+          "iqr": 218.6675,
+          "cv": 0.8053,
+          "score": 13.26998,
+          "n_non_null": 30
+        },
+        {
+          "feature": "sma_20",
+          "std": 227.67055,
+          "iqr": 209.87698,
+          "cv": 0.82554,
+          "score": 13.16287,
+          "n_non_null": 30
+        },
+        {
+          "feature": "sma_50",
+          "std": 217.91624,
+          "iqr": 196.72403,
+          "cv": 0.80598,
+          "score": 12.59192,
+          "n_non_null": 30
+        },
+        {
+          "feature": "return_20d_pct",
+          "std": 8.61533,
+          "iqr": 9.65707,
+          "cv": 9.47316,
+          "score": 9.56468,
+          "n_non_null": 30
+        },
+        {
+          "feature": "earn_last_surprise_pct",
+          "std": 395.21479,
+          "iqr": 19.17,
+          "cv": 3.82711,
+          "score": 8.56537,
+          "n_non_null": 29
+        },
+        {
+          "feature": "fund_price_to_book",
+          "std": 30.89176,
+          "iqr": 13.04841,
+          "cv": 5.29344,
+          "score": 8.3109,
+          "n_non_null": 30
+        },
+        {
+          "feature": "return_60d_pct",
+          "std": 13.40086,
+          "iqr": 17.56687,
+          "cv": 2.16986,
+          "score": 6.17394,
+          "n_non_null": 30
+        },
+        {
+          "feature": "return_5d_pct",
+          "std": 6.51173,
+          "iqr": 4.35127,
+          "cv": 8.38251,
+          "score": 6.03942,
+          "n_non_null": 30
+        },
+        {
+          "feature": "return_10d_pct",
+          "std": 7.45281,
+          "iqr": 5.19388,
+          "cv": 5.73847,
+          "score": 5.45939,
+          "n_non_null": 30
+        },
+        {
+          "feature": "earn_days_to_next",
+          "std": 28.49561,
+          "iqr": 22.5,
+          "cv": 1.13982,
+          "score": 5.06419,
+          "n_non_null": 30
+        }
+      ],
+      "evidence": {
+        "n_scored": 51,
+        "top_categories": {
+          "institutional": 2,
+          "technical": 8,
+          "sector": 1,
+          "fundamental": 2,
+          "earnings": 2
+        }
+      },
+      "citations": [
+        "backend/feature_store"
+      ],
+      "confidence": 1.0,
+      "caveats": [
+        "ex-ante dispersion, not outcome-based importance"
+      ],
+      "determinism": "template"
+    },
+    "conflict": {
+      "agent": "feature_conflict",
+      "version": "v1.0",
+      "market": "usa",
+      "asof": "2026-07-20",
+      "headline": "2 conflict signal(s) across 2 tickers.",
+      "narrative": "2 conflict signal(s) across 2 tickers.\n\n  \u00b7 CVX: 1 conflict\n  \u00b7 WMT: 1 conflict\n\nA conflict is not a verdict \u2014 it's a signal that the picture is mixed and the downstream engine should weigh the evidence rather than take any single dimension at face value.",
+      "findings": [
+        {
+          "ticker": "CVX",
+          "conflict": "insider_vs_sentiment",
+          "description": "heavy insider selling but positive sentiment (USA)",
+          "return_20d_pct": 5.5186,
+          "quality_score": 4.83,
+          "news_sentiment": 0.25,
+          "return_5d_pct": 6.2245,
+          "rsi_14": 73.79
+        },
+        {
+          "ticker": "WMT",
+          "conflict": "insider_vs_sentiment",
+          "description": "heavy insider selling but positive sentiment (USA)",
+          "return_20d_pct": -3.293,
+          "quality_score": 41.0,
+          "news_sentiment": 0.5,
+          "return_5d_pct": 0.2985,
+          "rsi_14": 46.759
+        }
+      ],
+      "evidence": {
+        "n_conflicts": 2,
+        "n_tickers_with_conflict": 2,
+        "n_rules": 7
+      },
+      "citations": [
+        "backend/feature_store"
+      ],
+      "confidence": 0.9,
+      "caveats": [],
+      "determinism": "template"
+    }
+  }
+}

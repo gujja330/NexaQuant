@@ -246,6 +246,25 @@ datasets:
       required_keys: [engine, version, market, run_utc, agents]
     consumers: [usa/dashboard/frontend]
 
+  # ── SPRINT 2.5 · Feature Store ──────────────────────────────────
+  - name: feature_store_summary
+    path: usa/reports/feature_store_summary.json
+    producer: usa/research/feature_store/run.py
+    kind: feature_store
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, market, asof, verdict, n_rows, n_features, schema_fingerprint]
+    consumers: [usa/dashboard/frontend]
+
+  - name: ai_feature_narrative
+    path: usa/reports/ai_feature_narrative.json
+    producer: usa/research/feature_store/run.py
+    kind: ai_narrative
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, version, market, run_utc, agents]
+    consumers: [usa/dashboard/frontend]
+
   # ── SPRINT 1B · INGESTION LAYER (all WIRED into usa_daily.py) ─────
   - name: fundamentals
     path: usa/reports/fundamentals.json

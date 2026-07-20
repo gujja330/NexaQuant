@@ -149,6 +149,15 @@ STEPS = [
         "optional": True,
     },
     {
+        "name":     "feature_store",
+        "desc":     "Sprint 2.5 · USA Feature Store snapshot + AI (anomaly + quality + importance + conflict)",
+        "script":   "usa/research/feature_store/run.py",
+        "produces": ["usa/reports/feature_store_summary.json",
+                       "usa/reports/ai_feature_narrative.json"],
+        "requires": ["usa/reports/market_intelligence.json"],
+        "optional": True,
+    },
+    {
         "name":     "recommendations",
         "desc":     "USA Adaptive Recommendation Engine (technicals-based)",
         "script":   "usa/research/recommendations/run.py",

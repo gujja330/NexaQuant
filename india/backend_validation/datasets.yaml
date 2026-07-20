@@ -323,3 +323,22 @@ datasets:
     schema:
       required_keys: [engine, version, market, run_utc, agents]
     consumers: [ux/dashboard, research/morning_report]
+
+  # ── SPRINT 2.5 · Feature Store ──────────────────────────────────
+  - name: feature_store_summary
+    path: reports/feature_store_summary.json
+    producer: india/feature_store/run.py
+    kind: feature_store
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, market, asof, verdict, n_rows, n_features, schema_fingerprint]
+    consumers: [ux/dashboard, backend/ai/feature_quality]
+
+  - name: ai_feature_narrative
+    path: reports/ai_feature_narrative.json
+    producer: india/feature_store/run.py
+    kind: ai_narrative
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, version, market, run_utc, agents]
+    consumers: [ux/dashboard]

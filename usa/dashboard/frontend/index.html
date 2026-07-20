@@ -173,6 +173,7 @@ const REPORT_FILES = [
   "winner_genome.json", "decision_attribution.json", "benchmark.json",
   "ops_check.json", "backend_validation_summary.json",
   "market_intelligence_summary.json", "ai_market_narrative.json",
+  "feature_store_summary.json", "ai_feature_narrative.json",
 ];
 
 async function loadState() {
@@ -374,6 +375,15 @@ function renderDashboard() {
       return `<div class="tile"><span class="label">Market Regime</span>
         <div class="value ${cls}" style="font-size:16px;">${(mi.regime_label || regime).slice(0, 22)}</div>
         <div class="sub">Health ${cs}/100 · ${Object.keys(mi.signals || {}).length} signals</div></div>`;
+    })() : ''}
+    ${STATE.feature_store_summary ? (() => {
+      const fs = STATE.feature_store_summary;
+      const v = fs.verdict || '—';
+      const vCls = v === 'PASS' ? 'pos' : v === 'WARNING' ? 'warn' : 'neg';
+      const nulls = fs.null_pct_overall != null ? (fs.null_pct_overall * 100).toFixed(1) : '—';
+      return `<div class="tile"><span class="label">Feature Store</span>
+        <div class="value ${vCls}" style="font-size:16px;">${v}</div>
+        <div class="sub">${fs.n_rows || 0} tickers · ${fs.n_features || 0} features · ${nulls}% null</div></div>`;
     })() : ''}
     <div class="tile"><span class="label">Positions Sized</span>
       <div class="value">${risk.n_positions ?? 0}</div>
