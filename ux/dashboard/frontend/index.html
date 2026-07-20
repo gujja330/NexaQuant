@@ -914,6 +914,7 @@ async function loadState() {
     'recommendation_history.json',
     'decision_attribution.json',
     'benchmark.json',
+    'backend_validation_summary.json',
   ];
   const entries = await Promise.all(targets.map(async n => [n.replace(/\.json$/, ''), await fetchJson(n)]));
   for (const [k, v] of entries) STATE[k] = v;
@@ -2114,6 +2115,18 @@ function portfolioHealth() {
     <span class="label">Live Drift <span class="vs-tag ${drift && drift.flag !== 'insufficient_evidence' ? 'live' : 'mixed'}">${drift && drift.flag !== 'insufficient_evidence' ? 'Live' : 'Warming'}</span></span>
     <div class="value mono">${drift ? drift.flag : '—'}</div>
     <div class="sub">${drift ? `1st ${fmt.num(drift.first_half_sharpe, 2)} → 2nd ${fmt.num(drift.second_half_sharpe, 2)}` : 'insufficient evidence yet'}</div>`}));
+
+  // Backend Data Foundation — Sprint 1
+  const bv = STATE.backend_validation_summary;
+  if (bv) {
+    const vCls = bv.verdict === 'PASS' ? 'pos' : bv.verdict === 'WARNING' ? 'warn' : 'neg';
+    const nPass = (bv.counts || {}).PASS || 0;
+    const nTotal = bv.n_datasets || 0;
+    strip.appendChild(el('div', {class: 'tile', html: `
+      <span class="label">Backend Data Foundation</span>
+      <div class="value ${vCls}" style="font-size: 16px;">${bv.verdict || '—'}</div>
+      <div class="sub">${nPass}/${nTotal} datasets · confidence ${(bv.confidence || 0).toFixed(2)}</div>`}));
+  }
 
   // Prediction Accuracy — from Institutional Memory recommendation_history (global avg over per-ticker accuracy)
   const rh = STATE.recommendation_history;

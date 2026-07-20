@@ -44,6 +44,15 @@ LEDGER = _USA / "reports" / "usa_daily_history.jsonl"
 # ─── Pipeline definition ────────────────────────────────────────
 STEPS = [
     {
+        "name":     "backend_validation",
+        "desc":     "USA Backend Data Foundation validator (Sprint 1)",
+        "script":   "usa/backend_validation/run.py",
+        "produces": ["usa/reports/backend_validation.json",
+                       "usa/reports/backend_validation_summary.json"],
+        "requires": [],
+        "optional": True,
+    },
+    {
         "name":     "build_universe",
         "desc":     "Resolve active universe → usa/reports/universe.json",
         "script":   "usa/scripts/build_universe.py",

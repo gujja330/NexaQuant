@@ -1,0 +1,284 @@
+# AEGIS India · Backend Dataset Registry
+#
+# Sprint 1 canonical registry. Every dataset the India pipeline reads or
+# writes appears here with freshness SLA + expected schema + quality rules.
+#
+# Paths are relative to the REPO ROOT.
+
+market:
+  profile: india
+  currency: INR
+  currency_symbol: "₹"
+  timezone: Asia/Kolkata
+  benchmark: "^NSEI"
+
+datasets:
+
+  # ── PRICE (LIVE) ──────────────────────────────────────────────────
+  - name: nifty_index
+    path: data/raw/india/NSEI_D1.parquet
+    producer: india/refresh_data.py
+    kind: price
+    freshness_sla_trading_days: 1
+    schema:
+      required_columns: [open, high, low, close, tick_volume, spread]
+    quality:
+      no_negatives: [open, high, low, close]
+      outlier_return_check: [close]
+      outlier_sigma: 10.0
+    consumers: [research/adaptive_rec_v2, research/benchmark, india/recommendation_generator]
+
+  - name: indiavix
+    path: data/raw/india/INDIAVIX_D1.parquet
+    producer: india/refresh_data.py
+    kind: price
+    freshness_sla_trading_days: 1
+    schema:
+      required_columns: [open, high, low, close]
+    consumers: [india/confidence_engine, research/global_intelligence]
+
+  # ── FROZEN INTELLIGENCE TIER (should refresh but currently stale) ─
+  - name: global_context
+    path: reports/global_context.json
+    producer: research/global_intelligence/run.py
+    kind: intelligence
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [asof_utc, composites, classifications, published_at_utc]
+    consumers:
+      - research/risk_capital_v2 (LIVE DAILY reads this)
+      - research/knowledge_graph (LIVE DAILY reads this)
+      - research/institutional_memory (LIVE DAILY reads this)
+      - research/morning_report (LIVE DAILY reads this)
+      - research/decision_attribution (LIVE DAILY reads this)
+      - ux/dashboard/frontend/index.html (SPA renders as live)
+    notes: |
+      CRITICAL: this file has been static since 2026-07-17 (see AEGIS_STAGE0_COMPLETION.md
+      FINDING 2). Multiple LIVE daily steps read it as if current. Freshness validator
+      will FAIL until the producer is wired into a scheduler.
+
+  - name: sector_context
+    path: reports/sector_context.json
+    producer: research/sector_intelligence/run.py
+    kind: intelligence
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [asof_utc, sectors]
+    consumers: [research/company_intelligence, research/industry_intelligence]
+    notes: FROZEN 2026-07-17 (FINDING 2)
+
+  - name: industry_context
+    path: reports/industry_context.json
+    producer: research/industry_intelligence/run.py
+    kind: intelligence
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [asof_utc]
+    consumers: [research/company_intelligence]
+    notes: FROZEN 2026-07-17 (FINDING 2)
+
+  - name: company_context
+    path: reports/company_context.json
+    producer: research/company_intelligence/run.py
+    kind: intelligence
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [asof_utc]
+    consumers: []
+    optional: true    # currently terminal — no live consumer
+    notes: FROZEN 2026-07-17 (FINDING 2)
+
+  # ── LEARNING CORPUS (FROZEN but hard-required by 4 live steps) ───
+  - name: learning_corpus
+    path: reports/learning.parquet
+    producer: research/adaptive_learning/run.py
+    kind: learning
+    freshness_sla_trading_days: 2
+    schema:
+      required_columns: [ticker, entry_date, exit_date, return_pct, is_winner,
+                         score_at_entry, confidence, dim_momentum, dim_trend,
+                         dim_rs_nifty, dim_volatility, dim_drawdown, dim_position_52w]
+    completeness:
+      min_rows: 500
+      ticker_column: ticker
+    quality:
+      no_negatives: []
+    consumers:
+      - research/adaptive_rec_v2 (LIVE DAILY hard-require)
+      - research/validation_v2 (LIVE DAILY hard-require)
+      - research/recommendation_dna (LIVE DAILY hard-require)
+      - research/benchmark (LIVE DAILY hard-require)
+    notes: |
+      CRITICAL FINDING 1: this corpus is the ground truth for 4 live daily steps
+      but was produced ONCE on 2026-07-17 and never rebuilt. Freshness validator
+      will FAIL. Sprint N (TBD) must reconnect adaptive_learning to a schedule.
+
+  # ── INSTITUTIONAL FLOWS (manual only) ─────────────────────────────
+  - name: fii_dii_flows
+    path: data/raw/india/fii_dii.parquet
+    producer: india/fii_dii.py
+    kind: institutional_flows
+    freshness_sla_trading_days: 2
+    optional: true
+    schema:
+      required_columns: [ts]
+    consumers: [india/run_arjuna]
+    notes: |
+      FINDING 3: reachable ONLY via run_daily.bat (manual). Sprint N must decide
+      whether to schedule.
+
+  # ── NEWS SENTIMENT (manual only) ──────────────────────────────────
+  - name: news_sentiment
+    path: data/raw/india/news_sentiment.parquet
+    producer: india/news_sentiment.py
+    kind: news
+    freshness_sla_trading_days: 2
+    optional: true
+    schema:
+      required_columns: [asof, symbol, news_sent, pos, neg, neu]
+    consumers: [india/run_arjuna]
+    notes: FINDING 3 · manual only
+
+  # ── FUNDAMENTALS (NEVER invoked) ──────────────────────────────────
+  - name: fundamentals_snapshot
+    path: data/raw/india/fundamentals.parquet
+    producer: india/fundamentals_nse.py
+    kind: fundamentals
+    freshness_sla_trading_days: 5   # weekly rebuild expected
+    optional: true
+    schema:
+      required_columns: [returnOnEquity, profitMargins, earningsGrowth, debtToEquity,
+                         trailingPE, priceToBook, quality_score]
+    consumers: []
+    notes: FINDING 3 · zero callers anywhere · dataset provisioned but not scheduled
+
+  # ── LIVE DAILY V2 OUTPUTS ─────────────────────────────────────────
+  - name: recommendations
+    path: reports/recommendations.json
+    producer: research/adaptive_rec_v2/run.py
+    kind: recommendations
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [run_utc, n_companies_evaluated, recommendations]
+    completeness:
+      required_non_empty_arrays: [recommendations]
+    consumers:
+      - research/validation_v2, research/risk_capital_v2, research/knowledge_graph
+      - research/adaptive_rec_v2/run_fusion, research/decision_center
+      - research/institutional_memory, research/winner_genome
+      - research/decision_attribution, research/benchmark, research/morning_report
+
+  - name: investment_intelligence
+    path: reports/investment_intelligence.json
+    producer: research/adaptive_rec_v2/run_fusion.py
+    kind: fusion
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [reports]
+    completeness:
+      required_non_empty_arrays: [reports]
+    consumers: [ux/dashboard, ux/telegram, research/morning_report]
+
+  - name: risk_capital_v2_latest
+    path: reports/risk_capital_v2_latest.json
+    producer: research/risk_capital_v2/run.py
+    kind: risk
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [run_utc, sizing, portfolio_risk]
+    consumers: [ux/dashboard, ux/telegram]
+
+  - name: validation_v2_latest
+    path: reports/validation_v2_latest.json
+    producer: research/validation_v2/run.py
+    kind: validation
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [run_utc]
+    consumers: [scripts/aegis_ops_check]
+
+  - name: stock_validation
+    path: reports/stock_validation.json
+    producer: research/validation_v2/run_stock_history.py
+    kind: validation
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [n_tickers, tickers]
+    consumers: [ux/dashboard]
+
+  - name: price_context
+    path: reports/price_context.json
+    producer: research/validation_v2/run_price_context.py
+    kind: price_context
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [n_tickers, tickers]
+    consumers: [ux/dashboard, research/morning_report]
+
+  - name: benchmark
+    path: reports/benchmark.json
+    producer: research/benchmark/run.py
+    kind: benchmark
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, version, run_utc, portfolio]
+    consumers: [ux/dashboard, research/morning_report]
+
+  - name: winner_genome
+    path: reports/winner_genome.json
+    producer: research/recommendation_dna/run_winner_genome.py
+    kind: learning
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, version, mode]
+    consumers: [ux/dashboard, research/morning_report]
+
+  - name: decision_attribution
+    path: reports/decision_attribution.json
+    producer: research/decision_attribution/run.py
+    kind: attribution
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, version, n_recommendations, subsystem_weights, per_recommendation]
+    consumers: [ux/dashboard, research/morning_report]
+
+  - name: recommendation_lifecycle
+    path: reports/recommendation_lifecycle.json
+    producer: research/institutional_memory/run.py
+    kind: memory
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, version, n_total, by_ticker]
+    consumers: [ux/dashboard]
+
+  - name: recommendation_history
+    path: reports/recommendation_history.json
+    producer: research/institutional_memory/run.py
+    kind: memory
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [n_tickers, n_days_archived, tickers]
+    consumers: [ux/dashboard]
+
+  - name: missed_opportunities
+    path: reports/missed_opportunities.json
+    producer: research/institutional_memory/run.py
+    kind: memory
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, version, n_days_scanned, n_events]
+    consumers: [ux/dashboard]
+
+  - name: morning_latest_md
+    path: reports/morning_latest.md
+    producer: research/morning_report/run.py
+    kind: report
+    freshness_sla_trading_days: 1
+    consumers: [ux/dashboard]
+
+  - name: morning_latest_html
+    path: reports/morning_latest.html
+    producer: research/morning_report/run.py
+    kind: report
+    freshness_sla_trading_days: 1
+    consumers: [ux/dashboard]

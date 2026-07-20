@@ -20,6 +20,7 @@ _USA = Path(__file__).resolve().parents[1]
 REPORTS = _USA / "reports"
 
 REQUIRED = [
+    "backend_validation_summary.json",   # Sprint 1 addition
     "universe.json", "market_data_freshness.json",
     "recommendations.json", "investment_intelligence.json", "intelligence_summary.json",
     "intelligence_conflicts.json", "price_context.json",
@@ -76,19 +77,42 @@ def main() -> int:
         except Exception:
             pass
 
+    # Backend validation rollup (Sprint 1)
+    backend = {"checked": False}
+    bv_path = REPORTS / "backend_validation_summary.json"
+    if bv_path.exists():
+        try:
+            bv = json.loads(bv_path.read_text(encoding="utf-8"))
+            backend = {
+                "checked":    True,
+                "market":     bv.get("market"),
+                "verdict":    bv.get("verdict"),
+                "confidence": bv.get("confidence"),
+                "n_datasets": bv.get("n_datasets"),
+                "counts":     bv.get("counts"),
+                "run_utc":    bv.get("run_utc"),
+            }
+        except Exception as e:
+            backend = {"checked": False, "reason": f"unparseable: {e}"}
+
     if missing or invalid:
         verdict = "CRITICAL" if len(missing) > 3 or invalid else "DEGRADED"
     elif schema_failures:
+        verdict = "DEGRADED"
+    elif backend.get("checked") and backend.get("verdict") == "FAIL":
+        verdict = "CRITICAL"
+    elif backend.get("checked") and backend.get("verdict") == "WARNING":
         verdict = "DEGRADED"
     else:
         verdict = "HEALTHY"
 
     result = {
         "engine":     "usa_ops_check",
-        "version":    "v1.0",
+        "version":    "v1.1",
         "market":     "USA",
         "run_utc":    datetime.now(timezone.utc).isoformat(timespec="seconds") + "Z",
         "verdict":    verdict,
+        "backend_validation": backend,
         "artifacts":  {
             "n_required":   len(REQUIRED),
             "n_present":    len(present),
@@ -111,6 +135,11 @@ def main() -> int:
     if missing: print(f"    missing: {missing}")
     print(f"  SCHEMAS     {len(SCHEMAS) - len(schema_failures)}/{len(SCHEMAS)} pass")
     for f in schema_failures: print(f"    FAIL {f['name']}: {f['missing_keys']}")
+    if backend.get("checked"):
+        print(f"  BACKEND     {backend['verdict']}  confidence={backend.get('confidence', 0):.3f}  "
+              f"{backend.get('counts', {}).get('PASS', 0)}/{backend.get('n_datasets', 0)} pass")
+    else:
+        print(f"  BACKEND     not checked")
     print(f"  VERDICT     {verdict}")
     return 0 if verdict != "CRITICAL" else 1
 

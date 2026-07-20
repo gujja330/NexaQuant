@@ -1,0 +1,233 @@
+# AEGIS USA · Backend Dataset Registry
+#
+# Sprint 1 canonical registry. Paths are relative to the REPO ROOT.
+# USD ($) throughout — never ₹.
+
+market:
+  profile: usa
+  currency: USD
+  currency_symbol: "$"
+  timezone: America/New_York
+  benchmark: "^GSPC"
+
+datasets:
+
+  # ── UNIVERSE + MARKET DATA (LIVE) ─────────────────────────────────
+  - name: universe
+    path: usa/reports/universe.json
+    producer: usa/scripts/build_universe.py
+    kind: config
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, version, active_universe, n_tickers, tickers]
+    completeness:
+      required_non_empty_arrays: [tickers]
+    consumers: [usa/scripts/refresh_market_data, usa/scripts/usa_daily, usa/research/*]
+
+  - name: market_data_freshness
+    path: usa/reports/market_data_freshness.json
+    producer: usa/scripts/refresh_market_data.py
+    kind: freshness
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, version, run_utc, n_ok, freshness]
+    consumers: [usa/scripts/usa_ops_check]
+
+  - name: spx_index
+    path: usa/data/raw/us/_IDX_GSPC_D1.parquet
+    producer: usa/scripts/refresh_market_data.py
+    kind: price
+    freshness_sla_trading_days: 1
+    schema:
+      required_columns: [open, high, low, close, volume]
+    quality:
+      no_negatives: [open, high, low, close]
+      outlier_return_check: [close]
+      outlier_sigma: 10.0
+    consumers: [usa/research/recommendations, usa/research/benchmark]
+
+  - name: vix_index
+    path: usa/data/raw/us/_IDX_VIX_D1.parquet
+    producer: usa/scripts/refresh_market_data.py
+    kind: price
+    freshness_sla_trading_days: 1
+    schema:
+      required_columns: [open, high, low, close]
+    consumers: [usa/research/recommendations]
+
+  - name: aapl_price
+    path: usa/data/raw/us/AAPL_D1.parquet
+    producer: usa/scripts/refresh_market_data.py
+    kind: price
+    freshness_sla_trading_days: 1
+    schema:
+      required_columns: [open, high, low, close, volume]
+    quality:
+      no_negatives: [open, high, low, close]
+      outlier_return_check: [close]
+      outlier_sigma: 10.0
+    consumers: [usa/research/recommendations]
+    notes: representative sample from the Dow 30 universe
+
+  # ── V1 PIPELINE OUTPUTS (LIVE DAILY) ──────────────────────────────
+  - name: recommendations
+    path: usa/reports/recommendations.json
+    producer: usa/research/recommendations/run.py
+    kind: recommendations
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, version, market, currency, run_utc,
+                       n_companies_evaluated, recommendations]
+    completeness:
+      required_non_empty_arrays: [recommendations]
+    consumers: [usa/research/validation, usa/research/risk, usa/research/fusion,
+                 usa/research/institutional_memory, usa/research/benchmark,
+                 usa/research/decision_attribution, usa/research/morning_report,
+                 usa/dashboard/frontend, usa/scripts/telegram_send]
+
+  - name: investment_intelligence
+    path: usa/reports/investment_intelligence.json
+    producer: usa/research/fusion/run.py
+    kind: fusion
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, reports]
+    completeness:
+      required_non_empty_arrays: [reports]
+    consumers: [usa/research/decision_attribution, usa/dashboard/frontend, usa/scripts/telegram_send]
+
+  - name: intelligence_summary
+    path: usa/reports/intelligence_summary.json
+    producer: usa/research/fusion/run.py
+    kind: fusion
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine]
+    consumers: [usa/scripts/usa_ops_check, usa/dashboard/frontend]
+
+  - name: intelligence_conflicts
+    path: usa/reports/intelligence_conflicts.json
+    producer: usa/research/fusion/run.py
+    kind: fusion
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine]
+    consumers: [usa/dashboard/frontend]
+
+  - name: risk_latest
+    path: usa/reports/risk_latest.json
+    producer: usa/research/risk/run.py
+    kind: risk
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, run_utc, sizing, portfolio_risk]
+    consumers: [usa/dashboard/frontend, usa/scripts/telegram_send]
+
+  - name: validation_latest
+    path: usa/reports/validation_latest.json
+    producer: usa/research/validation/run.py
+    kind: validation
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine]
+    consumers: [usa/scripts/usa_ops_check]
+
+  - name: stock_validation
+    path: usa/reports/stock_validation.json
+    producer: usa/research/validation/run.py
+    kind: validation
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [n_tickers, tickers]
+    consumers: [usa/dashboard/frontend]
+
+  - name: price_context
+    path: usa/reports/price_context.json
+    producer: usa/research/price_context/run.py
+    kind: price_context
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, n_tickers, tickers]
+    consumers: [usa/dashboard/frontend]
+
+  - name: benchmark
+    path: usa/reports/benchmark.json
+    producer: usa/research/benchmark/run.py
+    kind: benchmark
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, version, run_utc, portfolio]
+    consumers: [usa/dashboard/frontend, usa/scripts/telegram_send]
+
+  - name: winner_genome
+    path: usa/reports/winner_genome.json
+    producer: usa/research/winner_genome/run.py
+    kind: learning
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, version, mode]
+    consumers: [usa/dashboard/frontend]
+
+  - name: decision_attribution
+    path: usa/reports/decision_attribution.json
+    producer: usa/research/decision_attribution/run.py
+    kind: attribution
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, version, n_recommendations, subsystem_weights, per_recommendation]
+    consumers: [usa/dashboard/frontend]
+
+  - name: recommendation_lifecycle
+    path: usa/reports/recommendation_lifecycle.json
+    producer: usa/research/institutional_memory/run.py
+    kind: memory
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, version, n_total, by_ticker]
+    consumers: [usa/dashboard/frontend]
+
+  - name: recommendation_history
+    path: usa/reports/recommendation_history.json
+    producer: usa/research/institutional_memory/run.py
+    kind: memory
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [market, n_tickers, n_days_archived, tickers]
+    consumers: [usa/dashboard/frontend]
+
+  - name: missed_opportunities
+    path: usa/reports/missed_opportunities.json
+    producer: usa/research/institutional_memory/run.py
+    kind: memory
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, version, n_days_scanned, n_events]
+    consumers: [usa/dashboard/frontend]
+
+  - name: morning_latest_md
+    path: usa/reports/morning_latest.md
+    producer: usa/research/morning_report/run.py
+    kind: report
+    freshness_sla_trading_days: 1
+    consumers: [usa/dashboard/frontend]
+
+  - name: morning_latest_html
+    path: usa/reports/morning_latest.html
+    producer: usa/research/morning_report/run.py
+    kind: report
+    freshness_sla_trading_days: 1
+    consumers: [usa/dashboard/frontend]
+
+  # ── NOT-YET-WIRED (FINDING 8 — USA gaps) ──────────────────────────
+  - name: fundamentals
+    path: usa/reports/fundamentals.json
+    producer: usa/research/fundamentals/run.py
+    kind: fundamentals
+    freshness_sla_trading_days: 5   # weekly rebuild ok
+    optional: true
+    schema:
+      required_keys: [engine, version, market, run_utc, tickers]
+    consumers: []
+    notes: |
+      USA fundamentals module exists but is NOT wired into usa_daily.py orchestrator
+      (Stage 0.5 FINDING 8). Freshness validator will flag when absent.

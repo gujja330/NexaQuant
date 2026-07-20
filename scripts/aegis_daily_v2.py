@@ -51,6 +51,15 @@ LEDGER = _ROOT / "reports" / "aegis_daily_v2_history.jsonl"
 # + the artifacts it produces (for post-run verification).
 STEPS = [
     {
+        "name": "backend_validation",
+        "desc": "Backend Data Foundation validator (Sprint 1 · freshness+schema+quality+lineage)",
+        "script": "india/backend_validation/run.py",
+        "produces": ["reports/backend_validation.json",
+                       "reports/backend_validation_summary.json"],
+        "requires": [],
+        "optional": True,   # WARNING/FAIL doesn't halt the pipeline — it's reported to ops_check
+    },
+    {
         "name": "adaptive_rec_v2",
         "desc": "Adaptive Rec Engine v2.0 (confidence rebuild + Precision@K)",
         "script": "research/adaptive_rec_v2/run.py",

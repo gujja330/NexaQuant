@@ -171,7 +171,7 @@ const REPORT_FILES = [
   "stock_validation.json", "recommendation_lifecycle.json",
   "missed_opportunities.json", "recommendation_history.json",
   "winner_genome.json", "decision_attribution.json", "benchmark.json",
-  "ops_check.json",
+  "ops_check.json", "backend_validation_summary.json",
 ];
 
 async function loadState() {
@@ -356,6 +356,15 @@ function renderDashboard() {
     <div class="tile"><span class="label">Recommendations</span>
       <div class="value">${canonical.length}</div>
       <div class="sub">${(rec.action_counts?.["Strong-Buy"] || 0)} Strong-Buy · ${(rec.action_counts?.Buy || 0)} Buy</div></div>
+    ${STATE.backend_validation_summary ? (() => {
+      const bv = STATE.backend_validation_summary;
+      const vCls = bv.verdict === 'PASS' ? 'pos' : bv.verdict === 'WARNING' ? 'warn' : 'neg';
+      const nPass = (bv.counts || {}).PASS || 0;
+      const nTotal = bv.n_datasets || 0;
+      return `<div class="tile"><span class="label">Backend Data Foundation</span>
+        <div class="value ${vCls}" style="font-size:16px;">${bv.verdict || '—'}</div>
+        <div class="sub">${nPass}/${nTotal} datasets · conf ${(bv.confidence || 0).toFixed(2)}</div></div>`;
+    })() : ''}
     <div class="tile"><span class="label">Positions Sized</span>
       <div class="value">${risk.n_positions ?? 0}</div>
       <div class="sub">${((risk.total_weight || 0) * 100).toFixed(1)}% deployed · ${((risk.cash_pct || 0) * 100).toFixed(1)}% cash</div></div>

@@ -37,6 +37,7 @@ REPORTS = _ROOT / "reports"
 
 # Every artifact the SPA + pipeline REQUIRE. Anything missing = degraded.
 REQUIRED_ARTIFACTS = [
+    "backend_validation_summary.json",   # Sprint 1 addition
     "recommendations.json",
     "investment_intelligence.json",
     "intelligence_summary.json",
@@ -238,7 +239,29 @@ def check_health() -> dict:
 
 # ── 5. Rollup verdict ─────────────────────────────────────────────
 
-def build_verdict(artifacts: dict, schemas: dict, fingerprint: dict, health: dict) -> str:
+def check_backend_validation() -> dict:
+    """Read reports/backend_validation_summary.json and roll into ops verdict."""
+    p = REPORTS / "backend_validation_summary.json"
+    if not p.exists():
+        return {"checked": False, "reason": "backend_validation_summary.json missing"}
+    try:
+        s = json.loads(p.read_text(encoding="utf-8"))
+    except Exception as e:
+        return {"checked": False, "reason": f"unparseable: {e}"}
+    return {
+        "checked":       True,
+        "market":        s.get("market"),
+        "verdict":       s.get("verdict"),
+        "confidence":    s.get("confidence"),
+        "n_datasets":    s.get("n_datasets"),
+        "counts":        s.get("counts"),
+        "n_top_issues":  len(s.get("top_issues") or []),
+        "run_utc":       s.get("run_utc"),
+    }
+
+
+def build_verdict(artifacts: dict, schemas: dict, fingerprint: dict, health: dict,
+                    backend: dict | None = None) -> str:
     critical = []
     if artifacts["n_missing"] > 3:
         critical.append(f"{artifacts['n_missing']} artifacts missing")
@@ -261,6 +284,14 @@ def build_verdict(artifacts: dict, schemas: dict, fingerprint: dict, health: dic
     if health.get("checked") and 0 < health.get("n_fail", 0) <= 2:
         degraded.append(f"{health['n_fail']} step warning(s)")
 
+    # Backend validation rollup (Sprint 1)
+    if backend and backend.get("checked"):
+        bv = backend.get("verdict")
+        if bv == "FAIL":
+            critical.append(f"backend validation FAIL ({backend.get('counts', {}).get('FAIL', 0)} datasets)")
+        elif bv == "WARNING":
+            degraded.append("backend validation WARNING")
+
     if critical: return "CRITICAL"
     if degraded: return "DEGRADED"
     return "HEALTHY"
@@ -275,17 +306,19 @@ def main() -> int:
     schemas   = check_schemas()
     fingerprint = check_fingerprint()
     health    = check_health()
-    verdict   = build_verdict(artifacts, schemas, fingerprint, health)
+    backend   = check_backend_validation()
+    verdict   = build_verdict(artifacts, schemas, fingerprint, health, backend)
 
     result = {
         "engine":    "ops_check",
-        "version":   "v1.0",
+        "version":   "v1.1",
         "run_utc":   datetime.now(timezone.utc).isoformat(timespec="seconds") + "Z",
         "verdict":   verdict,
         "artifacts": artifacts,
         "schemas":   schemas,
         "fingerprint": fingerprint,
         "health":    health,
+        "backend_validation": backend,
     }
 
     print(f"\n  ARTIFACTS   {artifacts['n_present']}/{artifacts['n_required']} present"
@@ -311,6 +344,13 @@ def main() -> int:
         print(f"{health['n_ok']}/{health['n_steps']} steps ok  elapsed={health.get('elapsed_s','—')}s")
     else:
         print(f"not checked ({health.get('reason')})")
+
+    print(f"\n  BACKEND    ", end="")
+    if backend.get("checked"):
+        print(f"{backend['verdict']}  confidence={backend.get('confidence', 0):.3f}  "
+              f"{backend.get('counts', {}).get('PASS', 0)}/{backend.get('n_datasets', 0)} datasets pass")
+    else:
+        print(f"not checked ({backend.get('reason')})")
 
     print(f"\n  VERDICT     {verdict}")
 
