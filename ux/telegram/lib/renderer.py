@@ -276,6 +276,15 @@ def render_champion_update(ctx: Context) -> str:
     reason = promo.get("reason", "")
     icon = "🏆" if decision in ("initial_champion", "promote_challenger", "hold_champion") else "⚠"
 
+    # Telegram Markdown treats a single '_' as an italic marker. Decision
+    # strings like `initial_champion` and reason strings that contain
+    # underscores would leave an unclosed italic (parse error at the
+    # trailing '_'). Wrap identifiers in backticks (code span → literal
+    # underscores) instead of italic underscores; escape underscores in
+    # free-text `reason` as `\_`.
+    def _esc_underscores(s: str) -> str:
+        return s.replace("_", r"\_")
+
     lines = [
         f"{icon} *CHAMPION STRATEGY UPDATE*",
         "",
@@ -284,10 +293,10 @@ def render_champion_update(ctx: Context) -> str:
         f"  Sharpe: {_fmt_num(champ.get('sharpe'))}   CAGR: {_fmt_pct(champ.get('cagr'))}",
         f"  Max DD: {_fmt_num(champ.get('max_dd_pct'))}%",
         "",
-        f"*Decision:* {decision}",
-        f"_{reason}_",
+        f"*Decision:* `{decision}`",
+        _esc_underscores(reason) if reason else "",
     ]
-    return "\n".join(lines)
+    return "\n".join(l for l in lines if l != "")
 
 
 # ═══════════════════════════════════════════════════════════════════════

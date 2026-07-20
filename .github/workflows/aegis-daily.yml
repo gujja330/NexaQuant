@@ -147,13 +147,25 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: python scripts/telegram_health_check.py
 
-      - name: Telegram daily notification (retry + delivery ledger)
+      - name: Telegram daily notification (legacy MON001 paper portfolio)
         if: steps.guard.outputs.run == 'true' && steps.freshcheck.outputs.verified == 'true'
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           AEGIS_SPREADSHEET_ID: ${{ secrets.AEGIS_SPREADSHEET_ID }}
         run: python scripts/telegram_send_with_retry.py --attempts 4
+
+      # 2026-07-18 · v2.0 post-LOCK operator request: deliver BOTH the legacy
+      # paper-portfolio Telegram (above) AND the AEGIS v2 UX030 daily brief.
+      # continue-on-error so a v2-sender failure never blocks the legacy delivery
+      # (which is authoritative). Uses same TELEGRAM_* secrets.
+      - name: Telegram AEGIS v2 daily brief (UX030 renderer)
+        if: steps.guard.outputs.run == 'true' && steps.freshcheck.outputs.verified == 'true'
+        continue-on-error: true
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python scripts/telegram_send_ux030.py
 
       - name: Upload Telegram delivery ledger (artifact)
         if: always() && steps.guard.outputs.run == 'true'
