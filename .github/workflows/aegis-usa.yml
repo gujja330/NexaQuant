@@ -1,0 +1,65 @@
+name: AEGIS USA
+
+# USA parallel deployment. Runs the 13-step USA pipeline on a schedule
+# and on manual dispatch. Completely independent from India's aegis-daily.yml.
+#
+# Schedule: 15:30 UTC on weekdays (~11:30 EDT / 10:30 EST) — after US
+# market close so `_D1.parquet` has today's close available.
+
+on:
+  schedule:
+    - cron: "30 20 * * 1-5"   # 20:30 UTC = 16:30 EDT (30min after close)
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  usa-pipeline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas numpy pyarrow pyyaml yfinance scikit-learn
+
+      - name: Run USA daily orchestrator
+        run: python usa/scripts/usa_daily.py
+
+      - name: Run USA ops check
+        run: python usa/scripts/usa_ops_check.py
+
+      - name: Upload USA morning report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: usa-morning-report
+          path: |
+            usa/reports/morning_latest.html
+            usa/reports/morning_latest.md
+          retention-days: 30
+
+      - name: Summarise verdict
+        if: always()
+        run: |
+          if [ -f usa/reports/ops_check.json ]; then
+            VERDICT=$(python -c "import json; print(json.load(open('usa/reports/ops_check.json'))['verdict'])")
+            echo "## AEGIS USA verdict: $VERDICT" >> $GITHUB_STEP_SUMMARY
+            python -c "import json; d = json.load(open('usa/reports/ops_check.json')); print(f\"Artifacts: {d['artifacts']['n_present']}/{d['artifacts']['n_required']} present\"); print(f\"Schemas: {d['schemas']['n_pass']}/{d['schemas']['n_schemas']} pass\")" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Commit USA artifacts
+        if: success()
+        run: |
+          git config user.name  "aegis-bot"
+          git config user.email "aegis-bot@users.noreply.github.com"
+          git add usa/reports/*.json usa/reports/*.md usa/reports/*.html usa/reports/*.jsonl 2>/dev/null || true
+          git diff --cached --quiet || git commit -m "AEGIS USA daily: refresh reports [skip ci]"
+          git push || true
