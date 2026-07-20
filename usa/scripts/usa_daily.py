@@ -44,15 +44,6 @@ LEDGER = _USA / "reports" / "usa_daily_history.jsonl"
 # ─── Pipeline definition ────────────────────────────────────────
 STEPS = [
     {
-        "name":     "backend_validation",
-        "desc":     "USA Backend Data Foundation validator (Sprint 1)",
-        "script":   "usa/backend_validation/run.py",
-        "produces": ["usa/reports/backend_validation.json",
-                       "usa/reports/backend_validation_summary.json"],
-        "requires": [],
-        "optional": True,
-    },
-    {
         "name":     "build_universe",
         "desc":     "Resolve active universe → usa/reports/universe.json",
         "script":   "usa/scripts/build_universe.py",
@@ -65,6 +56,87 @@ STEPS = [
         "script":   "usa/scripts/refresh_market_data.py",
         "produces": ["usa/reports/market_data_freshness.json"],
         "requires": ["usa/reports/universe.json"],
+    },
+    # ── Sprint 1B · Data Ingestion (fundamentals + news + earnings + insider + flows + macro + actions + 13F) ─
+    {
+        "name":     "ingest_fundamentals",
+        "desc":     "Sprint 1B · USA fundamentals ingest (yfinance PE/PB/ROE/EPS + earnings growth)",
+        "script":   "usa/research/fundamentals/run.py",
+        "produces": ["usa/reports/fundamentals.json"],
+        "requires": ["usa/reports/universe.json"],
+        "optional": True,
+    },
+    {
+        "name":     "ingest_news",
+        "desc":     "Sprint 1B · USA news sentiment ingest (Google News RSS + lexicon score)",
+        "script":   "usa/research/news/run.py",
+        "produces": ["usa/data/raw/us/news_sentiment.parquet",
+                       "usa/reports/news_sentiment_summary.json"],
+        "requires": ["usa/reports/universe.json"],
+        "optional": True,
+    },
+    {
+        "name":     "ingest_earnings",
+        "desc":     "Sprint 1B · USA earnings calendar (next date + last-quarter surprise)",
+        "script":   "usa/research/earnings/run.py",
+        "produces": ["usa/data/raw/us/earnings.parquet",
+                       "usa/reports/earnings_summary.json"],
+        "requires": ["usa/reports/universe.json"],
+        "optional": True,
+    },
+    {
+        "name":     "ingest_insider",
+        "desc":     "Sprint 1B · USA insider Form 4 transactions (trailing 90d, net flow)",
+        "script":   "usa/research/insider/run.py",
+        "produces": ["usa/data/raw/us/insider_transactions.parquet",
+                       "usa/reports/insider_summary.json"],
+        "requires": ["usa/reports/universe.json"],
+        "optional": True,
+    },
+    {
+        "name":     "ingest_etf_flows",
+        "desc":     "Sprint 1B · USA ETF flow proxy (sector + broad market ETF dollar volume)",
+        "script":   "usa/research/etf_flows/run.py",
+        "produces": ["usa/data/raw/us/etf_flows.parquet",
+                       "usa/reports/etf_flows_summary.json"],
+        "requires": [],
+        "optional": True,
+    },
+    {
+        "name":     "ingest_macro",
+        "desc":     "Sprint 1B · USA macro (rates + DXY + gold + oil + VIX + MOVE)",
+        "script":   "usa/research/macro/run.py",
+        "produces": ["usa/data/raw/us/macro.parquet",
+                       "usa/reports/macro_summary.json"],
+        "requires": [],
+        "optional": True,
+    },
+    {
+        "name":     "ingest_corporate_actions",
+        "desc":     "Sprint 1B · USA corporate actions ingest (dividends + splits, trailing 365d)",
+        "script":   "usa/research/corporate_actions/run.py",
+        "produces": ["usa/data/raw/us/corporate_actions.parquet",
+                       "usa/reports/corporate_actions_summary.json"],
+        "requires": ["usa/reports/universe.json"],
+        "optional": True,
+    },
+    {
+        "name":     "ingest_sec_13f",
+        "desc":     "Sprint 1B · USA SEC 13F top-holders ingest (yfinance view · full EDGAR deferred)",
+        "script":   "usa/research/sec_13f/run.py",
+        "produces": ["usa/data/raw/us/institutional_holders.parquet",
+                       "usa/reports/sec_13f_summary.json"],
+        "requires": ["usa/reports/universe.json"],
+        "optional": True,
+    },
+    {
+        "name":     "backend_validation",
+        "desc":     "USA Backend Data Foundation validator (Sprint 1)",
+        "script":   "usa/backend_validation/run.py",
+        "produces": ["usa/reports/backend_validation.json",
+                       "usa/reports/backend_validation_summary.json"],
+        "requires": [],
+        "optional": True,
     },
     {
         "name":     "recommendations",
@@ -223,7 +295,10 @@ def main() -> int:
         results.append(res)
         print(f"\n  verdict: {res['verdict']}  ·  elapsed: {res['elapsed_s']}s")
         if res["verdict"] == "FAILED":
-            print(f"  aborting pipeline — {step['name']} failed.")
+            if step.get("optional"):
+                print(f"  {step['name']} failed but is optional — continuing pipeline.")
+                continue
+            print(f"  aborting pipeline — required step {step['name']} failed.")
             break
 
     total_elapsed = round(time.time() - t_total, 2)

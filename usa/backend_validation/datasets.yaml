@@ -218,16 +218,146 @@ datasets:
     freshness_sla_trading_days: 1
     consumers: [usa/dashboard/frontend]
 
-  # ── NOT-YET-WIRED (FINDING 8 — USA gaps) ──────────────────────────
+  # ── SPRINT 1B · INGESTION LAYER (all WIRED into usa_daily.py) ─────
   - name: fundamentals
     path: usa/reports/fundamentals.json
     producer: usa/research/fundamentals/run.py
     kind: fundamentals
     freshness_sla_trading_days: 5   # weekly rebuild ok
-    optional: true
     schema:
       required_keys: [engine, version, market, run_utc, tickers]
-    consumers: []
+    consumers: [usa/scripts/usa_daily (ingest_fundamentals)]
+    notes: Sprint 1B · WAS FINDING 8 (not wired). Now scheduled daily.
+
+  - name: news_sentiment
+    path: usa/data/raw/us/news_sentiment.parquet
+    producer: usa/research/news/run.py
+    kind: news
+    freshness_sla_trading_days: 2
+    schema:
+      required_columns: [asof, symbol, news_sent, pos, neg, n_headlines]
+    consumers: [usa/scripts/usa_daily (ingest_news)]
+    notes: Sprint 1B · Google News RSS + lexicon score. Optional FinBERT rescore later.
+
+  - name: news_sentiment_summary
+    path: usa/reports/news_sentiment_summary.json
+    producer: usa/research/news/run.py
+    kind: news
+    freshness_sla_trading_days: 2
+    schema:
+      required_keys: [engine, run_utc, asof, n_tickers, avg_sentiment]
+    consumers: [usa/scripts/usa_daily (ingest_news)]
+
+  - name: earnings_calendar
+    path: usa/data/raw/us/earnings.parquet
+    producer: usa/research/earnings/run.py
+    kind: earnings
+    freshness_sla_trading_days: 2
+    schema:
+      required_columns: [ticker, ingested_utc, asof]
+    consumers: [usa/scripts/usa_daily (ingest_earnings)]
+    notes: Sprint 1B · next earnings date + last-quarter surprise from yfinance.
+
+  - name: earnings_summary
+    path: usa/reports/earnings_summary.json
+    producer: usa/research/earnings/run.py
+    kind: earnings
+    freshness_sla_trading_days: 2
+    schema:
+      required_keys: [engine, run_utc, n_upcoming_30d]
+
+  - name: insider_transactions
+    path: usa/data/raw/us/insider_transactions.parquet
+    producer: usa/research/insider/run.py
+    kind: institutional_flows
+    freshness_sla_trading_days: 3
+    optional: true      # small universe may have few transactions in window
+    schema:
+      required_columns: [ticker, transaction, shares, ingested_utc]
+    consumers: [usa/scripts/usa_daily (ingest_insider)]
+    notes: Sprint 1B · Form 4 filings via yfinance insider_transactions accessor.
+
+  - name: insider_summary
+    path: usa/reports/insider_summary.json
+    producer: usa/research/insider/run.py
+    kind: institutional_flows
+    freshness_sla_trading_days: 2
+    schema:
+      required_keys: [engine, run_utc, window_days, net_flow_usd, per_ticker]
+
+  - name: etf_flows
+    path: usa/data/raw/us/etf_flows.parquet
+    producer: usa/research/etf_flows/run.py
+    kind: flows
+    freshness_sla_trading_days: 2
+    schema:
+      required_columns: [ticker, date, close, volume, dollar_volume]
+    consumers: [usa/scripts/usa_daily (ingest_etf_flows)]
+    notes: Sprint 1B · sector + broad-market ETF dollar-volume proxy for flow rotation.
+
+  - name: etf_flows_summary
+    path: usa/reports/etf_flows_summary.json
+    producer: usa/research/etf_flows/run.py
+    kind: flows
+    freshness_sla_trading_days: 2
+    schema:
+      required_keys: [engine, run_utc, window_days, per_etf]
+
+  - name: macro_indicators
+    path: usa/data/raw/us/macro.parquet
+    producer: usa/research/macro/run.py
+    kind: macro
+    freshness_sla_trading_days: 2
+    schema:
+      required_columns: [symbol, date, close, ingested_utc]
+    consumers: [usa/scripts/usa_daily (ingest_macro)]
+    notes: Sprint 1B · rates + DXY + gold + oil + VIX + MOVE from yfinance.
+
+  - name: macro_summary
+    path: usa/reports/macro_summary.json
+    producer: usa/research/macro/run.py
+    kind: macro
+    freshness_sla_trading_days: 2
+    schema:
+      required_keys: [engine, run_utc, per_symbol]
+
+  - name: corporate_actions
+    path: usa/data/raw/us/corporate_actions.parquet
+    producer: usa/research/corporate_actions/run.py
+    kind: corporate_actions
+    freshness_sla_trading_days: 5   # weekly cadence appropriate
+    optional: true      # may be empty if no events in window
+    schema:
+      required_columns: [ticker, action_date, dividend_usd, split_ratio, ingested_utc]
+    consumers: [usa/scripts/usa_daily (ingest_corporate_actions)]
+    notes: Sprint 1B · yfinance actions accessor, trailing 365 days.
+
+  - name: corporate_actions_summary
+    path: usa/reports/corporate_actions_summary.json
+    producer: usa/research/corporate_actions/run.py
+    kind: corporate_actions
+    freshness_sla_trading_days: 5
+    schema:
+      required_keys: [engine, run_utc, n_events, n_dividends, n_splits]
+
+  - name: institutional_holders
+    path: usa/data/raw/us/institutional_holders.parquet
+    producer: usa/research/sec_13f/run.py
+    kind: institutional_flows
+    freshness_sla_trading_days: 30    # 13F cadence is quarterly, but the yfinance snapshot may not update daily
+    optional: true
+    schema:
+      required_columns: [ticker, holder, ingested_utc]
+    consumers: [usa/scripts/usa_daily (ingest_sec_13f)]
     notes: |
-      USA fundamentals module exists but is NOT wired into usa_daily.py orchestrator
-      (Stage 0.5 FINDING 8). Freshness validator will flag when absent.
+      Sprint 1B · yfinance institutional_holders view (top ~10 per ticker).
+      Full SEC EDGAR 13F parse (all filers · position deltas quarter-over-quarter)
+      deferred to a later sprint.
+
+  - name: sec_13f_summary
+    path: usa/reports/sec_13f_summary.json
+    producer: usa/research/sec_13f/run.py
+    kind: institutional_flows
+    freshness_sla_trading_days: 30
+    schema:
+      required_keys: [engine, run_utc, n_tickers, avg_institutional_pct]

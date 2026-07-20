@@ -113,44 +113,57 @@ datasets:
       but was produced ONCE on 2026-07-17 and never rebuilt. Freshness validator
       will FAIL. Sprint N (TBD) must reconnect adaptive_learning to a schedule.
 
-  # ── INSTITUTIONAL FLOWS (manual only) ─────────────────────────────
+  # ── INSTITUTIONAL FLOWS (Sprint 1B · WIRED) ───────────────────────
   - name: fii_dii_flows
     path: data/raw/india/fii_dii.parquet
     producer: india/fii_dii.py
     kind: institutional_flows
     freshness_sla_trading_days: 2
-    optional: true
     schema:
       required_columns: [ts]
-    consumers: [india/run_arjuna]
+    consumers: [india/run_arjuna, scripts/aegis_daily_v2 (ingest_fii_dii)]
     notes: |
-      FINDING 3: reachable ONLY via run_daily.bat (manual). Sprint N must decide
-      whether to schedule.
+      Sprint 1B: scheduled via ingest_fii_dii step in aegis_daily_v2.py.
+      Was FINDING 3 (manual only). Now runs daily.
 
-  # ── NEWS SENTIMENT (manual only) ──────────────────────────────────
+  # ── NEWS SENTIMENT (Sprint 1B · WIRED) ────────────────────────────
   - name: news_sentiment
     path: data/raw/india/news_sentiment.parquet
     producer: india/news_sentiment.py
     kind: news
     freshness_sla_trading_days: 2
-    optional: true
     schema:
       required_columns: [asof, symbol, news_sent, pos, neg, neu]
-    consumers: [india/run_arjuna]
-    notes: FINDING 3 · manual only
+    consumers: [india/run_arjuna, scripts/aegis_daily_v2 (ingest_news_sentiment)]
+    notes: |
+      Sprint 1B: scheduled via ingest_news_sentiment step in aegis_daily_v2.py.
+      Was FINDING 3 (manual only). Now runs daily.
 
-  # ── FUNDAMENTALS (NEVER invoked) ──────────────────────────────────
+  # ── FUNDAMENTALS (Sprint 1B · WIRED) ──────────────────────────────
   - name: fundamentals_snapshot
     path: data/raw/india/fundamentals.parquet
     producer: india/fundamentals_nse.py
     kind: fundamentals
-    freshness_sla_trading_days: 5   # weekly rebuild expected
-    optional: true
+    freshness_sla_trading_days: 5   # weekly rebuild expected (yfinance snapshot is current)
     schema:
       required_columns: [returnOnEquity, profitMargins, earningsGrowth, debtToEquity,
                          trailingPE, priceToBook, quality_score]
-    consumers: []
-    notes: FINDING 3 · zero callers anywhere · dataset provisioned but not scheduled
+    consumers: [scripts/aegis_daily_v2 (ingest_fundamentals)]
+    notes: |
+      Sprint 1B: scheduled via ingest_fundamentals step in aegis_daily_v2.py.
+      Was FINDING 3 (zero callers). Now ingested daily; downstream engines pending.
+
+  # ── CORPORATE ACTIONS (Sprint 1B · NEW) ───────────────────────────
+  - name: corporate_actions
+    path: data/raw/india/corporate_actions.parquet
+    producer: india/corporate_actions.py
+    kind: corporate_actions
+    freshness_sla_trading_days: 5   # weekly cadence — events are point-in-time, not tick
+    optional: true
+    schema:
+      required_columns: [ticker, action_date, dividend, split_ratio, ingested_utc]
+    consumers: [scripts/aegis_daily_v2 (ingest_corporate_actions)]
+    notes: Sprint 1B new module · dividends + splits from yfinance, trailing 365 days.
 
   # ── LIVE DAILY V2 OUTPUTS ─────────────────────────────────────────
   - name: recommendations

@@ -50,6 +50,39 @@ LEDGER = _ROOT / "reports" / "aegis_daily_v2_history.jsonl"
 # Ordered list of steps. Each step declares its script + a short name
 # + the artifacts it produces (for post-run verification).
 STEPS = [
+    # ── Sprint 1B · Data Ingestion (runs BEFORE backend_validation) ─────
+    {
+        "name": "ingest_fii_dii",
+        "desc": "Sprint 1B · FII/DII cash flow ingest (NSE endpoint · appends latest)",
+        "script": "india/fii_dii.py",
+        "produces": ["data/raw/india/fii_dii.parquet"],
+        "requires": [],
+        "optional": True,   # network flake shouldn't halt the pipeline
+    },
+    {
+        "name": "ingest_news_sentiment",
+        "desc": "Sprint 1B · News sentiment ingest (Google News RSS + FinBERT · EW-30 basket)",
+        "script": "india/news_sentiment.py",
+        "produces": ["data/raw/india/news_sentiment.parquet"],
+        "requires": [],
+        "optional": True,   # FinBERT/RSS latency shouldn't halt the pipeline
+    },
+    {
+        "name": "ingest_fundamentals",
+        "desc": "Sprint 1B · Fundamentals + earnings calendar ingest (yfinance snapshot)",
+        "script": "india/fundamentals_nse.py",
+        "produces": ["data/raw/india/fundamentals.parquet"],
+        "requires": [],
+        "optional": True,
+    },
+    {
+        "name": "ingest_corporate_actions",
+        "desc": "Sprint 1B · Corporate actions ingest (dividends + splits, trailing 365d)",
+        "script": "india/corporate_actions.py",
+        "produces": ["data/raw/india/corporate_actions.parquet"],
+        "requires": [],
+        "optional": True,
+    },
     {
         "name": "backend_validation",
         "desc": "Backend Data Foundation validator (Sprint 1 · freshness+schema+quality+lineage)",
