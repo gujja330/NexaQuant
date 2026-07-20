@@ -175,6 +175,7 @@ const REPORT_FILES = [
   "market_intelligence_summary.json", "ai_market_narrative.json",
   "feature_store_summary.json", "ai_feature_narrative.json",
   "feature_intelligence_summary.json", "selected_features.json", "ai_feature_research.json",
+  "ensemble.json", "model_metrics.json", "ai_model_narrative.json",
 ];
 
 async function loadState() {
@@ -395,6 +396,14 @@ function renderDashboard() {
       return `<div class="tile"><span class="label">Feature Intelligence</span>
         <div class="value ${cls}" style="font-size:15px;">${fi.n_selected}/${fi.n_input} selected</div>
         <div class="sub">gov ${gov} · drift ${drift} · rat ${fi.governance_coverage_rationale_pct || 0}%</div></div>`;
+    })() : ''}
+    ${STATE.ensemble ? (() => {
+      const ens = STATE.ensemble;
+      const top = (ens.top_10 || [])[0];
+      const topLabel = top ? `${top.ticker} @ ${top.ensemble_score.toFixed(3)}` : '—';
+      return `<div class="tile"><span class="label">Model Ensemble</span>
+        <div class="value" style="font-size:14px;">${ens.n_models} models</div>
+        <div class="sub">${ens.strategy} · top: ${topLabel}</div></div>`;
     })() : ''}
     <div class="tile"><span class="label">Positions Sized</span>
       <div class="value">${risk.n_positions ?? 0}</div>

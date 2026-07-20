@@ -380,3 +380,40 @@ datasets:
     schema:
       required_keys: [engine, version, market, run_utc, output]
     consumers: [ux/dashboard]
+
+  # ── SPRINT 2.7 · Model Factory ──────────────────────────────────
+  - name: model_factory
+    path: reports/model_factory.json
+    producer: india/model_factory/run.py
+    kind: model_factory
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, market, run_utc, asof, n_models, models, predictions_summary]
+    consumers: [ux/dashboard]
+
+  - name: model_metrics
+    path: reports/model_metrics.json
+    producer: india/model_factory/run.py
+    kind: model_factory
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, market, asof, n_models, metrics]
+    consumers: [ux/dashboard, backend/ai/model_analyst]
+
+  - name: ensemble
+    path: reports/ensemble.json
+    producer: india/model_factory/run.py
+    kind: model_factory
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, market, asof, strategy, n_models, top_10]
+    consumers: [ux/dashboard, research/adaptive_rec_v2 (Sprint 3+)]
+
+  - name: ai_model_narrative
+    path: reports/ai_model_narrative.json
+    producer: india/model_factory/run.py
+    kind: ai_narrative
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, version, market, run_utc, output]
+    consumers: [ux/dashboard]

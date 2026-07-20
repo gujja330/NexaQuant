@@ -169,6 +169,17 @@ STEPS = [
         "optional": True,
     },
     {
+        "name":     "model_factory",
+        "desc":     "Sprint 2.7 · USA Model Factory (11 models + intelligence + ensemble + AI analyst)",
+        "script":   "usa/research/model_factory/run.py",
+        "produces": ["usa/reports/model_factory.json",
+                       "usa/reports/model_metrics.json",
+                       "usa/reports/ensemble.json",
+                       "usa/reports/ai_model_narrative.json"],
+        "requires": ["usa/reports/selected_features.json"],
+        "optional": True,
+    },
+    {
         "name":     "recommendations",
         "desc":     "USA Adaptive Recommendation Engine (technicals-based)",
         "script":   "usa/research/recommendations/run.py",

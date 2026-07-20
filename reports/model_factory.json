@@ -1,0 +1,532 @@
+{
+  "engine": "model_factory",
+  "version": "v1.0",
+  "market": "india",
+  "run_utc": "2026-07-20T14:33:01+00:00",
+  "asof": "2026-07-20",
+  "schema_fingerprint": "b65ceb49a83a",
+  "n_models": 11,
+  "models": [
+    {
+      "model_id": "aegis.momentum.v1",
+      "type": "momentum",
+      "version": "1.0.0",
+      "algorithm": "weighted_rule_v1",
+      "features_used": [
+        "return_5d_pct",
+        "return_20d_pct",
+        "return_60d_pct",
+        "price_above_sma20",
+        "price_above_sma50",
+        "price_above_sma200",
+        "rsi_14"
+      ],
+      "business_rationale": "Cross-sectional momentum has one of the most durable risk premiums in equities \u2014 winners keep winning over 3-12 month horizons.",
+      "economic_intuition": "Slow information diffusion + behavioral anchoring cause under-reaction; momentum rides that under-reaction.",
+      "approval_status": "EXPERIMENTAL"
+    },
+    {
+      "model_id": "aegis.trend.v1",
+      "type": "trend",
+      "version": "1.0.0",
+      "algorithm": "weighted_rule_v1",
+      "features_used": [
+        "adx_14",
+        "distance_from_52w_high_pct",
+        "price_above_sma50",
+        "price_above_sma200"
+      ],
+      "business_rationale": "Persistent uptrends are the safest kind of bull; strong ADX with price near 52W high signals conviction.",
+      "economic_intuition": "Trends form when structural demand outpaces supply; confirmed trends persist longer than reversal patterns.",
+      "approval_status": "EXPERIMENTAL"
+    },
+    {
+      "model_id": "aegis.value.v1",
+      "type": "value",
+      "version": "1.0.0",
+      "algorithm": "weighted_rule_v1",
+      "features_used": [
+        "fund_trailing_pe",
+        "fund_price_to_book"
+      ],
+      "business_rationale": "Buying below fair value creates a margin of safety; reversion-to-mean historically rewards cheap stocks over expensive ones across long horizons.",
+      "economic_intuition": "Overreaction to bad news creates persistent under-pricing in fundamentally sound companies; value is the correction.",
+      "approval_status": "EXPERIMENTAL"
+    },
+    {
+      "model_id": "aegis.growth.v1",
+      "type": "growth",
+      "version": "1.0.0",
+      "algorithm": "weighted_rule_v1",
+      "features_used": [
+        "fund_earnings_growth",
+        "fund_roe"
+      ],
+      "business_rationale": "Compounding earnings expansion drives multi-year returns; growth premium is durable when quality holds.",
+      "economic_intuition": "Companies re-investing earnings at high incremental returns compound intrinsic value faster than the market prices in.",
+      "approval_status": "EXPERIMENTAL"
+    },
+    {
+      "model_id": "aegis.quality.v1",
+      "type": "quality",
+      "version": "1.0.0",
+      "algorithm": "weighted_rule_v1",
+      "features_used": [
+        "fund_roe",
+        "fund_profit_margin",
+        "fund_debt_to_equity",
+        "fund_quality_score"
+      ],
+      "business_rationale": "High-quality companies compound; low-quality ones erode capital. Quality is the single most stable factor across regimes.",
+      "economic_intuition": "Structural moats (brand, network, IP, cost advantage) produce persistent excess returns on capital that survive competitive erosion.",
+      "approval_status": "EXPERIMENTAL"
+    },
+    {
+      "model_id": "aegis.mean_reversion.v1",
+      "type": "mean_reversion",
+      "version": "1.0.0",
+      "algorithm": "weighted_rule_v1",
+      "features_used": [
+        "rsi_14",
+        "max_drawdown_60d_pct",
+        "distance_from_52w_low_pct",
+        "fund_quality_score"
+      ],
+      "business_rationale": "Short-term overreaction produces exploitable snapbacks in high-quality names; low-quality names deserve their drawdown.",
+      "economic_intuition": "Panic selling detaches price from fundamentals; the gap closes over 1-4 weeks in fundamentally intact companies.",
+      "approval_status": "EXPERIMENTAL"
+    },
+    {
+      "model_id": "aegis.news.v1",
+      "type": "news",
+      "version": "1.0.0",
+      "algorithm": "weighted_rule_v1",
+      "features_used": [
+        "news_sentiment",
+        "news_polarity_ratio",
+        "news_n_headlines",
+        "news_n_positive",
+        "news_n_negative"
+      ],
+      "business_rationale": "News sentiment drives short-term price action before analysts update their models.",
+      "economic_intuition": "Attention + narrative shape near-term flows; positive news attracts retail + momentum traders, negative repels them.",
+      "approval_status": "EXPERIMENTAL"
+    },
+    {
+      "model_id": "aegis.macro.v1",
+      "type": "macro",
+      "version": "1.0.0",
+      "algorithm": "weighted_rule_v1",
+      "features_used": [
+        "macro_10y",
+        "macro_vix",
+        "macro_wti_oil",
+        "macro_dxy",
+        "mi_composite_score",
+        "mi_regime"
+      ],
+      "business_rationale": "Macro backdrop conditions the *level* of equity returns across the whole market. A hostile macro can override individual company merit.",
+      "economic_intuition": "Rates + dollar + energy + volatility are the four master levers of equity risk premium.",
+      "approval_status": "EXPERIMENTAL"
+    },
+    {
+      "model_id": "aegis.sector_rotation.v1",
+      "type": "sector_rotation",
+      "version": "1.0.0",
+      "algorithm": "weighted_rule_v1",
+      "features_used": [
+        "sector_return_1m_pct",
+        "sector_is_leader",
+        "sector_is_laggard"
+      ],
+      "business_rationale": "Capital rotates between sectors over 3-12 month cycles. Riding leadership beats fighting it.",
+      "economic_intuition": "Institutional flows chase performance; sector momentum persists longer than individual stock momentum.",
+      "approval_status": "EXPERIMENTAL"
+    },
+    {
+      "model_id": "aegis.event_driven.v1",
+      "type": "event_driven",
+      "version": "1.0.0",
+      "algorithm": "weighted_rule_v1",
+      "features_used": [
+        "earn_days_to_next",
+        "earn_last_surprise_pct",
+        "insider_net_90d",
+        "ca_days_since_last_dividend"
+      ],
+      "business_rationale": "Discrete events (earnings, insider trades, dividends) create predictable pockets of alpha via PEAD, insider signal, and dividend anchor.",
+      "economic_intuition": "Anchoring bias + slow analyst updates cause gradual price adjustment for weeks post-event.",
+      "approval_status": "EXPERIMENTAL"
+    },
+    {
+      "model_id": "aegis.ai_hybrid.v1",
+      "type": "ai_hybrid",
+      "version": "1.0.0",
+      "algorithm": "ensemble_meta",
+      "features_used": [],
+      "business_rationale": "No single style wins in every regime. A meta-model that trusts each style according to its recent walk-forward accuracy adapts without over-fitting one lens.",
+      "economic_intuition": "Ensembles reduce single-model idiosyncratic risk; the WF-weighted variant tilts toward the styles the market is currently paying for.",
+      "approval_status": "EXPERIMENTAL"
+    }
+  ],
+  "predictions_summary": [
+    {
+      "model_id": "aegis.momentum.v1",
+      "n_scored": 228,
+      "notes": [
+        "1/6 weighted features available"
+      ],
+      "top_5": [
+        {
+          "ticker": "AARTIIND.NS",
+          "score": 0.0013157894736841812,
+          "confidence": 0.16666666666666666
+        },
+        {
+          "ticker": "ABB.NS",
+          "score": 0.0013157894736841812,
+          "confidence": 0.16666666666666666
+        },
+        {
+          "ticker": "ABBOTINDIA.NS",
+          "score": 0.0013157894736841812,
+          "confidence": 0.16666666666666666
+        },
+        {
+          "ticker": "ABCAPITAL.NS",
+          "score": 0.0013157894736841812,
+          "confidence": 0.16666666666666666
+        },
+        {
+          "ticker": "ACC.NS",
+          "score": 0.0013157894736841812,
+          "confidence": 0.16666666666666666
+        }
+      ]
+    },
+    {
+      "model_id": "aegis.trend.v1",
+      "n_scored": 228,
+      "notes": [],
+      "top_5": [
+        {
+          "ticker": "AARTIIND.NS",
+          "score": 0.0,
+          "confidence": 0.0
+        },
+        {
+          "ticker": "ABB.NS",
+          "score": 0.0,
+          "confidence": 0.0
+        },
+        {
+          "ticker": "ABBOTINDIA.NS",
+          "score": 0.0,
+          "confidence": 0.0
+        },
+        {
+          "ticker": "ABCAPITAL.NS",
+          "score": 0.0,
+          "confidence": 0.0
+        },
+        {
+          "ticker": "ACC.NS",
+          "score": 0.0,
+          "confidence": 0.0
+        }
+      ]
+    },
+    {
+      "model_id": "aegis.value.v1",
+      "n_scored": 228,
+      "notes": [],
+      "top_5": [
+        {
+          "ticker": "AARTIIND.NS",
+          "score": 0.0,
+          "confidence": 0.0
+        },
+        {
+          "ticker": "ABB.NS",
+          "score": 0.0,
+          "confidence": 0.0
+        },
+        {
+          "ticker": "ABBOTINDIA.NS",
+          "score": 0.0,
+          "confidence": 0.0
+        },
+        {
+          "ticker": "ABCAPITAL.NS",
+          "score": 0.0,
+          "confidence": 0.0
+        },
+        {
+          "ticker": "ACC.NS",
+          "score": 0.0,
+          "confidence": 0.0
+        }
+      ]
+    },
+    {
+      "model_id": "aegis.growth.v1",
+      "n_scored": 228,
+      "notes": [],
+      "top_5": [
+        {
+          "ticker": "AARTIIND.NS",
+          "score": 0.0,
+          "confidence": 0.0
+        },
+        {
+          "ticker": "ABB.NS",
+          "score": 0.0,
+          "confidence": 0.0
+        },
+        {
+          "ticker": "ABBOTINDIA.NS",
+          "score": 0.0,
+          "confidence": 0.0
+        },
+        {
+          "ticker": "ABCAPITAL.NS",
+          "score": 0.0,
+          "confidence": 0.0
+        },
+        {
+          "ticker": "ACC.NS",
+          "score": 0.0,
+          "confidence": 0.0
+        }
+      ]
+    },
+    {
+      "model_id": "aegis.quality.v1",
+      "n_scored": 228,
+      "notes": [],
+      "top_5": [
+        {
+          "ticker": "AARTIIND.NS",
+          "score": 0.0,
+          "confidence": 0.0
+        },
+        {
+          "ticker": "ABB.NS",
+          "score": 0.0,
+          "confidence": 0.0
+        },
+        {
+          "ticker": "ABBOTINDIA.NS",
+          "score": 0.0,
+          "confidence": 0.0
+        },
+        {
+          "ticker": "ABCAPITAL.NS",
+          "score": 0.0,
+          "confidence": 0.0
+        },
+        {
+          "ticker": "ACC.NS",
+          "score": 0.0,
+          "confidence": 0.0
+        }
+      ]
+    },
+    {
+      "model_id": "aegis.mean_reversion.v1",
+      "n_scored": 228,
+      "notes": [],
+      "top_5": [
+        {
+          "ticker": "AARTIIND.NS",
+          "score": 0.0,
+          "confidence": 0.0
+        },
+        {
+          "ticker": "ABB.NS",
+          "score": 0.0,
+          "confidence": 0.0
+        },
+        {
+          "ticker": "ABBOTINDIA.NS",
+          "score": 0.0,
+          "confidence": 0.0
+        },
+        {
+          "ticker": "ABCAPITAL.NS",
+          "score": 0.0,
+          "confidence": 0.0
+        },
+        {
+          "ticker": "ACC.NS",
+          "score": 0.0,
+          "confidence": 0.0
+        }
+      ]
+    },
+    {
+      "model_id": "aegis.news.v1",
+      "n_scored": 228,
+      "notes": [],
+      "top_5": [
+        {
+          "ticker": "AARTIIND.NS",
+          "score": 0.0004385964912280605,
+          "confidence": 0.0
+        },
+        {
+          "ticker": "ABB.NS",
+          "score": 0.0004385964912280605,
+          "confidence": 0.0
+        },
+        {
+          "ticker": "ABBOTINDIA.NS",
+          "score": 0.0004385964912280605,
+          "confidence": 0.0
+        },
+        {
+          "ticker": "ABCAPITAL.NS",
+          "score": 0.0004385964912280605,
+          "confidence": 0.0
+        },
+        {
+          "ticker": "ACC.NS",
+          "score": 0.0004385964912280605,
+          "confidence": 0.0
+        }
+      ]
+    },
+    {
+      "model_id": "aegis.macro.v1",
+      "n_scored": 228,
+      "notes": [
+        "market-level tilt broadcast to every ticker"
+      ],
+      "top_5": [
+        {
+          "ticker": "AARTIIND.NS",
+          "score": 0.0,
+          "confidence": 0.0
+        },
+        {
+          "ticker": "ABB.NS",
+          "score": 0.0,
+          "confidence": 0.0
+        },
+        {
+          "ticker": "ABBOTINDIA.NS",
+          "score": 0.0,
+          "confidence": 0.0
+        },
+        {
+          "ticker": "ABCAPITAL.NS",
+          "score": 0.0,
+          "confidence": 0.0
+        },
+        {
+          "ticker": "ACC.NS",
+          "score": 0.0,
+          "confidence": 0.0
+        }
+      ]
+    },
+    {
+      "model_id": "aegis.sector_rotation.v1",
+      "n_scored": 228,
+      "notes": [],
+      "top_5": [
+        {
+          "ticker": "AARTIIND.NS",
+          "score": 0.0,
+          "confidence": 0.0
+        },
+        {
+          "ticker": "ABB.NS",
+          "score": 0.0,
+          "confidence": 0.0
+        },
+        {
+          "ticker": "ABBOTINDIA.NS",
+          "score": 0.0,
+          "confidence": 0.0
+        },
+        {
+          "ticker": "ABCAPITAL.NS",
+          "score": 0.0,
+          "confidence": 0.0
+        },
+        {
+          "ticker": "ACC.NS",
+          "score": 0.0,
+          "confidence": 0.0
+        }
+      ]
+    },
+    {
+      "model_id": "aegis.event_driven.v1",
+      "n_scored": 228,
+      "notes": [],
+      "top_5": [
+        {
+          "ticker": "AARTIIND.NS",
+          "score": 0.0,
+          "confidence": 0.0
+        },
+        {
+          "ticker": "ABB.NS",
+          "score": 0.0,
+          "confidence": 0.0
+        },
+        {
+          "ticker": "ABBOTINDIA.NS",
+          "score": 0.0,
+          "confidence": 0.0
+        },
+        {
+          "ticker": "ABCAPITAL.NS",
+          "score": 0.0,
+          "confidence": 0.0
+        },
+        {
+          "ticker": "ACC.NS",
+          "score": 0.0,
+          "confidence": 0.0
+        }
+      ]
+    },
+    {
+      "model_id": "aegis.ai_hybrid.v1",
+      "n_scored": 228,
+      "notes": [
+        "WF-weighted ensemble deferred; equal-weight over 10 models"
+      ],
+      "top_5": [
+        {
+          "ticker": "AARTIIND.NS",
+          "score": 0.0013157894736841812,
+          "confidence": 0.016666666666666666
+        },
+        {
+          "ticker": "ABB.NS",
+          "score": 0.0013157894736841812,
+          "confidence": 0.016666666666666666
+        },
+        {
+          "ticker": "ABBOTINDIA.NS",
+          "score": 0.0013157894736841812,
+          "confidence": 0.016666666666666666
+        },
+        {
+          "ticker": "ABCAPITAL.NS",
+          "score": 0.0013157894736841812,
+          "confidence": 0.016666666666666666
+        },
+        {
+          "ticker": "ACC.NS",
+          "score": 0.0013157894736841812,
+          "confidence": 0.016666666666666666
+        }
+      ]
+    }
+  ]
+}

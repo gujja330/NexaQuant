@@ -1,0 +1,532 @@
+{
+  "engine": "model_factory",
+  "version": "v1.0",
+  "market": "usa",
+  "run_utc": "2026-07-20T14:33:03+00:00",
+  "asof": "2026-07-20",
+  "schema_fingerprint": "b65ceb49a83a",
+  "n_models": 11,
+  "models": [
+    {
+      "model_id": "aegis.momentum.v1",
+      "type": "momentum",
+      "version": "1.0.0",
+      "algorithm": "weighted_rule_v1",
+      "features_used": [
+        "return_5d_pct",
+        "return_20d_pct",
+        "return_60d_pct",
+        "price_above_sma20",
+        "price_above_sma50",
+        "price_above_sma200",
+        "rsi_14"
+      ],
+      "business_rationale": "Cross-sectional momentum has one of the most durable risk premiums in equities \u2014 winners keep winning over 3-12 month horizons.",
+      "economic_intuition": "Slow information diffusion + behavioral anchoring cause under-reaction; momentum rides that under-reaction.",
+      "approval_status": "EXPERIMENTAL"
+    },
+    {
+      "model_id": "aegis.trend.v1",
+      "type": "trend",
+      "version": "1.0.0",
+      "algorithm": "weighted_rule_v1",
+      "features_used": [
+        "adx_14",
+        "distance_from_52w_high_pct",
+        "price_above_sma50",
+        "price_above_sma200"
+      ],
+      "business_rationale": "Persistent uptrends are the safest kind of bull; strong ADX with price near 52W high signals conviction.",
+      "economic_intuition": "Trends form when structural demand outpaces supply; confirmed trends persist longer than reversal patterns.",
+      "approval_status": "EXPERIMENTAL"
+    },
+    {
+      "model_id": "aegis.value.v1",
+      "type": "value",
+      "version": "1.0.0",
+      "algorithm": "weighted_rule_v1",
+      "features_used": [
+        "fund_trailing_pe",
+        "fund_price_to_book"
+      ],
+      "business_rationale": "Buying below fair value creates a margin of safety; reversion-to-mean historically rewards cheap stocks over expensive ones across long horizons.",
+      "economic_intuition": "Overreaction to bad news creates persistent under-pricing in fundamentally sound companies; value is the correction.",
+      "approval_status": "EXPERIMENTAL"
+    },
+    {
+      "model_id": "aegis.growth.v1",
+      "type": "growth",
+      "version": "1.0.0",
+      "algorithm": "weighted_rule_v1",
+      "features_used": [
+        "fund_earnings_growth",
+        "fund_roe"
+      ],
+      "business_rationale": "Compounding earnings expansion drives multi-year returns; growth premium is durable when quality holds.",
+      "economic_intuition": "Companies re-investing earnings at high incremental returns compound intrinsic value faster than the market prices in.",
+      "approval_status": "EXPERIMENTAL"
+    },
+    {
+      "model_id": "aegis.quality.v1",
+      "type": "quality",
+      "version": "1.0.0",
+      "algorithm": "weighted_rule_v1",
+      "features_used": [
+        "fund_roe",
+        "fund_profit_margin",
+        "fund_debt_to_equity",
+        "fund_quality_score"
+      ],
+      "business_rationale": "High-quality companies compound; low-quality ones erode capital. Quality is the single most stable factor across regimes.",
+      "economic_intuition": "Structural moats (brand, network, IP, cost advantage) produce persistent excess returns on capital that survive competitive erosion.",
+      "approval_status": "EXPERIMENTAL"
+    },
+    {
+      "model_id": "aegis.mean_reversion.v1",
+      "type": "mean_reversion",
+      "version": "1.0.0",
+      "algorithm": "weighted_rule_v1",
+      "features_used": [
+        "rsi_14",
+        "max_drawdown_60d_pct",
+        "distance_from_52w_low_pct",
+        "fund_quality_score"
+      ],
+      "business_rationale": "Short-term overreaction produces exploitable snapbacks in high-quality names; low-quality names deserve their drawdown.",
+      "economic_intuition": "Panic selling detaches price from fundamentals; the gap closes over 1-4 weeks in fundamentally intact companies.",
+      "approval_status": "EXPERIMENTAL"
+    },
+    {
+      "model_id": "aegis.news.v1",
+      "type": "news",
+      "version": "1.0.0",
+      "algorithm": "weighted_rule_v1",
+      "features_used": [
+        "news_sentiment",
+        "news_polarity_ratio",
+        "news_n_headlines",
+        "news_n_positive",
+        "news_n_negative"
+      ],
+      "business_rationale": "News sentiment drives short-term price action before analysts update their models.",
+      "economic_intuition": "Attention + narrative shape near-term flows; positive news attracts retail + momentum traders, negative repels them.",
+      "approval_status": "EXPERIMENTAL"
+    },
+    {
+      "model_id": "aegis.macro.v1",
+      "type": "macro",
+      "version": "1.0.0",
+      "algorithm": "weighted_rule_v1",
+      "features_used": [
+        "macro_10y",
+        "macro_vix",
+        "macro_wti_oil",
+        "macro_dxy",
+        "mi_composite_score",
+        "mi_regime"
+      ],
+      "business_rationale": "Macro backdrop conditions the *level* of equity returns across the whole market. A hostile macro can override individual company merit.",
+      "economic_intuition": "Rates + dollar + energy + volatility are the four master levers of equity risk premium.",
+      "approval_status": "EXPERIMENTAL"
+    },
+    {
+      "model_id": "aegis.sector_rotation.v1",
+      "type": "sector_rotation",
+      "version": "1.0.0",
+      "algorithm": "weighted_rule_v1",
+      "features_used": [
+        "sector_return_1m_pct",
+        "sector_is_leader",
+        "sector_is_laggard"
+      ],
+      "business_rationale": "Capital rotates between sectors over 3-12 month cycles. Riding leadership beats fighting it.",
+      "economic_intuition": "Institutional flows chase performance; sector momentum persists longer than individual stock momentum.",
+      "approval_status": "EXPERIMENTAL"
+    },
+    {
+      "model_id": "aegis.event_driven.v1",
+      "type": "event_driven",
+      "version": "1.0.0",
+      "algorithm": "weighted_rule_v1",
+      "features_used": [
+        "earn_days_to_next",
+        "earn_last_surprise_pct",
+        "insider_net_90d",
+        "ca_days_since_last_dividend"
+      ],
+      "business_rationale": "Discrete events (earnings, insider trades, dividends) create predictable pockets of alpha via PEAD, insider signal, and dividend anchor.",
+      "economic_intuition": "Anchoring bias + slow analyst updates cause gradual price adjustment for weeks post-event.",
+      "approval_status": "EXPERIMENTAL"
+    },
+    {
+      "model_id": "aegis.ai_hybrid.v1",
+      "type": "ai_hybrid",
+      "version": "1.0.0",
+      "algorithm": "ensemble_meta",
+      "features_used": [],
+      "business_rationale": "No single style wins in every regime. A meta-model that trusts each style according to its recent walk-forward accuracy adapts without over-fitting one lens.",
+      "economic_intuition": "Ensembles reduce single-model idiosyncratic risk; the WF-weighted variant tilts toward the styles the market is currently paying for.",
+      "approval_status": "EXPERIMENTAL"
+    }
+  ],
+  "predictions_summary": [
+    {
+      "model_id": "aegis.momentum.v1",
+      "n_scored": 30,
+      "notes": [
+        "5/6 weighted features available"
+      ],
+      "top_5": [
+        {
+          "ticker": "TRV",
+          "score": 0.7233333333333334,
+          "confidence": 0.8333333333333334
+        },
+        {
+          "ticker": "MRK",
+          "score": 0.5833333333333334,
+          "confidence": 0.8333333333333334
+        },
+        {
+          "ticker": "V",
+          "score": 0.5666666666666668,
+          "confidence": 0.8333333333333334
+        },
+        {
+          "ticker": "UNH",
+          "score": 0.44,
+          "confidence": 0.8333333333333334
+        },
+        {
+          "ticker": "AAPL",
+          "score": 0.44,
+          "confidence": 0.8333333333333334
+        }
+      ]
+    },
+    {
+      "model_id": "aegis.trend.v1",
+      "n_scored": 30,
+      "notes": [],
+      "top_5": [
+        {
+          "ticker": "TRV",
+          "score": 0.84,
+          "confidence": 1.0
+        },
+        {
+          "ticker": "V",
+          "score": 0.7033333333333334,
+          "confidence": 1.0
+        },
+        {
+          "ticker": "AXP",
+          "score": 0.6966666666666667,
+          "confidence": 1.0
+        },
+        {
+          "ticker": "AAPL",
+          "score": 0.6533333333333334,
+          "confidence": 1.0
+        },
+        {
+          "ticker": "JNJ",
+          "score": 0.5233333333333333,
+          "confidence": 1.0
+        }
+      ]
+    },
+    {
+      "model_id": "aegis.value.v1",
+      "n_scored": 30,
+      "notes": [],
+      "top_5": [
+        {
+          "ticker": "VZ",
+          "score": 0.9319540229885057,
+          "confidence": 1.0
+        },
+        {
+          "ticker": "TRV",
+          "score": 0.92,
+          "confidence": 1.0
+        },
+        {
+          "ticker": "DIS",
+          "score": 0.8758620689655172,
+          "confidence": 1.0
+        },
+        {
+          "ticker": "JPM",
+          "score": 0.8105747126436782,
+          "confidence": 1.0
+        },
+        {
+          "ticker": "GS",
+          "score": 0.7011494252873562,
+          "confidence": 1.0
+        }
+      ]
+    },
+    {
+      "model_id": "aegis.growth.v1",
+      "n_scored": 30,
+      "notes": [],
+      "top_5": [
+        {
+          "ticker": "NKE",
+          "score": 0.6,
+          "confidence": 0.5
+        },
+        {
+          "ticker": "NVDA",
+          "score": 0.5555555555555555,
+          "confidence": 0.5
+        },
+        {
+          "ticker": "GS",
+          "score": 0.5111111111111111,
+          "confidence": 0.5
+        },
+        {
+          "ticker": "AMZN",
+          "score": 0.46666666666666656,
+          "confidence": 0.5
+        },
+        {
+          "ticker": "UNH",
+          "score": 0.4222222222222222,
+          "confidence": 0.5
+        }
+      ]
+    },
+    {
+      "model_id": "aegis.quality.v1",
+      "n_scored": 30,
+      "notes": [],
+      "top_5": [
+        {
+          "ticker": "NVDA",
+          "score": 0.6799999999999999,
+          "confidence": 0.75
+        },
+        {
+          "ticker": "MSFT",
+          "score": 0.4904761904761905,
+          "confidence": 0.75
+        },
+        {
+          "ticker": "V",
+          "score": 0.4866666666666667,
+          "confidence": 0.75
+        },
+        {
+          "ticker": "JPM",
+          "score": 0.3400000000000001,
+          "confidence": 0.5
+        },
+        {
+          "ticker": "KO",
+          "score": 0.31714285714285717,
+          "confidence": 0.75
+        }
+      ]
+    },
+    {
+      "model_id": "aegis.mean_reversion.v1",
+      "n_scored": 30,
+      "notes": [],
+      "top_5": [
+        {
+          "ticker": "IBM",
+          "score": 1.0,
+          "confidence": 1.0
+        },
+        {
+          "ticker": "WMT",
+          "score": 1.0,
+          "confidence": 1.0
+        },
+        {
+          "ticker": "HON",
+          "score": 0.7733333333333333,
+          "confidence": 1.0
+        },
+        {
+          "ticker": "INTC",
+          "score": 0.6799999999999998,
+          "confidence": 1.0
+        },
+        {
+          "ticker": "NVDA",
+          "score": 0.6133333333333333,
+          "confidence": 1.0
+        }
+      ]
+    },
+    {
+      "model_id": "aegis.news.v1",
+      "n_scored": 30,
+      "notes": [],
+      "top_5": [
+        {
+          "ticker": "GS",
+          "score": 0.5833333333333333,
+          "confidence": 0.5
+        },
+        {
+          "ticker": "V",
+          "score": 0.5833333333333333,
+          "confidence": 0.5
+        },
+        {
+          "ticker": "WMT",
+          "score": 0.5233333333333333,
+          "confidence": 0.5
+        },
+        {
+          "ticker": "MRK",
+          "score": 0.4633333333333333,
+          "confidence": 0.5
+        },
+        {
+          "ticker": "MMM",
+          "score": 0.4633333333333333,
+          "confidence": 0.5
+        }
+      ]
+    },
+    {
+      "model_id": "aegis.macro.v1",
+      "n_scored": 30,
+      "notes": [
+        "market-level tilt broadcast to every ticker"
+      ],
+      "top_5": [
+        {
+          "ticker": "AAPL",
+          "score": 0.0,
+          "confidence": 0.0
+        },
+        {
+          "ticker": "AMGN",
+          "score": 0.0,
+          "confidence": 0.0
+        },
+        {
+          "ticker": "AMZN",
+          "score": 0.0,
+          "confidence": 0.0
+        },
+        {
+          "ticker": "AXP",
+          "score": 0.0,
+          "confidence": 0.0
+        },
+        {
+          "ticker": "BA",
+          "score": 0.0,
+          "confidence": 0.0
+        }
+      ]
+    },
+    {
+      "model_id": "aegis.sector_rotation.v1",
+      "n_scored": 30,
+      "notes": [],
+      "top_5": [
+        {
+          "ticker": "AMGN",
+          "score": 0.3,
+          "confidence": 0.0
+        },
+        {
+          "ticker": "AXP",
+          "score": 0.3,
+          "confidence": 0.0
+        },
+        {
+          "ticker": "GS",
+          "score": 0.3,
+          "confidence": 0.0
+        },
+        {
+          "ticker": "KO",
+          "score": 0.3,
+          "confidence": 0.0
+        },
+        {
+          "ticker": "JPM",
+          "score": 0.3,
+          "confidence": 0.0
+        }
+      ]
+    },
+    {
+      "model_id": "aegis.event_driven.v1",
+      "n_scored": 30,
+      "notes": [],
+      "top_5": [
+        {
+          "ticker": "INTC",
+          "score": 0.6,
+          "confidence": 0.5
+        },
+        {
+          "ticker": "NKE",
+          "score": 0.5586206896551724,
+          "confidence": 0.5
+        },
+        {
+          "ticker": "TRV",
+          "score": 0.5172413793103448,
+          "confidence": 0.5
+        },
+        {
+          "ticker": "BA",
+          "score": 0.47586206896551725,
+          "confidence": 0.5
+        },
+        {
+          "ticker": "CVX",
+          "score": 0.4344827586206896,
+          "confidence": 0.5
+        }
+      ]
+    },
+    {
+      "model_id": "aegis.ai_hybrid.v1",
+      "n_scored": 30,
+      "notes": [
+        "WF-weighted ensemble deferred; equal-weight over 10 models"
+      ],
+      "top_5": [
+        {
+          "ticker": "TRV",
+          "score": 0.4020041838180714,
+          "confidence": 0.6083333333333333
+        },
+        {
+          "ticker": "GS",
+          "score": 0.2736468947522325,
+          "confidence": 0.6083333333333333
+        },
+        {
+          "ticker": "JPM",
+          "score": 0.2291822660098522,
+          "confidence": 0.5833333333333333
+        },
+        {
+          "ticker": "V",
+          "score": 0.21079515037002047,
+          "confidence": 0.6083333333333333
+        },
+        {
+          "ticker": "VZ",
+          "score": 0.16805722383426683,
+          "confidence": 0.6083333333333333
+        }
+      ]
+    }
+  ]
+}

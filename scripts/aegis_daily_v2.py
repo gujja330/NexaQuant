@@ -123,6 +123,17 @@ STEPS = [
         "optional": True,
     },
     {
+        "name": "model_factory",
+        "desc": "Sprint 2.7 · Model Factory (11 models + intelligence + ensemble + AI analyst)",
+        "script": "india/model_factory/run.py",
+        "produces": ["reports/model_factory.json",
+                       "reports/model_metrics.json",
+                       "reports/ensemble.json",
+                       "reports/ai_model_narrative.json"],
+        "requires": ["reports/selected_features.json"],
+        "optional": True,
+    },
+    {
         "name": "adaptive_rec_v2",
         "desc": "Adaptive Rec Engine v2.0 (confidence rebuild + Precision@K)",
         "script": "research/adaptive_rec_v2/run.py",

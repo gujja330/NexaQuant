@@ -922,6 +922,9 @@ async function loadState() {
     'feature_intelligence_summary.json',
     'selected_features.json',
     'ai_feature_research.json',
+    'ensemble.json',
+    'model_metrics.json',
+    'ai_model_narrative.json',
   ];
   const entries = await Promise.all(targets.map(async n => [n.replace(/\.json$/, ''), await fetchJson(n)]));
   for (const [k, v] of entries) STATE[k] = v;
@@ -2171,6 +2174,17 @@ function portfolioHealth() {
       <span class="label">Feature Intelligence <span class="vs-tag live">Sprint 2.6</span></span>
       <div class="value ${cls}" style="font-size: 15px;">${fi.n_selected}/${fi.n_input} selected</div>
       <div class="sub">gov ${gov} · drift ${drift} · rationale ${fi.governance_coverage_rationale_pct || 0}%</div>`}));
+  }
+
+  // Model Factory — Sprint 2.7 (n models + ensemble top ticker)
+  const ens = STATE.ensemble;
+  if (ens) {
+    const top = (ens.top_10 || [])[0];
+    const topLabel = top ? `${top.ticker} @ ${top.ensemble_score.toFixed(3)}` : '—';
+    strip.appendChild(el('div', {class: 'tile', html: `
+      <span class="label">Model Ensemble <span class="vs-tag live">Sprint 2.7</span></span>
+      <div class="value" style="font-size: 14px;">${ens.n_models} models</div>
+      <div class="sub">${ens.strategy} · top: ${topLabel}</div>`}));
   }
 
   // Prediction Accuracy — from Institutional Memory recommendation_history (global avg over per-ticker accuracy)

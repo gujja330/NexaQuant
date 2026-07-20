@@ -303,6 +303,43 @@ datasets:
       required_keys: [engine, version, market, run_utc, output]
     consumers: [usa/dashboard/frontend]
 
+  # ── SPRINT 2.7 · Model Factory ──────────────────────────────────
+  - name: model_factory
+    path: usa/reports/model_factory.json
+    producer: usa/research/model_factory/run.py
+    kind: model_factory
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, market, run_utc, asof, n_models, models, predictions_summary]
+    consumers: [usa/dashboard/frontend]
+
+  - name: model_metrics
+    path: usa/reports/model_metrics.json
+    producer: usa/research/model_factory/run.py
+    kind: model_factory
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, market, asof, n_models, metrics]
+    consumers: [usa/dashboard/frontend]
+
+  - name: ensemble
+    path: usa/reports/ensemble.json
+    producer: usa/research/model_factory/run.py
+    kind: model_factory
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, market, asof, strategy, n_models, top_10]
+    consumers: [usa/dashboard/frontend, usa/research/recommendations (Sprint 3+)]
+
+  - name: ai_model_narrative
+    path: usa/reports/ai_model_narrative.json
+    producer: usa/research/model_factory/run.py
+    kind: ai_narrative
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, version, market, run_utc, output]
+    consumers: [usa/dashboard/frontend]
+
   # ── SPRINT 1B · INGESTION LAYER (all WIRED into usa_daily.py) ─────
   - name: fundamentals
     path: usa/reports/fundamentals.json
