@@ -117,10 +117,12 @@ def build_scoreboard(top_n: int = 10) -> list[dict]:
     intel  = _load_json("investment_intelligence.json")   or {}
     lc     = _load_json("recommendation_lifecycle.json")  or {}
     prices = _load_json("price_context.json")             or {}
+    bm     = _load_json("benchmark.json")                 or {}
 
     lc_by_ticker    = lc.get("by_ticker") or {}
     intel_by_ticker = {str(r.get("ticker")): r for r in (intel.get("reports") or [])}
     price_tickers   = prices.get("tickers") or {}
+    bm_by_ticker    = bm.get("per_ticker") or {}
 
     # Recommendations.json's run_utc can carry both "+00:00" and a trailing "Z"
     # (belt-and-suspenders serialization from an older engine); strip the Z so
@@ -203,6 +205,7 @@ def build_scoreboard(top_n: int = 10) -> list[dict]:
             hi, lo, cmp_val, target, stop, age_days, max_hold,
         )
 
+        bm_r = bm_by_ticker.get(t) or {}
         rows.append({
             "ticker":         t,
             "sector":         r.get("sector") or "—",
@@ -226,6 +229,10 @@ def build_scoreboard(top_n: int = 10) -> list[dict]:
             "confidence":     r.get("confidence"),
             "intel_score":    ii.get("intelligence_score"),
             "status":         status,
+            # Enriched fields for the merged Top-10 + Lifecycle table
+            "alpha_vs_nifty":  bm_r.get("excess_alpha_avg"),
+            "bm_n_trades":     bm_r.get("n_trades"),
+            "stop_pct":        ee.get("stop_loss_pct"),
         })
 
     return rows

@@ -247,31 +247,20 @@ def render_markdown(ctx: dict) -> str:
         L.append("- No benchmark data yet.")
     L.append("")
 
-    # Top 10 Opportunities
-    L.append("## Top 10 Opportunities  🟢 Live")
+    # Consolidated Top 10 + Lifecycle Scoreboard (single wide table)
+    L.append("## Top 10 Opportunities & Lifecycle  🟢 Live")
     L.append("")
-    L.append("| # | Ticker | Action | Score | CMP | Target | Stop | Hold | α vs NIFTY (hist) |")
-    L.append("|---|---|---|---|---|---|---|---|---|")
-    for i, r in enumerate(ctx["top10"], 1):
-        alpha = None
-        if r.get("_bm"):
-            alpha = r["_bm"].get("excess_alpha_avg")
-        L.append(f"| {i} | **{r['ticker']}** | {r.get('recommendation')} | "
-                 f"{r.get('_ids') or '—'} | {_price(r.get('_cmp'))} | "
-                 f"{_price(r.get('_target_1'))} | {_price(r.get('_stop'))} | "
-                 f"{r.get('_hold_days') or '—'}d | "
-                 f"{_pct(alpha, sign=True) if alpha is not None else '—'} |")
-    L.append("")
-
-    # Recommendation Lifecycle Scoreboard — day-by-day trajectory
-    L.append("## Recommendation Lifecycle Scoreboard  🟢 Live")
-    L.append("")
-    L.append("| # | Ticker | Sector | Age | Entry | Day+1 | Day+3 | Day+5 | Day+10 | Current | MaxGain | MaxDD | Status |")
-    L.append("|---|---|---|---|---|---|---|---|---|---|---|---|---|")
+    L.append("| # | Ticker | Sector | Action | Score | Age | CMP | Target | Stop | D+1 | D+3 | D+5 | D+10 | Current | MaxGain | MaxDD | α NIFTY | Status |")
+    L.append("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|")
     for i, r in enumerate(ctx.get("scoreboard") or [], 1):
         age = f"{r.get('age_days')}/{r.get('expected_hold') or '—'}d" if r.get('age_days') is not None else "—"
-        L.append(f"| {i} | **{r['ticker']}** | {r.get('sector', '—')} | {age} | "
-                 f"{_price(r.get('entry_price'))} | "
+        L.append(f"| {i} | **{r['ticker']}** | {r.get('sector', '—')} | "
+                 f"{r.get('action') or '—'} | "
+                 f"{int(r.get('score')) if r.get('score') is not None else '—'} | "
+                 f"{age} | "
+                 f"{_price(r.get('cmp') or r.get('entry_price'))} | "
+                 f"{_price(r.get('target'))} | "
+                 f"{_price(r.get('stop'))} | "
                  f"{_pct(r.get('d1'), sign=True) if r.get('d1') is not None else '—'} | "
                  f"{_pct(r.get('d3'), sign=True) if r.get('d3') is not None else '—'} | "
                  f"{_pct(r.get('d5'), sign=True) if r.get('d5') is not None else '—'} | "
@@ -279,10 +268,11 @@ def render_markdown(ctx: dict) -> str:
                  f"{_pct(r.get('current_return'), sign=True) if r.get('current_return') is not None else '—'} | "
                  f"{_pct(r.get('max_gain'), sign=True) if r.get('max_gain') is not None else '—'} | "
                  f"{_pct(r.get('max_dd'), sign=True) if r.get('max_dd') is not None else '—'} | "
+                 f"{_pct(r.get('alpha_vs_nifty'), sign=True) if r.get('alpha_vs_nifty') is not None else '—'} | "
                  f"{r.get('status', '—')} |")
     L.append("")
-    L.append("_Day+N columns are trading-day forward returns from first_seen_date. "
-             "Populate as archive matures — expect empty until Day 10 of live operation._")
+    L.append("_D+N columns = trading-day forward returns from first_seen_date. α NIFTY = "
+             "historical (backtester). Live columns populate as archive matures._")
     L.append("")
 
     # Overnight Changes
@@ -483,32 +473,15 @@ def render_html(ctx: dict) -> str:
     else:
         parts.append("<p>No benchmark data available.</p>")
 
-    # Top 10 Opportunities
-    parts.append("<h2>Top 10 Opportunities <span class='tag live'>Live</span></h2>")
-    parts.append("<table><thead><tr>"
-                    "<th>#</th><th>Ticker</th><th>Action</th><th>Score</th>"
-                    "<th>CMP</th><th>Target</th><th>Stop</th><th>Hold</th>"
-                    "<th>α vs NIFTY</th></tr></thead><tbody>")
-    for i, r in enumerate(ctx["top10"], 1):
-        alpha = (r.get("_bm") or {}).get("excess_alpha_avg")
-        alpha_cls = "pos" if alpha and alpha > 0.02 else "neg" if alpha and alpha < -0.02 else ""
-        parts.append(f"<tr><td>{i}</td>"
-                        f"<td><b>{r['ticker']}</b></td>"
-                        f"<td>{_pill(r.get('recommendation'))}</td>"
-                        f"<td>{r.get('_ids') or '—'}</td>"
-                        f"<td>{_price(r.get('_cmp'))}</td>"
-                        f"<td class='pos'>{_price(r.get('_target_1'))}</td>"
-                        f"<td class='neg'>{_price(r.get('_stop'))}</td>"
-                        f"<td>{r.get('_hold_days') or '—'}d</td>"
-                        f"<td class='{alpha_cls}'>{_pct(alpha, sign=True) if alpha is not None else '—'}</td></tr>")
-    parts.append("</tbody></table>")
-
-    # Recommendation Lifecycle Scoreboard
-    parts.append("<h2>Recommendation Lifecycle Scoreboard <span class='tag live'>Live</span></h2>")
-    parts.append("<table><thead><tr>"
-                    "<th>#</th><th>Ticker</th><th>Sector</th><th>Age</th>"
-                    "<th>Entry</th><th>D+1</th><th>D+3</th><th>D+5</th><th>D+10</th>"
-                    "<th>Current</th><th>MaxGain</th><th>MaxDD</th><th>Status</th>"
+    # Consolidated Top 10 + Lifecycle Scoreboard (single wide table)
+    parts.append("<h2>Top 10 Opportunities &amp; Lifecycle <span class='tag live'>Live</span></h2>")
+    parts.append("<div style='overflow-x: auto; margin: 0 -8px;'>")
+    parts.append("<table style='min-width: 1100px;'><thead><tr>"
+                    "<th>#</th><th>Ticker</th><th>Sector</th><th>Action</th><th>Score</th>"
+                    "<th>Age</th><th>CMP</th><th>Target</th><th>Stop</th>"
+                    "<th>D+1</th><th>D+3</th><th>D+5</th><th>D+10</th>"
+                    "<th>Current</th><th>MaxGain</th><th>MaxDD</th>"
+                    "<th>α&nbsp;NIFTY</th><th>Status</th>"
                     "</tr></thead><tbody>")
     for i, r in enumerate(ctx.get("scoreboard") or [], 1):
         def _cell(v):
@@ -520,16 +493,22 @@ def render_html(ctx: dict) -> str:
             f"<tr><td>{i}</td>"
             f"<td><b>{r['ticker']}</b></td>"
             f"<td>{r.get('sector', '—')}</td>"
+            f"<td>{_pill(r.get('action'))}</td>"
+            f"<td>{int(r.get('score')) if r.get('score') is not None else '—'}</td>"
             f"<td>{age}</td>"
-            f"<td>{_price(r.get('entry_price'))}</td>"
+            f"<td>{_price(r.get('cmp') or r.get('entry_price'))}</td>"
+            f"<td class='pos'>{_price(r.get('target'))}</td>"
+            f"<td class='neg'>{_price(r.get('stop'))}</td>"
             f"{_cell(r.get('d1'))}{_cell(r.get('d3'))}{_cell(r.get('d5'))}{_cell(r.get('d10'))}"
             f"{_cell(r.get('current_return'))}{_cell(r.get('max_gain'))}{_cell(r.get('max_dd'))}"
+            f"{_cell(r.get('alpha_vs_nifty'))}"
             f"<td>{r.get('status', '—')}</td></tr>"
         )
     parts.append("</tbody></table>")
+    parts.append("</div>")
     parts.append("<p style='color:var(--type-3); font-size: 11px; margin-top: 4px;'>"
-                    "Day+N columns are trading-day forward returns from <code>first_seen_date</code>. "
-                    "Populate as archive matures — expect empty until Day 10+ of live operation.</p>")
+                    "D+N columns = trading-day forward returns from <code>first_seen_date</code>. "
+                    "α NIFTY = historical backtester. Live columns populate as archive matures.</p>")
 
     # Overnight changes
     parts.append("<h2>Overnight Changes</h2>")

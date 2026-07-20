@@ -325,18 +325,33 @@ def render_weekly_review(ctx: Context) -> str:
 # 8. New Buy Alert (fresh entry)
 # ═══════════════════════════════════════════════════════════════════════
 def render_new_buys_summary(ctx: Context, n: int = 5) -> str:
-    """Legacy-style formatter — matches the operator's tracking template:
+    """Legacy-style formatter with lifecycle telemetry:
 
-        TICKER · Sector · Rank #N
-            ₹CMP → Target ₹T  🟢 +X.X% · +Y/sh
-            BUY · Stop ₹S (-Z%) · Hold Ndays · Score S/100
+        TICKER · Sector · Rank #N · Status (Age)
+            ₹CMP → Target ₹T  🟢 +X.X% · +₹Y/sh
+            BUY · Stop ₹S (-Z%) · Hold Nd · Score S/100 · Conf C%
+            D+1 X% · D+3 X% · Current X% · MaxGain X% · MaxDD X% · α NIFTY X%
 
-    Rendered so the operator can visually scan the same shape as the
-    sealed legacy paper-portfolio Telegram.
+    Third line comes from the Lifecycle Scoreboard (populates as
+    archive matures). Both tables now share the same source.
     """
     buys = top_buys(ctx, n=n)
     if not buys:
         return f"{icons.STATUS['info']} No fresh buys today. See Current Holdings."
+
+    # Load scoreboard for enrichment. Optional — if the aggregator isn't
+    # importable (older repo state), we degrade to the 3-line format.
+    scoreboard_by_ticker: dict[str, dict] = {}
+    try:
+        import sys as _sys
+        from pathlib import Path as _Path
+        _root = _Path(__file__).resolve().parents[3]
+        _sys.path.insert(0, str(_root / "research"))
+        from morning_report.lib import scoreboard as _sb                                  # noqa: E402
+        for row in _sb.build_scoreboard(top_n=max(n, 10)):
+            scoreboard_by_ticker[str(row.get("ticker"))] = row
+    except Exception:
+        pass
 
     lines = [
         f"{icons.STATUS['buy']} *TOP OPPORTUNITIES*",
@@ -355,26 +370,34 @@ def render_new_buys_summary(ctx: Context, n: int = 5) -> str:
         cmp_val  = ee.get("latest_close")
         target   = ee.get("target_1")
         stop     = ee.get("stop_loss")
-        stop_pct = ee.get("stop_loss_pct")     # already percent, negative
+        stop_pct = ee.get("stop_loss_pct")
         hold     = ee.get("expected_holding_days")
 
-        # Upside/gain
         if cmp_val and target:
             upside_pct = (target - cmp_val) / cmp_val * 100
             gain_per_sh = target - cmp_val
         else:
             upside_pct = None
             gain_per_sh = None
-
         up_icon = "🟢" if (upside_pct or 0) > 0 else "🔴"
 
-        # Header row: TICKER · Sector · rank
+        sb = scoreboard_by_ticker.get(str(ticker)) or {}
+        age_days      = sb.get("age_days")
+        expected_hold = sb.get("expected_hold") or hold
+        status        = sb.get("status")
+
+        # Header row — TICKER · Sector · #rank · status (age)
         header = f"`{ticker}` · {sector}"
         if rank:
             header += f" · #{int(rank)}"
+        if status:
+            if age_days is not None and expected_hold:
+                header += f" · {status} ({age_days}/{expected_hold}d)"
+            else:
+                header += f" · {status}"
         lines.append(header)
 
-        # Price row: CMP → Target  icon +X.X% · +Y/sh
+        # Price row
         price_row = f"    "
         if cmp_val is not None:
             price_row += f"₹{cmp_val:,.2f}"
@@ -386,7 +409,7 @@ def render_new_buys_summary(ctx: Context, n: int = 5) -> str:
                 price_row += f" · +₹{gain_per_sh:,.0f}/sh"
         lines.append(price_row)
 
-        # Action row: BUY · Stop ₹S (-Z%) · Hold Nd · Score S · Conf C%
+        # Action row
         action_bits = [action.upper() if action else "BUY"]
         if stop is not None:
             stop_str = f"Stop ₹{stop:,.2f}"
@@ -400,6 +423,29 @@ def render_new_buys_summary(ctx: Context, n: int = 5) -> str:
         if conf_pct is not None:
             action_bits.append(f"Conf {conf_pct:.0f}%")
         lines.append("    " + " · ".join(action_bits))
+
+        # Lifecycle telemetry row — D+N returns · Current · MaxGain/DD · α
+        def _pct_or_dash(x: float | None) -> str:
+            if x is None: return "—"
+            return f"{x * 100:+.1f}%"
+
+        lc_bits = []
+        if sb.get("d1")  is not None: lc_bits.append(f"D+1 {_pct_or_dash(sb.get('d1'))}")
+        if sb.get("d3")  is not None: lc_bits.append(f"D+3 {_pct_or_dash(sb.get('d3'))}")
+        if sb.get("d5")  is not None: lc_bits.append(f"D+5 {_pct_or_dash(sb.get('d5'))}")
+        if sb.get("current_return") is not None:
+            lc_bits.append(f"Cur {_pct_or_dash(sb.get('current_return'))}")
+        if sb.get("max_gain") is not None:
+            lc_bits.append(f"MaxGain {_pct_or_dash(sb.get('max_gain'))}")
+        if sb.get("max_dd") is not None:
+            lc_bits.append(f"MaxDD {_pct_or_dash(sb.get('max_dd'))}")
+        if sb.get("alpha_vs_nifty") is not None:
+            lc_bits.append(f"α NIFTY {_pct_or_dash(sb.get('alpha_vs_nifty'))}")
+
+        if lc_bits:
+            lines.append("    " + " · ".join(lc_bits))
+        else:
+            lines.append("    _lifecycle: warming — populates from day 2_")
 
     return "\n".join(lines)
 

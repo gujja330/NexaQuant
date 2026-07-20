@@ -1,4 +1,4 @@
-# AEGIS Morning Research · 2026-07-20 11:17 IST
+# AEGIS Morning Research · 2026-07-20 11:27 IST
 
 > No material changes overnight — recommendation set is stable. No portfolio rebalance required.
 
@@ -13,37 +13,22 @@
 - **Excess α:** +1.31%  ·  **Beat NIFTY:** 553/1060 (52.17%)
 - **Verdict:** at_par
 
-## Top 10 Opportunities  🟢 Live
+## Top 10 Opportunities & Lifecycle  🟢 Live
 
-| # | Ticker | Action | Score | CMP | Target | Stop | Hold | α vs NIFTY (hist) |
-|---|---|---|---|---|---|---|---|---|
-| 1 | **RADICO** | Strong-Buy | 79 | ₹4,113.20 | ₹4,495.82 | ₹3,807.11 | 60d | +1.29% |
-| 2 | **EXIDEIND** | Strong-Buy | 77 | ₹430.35 | ₹481.99 | ₹387.32 | 60d | +4.78% |
-| 3 | **KALYANKJIL** | Strong-Buy | 76 | ₹559.95 | ₹627.14 | ₹503.96 | 60d | +3.85% |
-| 4 | **SONACOMS** | Strong-Buy | 72 | ₹699.05 | ₹769.43 | ₹642.75 | 60d | +1.91% |
-| 5 | **ZYDUSLIFE** | Strong-Buy | 72 | ₹1,143.10 | ₹1,239.09 | ₹1,066.31 | 60d | -0.30% |
-| 6 | **TVSMOTOR** | Buy | 72 | ₹3,619.90 | ₹4,022.99 | ₹3,297.43 | 60d | +6.05% |
-| 7 | **BAJFINANCE** | Buy | 70 | ₹1,050.10 | ₹1,145.05 | ₹974.14 | 60d | +1.45% |
-| 8 | **DIXON** | Buy | 69 | ₹14,434.00 | ₹16,166.08 | ₹12,990.60 | 60d | +4.03% |
-| 9 | **CHOLAFIN** | Buy | 69 | ₹1,792.00 | ₹1,972.18 | ₹1,647.86 | 60d | +4.19% |
-| 10 | **OFSS** | Strong-Buy | 68 | ₹11,619.00 | ₹13,013.28 | ₹10,457.10 | 60d | +0.97% |
+| # | Ticker | Sector | Action | Score | Age | CMP | Target | Stop | D+1 | D+3 | D+5 | D+10 | Current | MaxGain | MaxDD | α NIFTY | Status |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | **IPCALAB** | Pharma | Strong-Buy | 79 | 0/60d | ₹1,863.40 | ₹2,070.19 | ₹1,697.96 | — | — | — | — | — | — | — | -11.30% | ⏳ Warming |
+| 2 | **KALYANKJIL** | Consumption | Strong-Buy | 74 | 0/60d | ₹559.95 | ₹627.14 | ₹503.96 | — | — | — | — | — | — | — | +3.85% | ⏳ Warming |
+| 3 | **LODHA** | Realty | Buy | 74 | 0/60d | ₹1,181.15 | ₹1,322.89 | ₹1,063.04 | — | — | — | — | — | — | — | +2.55% | ⏳ Warming |
+| 4 | **GLAND** | Pharma | Buy | 74 | 0/60d | ₹2,450.80 | ₹2,744.90 | ₹2,205.72 | — | — | — | — | — | — | — | +1.04% | ⏳ Warming |
+| 5 | **SONACOMS** | Auto | Strong-Buy | 74 | 0/60d | ₹699.05 | ₹769.43 | ₹642.75 | — | — | — | — | — | — | — | +1.91% | ⏳ Warming |
+| 6 | **EXIDEIND** | Auto | Strong-Buy | 72 | 0/60d | ₹430.35 | ₹481.99 | ₹387.32 | — | — | — | — | — | — | — | +4.78% | ⏳ Warming |
+| 7 | **ZYDUSLIFE** | Pharma | Strong-Buy | 72 | 0/60d | ₹1,143.10 | ₹1,239.09 | ₹1,066.31 | — | — | — | — | — | — | — | -0.30% | ⏳ Warming |
+| 8 | **GODREJPROP** | Realty | Buy | 72 | 0/60d | ₹2,135.70 | ₹2,363.23 | ₹1,953.68 | — | — | — | — | — | — | — | — | ⏳ Warming |
+| 9 | **LAURUSLABS** | Pharma | Buy | 70 | 0/60d | ₹1,533.70 | ₹1,717.74 | ₹1,380.64 | — | — | — | — | — | — | — | +4.63% | ⏳ Warming |
+| 10 | **AJANTPHARM** | Pharma | Buy | 70 | 0/60d | ₹3,361.50 | ₹3,764.88 | ₹3,037.50 | — | — | — | — | — | — | — | +5.57% | ⏳ Warming |
 
-## Recommendation Lifecycle Scoreboard  🟢 Live
-
-| # | Ticker | Sector | Age | Entry | Day+1 | Day+3 | Day+5 | Day+10 | Current | MaxGain | MaxDD | Status |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 1 | **IPCALAB** | Pharma | 0/60d | ₹1,863.40 | — | — | — | — | — | — | — | ⏳ Warming |
-| 2 | **KALYANKJIL** | Consumption | 0/60d | ₹559.95 | — | — | — | — | — | — | — | ⏳ Warming |
-| 3 | **LODHA** | Realty | 0/60d | ₹1,181.15 | — | — | — | — | — | — | — | ⏳ Warming |
-| 4 | **GLAND** | Pharma | 0/60d | ₹2,450.80 | — | — | — | — | — | — | — | ⏳ Warming |
-| 5 | **SONACOMS** | Auto | 0/60d | ₹699.05 | — | — | — | — | — | — | — | ⏳ Warming |
-| 6 | **EXIDEIND** | Auto | 0/60d | ₹430.35 | — | — | — | — | — | — | — | ⏳ Warming |
-| 7 | **ZYDUSLIFE** | Pharma | 0/60d | ₹1,143.10 | — | — | — | — | — | — | — | ⏳ Warming |
-| 8 | **GODREJPROP** | Realty | 0/60d | ₹2,135.70 | — | — | — | — | — | — | — | ⏳ Warming |
-| 9 | **LAURUSLABS** | Pharma | 0/60d | ₹1,533.70 | — | — | — | — | — | — | — | ⏳ Warming |
-| 10 | **AJANTPHARM** | Pharma | 0/60d | ₹3,361.50 | — | — | — | — | — | — | — | ⏳ Warming |
-
-_Day+N columns are trading-day forward returns from first_seen_date. Populate as archive matures — expect empty until Day 10 of live operation._
+_D+N columns = trading-day forward returns from first_seen_date. α NIFTY = historical (backtester). Live columns populate as archive matures._
 
 ## Overnight Changes
 
@@ -68,5 +53,5 @@ _No material changes overnight — recommendation set is stable._
 - No immediate actions required today.
 
 ---
-_Generated 2026-07-20 11:17 IST · AEGIS v2 (LOCKED)_
+_Generated 2026-07-20 11:27 IST · AEGIS v2 (LOCKED)_
 _Provenance: recommendations.json · investment_intelligence.json · benchmark.json · decision_attribution.json · decision_center_today.json · winner_genome.json · recommendation_lifecycle.json · missed_opportunities.json_
