@@ -1,0 +1,861 @@
+<meta charset="utf-8">
+<title>AEGIS USA · Investment Dashboard</title>
+<style>
+:root {
+  --bg: #fafaf8; --panel: #ffffff; --type-1: #1a1a1a; --type-2: #555; --type-3: #888;
+  --rule: #e5e5e5; --rule-hi: #b0b0b0;
+  --pos: #1b7a3e; --neg: #b71c1c; --warn: #b76a02; --info: #3562b8;
+  --accent: #345c9c; --accent-hi: #1e3e75;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #14161a; --panel: #1c1f24; --type-1: #f0f0f0; --type-2: #b0b0b0;
+    --type-3: #757575; --rule: #2a2d34; --rule-hi: #4a4d54;
+    --pos: #4caf50; --neg: #ef5350; --warn: #ffb74d; --info: #64b5f6;
+    --accent: #7ea1d1; --accent-hi: #b0c9e8; }
+}
+* { box-sizing: border-box; }
+body { font: 14px ui-serif, Baskerville, Georgia, serif; margin: 0;
+       background: var(--bg); color: var(--type-1); line-height: 1.55; }
+.topbar { display: flex; align-items: center; padding: 12px 20px;
+          border-bottom: 1px solid var(--rule); gap: 16px; }
+.brand { font-family: ui-serif, Baskerville, serif; font-size: 20px; letter-spacing: -0.01em; }
+.brand .dot { color: var(--accent); }
+.brand small { font: 10px ui-monospace, monospace; letter-spacing: 0.14em;
+               color: var(--type-3); margin-left: 8px; text-transform: uppercase; }
+.tabbar { display: flex; gap: 12px; margin-left: auto; }
+.tabbar a { color: var(--type-2); text-decoration: none;
+            font: 11px ui-monospace, monospace; letter-spacing: 0.12em;
+            padding: 6px 10px; border-radius: 3px; }
+.tabbar a:hover { color: var(--type-1); }
+.tabbar a.active { color: var(--accent-hi); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+main { padding: 20px; max-width: 1400px; margin: 0 auto; }
+.section { margin-bottom: 24px; }
+.section-head { display: flex; justify-content: space-between; align-items: baseline;
+                padding-bottom: 8px; margin-bottom: 14px; border-bottom: 1px solid var(--rule); }
+.section-head h2 { font: 16px ui-monospace, monospace; letter-spacing: 0.10em;
+                    text-transform: uppercase; color: var(--type-1); margin: 0; }
+.section-head .meta { font: 11px ui-monospace, monospace; color: var(--type-3);
+                       letter-spacing: 0.06em; }
+.strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+         gap: 12px; margin-bottom: 20px; }
+.tile { background: var(--panel); border: 1px solid var(--rule); border-radius: 4px;
+        padding: 14px 16px; min-width: 0; overflow: hidden; }
+.tile .label { font: 9px ui-monospace, monospace; letter-spacing: 0.16em;
+               text-transform: uppercase; color: var(--type-2);
+               margin-bottom: 6px; display: block; }
+.tile .value { font: 22px ui-serif, Baskerville, serif; color: var(--type-1);
+               letter-spacing: -0.015em; line-height: 1.1; }
+.tile .value.mono { font-family: ui-monospace, monospace; font-size: 16px; }
+.tile .value .unit { font: 10px ui-monospace, monospace; color: var(--type-3);
+                     margin-left: 4px; }
+.tile .sub { font: 10px ui-monospace, monospace; color: var(--type-2);
+             margin-top: 4px; letter-spacing: 0.04em; }
+.tile .sub.pos { color: var(--pos); }
+.tile .sub.neg { color: var(--neg); }
+.tile .sub.warn { color: var(--warn); }
+.card { background: var(--panel); border: 1px solid var(--rule); border-radius: 4px;
+        padding: 18px 20px; margin-bottom: 20px; }
+.card > h3 { font: 15px ui-serif, Baskerville, serif; color: var(--type-1);
+             padding-bottom: 10px; border-bottom: 1px solid var(--rule);
+             margin-bottom: 14px; font-weight: 500; }
+.card .count { font: 11px ui-monospace, monospace; color: var(--type-3);
+               letter-spacing: 0.08em; margin-left: 6px; }
+table { width: 100%; border-collapse: collapse; font: 12px ui-monospace, monospace; }
+th, td { padding: 6px 8px; text-align: left; border-bottom: 1px solid var(--rule); }
+th { color: var(--type-3); font-weight: normal; letter-spacing: 0.08em;
+     text-transform: uppercase; font-size: 10px; }
+td.right { text-align: right; }
+td.center { text-align: center; }
+td.pos { color: var(--pos); }
+td.neg { color: var(--neg); }
+td.ticker { color: var(--type-1); font-weight: 600; }
+tr[onclick] { cursor: pointer; }
+tr[onclick]:hover { background: color-mix(in srgb, var(--accent) 5%, transparent); }
+.pill { display: inline-block; padding: 2px 8px; border-radius: 3px;
+        font: 10px ui-monospace, monospace; letter-spacing: 0.06em; border: 1px solid transparent; }
+.pill.strong-buy { background: color-mix(in srgb, var(--pos) 18%, transparent); color: var(--pos); border-color: color-mix(in srgb, var(--pos) 40%, transparent); }
+.pill.buy       { background: color-mix(in srgb, var(--pos) 12%, transparent); color: var(--pos); }
+.pill.accumulate{ background: color-mix(in srgb, var(--pos) 8%, transparent);  color: var(--pos); }
+.pill.hold      { background: color-mix(in srgb, var(--warn) 12%, transparent); color: var(--warn); }
+.pill.reduce    { background: color-mix(in srgb, var(--neg) 10%, transparent); color: var(--neg); }
+.pill.sell      { background: color-mix(in srgb, var(--neg) 15%, transparent); color: var(--neg); }
+.tag { display: inline-block; padding: 1px 5px; border-radius: 2px;
+       font: 8px ui-monospace, monospace; letter-spacing: 0.1em;
+       vertical-align: middle; text-transform: uppercase; margin-left: 6px; }
+.tag.live { color: var(--pos); border: 1px solid color-mix(in srgb, var(--pos) 40%, transparent); }
+.tag.bt   { color: var(--type-3); border: 1px solid var(--rule); }
+.tag.warm { color: var(--warn); border: 1px solid color-mix(in srgb, var(--warn) 40%, transparent); }
+.empty { color: var(--type-3); text-align: center; padding: 24px; font-style: italic; }
+.scroll-x { overflow-x: auto; }
+.maturity { background: var(--panel); border: 1px solid var(--rule); border-radius: 4px;
+            padding: 14px 18px; margin-bottom: 20px;
+            display: grid; grid-template-columns: auto 1fr auto; gap: 16px; align-items: center; }
+.maturity .k { font: 9px ui-monospace, monospace; letter-spacing: 0.16em;
+               color: var(--type-3); text-transform: uppercase; }
+.maturity .progress { height: 8px; background: var(--rule); border-radius: 4px; overflow: hidden; }
+.maturity .fill { height: 100%; background: var(--accent); }
+.decision-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+                 gap: 14px; margin-bottom: 24px; }
+.decision-card { background: var(--panel); border: 1px solid var(--rule);
+                 border-left: 3px solid var(--rule); border-radius: 4px;
+                 padding: 16px 18px; cursor: pointer; transition: border-color 0.12s; }
+.decision-card:hover { border-color: var(--rule-hi); }
+.decision-card.strong-buy { border-left-color: var(--pos); }
+.decision-card.buy        { border-left-color: color-mix(in srgb, var(--pos) 70%, transparent); }
+.decision-card.accumulate { border-left-color: color-mix(in srgb, var(--pos) 45%, transparent); }
+.decision-card.hold       { border-left-color: var(--warn); }
+.decision-card.reduce     { border-left-color: color-mix(in srgb, var(--neg) 70%, transparent); }
+.decision-card.sell       { border-left-color: var(--neg); }
+.dc-head { display: flex; justify-content: space-between; align-items: flex-start;
+           gap: 12px; margin-bottom: 12px; }
+.dc-tick { font: 15px ui-monospace, monospace; color: var(--type-1); font-weight: 600; }
+.dc-sect { font: 10px ui-monospace, monospace; color: var(--type-3); margin-top: 2px; }
+.dc-score { display: grid; grid-template-columns: auto 1fr; gap: 14px;
+            align-items: center; padding: 12px 0 10px; border-bottom: 1px solid var(--rule); }
+.dc-score-n { font: 34px ui-serif, Baskerville, serif; line-height: 1;
+              letter-spacing: -0.02em; text-align: center; }
+.dc-score-l { font: 8px ui-monospace, monospace; letter-spacing: 0.16em;
+              text-transform: uppercase; color: var(--type-3); margin-top: 2px; text-align: center; }
+.dc-stars { color: var(--warn); font-size: 18px; letter-spacing: 3px;
+            font-family: ui-monospace, monospace; }
+.dc-levels { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+             padding: 10px 0; border-bottom: 1px solid var(--rule); }
+.dc-lvl .lbl { font: 9px ui-monospace, monospace; letter-spacing: 0.14em;
+               text-transform: uppercase; color: var(--type-3); }
+.dc-lvl .val { font: 12px ui-monospace, monospace; color: var(--type-1); margin-top: 2px; }
+.dc-lvl .val.pos { color: var(--pos); } .dc-lvl .val.neg { color: var(--neg); }
+.dc-price-row { display: flex; align-items: baseline; gap: 12px; padding: 10px 0; }
+.dc-cmp { font: 22px ui-serif, Baskerville, serif; letter-spacing: -0.01em; line-height: 1; }
+.dc-day { font: 11px ui-monospace, monospace; }
+.dc-day.pos { color: var(--pos); } .dc-day.neg { color: var(--neg); }
+.dc-yest { font: 10px ui-monospace, monospace; color: var(--type-3); margin-left: auto; }
+.dc-foot { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--rule);
+           display: flex; justify-content: space-between;
+           font: 10px ui-monospace, monospace; color: var(--type-3); }
+.dc-foot .go { color: var(--accent-hi); }
+.filter-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+              padding: 12px 14px; margin-bottom: 16px; background: var(--panel);
+              border: 1px solid var(--rule); border-radius: 4px; }
+.filter-bar .chip { padding: 6px 12px; border: 1px solid var(--rule);
+                    border-radius: 16px; font: 11px ui-monospace, monospace;
+                    color: var(--type-2); cursor: pointer; background: transparent; }
+.filter-bar .chip:hover { color: var(--type-1); }
+.filter-bar .chip.active { background: color-mix(in srgb, var(--accent) 20%, transparent);
+                            border-color: var(--accent); color: var(--accent-hi); }
+.filter-bar .sep { flex: 1; }
+.filter-bar select { background: transparent; border: 1px solid var(--rule);
+                      border-radius: 4px; padding: 6px 10px; color: var(--type-1);
+                      font: 11px ui-monospace, monospace; cursor: pointer; }
+</style>
+
+<div class="topbar">
+  <div class="brand">AEGIS<span class="dot">.</span>
+    <small id="brandTag">USA · Investment Dashboard</small>
+  </div>
+  <div class="tabbar" id="tabbar">
+    <a href="#/"        data-tab="/"       class="active">DASHBOARD</a>
+    <a href="#/admin"   data-tab="/admin">ADMIN</a>
+    <a href="#/compare" data-tab="/compare">🇮🇳 vs 🇺🇸</a>
+    <a href="../../reports/morning_latest.html" target="_blank" rel="noopener">📄 MORNING</a>
+  </div>
+</div>
+
+<main id="main"><div class="empty">Loading…</div></main>
+
+<script>
+const STATE = {};
+const REPORT_FILES = [
+  "universe.json", "recommendations.json", "investment_intelligence.json",
+  "intelligence_summary.json", "intelligence_conflicts.json",
+  "price_context.json", "risk_latest.json", "validation_latest.json",
+  "stock_validation.json", "recommendation_lifecycle.json",
+  "missed_opportunities.json", "recommendation_history.json",
+  "winner_genome.json", "decision_attribution.json", "benchmark.json",
+  "ops_check.json",
+];
+
+async function loadState() {
+  await Promise.all(REPORT_FILES.map(async (f) => {
+    try {
+      const r = await fetch("../../reports/" + f + "?t=" + Date.now());
+      if (r.ok) STATE[f.replace(".json", "")] = await r.json();
+    } catch (_) {}
+  }));
+}
+
+// Formatters — USD ($)
+const fmt = {
+  usd: (v) => v == null ? "—" : "$" + Number(v).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}),
+  pct: (v, d=2) => v == null ? "—" : (v * 100).toFixed(d) + "%",
+  num: (v, d=2) => v == null ? "—" : Number(v).toFixed(d),
+  int: (v) => v == null ? "—" : Math.round(v).toString(),
+};
+
+function el(tag, attrs = {}, ...children) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if      (k === "class") e.className = v;
+    else if (k === "html")  e.innerHTML = v;
+    else if (k === "text")  e.textContent = v;
+    else if (k.startsWith("on")) e[k] = v;
+    else e.setAttribute(k, v);
+  }
+  for (const c of children) if (c) e.appendChild(c);
+  return e;
+}
+
+function pillFor(action) {
+  const cls = String(action || "").toLowerCase().replace(/[^a-z-]/g, "");
+  return `<span class="pill ${cls}">${action || "—"}</span>`;
+}
+
+function starsForScore(score, max = 5) {
+  if (score == null) return "☆".repeat(max);
+  const n = Math.max(0, Math.min(max, Math.round(score / (100 / max))));
+  return "★".repeat(n) + "☆".repeat(max - n);
+}
+
+function computeIDS(r, sv) {
+  const parts = [];
+  const ii = STATE.investment_intelligence?.reports?.find(x => x.ticker === r.ticker);
+  const intel = ii?.intelligence_score ?? r.composite_decision_score;
+  if (intel != null) parts.push({v: intel, w: 0.55});
+  if (sv?.win_rate != null && sv.n_trades >= 3) parts.push({v: sv.win_rate * 100, w: 0.20});
+  if (r.confidence != null) parts.push({v: r.confidence * 100, w: 0.15});
+  if (sv?.reliability_stars != null) parts.push({v: sv.reliability_stars * 20, w: 0.10});
+  if (!parts.length) return null;
+  const totalW = parts.reduce((s, c) => s + c.w, 0);
+  return Math.round(parts.reduce((s, c) => s + c.v * c.w, 0) / totalW);
+}
+
+function buildCanonical() {
+  const recs = STATE.recommendations?.recommendations || [];
+  const bmByT = STATE.benchmark?.per_ticker || {};
+  const svByT = STATE.stock_validation?.tickers || {};
+  const pcByT = STATE.price_context?.tickers || {};
+  const lcByT = STATE.recommendation_lifecycle?.by_ticker || {};
+  const daByT = STATE.decision_attribution?.per_recommendation || {};
+
+  const enriched = recs.map(r => {
+    const ee = r.entry_exit || {};
+    const sv = svByT[r.ticker] || {};
+    const pc = pcByT[r.ticker] || {};
+    const lc = lcByT[r.ticker] || {};
+    const bm = bmByT[r.ticker] || {};
+    const da = daByT[r.ticker] || {};
+    return {
+      ...r,
+      cmp:            pc.cmp ?? ee.latest_close,
+      previous_close: pc.previous_close,
+      day_change_pct: pc.day_change_pct,
+      high_52w:       pc.high_52w,
+      low_52w:        pc.low_52w,
+      target_1:       ee.target_1,
+      target_2:       ee.target_2,
+      stop_loss:      ee.stop_loss,
+      buy_low:        ee.ideal_entry_low,
+      buy_high:       ee.ideal_entry_high,
+      expected_hold_days: ee.expected_holding_days,
+      reliability:    sv.reliability_stars,
+      historical_wr:  sv.win_rate,
+      n_historical:   sv.n_trades,
+      first_seen_date: lc.first_seen_date,
+      days_active:    lc.days_active,
+      da_contributions: da.contributions,
+      bm_excess_alpha_avg: bm.excess_alpha_avg,
+      ids:            computeIDS(r, sv),
+    };
+  });
+  enriched.sort((a, b) => (b.ids ?? -1) - (a.ids ?? -1));
+  return enriched;
+}
+
+function humanizeReason(tok) {
+  if (!tok) return "";
+  const [k, v] = String(tok).split(":");
+  const map = {
+    company_score_top_decile: "Company score in top decile",
+    positive_momentum: "Positive price momentum",
+    trend_up: "Uptrend intact",
+    beating_spx: "Beating the S&P 500",
+    volatility_moderate: "Volatility inside band",
+    weak_composite: "Weak composite score",
+    deep_drawdown: "Deep drawdown from peak",
+    underperforming_spx: "Underperforming S&P 500",
+    high_volatility: "Elevated volatility",
+  };
+  const label = map[k] || k.replace(/_/g, " ");
+  return v != null ? `${label} (${parseFloat(v).toFixed(1)})` : label;
+}
+
+// ================================================================
+// DASHBOARD
+// ================================================================
+const DASH = { filter: "today_buy", sort: "decision_desc" };
+
+function renderDashboard() {
+  const main = document.getElementById("main");
+  main.innerHTML = "";
+  const canonical = buildCanonical();
+
+  // ── Dates strip
+  const rec = STATE.recommendations || {};
+  const dates = el("div", {class: "maturity"});
+  const now = new Date();
+  dates.innerHTML = `
+    <div>
+      <div class="k">Generated</div>
+      <div style="font: 12px ui-monospace, monospace; color: var(--type-1);">${rec.run_utc ? new Date(rec.run_utc).toLocaleString() : "—"}</div>
+    </div>
+    <div>
+      <div class="k">Market</div>
+      <div style="font: 12px ui-monospace, monospace; color: var(--type-1);">USA · USD · S&P 500 benchmark</div>
+    </div>
+    <div>
+      <div class="k">Currency</div>
+      <div style="font-family: ui-serif, Baskerville, serif; font-size: 22px; color: var(--type-1);">$ USD</div>
+    </div>`;
+  main.appendChild(dates);
+
+  // ── Archive maturation counter
+  const lc = STATE.recommendation_lifecycle || {};
+  const days = lc.coverage?.n_days_archived || 0;
+  const target = 30;
+  const pct = Math.min(100, (days / target) * 100);
+  const stage = days >= target ? "Winner Genome ready" :
+                days < 5   ? "Baseline" :
+                days < 15  ? "Warming" :
+                days < 25  ? "Maturing" : "Nearly ready";
+  const mat = el("div", {class: "maturity"});
+  mat.innerHTML = `
+    <div><div class="k">Archive Maturation</div>
+      <div style="font: 22px ui-serif, Baskerville, serif;">${stage}</div></div>
+    <div><div class="progress"><div class="fill" style="width: ${pct}%;"></div></div>
+      <div style="font: 10px ui-monospace, monospace; color: var(--type-3); margin-top: 6px;">
+        Target: ${target} trading days · ${Math.round(pct)}% of the way
+      </div></div>
+    <div style="text-align: right;">
+      <div style="font: 22px ui-serif, Baskerville, serif;">${days}<span style="font: 10px ui-monospace, monospace; color: var(--type-3);">/ ${target}</span></div>
+      <div style="font: 10px ui-monospace, monospace; color: var(--type-3);">
+        ${Math.max(0, target - days)} days remaining
+      </div></div>`;
+  main.appendChild(mat);
+
+  // ── Market Summary tiles
+  const ms = el("div", {class: "section"});
+  ms.appendChild(el("div", {class: "section-head", html: `
+    <h2>Market Summary</h2>
+    <div class="meta">USD · S&P 500 benchmark · ${canonical.length} recommendations</div>`}));
+  const risk = STATE.risk_latest?.portfolio_risk || {};
+  const intel = STATE.intelligence_summary || {};
+  const bm = STATE.benchmark?.portfolio || {};
+  const ops = STATE.ops_check || {};
+
+  const strip = el("div", {class: "strip"});
+  strip.innerHTML = `
+    <div class="tile"><span class="label">Recommendations</span>
+      <div class="value">${canonical.length}</div>
+      <div class="sub">${(rec.action_counts?.["Strong-Buy"] || 0)} Strong-Buy · ${(rec.action_counts?.Buy || 0)} Buy</div></div>
+    <div class="tile"><span class="label">Positions Sized</span>
+      <div class="value">${risk.n_positions ?? 0}</div>
+      <div class="sub">${((risk.total_weight || 0) * 100).toFixed(1)}% deployed · ${((risk.cash_pct || 0) * 100).toFixed(1)}% cash</div></div>
+    <div class="tile"><span class="label">Portfolio Vol</span>
+      <div class="value">${((risk.portfolio_vol_annual || 0) * 100).toFixed(1)}<span class="unit">% ann</span></div>
+      <div class="sub ${risk.verdict === "PASS" ? "pos" : risk.verdict === "WARNING" ? "warn" : "neg"}">${risk.verdict || "—"}</div></div>
+    <div class="tile"><span class="label">Intelligence Avg</span>
+      <div class="value">${intel.avg_intelligence != null ? intel.avg_intelligence.toFixed(1) : "—"}<span class="unit">/100</span></div>
+      <div class="sub">${intel.n_scored || 0} scored</div></div>
+    <div class="tile"><span class="label">Alpha vs S&P 500 <span class="tag warm">Warming</span></span>
+      <div class="value mono">${bm.excess_alpha_avg != null ? ((bm.excess_alpha_avg > 0 ? "+" : "") + (bm.excess_alpha_avg * 100).toFixed(2) + "%") : "—"}</div>
+      <div class="sub">${bm.verdict || "insufficient_evidence"}</div></div>
+    <div class="tile"><span class="label">Ops Verdict</span>
+      <div class="value mono" style="color: ${ops.verdict === "HEALTHY" ? "var(--pos)" : ops.verdict === "CRITICAL" ? "var(--neg)" : "var(--warn)"};">${ops.verdict || "—"}</div>
+      <div class="sub">${ops.artifacts?.n_present || 0}/${ops.artifacts?.n_required || 0} artifacts</div></div>`;
+  ms.appendChild(strip);
+  main.appendChild(ms);
+
+  // ── Opportunities — Decision Cards
+  const opsSec = el("div", {class: "section"});
+  opsSec.appendChild(el("div", {class: "section-head", html: `
+    <h2>Investment Opportunities</h2>
+    <div class="meta">Click any card for details</div>`}));
+
+  const filters = [
+    {k: "today_buy",  label: "Today's Buys",     fn: r => ["Strong-Buy", "Buy", "Accumulate"].includes(r.recommendation)},
+    {k: "strong",     label: "Strong Buy Only",  fn: r => r.recommendation === "Strong-Buy"},
+    {k: "sell",       label: "Sells / Reduce",   fn: r => ["Reduce", "Sell"].includes(r.recommendation)},
+    {k: "all",        label: "All",              fn: () => true},
+  ];
+  const sorts = [
+    {k: "decision_desc", label: "Decision Score ↓", cmp: (a, b) => (b.ids ?? -1) - (a.ids ?? -1)},
+    {k: "intel_desc",    label: "Intelligence ↓",    cmp: (a, b) => (b.composite_decision_score ?? -1) - (a.composite_decision_score ?? -1)},
+    {k: "cmp_desc",      label: "CMP ↓",             cmp: (a, b) => (b.cmp ?? 0) - (a.cmp ?? 0)},
+  ];
+  const bar = el("div", {class: "filter-bar"});
+  filters.forEach(f => {
+    const n = canonical.filter(f.fn).length;
+    const chip = el("button", {class: "chip" + (DASH.filter === f.k ? " active" : ""),
+      html: `${f.label} <span style="color:var(--type-3);margin-left:4px;">${n}</span>`});
+    chip.onclick = () => { DASH.filter = f.k; renderDashboard(); };
+    bar.appendChild(chip);
+  });
+  bar.appendChild(el("div", {class: "sep"}));
+  const sel = el("select");
+  sorts.forEach(s => {
+    const o = document.createElement("option");
+    o.value = s.k; o.textContent = "Sort · " + s.label;
+    if (DASH.sort === s.k) o.selected = true;
+    sel.appendChild(o);
+  });
+  sel.onchange = () => { DASH.sort = sel.value; renderDashboard(); };
+  bar.appendChild(sel);
+  opsSec.appendChild(bar);
+
+  const f  = filters.find(x => x.k === DASH.filter) || filters[0];
+  const so = sorts.find(x => x.k === DASH.sort) || sorts[0];
+  const filtered = canonical.filter(f.fn).slice().sort(so.cmp);
+
+  if (!filtered.length) {
+    opsSec.appendChild(el("div", {class: "empty",
+      text: `No stocks match "${f.label}" today.`}));
+  } else {
+    const grid = el("div", {class: "decision-grid"});
+    filtered.slice(0, 12).forEach((r, i) => {
+      const cls = String(r.recommendation || "").toLowerCase().replace(/[^a-z-]/g, "");
+      const card = el("div", {class: "decision-card " + cls, html: cardHtml(r, i)});
+      card.onclick = () => location.hash = "#/stock/" + r.ticker;
+      grid.appendChild(card);
+    });
+    opsSec.appendChild(grid);
+    if (filtered.length > 12) {
+      const rest = el("div", {class: "card"});
+      rest.appendChild(el("h3", {html: `More <span class="count">${filtered.length - 12} more</span>`}));
+      const tbl = el("table");
+      tbl.innerHTML = `<thead><tr><th>#</th><th>Ticker</th><th>Sector</th>
+        <th class="center">Action</th>
+        <th class="right">Score</th><th class="right">CMP</th>
+        <th class="right">Target</th><th class="right">Stop</th>
+        <th class="right">Hold</th></tr></thead>`;
+      const tb = el("tbody");
+      filtered.slice(12).forEach((r, i) => {
+        const row = el("tr", {onclick: () => location.hash = "#/stock/" + r.ticker});
+        row.innerHTML = `<td>${i + 13}</td><td class="ticker">${r.ticker}</td>
+          <td>${r.sector}</td><td class="center">${pillFor(r.recommendation)}</td>
+          <td class="right">${fmt.int(r.ids)}</td>
+          <td class="right">${fmt.usd(r.cmp)}</td>
+          <td class="right pos">${fmt.usd(r.target_1)}</td>
+          <td class="right neg">${fmt.usd(r.stop_loss)}</td>
+          <td class="right">${r.expected_hold_days || "—"}d</td>`;
+        tb.appendChild(row);
+      });
+      tbl.appendChild(tb);
+      const wrap = el("div", {class: "scroll-x"}); wrap.appendChild(tbl);
+      rest.appendChild(wrap); opsSec.appendChild(rest);
+    }
+  }
+  main.appendChild(opsSec);
+}
+
+function cardHtml(r, i) {
+  const upside = r.cmp && r.target_1 ? (r.target_1 - r.cmp) / r.cmp : null;
+  const idsColor = r.ids == null ? "var(--type-3)" :
+                     r.ids >= 75 ? "var(--pos)" :
+                     r.ids >= 55 ? "var(--type-1)" :
+                     r.ids >= 40 ? "var(--warn)" : "var(--neg)";
+  const dayCls = r.day_change_pct == null ? "" : r.day_change_pct > 0 ? "pos" : "neg";
+  const dayStr = r.day_change_pct == null ? "" :
+                   `${r.day_change_pct > 0 ? "+" : ""}${(r.day_change_pct * 100).toFixed(2)}%`;
+  const reasonsPos = (r.reasons_for || []).slice(0, 3).map(t =>
+    `<div style="font-size:11px;color:var(--type-1);">✔ ${humanizeReason(t)}</div>`).join("");
+  const reasonsNeg = (r.reasons_against || []).slice(0, 2).map(t =>
+    `<div style="font-size:11px;color:var(--type-1);">⚠ ${humanizeReason(t)}</div>`).join("");
+
+  return `
+    <div class="dc-head">
+      <div>
+        <div class="dc-tick">${r.ticker}</div>
+        <div class="dc-sect">${r.sector || "—"}${r.industry ? " · " + r.industry : ""}</div>
+      </div>
+      <div style="text-align:right;">${pillFor(r.recommendation)}
+        <div style="font:9px ui-monospace,monospace;color:var(--type-3);margin-top:4px;">#${i + 1}</div>
+      </div>
+    </div>
+    <div class="dc-score">
+      <div><div class="dc-score-n" style="color:${idsColor}">${r.ids != null ? r.ids : "—"}</div>
+        <div class="dc-score-l">Decision Score</div></div>
+      <div><div class="dc-stars">${starsForScore(r.ids)}</div>
+        <div style="font:10px ui-monospace,monospace;color:var(--type-3);margin-top:4px;">
+          ${r.ids != null ? (r.ids >= 75 ? "High conviction" : r.ids >= 55 ? "Moderate" : r.ids >= 40 ? "Cautious" : "Low") : "—"}
+        </div></div>
+    </div>
+    <div class="dc-price-row">
+      <div class="dc-cmp">${fmt.usd(r.cmp)}</div>
+      <div class="dc-day ${dayCls}">${dayStr}</div>
+      <div class="dc-yest">Prev ${fmt.usd(r.previous_close)}</div>
+    </div>
+    <div class="dc-levels">
+      <div class="dc-lvl"><div class="lbl">Buy Zone</div>
+        <div class="val">${fmt.usd(r.buy_low)}-${fmt.usd(r.buy_high)}</div></div>
+      <div class="dc-lvl"><div class="lbl">Target</div>
+        <div class="val pos">${fmt.usd(r.target_1)}${upside != null ? ` <span style="opacity:0.7;font-size:10px">(${(upside * 100).toFixed(1)}%)</span>` : ""}</div></div>
+      <div class="dc-lvl"><div class="lbl">Stop</div>
+        <div class="val neg">${fmt.usd(r.stop_loss)}</div></div>
+      <div class="dc-lvl"><div class="lbl">Hold</div>
+        <div class="val">${r.expected_hold_days || "—"}d</div></div>
+    </div>
+    ${reasonsPos ? `<div style="margin-top:10px;">${reasonsPos}</div>` : ""}
+    ${reasonsNeg ? `<div style="margin-top:6px;">${reasonsNeg}</div>` : ""}
+    <div class="dc-foot">
+      <span>${r.first_seen_date ? "Seen " + r.first_seen_date : ""}</span>
+      <span class="go">Open Details →</span>
+    </div>`;
+}
+
+// ================================================================
+// STOCK DETAIL
+// ================================================================
+function renderStock(ticker) {
+  const main = document.getElementById("main");
+  main.innerHTML = "";
+  const r = buildCanonical().find(x => x.ticker === ticker);
+  if (!r) { main.innerHTML = `<div class="empty">No data for ${ticker}. <a href="#/">← back</a></div>`; return; }
+
+  const head = el("div", {class: "section", html: `
+    <div style="padding-bottom:16px;border-bottom:1px solid var(--rule);
+                display:flex;justify-content:space-between;align-items:baseline;">
+      <div>
+        <a href="#/" style="font:11px ui-monospace,monospace;color:var(--accent-hi);letter-spacing:0.12em;text-decoration:none;">← DASHBOARD</a>
+        <div style="font:32px ui-serif,Baskerville,serif;letter-spacing:-0.02em;line-height:1;margin-top:8px;">${r.ticker}</div>
+        <div style="color:var(--type-2);font:13px ui-monospace,monospace;margin-top:6px;">
+          ${r.sector} · ${r.industry} · ${r.exchange || "—"}
+        </div>
+      </div>
+      <div style="text-align:right;">${pillFor(r.recommendation)}
+        <div style="font:26px ui-serif,Baskerville,serif;margin-top:8px;">${r.ids != null ? r.ids : "—"}</div>
+        <div style="font:9px ui-monospace,monospace;color:var(--type-3);letter-spacing:0.14em;text-transform:uppercase;">Decision Score · ${starsForScore(r.ids)}</div>
+      </div>
+    </div>`});
+  main.appendChild(head);
+
+  // Price + Levels
+  const priceSec = el("div", {class: "section"});
+  priceSec.appendChild(el("div", {class: "section-head", html: `<h2>Price & Levels</h2>`}));
+  const strip = el("div", {class: "strip"});
+  strip.innerHTML = `
+    <div class="tile"><span class="label">CMP <span class="tag live">Live</span></span>
+      <div class="value">${fmt.usd(r.cmp)}</div>
+      <div class="sub">Prev ${fmt.usd(r.previous_close)}</div></div>
+    <div class="tile"><span class="label">Day Change</span>
+      <div class="value ${r.day_change_pct > 0 ? "pos" : "neg"}">${r.day_change_pct == null ? "—" : ((r.day_change_pct > 0 ? "+" : "") + (r.day_change_pct * 100).toFixed(2) + "%")}</div></div>
+    <div class="tile"><span class="label">52W High</span>
+      <div class="value">${fmt.usd(r.high_52w)}</div></div>
+    <div class="tile"><span class="label">52W Low</span>
+      <div class="value">${fmt.usd(r.low_52w)}</div></div>
+    <div class="tile"><span class="label">Target</span>
+      <div class="value pos">${fmt.usd(r.target_1)}</div>
+      <div class="sub pos">${r.cmp && r.target_1 ? "+" + ((r.target_1 - r.cmp) / r.cmp * 100).toFixed(1) + "% upside" : "—"}</div></div>
+    <div class="tile"><span class="label">Stop Loss</span>
+      <div class="value neg">${fmt.usd(r.stop_loss)}</div>
+      <div class="sub neg">${r.cmp && r.stop_loss ? ((r.stop_loss - r.cmp) / r.cmp * 100).toFixed(1) + "%" : "—"}</div></div>
+    <div class="tile"><span class="label">Hold Days</span>
+      <div class="value">${r.expected_hold_days || "—"}</div></div>
+    <div class="tile"><span class="label">Confidence</span>
+      <div class="value">${r.confidence != null ? Math.round(r.confidence * 100) + "%" : "—"}</div></div>`;
+  priceSec.appendChild(strip);
+  main.appendChild(priceSec);
+
+  // Recommendation Timeline
+  const rh = STATE.recommendation_history?.tickers?.[ticker];
+  if (rh && rh.timeline?.length) {
+    const tlSec = el("div", {class: "section"});
+    tlSec.appendChild(el("div", {class: "section-head", html: `
+      <h2>Recommendation Timeline <span class="tag live">Live</span></h2>
+      <div class="meta">From Institutional Memory · ${rh.timeline.length} archived day${rh.timeline.length !== 1 ? "s" : ""}</div>`}));
+    const card = el("div", {class: "card"});
+    const tbl = el("table");
+    tbl.innerHTML = `<thead><tr><th>Date</th><th class="center">Action</th>
+      <th class="right">Score</th><th class="right">CMP</th>
+      <th class="right">Target</th><th class="right">Stop</th></tr></thead>`;
+    const tb = el("tbody");
+    for (const row of rh.timeline.slice().reverse()) {
+      tb.innerHTML += `<tr>
+        <td>${row.date}</td>
+        <td class="center">${pillFor(row.action)}</td>
+        <td class="right">${fmt.int(row.score)}</td>
+        <td class="right">${fmt.usd(row.cmp)}</td>
+        <td class="right pos">${fmt.usd(row.target_1)}</td>
+        <td class="right neg">${fmt.usd(row.stop_loss)}</td></tr>`;
+    }
+    tbl.appendChild(tb);
+    const wrap = el("div", {class: "scroll-x"}); wrap.appendChild(tbl);
+    card.appendChild(wrap); tlSec.appendChild(card); main.appendChild(tlSec);
+  }
+
+  // Decision Breakdown
+  const ii = STATE.investment_intelligence?.reports?.find(x => x.ticker === ticker);
+  if (ii?.dimensions?.length) {
+    const brSec = el("div", {class: "section"});
+    brSec.appendChild(el("div", {class: "section-head", html: `<h2>Decision Breakdown</h2>
+      <div class="meta">6 technical dimensions · scored 0-100</div>`}));
+    const card = el("div", {class: "card"});
+    for (const d of ii.dimensions) {
+      const pct = Math.max(0, Math.min(100, d.score));
+      const cls = pct >= 65 ? "pos" : pct < 40 ? "neg" : "";
+      card.innerHTML += `
+        <div style="padding:8px 0;border-bottom:1px dotted var(--rule);">
+          <div style="display:flex;justify-content:space-between;font:11px ui-monospace,monospace;color:var(--type-1);letter-spacing:0.04em;">
+            <span>${d.name.replace(/_/g, " ").toUpperCase()}</span>
+            <span class="${cls}">${Math.round(pct)}</span>
+          </div>
+          <div style="height:4px;background:var(--rule);border-radius:2px;margin-top:4px;">
+            <div style="height:100%;width:${pct}%;background:${cls === "pos" ? "var(--pos)" : cls === "neg" ? "var(--neg)" : "var(--accent)"};border-radius:2px;"></div>
+          </div>
+          <div style="font:10px ui-monospace,monospace;color:var(--type-3);margin-top:4px;">${d.why || ""}</div>
+        </div>`;
+    }
+    brSec.appendChild(card); main.appendChild(brSec);
+  }
+
+  // Reasons — For / Against
+  if (r.reasons_for?.length || r.reasons_against?.length) {
+    const whySec = el("div", {class: "section"});
+    whySec.appendChild(el("div", {class: "section-head", html: `<h2>Why · Concerns</h2>`}));
+    const grid = el("div", {style: "display: grid; grid-template-columns: 1fr 1fr; gap: 20px;"});
+    const pos = el("div", {class: "card"});
+    pos.appendChild(el("h3", {html: `Why Buy <span class="count">${r.reasons_for?.length || 0}</span>`}));
+    (r.reasons_for || []).forEach(t => {
+      pos.innerHTML += `<div style="padding:6px 0;color:var(--type-1);"><span style="color:var(--pos);">✔</span> ${humanizeReason(t)}</div>`;
+    });
+    grid.appendChild(pos);
+    const neg = el("div", {class: "card"});
+    neg.appendChild(el("h3", {html: `Concerns <span class="count">${r.reasons_against?.length || 0}</span>`}));
+    if (!r.reasons_against?.length) neg.innerHTML += `<div class="empty">None flagged.</div>`;
+    (r.reasons_against || []).forEach(t => {
+      neg.innerHTML += `<div style="padding:6px 0;color:var(--type-1);"><span style="color:var(--warn);">⚠</span> ${humanizeReason(t)}</div>`;
+    });
+    grid.appendChild(neg);
+    whySec.appendChild(grid); main.appendChild(whySec);
+  }
+}
+
+// ================================================================
+// ADMIN
+// ================================================================
+function renderAdmin() {
+  const main = document.getElementById("main");
+  main.innerHTML = "";
+  const canonical = buildCanonical();
+
+  main.appendChild(el("h1", {style: "font: 18px ui-monospace, monospace; letter-spacing: 0.04em; padding-bottom: 12px; border-bottom: 1px solid var(--rule); margin: 0 0 20px;",
+    html: `USA Validation Lab <span style="font:10px ui-monospace,monospace;padding:3px 8px;background:color-mix(in srgb, var(--warn) 20%, transparent);color:var(--warn);letter-spacing:0.14em;margin-left:12px;border-radius:2px;">STOCK-FIRST</span>`}));
+
+  // ── Stock Search
+  const searchSec = el("div", {class: "section"});
+  searchSec.appendChild(el("div", {class: "section-head", html: `
+    <h2>Stock-Level Validation</h2>
+    <div class="meta">30 tickers · USD ($) · Type a ticker to see its full history</div>`}));
+
+  const searchBar = el("div", {class: "card", style: "display: flex; gap: 12px; align-items: center;"});
+  searchBar.innerHTML = `<span style="font:10px ui-monospace,monospace;letter-spacing:0.16em;color:var(--type-3);white-space:nowrap;">Search Stock →</span>`;
+  const dl = el("datalist", {id: "us-ticker-list"});
+  const rh = STATE.recommendation_history?.tickers || {};
+  canonical.forEach(r => {
+    const opt = document.createElement("option");
+    opt.value = r.ticker;
+    opt.label = `${r.ticker} · ${r.sector} · Score ${r.ids || "—"}`;
+    dl.appendChild(opt);
+  });
+  searchBar.appendChild(dl);
+  const inp = el("input", {type: "text", list: "us-ticker-list",
+    placeholder: "Type ticker (e.g. AAPL, MSFT, JPM)",
+    style: "flex:1;background:transparent;border:1px solid var(--rule);border-radius:3px;padding:8px 12px;color:var(--type-1);font:13px ui-monospace,monospace;"});
+  inp.value = window._adminTicker || canonical[0]?.ticker || "";
+  inp.oninput = (e) => {
+    const v = e.target.value.trim().toUpperCase();
+    if (canonical.find(x => x.ticker === v)) {
+      window._adminTicker = v;
+      renderAdmin();
+    }
+  };
+  inp.onkeydown = (e) => {
+    if (e.key === "Enter") {
+      const v = e.target.value.trim().toUpperCase();
+      if (canonical.find(x => x.ticker === v)) {
+        window._adminTicker = v;
+        renderAdmin();
+      }
+    }
+  };
+  searchBar.appendChild(inp);
+  searchSec.appendChild(searchBar);
+
+  const t = window._adminTicker || canonical[0]?.ticker;
+  const r = canonical.find(x => x.ticker === t);
+  if (r) {
+    const info = rh[t] || {};
+    const summary = el("div", {class: "card"});
+    summary.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:baseline;padding-bottom:12px;border-bottom:1px solid var(--rule);">
+        <div><div style="font:26px ui-serif,Baskerville,serif;letter-spacing:-0.01em;">${t}</div>
+          <div style="font:10px ui-monospace,monospace;color:var(--type-3);margin-top:4px;">
+            ${r.sector} · ${r.industry} · ${info.n_closed || 0} closed trades · ${info.n_days_seen || 0} archived days
+          </div></div>
+        <div style="text-align:right;">
+          <div style="font:9px ui-monospace,monospace;color:var(--type-3);letter-spacing:0.16em;">PREDICTION ACCURACY</div>
+          <div style="font:26px ui-serif,Baskerville,serif;">${info.accuracy?.accuracy != null ? Math.round(info.accuracy.accuracy * 100) + "%" : "—"}</div>
+          <div style="font:10px ui-monospace,monospace;color:var(--type-3);">${info.accuracy?.n_correct || 0}/${info.accuracy?.n_recommendations || 0} correct</div>
+        </div></div>
+      <div class="strip" style="padding-top:14px;margin-bottom:0;">
+        <div class="tile"><span class="label">CMP</span>
+          <div class="value">${fmt.usd(r.cmp)}</div></div>
+        <div class="tile"><span class="label">Target</span>
+          <div class="value pos">${fmt.usd(r.target_1)}</div></div>
+        <div class="tile"><span class="label">Stop</span>
+          <div class="value neg">${fmt.usd(r.stop_loss)}</div></div>
+        <div class="tile"><span class="label">Action</span>
+          <div class="value mono" style="font-size:14px;">${r.recommendation || "—"}</div></div>
+      </div>`;
+    searchSec.appendChild(summary);
+  }
+  main.appendChild(searchSec);
+
+  // ── System diagnostics divider
+  main.appendChild(el("div", {style: "margin:32px 0 12px;padding-top:20px;border-top:1px dashed var(--rule);",
+    html: `<div style="font:10px ui-monospace,monospace;letter-spacing:0.16em;color:var(--type-3);text-transform:uppercase;">
+      ── System diagnostics · stock-search above is primary ──</div>`}));
+
+  // Portfolio / Risk / Benchmark / Ops
+  const risk = STATE.risk_latest?.portfolio_risk || {};
+  const bm = STATE.benchmark?.portfolio || {};
+  const ops = STATE.ops_check || {};
+  const lc = STATE.recommendation_lifecycle || {};
+
+  const diag = el("div", {class: "section"});
+  diag.appendChild(el("div", {class: "section-head", html: `<h2>Pipeline Health</h2>`}));
+  const strip = el("div", {class: "strip"});
+  strip.innerHTML = `
+    <div class="tile"><span class="label">Ops Verdict</span>
+      <div class="value" style="color: ${ops.verdict === "HEALTHY" ? "var(--pos)" : ops.verdict === "CRITICAL" ? "var(--neg)" : "var(--warn)"};">${ops.verdict || "—"}</div>
+      <div class="sub">${ops.artifacts?.n_present || 0}/${ops.artifacts?.n_required || 0} artifacts · ${ops.schemas?.n_pass || 0}/${ops.schemas?.n_schemas || 0} schemas</div></div>
+    <div class="tile"><span class="label">Archive Days</span>
+      <div class="value">${lc.coverage?.n_days_archived || 0}<span class="unit">/ 30</span></div>
+      <div class="sub">${Math.max(0, 30 - (lc.coverage?.n_days_archived || 0))} to Winner Genome</div></div>
+    <div class="tile"><span class="label">Positions Sized</span>
+      <div class="value">${risk.n_positions || 0}</div>
+      <div class="sub">${((risk.total_weight || 0) * 100).toFixed(1)}% deployed</div></div>
+    <div class="tile"><span class="label">Portfolio Vol</span>
+      <div class="value">${((risk.portfolio_vol_annual || 0) * 100).toFixed(1)}<span class="unit">% ann</span></div>
+      <div class="sub ${risk.verdict === "PASS" ? "pos" : "warn"}">${risk.verdict || "—"}</div></div>
+    <div class="tile"><span class="label">Alpha vs S&P 500 <span class="tag warm">Warming</span></span>
+      <div class="value">${bm.excess_alpha_avg != null ? "+" + (bm.excess_alpha_avg * 100).toFixed(2) + "%" : "—"}</div>
+      <div class="sub">${bm.verdict || "insufficient_evidence"}</div></div>`;
+  diag.appendChild(strip);
+  main.appendChild(diag);
+}
+
+// ================================================================
+// COMPARISON (India vs USA)
+// ================================================================
+async function renderCompare() {
+  const main = document.getElementById("main");
+  main.innerHTML = `<div class="empty">Loading comparison…</div>`;
+
+  // Load a small slice of India reports
+  const indiaFiles = ["recommendations.json", "benchmark.json", "risk_capital_v2_latest.json",
+                       "recommendation_lifecycle.json", "ops_check.json"];
+  const india = {};
+  await Promise.all(indiaFiles.map(async f => {
+    try {
+      const r = await fetch("../../../reports/" + f + "?t=" + Date.now());
+      if (r.ok) india[f.replace(".json", "")] = await r.json();
+    } catch (_) {}
+  }));
+
+  main.innerHTML = "";
+  main.appendChild(el("h1", {style: "font: 18px ui-monospace, monospace; letter-spacing: 0.04em; padding-bottom: 12px; border-bottom: 1px solid var(--rule); margin: 0 0 20px;",
+    html: `🇮🇳 India vs 🇺🇸 USA · Side-by-Side Comparison`}));
+
+  const iRecs = india.recommendations?.recommendations || [];
+  const uRecs = STATE.recommendations?.recommendations || [];
+  const iRisk = india.risk_capital_v2_latest?.portfolio_risk || {};
+  const uRisk = STATE.risk_latest?.portfolio_risk || {};
+  const iBm   = india.benchmark?.portfolio || {};
+  const uBm   = STATE.benchmark?.portfolio || {};
+  const iLc   = india.recommendation_lifecycle || {};
+  const uLc   = STATE.recommendation_lifecycle || {};
+  const iOps  = india.ops_check || {};
+  const uOps  = STATE.ops_check || {};
+
+  const table = el("div", {class: "card"});
+  const rows = [
+    ["Currency",         "₹ INR",                                        "$ USD"],
+    ["Benchmark",        "NIFTY 50",                                     "S&P 500"],
+    ["Universe",         `${iRecs.length} tickers`,                       `${uRecs.length} tickers`],
+    ["Strong-Buys",      countAction(iRecs, "Strong-Buy"),                countAction(uRecs, "Strong-Buy")],
+    ["Buys",             countAction(iRecs, "Buy"),                        countAction(uRecs, "Buy")],
+    ["Positions Sized",  iRisk.n_positions ?? "—",                        uRisk.n_positions ?? "—"],
+    ["Deployed",         `${((iRisk.total_weight || 0) * 100).toFixed(1)}%`, `${((uRisk.total_weight || 0) * 100).toFixed(1)}%`],
+    ["Portfolio Vol",    `${((iRisk.portfolio_vol_annual || 0) * 100).toFixed(1)}% ann`, `${((uRisk.portfolio_vol_annual || 0) * 100).toFixed(1)}% ann`],
+    ["Risk Verdict",     iRisk.verdict || "—",                             uRisk.verdict || "—"],
+    ["Trades Benchmarked", iBm.n_trades_benchmarked ?? "—",                uBm.n_trades_benchmarked ?? "—"],
+    ["Historical Alpha", iBm.excess_alpha_avg != null ? ((iBm.excess_alpha_avg > 0 ? "+" : "") + (iBm.excess_alpha_avg * 100).toFixed(2) + "%") : "—",
+                          uBm.excess_alpha_avg != null ? ((uBm.excess_alpha_avg > 0 ? "+" : "") + (uBm.excess_alpha_avg * 100).toFixed(2) + "%") : "—"],
+    ["Beat Benchmark",   iBm.pct_beat_nifty != null ? Math.round(iBm.pct_beat_nifty * 100) + "%" : "—",
+                          uBm.pct_beat_spx   != null ? Math.round(uBm.pct_beat_spx * 100) + "%" : "—"],
+    ["Verdict",          iBm.verdict || "—",                                uBm.verdict || "—"],
+    ["Archive Days",     `${iLc.coverage?.n_days_archived ?? 0} / 30`,     `${uLc.coverage?.n_days_archived ?? 0} / 30`],
+    ["Ops Verdict",      iOps.verdict || "—",                               uOps.verdict || "—"],
+    ["Artifacts",        `${iOps.artifacts?.n_present ?? "?"} / ${iOps.artifacts?.n_required ?? "?"}`,
+                          `${uOps.artifacts?.n_present ?? "?"} / ${uOps.artifacts?.n_required ?? "?"}`],
+  ];
+  const tbl = el("table");
+  tbl.innerHTML = `<thead><tr>
+    <th>Metric</th>
+    <th style="text-align:center;">🇮🇳 INDIA</th>
+    <th style="text-align:center;">🇺🇸 USA</th></tr></thead>`;
+  const tb = el("tbody");
+  for (const [k, i, u] of rows) {
+    tb.innerHTML += `<tr>
+      <td style="color:var(--type-2);">${k}</td>
+      <td style="text-align:center;color:var(--type-1);">${i}</td>
+      <td style="text-align:center;color:var(--type-1);">${u}</td></tr>`;
+  }
+  tbl.appendChild(tb);
+  table.appendChild(tbl);
+  main.appendChild(table);
+
+  main.appendChild(el("div", {style: "color:var(--type-3);font:11px ui-monospace,monospace;padding:12px 0;",
+    html: `India and USA run independently. Each has its own Constitution, freeze,
+           universe, benchmark, and archive. Modifying one never affects the other.
+           <br>India: 1060 historical backtester trades, sealed MON001 engine, ₹ INR, NIFTY benchmark.
+           <br>USA: technical scoring on Dow 30, $ USD, S&P 500 benchmark, evidence-warming phase.`}));
+}
+
+function countAction(recs, action) {
+  return recs.filter(r => r.recommendation === action).length;
+}
+
+// ================================================================
+// ROUTER
+// ================================================================
+function currentRoute() { return location.hash.replace(/^#/, "") || "/"; }
+function renderRoute() {
+  const path = currentRoute();
+  document.querySelectorAll("#tabbar a[data-tab]").forEach(a => {
+    a.classList.toggle("active",
+      (a.dataset.tab === "/admin"   && path.startsWith("/admin")) ||
+      (a.dataset.tab === "/compare" && path.startsWith("/compare")) ||
+      (a.dataset.tab === "/"        && path === "/"));
+  });
+  if      (path === "/admin")           renderAdmin();
+  else if (path === "/compare")         renderCompare();
+  else if (path.startsWith("/stock/"))  renderStock(decodeURIComponent(path.slice("/stock/".length)));
+  else                                   renderDashboard();
+}
+
+window.addEventListener("hashchange", renderRoute);
+(async () => {
+  await loadState();
+  renderRoute();
+})();
+</script>

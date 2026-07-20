@@ -139,6 +139,22 @@ STEPS = [
         "produces": ["usa/reports/ops_check.json"],
         "requires": [],
     },
+    {
+        "name":     "telegram",
+        "desc":     "USA Telegram delivery (USD, 5 messages, opt-in)",
+        "script":   "usa/scripts/telegram_send.py",
+        "produces": [],
+        "requires": [],
+        "optional": True,
+    },
+    {
+        "name":     "comparison_report",
+        "desc":     "India vs USA cross-market comparison report",
+        "script":   "compare/build_comparison.py",
+        "produces": ["compare/reports/comparison_latest.md",
+                       "compare/reports/comparison_latest.html"],
+        "requires": [],
+    },
 ]
 
 
