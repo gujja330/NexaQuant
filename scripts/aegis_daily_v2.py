@@ -93,6 +93,16 @@ STEPS = [
         "optional": True,   # WARNING/FAIL doesn't halt the pipeline — it's reported to ops_check
     },
     {
+        "name": "market_intelligence",
+        "desc": "Sprint 2 · Market Intelligence engine + AI narratives (regime, breadth, macro, sector rotation, news/flow pulse)",
+        "script": "india/market_intelligence/run.py",
+        "produces": ["reports/market_intelligence.json",
+                       "reports/market_intelligence_summary.json",
+                       "reports/ai_market_narrative.json"],
+        "requires": [],
+        "optional": True,   # non-blocking for legacy engines
+    },
+    {
         "name": "adaptive_rec_v2",
         "desc": "Adaptive Rec Engine v2.0 (confidence rebuild + Precision@K)",
         "script": "research/adaptive_rec_v2/run.py",

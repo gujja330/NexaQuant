@@ -122,8 +122,23 @@ def main() -> int:
             "n_sell": n_sell,
         })
 
+    # APPEND-only: dedupe on (ticker, date, insider, transaction, shares) so the
+    # same Form 4 event isn't double-counted across daily runs.
     OUT_PARQUET.parent.mkdir(parents=True, exist_ok=True)
-    pd.DataFrame(all_txns).to_parquet(OUT_PARQUET, index=False)
+    df_new = pd.DataFrame(all_txns)
+    if OUT_PARQUET.exists() and not df_new.empty:
+        try:
+            df_old = pd.read_parquet(OUT_PARQUET)
+            df_full = pd.concat([df_old, df_new], ignore_index=True) \
+                        .drop_duplicates(subset=["ticker", "date", "insider",
+                                                    "transaction", "shares"],
+                                            keep="last") \
+                        .sort_values(["ticker", "date"]).reset_index(drop=True)
+        except Exception:
+            df_full = df_new
+    else:
+        df_full = df_new
+    df_full.to_parquet(OUT_PARQUET, index=False)
 
     total_buy = sum(x["buy_value_usd"] for x in per_ticker)
     total_sell = sum(x["sell_value_usd"] for x in per_ticker)

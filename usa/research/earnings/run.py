@@ -107,8 +107,21 @@ def main() -> int:
             row["error"] = f"{type(e).__name__}: {e}"
         rows.append(row)
 
-    df = pd.DataFrame(rows).sort_values("ticker").reset_index(drop=True)
+    # APPEND-only: keep a per-day snapshot ledger; dedupe on (ticker, asof).
+    # This preserves the historical view "what did the calendar say on day X"
+    # — needed for walk-forward replay of PEAD strategies.
+    df_new = pd.DataFrame(rows).sort_values("ticker").reset_index(drop=True)
     OUT_PARQUET.parent.mkdir(parents=True, exist_ok=True)
+    if OUT_PARQUET.exists():
+        try:
+            df_old = pd.read_parquet(OUT_PARQUET)
+            df = pd.concat([df_old, df_new], ignore_index=True) \
+                    .drop_duplicates(subset=["ticker", "asof"], keep="last") \
+                    .sort_values(["asof", "ticker"]).reset_index(drop=True)
+        except Exception:
+            df = df_new
+    else:
+        df = df_new
     df.to_parquet(OUT_PARQUET, index=False)
 
     # Compact summary: next-30-days heat map

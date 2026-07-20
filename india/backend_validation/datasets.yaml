@@ -295,3 +295,31 @@ datasets:
     kind: report
     freshness_sla_trading_days: 1
     consumers: [ux/dashboard]
+
+  # ── SPRINT 2 · Market Intelligence + AI ─────────────────────────
+  - name: market_intelligence
+    path: reports/market_intelligence.json
+    producer: india/market_intelligence/run.py
+    kind: intelligence
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, version, market, run_utc, asof, composite_score, regime, signals]
+    consumers: [ux/dashboard, research/morning_report, backend/ai/market_analyst]
+
+  - name: market_intelligence_summary
+    path: reports/market_intelligence_summary.json
+    producer: india/market_intelligence/run.py
+    kind: intelligence
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, market, asof, composite_score, regime, signals]
+    consumers: [ux/dashboard, scripts/aegis_ops_check]
+
+  - name: ai_market_narrative
+    path: reports/ai_market_narrative.json
+    producer: india/market_intelligence/run.py
+    kind: ai_narrative
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, version, market, run_utc, agents]
+    consumers: [ux/dashboard, research/morning_report]

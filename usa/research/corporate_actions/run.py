@@ -94,10 +94,20 @@ def main() -> int:
             continue
         per_ticker.append({"ticker": sym, "n_dividends": n_div, "n_splits": n_split})
 
-    df = pd.DataFrame(rows).drop_duplicates(subset=["ticker", "action_date"], keep="last") \
-                            .sort_values(["ticker", "action_date"]).reset_index(drop=True) \
-                            if rows else pd.DataFrame()
+    # APPEND-only: merge today's events with existing history, dedupe on (ticker, action_date).
     OUT_PARQUET.parent.mkdir(parents=True, exist_ok=True)
+    df_new = pd.DataFrame(rows) if rows else pd.DataFrame()
+    if OUT_PARQUET.exists() and not df_new.empty:
+        try:
+            df_old = pd.read_parquet(OUT_PARQUET)
+            df = pd.concat([df_old, df_new], ignore_index=True) \
+                    .drop_duplicates(subset=["ticker", "action_date"], keep="last") \
+                    .sort_values(["ticker", "action_date"]).reset_index(drop=True)
+        except Exception:
+            df = df_new.drop_duplicates(subset=["ticker", "action_date"], keep="last") \
+                        .sort_values(["ticker", "action_date"]).reset_index(drop=True)
+    else:
+        df = df_new
     df.to_parquet(OUT_PARQUET, index=False)
 
     # Recent events (last 30 days)

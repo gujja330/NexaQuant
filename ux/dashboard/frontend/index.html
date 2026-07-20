@@ -915,6 +915,8 @@ async function loadState() {
     'decision_attribution.json',
     'benchmark.json',
     'backend_validation_summary.json',
+    'market_intelligence_summary.json',
+    'ai_market_narrative.json',
   ];
   const entries = await Promise.all(targets.map(async n => [n.replace(/\.json$/, ''), await fetchJson(n)]));
   for (const [k, v] of entries) STATE[k] = v;
@@ -2126,6 +2128,19 @@ function portfolioHealth() {
       <span class="label">Backend Data Foundation</span>
       <div class="value ${vCls}" style="font-size: 16px;">${bv.verdict || '—'}</div>
       <div class="sub">${nPass}/${nTotal} datasets · confidence ${(bv.confidence || 0).toFixed(2)}</div>`}));
+  }
+
+  // Market Intelligence — Sprint 2 (regime + composite health)
+  const mi = STATE.market_intelligence_summary;
+  if (mi) {
+    const regime = (mi.regime || 'unknown').toLowerCase();
+    const cls = regime === 'bull' ? 'pos' : (regime === 'bear' || regime === 'stress') ? 'neg' : 'warn';
+    const cs = mi.composite_score != null ? mi.composite_score.toFixed(1) : '—';
+    const sigCount = Object.keys(mi.signals || {}).length;
+    strip.appendChild(el('div', {class: 'tile', html: `
+      <span class="label">Market Regime <span class="vs-tag live">Sprint 2</span></span>
+      <div class="value ${cls}" style="font-size: 16px;">${(mi.regime_label || regime).slice(0, 24)}</div>
+      <div class="sub">Health ${cs}/100 · ${sigCount} signals</div>`}));
   }
 
   // Prediction Accuracy — from Institutional Memory recommendation_history (global avg over per-ticker accuracy)

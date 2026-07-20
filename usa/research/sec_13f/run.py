@@ -112,8 +112,22 @@ def main() -> int:
             entry["error"] = f"{type(e).__name__}: {e}"
         per_ticker.append(entry)
 
-    df = pd.DataFrame(rows)
+    # APPEND-only: dedupe on (ticker, holder, date_reported) so a repeated
+    # daily pull is idempotent but position CHANGES quarter-over-quarter are preserved.
+    df_new = pd.DataFrame(rows)
     OUT_PARQUET.parent.mkdir(parents=True, exist_ok=True)
+    if OUT_PARQUET.exists() and not df_new.empty:
+        try:
+            df_old = pd.read_parquet(OUT_PARQUET)
+            df = pd.concat([df_old, df_new], ignore_index=True) \
+                    .drop_duplicates(subset=["ticker", "holder", "date_reported"],
+                                        keep="last") \
+                    .sort_values(["ticker", "date_reported", "holder"]) \
+                    .reset_index(drop=True)
+        except Exception:
+            df = df_new
+    else:
+        df = df_new
     df.to_parquet(OUT_PARQUET, index=False)
 
     inst_pcts = [x["institutional_pct"] for x in per_ticker

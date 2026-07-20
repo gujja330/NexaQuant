@@ -172,6 +172,7 @@ const REPORT_FILES = [
   "missed_opportunities.json", "recommendation_history.json",
   "winner_genome.json", "decision_attribution.json", "benchmark.json",
   "ops_check.json", "backend_validation_summary.json",
+  "market_intelligence_summary.json", "ai_market_narrative.json",
 ];
 
 async function loadState() {
@@ -364,6 +365,15 @@ function renderDashboard() {
       return `<div class="tile"><span class="label">Backend Data Foundation</span>
         <div class="value ${vCls}" style="font-size:16px;">${bv.verdict || '—'}</div>
         <div class="sub">${nPass}/${nTotal} datasets · conf ${(bv.confidence || 0).toFixed(2)}</div></div>`;
+    })() : ''}
+    ${STATE.market_intelligence_summary ? (() => {
+      const mi = STATE.market_intelligence_summary;
+      const regime = (mi.regime || 'unknown').toLowerCase();
+      const cls = regime === 'bull' ? 'pos' : (regime === 'bear' || regime === 'stress') ? 'neg' : 'warn';
+      const cs = mi.composite_score != null ? mi.composite_score.toFixed(1) : '—';
+      return `<div class="tile"><span class="label">Market Regime</span>
+        <div class="value ${cls}" style="font-size:16px;">${(mi.regime_label || regime).slice(0, 22)}</div>
+        <div class="sub">Health ${cs}/100 · ${Object.keys(mi.signals || {}).length} signals</div></div>`;
     })() : ''}
     <div class="tile"><span class="label">Positions Sized</span>
       <div class="value">${risk.n_positions ?? 0}</div>

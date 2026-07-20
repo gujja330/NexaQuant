@@ -108,8 +108,20 @@ def main() -> int:
             per_symbol.append({"symbol": sym, "label": label,
                                 "error": f"{type(e).__name__}: {e}"})
 
+    # APPEND-only: fetch today's rows, concat with existing history, dedupe on (symbol, date).
     OUT_PARQUET.parent.mkdir(parents=True, exist_ok=True)
-    pd.DataFrame(all_rows).to_parquet(OUT_PARQUET, index=False)
+    df_new = pd.DataFrame(all_rows)
+    if OUT_PARQUET.exists():
+        try:
+            df_old = pd.read_parquet(OUT_PARQUET)
+            df_full = pd.concat([df_old, df_new], ignore_index=True) \
+                        .drop_duplicates(subset=["symbol", "date"], keep="last") \
+                        .sort_values(["symbol", "date"]).reset_index(drop=True)
+        except Exception:
+            df_full = df_new
+    else:
+        df_full = df_new
+    df_full.to_parquet(OUT_PARQUET, index=False)
 
     summary = {
         "engine":      "usa_macro",

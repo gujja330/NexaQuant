@@ -1,0 +1,93 @@
+{
+  "engine": "market_intelligence",
+  "version": "v1.0",
+  "market": "india",
+  "currency": "INR",
+  "currency_symbol": "\u20b9",
+  "benchmark": "^NSEI",
+  "run_utc": "2026-07-20T08:47:20+00:00",
+  "asof": "2026-07-20",
+  "n_inputs": 20764,
+  "composite_score": 48.71,
+  "regime": "neutral",
+  "regime_label": "Neutral \u00b7 constructive",
+  "signals": {
+    "breadth_above_20ma": {
+      "key": "breadth_above_20ma",
+      "value": 44.1,
+      "label": "44.1% of universe above 20-day MA",
+      "evidence": {
+        "n_symbols": 229,
+        "n_above": 101
+      }
+    },
+    "breadth_at_52w_high": {
+      "key": "breadth_at_52w_high",
+      "value": 35.81,
+      "label": "35.8% within 5% of 52W high",
+      "evidence": {
+        "n_symbols": 229,
+        "n_at_high": 82,
+        "threshold": 0.95
+      }
+    },
+    "liquidity_5v20": {
+      "key": "liquidity_5v20",
+      "value": -50.21,
+      "label": "volume falling (-50.2%)",
+      "evidence": {
+        "n_symbols": 228,
+        "median_ratio": 0.498
+      }
+    },
+    "benchmark_5d_pct": {
+      "key": "benchmark_5d_pct",
+      "value": 0.2,
+      "label": "^NSEI 5-day: +0.20%",
+      "evidence": {
+        "symbol": "^NSEI",
+        "window_days": 5
+      }
+    },
+    "benchmark_1m_pct": {
+      "key": "benchmark_1m_pct",
+      "value": 0.3,
+      "label": "^NSEI 1-month: +0.30%",
+      "evidence": {
+        "symbol": "^NSEI",
+        "window_days": 21
+      }
+    },
+    "vix": {
+      "key": "vix",
+      "value": 13.22,
+      "label": "VIX 13.22 (calm)",
+      "evidence": {
+        "symbol": "INDIAVIX"
+      }
+    },
+    "news_pulse": {
+      "key": "news_pulse",
+      "value": 0.208,
+      "label": "news pulse +0.21 (pos=110 \u00b7 neg=20)",
+      "evidence": {
+        "n_tickers": 150,
+        "n_positive": 110,
+        "n_negative": 20
+      }
+    },
+    "flow_pulse": {
+      "key": "flow_pulse",
+      "value": 11318.17,
+      "label": "FII net \u20b90 Cr \u00b7 DII net \u20b911,318 Cr",
+      "evidence": {
+        "fii_net": 0,
+        "dii_net": 11318.17,
+        "n_rows": 4
+      }
+    }
+  },
+  "notes": [
+    "engine vv1.0 \u00b7 deterministic \u00b7 6 weighted components"
+  ]
+}

@@ -218,6 +218,34 @@ datasets:
     freshness_sla_trading_days: 1
     consumers: [usa/dashboard/frontend]
 
+  # ── SPRINT 2 · Market Intelligence + AI ─────────────────────────
+  - name: market_intelligence
+    path: usa/reports/market_intelligence.json
+    producer: usa/research/market_intelligence/run.py
+    kind: intelligence
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, version, market, run_utc, asof, composite_score, regime, signals]
+    consumers: [usa/dashboard/frontend, backend/ai/market_analyst]
+
+  - name: market_intelligence_summary
+    path: usa/reports/market_intelligence_summary.json
+    producer: usa/research/market_intelligence/run.py
+    kind: intelligence
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, market, asof, composite_score, regime, signals]
+    consumers: [usa/dashboard/frontend, usa/scripts/usa_ops_check]
+
+  - name: ai_market_narrative
+    path: usa/reports/ai_market_narrative.json
+    producer: usa/research/market_intelligence/run.py
+    kind: ai_narrative
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, version, market, run_utc, agents]
+    consumers: [usa/dashboard/frontend]
+
   # ── SPRINT 1B · INGESTION LAYER (all WIRED into usa_daily.py) ─────
   - name: fundamentals
     path: usa/reports/fundamentals.json

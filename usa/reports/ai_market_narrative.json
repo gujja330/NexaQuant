@@ -1,0 +1,290 @@
+{
+  "engine": "ai_market_narrative",
+  "version": "v1.0",
+  "market": "usa",
+  "run_utc": "2026-07-20T08:47:23+00:00",
+  "asof": "2026-07-20",
+  "agents": {
+    "market_analyst": {
+      "agent": "market_analyst",
+      "version": "v1.0",
+      "market": "usa",
+      "asof": "2026-07-20",
+      "headline": "Neutral \u00b7 constructive \u00b7 Composite Market Health 49.7/100.",
+      "narrative": "Neutral \u00b7 constructive \u00b7 Composite Market Health 49.7/100.\n\nBreadth: 58.8% of universe above 20-day MA. 38.2% within 5% of 52W high. Mixed participation \u2014 bulls have not yet won the tape.\n\n^GSPC 5-day: -1.55%; ^GSPC 1-month: +0.51%. Monthly gain but short-term pullback \u2014 watch the retest.\n\nVolatility: VIX 18.48 (moderate). Bond-market vol: MOVE 70.88. Moderate vol; normal operating range.\n\nMacro: 10Y 4.54% \u00b7 UUP 28.33 \u00b7 Gold $4,030 \u00b7 WTI $81.81.\n\nSector rotation: leaders \u2014 Financials (+7.8%), Healthcare (+5.9%), Consumer Staples (+3.8%); laggards \u2014 Gold (-10.4%), Technology (-9.1%), Emerging Markets (-8.4%).\n\nPulse: news pulse +0.14 (pos=21 \u00b7 neg=4) \u00b7 insider net $-1,987,267,535 (buys $518,555 / sells $1,987,786,090).\n\nSupportive: 58.8% of universe above 20-day MA",
+      "findings": [
+        {
+          "signal": "breadth_above_20ma",
+          "value": 58.82,
+          "label": "58.8% of universe above 20-day MA",
+          "evidence": {
+            "n_symbols": 34,
+            "n_above": 20
+          }
+        },
+        {
+          "signal": "breadth_at_52w_high",
+          "value": 38.24,
+          "label": "38.2% within 5% of 52W high",
+          "evidence": {
+            "n_symbols": 34,
+            "n_at_high": 13,
+            "threshold": 0.95
+          }
+        },
+        {
+          "signal": "liquidity_5v20",
+          "value": -15.24,
+          "label": "volume falling (-15.2%)",
+          "evidence": {
+            "n_symbols": 33,
+            "median_ratio": 0.848
+          }
+        },
+        {
+          "signal": "benchmark_5d_pct",
+          "value": -1.55,
+          "label": "^GSPC 5-day: -1.55%",
+          "evidence": {
+            "symbol": "^GSPC",
+            "window_days": 5
+          }
+        },
+        {
+          "signal": "benchmark_1m_pct",
+          "value": 0.51,
+          "label": "^GSPC 1-month: +0.51%",
+          "evidence": {
+            "symbol": "^GSPC",
+            "window_days": 21
+          }
+        },
+        {
+          "signal": "vix",
+          "value": 18.48,
+          "label": "VIX 18.48 (moderate)",
+          "evidence": {
+            "symbol": "^VIX"
+          }
+        },
+        {
+          "signal": "move",
+          "value": 70.88,
+          "label": "MOVE 70.88",
+          "evidence": {
+            "symbol": "^MOVE"
+          }
+        },
+        {
+          "signal": "macro",
+          "value": 10,
+          "label": "10 macro indicators ingested",
+          "evidence": {
+            "BZ=F": {
+              "label": "Brent Crude futures",
+              "last": 88.56,
+              "chg_1d_pct": 0.522,
+              "chg_1m_pct": -4.866
+            },
+            "CL=F": {
+              "label": "WTI Crude futures",
+              "last": 81.81,
+              "chg_1d_pct": -0.824,
+              "chg_1m_pct": -9.642
+            },
+            "GC=F": {
+              "label": "Gold futures",
+              "last": 4029.5,
+              "chg_1d_pct": 0.419,
+              "chg_1m_pct": -7.092
+            },
+            "UUP": {
+              "label": "US Dollar Index (Invesco DB proxy)",
+              "last": 28.33,
+              "chg_1d_pct": -0.035,
+              "chg_1m_pct": 1.76
+            },
+            "^FVX": {
+              "label": "5Y Treasury yield",
+              "last": 4.273,
+              "chg_1d_pct": -0.21,
+              "chg_1m_pct": 2.03
+            },
+            "^IRX": {
+              "label": "13W T-Bill yield",
+              "last": 3.707,
+              "chg_1d_pct": 0.27,
+              "chg_1m_pct": 2.403
+            },
+            "^MOVE": {
+              "label": "Merrill bond volatility",
+              "last": 70.88,
+              "chg_1d_pct": 3.991,
+              "chg_1m_pct": -0.393
+            },
+            "^TNX": {
+              "label": "10Y Treasury yield",
+              "last": 4.541,
+              "chg_1d_pct": -0.613,
+              "chg_1m_pct": 1.43
+            },
+            "^TYX": {
+              "label": "30Y Treasury yield",
+              "last": 5.064,
+              "chg_1d_pct": -0.667,
+              "chg_1m_pct": 1.728
+            },
+            "^VIX": {
+              "label": "S&P 500 volatility",
+              "last": 18.48,
+              "chg_1d_pct": -1.545,
+              "chg_1m_pct": -14.086
+            }
+          }
+        },
+        {
+          "signal": "sector_rotation",
+          "value": 20,
+          "label": "top: Financials +7.8%; bottom: Gold -10.4%",
+          "evidence": {
+            "top_3": [
+              {
+                "symbol": "XLF",
+                "label": "Financials",
+                "return_pct": 7.8
+              },
+              {
+                "symbol": "XLV",
+                "label": "Healthcare",
+                "return_pct": 5.92
+              },
+              {
+                "symbol": "XLP",
+                "label": "Consumer Staples",
+                "return_pct": 3.84
+              }
+            ],
+            "bottom_3": [
+              {
+                "symbol": "GLD",
+                "label": "Gold",
+                "return_pct": -10.42
+              },
+              {
+                "symbol": "XLK",
+                "label": "Technology",
+                "return_pct": -9.1
+              },
+              {
+                "symbol": "EEM",
+                "label": "Emerging Markets",
+                "return_pct": -8.41
+              }
+            ]
+          }
+        },
+        {
+          "signal": "news_pulse",
+          "value": 0.142,
+          "label": "news pulse +0.14 (pos=21 \u00b7 neg=4)",
+          "evidence": {
+            "n_tickers": 30,
+            "n_positive": 21,
+            "n_negative": 4
+          }
+        },
+        {
+          "signal": "flow_pulse",
+          "value": -1987267535.0,
+          "label": "insider net $-1,987,267,535 (buys $518,555 / sells $1,987,786,090)",
+          "evidence": {
+            "insider_buy": 518555.0,
+            "insider_sell": 1987786090.0,
+            "net": -1987267535.0
+          }
+        }
+      ],
+      "evidence": {
+        "n_signals": 11,
+        "composite_score": 49.69,
+        "regime": "neutral"
+      },
+      "citations": [
+        "backend/market_intelligence/engine.py (vv1.0)",
+        "market_intelligence.signals.breadth_above_20ma",
+        "market_intelligence.signals.breadth_at_52w_high",
+        "market_intelligence.signals.liquidity_5v20",
+        "market_intelligence.signals.benchmark_5d_pct",
+        "market_intelligence.signals.benchmark_1m_pct",
+        "market_intelligence.signals.vix",
+        "market_intelligence.signals.move",
+        "market_intelligence.signals.macro",
+        "market_intelligence.signals.sector_rotation",
+        "market_intelligence.signals.news_pulse",
+        "market_intelligence.signals.flow_pulse"
+      ],
+      "confidence": 1.0,
+      "caveats": [],
+      "determinism": "template"
+    },
+    "data_quality": {
+      "agent": "data_quality",
+      "version": "v1.0",
+      "market": "usa",
+      "asof": "2026-07-20",
+      "headline": "All 36 registered datasets are within their SLAs.",
+      "narrative": "All 36 registered datasets are within their SLAs.\n\nComposite confidence is 0.921 (weighted geometric mean across freshness \u00b7 schema \u00b7 completeness \u00b7 quality \u00b7 lineage).\n\nNo dataset issues flagged.\n\nNo immediate action required. Continue normal cadence.",
+      "findings": [],
+      "evidence": {
+        "n_datasets": 36,
+        "verdict": "PASS",
+        "confidence": 0.9207,
+        "counts": {
+          "PASS": 36,
+          "WARNING": 0,
+          "FAIL": 0,
+          "NOT_APPLICABLE": 0
+        },
+        "n_top_issues": 0
+      },
+      "citations": [
+        "usa/reports/backend_validation_summary.json"
+      ],
+      "confidence": 0.9207,
+      "caveats": [],
+      "determinism": "template"
+    },
+    "evidence_summarizer": {
+      "agent": "evidence_summarizer",
+      "version": "v1.0",
+      "market": "usa",
+      "asof": "2026-07-20",
+      "headline": "Data snapshot \u00b7 USA.",
+      "narrative": "Data snapshot \u00b7 USA. News: 30 tickers scored across 240 headlines. Average sentiment +0.14 (positive=21, negative=4). Fundamentals: 30 rows \u00b7 ROE median 45.7% \u00b7 D/E median 184.55 \u00b7 P/E median 27.9. Institutional flows: 104 rows, net -1,987,267,535 USD. Earnings: 30 tickers have a next-earnings date on the calendar. Corporate actions: 101 dividend event(s), 2 split(s) in the trailing window. Macro: 10 indicators (BZ=F 88.56, CL=F 81.81, GC=F 4029.50, UUP 28.33).",
+      "findings": [],
+      "evidence": {
+        "kinds_present": [
+          "corporate_action",
+          "earnings",
+          "flow",
+          "flow_proxy",
+          "fundamentals",
+          "holding",
+          "macro",
+          "news"
+        ]
+      },
+      "citations": [
+        "canonical.news (30 rows)",
+        "canonical.fundamentals (30 rows)",
+        "canonical.flow (104 rows)",
+        "canonical.earnings (30 rows)",
+        "canonical.corporate_action (103 rows)",
+        "canonical.macro (10 rows)"
+      ],
+      "confidence": 1.0,
+      "caveats": [],
+      "determinism": "template"
+    }
+  }
+}

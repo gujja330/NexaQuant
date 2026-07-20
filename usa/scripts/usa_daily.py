@@ -139,6 +139,16 @@ STEPS = [
         "optional": True,
     },
     {
+        "name":     "market_intelligence",
+        "desc":     "Sprint 2 · USA Market Intelligence + AI narratives (USD)",
+        "script":   "usa/research/market_intelligence/run.py",
+        "produces": ["usa/reports/market_intelligence.json",
+                       "usa/reports/market_intelligence_summary.json",
+                       "usa/reports/ai_market_narrative.json"],
+        "requires": [],
+        "optional": True,
+    },
+    {
         "name":     "recommendations",
         "desc":     "USA Adaptive Recommendation Engine (technicals-based)",
         "script":   "usa/research/recommendations/run.py",

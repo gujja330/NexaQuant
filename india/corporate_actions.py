@@ -81,7 +81,16 @@ def main() -> int:
         # dedupe on (ticker, action_date) — a repeat pull is idempotent
         df = df.drop_duplicates(subset=["ticker", "action_date"], keep="last") \
                .sort_values(["ticker", "action_date"]).reset_index(drop=True)
+    # APPEND-only: merge with existing corpus, dedupe on (ticker, action_date).
     OUT.parent.mkdir(parents=True, exist_ok=True)
+    if OUT.exists() and not df.empty:
+        try:
+            df_old = pd.read_parquet(OUT)
+            df = pd.concat([df_old, df], ignore_index=True) \
+                    .drop_duplicates(subset=["ticker", "action_date"], keep="last") \
+                    .sort_values(["ticker", "action_date"]).reset_index(drop=True)
+        except Exception:
+            pass
     df.to_parquet(OUT, index=False)
     n_div = int((df.get("dividend", pd.Series(dtype=float)) > 0).sum()) if not df.empty else 0
     n_split = int((df.get("split_ratio", pd.Series(dtype=float)) > 0).sum()) if not df.empty else 0

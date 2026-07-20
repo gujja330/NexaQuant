@@ -1,0 +1,169 @@
+{
+  "engine": "ai_market_narrative",
+  "version": "v1.0",
+  "market": "india",
+  "run_utc": "2026-07-20T08:47:20+00:00",
+  "asof": "2026-07-20",
+  "agents": {
+    "market_analyst": {
+      "agent": "market_analyst",
+      "version": "v1.0",
+      "market": "india",
+      "asof": "2026-07-20",
+      "headline": "Neutral \u00b7 constructive \u00b7 Composite Market Health 48.7/100.",
+      "narrative": "Neutral \u00b7 constructive \u00b7 Composite Market Health 48.7/100.\n\nBreadth: 44.1% of universe above 20-day MA. 35.8% within 5% of 52W high. Mixed participation \u2014 bulls have not yet won the tape.\n\n^NSEI 5-day: +0.20%; ^NSEI 1-month: +0.30%. Positive short-term and monthly momentum.\n\nVolatility: VIX 13.22 (calm). Calm tape; complacency risk is the classic setup for a downside surprise.\n\nPulse: news pulse +0.21 (pos=110 \u00b7 neg=20) \u00b7 FII net \u20b90 Cr \u00b7 DII net \u20b911,318 Cr.\n\nSupportive: news pulse +0.21 (pos=110 \u00b7 neg=20)",
+      "findings": [
+        {
+          "signal": "breadth_above_20ma",
+          "value": 44.1,
+          "label": "44.1% of universe above 20-day MA",
+          "evidence": {
+            "n_symbols": 229,
+            "n_above": 101
+          }
+        },
+        {
+          "signal": "breadth_at_52w_high",
+          "value": 35.81,
+          "label": "35.8% within 5% of 52W high",
+          "evidence": {
+            "n_symbols": 229,
+            "n_at_high": 82,
+            "threshold": 0.95
+          }
+        },
+        {
+          "signal": "liquidity_5v20",
+          "value": -50.21,
+          "label": "volume falling (-50.2%)",
+          "evidence": {
+            "n_symbols": 228,
+            "median_ratio": 0.498
+          }
+        },
+        {
+          "signal": "benchmark_5d_pct",
+          "value": 0.2,
+          "label": "^NSEI 5-day: +0.20%",
+          "evidence": {
+            "symbol": "^NSEI",
+            "window_days": 5
+          }
+        },
+        {
+          "signal": "benchmark_1m_pct",
+          "value": 0.3,
+          "label": "^NSEI 1-month: +0.30%",
+          "evidence": {
+            "symbol": "^NSEI",
+            "window_days": 21
+          }
+        },
+        {
+          "signal": "vix",
+          "value": 13.22,
+          "label": "VIX 13.22 (calm)",
+          "evidence": {
+            "symbol": "INDIAVIX"
+          }
+        },
+        {
+          "signal": "news_pulse",
+          "value": 0.208,
+          "label": "news pulse +0.21 (pos=110 \u00b7 neg=20)",
+          "evidence": {
+            "n_tickers": 150,
+            "n_positive": 110,
+            "n_negative": 20
+          }
+        },
+        {
+          "signal": "flow_pulse",
+          "value": 11318.17,
+          "label": "FII net \u20b90 Cr \u00b7 DII net \u20b911,318 Cr",
+          "evidence": {
+            "fii_net": 0,
+            "dii_net": 11318.17,
+            "n_rows": 4
+          }
+        }
+      ],
+      "evidence": {
+        "n_signals": 8,
+        "composite_score": 48.71,
+        "regime": "neutral"
+      },
+      "citations": [
+        "backend/market_intelligence/engine.py (vv1.0)",
+        "market_intelligence.signals.breadth_above_20ma",
+        "market_intelligence.signals.breadth_at_52w_high",
+        "market_intelligence.signals.liquidity_5v20",
+        "market_intelligence.signals.benchmark_5d_pct",
+        "market_intelligence.signals.benchmark_1m_pct",
+        "market_intelligence.signals.vix",
+        "market_intelligence.signals.news_pulse",
+        "market_intelligence.signals.flow_pulse"
+      ],
+      "confidence": 0.9,
+      "caveats": [],
+      "determinism": "template"
+    },
+    "data_quality": {
+      "agent": "data_quality",
+      "version": "v1.0",
+      "market": "india",
+      "asof": "2026-07-20",
+      "headline": "All 25 registered datasets are within their SLAs.",
+      "narrative": "All 25 registered datasets are within their SLAs.\n\nComposite confidence is 0.917 (weighted geometric mean across freshness \u00b7 schema \u00b7 completeness \u00b7 quality \u00b7 lineage).\n\nNo dataset issues flagged.\n\nNo immediate action required. Continue normal cadence.",
+      "findings": [],
+      "evidence": {
+        "n_datasets": 25,
+        "verdict": "PASS",
+        "confidence": 0.9175,
+        "counts": {
+          "PASS": 25,
+          "WARNING": 0,
+          "FAIL": 0,
+          "NOT_APPLICABLE": 0
+        },
+        "n_top_issues": 0
+      },
+      "citations": [
+        "reports/backend_validation_summary.json"
+      ],
+      "confidence": 0.9175,
+      "caveats": [],
+      "determinism": "template"
+    },
+    "evidence_summarizer": {
+      "agent": "evidence_summarizer",
+      "version": "v1.0",
+      "market": "india",
+      "asof": "2026-07-20",
+      "headline": "Data snapshot \u00b7 INDIA.",
+      "narrative": "Data snapshot \u00b7 INDIA. News: 150 tickers scored across 0 headlines. Average sentiment +0.21 (positive=110, negative=20). Fundamentals: 228 rows \u00b7 ROE median 17.6% \u00b7 D/E median 75.83 \u00b7 P/E median 53.9. Institutional flows: 4 rows, net +11,318 INR. Earnings: 207 tickers have a next-earnings date on the calendar. Corporate actions: 264 dividend event(s), 14 split(s) in the trailing window.",
+      "findings": [],
+      "evidence": {
+        "kinds_present": [
+          "corporate_action",
+          "earnings",
+          "flow",
+          "flow_proxy",
+          "fundamentals",
+          "macro",
+          "news"
+        ]
+      },
+      "citations": [
+        "canonical.news (150 rows)",
+        "canonical.fundamentals (228 rows)",
+        "canonical.flow (4 rows)",
+        "canonical.earnings (207 rows)",
+        "canonical.corporate_action (278 rows)"
+      ],
+      "confidence": 0.9,
+      "caveats": [],
+      "determinism": "template"
+    }
+  }
+}
