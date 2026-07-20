@@ -325,19 +325,82 @@ def render_weekly_review(ctx: Context) -> str:
 # 8. New Buy Alert (fresh entry)
 # ═══════════════════════════════════════════════════════════════════════
 def render_new_buys_summary(ctx: Context, n: int = 5) -> str:
+    """Legacy-style formatter — matches the operator's tracking template:
+
+        TICKER · Sector · Rank #N
+            ₹CMP → Target ₹T  🟢 +X.X% · +Y/sh
+            BUY · Stop ₹S (-Z%) · Hold Ndays · Score S/100
+
+    Rendered so the operator can visually scan the same shape as the
+    sealed legacy paper-portfolio Telegram.
+    """
     buys = top_buys(ctx, n=n)
     if not buys:
-        return f"{icons.STATUS['info']} No fresh buys today."
-    lines = [f"{icons.STATUS['buy']} *NEW BUYS ({len(buys)})*", ""]
+        return f"{icons.STATUS['info']} No fresh buys today. See Current Holdings."
+
+    lines = [
+        f"{icons.STATUS['buy']} *TOP OPPORTUNITIES*",
+        f"━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+    ]
     for b in buys:
-        conf = b.get("confidence")
+        ticker = b.get("ticker") or "?"
+        sector = b.get("sector") or "—"
+        rank   = b.get("overall_rank")
+        action = b.get("recommendation") or "Buy"
+        conf   = b.get("confidence")
         conf_pct = None if conf is None else float(conf) * 100
-        icon = icons.sector_icon(b.get("sector", ""))
-        lines.append(
-            f"  {icon} `{b.get('ticker')}`   "
-            f"{icons.confidence_stars(conf_pct)}   "
-            f"conf {_fmt_num(conf_pct, 0)}%"
-        )
+        score  = b.get("composite_decision_score")
+
+        ee = b.get("entry_exit") or {}
+        cmp_val  = ee.get("latest_close")
+        target   = ee.get("target_1")
+        stop     = ee.get("stop_loss")
+        stop_pct = ee.get("stop_loss_pct")     # already percent, negative
+        hold     = ee.get("expected_holding_days")
+
+        # Upside/gain
+        if cmp_val and target:
+            upside_pct = (target - cmp_val) / cmp_val * 100
+            gain_per_sh = target - cmp_val
+        else:
+            upside_pct = None
+            gain_per_sh = None
+
+        up_icon = "🟢" if (upside_pct or 0) > 0 else "🔴"
+
+        # Header row: TICKER · Sector · rank
+        header = f"`{ticker}` · {sector}"
+        if rank:
+            header += f" · #{int(rank)}"
+        lines.append(header)
+
+        # Price row: CMP → Target  icon +X.X% · +Y/sh
+        price_row = f"    "
+        if cmp_val is not None:
+            price_row += f"₹{cmp_val:,.2f}"
+        if target is not None:
+            price_row += f" → ₹{target:,.2f}"
+        if upside_pct is not None:
+            price_row += f"  {up_icon} +{upside_pct:.1f}%"
+            if gain_per_sh is not None:
+                price_row += f" · +₹{gain_per_sh:,.0f}/sh"
+        lines.append(price_row)
+
+        # Action row: BUY · Stop ₹S (-Z%) · Hold Nd · Score S · Conf C%
+        action_bits = [action.upper() if action else "BUY"]
+        if stop is not None:
+            stop_str = f"Stop ₹{stop:,.2f}"
+            if stop_pct is not None:
+                stop_str += f" ({stop_pct:+.1f}%)"
+            action_bits.append(stop_str)
+        if hold:
+            action_bits.append(f"Hold {int(hold)}d")
+        if score is not None:
+            action_bits.append(f"Score {score:.0f}/100")
+        if conf_pct is not None:
+            action_bits.append(f"Conf {conf_pct:.0f}%")
+        lines.append("    " + " · ".join(action_bits))
+
     return "\n".join(lines)
 
 
