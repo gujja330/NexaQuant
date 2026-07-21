@@ -62,7 +62,7 @@ jobs:
         if: steps.guard.outputs.run == 'true'
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements-dashboard.txt gspread google-auth yfinance
+          pip install -r requirements-dashboard.txt gspread google-auth yfinance pyyaml
 
       - name: Refresh market data (append latest bars via yfinance)
         if: steps.guard.outputs.run == 'true'
