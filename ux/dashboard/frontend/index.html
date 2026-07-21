@@ -930,6 +930,9 @@ async function loadState() {
     'risk_report.json',
     'sized_positions.json',
     'ai_risk_narrative.json',
+    'portfolio_v3.json',
+    'portfolio_diff.json',
+    'ai_portfolio_narrative.json',
   ];
   const entries = await Promise.all(targets.map(async n => [n.replace(/\.json$/, ''), await fetchJson(n)]));
   for (const [k, v] of entries) STATE[k] = v;
@@ -2216,6 +2219,21 @@ function portfolioHealth() {
       <span class="label">Risk Engine <span class="vs-tag live">Sprint 4</span></span>
       <div class="value ${cls}" style="font-size: 14px;">${rr.n_positions || 0} sized · ${v}</div>
       <div class="sub">gross ${gross}% · cash ${cash}% · HHI ${(rr.hhi_concentration || 0).toFixed(3)}</div>`}));
+  }
+
+  // Portfolio Engine — Sprint 5 (N positions + turnover + rebalance actions)
+  const pv3 = STATE.portfolio_v3;
+  const pdf = STATE.portfolio_diff;
+  if (pv3 && pv3.snapshot) {
+    const s = pv3.snapshot;
+    const t = pdf || {};
+    const cash = ((s.cash_pct || 0) * 100).toFixed(1);
+    const turnover = ((t.turnover_pct || 0) * 100).toFixed(1);
+    const effn = (s.effective_n || 0).toFixed(1);
+    strip.appendChild(el('div', {class: 'tile', html: `
+      <span class="label">Portfolio v3 <span class="vs-tag live">Sprint 5</span></span>
+      <div class="value" style="font-size: 14px;">${s.n_positions || 0} names · effN ${effn}</div>
+      <div class="sub">cash ${cash}% · turnover ${turnover}% · OPEN ${t.n_open || 0} · CLOSE ${t.n_close || 0}</div>`}));
   }
 
   // Prediction Accuracy — from Institutional Memory recommendation_history (global avg over per-ticker accuracy)

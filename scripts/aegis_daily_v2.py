@@ -155,6 +155,17 @@ STEPS = [
         "optional": True,
     },
     {
+        "name": "portfolio_engine",
+        "desc": "Sprint 5 · Portfolio Engine (N-name construction + cash policy + rebalance diff + AI analyst)",
+        "script": "india/portfolio_engine/run.py",
+        "produces": ["reports/portfolio_v3.json",
+                       "reports/portfolio_diff.json",
+                       "reports/portfolio_state.json",
+                       "reports/ai_portfolio_narrative.json"],
+        "requires": ["reports/sized_positions.json", "configs/portfolio_config.yaml"],
+        "optional": True,
+    },
+    {
         "name": "adaptive_rec_v2",
         "desc": "Adaptive Rec Engine v2.0 (confidence rebuild + Precision@K)",
         "script": "research/adaptive_rec_v2/run.py",

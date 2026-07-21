@@ -407,6 +407,45 @@ datasets:
       required_keys: [engine, version, market, run_utc, output]
     consumers: [usa/dashboard/frontend]
 
+  # ── SPRINT 5 · Portfolio Engine ──────────────────────────────────
+  - name: portfolio_v3
+    path: usa/reports/portfolio_v3.json
+    producer: usa/research/portfolio_engine/run.py
+    kind: portfolio
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, version, market, run_utc, asof, currency, regime,
+                       config_snapshot, snapshot, model_stamp]
+    consumers: [usa/dashboard/frontend, usa/research/learning (Sprint 6+)]
+
+  - name: portfolio_diff
+    path: usa/reports/portfolio_diff.json
+    producer: usa/research/portfolio_engine/run.py
+    kind: portfolio
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, market, asof, n_open, n_close, n_increase, n_decrease,
+                       n_hold, turnover_pct, instructions]
+    consumers: [usa/dashboard/frontend, usa/research/execution (Sprint 7+)]
+
+  - name: portfolio_state
+    path: usa/reports/portfolio_state.json
+    producer: usa/research/portfolio_engine/run.py
+    kind: portfolio
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [market, asof, n_positions, positions]
+    consumers: [usa/research/portfolio_engine (next-day prior state)]
+
+  - name: ai_portfolio_narrative
+    path: usa/reports/ai_portfolio_narrative.json
+    producer: usa/research/portfolio_engine/run.py
+    kind: ai_narrative
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, version, market, run_utc, output]
+    consumers: [usa/dashboard/frontend]
+
   # ── SPRINT 1B · INGESTION LAYER (all WIRED into usa_daily.py) ─────
   - name: fundamentals
     path: usa/reports/fundamentals.json

@@ -1,0 +1,27 @@
+# AEGIS Portfolio Configuration — Sprint 5
+#
+# Operator-owned. Every change to this file is hashed into the Experiment
+# Registry so historical replays can reconstruct which config was in effect.
+
+market_defaults:
+  india:
+    target_n_positions:        20         # N-name portfolio cap
+    min_position_size:         0.005      # 0.5% floor — smaller sized positions get dropped
+    cash_reserve_min:          0.05       # 5% cash floor in normal regimes
+    cash_reserve_stress:       0.25       # 25% cash floor in stress regime
+    rebalance_threshold_bps:   25         # 0.25% — trades below this are HOLD (no-op)
+    rebalance_frequency:       "weekly"   # informational only in Sprint 5
+
+  usa:
+    target_n_positions:        15
+    min_position_size:         0.01       # 1% floor for USA (fewer, larger positions)
+    cash_reserve_min:          0.05
+    cash_reserve_stress:       0.20
+    rebalance_threshold_bps:   30
+    rebalance_frequency:       "weekly"
+
+global:
+  ai_portfolio_analyst:
+    enabled:                   true
+  turnover_warning_threshold:  0.30       # portfolio_diff.turnover_pct > this → WARNING
+  effective_n_min:             8.0        # if effective_n < this → concentration warning

@@ -201,6 +201,17 @@ STEPS = [
         "optional": True,
     },
     {
+        "name":     "portfolio_engine",
+        "desc":     "Sprint 5 · USA Portfolio Engine (N-name construction + cash + rebalance diff, USD)",
+        "script":   "usa/research/portfolio_engine/run.py",
+        "produces": ["usa/reports/portfolio_v3.json",
+                       "usa/reports/portfolio_diff.json",
+                       "usa/reports/portfolio_state.json",
+                       "usa/reports/ai_portfolio_narrative.json"],
+        "requires": ["usa/reports/sized_positions.json", "configs/portfolio_config.yaml"],
+        "optional": True,
+    },
+    {
         "name":     "recommendations",
         "desc":     "USA Adaptive Recommendation Engine (technicals-based)",
         "script":   "usa/research/recommendations/run.py",

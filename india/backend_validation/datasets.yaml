@@ -484,3 +484,42 @@ datasets:
     schema:
       required_keys: [engine, version, market, run_utc, output]
     consumers: [ux/dashboard]
+
+  # ── SPRINT 5 · Portfolio Engine ──────────────────────────────────
+  - name: portfolio_v3
+    path: reports/portfolio_v3.json
+    producer: india/portfolio_engine/run.py
+    kind: portfolio
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, version, market, run_utc, asof, currency, regime,
+                       config_snapshot, snapshot, model_stamp]
+    consumers: [ux/dashboard, backend/learning (Sprint 6+), backend/execution (Sprint 7+)]
+
+  - name: portfolio_diff
+    path: reports/portfolio_diff.json
+    producer: india/portfolio_engine/run.py
+    kind: portfolio
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, market, asof, n_open, n_close, n_increase, n_decrease,
+                       n_hold, turnover_pct, instructions]
+    consumers: [ux/dashboard, backend/execution (Sprint 7+)]
+
+  - name: portfolio_state
+    path: reports/portfolio_state.json
+    producer: india/portfolio_engine/run.py
+    kind: portfolio
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [market, asof, n_positions, positions]
+    consumers: [india/portfolio_engine (next-day prior state), backend/learning]
+
+  - name: ai_portfolio_narrative
+    path: reports/ai_portfolio_narrative.json
+    producer: india/portfolio_engine/run.py
+    kind: ai_narrative
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, version, market, run_utc, output]
+    consumers: [ux/dashboard]
