@@ -1,6 +1,6 @@
 # AEGIS Executive Dashboard
 
-**Last updated:** 2026-07-21 · Sprint 7.5 shipped · **Phase 3 Roadmap LOCKED**
+**Last updated:** 2026-07-21 · Sprint 7.6 shipped · **Phase 3 Roadmap LOCKED**
 **Overwritten every sprint** — always the current state of AEGIS.
 **Roadmap authority:** [`docs/AEGIS_PHASE3_ROADMAP.md`](../docs/AEGIS_PHASE3_ROADMAP.md)
 
@@ -18,8 +18,10 @@
 ✅ Learning Engine            Sprint 6     · outcome ledger + attributions + calibration
 ✅ Macro & Intermarket Intel  Sprint 6.5   · commodities+FX+bonds+CB+VIX+rotation+regime+impact matrix+KG
 ✅ Execution Simulator        Sprint 7     · fills + slippage + equity curve + statistics
-✅ Persistence + Factor Lib   Sprint 7.5   · append-only history for every engine + 22-factor library ← WE ARE HERE
-⚪ Walk-Forward Validation    Sprint 8     · pending  (unblocked; ledgers now populate daily)
+✅ Persistence + Factor Lib   Sprint 7.5   · append-only history for every engine + 22-factor library
+✅ Historical Backfill+Replay Sprint 7.6   · replay framework + 35 USA + 26 India feature snapshots  ← WE ARE HERE
+⚪ Full-Pipeline Replay       Sprint 7.7   · pending  (headless engine drivers for rec/risk/portfolio/execution)
+⚪ Walk-Forward Validation    Sprint 8     · pending  (unblocked; feature snapshots + ledgers accumulating)
 ⚪ Institutional AI Auditor   Sprint 9     · pending  (EXPANDED — per-trade multi-dim root-cause report)
 ⚪ Research Factory           Sprint 10    · pending  (Phase 2 terminal engine)
 ──────────────────────────────────────────────────────────────────────
@@ -95,8 +97,10 @@ Sprint 6  (learning engine)                   19/19  ✅
 Sprint 7  (execution simulator + statistics)  26/26  ✅
 Sprint 6.5 (macro & intermarket intelligence) 22/22  ✅
 Sprint 7.5 (persistence + factor library)     18/18  ✅
+Sprint 7.6 (historical backfill + replay)     19/19  ✅
+Telegram HTTP 400 fallback                    10/10  ✅
 ─────────────────────────────────────────────────────────
-TOTAL                                        218/218 ✅
+TOTAL                                        237/237 ✅
 ```
 
 ## Backend Validation
@@ -176,15 +180,28 @@ Neither the Risk Engine, Portfolio Engine, nor Execution Simulator is defective.
 
 ---
 
+## Sprint 7.6 · Backfill State (2026-07-21)
+
+| Artifact | India | USA |
+|---|---|---|
+| Feature snapshots on disk | **26 days** (2026-06-15 → 07-21) | **35 days** (2026-06-01 → 07-21) |
+| Walk-forward verdict | PARTIAL | PARTIAL |
+| Rec / Risk / Portfolio / Execution history rows | 0 (Sprint 7.7) | 0 (Sprint 7.7) |
+| Macro history rows | 0 (Sprint 7.7 fetcher) | 1 |
+| Factor library rows | 22 | 22 |
+
+Backfill CLI: `python -m backend.replay backfill --from 2026-06-01 --to 2026-07-21 --market usa --steps features --resume` (0.64 s/day USA · 2.6 s/day India).
+
+---
+
 ## NEXT BOTTLENECK
 
-**Historical depth for meaningful walk-forward.** Sprint 7.5 architecturally unblocks Sprint 8 — every engine now writes to its `_history.parquet` on every run — but the ledgers are **empty on day 1**. Sprint 8 will produce sparse walk-forward windows until 60+ trading days accumulate.
+**Sprint 7.7 · Full-Pipeline Historical Replay.** Sprint 7.6 landed feature-snapshot backfill (35 USA + 26 India days deterministically produced). What remains before Sprint 8 becomes institutional:
 
-**Two acceleration paths:**
-1. **Backfill** — run the daily orchestrator with an `--asof <date>` cursor across historical price data to seed the ledgers. Requires runners to accept a historical cutoff parameter.
-2. **Snapshot-first Sprint 8** — build the engine, let it operate on the accumulating ledger, and refine metrics as history grows. Dashboard will visibly show `n_walk_forward_windows` incrementing daily.
+1. **yfinance macro-symbol fetcher** — 5y daily bars for CL=F, BZ=F, GC=F, SI=F, HG=F, NG=F, UUP, ^TNX, ^TYX, ^FVX, ^IRX, ^VIX → `data/raw/macro/`.
+2. **Headless engine drivers** — programmatic Rec/Risk/Portfolio/Execution execution per historical asof using the feature snapshots already on disk. NO runner changes (per operator "never affect current pipeline" rule).
 
-**Recommended:** Snapshot-first Sprint 8. Build now, refine as history deepens.
+Sprint 7.6's framework already wraps these (resume, integrity, quality, reports). Sprint 7.7 plugs in the two producers and the deferred-status steps auto-flip to backfilled.
 
 Below that (previous bottleneck, still open):
 
@@ -209,5 +226,5 @@ Without item 1, Sprint 8's engine will run but produce empty walk-forward window
 
 ## Latest Commit
 
-Phase 3 Roadmap LOCK · docs/AEGIS_PHASE3_ROADMAP.md
-Prior: Telegram HTTP 400 fallback (d4df8d5) · Sprint 7.5 (9861a98) · Sprint 6.5 (5008d08)
+Sprint 7.6 · Historical Backfill & Replay · docs/AEGIS_SPRINT76_REPORT.md
+Prior: Phase 3 Roadmap LOCK (9753201) · Telegram fallback (d4df8d5) · Sprint 7.5 (9861a98)
