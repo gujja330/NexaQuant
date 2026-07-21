@@ -243,8 +243,10 @@ def test_walk_forward_readiness_verdict_reflects_history_depth():
     rd = result.walk_forward_readiness
     assert rd["verdict"] in ("READY", "PARTIAL", "NOT_READY")
     assert rd["historical_days"] >= 1
-    # Given no Rec ledger yet, cannot be READY:
-    assert rd["verdict"] != "READY", f"cannot be READY without rec history, got {rd}"
+    # Verdict must be consistent with counts: READY requires ≥60 historical days AND ≥60 rec rows.
+    if rd["verdict"] == "READY":
+        assert rd["historical_days"] >= 60 and rd["recommendation_rows"] >= 60, \
+            f"READY verdict must have both thresholds met, got {rd}"
 
 
 def test_deferred_steps_report_honestly():

@@ -97,8 +97,16 @@ class ReplayController:
         if "factor" in plan.steps:
             step_results["factor"] = self._backfill_factor_placeholder(plan.market, p, trading_days)
 
+        if "recommendation" in plan.steps or "risk" in plan.steps or "portfolio" in plan.steps:
+            step_results["pipeline_replay"] = self._backfill_pipeline(
+                plan.market, p, trading_days, plan.steps, resume=plan.resume)
+
         if "learning" in plan.steps:
             step_results["learning"] = self._backfill_learning(plan.market, p, trading_days)
+
+        if "walkforward" in plan.steps:
+            step_results["walkforward"] = self._run_walk_forward(
+                plan.market, plan.date_from, plan.date_to)
 
         integrity = self._validate_all_histories(plan.market, p, set(trading_days))
         readiness = self._walk_forward_readiness(plan.market, p, trading_days, integrity)
@@ -197,48 +205,229 @@ class ReplayController:
             "reason": "factor library depends on macro history",
         }
 
+    def _backfill_pipeline(self, market: str, p: Dict[str, Path],
+                               trading_days: List[date], steps: List[str],
+                               *, resume: bool) -> Dict[str, Any]:
+        """
+        Sprint 7.7 · Full-pipeline replay per historical asof.
+
+        For each date D in `trading_days`, load features/<market>/<D>.parquet
+        and drive Rec → Risk → Portfolio engines with `asof=D`, appending each
+        result to its respective history parquet.
+
+        Lookahead guard runs on every payload before append. Any payload with
+        `asof > D` fails the row (fail-open: row skipped, guardrail counter++).
+        """
+        from backend.persistence import append_snapshot_row
+        from backend.replay.engine_drivers import (
+            drive_recommendation, drive_risk, drive_portfolio,
+        )
+        from backend.replay.lookahead_guard import validate_payload_no_future
+
+        do_rec  = "recommendation" in steps
+        do_risk = "risk" in steps
+        do_port = "portfolio" in steps
+
+        n_ok_rec = n_ok_risk = n_ok_port = 0
+        n_fail_rec = n_fail_risk = n_fail_port = 0
+        n_leak = n_skip_no_features = 0
+        first_errors: List[str] = []
+        t0 = time.time()
+
+        for d in trading_days:
+            feat_path = p["features"] / f"{d.isoformat()}.parquet"
+            if not feat_path.exists():
+                n_skip_no_features += 1
+                continue
+            try:
+                features_df = pd.read_parquet(feat_path)
+            except Exception as e:
+                n_skip_no_features += 1
+                if len(first_errors) < 5:
+                    first_errors.append(f"{d}: features unreadable: {e}")
+                continue
+
+            rec_payload = None
+            if do_rec:
+                rec_payload = drive_recommendation(
+                    repo_root=self.repo_root, market=market, asof=d, features_df=features_df)
+                if not rec_payload or "__error__" in rec_payload:
+                    n_fail_rec += 1
+                    if rec_payload and len(first_errors) < 5:
+                        first_errors.append(f"{d} rec: {rec_payload['__error__'][:120]}")
+                else:
+                    leaks = validate_payload_no_future(rec_payload, replay_asof=d)
+                    if leaks:
+                        n_leak += 1
+                        if len(first_errors) < 5:
+                            first_errors.append(f"{d} rec leaks: {leaks[:2]}")
+                    else:
+                        append_snapshot_row(rec_payload,
+                            p["reports"] / "recommendation_history.parquet")
+                        n_ok_rec += 1
+
+            risk_payload = None
+            if do_risk and rec_payload and "__error__" not in rec_payload:
+                risk_payload = drive_risk(
+                    repo_root=self.repo_root, market=market, asof=d,
+                    features_df=features_df, recommendations_payload=rec_payload)
+                if not risk_payload or "__error__" in risk_payload:
+                    n_fail_risk += 1
+                    if risk_payload and len(first_errors) < 5:
+                        first_errors.append(f"{d} risk: {risk_payload['__error__'][:120]}")
+                else:
+                    persisted = {k: v for k, v in risk_payload.items() if not k.startswith("_")}
+                    leaks = validate_payload_no_future(persisted, replay_asof=d)
+                    if leaks:
+                        n_leak += 1
+                    else:
+                        append_snapshot_row(persisted,
+                            p["reports"] / "risk_history.parquet")
+                        n_ok_risk += 1
+
+            if do_port and risk_payload and "__error__" not in risk_payload:
+                port_payload = drive_portfolio(
+                    repo_root=self.repo_root, market=market, asof=d,
+                    risk_payload=risk_payload)
+                if not port_payload or "__error__" in port_payload:
+                    n_fail_port += 1
+                    if port_payload and len(first_errors) < 5:
+                        first_errors.append(f"{d} port: {port_payload['__error__'][:120]}")
+                else:
+                    leaks = validate_payload_no_future(port_payload, replay_asof=d)
+                    if leaks:
+                        n_leak += 1
+                    else:
+                        append_snapshot_row(port_payload,
+                            p["reports"] / "portfolio_history.parquet")
+                        n_ok_port += 1
+
+        elapsed = round(time.time() - t0, 2)
+        print(f"[replay/pipeline] {market}: rec={n_ok_rec}/{n_ok_rec+n_fail_rec} "
+              f"risk={n_ok_risk}/{n_ok_risk+n_fail_risk} "
+              f"port={n_ok_port}/{n_ok_port+n_fail_port} "
+              f"skipped(no-features)={n_skip_no_features} leaks={n_leak} elapsed={elapsed}s")
+        return {
+            "n_ok_recommendation": n_ok_rec, "n_failed_recommendation": n_fail_rec,
+            "n_ok_risk": n_ok_risk, "n_failed_risk": n_fail_risk,
+            "n_ok_portfolio": n_ok_port, "n_failed_portfolio": n_fail_port,
+            "n_skipped_no_features": n_skip_no_features,
+            "n_lookahead_leaks_blocked": n_leak,
+            "elapsed_s": elapsed,
+            "first_errors": first_errors[:5],
+        }
+
+    def _run_walk_forward(self, market: str, date_from: date, date_to: date) -> Dict[str, Any]:
+        from backend.replay.walk_forward import run_walk_forward
+        try:
+            result = run_walk_forward(
+                repo_root=self.repo_root, market=market,
+                date_from=date_from, date_to=date_to,
+            )
+            summary = result.get("summary", {})
+            metrics = result.get("metrics", {})
+            print(f"[replay/walkforward] {market}: verdict={summary.get('verdict')} "
+                  f"n_recs={metrics.get('n_recommendations')} "
+                  f"n_closed={metrics.get('n_closed_positions')} "
+                  f"win_rate={metrics.get('win_rate_pct')} sharpe={metrics.get('sharpe')}")
+            return {"status": "executed", **summary,
+                     "sharpe": metrics.get("sharpe"),
+                     "annual_return_pct": metrics.get("annual_return_pct"),
+                     "max_drawdown_pct": metrics.get("max_drawdown_pct"),
+                     "win_rate_pct": metrics.get("win_rate_pct")}
+        except Exception as e:
+            print(f"[replay/walkforward] {market}: ERROR {e}")
+            return {"status": "failed", "error": str(e)}
+
     def _backfill_learning(self, market: str, p: Dict[str, Path],
                               trading_days: List[date]) -> Dict[str, Any]:
         """
-        Learning corpus backfill: for every historical recommendation with a
-        closed horizon, compute realized outcome from raw prices and append
-        to learning_corpus.parquet.
+        Sprint 7.7 · Learning corpus backfill from historical rec ledger.
 
-        Empty on day 1 (recommendation_history hasn't been populated by Rec
-        Engine yet). The framework is here; rows will appear as Rec Engine
-        writes to its ledger daily.
+        For every row in recommendation_history.parquet whose (asof + horizon)
+        has already closed by today's wall-clock, compute the realized return
+        from the raw ticker parquets and append to learning_corpus.parquet.
         """
+        from backend.replay.engine_drivers import drive_learning_outcomes
+        from backend.persistence import append_snapshot_row
+
         rec_hist = p["reports"] / "recommendation_history.parquet"
-        corpus = p["reports"] / "learning_corpus.parquet"
+        corpus_path = p["reports"] / "learning_corpus.parquet"
 
         n_rec = 0
+        rec_payloads: List[Dict[str, Any]] = []
         if rec_hist.exists():
             try:
                 df = pd.read_parquet(rec_hist)
                 if "market" in df.columns:
-                    n_rec = int((df["market"] == market).sum())
+                    df = df[df["market"] == market]
+                n_rec = len(df)
+                # Reconstruct payloads: recommendations column was JSON-encoded by history_writer
+                for _, row in df.iterrows():
+                    recs_raw = row.get("recommendations")
+                    if isinstance(recs_raw, str):
+                        try:
+                            recs_list = json.loads(recs_raw)
+                        except Exception:
+                            recs_list = []
+                    elif isinstance(recs_raw, list):
+                        recs_list = recs_raw
+                    else:
+                        recs_list = []
+                    rec_payloads.append({
+                        "market": market,
+                        "asof": str(row.get("asof")),
+                        "regime": row.get("regime"),
+                        "recommendations": recs_list,
+                    })
             except Exception:
                 pass
 
-        n_corpus = 0
-        if corpus.exists():
+        n_before = 0
+        if corpus_path.exists():
             try:
-                df = pd.read_parquet(corpus)
+                df = pd.read_parquet(corpus_path)
                 if "market" in df.columns:
-                    n_corpus = int((df["market"] == market).sum())
+                    n_before = int((df["market"] == market).sum())
                 else:
-                    n_corpus = len(df)
+                    n_before = len(df)
+            except Exception:
+                pass
+
+        outcomes = drive_learning_outcomes(
+            repo_root=self.repo_root, market=market,
+            rec_payloads=rec_payloads, horizon_days=20,
+        )
+
+        # Append each closed outcome to learning_corpus.parquet
+        n_new = 0
+        for row in outcomes.get("outcomes", []):
+            # Add dedup key so persistence's (market, asof) rule targets rec_asof
+            row_out = {**row, "asof": row["rec_asof"]}
+            r = append_snapshot_row(row_out, corpus_path)
+            if r is not None:
+                n_new += 1
+
+        n_after = 0
+        if corpus_path.exists():
+            try:
+                df = pd.read_parquet(corpus_path)
+                if "market" in df.columns:
+                    n_after = int((df["market"] == market).sum())
+                else:
+                    n_after = len(df)
             except Exception:
                 pass
 
         return {
             "recommendation_history_rows": n_rec,
-            "learning_corpus_rows": n_corpus,
-            "backfilled_rows": 0,
-            "status": "framework-ready-awaiting-recommendation-history",
-            "reason": "requires historical rows in recommendation_history.parquet "
-                        "(Rec Engine v3 begins appending on next daily run; "
-                        "full historical Rec backfill is Sprint 7.7)",
+            "learning_corpus_rows_before": n_before,
+            "learning_corpus_rows_after": n_after,
+            "outcomes_computed": outcomes.get("n_outcomes", 0),
+            "open_positions": outcomes.get("n_open_positions", 0),
+            "horizon_days": outcomes.get("horizon_days", 20),
+            "status": "backfilled" if outcomes.get("n_outcomes", 0) > 0
+                        else "framework-ready-awaiting-recommendation-history",
         }
 
     # ── integrity + readiness ────────────────────────────────
@@ -416,8 +605,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     bf.add_argument("--from", dest="date_from", required=True, type=_parse_date, help="YYYY-MM-DD")
     bf.add_argument("--to",   dest="date_to",   required=True, type=_parse_date, help="YYYY-MM-DD")
     bf.add_argument("--market", required=True, choices=["india", "usa"])
-    bf.add_argument("--steps", default="features,macro,factor,learning",
-                     help="comma-separated: features,macro,factor,learning")
+    bf.add_argument("--steps", default="features,macro,factor,recommendation,risk,portfolio,learning,walkforward",
+                     help="comma-separated: features,macro,factor,recommendation,risk,portfolio,learning,walkforward")
     bf.add_argument("--resume", action="store_true", default=True,
                      help="skip already-persisted snapshots (default true)")
     bf.add_argument("--no-resume", action="store_false", dest="resume",
