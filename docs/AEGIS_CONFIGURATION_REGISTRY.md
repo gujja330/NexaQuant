@@ -7,8 +7,8 @@
 
 | File | Role | Consumers |
 |---|---|---|
-| `config/base_config.yaml` | **NOT AEGIS India/USA** — this is the NexaQuant MT5 bot config (gold/BTC/forex). Defines `system.symbols`, `live_symbols` (`BTCUSDc`, `XAUUSDc`), `live_edges` (`trend`, `breakout`), MT5 broker settings, `risk_per_trade: 0.005`, `max_drawdown_limit: 0.20`. | `config_loader.py` at repo root → `run_nexaquant.py` |
-| `config_loader.py` (root) | Loads `config/base_config.yaml`; derives per-symbol `cost` / `pip_size` from price data | `run_nexaquant.py` |
+| `configs/base_config.yaml` | **NOT AEGIS India/USA** — this is the NexaQuant MT5 bot config (gold/BTC/forex). Defines `system.symbols`, `live_symbols` (`BTCUSDc`, `XAUUSDc`), `live_edges` (`trend`, `breakout`), MT5 broker settings, `risk_per_trade: 0.005`, `max_drawdown_limit: 0.20`. | `config_loader.py` at repo root → `run_nexaquant.py` |
+| `config_loader.py` (root) | Loads `configs/base_config.yaml`; derives per-symbol `cost` / `pip_size` from price data | `run_nexaquant.py` |
 | `nexaquant/ops/pipelines/aegis_daily.yaml` | **REFERENCE pipeline** (per its own header, line 1-8) mirroring the *pre-v2* India daily flow. 8 stages: refresh_data → freshness_gate → recommendation_generator → recommendation_db → scorecard → ops_check → telegram_health_check → telegram_notify → mon001_daily | `scripts/run_pipeline_local.py` (manual) and `nexaquant/ops/pipeline.py` (via dormant daemon) — **neither consumer is scheduled** |
 | `usa/configs/universe.yaml` | USA equity universe. `active_universe: dow30` (line 10) — 30 Dow tickers with symbol/name/sector/industry/exchange. Also has expansion universes (`sp500_top50`, `nasdaq100`) not activated. | `usa/scripts/build_universe.py` (step 1 of `usa_daily.py`) |
 
@@ -112,7 +112,7 @@ Read this file first before proposing any PRD change to regime or ML behaviour.
 
 - **1 config actually governing India production behaviour:** `india/config.py`
 - **1 config actually governing USA production behaviour:** `usa/configs/universe.yaml`
-- **1 config for the unrelated NexaQuant bot:** `config/base_config.yaml`
+- **1 config for the unrelated NexaQuant bot:** `configs/base_config.yaml`
 - **1 reference-only pipeline YAML** never actively executed: `nexaquant/ops/pipelines/aegis_daily.yaml`
 - **6 deploy templates** at various paths, none proven-installed
 - **5 GitHub workflows** with cron schedules

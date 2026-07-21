@@ -8,7 +8,7 @@ kill switch. Once a config is validated (run_nexaquant.py GATE-PASS + 30-day pap
 "throw" this bot at MT5 and it autonomously handles entries, position sizing, stop-loss,
 breakeven, trailing, scale-out, and the daily-loss / drawdown kill switch.
 
-MODES (config/base_config.yaml system.paper_trading, or --mode):
+MODES (configs/base_config.yaml system.paper_trading, or --mode):
   dry-run : NO broker — replays local data/raw bars and PRINTS the decisions it WOULD
             make (testable offline, right now). Proves the bot logic end-to-end.
   paper   : connect to an MT5 DEMO account and trade live data with fake money.

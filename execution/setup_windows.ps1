@@ -6,7 +6,7 @@
 # autonomous; monitor from the MT5 phone app.
 #
 # The bot trades the CONFIG-DRIVEN multi-edge portfolio (system.live_symbols x live_edges):
-# trend + breakout on BTCUSDc + XAUUSDc by default — edit config/base_config.yaml to change.
+# trend + breakout on BTCUSDc + XAUUSDc by default — edit configs/base_config.yaml to change.
 #
 # RUN ONCE in PowerShell, from the repo folder:
 #   $env:MT5_LOGIN="183286147"; $env:MT5_PASSWORD="***"; $env:MT5_SERVER="Exness-MT5Real25"

@@ -63,7 +63,7 @@ nexaquant/
 ├── README.md              <- this file (source of truth)
 ├── config_loader.py       <- DYNAMIC settings: data-derived cost/pip for ANY instrument
 ├── run_nexaquant.py       <- END-TO-END pipeline: data->regime->entry->AI size->exit->gate->GO/NO-GO
-├── config/base_config.yaml<- pipeline/instruments/account/regime/sizing (no plaintext secrets)
+├── configs/base_config.yaml<- pipeline/instruments/account/regime/sizing (no plaintext secrets)
 ├── data/
 │   ├── prepare_data.py    <- resamples W1; reports missing M5/M15
 │   ├── pull_mt5.py        <- pull M5/M15/H1/H4/D1 for XAUUSD+BTCUSD (Windows+MT5)

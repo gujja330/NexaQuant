@@ -10,7 +10,7 @@ Credentials: read from environment (never hardcode). In PowerShell:
     $env:MT5_LOGIN="<your_login>"; $env:MT5_PASSWORD="<your_password>"; $env:MT5_SERVER="<your_server>"
     python data/pull_mt5.py
 
-Symbols/timeframes are taken from config/base_config.yaml so there is zero hardcoding.
+Symbols/timeframes are taken from configs/base_config.yaml so there is zero hardcoding.
 """
 import os
 import sys
@@ -41,7 +41,7 @@ def main():
 
     cfg = load_cfg()
     sysc = cfg["system"]
-    # symbols: gold + BTC (extend in config/base_config.yaml -> system.symbols)
+    # symbols: gold + BTC (extend in configs/base_config.yaml -> system.symbols)
     symbols = sysc.get("symbols", ["XAUUSDm"])
     if "BTCUSDm" not in symbols:
         symbols = symbols + ["BTCUSDm"]

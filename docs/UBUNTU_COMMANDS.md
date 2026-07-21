@@ -29,7 +29,7 @@ ONE service (`nexabot`), ONE MT5 terminal, driving BOTH pairs from config.
 bash execution/setup_oracle.sh
 ```
 - No symbol args needed — the bot reads `system.live_symbols` (BTCUSDc, XAUUSDc) + `live_tf`
-  from `config/base_config.yaml`. Mode defaults to `paper`.
+  from `configs/base_config.yaml`. Mode defaults to `paper`.
 - Installs Wine + MT5 + Python (embeddable, headless-safe) + deps, writes the systemd
   service, starts the bot, and installs the weekly self-learning timer.
 - Idempotent: safe to re-run; it skips steps already done.
@@ -53,7 +53,7 @@ xvfb-run -a wine ~/.wine/drive_c/users/$USER/python/python.exe execution/live_tr
   lot risks too much for $12 → the bot stands aside on it and trades the one that fits.
 
 ## Add / change traded pairs (future) — config only, NO re-setup
-Edit `system.live_symbols` in `config/base_config.yaml`, then on the VM:
+Edit `system.live_symbols` in `configs/base_config.yaml`, then on the VM:
 ```bash
 git pull
 sudo systemctl restart nexabot

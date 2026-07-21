@@ -107,7 +107,7 @@ Every step invokes `subprocess.run([sys.executable, str(script)], ...)` at line 
 
 ### B6 · `run_nexaquant.py` (repo root)
 - The FOREX/BTC/GOLD bot stack — completely independent from AEGIS India/USA.
-- Uses `config_loader.py` + `config/base_config.yaml` + `strategy/` + `backtest/`.
+- Uses `config_loader.py` + `configs/base_config.yaml` + `strategy/` + `backtest/`.
 - Manual invocation only.
 
 ---

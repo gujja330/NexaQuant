@@ -148,7 +148,7 @@ These modules have `run.py` files but zero callers anywhere. All produced their 
 
 - `run_nexaquant.py` (repo root) — FOREX/BTC/GOLD MT5 bot
 - `config_loader.py` (repo root) — config for the above
-- `config/base_config.yaml` — same
+- `configs/base_config.yaml` — same
 - `strategy/` — MT5 bot strategy code
 - `backtest/` — MT5 bot backtester
 

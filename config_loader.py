@@ -12,7 +12,7 @@ FROM THE DATA itself:
   cost (rt) = median_price * default_cost_bps / 10000      (e.g. gold 2500 * 2bp = 0.5)
 
 Everything else (timeframes, IS fraction, gate thresholds, regime/sizing params) is read
-from config/base_config.yaml. Nothing instrument-specific is hardcoded in the logic.
+from configs/base_config.yaml. Nothing instrument-specific is hardcoded in the logic.
 """
 import math
 from pathlib import Path
@@ -26,7 +26,7 @@ _CFG = None
 def cfg():
     global _CFG
     if _CFG is None:
-        with open(ROOT / "config" / "base_config.yaml", encoding="utf-8") as f:
+        with open(ROOT / "configs" / "base_config.yaml", encoding="utf-8") as f:
             _CFG = yaml.safe_load(f)
     return _CFG
 

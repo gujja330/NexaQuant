@@ -36,7 +36,7 @@ IS_FRACTION = 0.70
 
 
 def cfg():
-    with open(Path(__file__).resolve().parents[1] / "config" / "base_config.yaml", encoding="utf-8") as f:
+    with open(Path(__file__).resolve().parents[1] / "configs" / "base_config.yaml", encoding="utf-8") as f:
         return yaml.safe_load(f)
 
 

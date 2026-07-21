@@ -10,7 +10,7 @@ the account across trades and instruments:
   * drawdown kill switch    : flatten + stop if equity drawdown breaches a hard limit
   * recovery gating         : require a cool-off / re-validation after a kill
 
-Config-driven (config/base_config.yaml -> system.max_drawdown_limit, risk_per_trade).
+Config-driven (configs/base_config.yaml -> system.max_drawdown_limit, risk_per_trade).
 This is a decision layer: pure functions returning ALLOW / BLOCK so it works identically
 in backtest, paper and live.
 """

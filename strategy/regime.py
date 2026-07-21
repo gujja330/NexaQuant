@@ -10,7 +10,7 @@ VOLATILE. This module classifies each bar (causally) into trend / range / volati
 Indicators (all leakage-free; use only past/closed bars):
   * ADX (Wilder)          -> trend strength
   * ATR-fast / ATR-slow   -> volatility expansion (regime instability)
-Thresholds are config-driven (see config/base_config.yaml -> regime).
+Thresholds are config-driven (see configs/base_config.yaml -> regime).
 """
 import numpy as np
 import pandas as pd
