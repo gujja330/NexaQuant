@@ -1,0 +1,54 @@
+# AEGIS Macro & Intermarket Intelligence Configuration — Sprint 6.5
+#
+# Operator-owned. Every threshold is a tunable parameter.
+
+thresholds:
+  # Commodity threshold for "material" 1-week move
+  commodity_1w_material_pct:      3.0
+  # Yield-move thresholds (basis points, 1-month)
+  ten_year_shift_material_bps:   25
+  short_yield_shift_bps:         15
+  # Currency 1-week material move (%)
+  currency_1w_material_pct:      1.0
+  # VIX regime bands (level)
+  vix_calm_below:                15
+  vix_normal_below:              22
+  vix_elevated_below:            30
+  vix_stress_below:              40
+  # anything ≥40 = panic
+
+regime_scoring:
+  # Score contributions to composite regime (-1..+1)
+  vol_calm_contribution:          0.40
+  vol_normal_contribution:        0.10
+  vol_elevated_contribution:     -0.20
+  vol_stress_contribution:       -0.50
+  vol_panic_contribution:        -0.80
+  oil_spike_contribution:        -0.20
+  oil_slump_contribution:         0.10
+  gold_flight_contribution:      -0.15
+  usd_strong_contribution:       -0.20
+  usd_weak_contribution:          0.15
+  yield_inversion_contribution:  -0.30
+  rates_rising_fast_contribution: -0.15
+  rates_falling_fast_contribution: 0.15
+
+impact_matrix:
+  # Operator can extend the deterministic template matrix at
+  # backend/macro_intel/impact_matrix.py by adding entries here.
+  # Sprint 6.5 baseline includes: WTI, Brent, Nat Gas, Gold, Copper, Silver.
+  extensions_yaml_only: []
+
+history:
+  # Where per-day history parquets accumulate. Append-only.
+  # {market} placeholder is filled by the runner.
+  root_relative:                 "reports"
+  files:
+    - commodity_intelligence_history.parquet
+    - currency_intelligence_history.parquet
+    - bond_intelligence_history.parquet
+    - macro_regime_history.parquet
+    - sector_rotation_history.parquet
+
+ai_macro_analyst:
+  enabled:                       true

@@ -1,6 +1,6 @@
 # AEGIS Executive Dashboard
 
-**Last updated:** 2026-07-21 · Sprint 7 · Execution Simulator · **SHIPPED**
+**Last updated:** 2026-07-21 · Sprint 6.5 · Macro & Intermarket Intelligence · **SHIPPED**
 **Overwritten every sprint** — always the current state of AEGIS.
 
 ---
@@ -15,7 +15,8 @@
 ✅ Risk Engine                Sprint 4     · Kelly + caps + VaR/CVaR
 ✅ Portfolio Engine           Sprint 5     · N-name + rebalance diff + cash policy
 ✅ Learning Engine            Sprint 6     · outcome ledger + attributions + calibration
-✅ Execution Simulator        Sprint 7     · fills + slippage + equity curve + statistics ← WE ARE HERE
+✅ Macro & Intermarket Intel  Sprint 6.5   · commodities+FX+bonds+CB+VIX+rotation+regime+impact matrix+KG ← WE ARE HERE
+✅ Execution Simulator        Sprint 7     · fills + slippage + equity curve + statistics
 ⚪ Walk-Forward Validation    Sprint 8     · pending  (first REAL results)
 ⚪ AI Validation Auditor      Sprint 9     · pending
 ⚪ Research Factory           Sprint 10    · pending
@@ -78,8 +79,9 @@ Sprint 4  (risk engine)                       23/23  ✅
 Sprint 5  (portfolio engine)                  20/20  ✅
 Sprint 6  (learning engine)                   19/19  ✅
 Sprint 7  (execution simulator + statistics)  26/26  ✅
+Sprint 6.5 (macro & intermarket intelligence) 22/22  ✅
 ─────────────────────────────────────────────────────────
-TOTAL                                        178/178 ✅
+TOTAL                                        200/200 ✅
 ```
 
 ## Backend Validation
@@ -89,7 +91,7 @@ TOTAL                                        178/178 ✅
 
 ## Model Registry (all EXPERIMENTAL)
 
-- `aegis.recommendation.v3` · `aegis.risk.v1` · `aegis.portfolio.v1` · `aegis.learning.v1` · **`aegis.execution.v1` (NEW)**
+- `aegis.recommendation.v3` · `aegis.risk.v1` · `aegis.portfolio.v1` · `aegis.learning.v1` · `aegis.execution.v1` · **`aegis.macro_intel.v1` (NEW)**
 
 ---
 
@@ -128,7 +130,26 @@ Neither the Risk Engine, Portfolio Engine, nor Execution Simulator is defective.
 
 ---
 
+## Sprint 6.5 · Live Macro State (2026-07-21)
+
+| Signal              | India                  | USA                            |
+|:-------------------:|:----------------------:|:------------------------------:|
+| Primary Regime      | risk_on                | unknown (VIX-only signal)      |
+| Macro Score         | 0.40                   | -0.10                          |
+| Confidence          | 0.5                    | 0.9                            |
+| Vol Regime          | calm                   | normal (VIX 18.65)             |
+| Central Bank Cycle  | RBI (thin data)        | Fed · neutral                  |
+| Yield Curve         | (thin data)            | Normal · no inversion          |
+| Active Commodity Impacts | 0                 | 2 (WTI + Brent up)             |
+| Currency            | INR                    | USD                            |
+
+---
+
 ## NEXT BOTTLENECK
+
+**Data completeness for the India macro layer.** The India runner currently resolves regime on VIX alone; institutional credibility needs an India-specific macro summary (10Y G-Sec, USDINR history, RBI short-rate signals) feeding the same schema. **This does NOT block Sprint 8** — USA regime signal is already institutionally usable and Walk-Forward can proceed with USA regime-conditioned back-tests.
+
+Layered below that (previous bottleneck, still open):
 
 **Sprint 8 · Walk-Forward Validation cannot produce meaningful metrics until it has historical BUY/SELL recommendations to replay.**
 
@@ -151,4 +172,5 @@ Without item 1, Sprint 8's engine will run but produce empty walk-forward window
 
 ## Latest Commit
 
-Sprint 7 · Execution Simulator · commit pending push · docs/AEGIS_SPRINT7_REPORT.md
+Sprint 6.5 · Macro & Intermarket Intelligence · docs/AEGIS_SPRINT65_REPORT.md
+Prior: Sprint 7 · Execution Simulator · docs/AEGIS_SPRINT7_REPORT.md

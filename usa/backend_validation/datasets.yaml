@@ -656,3 +656,94 @@ datasets:
     freshness_sla_trading_days: 30
     schema:
       required_keys: [engine, run_utc, n_tickers, avg_institutional_pct]
+
+  # ── SPRINT 6.5 · Macro & Intermarket Intelligence (USD) ─────────
+  - name: macro_regime
+    path: usa/reports/macro_regime.json
+    producer: usa/research/macro_intel/run.py
+    kind: macro
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, version, market, run_utc, primary_regime, secondary_regime, macro_score, confidence]
+    consumers: [usa/dashboard, backend/walkforward]
+
+  - name: commodity_intelligence
+    path: usa/reports/commodity_intelligence.json
+    producer: usa/research/macro_intel/run.py
+    kind: macro
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, run_utc, commodities]
+    consumers: [usa/dashboard]
+
+  - name: currency_intelligence
+    path: usa/reports/currency_intelligence.json
+    producer: usa/research/macro_intel/run.py
+    kind: macro
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, run_utc, currencies]
+    consumers: [usa/dashboard]
+
+  - name: bond_intelligence
+    path: usa/reports/bond_intelligence.json
+    producer: usa/research/macro_intel/run.py
+    kind: macro
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, run_utc, bonds]
+    consumers: [usa/dashboard]
+
+  - name: central_bank_state
+    path: usa/reports/central_bank_state.json
+    producer: usa/research/macro_intel/run.py
+    kind: macro
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, run_utc, bank, rate_cycle]
+    consumers: [usa/dashboard]
+
+  - name: volatility_intelligence
+    path: usa/reports/volatility_intelligence.json
+    producer: usa/research/macro_intel/run.py
+    kind: macro
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, run_utc, symbol, last, regime]
+    consumers: [usa/dashboard]
+
+  - name: sector_rotation
+    path: usa/reports/sector_rotation.json
+    producer: usa/research/macro_intel/run.py
+    kind: macro
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, run_utc, leaders, laggards]
+    consumers: [usa/dashboard]
+
+  - name: commodity_sector_matrix
+    path: usa/reports/commodity_sector_matrix.json
+    producer: usa/research/macro_intel/run.py
+    kind: macro
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, run_utc, active_impacts, n_active_impacts]
+    consumers: [usa/dashboard]
+
+  - name: macro_knowledge_graph
+    path: usa/reports/macro_knowledge_graph.json
+    producer: usa/research/macro_intel/run.py
+    kind: macro
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, run_utc, entries]
+    consumers: [usa/dashboard]
+
+  - name: ai_macro_narrative
+    path: usa/reports/ai_macro_narrative.json
+    producer: usa/research/macro_intel/run.py
+    kind: ai_narrative
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, version, market, run_utc, output]
+    consumers: [usa/dashboard]

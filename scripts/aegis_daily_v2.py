@@ -93,6 +93,23 @@ STEPS = [
         "optional": True,   # WARNING/FAIL doesn't halt the pipeline — it's reported to ops_check
     },
     {
+        "name": "macro_intel",
+        "desc": "Sprint 6.5 · Macro & Intermarket Intelligence (commodities + currencies + bonds + central bank + vol + sector rotation + regime + impact matrix + knowledge graph)",
+        "script": "india/macro_intel/run.py",
+        "produces": ["reports/macro_regime.json",
+                       "reports/commodity_intelligence.json",
+                       "reports/currency_intelligence.json",
+                       "reports/bond_intelligence.json",
+                       "reports/central_bank_state.json",
+                       "reports/volatility_intelligence.json",
+                       "reports/sector_rotation.json",
+                       "reports/commodity_sector_matrix.json",
+                       "reports/macro_knowledge_graph.json",
+                       "reports/ai_macro_narrative.json"],
+        "requires": [],
+        "optional": True,
+    },
+    {
         "name": "market_intelligence",
         "desc": "Sprint 2 · Market Intelligence engine + AI narratives (regime, breadth, macro, sector rotation, news/flow pulse)",
         "script": "india/market_intelligence/run.py",
