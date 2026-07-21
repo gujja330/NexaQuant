@@ -1,0 +1,45 @@
+# AEGIS Risk Budget — Sprint 4
+#
+# Operator-owned. Every change to this file MUST be reviewed. The Risk Engine
+# hashes this file into the Experiment Registry so historical replays can
+# reconstruct which budget was in effect.
+#
+# Changes to any threshold below must be justified in a PR description AND
+# validated on a fresh walk-forward run before promotion to production.
+
+market_defaults:
+  india:
+    max_kelly_fraction:       0.25       # cap Kelly at 25% of full-Kelly to reduce est.-error sensitivity
+    per_ticker_cap:           0.06       # 6% per name — no single position dominates
+    per_sector_cap:           0.25       # 25% per sector — enforced greedy in Sprint 4; joint opt in Sprint 5
+    target_portfolio_vol:     0.15       # 15% annualised — anchor for inverse-vol scaling
+    enable_shorts:            false      # India: long-only for now
+    default_stop_loss_pct:    -0.08      # -8% stop loss anchor
+    confidence_tier_mult:
+      STRONG_BUY:              1.00
+      BUY:                     0.60
+      HOLD:                    0.00
+      SELL:                   -0.60
+      STRONG_SELL:            -1.00
+
+  usa:
+    max_kelly_fraction:       0.30       # slightly more aggressive on USA where liquidity is deep
+    per_ticker_cap:           0.08
+    per_sector_cap:           0.30
+    target_portfolio_vol:     0.14
+    enable_shorts:            true       # USA: shorts allowed with -per_ticker_cap floor
+    default_stop_loss_pct:    -0.10
+    confidence_tier_mult:
+      STRONG_BUY:              1.00
+      BUY:                     0.60
+      HOLD:                    0.00
+      SELL:                   -0.60
+      STRONG_SELL:            -1.00
+
+# Cross-market defaults (fallback if a market is missing a field)
+global:
+  confidence_gate:              0.30     # positions with regime_adjusted_confidence < this are dropped
+  hhi_warning_threshold:        0.25     # HHI above this → risk report WARNING
+  var_horizon_days:             1
+  ai_risk_analyst:
+    enabled:                    true

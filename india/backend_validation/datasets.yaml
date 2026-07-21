@@ -454,3 +454,33 @@ datasets:
     schema:
       required_keys: [engine, version, market, run_utc, output]
     consumers: [ux/dashboard]
+
+  # ── SPRINT 4 · Risk Engine ───────────────────────────────────────
+  - name: sized_positions
+    path: reports/sized_positions.json
+    producer: india/risk_engine/run.py
+    kind: risk
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, version, market, run_utc, asof, currency, regime,
+                       n_positions, positions, model_stamp, budget_snapshot]
+    consumers: [ux/dashboard, backend/portfolio (Sprint 5+)]
+
+  - name: risk_report
+    path: reports/risk_report.json
+    producer: india/risk_engine/run.py
+    kind: risk
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, version, market, run_utc, asof, verdict,
+                       n_positions, gross_exposure_pct, hhi_concentration]
+    consumers: [ux/dashboard]
+
+  - name: ai_risk_narrative
+    path: reports/ai_risk_narrative.json
+    producer: india/risk_engine/run.py
+    kind: ai_narrative
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, version, market, run_utc, output]
+    consumers: [ux/dashboard]

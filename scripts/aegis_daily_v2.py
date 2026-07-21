@@ -145,6 +145,16 @@ STEPS = [
         "optional": True,
     },
     {
+        "name": "risk_engine",
+        "desc": "Sprint 4 · Risk Engine (Kelly sizing + caps + vol adj + VaR/CVaR + AI risk analyst)",
+        "script": "india/risk_engine/run.py",
+        "produces": ["reports/sized_positions.json",
+                       "reports/risk_report.json",
+                       "reports/ai_risk_narrative.json"],
+        "requires": ["reports/recommendations_v3.json", "configs/risk_budget.yaml"],
+        "optional": True,
+    },
+    {
         "name": "adaptive_rec_v2",
         "desc": "Adaptive Rec Engine v2.0 (confidence rebuild + Precision@K)",
         "script": "research/adaptive_rec_v2/run.py",

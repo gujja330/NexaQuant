@@ -191,6 +191,16 @@ STEPS = [
         "optional": True,
     },
     {
+        "name":     "risk_engine",
+        "desc":     "Sprint 4 · USA Risk Engine (Kelly + caps + vol + VaR/CVaR, USD)",
+        "script":   "usa/research/risk_engine/run.py",
+        "produces": ["usa/reports/sized_positions.json",
+                       "usa/reports/risk_report.json",
+                       "usa/reports/ai_risk_narrative.json"],
+        "requires": ["usa/reports/recommendations_v3.json", "configs/risk_budget.yaml"],
+        "optional": True,
+    },
+    {
         "name":     "recommendations",
         "desc":     "USA Adaptive Recommendation Engine (technicals-based)",
         "script":   "usa/research/recommendations/run.py",

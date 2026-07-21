@@ -927,6 +927,9 @@ async function loadState() {
     'ai_model_narrative.json',
     'recommendations_v3_summary.json',
     'ai_recommendation_narrative.json',
+    'risk_report.json',
+    'sized_positions.json',
+    'ai_risk_narrative.json',
   ];
   const entries = await Promise.all(targets.map(async n => [n.replace(/\.json$/, ''), await fetchJson(n)]));
   for (const [k, v] of entries) STATE[k] = v;
@@ -2200,6 +2203,19 @@ function portfolioHealth() {
       <span class="label">Recommendations v3 <span class="vs-tag live">Sprint 3</span></span>
       <div class="value ${cls}" style="font-size: 14px;">${buys}B · ${d.HOLD || 0}H · ${sells}S</div>
       <div class="sub">regime ${rv3.regime} · ${rv3.n_disagreement || 0} conflicts→HOLD</div>`}));
+  }
+
+  // Risk Engine — Sprint 4 (sized positions + gross exposure + verdict)
+  const rr = STATE.risk_report;
+  if (rr) {
+    const v = rr.verdict || '—';
+    const cls = v === 'PASS' ? 'pos' : v === 'WARNING' ? 'warn' : 'neg';
+    const gross = ((rr.gross_exposure_pct || 0) * 100).toFixed(1);
+    const cash = ((rr.cash_pct || 0) * 100).toFixed(1);
+    strip.appendChild(el('div', {class: 'tile', html: `
+      <span class="label">Risk Engine <span class="vs-tag live">Sprint 4</span></span>
+      <div class="value ${cls}" style="font-size: 14px;">${rr.n_positions || 0} sized · ${v}</div>
+      <div class="sub">gross ${gross}% · cash ${cash}% · HHI ${(rr.hhi_concentration || 0).toFixed(3)}</div>`}));
   }
 
   // Prediction Accuracy — from Institutional Memory recommendation_history (global avg over per-ticker accuracy)

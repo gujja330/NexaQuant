@@ -1121,6 +1121,52 @@ tracking_error = (rp - rb).std() × sqrt(252)
 
 All in `backend/statistics/metrics.py` — SINGLE source of truth. Every engine that reports these metrics MUST import from here.
 
+### Experiment Registry (cross-cutting · emerges through Sprints 4-8)
+
+**Purpose:** unify every version stamp into a single per-run experiment record. Not a new sprint — an emergent artifact that Sprints 4-8 write to naturally.
+
+**File:** `reports/experiment_registry.jsonl` (append-only). One row per full pipeline run per market:
+
+```json
+{
+  "run_id":              "aegis.india.2026-07-21T03:15:00Z",
+  "market":              "india",
+  "asof":                "2026-07-21",
+  "written_utc":         "2026-07-21T03:15:00Z",
+  "feature_set_version": "b65ceb49a83a",
+  "schema_fingerprint":  "b65ceb49a83a",
+  "model_stamps":        [ … model_registry entries active this run … ],
+  "config_hashes": {
+    "risk_budget.yaml":       "<sha256>",
+    "portfolio_config.yaml":  "<sha256>",
+    "execution_config.yaml":  "<sha256>",
+    "learning_config.yaml":   "<sha256>",
+    "walkforward_config.yaml":"<sha256>"
+  },
+  "engine_versions": {
+    "recommendation":  "aegis.recommendation.v3 · 1.0.0",
+    "risk":            "aegis.risk.v1 · 1.0.0",
+    "portfolio":       "aegis.portfolio.v1 · 1.0.0",
+    "learning":        "aegis.learning.v1 · 1.0.0",
+    "execution":       "aegis.execution.v1 · 1.0.0"
+  },
+  "walkforward_run_id":  null,
+  "ai_validation_report_id": null
+}
+```
+
+**How it accumulates:**
+- Sprint 4 introduces `backend/experiment_registry/writer.py` (a 30-line helper) — every engine that runs calls `experiment_registry.append_stamp(run_id, engine_id, ...)` at the end of its runner.
+- Sprint 5-7 add their engine stamps to the same run_id record.
+- Sprint 8 walk-forward creates a new run_id per window; the registry is where WF reports get anchored.
+- Sprint 9 AI auditor's report_id is written back to close the loop.
+
+**Contract:** append-only. `run_id` is deterministic — `f"aegis.{market}.{asof.isoformat()}T{time_component}Z"` where time_component comes from the run's UTC timestamp passed in by the orchestrator (never `datetime.now()` inside engine code).
+
+**AI never writes to the Experiment Registry.** Only deterministic engine runners write. AI outputs reference `run_id` for audit but never mutate the registry.
+
+---
+
 ### Research Factory
 
 **Purpose:** systematically evolve the feature and model catalog. AI proposes, human promotes.
