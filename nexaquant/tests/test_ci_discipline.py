@@ -73,6 +73,19 @@ GRANDFATHERED_MASKS: dict[str, dict[tuple[int, str], str]] = {
         (78, "|| true"):
             "ENG003 debt: git push race — mirrors aegis-daily.yml debt entry.",
     },
+    "aegis-usa.yml": {
+        # 2026-07-21 grandfathering: aegis-usa.yml mirrors aegis-daily.yml's
+        # commit+push pattern for the USA parallel deployment. Same rationale
+        # as the aegis-daily.yml lines 106/108 entries. See ENG003_REPORT.md §3.5.
+        (63, "|| true"):
+            "ENG003 debt: git add masks — allows workflow to continue if a specific "
+            "usa/reports/*.{json,md,html,jsonl} pattern matched nothing on a given day. "
+            "Mirrors aegis-daily.yml:106 rationale.",
+        (65, "|| true"):
+            "ENG003 debt: git push mask — if remote raced (e.g. concurrent MON001 push), "
+            "workflow continues; next scheduled run reconciles. "
+            "Mirrors aegis-daily.yml:108 rationale.",
+    },
     "eng001-regression.yml": {},  # target: 0 masks; enforce zero
 }
 

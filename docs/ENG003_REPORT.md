@@ -94,6 +94,27 @@ drift detection, dashboard update, alert emission. Read-only against production.
 - Adds `test_governance.py` step.
 - **Zero masks** — this workflow is the gate; it fails loudly by design.
 
+### 1.5 `.github/workflows/aegis-usa.yml` (added 2026-07-21)
+
+**Purpose:** USA parallel-deployment daily runner. Mirrors `aegis-daily.yml`'s
+commit+push pattern for `usa/reports/*.{json,md,html,jsonl}`.
+
+**AFTER grandfathering:**
+- Two `|| true` masks registered in `test_ci_discipline.GRANDFATHERED_MASKS`:
+  - Line 63 `git add … 2>/dev/null || true` — same rationale as
+    `aegis-daily.yml:106`: git add masks let the workflow continue if a specific
+    pattern matched nothing on a given day.
+  - Line 65 `git push || true` — same rationale as `aegis-daily.yml:108`:
+    protects against a remote race (concurrent MON001 push); the next scheduled
+    run reconciles.
+- Rationale: `aegis-usa.yml` was introduced after ENG003's initial seal (2026-07-18)
+  and inherited the aegis-daily commit-push shape. The masks are documented debt
+  items, tracked here for eventual removal once the USA pipeline has a proper
+  push-retry helper analogous to `scripts/telegram_send_with_retry.py`.
+- Track for ENG005 tightening: once we have `scripts/git_push_with_retry.py`
+  (proposed), both aegis-daily and aegis-usa's `|| true` push masks can be
+  removed simultaneously.
+
 ### 1.4 Cross-workflow findings
 
 - **Every workflow uses `actions/checkout@v4` + `actions/setup-python@v5`** —

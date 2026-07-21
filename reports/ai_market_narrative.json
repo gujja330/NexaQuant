@@ -2,14 +2,14 @@
   "engine": "ai_market_narrative",
   "version": "v1.0",
   "market": "india",
-  "run_utc": "2026-07-20T14:34:05+00:00",
-  "asof": "2026-07-20",
+  "run_utc": "2026-07-21T02:14:26+00:00",
+  "asof": "2026-07-21",
   "agents": {
     "market_analyst": {
       "agent": "market_analyst",
       "version": "v1.0",
       "market": "india",
-      "asof": "2026-07-20",
+      "asof": "2026-07-21",
       "headline": "Neutral \u00b7 constructive \u00b7 Composite Market Health 48.7/100.",
       "narrative": "Neutral \u00b7 constructive \u00b7 Composite Market Health 48.7/100.\n\nBreadth: 44.1% of universe above 20-day MA. 35.8% within 5% of 52W high. Mixed participation \u2014 bulls have not yet won the tape.\n\n^NSEI 5-day: +0.20%; ^NSEI 1-month: +0.30%. Positive short-term and monthly momentum.\n\nVolatility: VIX 13.22 (calm). Calm tape; complacency risk is the classic setup for a downside surprise.\n\nPulse: news pulse +0.21 (pos=110 \u00b7 neg=20) \u00b7 FII net \u20b90 Cr \u00b7 DII net \u20b911,318 Cr.\n\nSupportive: news pulse +0.21 (pos=110 \u00b7 neg=20)",
       "findings": [
@@ -112,26 +112,62 @@
       "agent": "data_quality",
       "version": "v1.0",
       "market": "india",
-      "asof": "2026-07-20",
-      "headline": "All 38 registered datasets are within their SLAs.",
-      "narrative": "All 38 registered datasets are within their SLAs.\n\nComposite confidence is 0.912 (weighted geometric mean across freshness \u00b7 schema \u00b7 completeness \u00b7 quality \u00b7 lineage).\n\nNo dataset issues flagged.\n\nNo immediate action required. Continue normal cadence.",
-      "findings": [],
+      "asof": "2026-07-21",
+      "headline": "Backend health is DEGRADED \u2014 5 dataset(s) crossed warning thresholds.",
+      "narrative": "Backend health is DEGRADED \u2014 5 dataset(s) crossed warning thresholds.\n\nComposite confidence is 0.900 (weighted geometric mean across freshness \u00b7 schema \u00b7 completeness \u00b7 quality \u00b7 lineage).\n\nTop issues to look at:\n  1. [WARNING] company_context \u00b7 freshness \u00b7 1 trading day overdue (SLA 1 \u00b7 currently 2)\n  2. [WARNING] global_context \u00b7 freshness \u00b7 1 trading day overdue (SLA 1 \u00b7 currently 2)\n  3. [WARNING] industry_context \u00b7 freshness \u00b7 1 trading day overdue (SLA 1 \u00b7 currently 2)\n  4. [WARNING] recommendations \u00b7 freshness \u00b7 1 trading day overdue (SLA 1 \u00b7 currently 2)\n  5. [WARNING] sector_context \u00b7 freshness \u00b7 1 trading day overdue (SLA 1 \u00b7 currently 2)\n\nRecommended: schedule the affected ingestion module to run again and re-check before the next orchestrator cycle.",
+      "findings": [
+        {
+          "rank": 1,
+          "severity": "WARNING",
+          "dataset": "company_context",
+          "validator": "freshness",
+          "message": "1 trading day overdue (SLA 1 \u00b7 currently 2)"
+        },
+        {
+          "rank": 2,
+          "severity": "WARNING",
+          "dataset": "global_context",
+          "validator": "freshness",
+          "message": "1 trading day overdue (SLA 1 \u00b7 currently 2)"
+        },
+        {
+          "rank": 3,
+          "severity": "WARNING",
+          "dataset": "industry_context",
+          "validator": "freshness",
+          "message": "1 trading day overdue (SLA 1 \u00b7 currently 2)"
+        },
+        {
+          "rank": 4,
+          "severity": "WARNING",
+          "dataset": "recommendations",
+          "validator": "freshness",
+          "message": "1 trading day overdue (SLA 1 \u00b7 currently 2)"
+        },
+        {
+          "rank": 5,
+          "severity": "WARNING",
+          "dataset": "sector_context",
+          "validator": "freshness",
+          "message": "1 trading day overdue (SLA 1 \u00b7 currently 2)"
+        }
+      ],
       "evidence": {
-        "n_datasets": 38,
-        "verdict": "PASS",
-        "confidence": 0.9119,
+        "n_datasets": 42,
+        "verdict": "WARNING",
+        "confidence": 0.9,
         "counts": {
-          "PASS": 38,
-          "WARNING": 0,
+          "PASS": 37,
+          "WARNING": 5,
           "FAIL": 0,
           "NOT_APPLICABLE": 0
         },
-        "n_top_issues": 0
+        "n_top_issues": 5
       },
       "citations": [
         "reports/backend_validation_summary.json"
       ],
-      "confidence": 0.9119,
+      "confidence": 0.9,
       "caveats": [],
       "determinism": "template"
     },
@@ -139,7 +175,7 @@
       "agent": "evidence_summarizer",
       "version": "v1.0",
       "market": "india",
-      "asof": "2026-07-20",
+      "asof": "2026-07-21",
       "headline": "Data snapshot \u00b7 INDIA.",
       "narrative": "Data snapshot \u00b7 INDIA. News: 150 tickers scored across 0 headlines. Average sentiment +0.21 (positive=110, negative=20). Fundamentals: 228 rows \u00b7 ROE median 17.6% \u00b7 D/E median 75.83 \u00b7 P/E median 53.9. Institutional flows: 4 rows, net +11,318 INR. Earnings: 207 tickers have a next-earnings date on the calendar. Corporate actions: 264 dividend event(s), 14 split(s) in the trailing window.",
       "findings": [],
