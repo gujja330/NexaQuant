@@ -1,0 +1,26 @@
+# AEGIS Execution Simulator Configuration — Sprint 7
+#
+# Operator-owned. Hashed into Experiment Registry per architecture.
+
+market_defaults:
+  india:
+    starting_aum:                 10_000_000     # ₹1 Cr — arbitrary paper AUM for simulation
+    commission_bps:               3.0
+    min_slippage_bps:             2.0
+    liquidity_impact_bps:         50.0            # bps per unit of (order_size / adv_20d)
+    vol_impact_bps:               15.0
+    max_daily_participation:      0.10            # 10% of ADV per day
+    gap_stop_out_threshold_pct:   0.03
+
+  usa:
+    starting_aum:                 1_000_000       # $1M — paper AUM for simulation
+    commission_bps:               1.0
+    min_slippage_bps:             1.0
+    liquidity_impact_bps:         30.0
+    vol_impact_bps:               10.0
+    max_daily_participation:      0.15
+    gap_stop_out_threshold_pct:   0.03
+
+global:
+  ai_execution_analyst:
+    enabled:                     true

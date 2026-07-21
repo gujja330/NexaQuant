@@ -569,3 +569,24 @@ datasets:
     schema:
       required_keys: [engine, version, market, run_utc, output]
     consumers: [ux/dashboard]
+
+  # ── SPRINT 7 · Execution Simulator ───────────────────────────────
+  - name: execution_summary
+    path: reports/execution_summary.json
+    producer: india/execution_simulator/run.py
+    kind: execution
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, version, market, run_utc, asof, currency,
+                       starting_aum, n_trade_instructions, n_fills_generated,
+                       honest_empty, model_stamp]
+    consumers: [ux/dashboard, backend/walkforward (Sprint 8+)]
+
+  - name: ai_execution_narrative
+    path: reports/ai_execution_narrative.json
+    producer: india/execution_simulator/run.py
+    kind: ai_narrative
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, version, market, run_utc, output]
+    consumers: [ux/dashboard]

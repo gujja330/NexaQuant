@@ -178,6 +178,17 @@ STEPS = [
         "optional": True,
     },
     {
+        "name": "execution_simulator",
+        "desc": "Sprint 7 · Execution Simulator (fills + slippage + commissions + equity curve + AI analyst)",
+        "script": "india/execution_simulator/run.py",
+        "produces": ["reports/execution_ledger.parquet",
+                       "reports/execution_summary.json",
+                       "reports/equity_curve.parquet",
+                       "reports/ai_execution_narrative.json"],
+        "requires": ["reports/portfolio_diff.json", "configs/execution_config.yaml"],
+        "optional": True,
+    },
+    {
         "name": "adaptive_rec_v2",
         "desc": "Adaptive Rec Engine v2.0 (confidence rebuild + Precision@K)",
         "script": "research/adaptive_rec_v2/run.py",

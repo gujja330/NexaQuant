@@ -224,6 +224,17 @@ STEPS = [
         "optional": True,
     },
     {
+        "name":     "execution_simulator",
+        "desc":     "Sprint 7 · USA Execution Simulator (fills + slippage + equity curve, USD)",
+        "script":   "usa/research/execution_simulator/run.py",
+        "produces": ["usa/reports/execution_ledger.parquet",
+                       "usa/reports/execution_summary.json",
+                       "usa/reports/equity_curve.parquet",
+                       "usa/reports/ai_execution_narrative.json"],
+        "requires": ["usa/reports/portfolio_diff.json", "configs/execution_config.yaml"],
+        "optional": True,
+    },
+    {
         "name":     "recommendations",
         "desc":     "USA Adaptive Recommendation Engine (technicals-based)",
         "script":   "usa/research/recommendations/run.py",

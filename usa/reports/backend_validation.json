@@ -2,17 +2,17 @@
   "engine": "backend_validation",
   "version": "v1.0",
   "market": "usa",
-  "run_utc": "2026-07-21T03:13:19+00:00Z",
-  "n_datasets": 60,
+  "run_utc": "2026-07-21T03:49:38+00:00Z",
+  "n_datasets": 67,
   "verdict": "PASS",
-  "confidence": 0.913,
+  "confidence": 0.9118,
   "counts": {
-    "PASS": 60,
+    "PASS": 67,
     "WARNING": 0,
     "FAIL": 0,
     "NOT_APPLICABLE": 0
   },
-  "elapsed_s": 10.921,
+  "elapsed_s": 13.236,
   "datasets": {
     "aapl_price": {
       "spec": {
@@ -52,12 +52,12 @@
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\data\\raw\\us\\AAPL_D1.parquet",
             "mtime_utc": "2026-07-20T08:20:30+00:00",
-            "wall_hours_old": 18.88,
+            "wall_hours_old": 19.48,
             "trading_days_old": 1,
             "sla_trading_days": 1
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.0
+          "elapsed_ms": 1.04
         },
         "schema": {
           "validator": "schema",
@@ -87,7 +87,7 @@
             "n_columns": 6
           },
           "suggested_fixes": [],
-          "elapsed_ms": 60.54
+          "elapsed_ms": 43.11
         },
         "completeness": {
           "validator": "completeness",
@@ -100,7 +100,7 @@
             "n_rows": 1255
           },
           "suggested_fixes": [],
-          "elapsed_ms": 2.99
+          "elapsed_ms": 0.0
         },
         "quality": {
           "validator": "quality",
@@ -115,7 +115,7 @@
             }
           },
           "suggested_fixes": [],
-          "elapsed_ms": 2.44
+          "elapsed_ms": 6.75
         },
         "lineage": {
           "validator": "lineage",
@@ -134,7 +134,123 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 803.16
+          "elapsed_ms": 842.89
+        }
+      }
+    },
+    "ai_execution_narrative": {
+      "spec": {
+        "name": "ai_execution_narrative",
+        "path": "usa/reports/ai_execution_narrative.json",
+        "producer": "usa/research/execution_simulator/run.py",
+        "kind": "ai_narrative",
+        "freshness_sla_trading_days": 1,
+        "consumers": [
+          "usa/dashboard/frontend"
+        ]
+      },
+      "rollup_verdict": "PASS",
+      "rollup_confidence": 0.9013,
+      "n_issues": 0,
+      "validators": {
+        "freshness": {
+          "validator": "freshness",
+          "dataset": "ai_execution_narrative",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\ai_execution_narrative.json",
+            "mtime_utc": "2026-07-21T03:46:45+00:00",
+            "wall_hours_old": 0.04,
+            "trading_days_old": 0,
+            "sla_trading_days": 1,
+            "run_utc_declared": "2026-07-21T03:46:45+00:00"
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "schema": {
+          "validator": "schema",
+          "dataset": "ai_execution_narrative",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "required": [
+              "engine",
+              "version",
+              "market",
+              "run_utc",
+              "output"
+            ],
+            "present": [
+              "engine",
+              "version",
+              "market",
+              "run_utc",
+              "asof",
+              "output"
+            ],
+            "missing": [],
+            "extras": [],
+            "n_columns": 6
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "completeness": {
+          "validator": "completeness",
+          "dataset": "ai_execution_narrative",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {},
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "quality": {
+          "validator": "quality",
+          "dataset": "ai_execution_narrative",
+          "verdict": "NOT_APPLICABLE",
+          "confidence": 0.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "reason": "not_applicable_to_non_parquet_or_missing"
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "lineage": {
+          "validator": "lineage",
+          "dataset": "ai_execution_narrative",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "producer": "usa/research/execution_simulator/run.py",
+            "producer_path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\research\\execution_simulator\\run.py",
+            "n_callers": 20,
+            "callers": [
+              "backend\\__init__.py",
+              "docs\\generate_architecture_review.py",
+              "india\\daily_run.py",
+              "scripts\\aegis_daily_v2.py",
+              "scripts\\aegis_profile.py",
+              "scripts\\check_data_freshness.py",
+              "backend\\ai\\data_quality.py",
+              "backend\\tests\\test_sprint2.py",
+              "backend\\tests\\test_sprint25.py",
+              "backend\\tests\\test_sprint26.py"
+            ]
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 98.29
         }
       }
     },
@@ -163,13 +279,13 @@
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\ai_feature_narrative.json",
             "mtime_utc": "2026-07-21T02:26:35+00:00",
-            "wall_hours_old": 0.78,
+            "wall_hours_old": 1.38,
             "trading_days_old": 0,
             "sla_trading_days": 1,
             "run_utc_declared": "2026-07-21T02:14:39+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 15.82
+          "elapsed_ms": 0.48
         },
         "schema": {
           "validator": "schema",
@@ -199,7 +315,7 @@
             "n_columns": 6
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.0
+          "elapsed_ms": 0.38
         },
         "completeness": {
           "validator": "completeness",
@@ -250,7 +366,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 113.37
+          "elapsed_ms": 90.89
         }
       }
     },
@@ -279,13 +395,13 @@
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\ai_feature_research.json",
             "mtime_utc": "2026-07-21T02:26:35+00:00",
-            "wall_hours_old": 0.78,
+            "wall_hours_old": 1.38,
             "trading_days_old": 0,
             "sla_trading_days": 1,
             "run_utc_declared": "2026-07-21T02:14:43+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 17.68
+          "elapsed_ms": 0.0
         },
         "schema": {
           "validator": "schema",
@@ -366,7 +482,123 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 116.6
+          "elapsed_ms": 100.71
+        }
+      }
+    },
+    "ai_learning_narrative": {
+      "spec": {
+        "name": "ai_learning_narrative",
+        "path": "usa/reports/ai_learning_narrative.json",
+        "producer": "usa/research/learning_engine/run.py",
+        "kind": "ai_narrative",
+        "freshness_sla_trading_days": 1,
+        "consumers": [
+          "usa/dashboard/frontend"
+        ]
+      },
+      "rollup_verdict": "PASS",
+      "rollup_confidence": 0.9013,
+      "n_issues": 0,
+      "validators": {
+        "freshness": {
+          "validator": "freshness",
+          "dataset": "ai_learning_narrative",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\ai_learning_narrative.json",
+            "mtime_utc": "2026-07-21T03:49:24+00:00",
+            "wall_hours_old": 0.0,
+            "trading_days_old": 0,
+            "sla_trading_days": 1,
+            "run_utc_declared": "2026-07-21T03:49:24+00:00"
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "schema": {
+          "validator": "schema",
+          "dataset": "ai_learning_narrative",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "required": [
+              "engine",
+              "version",
+              "market",
+              "run_utc",
+              "output"
+            ],
+            "present": [
+              "engine",
+              "version",
+              "market",
+              "run_utc",
+              "asof",
+              "output"
+            ],
+            "missing": [],
+            "extras": [],
+            "n_columns": 6
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "completeness": {
+          "validator": "completeness",
+          "dataset": "ai_learning_narrative",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {},
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "quality": {
+          "validator": "quality",
+          "dataset": "ai_learning_narrative",
+          "verdict": "NOT_APPLICABLE",
+          "confidence": 0.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "reason": "not_applicable_to_non_parquet_or_missing"
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "lineage": {
+          "validator": "lineage",
+          "dataset": "ai_learning_narrative",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "producer": "usa/research/learning_engine/run.py",
+            "producer_path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\research\\learning_engine\\run.py",
+            "n_callers": 20,
+            "callers": [
+              "backend\\__init__.py",
+              "docs\\generate_architecture_review.py",
+              "india\\daily_run.py",
+              "scripts\\aegis_daily_v2.py",
+              "scripts\\aegis_profile.py",
+              "scripts\\check_data_freshness.py",
+              "backend\\ai\\data_quality.py",
+              "backend\\tests\\test_sprint2.py",
+              "backend\\tests\\test_sprint25.py",
+              "backend\\tests\\test_sprint26.py"
+            ]
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 97.51
         }
       }
     },
@@ -395,13 +627,13 @@
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\ai_market_narrative.json",
             "mtime_utc": "2026-07-21T02:40:52+00:00",
-            "wall_hours_old": 0.54,
+            "wall_hours_old": 1.14,
             "trading_days_old": 0,
             "sla_trading_days": 1,
             "run_utc_declared": "2026-07-20T14:34:08+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 15.74
+          "elapsed_ms": 0.0
         },
         "schema": {
           "validator": "schema",
@@ -482,7 +714,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 117.69
+          "elapsed_ms": 113.69
         }
       }
     },
@@ -511,13 +743,13 @@
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\ai_model_narrative.json",
             "mtime_utc": "2026-07-21T02:40:52+00:00",
-            "wall_hours_old": 0.54,
+            "wall_hours_old": 1.14,
             "trading_days_old": 0,
             "sla_trading_days": 1,
             "run_utc_declared": "2026-07-20T21:46:44+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 17.46
+          "elapsed_ms": 0.0
         },
         "schema": {
           "validator": "schema",
@@ -598,7 +830,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 120.65
+          "elapsed_ms": 107.06
         }
       }
     },
@@ -626,14 +858,14 @@
           "issues": [],
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\ai_portfolio_narrative.json",
-            "mtime_utc": "2026-07-21T03:12:50+00:00",
-            "wall_hours_old": 0.01,
+            "mtime_utc": "2026-07-21T03:29:46+00:00",
+            "wall_hours_old": 0.33,
             "trading_days_old": 0,
             "sla_trading_days": 1,
-            "run_utc_declared": "2026-07-21T03:12:50+00:00"
+            "run_utc_declared": "2026-07-21T03:29:46+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.0
+          "elapsed_ms": 1.0
         },
         "schema": {
           "validator": "schema",
@@ -714,7 +946,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 98.83
+          "elapsed_ms": 89.02
         }
       }
     },
@@ -743,13 +975,13 @@
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\ai_recommendation_narrative.json",
             "mtime_utc": "2026-07-21T03:12:37+00:00",
-            "wall_hours_old": 0.01,
+            "wall_hours_old": 0.61,
             "trading_days_old": 0,
             "sla_trading_days": 1,
             "run_utc_declared": "2026-07-21T03:12:37+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 18.32
+          "elapsed_ms": 0.0
         },
         "schema": {
           "validator": "schema",
@@ -830,7 +1062,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 113.76
+          "elapsed_ms": 101.82
         }
       }
     },
@@ -858,14 +1090,14 @@
           "issues": [],
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\ai_risk_narrative.json",
-            "mtime_utc": "2026-07-21T03:12:49+00:00",
-            "wall_hours_old": 0.01,
+            "mtime_utc": "2026-07-21T03:29:44+00:00",
+            "wall_hours_old": 0.33,
             "trading_days_old": 0,
             "sla_trading_days": 1,
-            "run_utc_declared": "2026-07-21T03:12:49+00:00"
+            "run_utc_declared": "2026-07-21T03:29:44+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 24.39
+          "elapsed_ms": 10.14
         },
         "schema": {
           "validator": "schema",
@@ -906,7 +1138,7 @@
           "issues": [],
           "evidence": {},
           "suggested_fixes": [],
-          "elapsed_ms": 0.0
+          "elapsed_ms": 1.04
         },
         "quality": {
           "validator": "quality",
@@ -946,7 +1178,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 114.29
+          "elapsed_ms": 103.79
         }
       }
     },
@@ -976,13 +1208,13 @@
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\benchmark.json",
             "mtime_utc": "2026-07-21T02:26:35+00:00",
-            "wall_hours_old": 0.78,
+            "wall_hours_old": 1.38,
             "trading_days_old": 0,
             "sla_trading_days": 1,
             "run_utc_declared": "2026-07-20T07:50:12+00:00Z"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 9.99
+          "elapsed_ms": 0.0
         },
         "schema": {
           "validator": "schema",
@@ -1072,7 +1304,124 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 119.14
+          "elapsed_ms": 97.96
+        }
+      }
+    },
+    "confidence_calibration": {
+      "spec": {
+        "name": "confidence_calibration",
+        "path": "usa/reports/confidence_calibration.json",
+        "producer": "usa/research/learning_engine/run.py",
+        "kind": "learning",
+        "freshness_sla_trading_days": 1,
+        "consumers": [
+          "backend/recommendation/calibration (feedback loop)"
+        ]
+      },
+      "rollup_verdict": "PASS",
+      "rollup_confidence": 0.9013,
+      "n_issues": 0,
+      "validators": {
+        "freshness": {
+          "validator": "freshness",
+          "dataset": "confidence_calibration",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\confidence_calibration.json",
+            "mtime_utc": "2026-07-21T03:49:24+00:00",
+            "wall_hours_old": 0.0,
+            "trading_days_old": 0,
+            "sla_trading_days": 1,
+            "run_utc_declared": "2026-07-21T03:49:24+00:00"
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 18.29
+        },
+        "schema": {
+          "validator": "schema",
+          "dataset": "confidence_calibration",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "required": [
+              "engine",
+              "market",
+              "run_utc",
+              "asof",
+              "calibration_curve"
+            ],
+            "present": [
+              "engine",
+              "version",
+              "market",
+              "run_utc",
+              "asof",
+              "calibration_curve",
+              "model_stamp"
+            ],
+            "missing": [],
+            "extras": [],
+            "n_columns": 7
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "completeness": {
+          "validator": "completeness",
+          "dataset": "confidence_calibration",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {},
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "quality": {
+          "validator": "quality",
+          "dataset": "confidence_calibration",
+          "verdict": "NOT_APPLICABLE",
+          "confidence": 0.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "reason": "not_applicable_to_non_parquet_or_missing"
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "lineage": {
+          "validator": "lineage",
+          "dataset": "confidence_calibration",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "producer": "usa/research/learning_engine/run.py",
+            "producer_path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\research\\learning_engine\\run.py",
+            "n_callers": 20,
+            "callers": [
+              "backend\\__init__.py",
+              "docs\\generate_architecture_review.py",
+              "india\\daily_run.py",
+              "scripts\\aegis_daily_v2.py",
+              "scripts\\aegis_profile.py",
+              "scripts\\check_data_freshness.py",
+              "backend\\ai\\data_quality.py",
+              "backend\\tests\\test_sprint2.py",
+              "backend\\tests\\test_sprint25.py",
+              "backend\\tests\\test_sprint26.py"
+            ]
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 105.15
         }
       }
     },
@@ -1103,7 +1452,7 @@
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\data\\raw\\us\\corporate_actions.parquet",
             "mtime_utc": "2026-07-20T08:09:40+00:00",
-            "wall_hours_old": 19.06,
+            "wall_hours_old": 19.66,
             "trading_days_old": 1,
             "sla_trading_days": 5
           },
@@ -1137,7 +1486,7 @@
             "n_columns": 5
           },
           "suggested_fixes": [],
-          "elapsed_ms": 14.4
+          "elapsed_ms": 0.0
         },
         "completeness": {
           "validator": "completeness",
@@ -1150,7 +1499,7 @@
             "n_rows": 103
           },
           "suggested_fixes": [],
-          "elapsed_ms": 1.84
+          "elapsed_ms": 3.05
         },
         "quality": {
           "validator": "quality",
@@ -1161,7 +1510,7 @@
           "issues": [],
           "evidence": {},
           "suggested_fixes": [],
-          "elapsed_ms": 2.62
+          "elapsed_ms": 0.0
         },
         "lineage": {
           "validator": "lineage",
@@ -1188,7 +1537,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 96.0
+          "elapsed_ms": 104.99
         }
       }
     },
@@ -1214,13 +1563,13 @@
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\corporate_actions_summary.json",
             "mtime_utc": "2026-07-21T02:26:34+00:00",
-            "wall_hours_old": 0.78,
+            "wall_hours_old": 1.38,
             "trading_days_old": 0,
             "sla_trading_days": 5,
             "run_utc_declared": "2026-07-20T21:46:16+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 22.86
+          "elapsed_ms": 1.03
         },
         "schema": {
           "validator": "schema",
@@ -1307,7 +1656,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 116.06
+          "elapsed_ms": 114.71
         }
       }
     },
@@ -1336,13 +1685,13 @@
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\decision_attribution.json",
             "mtime_utc": "2026-07-21T02:26:35+00:00",
-            "wall_hours_old": 0.78,
+            "wall_hours_old": 1.38,
             "trading_days_old": 0,
             "sla_trading_days": 1,
             "run_utc_declared": "2026-07-20T07:50:11+00:00Z"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 11.82
+          "elapsed_ms": 1.09
         },
         "schema": {
           "validator": "schema",
@@ -1428,7 +1777,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 116.39
+          "elapsed_ms": 130.02
         }
       }
     },
@@ -1458,7 +1807,7 @@
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\data\\raw\\us\\earnings.parquet",
             "mtime_utc": "2026-07-20T08:11:24+00:00",
-            "wall_hours_old": 19.03,
+            "wall_hours_old": 19.63,
             "trading_days_old": 1,
             "sla_trading_days": 2
           },
@@ -1494,7 +1843,7 @@
             "n_columns": 9
           },
           "suggested_fixes": [],
-          "elapsed_ms": 16.14
+          "elapsed_ms": 3.11
         },
         "completeness": {
           "validator": "completeness",
@@ -1507,7 +1856,7 @@
             "n_rows": 30
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.0
+          "elapsed_ms": 2.36
         },
         "quality": {
           "validator": "quality",
@@ -1545,7 +1894,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 117.2
+          "elapsed_ms": 129.76
         }
       }
     },
@@ -1571,13 +1920,13 @@
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\earnings_summary.json",
             "mtime_utc": "2026-07-21T02:26:34+00:00",
-            "wall_hours_old": 0.78,
+            "wall_hours_old": 1.38,
             "trading_days_old": 0,
             "sla_trading_days": 2,
             "run_utc_declared": "2026-07-20T21:45:33+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 19.41
+          "elapsed_ms": 1.05
         },
         "schema": {
           "validator": "schema",
@@ -1659,7 +2008,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 129.54
+          "elapsed_ms": 118.34
         }
       }
     },
@@ -1689,7 +2038,7 @@
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\ensemble.json",
             "mtime_utc": "2026-07-21T02:26:35+00:00",
-            "wall_hours_old": 0.78,
+            "wall_hours_old": 1.38,
             "trading_days_old": 0,
             "sla_trading_days": 1
           },
@@ -1778,7 +2127,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 98.42
+          "elapsed_ms": 130.77
         }
       }
     },
@@ -1808,12 +2157,12 @@
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\data\\raw\\us\\etf_flows.parquet",
             "mtime_utc": "2026-07-20T08:09:13+00:00",
-            "wall_hours_old": 19.07,
+            "wall_hours_old": 19.67,
             "trading_days_old": 1,
             "sla_trading_days": 2
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.0
+          "elapsed_ms": 1.04
         },
         "schema": {
           "validator": "schema",
@@ -1844,7 +2193,7 @@
             "n_columns": 7
           },
           "suggested_fixes": [],
-          "elapsed_ms": 24.21
+          "elapsed_ms": 1.47
         },
         "completeness": {
           "validator": "completeness",
@@ -1857,7 +2206,7 @@
             "n_rows": 600
           },
           "suggested_fixes": [],
-          "elapsed_ms": 4.69
+          "elapsed_ms": 0.0
         },
         "quality": {
           "validator": "quality",
@@ -1895,7 +2244,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 105.97
+          "elapsed_ms": 131.74
         }
       }
     },
@@ -1921,13 +2270,13 @@
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\etf_flows_summary.json",
             "mtime_utc": "2026-07-21T02:26:34+00:00",
-            "wall_hours_old": 0.78,
+            "wall_hours_old": 1.38,
             "trading_days_old": 0,
             "sla_trading_days": 2,
             "run_utc_declared": "2026-07-20T21:46:07+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 19.08
+          "elapsed_ms": 1.29
         },
         "schema": {
           "validator": "schema",
@@ -2012,7 +2361,394 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 113.45
+          "elapsed_ms": 114.2
+        }
+      }
+    },
+    "execution_summary": {
+      "spec": {
+        "name": "execution_summary",
+        "path": "usa/reports/execution_summary.json",
+        "producer": "usa/research/execution_simulator/run.py",
+        "kind": "execution",
+        "freshness_sla_trading_days": 1,
+        "consumers": [
+          "usa/dashboard/frontend",
+          "backend/walkforward (Sprint 8+)"
+        ]
+      },
+      "rollup_verdict": "PASS",
+      "rollup_confidence": 0.9013,
+      "n_issues": 0,
+      "validators": {
+        "freshness": {
+          "validator": "freshness",
+          "dataset": "execution_summary",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\execution_summary.json",
+            "mtime_utc": "2026-07-21T03:46:45+00:00",
+            "wall_hours_old": 0.05,
+            "trading_days_old": 0,
+            "sla_trading_days": 1,
+            "run_utc_declared": "2026-07-21T03:46:45+00:00"
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "schema": {
+          "validator": "schema",
+          "dataset": "execution_summary",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "required": [
+              "engine",
+              "version",
+              "market",
+              "run_utc",
+              "asof",
+              "currency",
+              "starting_aum",
+              "n_trade_instructions",
+              "n_fills_generated",
+              "honest_empty",
+              "model_stamp"
+            ],
+            "present": [
+              "engine",
+              "version",
+              "market",
+              "run_utc",
+              "asof",
+              "currency",
+              "engine_version",
+              "honest_empty",
+              "honest_empty_reason",
+              "starting_aum",
+              "n_trade_instructions",
+              "n_fills_generated",
+              "n_fills_partial",
+              "total_commission",
+              "total_slippage",
+              "equity_value_end",
+              "cash_end",
+              "long_notional",
+              "short_notional",
+              "n_open_positions",
+              "n_closed_positions_today",
+              "sharpe_annualised",
+              "sortino_annualised",
+              "calmar_ratio",
+              "max_drawdown_pct",
+              "profit_factor",
+              "hit_rate",
+              "turnover_today",
+              "model_stamp",
+              "feature_set_version",
+              "schema_fingerprint",
+              "notes"
+            ],
+            "missing": [],
+            "extras": [],
+            "n_columns": 32
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "completeness": {
+          "validator": "completeness",
+          "dataset": "execution_summary",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {},
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "quality": {
+          "validator": "quality",
+          "dataset": "execution_summary",
+          "verdict": "NOT_APPLICABLE",
+          "confidence": 0.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "reason": "not_applicable_to_non_parquet_or_missing"
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "lineage": {
+          "validator": "lineage",
+          "dataset": "execution_summary",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "producer": "usa/research/execution_simulator/run.py",
+            "producer_path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\research\\execution_simulator\\run.py",
+            "n_callers": 20,
+            "callers": [
+              "backend\\__init__.py",
+              "docs\\generate_architecture_review.py",
+              "india\\daily_run.py",
+              "scripts\\aegis_daily_v2.py",
+              "scripts\\aegis_profile.py",
+              "scripts\\check_data_freshness.py",
+              "backend\\ai\\data_quality.py",
+              "backend\\tests\\test_sprint2.py",
+              "backend\\tests\\test_sprint25.py",
+              "backend\\tests\\test_sprint26.py"
+            ]
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 136.1
+        }
+      }
+    },
+    "failure_clusters": {
+      "spec": {
+        "name": "failure_clusters",
+        "path": "usa/reports/failure_clusters.json",
+        "producer": "usa/research/learning_engine/run.py",
+        "kind": "learning",
+        "freshness_sla_trading_days": 1,
+        "consumers": [
+          "usa/dashboard/frontend"
+        ]
+      },
+      "rollup_verdict": "PASS",
+      "rollup_confidence": 0.9013,
+      "n_issues": 0,
+      "validators": {
+        "freshness": {
+          "validator": "freshness",
+          "dataset": "failure_clusters",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\failure_clusters.json",
+            "mtime_utc": "2026-07-21T03:49:24+00:00",
+            "wall_hours_old": 0.0,
+            "trading_days_old": 0,
+            "sla_trading_days": 1,
+            "run_utc_declared": "2026-07-21T03:49:24+00:00"
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 33.47
+        },
+        "schema": {
+          "validator": "schema",
+          "dataset": "failure_clusters",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "required": [
+              "engine",
+              "market",
+              "run_utc",
+              "asof",
+              "n_clusters",
+              "clusters"
+            ],
+            "present": [
+              "engine",
+              "version",
+              "market",
+              "run_utc",
+              "asof",
+              "n_clusters",
+              "clusters",
+              "model_stamp"
+            ],
+            "missing": [],
+            "extras": [],
+            "n_columns": 8
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "completeness": {
+          "validator": "completeness",
+          "dataset": "failure_clusters",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {},
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "quality": {
+          "validator": "quality",
+          "dataset": "failure_clusters",
+          "verdict": "NOT_APPLICABLE",
+          "confidence": 0.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "reason": "not_applicable_to_non_parquet_or_missing"
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "lineage": {
+          "validator": "lineage",
+          "dataset": "failure_clusters",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "producer": "usa/research/learning_engine/run.py",
+            "producer_path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\research\\learning_engine\\run.py",
+            "n_callers": 20,
+            "callers": [
+              "backend\\__init__.py",
+              "docs\\generate_architecture_review.py",
+              "india\\daily_run.py",
+              "scripts\\aegis_daily_v2.py",
+              "scripts\\aegis_profile.py",
+              "scripts\\check_data_freshness.py",
+              "backend\\ai\\data_quality.py",
+              "backend\\tests\\test_sprint2.py",
+              "backend\\tests\\test_sprint25.py",
+              "backend\\tests\\test_sprint26.py"
+            ]
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 130.96
+        }
+      }
+    },
+    "feature_attribution": {
+      "spec": {
+        "name": "feature_attribution",
+        "path": "usa/reports/feature_attribution.json",
+        "producer": "usa/research/learning_engine/run.py",
+        "kind": "learning",
+        "freshness_sla_trading_days": 1,
+        "consumers": [
+          "usa/dashboard/frontend"
+        ]
+      },
+      "rollup_verdict": "PASS",
+      "rollup_confidence": 0.9013,
+      "n_issues": 0,
+      "validators": {
+        "freshness": {
+          "validator": "freshness",
+          "dataset": "feature_attribution",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\feature_attribution.json",
+            "mtime_utc": "2026-07-21T03:49:24+00:00",
+            "wall_hours_old": 0.0,
+            "trading_days_old": 0,
+            "sla_trading_days": 1,
+            "run_utc_declared": "2026-07-21T03:49:24+00:00"
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 37.31
+        },
+        "schema": {
+          "validator": "schema",
+          "dataset": "feature_attribution",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "required": [
+              "engine",
+              "market",
+              "run_utc",
+              "asof",
+              "n_features_scored",
+              "attribution"
+            ],
+            "present": [
+              "engine",
+              "version",
+              "market",
+              "run_utc",
+              "asof",
+              "n_features_scored",
+              "attribution",
+              "model_stamp"
+            ],
+            "missing": [],
+            "extras": [],
+            "n_columns": 8
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "completeness": {
+          "validator": "completeness",
+          "dataset": "feature_attribution",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {},
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "quality": {
+          "validator": "quality",
+          "dataset": "feature_attribution",
+          "verdict": "NOT_APPLICABLE",
+          "confidence": 0.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "reason": "not_applicable_to_non_parquet_or_missing"
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "lineage": {
+          "validator": "lineage",
+          "dataset": "feature_attribution",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "producer": "usa/research/learning_engine/run.py",
+            "producer_path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\research\\learning_engine\\run.py",
+            "n_callers": 20,
+            "callers": [
+              "backend\\__init__.py",
+              "docs\\generate_architecture_review.py",
+              "india\\daily_run.py",
+              "scripts\\aegis_daily_v2.py",
+              "scripts\\aegis_profile.py",
+              "scripts\\check_data_freshness.py",
+              "backend\\ai\\data_quality.py",
+              "backend\\tests\\test_sprint2.py",
+              "backend\\tests\\test_sprint25.py",
+              "backend\\tests\\test_sprint26.py"
+            ]
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 125.67
         }
       }
     },
@@ -2041,13 +2777,13 @@
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\feature_intelligence.json",
             "mtime_utc": "2026-07-21T02:26:35+00:00",
-            "wall_hours_old": 0.78,
+            "wall_hours_old": 1.38,
             "trading_days_old": 0,
             "sla_trading_days": 1,
             "run_utc_declared": "2026-07-21T02:14:43+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 16.16
+          "elapsed_ms": 2.44
         },
         "schema": {
           "validator": "schema",
@@ -2087,7 +2823,7 @@
             "n_columns": 11
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.0
+          "elapsed_ms": 2.5
         },
         "completeness": {
           "validator": "completeness",
@@ -2098,7 +2834,7 @@
           "issues": [],
           "evidence": {},
           "suggested_fixes": [],
-          "elapsed_ms": 10.66
+          "elapsed_ms": 0.0
         },
         "quality": {
           "validator": "quality",
@@ -2138,7 +2874,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 107.3
+          "elapsed_ms": 133.21
         }
       }
     },
@@ -2168,12 +2904,12 @@
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\feature_intelligence_summary.json",
             "mtime_utc": "2026-07-21T02:26:35+00:00",
-            "wall_hours_old": 0.78,
+            "wall_hours_old": 1.38,
             "trading_days_old": 0,
             "sla_trading_days": 1
           },
           "suggested_fixes": [],
-          "elapsed_ms": 29.69
+          "elapsed_ms": 0.0
         },
         "schema": {
           "validator": "schema",
@@ -2223,7 +2959,7 @@
           "issues": [],
           "evidence": {},
           "suggested_fixes": [],
-          "elapsed_ms": 2.71
+          "elapsed_ms": 0.0
         },
         "quality": {
           "validator": "quality",
@@ -2263,7 +2999,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 116.24
+          "elapsed_ms": 133.1
         }
       }
     },
@@ -2292,13 +3028,13 @@
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\feature_store_summary.json",
             "mtime_utc": "2026-07-21T02:26:35+00:00",
-            "wall_hours_old": 0.78,
+            "wall_hours_old": 1.38,
             "trading_days_old": 0,
             "sla_trading_days": 1,
             "run_utc_declared": "2026-07-21T02:14:39+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 17.52
+          "elapsed_ms": 0.0
         },
         "schema": {
           "validator": "schema",
@@ -2391,7 +3127,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 126.97
+          "elapsed_ms": 124.02
         }
       }
     },
@@ -2421,13 +3157,13 @@
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\fundamentals.json",
             "mtime_utc": "2026-07-21T02:26:34+00:00",
-            "wall_hours_old": 0.78,
+            "wall_hours_old": 1.38,
             "trading_days_old": 0,
             "sla_trading_days": 5,
             "run_utc_declared": "2026-07-20T21:45:11+00:00Z"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 24.5
+          "elapsed_ms": 0.0
         },
         "schema": {
           "validator": "schema",
@@ -2512,7 +3248,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 114.16
+          "elapsed_ms": 125.61
         }
       }
     },
@@ -2538,13 +3274,13 @@
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\insider_summary.json",
             "mtime_utc": "2026-07-21T02:26:34+00:00",
-            "wall_hours_old": 0.78,
+            "wall_hours_old": 1.38,
             "trading_days_old": 0,
             "sla_trading_days": 2,
             "run_utc_declared": "2026-07-20T21:46:03+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 20.66
+          "elapsed_ms": 0.0
         },
         "schema": {
           "validator": "schema",
@@ -2631,7 +3367,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 132.82
+          "elapsed_ms": 129.32
         }
       }
     },
@@ -2662,12 +3398,12 @@
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\data\\raw\\us\\insider_transactions.parquet",
             "mtime_utc": "2026-07-20T08:10:44+00:00",
-            "wall_hours_old": 19.04,
+            "wall_hours_old": 19.65,
             "trading_days_old": 1,
             "sla_trading_days": 3
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.0
+          "elapsed_ms": 1.45
         },
         "schema": {
           "validator": "schema",
@@ -2698,7 +3434,7 @@
             "n_columns": 8
           },
           "suggested_fixes": [],
-          "elapsed_ms": 13.16
+          "elapsed_ms": 2.44
         },
         "completeness": {
           "validator": "completeness",
@@ -2711,7 +3447,7 @@
             "n_rows": 355
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.0
+          "elapsed_ms": 1.56
         },
         "quality": {
           "validator": "quality",
@@ -2749,7 +3485,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 118.4
+          "elapsed_ms": 132.7
         }
       }
     },
@@ -2780,7 +3516,7 @@
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\data\\raw\\us\\institutional_holders.parquet",
             "mtime_utc": "2026-07-20T08:10:33+00:00",
-            "wall_hours_old": 19.04,
+            "wall_hours_old": 19.65,
             "trading_days_old": 1,
             "sla_trading_days": 30
           },
@@ -2814,7 +3550,7 @@
             "n_columns": 7
           },
           "suggested_fixes": [],
-          "elapsed_ms": 18.37
+          "elapsed_ms": 1.25
         },
         "completeness": {
           "validator": "completeness",
@@ -2827,7 +3563,7 @@
             "n_rows": 300
           },
           "suggested_fixes": [],
-          "elapsed_ms": 3.6
+          "elapsed_ms": 0.0
         },
         "quality": {
           "validator": "quality",
@@ -2838,7 +3574,7 @@
           "issues": [],
           "evidence": {},
           "suggested_fixes": [],
-          "elapsed_ms": 2.3
+          "elapsed_ms": 5.82
         },
         "lineage": {
           "validator": "lineage",
@@ -2865,7 +3601,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 107.21
+          "elapsed_ms": 125.75
         }
       }
     },
@@ -2894,13 +3630,13 @@
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\intelligence_conflicts.json",
             "mtime_utc": "2026-07-21T02:26:35+00:00",
-            "wall_hours_old": 0.78,
+            "wall_hours_old": 1.38,
             "trading_days_old": 0,
             "sla_trading_days": 1,
             "run_utc_declared": "2026-07-20T07:50:09+00:00Z"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 17.8
+          "elapsed_ms": 0.0
         },
         "schema": {
           "validator": "schema",
@@ -2976,7 +3712,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 99.69
+          "elapsed_ms": 132.96
         }
       }
     },
@@ -3006,13 +3742,13 @@
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\intelligence_summary.json",
             "mtime_utc": "2026-07-21T02:26:35+00:00",
-            "wall_hours_old": 0.78,
+            "wall_hours_old": 1.38,
             "trading_days_old": 0,
             "sla_trading_days": 1,
             "run_utc_declared": "2026-07-20T07:50:09+00:00Z"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 33.11
+          "elapsed_ms": 0.0
         },
         "schema": {
           "validator": "schema",
@@ -3051,7 +3787,7 @@
           "issues": [],
           "evidence": {},
           "suggested_fixes": [],
-          "elapsed_ms": 0.0
+          "elapsed_ms": 11.7
         },
         "quality": {
           "validator": "quality",
@@ -3091,7 +3827,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 122.83
+          "elapsed_ms": 134.21
         }
       }
     },
@@ -3127,13 +3863,13 @@
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\investment_intelligence.json",
             "mtime_utc": "2026-07-21T02:26:35+00:00",
-            "wall_hours_old": 0.78,
+            "wall_hours_old": 1.38,
             "trading_days_old": 0,
             "sla_trading_days": 1,
             "run_utc_declared": "2026-07-20T07:50:09+00:00Z"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 10.49
+          "elapsed_ms": 1.01
         },
         "schema": {
           "validator": "schema",
@@ -3159,7 +3895,7 @@
             "n_columns": 5
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.0
+          "elapsed_ms": 1.0
         },
         "completeness": {
           "validator": "completeness",
@@ -3174,7 +3910,7 @@
             }
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.0
+          "elapsed_ms": 1.37
         },
         "quality": {
           "validator": "quality",
@@ -3214,7 +3950,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 117.98
+          "elapsed_ms": 135.12
         }
       }
     },
@@ -3244,12 +3980,12 @@
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\data\\raw\\us\\macro.parquet",
             "mtime_utc": "2026-07-20T08:12:49+00:00",
-            "wall_hours_old": 19.01,
+            "wall_hours_old": 19.61,
             "trading_days_old": 1,
             "sla_trading_days": 2
           },
           "suggested_fixes": [],
-          "elapsed_ms": 1.07
+          "elapsed_ms": 0.0
         },
         "schema": {
           "validator": "schema",
@@ -3277,7 +4013,7 @@
             "n_columns": 5
           },
           "suggested_fixes": [],
-          "elapsed_ms": 1.88
+          "elapsed_ms": 0.0
         },
         "completeness": {
           "validator": "completeness",
@@ -3290,7 +4026,7 @@
             "n_rows": 300
           },
           "suggested_fixes": [],
-          "elapsed_ms": 12.79
+          "elapsed_ms": 0.0
         },
         "quality": {
           "validator": "quality",
@@ -3301,7 +4037,7 @@
           "issues": [],
           "evidence": {},
           "suggested_fixes": [],
-          "elapsed_ms": 2.44
+          "elapsed_ms": 12.62
         },
         "lineage": {
           "validator": "lineage",
@@ -3328,7 +4064,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 103.46
+          "elapsed_ms": 118.51
         }
       }
     },
@@ -3354,13 +4090,13 @@
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\macro_summary.json",
             "mtime_utc": "2026-07-21T02:26:34+00:00",
-            "wall_hours_old": 0.78,
+            "wall_hours_old": 1.38,
             "trading_days_old": 0,
             "sla_trading_days": 2,
             "run_utc_declared": "2026-07-20T21:46:14+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 22.27
+          "elapsed_ms": 12.57
         },
         "schema": {
           "validator": "schema",
@@ -3442,7 +4178,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 112.32
+          "elapsed_ms": 127.56
         }
       }
     },
@@ -3471,13 +4207,13 @@
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\market_data_freshness.json",
             "mtime_utc": "2026-07-21T02:26:35+00:00",
-            "wall_hours_old": 0.78,
+            "wall_hours_old": 1.38,
             "trading_days_old": 0,
             "sla_trading_days": 1,
             "run_utc_declared": "2026-07-20T08:20:42+00:00Z"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 9.85
+          "elapsed_ms": 0.0
         },
         "schema": {
           "validator": "schema",
@@ -3520,7 +4256,7 @@
           "issues": [],
           "evidence": {},
           "suggested_fixes": [],
-          "elapsed_ms": 0.0
+          "elapsed_ms": 1.05
         },
         "quality": {
           "validator": "quality",
@@ -3552,7 +4288,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 716.0
+          "elapsed_ms": 1078.81
         }
       }
     },
@@ -3582,13 +4318,13 @@
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\market_intelligence.json",
             "mtime_utc": "2026-07-21T02:40:52+00:00",
-            "wall_hours_old": 0.54,
+            "wall_hours_old": 1.14,
             "trading_days_old": 0,
             "sla_trading_days": 1,
             "run_utc_declared": "2026-07-20T14:34:08+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 15.81
+          "elapsed_ms": 0.0
         },
         "schema": {
           "validator": "schema",
@@ -3680,7 +4416,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 100.05
+          "elapsed_ms": 133.58
         }
       }
     },
@@ -3710,7 +4446,7 @@
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\market_intelligence_summary.json",
             "mtime_utc": "2026-07-21T02:40:52+00:00",
-            "wall_hours_old": 0.54,
+            "wall_hours_old": 1.14,
             "trading_days_old": 0,
             "sla_trading_days": 1
           },
@@ -3748,7 +4484,7 @@
             "n_columns": 8
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.0
+          "elapsed_ms": 1.11
         },
         "completeness": {
           "validator": "completeness",
@@ -3799,7 +4535,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 102.03
+          "elapsed_ms": 130.65
         }
       }
     },
@@ -3828,13 +4564,13 @@
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\missed_opportunities.json",
             "mtime_utc": "2026-07-21T02:26:35+00:00",
-            "wall_hours_old": 0.78,
+            "wall_hours_old": 1.38,
             "trading_days_old": 0,
             "sla_trading_days": 1,
             "run_utc_declared": "2026-07-20T07:50:10+00:00Z"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 16.88
+          "elapsed_ms": 10.53
         },
         "schema": {
           "validator": "schema",
@@ -3917,7 +4653,126 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 114.46
+          "elapsed_ms": 131.57
+        }
+      }
+    },
+    "model_attribution": {
+      "spec": {
+        "name": "model_attribution",
+        "path": "usa/reports/model_attribution.json",
+        "producer": "usa/research/learning_engine/run.py",
+        "kind": "learning",
+        "freshness_sla_trading_days": 1,
+        "consumers": [
+          "usa/dashboard/frontend"
+        ]
+      },
+      "rollup_verdict": "PASS",
+      "rollup_confidence": 0.9013,
+      "n_issues": 0,
+      "validators": {
+        "freshness": {
+          "validator": "freshness",
+          "dataset": "model_attribution",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\model_attribution.json",
+            "mtime_utc": "2026-07-21T03:49:24+00:00",
+            "wall_hours_old": 0.0,
+            "trading_days_old": 0,
+            "sla_trading_days": 1,
+            "run_utc_declared": "2026-07-21T03:49:24+00:00"
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 24.88
+        },
+        "schema": {
+          "validator": "schema",
+          "dataset": "model_attribution",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "required": [
+              "engine",
+              "market",
+              "run_utc",
+              "asof",
+              "n_models_scored",
+              "attribution"
+            ],
+            "present": [
+              "engine",
+              "version",
+              "market",
+              "run_utc",
+              "asof",
+              "n_models_scored",
+              "attribution",
+              "model_stamp"
+            ],
+            "missing": [],
+            "extras": [],
+            "n_columns": 8
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "completeness": {
+          "validator": "completeness",
+          "dataset": "model_attribution",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {},
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "quality": {
+          "validator": "quality",
+          "dataset": "model_attribution",
+          "verdict": "NOT_APPLICABLE",
+          "confidence": 0.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "reason": "not_applicable_to_non_parquet_or_missing"
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "lineage": {
+          "validator": "lineage",
+          "dataset": "model_attribution",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "producer": "usa/research/learning_engine/run.py",
+            "producer_path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\research\\learning_engine\\run.py",
+            "n_callers": 20,
+            "callers": [
+              "backend\\__init__.py",
+              "docs\\generate_architecture_review.py",
+              "india\\daily_run.py",
+              "scripts\\aegis_daily_v2.py",
+              "scripts\\aegis_profile.py",
+              "scripts\\check_data_freshness.py",
+              "backend\\ai\\data_quality.py",
+              "backend\\tests\\test_sprint2.py",
+              "backend\\tests\\test_sprint25.py",
+              "backend\\tests\\test_sprint26.py"
+            ]
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 133.33
         }
       }
     },
@@ -3946,13 +4801,13 @@
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\model_factory.json",
             "mtime_utc": "2026-07-21T02:40:52+00:00",
-            "wall_hours_old": 0.54,
+            "wall_hours_old": 1.14,
             "trading_days_old": 0,
             "sla_trading_days": 1,
             "run_utc_declared": "2026-07-20T21:46:44+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 18.84
+          "elapsed_ms": 0.0
         },
         "schema": {
           "validator": "schema",
@@ -4038,7 +4893,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 100.34
+          "elapsed_ms": 130.75
         }
       }
     },
@@ -4067,12 +4922,12 @@
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\model_metrics.json",
             "mtime_utc": "2026-07-21T02:26:35+00:00",
-            "wall_hours_old": 0.78,
+            "wall_hours_old": 1.38,
             "trading_days_old": 0,
             "sla_trading_days": 1
           },
           "suggested_fixes": [],
-          "elapsed_ms": 18.49
+          "elapsed_ms": 1.0
         },
         "schema": {
           "validator": "schema",
@@ -4152,7 +5007,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 113.27
+          "elapsed_ms": 132.26
         }
       }
     },
@@ -4181,7 +5036,7 @@
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\morning_latest.html",
             "mtime_utc": "2026-07-21T02:26:35+00:00",
-            "wall_hours_old": 0.78,
+            "wall_hours_old": 1.38,
             "trading_days_old": 0,
             "sla_trading_days": 1
           },
@@ -4250,7 +5105,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 99.29
+          "elapsed_ms": 132.67
         }
       }
     },
@@ -4279,7 +5134,7 @@
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\morning_latest.md",
             "mtime_utc": "2026-07-21T02:26:35+00:00",
-            "wall_hours_old": 0.78,
+            "wall_hours_old": 1.38,
             "trading_days_old": 0,
             "sla_trading_days": 1
           },
@@ -4348,7 +5203,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 99.82
+          "elapsed_ms": 131.85
         }
       }
     },
@@ -4378,12 +5233,12 @@
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\data\\raw\\us\\news_sentiment.parquet",
             "mtime_utc": "2026-07-20T08:22:06+00:00",
-            "wall_hours_old": 18.85,
+            "wall_hours_old": 19.46,
             "trading_days_old": 1,
             "sla_trading_days": 2
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.0
+          "elapsed_ms": 1.03
         },
         "schema": {
           "validator": "schema",
@@ -4416,7 +5271,7 @@
             "n_columns": 8
           },
           "suggested_fixes": [],
-          "elapsed_ms": 15.96
+          "elapsed_ms": 1.94
         },
         "completeness": {
           "validator": "completeness",
@@ -4429,7 +5284,7 @@
             "n_rows": 30
           },
           "suggested_fixes": [],
-          "elapsed_ms": 11.56
+          "elapsed_ms": 0.0
         },
         "quality": {
           "validator": "quality",
@@ -4440,7 +5295,7 @@
           "issues": [],
           "evidence": {},
           "suggested_fixes": [],
-          "elapsed_ms": 1.66
+          "elapsed_ms": 0.0
         },
         "lineage": {
           "validator": "lineage",
@@ -4467,7 +5322,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 111.21
+          "elapsed_ms": 134.87
         }
       }
     },
@@ -4496,13 +5351,13 @@
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\news_sentiment_summary.json",
             "mtime_utc": "2026-07-21T02:26:34+00:00",
-            "wall_hours_old": 0.78,
+            "wall_hours_old": 1.38,
             "trading_days_old": 0,
             "sla_trading_days": 2,
             "run_utc_declared": "2026-07-20T21:45:11+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 14.87
+          "elapsed_ms": 0.0
         },
         "schema": {
           "validator": "schema",
@@ -4589,7 +5444,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 105.13
+          "elapsed_ms": 124.37
         }
       }
     },
@@ -4618,11 +5473,11 @@
           "issues": [],
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\portfolio_diff.json",
-            "mtime_utc": "2026-07-21T03:12:50+00:00",
-            "wall_hours_old": 0.01,
+            "mtime_utc": "2026-07-21T03:29:46+00:00",
+            "wall_hours_old": 0.33,
             "trading_days_old": 0,
             "sla_trading_days": 1,
-            "run_utc_declared": "2026-07-21T03:12:50+00:00"
+            "run_utc_declared": "2026-07-21T03:29:46+00:00"
           },
           "suggested_fixes": [],
           "elapsed_ms": 0.0
@@ -4693,7 +5548,7 @@
             "reason": "not_applicable_to_non_parquet_or_missing"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.0
+          "elapsed_ms": 1.0
         },
         "lineage": {
           "validator": "lineage",
@@ -4720,7 +5575,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 98.71
+          "elapsed_ms": 122.31
         }
       }
     },
@@ -4748,8 +5603,8 @@
           "issues": [],
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\portfolio_state.json",
-            "mtime_utc": "2026-07-21T03:12:50+00:00",
-            "wall_hours_old": 0.01,
+            "mtime_utc": "2026-07-21T03:29:46+00:00",
+            "wall_hours_old": 0.33,
             "trading_days_old": 0,
             "sla_trading_days": 1
           },
@@ -4846,7 +5701,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 112.27
+          "elapsed_ms": 134.21
         }
       }
     },
@@ -4875,11 +5730,11 @@
           "issues": [],
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\portfolio_v3.json",
-            "mtime_utc": "2026-07-21T03:12:50+00:00",
-            "wall_hours_old": 0.01,
+            "mtime_utc": "2026-07-21T03:29:46+00:00",
+            "wall_hours_old": 0.33,
             "trading_days_old": 0,
             "sla_trading_days": 1,
-            "run_utc_declared": "2026-07-21T03:12:50+00:00"
+            "run_utc_declared": "2026-07-21T03:29:46+00:00"
           },
           "suggested_fixes": [],
           "elapsed_ms": 0.0
@@ -4921,7 +5776,7 @@
             "n_columns": 10
           },
           "suggested_fixes": [],
-          "elapsed_ms": 1.02
+          "elapsed_ms": 0.0
         },
         "completeness": {
           "validator": "completeness",
@@ -4972,7 +5827,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 112.68
+          "elapsed_ms": 125.1
         }
       }
     },
@@ -5001,13 +5856,13 @@
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\price_context.json",
             "mtime_utc": "2026-07-21T02:26:35+00:00",
-            "wall_hours_old": 0.78,
+            "wall_hours_old": 1.38,
             "trading_days_old": 0,
             "sla_trading_days": 1,
             "run_utc_declared": "2026-07-20T07:50:10+00:00Z"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 21.96
+          "elapsed_ms": 0.0
         },
         "schema": {
           "validator": "schema",
@@ -5037,7 +5892,7 @@
             "n_columns": 8
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.0
+          "elapsed_ms": 0.97
         },
         "completeness": {
           "validator": "completeness",
@@ -5088,7 +5943,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 116.14
+          "elapsed_ms": 121.91
         }
       }
     },
@@ -5117,13 +5972,13 @@
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\recommendation_history.json",
             "mtime_utc": "2026-07-21T02:26:35+00:00",
-            "wall_hours_old": 0.78,
+            "wall_hours_old": 1.38,
             "trading_days_old": 0,
             "sla_trading_days": 1,
             "run_utc_declared": "2026-07-20T07:50:10+00:00Z"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 12.04
+          "elapsed_ms": 0.0
         },
         "schema": {
           "validator": "schema",
@@ -5156,7 +6011,7 @@
             "n_columns": 10
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.0
+          "elapsed_ms": 11.62
         },
         "completeness": {
           "validator": "completeness",
@@ -5207,7 +6062,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 113.07
+          "elapsed_ms": 134.03
         }
       }
     },
@@ -5236,13 +6091,13 @@
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\recommendation_lifecycle.json",
             "mtime_utc": "2026-07-21T02:26:35+00:00",
-            "wall_hours_old": 0.78,
+            "wall_hours_old": 1.38,
             "trading_days_old": 0,
             "sla_trading_days": 1,
             "run_utc_declared": "2026-07-20T07:50:10+00:00Z"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 16.07
+          "elapsed_ms": 1.53
         },
         "schema": {
           "validator": "schema",
@@ -5274,7 +6129,7 @@
             "n_columns": 9
           },
           "suggested_fixes": [],
-          "elapsed_ms": 1.11
+          "elapsed_ms": 0.0
         },
         "completeness": {
           "validator": "completeness",
@@ -5325,7 +6180,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 105.3
+          "elapsed_ms": 133.34
         }
       }
     },
@@ -5367,13 +6222,13 @@
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\recommendations.json",
             "mtime_utc": "2026-07-21T02:26:35+00:00",
-            "wall_hours_old": 0.78,
+            "wall_hours_old": 1.38,
             "trading_days_old": 0,
             "sla_trading_days": 1,
             "run_utc_declared": "2026-07-20T07:50:08+00:00Z"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 12.55
+          "elapsed_ms": 1.43
         },
         "schema": {
           "validator": "schema",
@@ -5412,7 +6267,7 @@
             "n_columns": 13
           },
           "suggested_fixes": [],
-          "elapsed_ms": 5.6
+          "elapsed_ms": 1.36
         },
         "completeness": {
           "validator": "completeness",
@@ -5427,7 +6282,7 @@
             }
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.0
+          "elapsed_ms": 1.05
         },
         "quality": {
           "validator": "quality",
@@ -5467,7 +6322,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 110.31
+          "elapsed_ms": 123.35
         }
       }
     },
@@ -5497,13 +6352,13 @@
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\recommendations_v3.json",
             "mtime_utc": "2026-07-21T03:12:37+00:00",
-            "wall_hours_old": 0.01,
+            "wall_hours_old": 0.62,
             "trading_days_old": 0,
             "sla_trading_days": 1,
             "run_utc_declared": "2026-07-21T03:12:37+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.0
+          "elapsed_ms": 1.49
         },
         "schema": {
           "validator": "schema",
@@ -5557,7 +6412,7 @@
           "issues": [],
           "evidence": {},
           "suggested_fixes": [],
-          "elapsed_ms": 0.0
+          "elapsed_ms": 0.42
         },
         "quality": {
           "validator": "quality",
@@ -5597,7 +6452,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 132.71
+          "elapsed_ms": 121.35
         }
       }
     },
@@ -5626,12 +6481,12 @@
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\recommendations_v3_conflicts.json",
             "mtime_utc": "2026-07-21T03:12:37+00:00",
-            "wall_hours_old": 0.01,
+            "wall_hours_old": 0.62,
             "trading_days_old": 0,
             "sla_trading_days": 1
           },
           "suggested_fixes": [],
-          "elapsed_ms": 19.89
+          "elapsed_ms": 0.0
         },
         "schema": {
           "validator": "schema",
@@ -5711,7 +6566,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 113.95
+          "elapsed_ms": 135.72
         }
       }
     },
@@ -5740,12 +6595,12 @@
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\recommendations_v3_summary.json",
             "mtime_utc": "2026-07-21T03:12:37+00:00",
-            "wall_hours_old": 0.01,
+            "wall_hours_old": 0.62,
             "trading_days_old": 0,
             "sla_trading_days": 1
           },
           "suggested_fixes": [],
-          "elapsed_ms": 17.2
+          "elapsed_ms": 0.0
         },
         "schema": {
           "validator": "schema",
@@ -5834,7 +6689,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 100.81
+          "elapsed_ms": 121.64
         }
       }
     },
@@ -5864,13 +6719,13 @@
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\risk_latest.json",
             "mtime_utc": "2026-07-21T02:26:35+00:00",
-            "wall_hours_old": 0.78,
+            "wall_hours_old": 1.38,
             "trading_days_old": 0,
             "sla_trading_days": 1,
             "run_utc_declared": "2026-07-20T07:50:09+00:00Z"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 17.06
+          "elapsed_ms": 1.9
         },
         "schema": {
           "validator": "schema",
@@ -5953,7 +6808,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 129.68
+          "elapsed_ms": 123.12
         }
       }
     },
@@ -5981,14 +6836,14 @@
           "issues": [],
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\risk_report.json",
-            "mtime_utc": "2026-07-21T03:12:49+00:00",
-            "wall_hours_old": 0.01,
+            "mtime_utc": "2026-07-21T03:29:44+00:00",
+            "wall_hours_old": 0.33,
             "trading_days_old": 0,
             "sla_trading_days": 1,
-            "run_utc_declared": "2026-07-21T03:12:49+00:00"
+            "run_utc_declared": "2026-07-21T03:29:44+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 17.07
+          "elapsed_ms": 1.07
         },
         "schema": {
           "validator": "schema",
@@ -6040,7 +6895,7 @@
             "n_columns": 24
           },
           "suggested_fixes": [],
-          "elapsed_ms": 1.42
+          "elapsed_ms": 0.0
         },
         "completeness": {
           "validator": "completeness",
@@ -6051,7 +6906,7 @@
           "issues": [],
           "evidence": {},
           "suggested_fixes": [],
-          "elapsed_ms": 0.35
+          "elapsed_ms": 0.0
         },
         "quality": {
           "validator": "quality",
@@ -6091,7 +6946,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 97.81
+          "elapsed_ms": 132.86
         }
       }
     },
@@ -6117,13 +6972,13 @@
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\sec_13f_summary.json",
             "mtime_utc": "2026-07-21T02:26:34+00:00",
-            "wall_hours_old": 0.78,
+            "wall_hours_old": 1.38,
             "trading_days_old": 0,
             "sla_trading_days": 30,
             "run_utc_declared": "2026-07-20T21:46:33+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 16.68
+          "elapsed_ms": 0.0
         },
         "schema": {
           "validator": "schema",
@@ -6208,7 +7063,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 119.9
+          "elapsed_ms": 119.24
         }
       }
     },
@@ -6239,7 +7094,7 @@
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\selected_features.json",
             "mtime_utc": "2026-07-21T02:26:35+00:00",
-            "wall_hours_old": 0.78,
+            "wall_hours_old": 1.38,
             "trading_days_old": 0,
             "sla_trading_days": 1
           },
@@ -6327,7 +7182,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 98.83
+          "elapsed_ms": 131.99
         }
       }
     },
@@ -6356,11 +7211,11 @@
           "issues": [],
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\sized_positions.json",
-            "mtime_utc": "2026-07-21T03:12:49+00:00",
-            "wall_hours_old": 0.01,
+            "mtime_utc": "2026-07-21T03:29:44+00:00",
+            "wall_hours_old": 0.33,
             "trading_days_old": 0,
             "sla_trading_days": 1,
-            "run_utc_declared": "2026-07-21T03:12:49+00:00"
+            "run_utc_declared": "2026-07-21T03:29:44+00:00"
           },
           "suggested_fixes": [],
           "elapsed_ms": 0.0
@@ -6456,7 +7311,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 100.41
+          "elapsed_ms": 124.92
         }
       }
     },
@@ -6498,12 +7353,12 @@
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\data\\raw\\us\\_IDX_GSPC_D1.parquet",
             "mtime_utc": "2026-07-20T08:20:42+00:00",
-            "wall_hours_old": 18.88,
+            "wall_hours_old": 19.48,
             "trading_days_old": 1,
             "sla_trading_days": 1
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.0
+          "elapsed_ms": 1.03
         },
         "schema": {
           "validator": "schema",
@@ -6533,7 +7388,7 @@
             "n_columns": 6
           },
           "suggested_fixes": [],
-          "elapsed_ms": 24.39
+          "elapsed_ms": 3.55
         },
         "completeness": {
           "validator": "completeness",
@@ -6546,7 +7401,7 @@
             "n_rows": 1255
           },
           "suggested_fixes": [],
-          "elapsed_ms": 2.5
+          "elapsed_ms": 3.13
         },
         "quality": {
           "validator": "quality",
@@ -6561,7 +7416,7 @@
             }
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.0
+          "elapsed_ms": 4.51
         },
         "lineage": {
           "validator": "lineage",
@@ -6580,7 +7435,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 721.14
+          "elapsed_ms": 1089.38
         }
       }
     },
@@ -6609,13 +7464,13 @@
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\stock_validation.json",
             "mtime_utc": "2026-07-21T02:26:35+00:00",
-            "wall_hours_old": 0.78,
+            "wall_hours_old": 1.38,
             "trading_days_old": 0,
             "sla_trading_days": 1,
             "run_utc_declared": "2026-07-20T07:50:08+00:00Z"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 16.39
+          "elapsed_ms": 0.69
         },
         "schema": {
           "validator": "schema",
@@ -6643,7 +7498,7 @@
             "n_columns": 7
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.0
+          "elapsed_ms": 1.15
         },
         "completeness": {
           "validator": "completeness",
@@ -6694,7 +7549,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 117.99
+          "elapsed_ms": 121.54
         }
       }
     },
@@ -6730,13 +7585,13 @@
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\universe.json",
             "mtime_utc": "2026-07-21T02:26:35+00:00",
-            "wall_hours_old": 0.78,
+            "wall_hours_old": 1.38,
             "trading_days_old": 0,
             "sla_trading_days": 1,
             "run_utc_declared": "2026-07-20T08:20:26+00:00Z"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 15.83
+          "elapsed_ms": 0.0
         },
         "schema": {
           "validator": "schema",
@@ -6788,7 +7643,7 @@
             }
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.0
+          "elapsed_ms": 10.9
         },
         "quality": {
           "validator": "quality",
@@ -6822,7 +7677,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 766.29
+          "elapsed_ms": 1139.53
         }
       }
     },
@@ -6851,13 +7706,13 @@
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\validation_latest.json",
             "mtime_utc": "2026-07-21T02:26:35+00:00",
-            "wall_hours_old": 0.78,
+            "wall_hours_old": 1.38,
             "trading_days_old": 0,
             "sla_trading_days": 1,
             "run_utc_declared": "2026-07-20T07:50:08+00:00Z"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 33.09
+          "elapsed_ms": 0.0
         },
         "schema": {
           "validator": "schema",
@@ -6937,7 +7792,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 116.38
+          "elapsed_ms": 134.19
         }
       }
     },
@@ -6966,7 +7821,7 @@
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\data\\raw\\us\\_IDX_VIX_D1.parquet",
             "mtime_utc": "2026-07-20T08:20:42+00:00",
-            "wall_hours_old": 18.88,
+            "wall_hours_old": 19.48,
             "trading_days_old": 1,
             "sla_trading_days": 1
           },
@@ -7000,7 +7855,7 @@
             "n_columns": 6
           },
           "suggested_fixes": [],
-          "elapsed_ms": 22.6
+          "elapsed_ms": 2.76
         },
         "completeness": {
           "validator": "completeness",
@@ -7024,7 +7879,7 @@
           "issues": [],
           "evidence": {},
           "suggested_fixes": [],
-          "elapsed_ms": 0.0
+          "elapsed_ms": 8.78
         },
         "lineage": {
           "validator": "lineage",
@@ -7043,7 +7898,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 767.69
+          "elapsed_ms": 1118.57
         }
       }
     },
@@ -7072,13 +7927,13 @@
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\winner_genome.json",
             "mtime_utc": "2026-07-21T02:26:35+00:00",
-            "wall_hours_old": 0.78,
+            "wall_hours_old": 1.38,
             "trading_days_old": 0,
             "sla_trading_days": 1,
             "run_utc_declared": "2026-07-20T07:50:10+00:00Z"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 13.38
+          "elapsed_ms": 0.0
         },
         "schema": {
           "validator": "schema",
@@ -7164,7 +8019,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 102.28
+          "elapsed_ms": 127.5
         }
       }
     }

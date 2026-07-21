@@ -492,6 +492,27 @@ datasets:
       required_keys: [engine, version, market, run_utc, output]
     consumers: [usa/dashboard/frontend]
 
+  # ── SPRINT 7 · Execution Simulator ───────────────────────────────
+  - name: execution_summary
+    path: usa/reports/execution_summary.json
+    producer: usa/research/execution_simulator/run.py
+    kind: execution
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, version, market, run_utc, asof, currency,
+                       starting_aum, n_trade_instructions, n_fills_generated,
+                       honest_empty, model_stamp]
+    consumers: [usa/dashboard/frontend, backend/walkforward (Sprint 8+)]
+
+  - name: ai_execution_narrative
+    path: usa/reports/ai_execution_narrative.json
+    producer: usa/research/execution_simulator/run.py
+    kind: ai_narrative
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, version, market, run_utc, output]
+    consumers: [usa/dashboard/frontend]
+
   # ── SPRINT 1B · INGESTION LAYER (all WIRED into usa_daily.py) ─────
   - name: fundamentals
     path: usa/reports/fundamentals.json

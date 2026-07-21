@@ -938,6 +938,8 @@ async function loadState() {
     'failure_clusters.json',
     'confidence_calibration.json',
     'ai_learning_narrative.json',
+    'execution_summary.json',
+    'ai_execution_narrative.json',
   ];
   const entries = await Promise.all(targets.map(async n => [n.replace(/\.json$/, ''), await fetchJson(n)]));
   for (const [k, v] of entries) STATE[k] = v;
@@ -2254,6 +2256,17 @@ function portfolioHealth() {
       <span class="label">Learning Engine <span class="vs-tag live">Sprint 6</span></span>
       <div class="value ${cls}" style="font-size: 14px;">${nCorpus} recs · WR ${winrate}</div>
       <div class="sub">calibration ${method} · winners ${ev.n_winners || 0} · losers ${ev.n_losers || 0}</div>`}));
+  }
+
+  // Execution Simulator — Sprint 7 (fills + equity)
+  const exs = STATE.execution_summary;
+  if (exs) {
+    const cls = exs.honest_empty ? 'warn' : 'pos';
+    const equity = (exs.equity_value_end || exs.starting_aum || 0);
+    strip.appendChild(el('div', {class: 'tile', html: `
+      <span class="label">Execution Sim <span class="vs-tag live">Sprint 7</span></span>
+      <div class="value ${cls}" style="font-size: 14px;">${exs.n_fills_generated || 0} fills</div>
+      <div class="sub">equity ${equity.toLocaleString('en-US', {maximumFractionDigits: 0})} · comm ${(exs.total_commission || 0).toFixed(0)} · ${exs.honest_empty ? 'empty (no trades)' : 'live'}</div>`}));
   }
 
   // Prediction Accuracy — from Institutional Memory recommendation_history (global avg over per-ticker accuracy)
