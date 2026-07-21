@@ -1,7 +1,8 @@
 # AEGIS Executive Dashboard
 
-**Last updated:** 2026-07-21 · Sprint 7.5 · Persistence & Factor Library · **SHIPPED**
+**Last updated:** 2026-07-21 · Sprint 7.5 shipped · **Phase 3 Roadmap LOCKED**
 **Overwritten every sprint** — always the current state of AEGIS.
+**Roadmap authority:** [`docs/AEGIS_PHASE3_ROADMAP.md`](../docs/AEGIS_PHASE3_ROADMAP.md)
 
 ---
 
@@ -19,8 +20,20 @@
 ✅ Execution Simulator        Sprint 7     · fills + slippage + equity curve + statistics
 ✅ Persistence + Factor Lib   Sprint 7.5   · append-only history for every engine + 22-factor library ← WE ARE HERE
 ⚪ Walk-Forward Validation    Sprint 8     · pending  (unblocked; ledgers now populate daily)
-⚪ AI Validation Auditor      Sprint 9     · pending
-⚪ Research Factory           Sprint 10    · pending
+⚪ Institutional AI Auditor   Sprint 9     · pending  (EXPANDED — per-trade multi-dim root-cause report)
+⚪ Research Factory           Sprint 10    · pending  (Phase 2 terminal engine)
+──────────────────────────────────────────────────────────────────────
+Phase 3 · Institutional Intelligence Layer (LOCKED 2026-07-21)
+   1. Market Memory Engine        · deterministic recall ("have we seen this?")
+   2. Event Intelligence          · Fed/RBI/war/election/tariff/earnings/M&A → linked
+   3. Relationship Graph          · Oil→Transport→Airlines→IndiGo→Margins→EPS→Rec
+   4. Institutional Explainability · "BUY because Macro 82% · Sector 76% · Commodity 91%"
+   5. Scenario Engine             · deterministic simulation ("Oil +15% → what happens")
+   6. Strategy Lab                · auto-generate Momentum/MR/Quality/Value/Macro/Rotation
+   7. Portfolio Optimizer         · efficient frontier layer after Sprint 5
+   8. Institutional Dashboard     · Plotly/Streamlit — consolidated live view
+
+⛔ NO new core engines after Phase 3. NO new AI agents (6 is the full set).
 ```
 
 ---
@@ -196,5 +209,5 @@ Without item 1, Sprint 8's engine will run but produce empty walk-forward window
 
 ## Latest Commit
 
-Sprint 7.5 · Persistence & Factor Library · docs/AEGIS_SPRINT75_REPORT.md
-Prior: Sprint 6.5 · Macro & Intermarket Intelligence · docs/AEGIS_SPRINT65_REPORT.md
+Phase 3 Roadmap LOCK · docs/AEGIS_PHASE3_ROADMAP.md
+Prior: Telegram HTTP 400 fallback (d4df8d5) · Sprint 7.5 (9861a98) · Sprint 6.5 (5008d08)
