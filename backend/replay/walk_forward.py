@@ -271,6 +271,106 @@ def build_equity_curve(*, market: str, reports_dir: Path,
     })
 
 
+def run_walk_forward_runner1(*, repo_root: Path, market: str,
+                                    date_from: date, date_to: date) -> Dict[str, Any]:
+    """
+    Sprint 7.7 · Walk-forward on the LEGACY Runner 1 audit-trail ledger.
+
+    Reads:
+      reports/recommendation_history_runner1.parquet
+      reports/learning_corpus_runner1.parquet
+    Writes:
+      reports/walkforward_runner1_metrics.json
+      reports/walkforward_runner1_summary.json
+      reports/walkforward_runner1_per_sector.json
+      reports/walkforward_runner1_per_regime.json
+    """
+    reports_dir = (repo_root / "reports") if market == "india" else (repo_root / "usa" / "reports")
+
+    rec_hist = _load_history_rows(reports_dir / "recommendation_history_runner1.parquet", market=market)
+    corpus   = _load_history_rows(reports_dir / "learning_corpus_runner1.parquet",       market=market)
+
+    if not corpus.empty and "close_asof" in corpus.columns:
+        corpus["close_asof"] = pd.to_datetime(corpus["close_asof"], errors="coerce").dt.date
+        corpus = corpus.dropna(subset=["close_asof"])
+        corpus_win = corpus[(corpus["close_asof"] >= date_from)
+                              & (corpus["close_asof"] <= date_to)].reset_index(drop=True)
+    else:
+        corpus_win = pd.DataFrame()
+
+    if rec_hist.empty and corpus_win.empty:
+        summary = {"engine": "aegis.walkforward_runner1.v1", "version": "1.0.0",
+                     "market": market, "date_from": date_from.isoformat(),
+                     "date_to": date_to.isoformat(), "verdict": "NO_DATA",
+                     "notes": ["Runner 1 audit trail not ingested — run backend.replay.runner1_ingest first"]}
+        (reports_dir / "walkforward_runner1_summary.json").write_text(
+            json.dumps(summary, indent=2, default=str), encoding="utf-8")
+        return summary
+
+    n_recs = len(rec_hist)
+    n_closed = len(corpus_win)
+
+    m = WalkForwardMetrics(
+        market=market,
+        date_from=date_from.isoformat(), date_to=date_to.isoformat(),
+        n_trading_days=(date_to - date_from).days + 1,
+        n_recommendations=n_recs,
+        n_closed_positions=n_closed,
+    )
+
+    if n_closed > 0:
+        r = corpus_win["return_pct"].astype(float).values / 100.0
+        wins   = r[r > 0]
+        losses = r[r < 0]
+        m.win_rate_pct  = round(100.0 * len(wins) / len(r), 2)
+        m.avg_win_pct   = round(float(wins.mean()) * 100, 4) if len(wins) else None
+        m.avg_loss_pct  = round(float(losses.mean()) * 100, 4) if len(losses) else None
+        m.profit_factor = round(float(wins.sum() / -losses.sum()), 4) if len(losses) and losses.sum() != 0 else None
+        if "horizon_days" in corpus_win.columns:
+            m.avg_holding_period_days = round(float(corpus_win["horizon_days"].mean()), 2)
+        avg = float(np.mean(r)); std = float(np.std(r, ddof=1)) if len(r) > 1 else 0.0
+        m.annual_return_pct = round(100.0 * avg * ANNUAL_TRADING_DAYS, 4)
+        m.sharpe = round(avg / std * math.sqrt(ANNUAL_TRADING_DAYS), 4) if std > 0 else None
+        downside = r[r < 0]; dstd = float(np.std(downside, ddof=1)) if len(downside) > 1 else 0.0
+        m.sortino = round(avg / dstd * math.sqrt(ANNUAL_TRADING_DAYS), 4) if dstd > 0 else None
+        equity = np.cumprod(1 + r)
+        running_max = np.maximum.accumulate(equity)
+        dd = (equity - running_max) / running_max
+        m.max_drawdown_pct = round(100.0 * float(dd.min()), 4)
+        if m.max_drawdown_pct and m.annual_return_pct is not None:
+            m.calmar = round(m.annual_return_pct / abs(m.max_drawdown_pct), 4)
+
+    m.verdict = "PASS" if n_closed >= 5 else ("PARTIAL" if n_closed >= 1 else "INSUFFICIENT_DATA")
+
+    base = {"engine": "aegis.walkforward_runner1.v1", "version": "1.0.0",
+              "market": market, "run_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+              "date_from": date_from.isoformat(), "date_to": date_to.isoformat(),
+              "runner": "runner1_legacy_audit_ledger"}
+
+    summary = {**base, "verdict": m.verdict, "n_recommendations": n_recs,
+                 "n_closed_positions": n_closed, "notes": m.notes}
+    (reports_dir / "walkforward_runner1_summary.json").write_text(
+        json.dumps(summary, indent=2, default=str), encoding="utf-8")
+    (reports_dir / "walkforward_runner1_metrics.json").write_text(
+        json.dumps({**base, **asdict(m)}, indent=2, default=str), encoding="utf-8")
+
+    # Per-sector
+    if not corpus_win.empty and "sector" in corpus_win.columns:
+        grp = corpus_win.groupby("sector")
+        per_sector = {str(s): {"n": len(g),
+                                  "mean_return_pct": round(float(g["return_pct"].mean()), 4),
+                                  "win_rate_pct": round(100.0 * float((g["return_pct"] > 0).mean()), 2)}
+                        for s, g in grp}
+    else:
+        per_sector = {}
+    (reports_dir / "walkforward_runner1_per_sector.json").write_text(
+        json.dumps({**base, "n_sectors": len(per_sector), "per_sector": per_sector},
+                     indent=2, default=str), encoding="utf-8")
+
+    return {"summary": summary, "metrics": asdict(m),
+              "per_sector": per_sector, "n_recommendations": n_recs, "n_closed_positions": n_closed}
+
+
 def run_walk_forward(*, repo_root: Path, market: str,
                         date_from: date, date_to: date) -> Dict[str, Any]:
     reports_dir = (repo_root / "reports") if market == "india" else (repo_root / "usa" / "reports")
