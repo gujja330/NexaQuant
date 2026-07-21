@@ -523,3 +523,49 @@ datasets:
     schema:
       required_keys: [engine, version, market, run_utc, output]
     consumers: [ux/dashboard]
+
+  # ── SPRINT 6 · Learning Engine ───────────────────────────────────
+  - name: feature_attribution
+    path: reports/feature_attribution.json
+    producer: india/learning_engine/run.py
+    kind: learning
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, market, run_utc, asof, n_features_scored, attribution]
+    consumers: [ux/dashboard, research/ai_auditor (Sprint 9)]
+
+  - name: model_attribution
+    path: reports/model_attribution.json
+    producer: india/learning_engine/run.py
+    kind: learning
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, market, run_utc, asof, n_models_scored, attribution]
+    consumers: [ux/dashboard, research/ai_auditor (Sprint 9)]
+
+  - name: failure_clusters
+    path: reports/failure_clusters.json
+    producer: india/learning_engine/run.py
+    kind: learning
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, market, run_utc, asof, n_clusters, clusters]
+    consumers: [ux/dashboard, research/ai_auditor (Sprint 9)]
+
+  - name: confidence_calibration
+    path: reports/confidence_calibration.json
+    producer: india/learning_engine/run.py
+    kind: learning
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, market, run_utc, asof, calibration_curve]
+    consumers: [backend/recommendation/calibration (feedback loop)]
+
+  - name: ai_learning_narrative
+    path: reports/ai_learning_narrative.json
+    producer: india/learning_engine/run.py
+    kind: ai_narrative
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, version, market, run_utc, output]
+    consumers: [ux/dashboard]

@@ -933,6 +933,11 @@ async function loadState() {
     'portfolio_v3.json',
     'portfolio_diff.json',
     'ai_portfolio_narrative.json',
+    'feature_attribution.json',
+    'model_attribution.json',
+    'failure_clusters.json',
+    'confidence_calibration.json',
+    'ai_learning_narrative.json',
   ];
   const entries = await Promise.all(targets.map(async n => [n.replace(/\.json$/, ''), await fetchJson(n)]));
   for (const [k, v] of entries) STATE[k] = v;
@@ -2234,6 +2239,21 @@ function portfolioHealth() {
       <span class="label">Portfolio v3 <span class="vs-tag live">Sprint 5</span></span>
       <div class="value" style="font-size: 14px;">${s.n_positions || 0} names · effN ${effn}</div>
       <div class="sub">cash ${cash}% · turnover ${turnover}% · OPEN ${t.n_open || 0} · CLOSE ${t.n_close || 0}</div>`}));
+  }
+
+  // Learning Engine — Sprint 6 (corpus + calibration state)
+  const lnc = STATE.ai_learning_narrative;
+  const cal = STATE.confidence_calibration;
+  if (lnc && lnc.output && lnc.output.evidence) {
+    const ev = lnc.output.evidence;
+    const method = cal && cal.calibration_curve ? cal.calibration_curve.method : 'n/a';
+    const nCorpus = ev.n_corpus_total || 0;
+    const cls = nCorpus > 100 ? 'pos' : nCorpus > 30 ? 'warn' : 'neg';
+    const winrate = ev.win_rate != null ? (ev.win_rate * 100).toFixed(0) + '%' : 'n/a';
+    strip.appendChild(el('div', {class: 'tile', html: `
+      <span class="label">Learning Engine <span class="vs-tag live">Sprint 6</span></span>
+      <div class="value ${cls}" style="font-size: 14px;">${nCorpus} recs · WR ${winrate}</div>
+      <div class="sub">calibration ${method} · winners ${ev.n_winners || 0} · losers ${ev.n_losers || 0}</div>`}));
   }
 
   // Prediction Accuracy — from Institutional Memory recommendation_history (global avg over per-ticker accuracy)

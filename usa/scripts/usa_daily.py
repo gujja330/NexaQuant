@@ -212,6 +212,18 @@ STEPS = [
         "optional": True,
     },
     {
+        "name":     "learning_engine",
+        "desc":     "Sprint 6 · USA Learning Engine (outcome ledger + attributions + calibration, USD)",
+        "script":   "usa/research/learning_engine/run.py",
+        "produces": ["usa/reports/feature_attribution.json",
+                       "usa/reports/model_attribution.json",
+                       "usa/reports/failure_clusters.json",
+                       "usa/reports/confidence_calibration.json",
+                       "usa/reports/ai_learning_narrative.json"],
+        "requires": ["configs/learning_config.yaml"],
+        "optional": True,
+    },
+    {
         "name":     "recommendations",
         "desc":     "USA Adaptive Recommendation Engine (technicals-based)",
         "script":   "usa/research/recommendations/run.py",

@@ -446,6 +446,52 @@ datasets:
       required_keys: [engine, version, market, run_utc, output]
     consumers: [usa/dashboard/frontend]
 
+  # ── SPRINT 6 · Learning Engine ───────────────────────────────────
+  - name: feature_attribution
+    path: usa/reports/feature_attribution.json
+    producer: usa/research/learning_engine/run.py
+    kind: learning
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, market, run_utc, asof, n_features_scored, attribution]
+    consumers: [usa/dashboard/frontend]
+
+  - name: model_attribution
+    path: usa/reports/model_attribution.json
+    producer: usa/research/learning_engine/run.py
+    kind: learning
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, market, run_utc, asof, n_models_scored, attribution]
+    consumers: [usa/dashboard/frontend]
+
+  - name: failure_clusters
+    path: usa/reports/failure_clusters.json
+    producer: usa/research/learning_engine/run.py
+    kind: learning
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, market, run_utc, asof, n_clusters, clusters]
+    consumers: [usa/dashboard/frontend]
+
+  - name: confidence_calibration
+    path: usa/reports/confidence_calibration.json
+    producer: usa/research/learning_engine/run.py
+    kind: learning
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, market, run_utc, asof, calibration_curve]
+    consumers: [backend/recommendation/calibration (feedback loop)]
+
+  - name: ai_learning_narrative
+    path: usa/reports/ai_learning_narrative.json
+    producer: usa/research/learning_engine/run.py
+    kind: ai_narrative
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, version, market, run_utc, output]
+    consumers: [usa/dashboard/frontend]
+
   # ── SPRINT 1B · INGESTION LAYER (all WIRED into usa_daily.py) ─────
   - name: fundamentals
     path: usa/reports/fundamentals.json

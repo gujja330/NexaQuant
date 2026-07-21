@@ -1,0 +1,25 @@
+# AEGIS Learning Engine Configuration — Sprint 6
+#
+# Operator-owned. Hashed into Experiment Registry so historical replays
+# can reconstruct which learning config was in effect.
+
+market_defaults:
+  india:
+    horizon_days:            60        # rec horizon; must match Sprint 3 recommendation horizon
+    min_cluster_size:         3        # minimum losing recs to form a failure cluster
+    n_calibration_bins:      10        # confidence bins for isotonic-PAV calibration
+    min_horizons_for_calibration: 20   # below this, calibration falls back to identity
+
+  usa:
+    horizon_days:            60
+    min_cluster_size:         3
+    n_calibration_bins:      10
+    min_horizons_for_calibration: 20
+
+global:
+  ai_learning_analyst:
+    enabled:                 true
+  # For future ML upgrades (Sprint 9+):
+  supervised_importance:
+    shap_enabled:            false     # requires trained model; deferred
+    permutation_enabled:     false     # same

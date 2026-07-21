@@ -166,6 +166,18 @@ STEPS = [
         "optional": True,
     },
     {
+        "name": "learning_engine",
+        "desc": "Sprint 6 · Learning Engine (outcome ledger + feature/model attribution + failure clusters + calibration)",
+        "script": "india/learning_engine/run.py",
+        "produces": ["reports/feature_attribution.json",
+                       "reports/model_attribution.json",
+                       "reports/failure_clusters.json",
+                       "reports/confidence_calibration.json",
+                       "reports/ai_learning_narrative.json"],
+        "requires": ["configs/learning_config.yaml"],
+        "optional": True,
+    },
+    {
         "name": "adaptive_rec_v2",
         "desc": "Adaptive Rec Engine v2.0 (confidence rebuild + Precision@K)",
         "script": "research/adaptive_rec_v2/run.py",
