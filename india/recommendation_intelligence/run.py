@@ -164,6 +164,14 @@ def main() -> int:
     }, indent=2, default=str), encoding="utf-8")
     print(f"  wrote {OUT_FULL.relative_to(_ROOT)}")
 
+    # Sprint 7.5 · append to permanent history (fail-open)
+    try:
+        from backend.persistence import append_snapshot_row
+        append_snapshot_row(json.loads(OUT_FULL.read_text(encoding="utf-8")),
+                             _ROOT / "reports" / "recommendation_history.parquet")
+    except Exception as _hist_err:
+        print(f"  history append warning (non-fatal): {_hist_err}")
+
     # Compact summary
     OUT_SUMMARY.write_text(json.dumps({
         "engine":  batch.engine, "market": batch.market,

@@ -145,6 +145,14 @@ def main() -> int:
                                        indent=2, default=str), encoding="utf-8")
     OUT_REGIME.write_text(json.dumps({**common, **(_as_dict(r.macro_regime) if r.macro_regime else {})},
                                           indent=2, default=str), encoding="utf-8")
+
+    # Sprint 7.5 · standardized macro history (fail-open)
+    try:
+        from backend.persistence import append_snapshot_row
+        append_snapshot_row(json.loads(OUT_REGIME.read_text(encoding="utf-8")),
+                             _ROOT / "usa" / "reports" / "macro_history.parquet")
+    except Exception as _hist_err:
+        print(f"  macro_history append warning (non-fatal): {_hist_err}")
     OUT_MATRIX.write_text(json.dumps({**common, "n_active_impacts": len(r.active_impacts),
         "active_impacts": [_as_dict(i) for i in r.active_impacts]}, indent=2, default=str), encoding="utf-8")
     OUT_KG.write_text(json.dumps({**common, "n_entries": len(r.knowledge_graph),

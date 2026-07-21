@@ -1,6 +1,6 @@
 # AEGIS Executive Dashboard
 
-**Last updated:** 2026-07-21 · Sprint 6.5 · Macro & Intermarket Intelligence · **SHIPPED**
+**Last updated:** 2026-07-21 · Sprint 7.5 · Persistence & Factor Library · **SHIPPED**
 **Overwritten every sprint** — always the current state of AEGIS.
 
 ---
@@ -15,9 +15,10 @@
 ✅ Risk Engine                Sprint 4     · Kelly + caps + VaR/CVaR
 ✅ Portfolio Engine           Sprint 5     · N-name + rebalance diff + cash policy
 ✅ Learning Engine            Sprint 6     · outcome ledger + attributions + calibration
-✅ Macro & Intermarket Intel  Sprint 6.5   · commodities+FX+bonds+CB+VIX+rotation+regime+impact matrix+KG ← WE ARE HERE
+✅ Macro & Intermarket Intel  Sprint 6.5   · commodities+FX+bonds+CB+VIX+rotation+regime+impact matrix+KG
 ✅ Execution Simulator        Sprint 7     · fills + slippage + equity curve + statistics
-⚪ Walk-Forward Validation    Sprint 8     · pending  (first REAL results)
+✅ Persistence + Factor Lib   Sprint 7.5   · append-only history for every engine + 22-factor library ← WE ARE HERE
+⚪ Walk-Forward Validation    Sprint 8     · pending  (unblocked; ledgers now populate daily)
 ⚪ AI Validation Auditor      Sprint 9     · pending
 ⚪ Research Factory           Sprint 10    · pending
 ```
@@ -80,8 +81,9 @@ Sprint 5  (portfolio engine)                  20/20  ✅
 Sprint 6  (learning engine)                   19/19  ✅
 Sprint 7  (execution simulator + statistics)  26/26  ✅
 Sprint 6.5 (macro & intermarket intelligence) 22/22  ✅
+Sprint 7.5 (persistence + factor library)     18/18  ✅
 ─────────────────────────────────────────────────────────
-TOTAL                                        200/200 ✅
+TOTAL                                        218/218 ✅
 ```
 
 ## Backend Validation
@@ -91,7 +93,7 @@ TOTAL                                        200/200 ✅
 
 ## Model Registry (all EXPERIMENTAL)
 
-- `aegis.recommendation.v3` · `aegis.risk.v1` · `aegis.portfolio.v1` · `aegis.learning.v1` · `aegis.execution.v1` · **`aegis.macro_intel.v1` (NEW)**
+- `aegis.recommendation.v3` · `aegis.risk.v1` · `aegis.portfolio.v1` · `aegis.learning.v1` · `aegis.execution.v1` · `aegis.macro_intel.v1` · **`aegis.factor_library.v1` (NEW)**
 
 ---
 
@@ -130,6 +132,22 @@ Neither the Risk Engine, Portfolio Engine, nor Execution Simulator is defective.
 
 ---
 
+## Sprint 7.5 · Persistence + Factor Library State (2026-07-21)
+
+| History file | India | USA |
+|---|---|---|
+| `recommendation_history.parquet` | wired · begins accumulating on next Rec Engine run | wired · begins accumulating on next Rec Engine run |
+| `risk_history.parquet` | wired | wired |
+| `portfolio_history.parquet` | wired (alongside existing portfolio_state_history) | wired |
+| `macro_history.parquet` | wired (alongside per-symbol history parquets from Sprint 6.5) | wired |
+| `execution_history.parquet` | wired | wired |
+| `learning_history.parquet` | wired | wired |
+| `factor_library.json / .parquet / _history.parquet` | 22 factors · **3 confident** (VIX + derived) | 22 factors · **11 confident** (WTI, Brent, Gold, USD, VIX, Fed cycle, curve, rotation) |
+
+**How to apply going forward:** every daily `aegis_daily_v2.py` and `usa_daily.py` run automatically appends a fresh row per engine per market. No operator action required. Fail-open: if an append fails, the daily JSON snapshot still writes and the failure is logged to `reports/persistence_errors.jsonl` for auditability.
+
+---
+
 ## Sprint 6.5 · Live Macro State (2026-07-21)
 
 | Signal              | India                  | USA                            |
@@ -147,9 +165,15 @@ Neither the Risk Engine, Portfolio Engine, nor Execution Simulator is defective.
 
 ## NEXT BOTTLENECK
 
-**Data completeness for the India macro layer.** The India runner currently resolves regime on VIX alone; institutional credibility needs an India-specific macro summary (10Y G-Sec, USDINR history, RBI short-rate signals) feeding the same schema. **This does NOT block Sprint 8** — USA regime signal is already institutionally usable and Walk-Forward can proceed with USA regime-conditioned back-tests.
+**Historical depth for meaningful walk-forward.** Sprint 7.5 architecturally unblocks Sprint 8 — every engine now writes to its `_history.parquet` on every run — but the ledgers are **empty on day 1**. Sprint 8 will produce sparse walk-forward windows until 60+ trading days accumulate.
 
-Layered below that (previous bottleneck, still open):
+**Two acceleration paths:**
+1. **Backfill** — run the daily orchestrator with an `--asof <date>` cursor across historical price data to seed the ledgers. Requires runners to accept a historical cutoff parameter.
+2. **Snapshot-first Sprint 8** — build the engine, let it operate on the accumulating ledger, and refine metrics as history grows. Dashboard will visibly show `n_walk_forward_windows` incrementing daily.
+
+**Recommended:** Snapshot-first Sprint 8. Build now, refine as history deepens.
+
+Below that (previous bottleneck, still open):
 
 **Sprint 8 · Walk-Forward Validation cannot produce meaningful metrics until it has historical BUY/SELL recommendations to replay.**
 
@@ -172,5 +196,5 @@ Without item 1, Sprint 8's engine will run but produce empty walk-forward window
 
 ## Latest Commit
 
-Sprint 6.5 · Macro & Intermarket Intelligence · docs/AEGIS_SPRINT65_REPORT.md
-Prior: Sprint 7 · Execution Simulator · docs/AEGIS_SPRINT7_REPORT.md
+Sprint 7.5 · Persistence & Factor Library · docs/AEGIS_SPRINT75_REPORT.md
+Prior: Sprint 6.5 · Macro & Intermarket Intelligence · docs/AEGIS_SPRINT65_REPORT.md

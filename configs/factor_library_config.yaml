@@ -1,0 +1,152 @@
+# Sprint 7.5 · Factor Library
+#
+# Every macro/intermarket factor the system tracks, tagged with:
+#   - source        : where the value comes from (macro_summary, bond, currency, vol, sector rotation, etf_flows)
+#   - unit          : pct | bps | ratio | index | flag | rate
+#   - trend_window  : days used to classify trend (bull/bear/sideways) — informational
+#   - affected      : sectors/industries the factor moves (used by AI Auditor + Research Factory)
+#
+# 100% free data source substrate: yfinance + FRED + ECB + RBI + MOSPI + NSE/BSE public data.
+# No paid APIs required. All lookups piggy-back on Sprint 6.5 macro readers.
+
+factors:
+  # ── Commodities ─────────────────────────────────────────────
+  - name: oil_wti
+    symbol: "CL=F"
+    source: commodity
+    unit: pct
+    affected: [Energy, Oil Producers, Airlines, Transportation, Paints]
+
+  - name: oil_brent
+    symbol: "BZ=F"
+    source: commodity
+    unit: pct
+    affected: [Energy, Oil Producers, Airlines, Transportation]
+
+  - name: gold
+    symbol: "GC=F"
+    source: commodity
+    unit: pct
+    affected: [Gold Miners, Jewelry, Safe-haven Assets]
+
+  - name: silver
+    symbol: "SI=F"
+    source: commodity
+    unit: pct
+    affected: [Silver Miners, Solar, Industrial Metals]
+
+  - name: copper
+    symbol: "HG=F"
+    source: commodity
+    unit: pct
+    affected: [Copper Miners, Industrial Metals, Construction, Auto EV]
+
+  - name: nat_gas
+    symbol: "NG=F"
+    source: commodity
+    unit: pct
+    affected: [Utilities, Chemicals, Fertilizers]
+
+  # ── Currencies ──────────────────────────────────────────────
+  - name: usd_index
+    symbol: "UUP"
+    source: currency
+    unit: pct
+    affected: [Exporters, Import-heavy Manufacturers, IT Services]
+
+  - name: usdinr
+    symbol: "USDINR"
+    source: currency
+    unit: pct
+    affected: [IT Services, Pharma Exporters, Imported-Input Sectors]
+
+  - name: eurusd
+    symbol: "EURUSD"
+    source: currency
+    unit: pct
+    affected: [European ADRs, Multinational Consumer]
+
+  # ── Bonds & Rates ───────────────────────────────────────────
+  - name: us_10y
+    symbol: "^TNX"
+    source: bond
+    unit: pct
+    affected: [Banks, REITs, Utilities, Tech Growth]
+
+  - name: us_30y
+    symbol: "^TYX"
+    source: bond
+    unit: pct
+    affected: [Banks, Insurance, Mortgage Lenders]
+
+  - name: us_5y
+    symbol: "^FVX"
+    source: bond
+    unit: pct
+    affected: [Auto Loans, Consumer Discretionary]
+
+  - name: us_3m
+    symbol: "^IRX"
+    source: bond
+    unit: pct
+    affected: [Banks, Money-Market Funds]
+
+  # ── Volatility ──────────────────────────────────────────────
+  - name: vix
+    symbol: "^VIX"
+    source: volatility
+    unit: index
+    affected: [Cross-Asset Risk, Growth, High-Beta Stocks]
+
+  - name: india_vix
+    symbol: "^INDIAVIX"
+    source: volatility
+    unit: index
+    affected: [Cross-Asset Risk India, Small/Mid Caps]
+
+  # ── Rate / Central-bank derived ─────────────────────────────
+  - name: yield_curve_slope_10y_2y
+    symbol: null
+    source: derived
+    unit: bps
+    affected: [Banks, Recession-Sensitive Sectors]
+
+  - name: yield_curve_inversion
+    symbol: null
+    source: derived
+    unit: flag
+    affected: [Banks, Recession-Sensitive Sectors]
+
+  - name: fed_rate_cycle
+    symbol: null
+    source: central_bank
+    unit: label
+    affected: [Financials, Rate-Sensitive Sectors]
+
+  - name: rbi_rate_cycle
+    symbol: null
+    source: central_bank
+    unit: label
+    affected: [Financials India, Rate-Sensitive Sectors India]
+
+  # ── Sector rotation & currency pressure ─────────────────────
+  - name: sector_rotation_leader
+    symbol: null
+    source: rotation
+    unit: label
+    affected: []
+
+  - name: sector_rotation_laggard
+    symbol: null
+    source: rotation
+    unit: label
+    affected: []
+
+  - name: currency_pressure
+    symbol: null
+    source: derived
+    unit: pct
+    affected: [Exporters, Import-heavy Manufacturers]
+
+trend_window_days: 20
+material_move_pct: 3.0

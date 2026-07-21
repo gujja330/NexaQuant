@@ -140,6 +140,23 @@ def main() -> int:
         "model_stamp": model_stamp,
     }, indent=2, default=str), encoding="utf-8")
 
+    # Sprint 7.5 · append learning summary to permanent history (fail-open)
+    try:
+        from backend.persistence import append_snapshot_row
+        _hist_payload = {
+            "engine": engine.ENGINE_ID, "version": engine.ENGINE_VERSION,
+            "market": "india", "run_utc": now.isoformat(timespec="seconds"),
+            "asof": result.asof.isoformat(),
+            "n_feature_attribution": len(result.feature_attribution),
+            "n_model_attribution":   len(result.model_attribution),
+            "n_failure_clusters":    len(result.failure_clusters),
+            "has_calibration":       result.calibration_curve is not None,
+            "model_stamp": model_stamp,
+        }
+        append_snapshot_row(_hist_payload, _ROOT / "reports" / "learning_history.parquet")
+    except Exception as _hist_err:
+        print(f"  history append warning (non-fatal): {_hist_err}")
+
     # AI narrative
     ai = learning_analyst.run(result, "india", result.asof)
     OUT_NARRATIVE.write_text(json.dumps({

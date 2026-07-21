@@ -681,3 +681,76 @@ datasets:
     schema:
       required_keys: [engine, version, market, run_utc, output]
     consumers: [ux/dashboard]
+
+  # ── SPRINT 7.5 · Persistence & History + Factor Library ─────────
+  - name: recommendation_history
+    path: reports/recommendation_history.parquet
+    producer: india/recommendation_intelligence/run.py
+    kind: history
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: []
+    consumers: [backend/learning, backend/walkforward (Sprint 8), backend/ai_auditor (Sprint 9)]
+
+  - name: risk_history
+    path: reports/risk_history.parquet
+    producer: india/risk_engine/run.py
+    kind: history
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: []
+    consumers: [backend/walkforward, backend/ai_auditor]
+
+  - name: portfolio_history
+    path: reports/portfolio_history.parquet
+    producer: india/portfolio_engine/run.py
+    kind: history
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: []
+    consumers: [backend/walkforward, backend/ai_auditor]
+
+  - name: macro_history
+    path: reports/macro_history.parquet
+    producer: india/macro_intel/run.py
+    kind: history
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: []
+    consumers: [backend/walkforward, backend/ai_auditor, backend/factor_library]
+
+  - name: execution_history
+    path: reports/execution_history.parquet
+    producer: india/execution_simulator/run.py
+    kind: history
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: []
+    consumers: [backend/walkforward, backend/ai_auditor]
+
+  - name: learning_history
+    path: reports/learning_history.parquet
+    producer: india/learning_engine/run.py
+    kind: history
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: []
+    consumers: [backend/walkforward, backend/ai_auditor]
+
+  - name: factor_library
+    path: reports/factor_library.json
+    producer: india/factor_library/run.py
+    kind: factor_library
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, market, run_utc, asof, n_factors, factors]
+    consumers: [backend/ai_auditor, backend/research_factory]
+
+  - name: factor_library_history
+    path: reports/factor_library_history.parquet
+    producer: india/factor_library/run.py
+    kind: history
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: []
+    consumers: [backend/walkforward, backend/ai_auditor, backend/research_factory]

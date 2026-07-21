@@ -193,6 +193,14 @@ def main() -> int:
         **_as_dict(summary),
     }, indent=2, default=str), encoding="utf-8")
 
+    # Sprint 7.5 · append to permanent history (fail-open)
+    try:
+        from backend.persistence import append_snapshot_row
+        append_snapshot_row(json.loads(OUT_SUMMARY.read_text(encoding="utf-8")),
+                             _ROOT / "usa" / "reports" / "execution_history.parquet")
+    except Exception as _hist_err:
+        print(f"  history append warning (non-fatal): {_hist_err}")
+
     ai = execution_analyst.run(summary, "usa", latest)
     OUT_NARRATIVE.write_text(json.dumps({
         "engine":  "ai_execution_narrative", "version": "v1.0",
