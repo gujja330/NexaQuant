@@ -180,6 +180,17 @@ STEPS = [
         "optional": True,
     },
     {
+        "name":     "recommendation_intelligence",
+        "desc":     "Sprint 3 · USA Recommendation Intelligence v3 (USD)",
+        "script":   "usa/research/recommendation_intelligence/run.py",
+        "produces": ["usa/reports/recommendations_v3.json",
+                       "usa/reports/recommendations_v3_summary.json",
+                       "usa/reports/recommendations_v3_conflicts.json",
+                       "usa/reports/ai_recommendation_narrative.json"],
+        "requires": ["usa/reports/ensemble.json"],
+        "optional": True,
+    },
+    {
         "name":     "recommendations",
         "desc":     "USA Adaptive Recommendation Engine (technicals-based)",
         "script":   "usa/research/recommendations/run.py",

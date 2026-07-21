@@ -1,5 +1,5 @@
 # 🇮🇳 India vs 🇺🇸 USA · Cross-Market Comparison
-_Generated 2026-07-20T06:47:56+00:00Z_
+_Generated 2026-07-20T07:50:18+00:00Z_
 
 | Metric | 🇮🇳 India | 🇺🇸 USA |
 |---|---|---|
@@ -22,8 +22,8 @@ _Generated 2026-07-20T06:47:56+00:00Z_
 | % beat benchmark | 52.17% | — |
 | Benchmark verdict | at_par | insufficient_evidence |
 | Archive days | 2/30 | 1/30 |
-| Ops verdict | DEGRADED | HEALTHY |
-| Artifacts present | 22/22 | 18/18 |
+| Ops verdict | CRITICAL | HEALTHY |
+| Artifacts present | 23/23 | 19/19 |
 
 ## Independence
 

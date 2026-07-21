@@ -134,6 +134,17 @@ STEPS = [
         "optional": True,
     },
     {
+        "name": "recommendation_intelligence",
+        "desc": "Sprint 3 · Recommendation Intelligence v3 (conflict + calibration + regime + explainer + AI analyst)",
+        "script": "india/recommendation_intelligence/run.py",
+        "produces": ["reports/recommendations_v3.json",
+                       "reports/recommendations_v3_summary.json",
+                       "reports/recommendations_v3_conflicts.json",
+                       "reports/ai_recommendation_narrative.json"],
+        "requires": ["reports/ensemble.json"],
+        "optional": True,
+    },
+    {
         "name": "adaptive_rec_v2",
         "desc": "Adaptive Rec Engine v2.0 (confidence rebuild + Precision@K)",
         "script": "research/adaptive_rec_v2/run.py",

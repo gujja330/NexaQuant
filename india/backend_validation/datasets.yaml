@@ -417,3 +417,40 @@ datasets:
     schema:
       required_keys: [engine, version, market, run_utc, output]
     consumers: [ux/dashboard]
+
+  # ── SPRINT 3 · Recommendation Intelligence v3 ───────────────────
+  - name: recommendations_v3
+    path: reports/recommendations_v3.json
+    producer: india/recommendation_intelligence/run.py
+    kind: recommendation
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, version, market, run_utc, asof, currency, regime, n_tickers, distribution, recommendations, model_stamp]
+    consumers: [ux/dashboard, research/risk (Sprint 4+), research/portfolio (Sprint 5+)]
+
+  - name: recommendations_v3_summary
+    path: reports/recommendations_v3_summary.json
+    producer: india/recommendation_intelligence/run.py
+    kind: recommendation
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, market, asof, regime, n_tickers, distribution, top_buys, top_sells, model_stamp]
+    consumers: [ux/dashboard]
+
+  - name: recommendations_v3_conflicts
+    path: reports/recommendations_v3_conflicts.json
+    producer: india/recommendation_intelligence/run.py
+    kind: recommendation
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, market, asof, n_conflicts, conflicts]
+    consumers: [ux/dashboard]
+
+  - name: ai_recommendation_narrative
+    path: reports/ai_recommendation_narrative.json
+    producer: india/recommendation_intelligence/run.py
+    kind: ai_narrative
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, version, market, run_utc, output]
+    consumers: [ux/dashboard]

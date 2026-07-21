@@ -340,6 +340,43 @@ datasets:
       required_keys: [engine, version, market, run_utc, output]
     consumers: [usa/dashboard/frontend]
 
+  # ── SPRINT 3 · Recommendation Intelligence v3 ───────────────────
+  - name: recommendations_v3
+    path: usa/reports/recommendations_v3.json
+    producer: usa/research/recommendation_intelligence/run.py
+    kind: recommendation
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, version, market, run_utc, asof, currency, regime, n_tickers, distribution, recommendations, model_stamp]
+    consumers: [usa/dashboard/frontend, usa/research/risk (Sprint 4+)]
+
+  - name: recommendations_v3_summary
+    path: usa/reports/recommendations_v3_summary.json
+    producer: usa/research/recommendation_intelligence/run.py
+    kind: recommendation
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, market, asof, regime, n_tickers, distribution, top_buys, top_sells, model_stamp]
+    consumers: [usa/dashboard/frontend]
+
+  - name: recommendations_v3_conflicts
+    path: usa/reports/recommendations_v3_conflicts.json
+    producer: usa/research/recommendation_intelligence/run.py
+    kind: recommendation
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, market, asof, n_conflicts, conflicts]
+    consumers: [usa/dashboard/frontend]
+
+  - name: ai_recommendation_narrative
+    path: usa/reports/ai_recommendation_narrative.json
+    producer: usa/research/recommendation_intelligence/run.py
+    kind: ai_narrative
+    freshness_sla_trading_days: 1
+    schema:
+      required_keys: [engine, version, market, run_utc, output]
+    consumers: [usa/dashboard/frontend]
+
   # ── SPRINT 1B · INGESTION LAYER (all WIRED into usa_daily.py) ─────
   - name: fundamentals
     path: usa/reports/fundamentals.json
