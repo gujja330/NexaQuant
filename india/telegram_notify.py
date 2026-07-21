@@ -27,7 +27,7 @@ Run:  python india/telegram_notify.py            # send today's summary
       python india/telegram_notify.py --check    # validate config + print the message (no send)
       python india/telegram_notify.py --resolve  # discover your chat id from getUpdates
 """
-import os, sys, re, json, hashlib, urllib.parse, urllib.request, warnings
+import os, sys, re, json, hashlib, urllib.parse, urllib.request, urllib.error, warnings
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 import pandas as pd
@@ -863,6 +863,49 @@ def _chunk_at_sections(text, max_len=3900):
     return chunks
 
 
+def _read_telegram_error(exc):
+    """Extract Telegram's actual error description from an HTTPError.
+    Telegram returns JSON like {'ok':false,'error_code':400,'description':'Bad Request: can't parse entities: ...'}
+    urllib's HTTPError has a .read() method that yields that body — but only once.
+    """
+    try:
+        body = exc.read().decode("utf-8", errors="replace")
+    except Exception:
+        return str(exc), None
+    try:
+        parsed = json.loads(body)
+        return parsed.get("description") or body, parsed
+    except Exception:
+        return body, None
+
+
+def _strip_html(text):
+    """Strip HTML tags to a plain-text fallback that Telegram will accept without parse_mode."""
+    text = re.sub(r"<\s*/?\s*(b|i|u|s|code|pre|a\b[^>]*)\s*>", "", text, flags=re.IGNORECASE)
+    text = text.replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">")
+    return text
+
+
+def _post_chunk(url, chat, chunk, *, parse_mode="HTML"):
+    """Send one chunk; return (ok, error_description_or_None)."""
+    fields = {
+        "chat_id": chat, "text": chunk,
+        "disable_web_page_preview": "true",
+    }
+    if parse_mode:
+        fields["parse_mode"] = parse_mode
+    data = urllib.parse.urlencode(fields).encode()
+    try:
+        with urllib.request.urlopen(url, data=data, timeout=20) as resp:
+            ok = json.loads(resp.read()).get("ok", False)
+        return ok, None
+    except urllib.error.HTTPError as e:
+        desc, _ = _read_telegram_error(e)
+        return False, f"HTTP {e.code}: {desc}"
+    except Exception as e:
+        return False, str(e)
+
+
 def send(text):
     token = os.environ.get("TELEGRAM_BOT_TOKEN")
     chat = os.environ.get("TELEGRAM_CHAT_ID")
@@ -873,19 +916,26 @@ def send(text):
     url = f"https://api.telegram.org/bot{token}/sendMessage"
     ok_all = True
     for i, chunk in enumerate(chunks, 1):
-        data = urllib.parse.urlencode({
-            "chat_id": chat, "text": chunk[:4090],
-            "parse_mode": "HTML", "disable_web_page_preview": "true",
-        }).encode()
-        try:
-            with urllib.request.urlopen(url, data=data, timeout=20) as resp:
-                ok = json.loads(resp.read()).get("ok", False)
-            ok_all = ok_all and ok
-            if not ok:
-                print(f"  Telegram API returned not-ok on chunk {i}/{len(chunks)}.")
-        except Exception as e:
-            print(f"  send failed on chunk {i}/{len(chunks)}: {e}")
-            return False
+        payload = chunk[:4090]
+        ok, err = _post_chunk(url, chat, payload, parse_mode="HTML")
+        if ok:
+            continue
+
+        # Fail-open fallback: HTML parse errors ("can't parse entities", unclosed tags,
+        # stray < > & from stock names / sector labels / rationale text) MUST NOT drop
+        # the daily brief. Retry the same chunk as plain text — operator still gets
+        # a readable message; we log the actual Telegram error for follow-up.
+        is_parse_err = err and ("parse entities" in err.lower() or "HTTP 400" in err)
+        print(f"  chunk {i}/{len(chunks)} · HTML send failed: {err}")
+        if is_parse_err:
+            print(f"  chunk {i}/{len(chunks)} · falling back to plain-text")
+            plain_payload = _strip_html(payload)[:4090]
+            ok2, err2 = _post_chunk(url, chat, plain_payload, parse_mode=None)
+            if ok2:
+                print(f"  chunk {i}/{len(chunks)} · plain-text delivered")
+                continue
+            print(f"  chunk {i}/{len(chunks)} · plain-text also failed: {err2}")
+        ok_all = False
     print(f"  sent ({len(chunks)} message{'s' if len(chunks) > 1 else ''}).")
     return ok_all
 
