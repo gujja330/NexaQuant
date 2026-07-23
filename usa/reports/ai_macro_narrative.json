@@ -2,13 +2,13 @@
   "engine": "ai_macro_narrative",
   "version": "v1.0",
   "market": "usa",
-  "run_utc": "2026-07-21T04:12:50+00:00",
-  "asof": "2026-07-21",
+  "run_utc": "2026-07-23T21:37:51+00:00",
+  "asof": "2026-07-23",
   "output": {
     "agent": "macro_analyst",
     "version": "v1.0",
     "market": "usa",
-    "asof": "2026-07-21",
+    "asof": "2026-07-23",
     "headline": "regime=unknown \u00b7 vol=normal \u00b7 active_impacts=2 \u00b7 macro_score=-0.10",
     "narrative": "regime=unknown \u00b7 vol=normal \u00b7 active_impacts=2 \u00b7 macro_score=-0.10.\n\nAEGIS Macro & Intermarket Intelligence audit. Combines commodity moves, currency pressures, yield curve, VIX regime, and sector rotation into a single macro regime call. Emits an impact matrix + knowledge graph that downstream engines (Recommendation, Risk, Portfolio, Learning, AI Auditor) will consume from Sprint 8 onward.\n\nDoes NOT approve or promote \u2014 every commodity impact, sector rotation call, and regime label is DESCRIPTIVE and requires operator interpretation. AI never trades on macro alone.",
     "findings": [
@@ -20,29 +20,29 @@
         "macro_score": -0.1,
         "evidence": {
           "vol_regime": "normal",
-          "oil_1w_pct": 6.747,
-          "gold_1w_pct": 0.37,
-          "usd_1w_pct": -0.386,
+          "oil_1w_pct": 19.376,
+          "gold_1w_pct": 1.674,
+          "usd_1w_pct": 0.776,
           "yield_curve_inversion": false,
-          "ten_year_1m_bps": 6.2854659999999996
+          "ten_year_1m_bps": 16.672135
         }
       },
       {
         "type": "volatility",
         "symbol": "^VIX",
-        "level": 18.65,
+        "level": 18.7,
         "regime": "normal",
-        "chg_1m_pct": -13.296
+        "chg_1m_pct": -15.842
       },
       {
         "type": "central_bank_state",
         "bank": "Fed",
-        "rate_cycle": "neutral",
-        "yield_curve_slope": 27.0,
+        "rate_cycle": "tightening",
+        "yield_curve_slope": 24.2,
         "inversion": false,
-        "liquidity_score": 0.0,
+        "liquidity_score": -0.7,
         "notes": [
-          "Fed: cycle=neutral \u00b7 short_1m=8.176935bps"
+          "Fed: cycle=tightening \u00b7 short_1m=17.248199999999997bps"
         ]
       },
       {
@@ -88,43 +88,45 @@
         "type": "sector_rotation",
         "leaders": [
           {
+            "sector": "Industrials",
+            "return_pct": 7.24
+          },
+          {
             "sector": "Financials",
-            "return_pct": 7.15
+            "return_pct": 6.89
           },
           {
             "sector": "Healthcare",
-            "return_pct": 4.08
-          },
-          {
-            "sector": "Industrials",
-            "return_pct": 2.26
+            "return_pct": 5.62
           }
         ],
         "laggards": [
           {
-            "sector": "Technology",
-            "return_pct": -2.55
-          },
-          {
-            "sector": "Materials",
-            "return_pct": -1.19
-          },
-          {
             "sector": "Communication Services",
-            "return_pct": -0.78
+            "return_pct": -5.07
+          },
+          {
+            "sector": "Consumer Discretionary",
+            "return_pct": -4.17
+          },
+          {
+            "sector": "Consumer Staples",
+            "return_pct": -2.67
           }
         ],
-        "rotation_strength": 0.208
+        "rotation_strength": 0.374
       },
       {
         "type": "knowledge_graph_summary",
-        "n_entries": 2,
+        "n_entries": 3,
         "factor_kinds": [
-          "commodity"
+          "commodity",
+          "rate"
         ],
         "top_factors": [
           "Brent Crude",
-          "WTI Crude"
+          "WTI Crude",
+          "10Y Treasury Yield"
         ]
       },
       {
@@ -133,7 +135,7 @@
         "n_currencies": 1,
         "n_bonds": 4,
         "n_active_impacts": 2,
-        "n_kg_entries": 2
+        "n_kg_entries": 3
       }
     ],
     "evidence": {
