@@ -1,6 +1,6 @@
 # AEGIS Executive Dashboard
 
-**Last updated:** 2026-07-21 · Sprint 7.7 shipped PARTIAL · **Phase 3 Roadmap LOCKED**
+**Last updated:** 2026-07-21 · Sprint 7.8 (Benchmark Report) shipped · **Phase 3 Roadmap LOCKED**
 **Overwritten every sprint** — always the current state of AEGIS.
 **Roadmap authority:** [`docs/AEGIS_PHASE3_ROADMAP.md`](../docs/AEGIS_PHASE3_ROADMAP.md)
 
@@ -20,11 +20,15 @@
 ✅ Execution Simulator        Sprint 7     · fills + slippage + equity curve + statistics
 ✅ Persistence + Factor Lib   Sprint 7.5   · append-only history for every engine + 22-factor library
 ✅ Historical Backfill+Replay Sprint 7.6   · replay framework + 35 USA + 26 India feature snapshots
-🟡 Full-Pipeline Replay       Sprint 7.7   · SHIPPED PARTIAL · headless drivers + walk-forward + lookahead guard  ← WE ARE HERE
+🟡 Full-Pipeline Replay       Sprint 7.7   · SHIPPED PARTIAL · headless drivers + walk-forward + lookahead guard
        └ USA: 137 feat, 135 rec/risk/portfolio rows · India: 94 feat, 68 rec/risk/portfolio rows · 0 leaks
-       └ Walk-forward verdict PARTIAL (rec engine emits 100% HOLD → 0 closed positions)
-⚪ Recommendation Orchestrator Sprint 7.8   · pending  (blend Runner 1 legacy + Runner 2 Rec v3 + Macro + Learning)
-⚪ Full Institutional WF      Sprint 8     · pending  (unblocked by orchestrator emitting real BUY/SELLs)
+       └ Runner 1 audit-trail ingest: 48 legacy recs · 10 closed positions from raw prices
+✅ Recommendation Benchmark  Sprint 7.8   · comprehensive metric panel + statistical significance gates  ← WE ARE HERE
+       └ Wilson 95% CI on win rate · normal-approx CI on mean return · sample-size verdicts
+       └ Runner 1 verdict on 10 trades: DIRECTIONAL_ONLY (win-rate CI [23.66%, 76.34%])
+       └ Runner 1 vs Runner 2: CANNOT_COMPARE_INSUFFICIENT_DATA (need ≥30 closed each)
+⚪ Recommendation Orchestrator Sprint 7.9   · deferred until benchmark shows statistically-meaningful edge
+⚪ Full Institutional WF      Sprint 8     · deferred until orchestrator (or corpus grows organically)
 ⚪ Institutional AI Auditor   Sprint 9     · pending  (EXPANDED — per-trade multi-dim root-cause report)
 ⚪ Research Factory           Sprint 10    · pending  (Phase 2 terminal engine)
 ──────────────────────────────────────────────────────────────────────
@@ -102,9 +106,11 @@ Sprint 6.5 (macro & intermarket intelligence) 22/22  ✅
 Sprint 7.5 (persistence + factor library)     18/18  ✅
 Sprint 7.6 (historical backfill + replay)     19/19  ✅
 Sprint 7.7 (full replay + walk-forward)       14/14  ✅
+Sprint 7.7 Runner 1 (legacy audit-trail)      11/11  ✅
+Sprint 7.8 (recommendation benchmark report)  17/17  ✅
 Telegram HTTP 400 fallback                    10/10  ✅
 ─────────────────────────────────────────────────────────
-TOTAL                                        251/251 ✅
+TOTAL                                        279/279 ✅
 ```
 
 ## Backend Validation
@@ -184,6 +190,28 @@ Neither the Risk Engine, Portfolio Engine, nor Execution Simulator is defective.
 
 ---
 
+## Sprint 7.8 · Benchmark on Runner 1 (2026-07-21, India, 10 trades)
+
+| Metric | Value | 95% CI | Verdict |
+|---|---:|---:|---|
+| Sample | 10 | | **DIRECTIONAL_ONLY** — cannot claim edge |
+| Mean return | +0.08% | [-3.70%, +3.87%] | CI straddles zero |
+| Win rate | 50.0% | [23.66%, 76.34%] | CI straddles both extremes |
+| Expectancy/trade | +0.08% | | Barely positive |
+| Profit factor | 1.04 | | Barely positive |
+| Reward/risk | 1.04 | | Winners barely outweigh losers |
+| Max drawdown | -17.4% | | |
+| Max consec losses | 3 | | |
+
+**STRONG_BUY vs BUY** (directional only — 4 BUY samples):
+- STRONG_BUY (n=6): +0.85% mean, 66.7% win rate
+- BUY (n=4): -1.07% mean, 25.0% win rate
+- Edge: **+1.92 pp mean · +41.67 pp win-rate** (unconfirmed — n_min < 30)
+
+**Comparison Runner 1 vs Runner 2**: `CANNOT_COMPARE_INSUFFICIENT_DATA`  (Runner 1: 10 closed · Runner 2: 0 closed · need ≥30 each)
+
+---
+
 ## Sprint 7.7 · Replay + Walk-Forward State (2026-07-21)
 
 | Artifact | India | USA |
@@ -206,7 +234,13 @@ Neither the Risk Engine, Portfolio Engine, nor Execution Simulator is defective.
 
 ## NEXT BOTTLENECK
 
-**Sprint 7.8 · Institutional Recommendation Orchestrator.** With Sprint 7.7's walk-forward reports + rec/risk/portfolio history landed, the orchestrator has the substrate to score Runner 1 (legacy adaptive_rec_v2, emits real BUYs) vs Runner 2 (Rec Engine v3, currently 100% HOLD) and blend them with macro + learning context into a single `final_recommendations.json`. Full spec provided by operator on 2026-07-21.
+**Corpus depth** for both runners. Sprint 7.8's benchmark framework is complete — every metric carries sample size + CI + significance verdict. What's missing is **data**, and data grows one trading day at a time.
+
+Two mechanical paths:
+1. **Grow Runner 1's audit trail organically** — daily pipeline appends to `data/aegis_recommendation_db.csv`; re-run ingest weekly. Reaches STATISTICALLY_MEANINGFUL (n≥30) in roughly 6-8 more weeks.
+2. **Fix Runner 2's cold-start calibration** so Rec Engine v3 emits actionable BUY/SELL calls. That's a Sprint 3 change, not a benchmark change.
+
+**Only when both runners cross n=30 closed positions each** should the Recommendation Orchestrator (Sprint 7.9) start weighting them.
 
 Below that (previous bottleneck, still open):
 
@@ -231,5 +265,5 @@ Without item 1, Sprint 8's engine will run but produce empty walk-forward window
 
 ## Latest Commit
 
-Sprint 7.7 · Full Historical Replay + Walk-Forward (SHIPPED PARTIAL) · docs/AEGIS_SPRINT77_REPORT.md
-Prior: Sprint 7.6 (e934e40) · Phase 3 Roadmap LOCK (9753201) · Telegram fallback (d4df8d5)
+Sprint 7.8 · Recommendation Benchmark Report · docs/AEGIS_SPRINT78_REPORT.md
+Prior: Sprint 7.7 Runner 1 audit-trail ingest (3a2c1b2) · Sprint 7.7 replay (343eecf) · Sprint 7.6 (e934e40)
