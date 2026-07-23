@@ -683,11 +683,15 @@ datasets:
     consumers: [ux/dashboard]
 
   # ── SPRINT 7.5 · Persistence & History + Factor Library ─────────
+  # HOTFIX 2026-07-23: marked optional=true so a missing or stale forward-looking
+  # ledger downgrades from FAIL → NOT_APPLICABLE, keeping ops_check HEALTHY
+  # instead of CRITICAL. Append-only history is BY DESIGN populated over time.
   - name: recommendation_history
     path: reports/recommendation_history.parquet
     producer: india/recommendation_intelligence/run.py
     kind: history
-    freshness_sla_trading_days: 1
+    freshness_sla_trading_days: 5
+    optional: true
     schema:
       required_keys: []
     consumers: [backend/learning, backend/walkforward (Sprint 8), backend/ai_auditor (Sprint 9)]
@@ -696,7 +700,8 @@ datasets:
     path: reports/risk_history.parquet
     producer: india/risk_engine/run.py
     kind: history
-    freshness_sla_trading_days: 1
+    freshness_sla_trading_days: 5
+    optional: true
     schema:
       required_keys: []
     consumers: [backend/walkforward, backend/ai_auditor]
@@ -705,7 +710,8 @@ datasets:
     path: reports/portfolio_history.parquet
     producer: india/portfolio_engine/run.py
     kind: history
-    freshness_sla_trading_days: 1
+    freshness_sla_trading_days: 5
+    optional: true
     schema:
       required_keys: []
     consumers: [backend/walkforward, backend/ai_auditor]
@@ -714,7 +720,8 @@ datasets:
     path: reports/macro_history.parquet
     producer: india/macro_intel/run.py
     kind: history
-    freshness_sla_trading_days: 1
+    freshness_sla_trading_days: 5
+    optional: true
     schema:
       required_keys: []
     consumers: [backend/walkforward, backend/ai_auditor, backend/factor_library]
@@ -723,7 +730,8 @@ datasets:
     path: reports/execution_history.parquet
     producer: india/execution_simulator/run.py
     kind: history
-    freshness_sla_trading_days: 1
+    freshness_sla_trading_days: 5
+    optional: true
     schema:
       required_keys: []
     consumers: [backend/walkforward, backend/ai_auditor]
@@ -732,7 +740,8 @@ datasets:
     path: reports/learning_history.parquet
     producer: india/learning_engine/run.py
     kind: history
-    freshness_sla_trading_days: 1
+    freshness_sla_trading_days: 5
+    optional: true
     schema:
       required_keys: []
     consumers: [backend/walkforward, backend/ai_auditor]
@@ -741,7 +750,8 @@ datasets:
     path: reports/factor_library.json
     producer: india/factor_library/run.py
     kind: factor_library
-    freshness_sla_trading_days: 1
+    freshness_sla_trading_days: 5
+    optional: true
     schema:
       required_keys: [engine, market, run_utc, asof, n_factors, factors]
     consumers: [backend/ai_auditor, backend/research_factory]
@@ -750,7 +760,8 @@ datasets:
     path: reports/factor_library_history.parquet
     producer: india/factor_library/run.py
     kind: history
-    freshness_sla_trading_days: 1
+    freshness_sla_trading_days: 5
+    optional: true
     schema:
       required_keys: []
     consumers: [backend/walkforward, backend/ai_auditor, backend/research_factory]

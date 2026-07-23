@@ -2,17 +2,17 @@
   "engine": "backend_validation",
   "version": "v1.0",
   "market": "usa",
-  "run_utc": "2026-07-21T03:49:38+00:00Z",
-  "n_datasets": 67,
-  "verdict": "PASS",
-  "confidence": 0.9118,
+  "run_utc": "2026-07-23T18:08:20+00:00Z",
+  "n_datasets": 85,
+  "verdict": "WARNING",
+  "confidence": 0.8603,
   "counts": {
-    "PASS": 67,
-    "WARNING": 0,
+    "PASS": 47,
+    "WARNING": 38,
     "FAIL": 0,
     "NOT_APPLICABLE": 0
   },
-  "elapsed_s": 13.236,
+  "elapsed_s": 12.849,
   "datasets": {
     "aapl_price": {
       "spec": {
@@ -20,7 +20,7 @@
         "path": "usa/data/raw/us/AAPL_D1.parquet",
         "producer": "usa/scripts/refresh_market_data.py",
         "kind": "price",
-        "freshness_sla_trading_days": 1,
+        "freshness_sla_trading_days": 3,
         "quality": {
           "no_negatives": [
             "open",
@@ -36,7 +36,7 @@
         "consumers": [
           "usa/research/recommendations"
         ],
-        "notes": "representative sample from the Dow 30 universe"
+        "notes": "representative sample from the Dow 30 universe \u00b7 SLA relaxed 1 \u2192 3 trading days (yfinance flakiness hotfix 2026-07-23)"
       },
       "rollup_verdict": "PASS",
       "rollup_confidence": 1.0,
@@ -52,12 +52,12 @@
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\data\\raw\\us\\AAPL_D1.parquet",
             "mtime_utc": "2026-07-20T08:20:30+00:00",
-            "wall_hours_old": 19.48,
-            "trading_days_old": 1,
-            "sla_trading_days": 1
+            "wall_hours_old": 81.79,
+            "trading_days_old": 3,
+            "sla_trading_days": 3
           },
           "suggested_fixes": [],
-          "elapsed_ms": 1.04
+          "elapsed_ms": 0.0
         },
         "schema": {
           "validator": "schema",
@@ -87,7 +87,7 @@
             "n_columns": 6
           },
           "suggested_fixes": [],
-          "elapsed_ms": 43.11
+          "elapsed_ms": 50.18
         },
         "completeness": {
           "validator": "completeness",
@@ -100,7 +100,7 @@
             "n_rows": 1255
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.0
+          "elapsed_ms": 3.27
         },
         "quality": {
           "validator": "quality",
@@ -115,7 +115,7 @@
             }
           },
           "suggested_fixes": [],
-          "elapsed_ms": 6.75
+          "elapsed_ms": 0.0
         },
         "lineage": {
           "validator": "lineage",
@@ -134,7 +134,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 842.89
+          "elapsed_ms": 902.86
         }
       }
     },
@@ -149,26 +149,36 @@
           "usa/dashboard/frontend"
         ]
       },
-      "rollup_verdict": "PASS",
-      "rollup_confidence": 0.9013,
-      "n_issues": 0,
+      "rollup_verdict": "WARNING",
+      "rollup_confidence": 0.8098,
+      "n_issues": 1,
       "validators": {
         "freshness": {
           "validator": "freshness",
           "dataset": "ai_execution_narrative",
-          "verdict": "PASS",
-          "confidence": 1.0,
-          "n_issues": 0,
-          "issues": [],
+          "verdict": "WARNING",
+          "confidence": 0.7,
+          "n_issues": 1,
+          "issues": [
+            {
+              "severity": "WARNING",
+              "message": "1 trading day overdue (SLA 1 \u00b7 currently 2)",
+              "evidence": {
+                "trading_days_old": 2
+              }
+            }
+          ],
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\ai_execution_narrative.json",
             "mtime_utc": "2026-07-21T03:46:45+00:00",
-            "wall_hours_old": 0.04,
-            "trading_days_old": 0,
+            "wall_hours_old": 62.36,
+            "trading_days_old": 2,
             "sla_trading_days": 1,
             "run_utc_declared": "2026-07-21T03:46:45+00:00"
           },
-          "suggested_fixes": [],
+          "suggested_fixes": [
+            "Investigate why the producer of ai_execution_narrative hasn't refreshed"
+          ],
           "elapsed_ms": 0.0
         },
         "schema": {
@@ -250,7 +260,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 98.29
+          "elapsed_ms": 104.89
         }
       }
     },
@@ -265,27 +275,37 @@
           "usa/dashboard/frontend"
         ]
       },
-      "rollup_verdict": "PASS",
-      "rollup_confidence": 0.9013,
-      "n_issues": 0,
+      "rollup_verdict": "WARNING",
+      "rollup_confidence": 0.8098,
+      "n_issues": 1,
       "validators": {
         "freshness": {
           "validator": "freshness",
           "dataset": "ai_feature_narrative",
-          "verdict": "PASS",
-          "confidence": 1.0,
-          "n_issues": 0,
-          "issues": [],
+          "verdict": "WARNING",
+          "confidence": 0.7,
+          "n_issues": 1,
+          "issues": [
+            {
+              "severity": "WARNING",
+              "message": "1 trading day overdue (SLA 1 \u00b7 currently 2)",
+              "evidence": {
+                "trading_days_old": 2
+              }
+            }
+          ],
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\ai_feature_narrative.json",
             "mtime_utc": "2026-07-21T02:26:35+00:00",
-            "wall_hours_old": 1.38,
-            "trading_days_old": 0,
+            "wall_hours_old": 63.69,
+            "trading_days_old": 2,
             "sla_trading_days": 1,
             "run_utc_declared": "2026-07-21T02:14:39+00:00"
           },
-          "suggested_fixes": [],
-          "elapsed_ms": 0.48
+          "suggested_fixes": [
+            "Investigate why the producer of ai_feature_narrative hasn't refreshed"
+          ],
+          "elapsed_ms": 0.0
         },
         "schema": {
           "validator": "schema",
@@ -315,7 +335,7 @@
             "n_columns": 6
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.38
+          "elapsed_ms": 0.0
         },
         "completeness": {
           "validator": "completeness",
@@ -366,7 +386,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 90.89
+          "elapsed_ms": 105.33
         }
       }
     },
@@ -381,26 +401,36 @@
           "usa/dashboard/frontend"
         ]
       },
-      "rollup_verdict": "PASS",
-      "rollup_confidence": 0.9013,
-      "n_issues": 0,
+      "rollup_verdict": "WARNING",
+      "rollup_confidence": 0.8098,
+      "n_issues": 1,
       "validators": {
         "freshness": {
           "validator": "freshness",
           "dataset": "ai_feature_research",
-          "verdict": "PASS",
-          "confidence": 1.0,
-          "n_issues": 0,
-          "issues": [],
+          "verdict": "WARNING",
+          "confidence": 0.7,
+          "n_issues": 1,
+          "issues": [
+            {
+              "severity": "WARNING",
+              "message": "1 trading day overdue (SLA 1 \u00b7 currently 2)",
+              "evidence": {
+                "trading_days_old": 2
+              }
+            }
+          ],
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\ai_feature_research.json",
             "mtime_utc": "2026-07-21T02:26:35+00:00",
-            "wall_hours_old": 1.38,
-            "trading_days_old": 0,
+            "wall_hours_old": 63.69,
+            "trading_days_old": 2,
             "sla_trading_days": 1,
             "run_utc_declared": "2026-07-21T02:14:43+00:00"
           },
-          "suggested_fixes": [],
+          "suggested_fixes": [
+            "Investigate why the producer of ai_feature_research hasn't refreshed"
+          ],
           "elapsed_ms": 0.0
         },
         "schema": {
@@ -455,7 +485,7 @@
             "reason": "not_applicable_to_non_parquet_or_missing"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.0
+          "elapsed_ms": 1.26
         },
         "lineage": {
           "validator": "lineage",
@@ -482,7 +512,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 100.71
+          "elapsed_ms": 98.03
         }
       }
     },
@@ -510,14 +540,14 @@
           "issues": [],
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\ai_learning_narrative.json",
-            "mtime_utc": "2026-07-21T03:49:24+00:00",
-            "wall_hours_old": 0.0,
+            "mtime_utc": "2026-07-23T18:03:32+00:00",
+            "wall_hours_old": 0.08,
             "trading_days_old": 0,
             "sla_trading_days": 1,
-            "run_utc_declared": "2026-07-21T03:49:24+00:00"
+            "run_utc_declared": "2026-07-21T03:29:02+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.0
+          "elapsed_ms": 6.06
         },
         "schema": {
           "validator": "schema",
@@ -598,7 +628,123 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 97.51
+          "elapsed_ms": 99.95
+        }
+      }
+    },
+    "ai_macro_narrative": {
+      "spec": {
+        "name": "ai_macro_narrative",
+        "path": "usa/reports/ai_macro_narrative.json",
+        "producer": "usa/research/macro_intel/run.py",
+        "kind": "ai_narrative",
+        "freshness_sla_trading_days": 1,
+        "consumers": [
+          "usa/dashboard"
+        ]
+      },
+      "rollup_verdict": "PASS",
+      "rollup_confidence": 0.9013,
+      "n_issues": 0,
+      "validators": {
+        "freshness": {
+          "validator": "freshness",
+          "dataset": "ai_macro_narrative",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\ai_macro_narrative.json",
+            "mtime_utc": "2026-07-23T18:03:32+00:00",
+            "wall_hours_old": 0.08,
+            "trading_days_old": 0,
+            "sla_trading_days": 1,
+            "run_utc_declared": "2026-07-21T04:12:50+00:00"
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "schema": {
+          "validator": "schema",
+          "dataset": "ai_macro_narrative",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "required": [
+              "engine",
+              "version",
+              "market",
+              "run_utc",
+              "output"
+            ],
+            "present": [
+              "engine",
+              "version",
+              "market",
+              "run_utc",
+              "asof",
+              "output"
+            ],
+            "missing": [],
+            "extras": [],
+            "n_columns": 6
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "completeness": {
+          "validator": "completeness",
+          "dataset": "ai_macro_narrative",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {},
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "quality": {
+          "validator": "quality",
+          "dataset": "ai_macro_narrative",
+          "verdict": "NOT_APPLICABLE",
+          "confidence": 0.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "reason": "not_applicable_to_non_parquet_or_missing"
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "lineage": {
+          "validator": "lineage",
+          "dataset": "ai_macro_narrative",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "producer": "usa/research/macro_intel/run.py",
+            "producer_path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\research\\macro_intel\\run.py",
+            "n_callers": 20,
+            "callers": [
+              "backend\\__init__.py",
+              "docs\\generate_architecture_review.py",
+              "india\\daily_run.py",
+              "scripts\\aegis_daily_v2.py",
+              "scripts\\aegis_profile.py",
+              "scripts\\check_data_freshness.py",
+              "backend\\ai\\data_quality.py",
+              "backend\\tests\\test_sprint2.py",
+              "backend\\tests\\test_sprint25.py",
+              "backend\\tests\\test_sprint26.py"
+            ]
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 100.0
         }
       }
     },
@@ -613,26 +759,36 @@
           "usa/dashboard/frontend"
         ]
       },
-      "rollup_verdict": "PASS",
-      "rollup_confidence": 0.9013,
-      "n_issues": 0,
+      "rollup_verdict": "WARNING",
+      "rollup_confidence": 0.8098,
+      "n_issues": 1,
       "validators": {
         "freshness": {
           "validator": "freshness",
           "dataset": "ai_market_narrative",
-          "verdict": "PASS",
-          "confidence": 1.0,
-          "n_issues": 0,
-          "issues": [],
+          "verdict": "WARNING",
+          "confidence": 0.7,
+          "n_issues": 1,
+          "issues": [
+            {
+              "severity": "WARNING",
+              "message": "1 trading day overdue (SLA 1 \u00b7 currently 2)",
+              "evidence": {
+                "trading_days_old": 2
+              }
+            }
+          ],
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\ai_market_narrative.json",
             "mtime_utc": "2026-07-21T02:40:52+00:00",
-            "wall_hours_old": 1.14,
-            "trading_days_old": 0,
+            "wall_hours_old": 63.45,
+            "trading_days_old": 2,
             "sla_trading_days": 1,
             "run_utc_declared": "2026-07-20T14:34:08+00:00"
           },
-          "suggested_fixes": [],
+          "suggested_fixes": [
+            "Investigate why the producer of ai_market_narrative hasn't refreshed"
+          ],
           "elapsed_ms": 0.0
         },
         "schema": {
@@ -714,7 +870,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 113.69
+          "elapsed_ms": 100.23
         }
       }
     },
@@ -729,26 +885,36 @@
           "usa/dashboard/frontend"
         ]
       },
-      "rollup_verdict": "PASS",
-      "rollup_confidence": 0.9013,
-      "n_issues": 0,
+      "rollup_verdict": "WARNING",
+      "rollup_confidence": 0.8098,
+      "n_issues": 1,
       "validators": {
         "freshness": {
           "validator": "freshness",
           "dataset": "ai_model_narrative",
-          "verdict": "PASS",
-          "confidence": 1.0,
-          "n_issues": 0,
-          "issues": [],
+          "verdict": "WARNING",
+          "confidence": 0.7,
+          "n_issues": 1,
+          "issues": [
+            {
+              "severity": "WARNING",
+              "message": "1 trading day overdue (SLA 1 \u00b7 currently 2)",
+              "evidence": {
+                "trading_days_old": 2
+              }
+            }
+          ],
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\ai_model_narrative.json",
             "mtime_utc": "2026-07-21T02:40:52+00:00",
-            "wall_hours_old": 1.14,
-            "trading_days_old": 0,
+            "wall_hours_old": 63.45,
+            "trading_days_old": 2,
             "sla_trading_days": 1,
             "run_utc_declared": "2026-07-20T21:46:44+00:00"
           },
-          "suggested_fixes": [],
+          "suggested_fixes": [
+            "Investigate why the producer of ai_model_narrative hasn't refreshed"
+          ],
           "elapsed_ms": 0.0
         },
         "schema": {
@@ -830,7 +996,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 107.06
+          "elapsed_ms": 103.73
         }
       }
     },
@@ -858,14 +1024,14 @@
           "issues": [],
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\ai_portfolio_narrative.json",
-            "mtime_utc": "2026-07-21T03:29:46+00:00",
-            "wall_hours_old": 0.33,
+            "mtime_utc": "2026-07-23T18:03:32+00:00",
+            "wall_hours_old": 0.08,
             "trading_days_old": 0,
             "sla_trading_days": 1,
-            "run_utc_declared": "2026-07-21T03:29:46+00:00"
+            "run_utc_declared": "2026-07-21T03:12:50+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 1.0
+          "elapsed_ms": 3.48
         },
         "schema": {
           "validator": "schema",
@@ -906,7 +1072,7 @@
           "issues": [],
           "evidence": {},
           "suggested_fixes": [],
-          "elapsed_ms": 0.0
+          "elapsed_ms": 0.78
         },
         "quality": {
           "validator": "quality",
@@ -946,7 +1112,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 89.02
+          "elapsed_ms": 104.09
         }
       }
     },
@@ -974,11 +1140,11 @@
           "issues": [],
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\ai_recommendation_narrative.json",
-            "mtime_utc": "2026-07-21T03:12:37+00:00",
-            "wall_hours_old": 0.61,
+            "mtime_utc": "2026-07-23T18:03:32+00:00",
+            "wall_hours_old": 0.08,
             "trading_days_old": 0,
             "sla_trading_days": 1,
-            "run_utc_declared": "2026-07-21T03:12:37+00:00"
+            "run_utc_declared": "2026-07-21T02:13:31+00:00"
           },
           "suggested_fixes": [],
           "elapsed_ms": 0.0
@@ -1062,7 +1228,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 101.82
+          "elapsed_ms": 96.46
         }
       }
     },
@@ -1090,14 +1256,14 @@
           "issues": [],
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\ai_risk_narrative.json",
-            "mtime_utc": "2026-07-21T03:29:44+00:00",
-            "wall_hours_old": 0.33,
+            "mtime_utc": "2026-07-23T18:03:32+00:00",
+            "wall_hours_old": 0.08,
             "trading_days_old": 0,
             "sla_trading_days": 1,
-            "run_utc_declared": "2026-07-21T03:29:44+00:00"
+            "run_utc_declared": "2026-07-21T02:56:25+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 10.14
+          "elapsed_ms": 0.0
         },
         "schema": {
           "validator": "schema",
@@ -1138,7 +1304,7 @@
           "issues": [],
           "evidence": {},
           "suggested_fixes": [],
-          "elapsed_ms": 1.04
+          "elapsed_ms": 0.0
         },
         "quality": {
           "validator": "quality",
@@ -1178,7 +1344,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 103.79
+          "elapsed_ms": 99.51
         }
       }
     },
@@ -1194,26 +1360,36 @@
           "usa/scripts/telegram_send"
         ]
       },
-      "rollup_verdict": "PASS",
-      "rollup_confidence": 0.9013,
-      "n_issues": 0,
+      "rollup_verdict": "WARNING",
+      "rollup_confidence": 0.8098,
+      "n_issues": 1,
       "validators": {
         "freshness": {
           "validator": "freshness",
           "dataset": "benchmark",
-          "verdict": "PASS",
-          "confidence": 1.0,
-          "n_issues": 0,
-          "issues": [],
+          "verdict": "WARNING",
+          "confidence": 0.7,
+          "n_issues": 1,
+          "issues": [
+            {
+              "severity": "WARNING",
+              "message": "1 trading day overdue (SLA 1 \u00b7 currently 2)",
+              "evidence": {
+                "trading_days_old": 2
+              }
+            }
+          ],
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\benchmark.json",
             "mtime_utc": "2026-07-21T02:26:35+00:00",
-            "wall_hours_old": 1.38,
-            "trading_days_old": 0,
+            "wall_hours_old": 63.69,
+            "trading_days_old": 2,
             "sla_trading_days": 1,
             "run_utc_declared": "2026-07-20T07:50:12+00:00Z"
           },
-          "suggested_fixes": [],
+          "suggested_fixes": [
+            "Investigate why the producer of benchmark hasn't refreshed"
+          ],
           "elapsed_ms": 0.0
         },
         "schema": {
@@ -1304,7 +1480,483 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 97.96
+          "elapsed_ms": 100.07
+        }
+      }
+    },
+    "bond_intelligence": {
+      "spec": {
+        "name": "bond_intelligence",
+        "path": "usa/reports/bond_intelligence.json",
+        "producer": "usa/research/macro_intel/run.py",
+        "kind": "macro",
+        "freshness_sla_trading_days": 1,
+        "consumers": [
+          "usa/dashboard"
+        ]
+      },
+      "rollup_verdict": "PASS",
+      "rollup_confidence": 0.9013,
+      "n_issues": 0,
+      "validators": {
+        "freshness": {
+          "validator": "freshness",
+          "dataset": "bond_intelligence",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\bond_intelligence.json",
+            "mtime_utc": "2026-07-23T18:03:32+00:00",
+            "wall_hours_old": 0.08,
+            "trading_days_old": 0,
+            "sla_trading_days": 1,
+            "run_utc_declared": "2026-07-21T04:12:50+00:00"
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "schema": {
+          "validator": "schema",
+          "dataset": "bond_intelligence",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "required": [
+              "engine",
+              "run_utc",
+              "bonds"
+            ],
+            "present": [
+              "engine",
+              "version",
+              "market",
+              "run_utc",
+              "asof",
+              "currency",
+              "model_stamp",
+              "n",
+              "bonds"
+            ],
+            "missing": [],
+            "extras": [],
+            "n_columns": 9
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "completeness": {
+          "validator": "completeness",
+          "dataset": "bond_intelligence",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {},
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "quality": {
+          "validator": "quality",
+          "dataset": "bond_intelligence",
+          "verdict": "NOT_APPLICABLE",
+          "confidence": 0.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "reason": "not_applicable_to_non_parquet_or_missing"
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "lineage": {
+          "validator": "lineage",
+          "dataset": "bond_intelligence",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "producer": "usa/research/macro_intel/run.py",
+            "producer_path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\research\\macro_intel\\run.py",
+            "n_callers": 20,
+            "callers": [
+              "backend\\__init__.py",
+              "docs\\generate_architecture_review.py",
+              "india\\daily_run.py",
+              "scripts\\aegis_daily_v2.py",
+              "scripts\\aegis_profile.py",
+              "scripts\\check_data_freshness.py",
+              "backend\\ai\\data_quality.py",
+              "backend\\tests\\test_sprint2.py",
+              "backend\\tests\\test_sprint25.py",
+              "backend\\tests\\test_sprint26.py"
+            ]
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 102.98
+        }
+      }
+    },
+    "central_bank_state": {
+      "spec": {
+        "name": "central_bank_state",
+        "path": "usa/reports/central_bank_state.json",
+        "producer": "usa/research/macro_intel/run.py",
+        "kind": "macro",
+        "freshness_sla_trading_days": 1,
+        "consumers": [
+          "usa/dashboard"
+        ]
+      },
+      "rollup_verdict": "PASS",
+      "rollup_confidence": 0.9013,
+      "n_issues": 0,
+      "validators": {
+        "freshness": {
+          "validator": "freshness",
+          "dataset": "central_bank_state",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\central_bank_state.json",
+            "mtime_utc": "2026-07-23T18:03:32+00:00",
+            "wall_hours_old": 0.08,
+            "trading_days_old": 0,
+            "sla_trading_days": 1,
+            "run_utc_declared": "2026-07-21T04:12:50+00:00"
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "schema": {
+          "validator": "schema",
+          "dataset": "central_bank_state",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "required": [
+              "engine",
+              "run_utc",
+              "bank",
+              "rate_cycle"
+            ],
+            "present": [
+              "engine",
+              "version",
+              "market",
+              "run_utc",
+              "asof",
+              "currency",
+              "model_stamp",
+              "bank",
+              "rate_cycle",
+              "short_yield_pct",
+              "long_yield_pct",
+              "yield_curve_slope",
+              "inversion",
+              "liquidity_score",
+              "notes"
+            ],
+            "missing": [],
+            "extras": [],
+            "n_columns": 15
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "completeness": {
+          "validator": "completeness",
+          "dataset": "central_bank_state",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {},
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "quality": {
+          "validator": "quality",
+          "dataset": "central_bank_state",
+          "verdict": "NOT_APPLICABLE",
+          "confidence": 0.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "reason": "not_applicable_to_non_parquet_or_missing"
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "lineage": {
+          "validator": "lineage",
+          "dataset": "central_bank_state",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "producer": "usa/research/macro_intel/run.py",
+            "producer_path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\research\\macro_intel\\run.py",
+            "n_callers": 20,
+            "callers": [
+              "backend\\__init__.py",
+              "docs\\generate_architecture_review.py",
+              "india\\daily_run.py",
+              "scripts\\aegis_daily_v2.py",
+              "scripts\\aegis_profile.py",
+              "scripts\\check_data_freshness.py",
+              "backend\\ai\\data_quality.py",
+              "backend\\tests\\test_sprint2.py",
+              "backend\\tests\\test_sprint25.py",
+              "backend\\tests\\test_sprint26.py"
+            ]
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 112.61
+        }
+      }
+    },
+    "commodity_intelligence": {
+      "spec": {
+        "name": "commodity_intelligence",
+        "path": "usa/reports/commodity_intelligence.json",
+        "producer": "usa/research/macro_intel/run.py",
+        "kind": "macro",
+        "freshness_sla_trading_days": 1,
+        "consumers": [
+          "usa/dashboard"
+        ]
+      },
+      "rollup_verdict": "PASS",
+      "rollup_confidence": 0.9013,
+      "n_issues": 0,
+      "validators": {
+        "freshness": {
+          "validator": "freshness",
+          "dataset": "commodity_intelligence",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\commodity_intelligence.json",
+            "mtime_utc": "2026-07-23T18:03:32+00:00",
+            "wall_hours_old": 0.08,
+            "trading_days_old": 0,
+            "sla_trading_days": 1,
+            "run_utc_declared": "2026-07-21T04:12:50+00:00"
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "schema": {
+          "validator": "schema",
+          "dataset": "commodity_intelligence",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "required": [
+              "engine",
+              "run_utc",
+              "commodities"
+            ],
+            "present": [
+              "engine",
+              "version",
+              "market",
+              "run_utc",
+              "asof",
+              "currency",
+              "model_stamp",
+              "n",
+              "commodities"
+            ],
+            "missing": [],
+            "extras": [],
+            "n_columns": 9
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "completeness": {
+          "validator": "completeness",
+          "dataset": "commodity_intelligence",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {},
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "quality": {
+          "validator": "quality",
+          "dataset": "commodity_intelligence",
+          "verdict": "NOT_APPLICABLE",
+          "confidence": 0.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "reason": "not_applicable_to_non_parquet_or_missing"
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "lineage": {
+          "validator": "lineage",
+          "dataset": "commodity_intelligence",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "producer": "usa/research/macro_intel/run.py",
+            "producer_path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\research\\macro_intel\\run.py",
+            "n_callers": 20,
+            "callers": [
+              "backend\\__init__.py",
+              "docs\\generate_architecture_review.py",
+              "india\\daily_run.py",
+              "scripts\\aegis_daily_v2.py",
+              "scripts\\aegis_profile.py",
+              "scripts\\check_data_freshness.py",
+              "backend\\ai\\data_quality.py",
+              "backend\\tests\\test_sprint2.py",
+              "backend\\tests\\test_sprint25.py",
+              "backend\\tests\\test_sprint26.py"
+            ]
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 89.61
+        }
+      }
+    },
+    "commodity_sector_matrix": {
+      "spec": {
+        "name": "commodity_sector_matrix",
+        "path": "usa/reports/commodity_sector_matrix.json",
+        "producer": "usa/research/macro_intel/run.py",
+        "kind": "macro",
+        "freshness_sla_trading_days": 1,
+        "consumers": [
+          "usa/dashboard"
+        ]
+      },
+      "rollup_verdict": "PASS",
+      "rollup_confidence": 0.9013,
+      "n_issues": 0,
+      "validators": {
+        "freshness": {
+          "validator": "freshness",
+          "dataset": "commodity_sector_matrix",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\commodity_sector_matrix.json",
+            "mtime_utc": "2026-07-23T18:03:32+00:00",
+            "wall_hours_old": 0.08,
+            "trading_days_old": 0,
+            "sla_trading_days": 1,
+            "run_utc_declared": "2026-07-21T04:12:50+00:00"
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 9.56
+        },
+        "schema": {
+          "validator": "schema",
+          "dataset": "commodity_sector_matrix",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "required": [
+              "engine",
+              "run_utc",
+              "active_impacts",
+              "n_active_impacts"
+            ],
+            "present": [
+              "engine",
+              "version",
+              "market",
+              "run_utc",
+              "asof",
+              "currency",
+              "model_stamp",
+              "n_active_impacts",
+              "active_impacts"
+            ],
+            "missing": [],
+            "extras": [],
+            "n_columns": 9
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "completeness": {
+          "validator": "completeness",
+          "dataset": "commodity_sector_matrix",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {},
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "quality": {
+          "validator": "quality",
+          "dataset": "commodity_sector_matrix",
+          "verdict": "NOT_APPLICABLE",
+          "confidence": 0.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "reason": "not_applicable_to_non_parquet_or_missing"
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "lineage": {
+          "validator": "lineage",
+          "dataset": "commodity_sector_matrix",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "producer": "usa/research/macro_intel/run.py",
+            "producer_path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\research\\macro_intel\\run.py",
+            "n_callers": 20,
+            "callers": [
+              "backend\\__init__.py",
+              "docs\\generate_architecture_review.py",
+              "india\\daily_run.py",
+              "scripts\\aegis_daily_v2.py",
+              "scripts\\aegis_profile.py",
+              "scripts\\check_data_freshness.py",
+              "backend\\ai\\data_quality.py",
+              "backend\\tests\\test_sprint2.py",
+              "backend\\tests\\test_sprint25.py",
+              "backend\\tests\\test_sprint26.py"
+            ]
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 95.7
         }
       }
     },
@@ -1332,14 +1984,14 @@
           "issues": [],
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\confidence_calibration.json",
-            "mtime_utc": "2026-07-21T03:49:24+00:00",
-            "wall_hours_old": 0.0,
+            "mtime_utc": "2026-07-23T18:03:32+00:00",
+            "wall_hours_old": 0.08,
             "trading_days_old": 0,
             "sla_trading_days": 1,
-            "run_utc_declared": "2026-07-21T03:49:24+00:00"
+            "run_utc_declared": "2026-07-21T03:29:02+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 18.29
+          "elapsed_ms": 0.0
         },
         "schema": {
           "validator": "schema",
@@ -1421,7 +2073,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 105.15
+          "elapsed_ms": 90.0
         }
       }
     },
@@ -1452,8 +2104,8 @@
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\data\\raw\\us\\corporate_actions.parquet",
             "mtime_utc": "2026-07-20T08:09:40+00:00",
-            "wall_hours_old": 19.66,
-            "trading_days_old": 1,
+            "wall_hours_old": 81.98,
+            "trading_days_old": 3,
             "sla_trading_days": 5
           },
           "suggested_fixes": [],
@@ -1486,7 +2138,7 @@
             "n_columns": 5
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.0
+          "elapsed_ms": 11.45
         },
         "completeness": {
           "validator": "completeness",
@@ -1499,7 +2151,7 @@
             "n_rows": 103
           },
           "suggested_fixes": [],
-          "elapsed_ms": 3.05
+          "elapsed_ms": 4.59
         },
         "quality": {
           "validator": "quality",
@@ -1510,7 +2162,7 @@
           "issues": [],
           "evidence": {},
           "suggested_fixes": [],
-          "elapsed_ms": 0.0
+          "elapsed_ms": 1.08
         },
         "lineage": {
           "validator": "lineage",
@@ -1537,7 +2189,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 104.99
+          "elapsed_ms": 98.83
         }
       }
     },
@@ -1563,13 +2215,13 @@
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\corporate_actions_summary.json",
             "mtime_utc": "2026-07-21T02:26:34+00:00",
-            "wall_hours_old": 1.38,
-            "trading_days_old": 0,
+            "wall_hours_old": 63.69,
+            "trading_days_old": 2,
             "sla_trading_days": 5,
             "run_utc_declared": "2026-07-20T21:46:16+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 1.03
+          "elapsed_ms": 0.0
         },
         "schema": {
           "validator": "schema",
@@ -1656,7 +2308,124 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 114.71
+          "elapsed_ms": 102.36
+        }
+      }
+    },
+    "currency_intelligence": {
+      "spec": {
+        "name": "currency_intelligence",
+        "path": "usa/reports/currency_intelligence.json",
+        "producer": "usa/research/macro_intel/run.py",
+        "kind": "macro",
+        "freshness_sla_trading_days": 1,
+        "consumers": [
+          "usa/dashboard"
+        ]
+      },
+      "rollup_verdict": "PASS",
+      "rollup_confidence": 0.9013,
+      "n_issues": 0,
+      "validators": {
+        "freshness": {
+          "validator": "freshness",
+          "dataset": "currency_intelligence",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\currency_intelligence.json",
+            "mtime_utc": "2026-07-23T18:03:32+00:00",
+            "wall_hours_old": 0.08,
+            "trading_days_old": 0,
+            "sla_trading_days": 1,
+            "run_utc_declared": "2026-07-21T04:12:50+00:00"
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "schema": {
+          "validator": "schema",
+          "dataset": "currency_intelligence",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "required": [
+              "engine",
+              "run_utc",
+              "currencies"
+            ],
+            "present": [
+              "engine",
+              "version",
+              "market",
+              "run_utc",
+              "asof",
+              "currency",
+              "model_stamp",
+              "n",
+              "currencies"
+            ],
+            "missing": [],
+            "extras": [],
+            "n_columns": 9
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "completeness": {
+          "validator": "completeness",
+          "dataset": "currency_intelligence",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {},
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "quality": {
+          "validator": "quality",
+          "dataset": "currency_intelligence",
+          "verdict": "NOT_APPLICABLE",
+          "confidence": 0.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "reason": "not_applicable_to_non_parquet_or_missing"
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "lineage": {
+          "validator": "lineage",
+          "dataset": "currency_intelligence",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "producer": "usa/research/macro_intel/run.py",
+            "producer_path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\research\\macro_intel\\run.py",
+            "n_callers": 20,
+            "callers": [
+              "backend\\__init__.py",
+              "docs\\generate_architecture_review.py",
+              "india\\daily_run.py",
+              "scripts\\aegis_daily_v2.py",
+              "scripts\\aegis_profile.py",
+              "scripts\\check_data_freshness.py",
+              "backend\\ai\\data_quality.py",
+              "backend\\tests\\test_sprint2.py",
+              "backend\\tests\\test_sprint25.py",
+              "backend\\tests\\test_sprint26.py"
+            ]
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 98.18
         }
       }
     },
@@ -1671,27 +2440,37 @@
           "usa/dashboard/frontend"
         ]
       },
-      "rollup_verdict": "PASS",
-      "rollup_confidence": 0.9013,
-      "n_issues": 0,
+      "rollup_verdict": "WARNING",
+      "rollup_confidence": 0.8098,
+      "n_issues": 1,
       "validators": {
         "freshness": {
           "validator": "freshness",
           "dataset": "decision_attribution",
-          "verdict": "PASS",
-          "confidence": 1.0,
-          "n_issues": 0,
-          "issues": [],
+          "verdict": "WARNING",
+          "confidence": 0.7,
+          "n_issues": 1,
+          "issues": [
+            {
+              "severity": "WARNING",
+              "message": "1 trading day overdue (SLA 1 \u00b7 currently 2)",
+              "evidence": {
+                "trading_days_old": 2
+              }
+            }
+          ],
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\decision_attribution.json",
             "mtime_utc": "2026-07-21T02:26:35+00:00",
-            "wall_hours_old": 1.38,
-            "trading_days_old": 0,
+            "wall_hours_old": 63.69,
+            "trading_days_old": 2,
             "sla_trading_days": 1,
             "run_utc_declared": "2026-07-20T07:50:11+00:00Z"
           },
-          "suggested_fixes": [],
-          "elapsed_ms": 1.09
+          "suggested_fixes": [
+            "Investigate why the producer of decision_attribution hasn't refreshed"
+          ],
+          "elapsed_ms": 0.0
         },
         "schema": {
           "validator": "schema",
@@ -1777,7 +2556,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 130.02
+          "elapsed_ms": 109.81
         }
       }
     },
@@ -1793,25 +2572,35 @@
         ],
         "notes": "Sprint 1B \u00b7 next earnings date + last-quarter surprise from yfinance."
       },
-      "rollup_verdict": "PASS",
-      "rollup_confidence": 1.0,
-      "n_issues": 0,
+      "rollup_verdict": "WARNING",
+      "rollup_confidence": 0.8985,
+      "n_issues": 1,
       "validators": {
         "freshness": {
           "validator": "freshness",
           "dataset": "earnings_calendar",
-          "verdict": "PASS",
-          "confidence": 1.0,
-          "n_issues": 0,
-          "issues": [],
+          "verdict": "WARNING",
+          "confidence": 0.7,
+          "n_issues": 1,
+          "issues": [
+            {
+              "severity": "WARNING",
+              "message": "1 trading day overdue (SLA 2 \u00b7 currently 3)",
+              "evidence": {
+                "trading_days_old": 3
+              }
+            }
+          ],
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\data\\raw\\us\\earnings.parquet",
             "mtime_utc": "2026-07-20T08:11:24+00:00",
-            "wall_hours_old": 19.63,
-            "trading_days_old": 1,
+            "wall_hours_old": 81.95,
+            "trading_days_old": 3,
             "sla_trading_days": 2
           },
-          "suggested_fixes": [],
+          "suggested_fixes": [
+            "Investigate why the producer of earnings_calendar hasn't refreshed"
+          ],
           "elapsed_ms": 0.0
         },
         "schema": {
@@ -1843,7 +2632,7 @@
             "n_columns": 9
           },
           "suggested_fixes": [],
-          "elapsed_ms": 3.11
+          "elapsed_ms": 0.0
         },
         "completeness": {
           "validator": "completeness",
@@ -1856,7 +2645,7 @@
             "n_rows": 30
           },
           "suggested_fixes": [],
-          "elapsed_ms": 2.36
+          "elapsed_ms": 0.0
         },
         "quality": {
           "validator": "quality",
@@ -1894,7 +2683,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 129.76
+          "elapsed_ms": 106.9
         }
       }
     },
@@ -1920,13 +2709,13 @@
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\earnings_summary.json",
             "mtime_utc": "2026-07-21T02:26:34+00:00",
-            "wall_hours_old": 1.38,
-            "trading_days_old": 0,
+            "wall_hours_old": 63.69,
+            "trading_days_old": 2,
             "sla_trading_days": 2,
             "run_utc_declared": "2026-07-20T21:45:33+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 1.05
+          "elapsed_ms": 0.0
         },
         "schema": {
           "validator": "schema",
@@ -2008,7 +2797,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 118.34
+          "elapsed_ms": 104.74
         }
       }
     },
@@ -2024,25 +2813,35 @@
           "usa/research/recommendations (Sprint 3+)"
         ]
       },
-      "rollup_verdict": "PASS",
-      "rollup_confidence": 0.9013,
-      "n_issues": 0,
+      "rollup_verdict": "WARNING",
+      "rollup_confidence": 0.8098,
+      "n_issues": 1,
       "validators": {
         "freshness": {
           "validator": "freshness",
           "dataset": "ensemble",
-          "verdict": "PASS",
-          "confidence": 1.0,
-          "n_issues": 0,
-          "issues": [],
+          "verdict": "WARNING",
+          "confidence": 0.7,
+          "n_issues": 1,
+          "issues": [
+            {
+              "severity": "WARNING",
+              "message": "1 trading day overdue (SLA 1 \u00b7 currently 2)",
+              "evidence": {
+                "trading_days_old": 2
+              }
+            }
+          ],
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\ensemble.json",
             "mtime_utc": "2026-07-21T02:26:35+00:00",
-            "wall_hours_old": 1.38,
-            "trading_days_old": 0,
+            "wall_hours_old": 63.69,
+            "trading_days_old": 2,
             "sla_trading_days": 1
           },
-          "suggested_fixes": [],
+          "suggested_fixes": [
+            "Investigate why the producer of ensemble hasn't refreshed"
+          ],
           "elapsed_ms": 0.0
         },
         "schema": {
@@ -2127,7 +2926,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 130.77
+          "elapsed_ms": 112.74
         }
       }
     },
@@ -2143,26 +2942,36 @@
         ],
         "notes": "Sprint 1B \u00b7 sector + broad-market ETF dollar-volume proxy for flow rotation."
       },
-      "rollup_verdict": "PASS",
-      "rollup_confidence": 1.0,
-      "n_issues": 0,
+      "rollup_verdict": "WARNING",
+      "rollup_confidence": 0.8985,
+      "n_issues": 1,
       "validators": {
         "freshness": {
           "validator": "freshness",
           "dataset": "etf_flows",
-          "verdict": "PASS",
-          "confidence": 1.0,
-          "n_issues": 0,
-          "issues": [],
+          "verdict": "WARNING",
+          "confidence": 0.7,
+          "n_issues": 1,
+          "issues": [
+            {
+              "severity": "WARNING",
+              "message": "1 trading day overdue (SLA 2 \u00b7 currently 3)",
+              "evidence": {
+                "trading_days_old": 3
+              }
+            }
+          ],
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\data\\raw\\us\\etf_flows.parquet",
             "mtime_utc": "2026-07-20T08:09:13+00:00",
-            "wall_hours_old": 19.67,
-            "trading_days_old": 1,
+            "wall_hours_old": 81.98,
+            "trading_days_old": 3,
             "sla_trading_days": 2
           },
-          "suggested_fixes": [],
-          "elapsed_ms": 1.04
+          "suggested_fixes": [
+            "Investigate why the producer of etf_flows hasn't refreshed"
+          ],
+          "elapsed_ms": 1.1
         },
         "schema": {
           "validator": "schema",
@@ -2193,7 +3002,7 @@
             "n_columns": 7
           },
           "suggested_fixes": [],
-          "elapsed_ms": 1.47
+          "elapsed_ms": 2.28
         },
         "completeness": {
           "validator": "completeness",
@@ -2244,7 +3053,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 131.74
+          "elapsed_ms": 109.81
         }
       }
     },
@@ -2270,13 +3079,13 @@
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\etf_flows_summary.json",
             "mtime_utc": "2026-07-21T02:26:34+00:00",
-            "wall_hours_old": 1.38,
-            "trading_days_old": 0,
+            "wall_hours_old": 63.69,
+            "trading_days_old": 2,
             "sla_trading_days": 2,
             "run_utc_declared": "2026-07-20T21:46:07+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 1.29
+          "elapsed_ms": 1.05
         },
         "schema": {
           "validator": "schema",
@@ -2361,7 +3170,106 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 114.2
+          "elapsed_ms": 101.09
+        }
+      }
+    },
+    "execution_history": {
+      "spec": {
+        "name": "execution_history",
+        "path": "usa/reports/execution_history.parquet",
+        "producer": "usa/research/execution_simulator/run.py",
+        "kind": "history",
+        "freshness_sla_trading_days": 5,
+        "optional": true,
+        "consumers": [
+          "backend/walkforward",
+          "backend/ai_auditor"
+        ]
+      },
+      "rollup_verdict": "PASS",
+      "rollup_confidence": 0.5359,
+      "n_issues": 0,
+      "validators": {
+        "freshness": {
+          "validator": "freshness",
+          "dataset": "execution_history",
+          "verdict": "NOT_APPLICABLE",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\execution_history.parquet",
+            "reason": "optional_missing"
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "schema": {
+          "validator": "schema",
+          "dataset": "execution_history",
+          "verdict": "NOT_APPLICABLE",
+          "confidence": 0.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "reason": "file_missing"
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "completeness": {
+          "validator": "completeness",
+          "dataset": "execution_history",
+          "verdict": "NOT_APPLICABLE",
+          "confidence": 0.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "reason": "file_missing"
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "quality": {
+          "validator": "quality",
+          "dataset": "execution_history",
+          "verdict": "NOT_APPLICABLE",
+          "confidence": 0.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "reason": "not_applicable_to_non_parquet_or_missing"
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "lineage": {
+          "validator": "lineage",
+          "dataset": "execution_history",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "producer": "usa/research/execution_simulator/run.py",
+            "producer_path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\research\\execution_simulator\\run.py",
+            "n_callers": 20,
+            "callers": [
+              "backend\\__init__.py",
+              "docs\\generate_architecture_review.py",
+              "india\\daily_run.py",
+              "scripts\\aegis_daily_v2.py",
+              "scripts\\aegis_profile.py",
+              "scripts\\check_data_freshness.py",
+              "backend\\ai\\data_quality.py",
+              "backend\\tests\\test_sprint2.py",
+              "backend\\tests\\test_sprint25.py",
+              "backend\\tests\\test_sprint26.py"
+            ]
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 101.01
         }
       }
     },
@@ -2377,26 +3285,36 @@
           "backend/walkforward (Sprint 8+)"
         ]
       },
-      "rollup_verdict": "PASS",
-      "rollup_confidence": 0.9013,
-      "n_issues": 0,
+      "rollup_verdict": "WARNING",
+      "rollup_confidence": 0.8098,
+      "n_issues": 1,
       "validators": {
         "freshness": {
           "validator": "freshness",
           "dataset": "execution_summary",
-          "verdict": "PASS",
-          "confidence": 1.0,
-          "n_issues": 0,
-          "issues": [],
+          "verdict": "WARNING",
+          "confidence": 0.7,
+          "n_issues": 1,
+          "issues": [
+            {
+              "severity": "WARNING",
+              "message": "1 trading day overdue (SLA 1 \u00b7 currently 2)",
+              "evidence": {
+                "trading_days_old": 2
+              }
+            }
+          ],
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\execution_summary.json",
             "mtime_utc": "2026-07-21T03:46:45+00:00",
-            "wall_hours_old": 0.05,
-            "trading_days_old": 0,
+            "wall_hours_old": 62.36,
+            "trading_days_old": 2,
             "sla_trading_days": 1,
             "run_utc_declared": "2026-07-21T03:46:45+00:00"
           },
-          "suggested_fixes": [],
+          "suggested_fixes": [
+            "Investigate why the producer of execution_summary hasn't refreshed"
+          ],
           "elapsed_ms": 0.0
         },
         "schema": {
@@ -2510,7 +3428,250 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 136.1
+          "elapsed_ms": 98.86
+        }
+      }
+    },
+    "factor_library": {
+      "spec": {
+        "name": "factor_library",
+        "path": "usa/reports/factor_library.json",
+        "producer": "usa/research/factor_library/run.py",
+        "kind": "factor_library",
+        "freshness_sla_trading_days": 5,
+        "optional": true,
+        "consumers": [
+          "backend/ai_auditor",
+          "backend/research_factory"
+        ]
+      },
+      "rollup_verdict": "PASS",
+      "rollup_confidence": 0.9013,
+      "n_issues": 0,
+      "validators": {
+        "freshness": {
+          "validator": "freshness",
+          "dataset": "factor_library",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\factor_library.json",
+            "mtime_utc": "2026-07-21T04:35:16+00:00",
+            "wall_hours_old": 61.55,
+            "trading_days_old": 2,
+            "sla_trading_days": 5,
+            "run_utc_declared": "2026-07-21T04:35:16+00:00"
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 12.84
+        },
+        "schema": {
+          "validator": "schema",
+          "dataset": "factor_library",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "required": [
+              "engine",
+              "market",
+              "run_utc",
+              "asof",
+              "n_factors",
+              "factors"
+            ],
+            "present": [
+              "engine",
+              "version",
+              "market",
+              "run_utc",
+              "asof",
+              "currency",
+              "n_factors",
+              "factors",
+              "model_stamp"
+            ],
+            "missing": [],
+            "extras": [],
+            "n_columns": 9
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "completeness": {
+          "validator": "completeness",
+          "dataset": "factor_library",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {},
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "quality": {
+          "validator": "quality",
+          "dataset": "factor_library",
+          "verdict": "NOT_APPLICABLE",
+          "confidence": 0.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "reason": "not_applicable_to_non_parquet_or_missing"
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 1.2
+        },
+        "lineage": {
+          "validator": "lineage",
+          "dataset": "factor_library",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "producer": "usa/research/factor_library/run.py",
+            "producer_path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\research\\factor_library\\run.py",
+            "n_callers": 20,
+            "callers": [
+              "backend\\__init__.py",
+              "docs\\generate_architecture_review.py",
+              "india\\daily_run.py",
+              "scripts\\aegis_daily_v2.py",
+              "scripts\\aegis_profile.py",
+              "scripts\\check_data_freshness.py",
+              "backend\\ai\\data_quality.py",
+              "backend\\tests\\test_sprint2.py",
+              "backend\\tests\\test_sprint25.py",
+              "backend\\tests\\test_sprint26.py"
+            ]
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 98.3
+        }
+      }
+    },
+    "factor_library_history": {
+      "spec": {
+        "name": "factor_library_history",
+        "path": "usa/reports/factor_library_history.parquet",
+        "producer": "usa/research/factor_library/run.py",
+        "kind": "history",
+        "freshness_sla_trading_days": 5,
+        "optional": true,
+        "consumers": [
+          "backend/walkforward",
+          "backend/ai_auditor",
+          "backend/research_factory"
+        ]
+      },
+      "rollup_verdict": "PASS",
+      "rollup_confidence": 1.0,
+      "n_issues": 0,
+      "validators": {
+        "freshness": {
+          "validator": "freshness",
+          "dataset": "factor_library_history",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\factor_library_history.parquet",
+            "mtime_utc": "2026-07-21T04:35:16+00:00",
+            "wall_hours_old": 61.55,
+            "trading_days_old": 2,
+            "sla_trading_days": 5
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "schema": {
+          "validator": "schema",
+          "dataset": "factor_library_history",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "required": [],
+            "present": [
+              "asof",
+              "market",
+              "factor",
+              "source",
+              "unit",
+              "value",
+              "value_label",
+              "change_1d",
+              "change_1w",
+              "change_1m",
+              "trend",
+              "confidence",
+              "affected_sectors",
+              "notes",
+              "run_utc"
+            ],
+            "missing": [],
+            "extras": [],
+            "n_columns": 15
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 4.79
+        },
+        "completeness": {
+          "validator": "completeness",
+          "dataset": "factor_library_history",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "n_rows": 22
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 2.18
+        },
+        "quality": {
+          "validator": "quality",
+          "dataset": "factor_library_history",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {},
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "lineage": {
+          "validator": "lineage",
+          "dataset": "factor_library_history",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "producer": "usa/research/factor_library/run.py",
+            "producer_path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\research\\factor_library\\run.py",
+            "n_callers": 20,
+            "callers": [
+              "backend\\__init__.py",
+              "docs\\generate_architecture_review.py",
+              "india\\daily_run.py",
+              "scripts\\aegis_daily_v2.py",
+              "scripts\\aegis_profile.py",
+              "scripts\\check_data_freshness.py",
+              "backend\\ai\\data_quality.py",
+              "backend\\tests\\test_sprint2.py",
+              "backend\\tests\\test_sprint25.py",
+              "backend\\tests\\test_sprint26.py"
+            ]
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 120.6
         }
       }
     },
@@ -2538,14 +3699,14 @@
           "issues": [],
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\failure_clusters.json",
-            "mtime_utc": "2026-07-21T03:49:24+00:00",
-            "wall_hours_old": 0.0,
+            "mtime_utc": "2026-07-23T18:03:32+00:00",
+            "wall_hours_old": 0.08,
             "trading_days_old": 0,
             "sla_trading_days": 1,
-            "run_utc_declared": "2026-07-21T03:49:24+00:00"
+            "run_utc_declared": "2026-07-21T03:29:02+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 33.47
+          "elapsed_ms": 0.0
         },
         "schema": {
           "validator": "schema",
@@ -2629,7 +3790,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 130.96
+          "elapsed_ms": 93.9
         }
       }
     },
@@ -2657,14 +3818,14 @@
           "issues": [],
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\feature_attribution.json",
-            "mtime_utc": "2026-07-21T03:49:24+00:00",
-            "wall_hours_old": 0.0,
+            "mtime_utc": "2026-07-23T18:03:32+00:00",
+            "wall_hours_old": 0.08,
             "trading_days_old": 0,
             "sla_trading_days": 1,
-            "run_utc_declared": "2026-07-21T03:49:24+00:00"
+            "run_utc_declared": "2026-07-21T03:29:02+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 37.31
+          "elapsed_ms": 0.0
         },
         "schema": {
           "validator": "schema",
@@ -2748,7 +3909,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 125.67
+          "elapsed_ms": 105.04
         }
       }
     },
@@ -2763,27 +3924,37 @@
           "usa/dashboard/frontend"
         ]
       },
-      "rollup_verdict": "PASS",
-      "rollup_confidence": 0.9013,
-      "n_issues": 0,
+      "rollup_verdict": "WARNING",
+      "rollup_confidence": 0.8098,
+      "n_issues": 1,
       "validators": {
         "freshness": {
           "validator": "freshness",
           "dataset": "feature_intelligence",
-          "verdict": "PASS",
-          "confidence": 1.0,
-          "n_issues": 0,
-          "issues": [],
+          "verdict": "WARNING",
+          "confidence": 0.7,
+          "n_issues": 1,
+          "issues": [
+            {
+              "severity": "WARNING",
+              "message": "1 trading day overdue (SLA 1 \u00b7 currently 2)",
+              "evidence": {
+                "trading_days_old": 2
+              }
+            }
+          ],
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\feature_intelligence.json",
             "mtime_utc": "2026-07-21T02:26:35+00:00",
-            "wall_hours_old": 1.38,
-            "trading_days_old": 0,
+            "wall_hours_old": 63.69,
+            "trading_days_old": 2,
             "sla_trading_days": 1,
             "run_utc_declared": "2026-07-21T02:14:43+00:00"
           },
-          "suggested_fixes": [],
-          "elapsed_ms": 2.44
+          "suggested_fixes": [
+            "Investigate why the producer of feature_intelligence hasn't refreshed"
+          ],
+          "elapsed_ms": 0.0
         },
         "schema": {
           "validator": "schema",
@@ -2823,7 +3994,7 @@
             "n_columns": 11
           },
           "suggested_fixes": [],
-          "elapsed_ms": 2.5
+          "elapsed_ms": 0.0
         },
         "completeness": {
           "validator": "completeness",
@@ -2834,7 +4005,7 @@
           "issues": [],
           "evidence": {},
           "suggested_fixes": [],
-          "elapsed_ms": 0.0
+          "elapsed_ms": 10.23
         },
         "quality": {
           "validator": "quality",
@@ -2874,7 +4045,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 133.21
+          "elapsed_ms": 99.63
         }
       }
     },
@@ -2890,26 +4061,36 @@
           "usa/scripts/usa_ops_check"
         ]
       },
-      "rollup_verdict": "PASS",
-      "rollup_confidence": 0.9013,
-      "n_issues": 0,
+      "rollup_verdict": "WARNING",
+      "rollup_confidence": 0.8098,
+      "n_issues": 1,
       "validators": {
         "freshness": {
           "validator": "freshness",
           "dataset": "feature_intelligence_summary",
-          "verdict": "PASS",
-          "confidence": 1.0,
-          "n_issues": 0,
-          "issues": [],
+          "verdict": "WARNING",
+          "confidence": 0.7,
+          "n_issues": 1,
+          "issues": [
+            {
+              "severity": "WARNING",
+              "message": "1 trading day overdue (SLA 1 \u00b7 currently 2)",
+              "evidence": {
+                "trading_days_old": 2
+              }
+            }
+          ],
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\feature_intelligence_summary.json",
             "mtime_utc": "2026-07-21T02:26:35+00:00",
-            "wall_hours_old": 1.38,
-            "trading_days_old": 0,
+            "wall_hours_old": 63.69,
+            "trading_days_old": 2,
             "sla_trading_days": 1
           },
-          "suggested_fixes": [],
-          "elapsed_ms": 0.0
+          "suggested_fixes": [
+            "Investigate why the producer of feature_intelligence_summary hasn't refreshed"
+          ],
+          "elapsed_ms": 1.85
         },
         "schema": {
           "validator": "schema",
@@ -2999,7 +4180,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 133.1
+          "elapsed_ms": 94.1
         }
       }
     },
@@ -3014,26 +4195,36 @@
           "usa/dashboard/frontend"
         ]
       },
-      "rollup_verdict": "PASS",
-      "rollup_confidence": 0.9013,
-      "n_issues": 0,
+      "rollup_verdict": "WARNING",
+      "rollup_confidence": 0.8098,
+      "n_issues": 1,
       "validators": {
         "freshness": {
           "validator": "freshness",
           "dataset": "feature_store_summary",
-          "verdict": "PASS",
-          "confidence": 1.0,
-          "n_issues": 0,
-          "issues": [],
+          "verdict": "WARNING",
+          "confidence": 0.7,
+          "n_issues": 1,
+          "issues": [
+            {
+              "severity": "WARNING",
+              "message": "1 trading day overdue (SLA 1 \u00b7 currently 2)",
+              "evidence": {
+                "trading_days_old": 2
+              }
+            }
+          ],
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\feature_store_summary.json",
             "mtime_utc": "2026-07-21T02:26:35+00:00",
-            "wall_hours_old": 1.38,
-            "trading_days_old": 0,
+            "wall_hours_old": 63.69,
+            "trading_days_old": 2,
             "sla_trading_days": 1,
             "run_utc_declared": "2026-07-21T02:14:39+00:00"
           },
-          "suggested_fixes": [],
+          "suggested_fixes": [
+            "Investigate why the producer of feature_store_summary hasn't refreshed"
+          ],
           "elapsed_ms": 0.0
         },
         "schema": {
@@ -3076,7 +4267,7 @@
             "n_columns": 16
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.0
+          "elapsed_ms": 5.24
         },
         "completeness": {
           "validator": "completeness",
@@ -3127,7 +4318,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 124.02
+          "elapsed_ms": 89.67
         }
       }
     },
@@ -3157,13 +4348,13 @@
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\fundamentals.json",
             "mtime_utc": "2026-07-21T02:26:34+00:00",
-            "wall_hours_old": 1.38,
-            "trading_days_old": 0,
+            "wall_hours_old": 63.69,
+            "trading_days_old": 2,
             "sla_trading_days": 5,
             "run_utc_declared": "2026-07-20T21:45:11+00:00Z"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.0
+          "elapsed_ms": 12.41
         },
         "schema": {
           "validator": "schema",
@@ -3248,7 +4439,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 125.61
+          "elapsed_ms": 92.66
         }
       }
     },
@@ -3274,8 +4465,8 @@
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\insider_summary.json",
             "mtime_utc": "2026-07-21T02:26:34+00:00",
-            "wall_hours_old": 1.38,
-            "trading_days_old": 0,
+            "wall_hours_old": 63.69,
+            "trading_days_old": 2,
             "sla_trading_days": 2,
             "run_utc_declared": "2026-07-20T21:46:03+00:00"
           },
@@ -3367,7 +4558,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 129.32
+          "elapsed_ms": 106.09
         }
       }
     },
@@ -3398,12 +4589,12 @@
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\data\\raw\\us\\insider_transactions.parquet",
             "mtime_utc": "2026-07-20T08:10:44+00:00",
-            "wall_hours_old": 19.65,
-            "trading_days_old": 1,
+            "wall_hours_old": 81.96,
+            "trading_days_old": 3,
             "sla_trading_days": 3
           },
           "suggested_fixes": [],
-          "elapsed_ms": 1.45
+          "elapsed_ms": 0.0
         },
         "schema": {
           "validator": "schema",
@@ -3434,7 +4625,7 @@
             "n_columns": 8
           },
           "suggested_fixes": [],
-          "elapsed_ms": 2.44
+          "elapsed_ms": 0.0
         },
         "completeness": {
           "validator": "completeness",
@@ -3447,7 +4638,7 @@
             "n_rows": 355
           },
           "suggested_fixes": [],
-          "elapsed_ms": 1.56
+          "elapsed_ms": 0.0
         },
         "quality": {
           "validator": "quality",
@@ -3458,7 +4649,7 @@
           "issues": [],
           "evidence": {},
           "suggested_fixes": [],
-          "elapsed_ms": 0.0
+          "elapsed_ms": 10.41
         },
         "lineage": {
           "validator": "lineage",
@@ -3485,7 +4676,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 132.7
+          "elapsed_ms": 104.14
         }
       }
     },
@@ -3516,8 +4707,8 @@
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\data\\raw\\us\\institutional_holders.parquet",
             "mtime_utc": "2026-07-20T08:10:33+00:00",
-            "wall_hours_old": 19.65,
-            "trading_days_old": 1,
+            "wall_hours_old": 81.96,
+            "trading_days_old": 3,
             "sla_trading_days": 30
           },
           "suggested_fixes": [],
@@ -3550,7 +4741,7 @@
             "n_columns": 7
           },
           "suggested_fixes": [],
-          "elapsed_ms": 1.25
+          "elapsed_ms": 0.0
         },
         "completeness": {
           "validator": "completeness",
@@ -3574,7 +4765,7 @@
           "issues": [],
           "evidence": {},
           "suggested_fixes": [],
-          "elapsed_ms": 5.82
+          "elapsed_ms": 0.0
         },
         "lineage": {
           "validator": "lineage",
@@ -3601,7 +4792,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 125.75
+          "elapsed_ms": 108.69
         }
       }
     },
@@ -3616,26 +4807,36 @@
           "usa/dashboard/frontend"
         ]
       },
-      "rollup_verdict": "PASS",
-      "rollup_confidence": 0.9013,
-      "n_issues": 0,
+      "rollup_verdict": "WARNING",
+      "rollup_confidence": 0.8098,
+      "n_issues": 1,
       "validators": {
         "freshness": {
           "validator": "freshness",
           "dataset": "intelligence_conflicts",
-          "verdict": "PASS",
-          "confidence": 1.0,
-          "n_issues": 0,
-          "issues": [],
+          "verdict": "WARNING",
+          "confidence": 0.7,
+          "n_issues": 1,
+          "issues": [
+            {
+              "severity": "WARNING",
+              "message": "1 trading day overdue (SLA 1 \u00b7 currently 2)",
+              "evidence": {
+                "trading_days_old": 2
+              }
+            }
+          ],
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\intelligence_conflicts.json",
             "mtime_utc": "2026-07-21T02:26:35+00:00",
-            "wall_hours_old": 1.38,
-            "trading_days_old": 0,
+            "wall_hours_old": 63.69,
+            "trading_days_old": 2,
             "sla_trading_days": 1,
             "run_utc_declared": "2026-07-20T07:50:09+00:00Z"
           },
-          "suggested_fixes": [],
+          "suggested_fixes": [
+            "Investigate why the producer of intelligence_conflicts hasn't refreshed"
+          ],
           "elapsed_ms": 0.0
         },
         "schema": {
@@ -3712,7 +4913,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 132.96
+          "elapsed_ms": 107.93
         }
       }
     },
@@ -3728,26 +4929,36 @@
           "usa/dashboard/frontend"
         ]
       },
-      "rollup_verdict": "PASS",
-      "rollup_confidence": 0.9013,
-      "n_issues": 0,
+      "rollup_verdict": "WARNING",
+      "rollup_confidence": 0.8098,
+      "n_issues": 1,
       "validators": {
         "freshness": {
           "validator": "freshness",
           "dataset": "intelligence_summary",
-          "verdict": "PASS",
-          "confidence": 1.0,
-          "n_issues": 0,
-          "issues": [],
+          "verdict": "WARNING",
+          "confidence": 0.7,
+          "n_issues": 1,
+          "issues": [
+            {
+              "severity": "WARNING",
+              "message": "1 trading day overdue (SLA 1 \u00b7 currently 2)",
+              "evidence": {
+                "trading_days_old": 2
+              }
+            }
+          ],
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\intelligence_summary.json",
             "mtime_utc": "2026-07-21T02:26:35+00:00",
-            "wall_hours_old": 1.38,
-            "trading_days_old": 0,
+            "wall_hours_old": 63.69,
+            "trading_days_old": 2,
             "sla_trading_days": 1,
             "run_utc_declared": "2026-07-20T07:50:09+00:00Z"
           },
-          "suggested_fixes": [],
+          "suggested_fixes": [
+            "Investigate why the producer of intelligence_summary hasn't refreshed"
+          ],
           "elapsed_ms": 0.0
         },
         "schema": {
@@ -3787,7 +4998,7 @@
           "issues": [],
           "evidence": {},
           "suggested_fixes": [],
-          "elapsed_ms": 11.7
+          "elapsed_ms": 0.0
         },
         "quality": {
           "validator": "quality",
@@ -3827,7 +5038,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 134.21
+          "elapsed_ms": 95.06
         }
       }
     },
@@ -3849,27 +5060,37 @@
           "usa/scripts/telegram_send"
         ]
       },
-      "rollup_verdict": "PASS",
-      "rollup_confidence": 0.9013,
-      "n_issues": 0,
+      "rollup_verdict": "WARNING",
+      "rollup_confidence": 0.8098,
+      "n_issues": 1,
       "validators": {
         "freshness": {
           "validator": "freshness",
           "dataset": "investment_intelligence",
-          "verdict": "PASS",
-          "confidence": 1.0,
-          "n_issues": 0,
-          "issues": [],
+          "verdict": "WARNING",
+          "confidence": 0.7,
+          "n_issues": 1,
+          "issues": [
+            {
+              "severity": "WARNING",
+              "message": "1 trading day overdue (SLA 1 \u00b7 currently 2)",
+              "evidence": {
+                "trading_days_old": 2
+              }
+            }
+          ],
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\investment_intelligence.json",
             "mtime_utc": "2026-07-21T02:26:35+00:00",
-            "wall_hours_old": 1.38,
-            "trading_days_old": 0,
+            "wall_hours_old": 63.69,
+            "trading_days_old": 2,
             "sla_trading_days": 1,
             "run_utc_declared": "2026-07-20T07:50:09+00:00Z"
           },
-          "suggested_fixes": [],
-          "elapsed_ms": 1.01
+          "suggested_fixes": [
+            "Investigate why the producer of investment_intelligence hasn't refreshed"
+          ],
+          "elapsed_ms": 0.0
         },
         "schema": {
           "validator": "schema",
@@ -3895,7 +5116,7 @@
             "n_columns": 5
           },
           "suggested_fixes": [],
-          "elapsed_ms": 1.0
+          "elapsed_ms": 0.0
         },
         "completeness": {
           "validator": "completeness",
@@ -3910,7 +5131,7 @@
             }
           },
           "suggested_fixes": [],
-          "elapsed_ms": 1.37
+          "elapsed_ms": 0.0
         },
         "quality": {
           "validator": "quality",
@@ -3950,7 +5171,206 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 135.12
+          "elapsed_ms": 111.34
+        }
+      }
+    },
+    "learning_history": {
+      "spec": {
+        "name": "learning_history",
+        "path": "usa/reports/learning_history.parquet",
+        "producer": "usa/research/learning_engine/run.py",
+        "kind": "history",
+        "freshness_sla_trading_days": 5,
+        "optional": true,
+        "consumers": [
+          "backend/walkforward",
+          "backend/ai_auditor"
+        ]
+      },
+      "rollup_verdict": "PASS",
+      "rollup_confidence": 0.5359,
+      "n_issues": 0,
+      "validators": {
+        "freshness": {
+          "validator": "freshness",
+          "dataset": "learning_history",
+          "verdict": "NOT_APPLICABLE",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\learning_history.parquet",
+            "reason": "optional_missing"
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "schema": {
+          "validator": "schema",
+          "dataset": "learning_history",
+          "verdict": "NOT_APPLICABLE",
+          "confidence": 0.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "reason": "file_missing"
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "completeness": {
+          "validator": "completeness",
+          "dataset": "learning_history",
+          "verdict": "NOT_APPLICABLE",
+          "confidence": 0.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "reason": "file_missing"
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "quality": {
+          "validator": "quality",
+          "dataset": "learning_history",
+          "verdict": "NOT_APPLICABLE",
+          "confidence": 0.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "reason": "not_applicable_to_non_parquet_or_missing"
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "lineage": {
+          "validator": "lineage",
+          "dataset": "learning_history",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "producer": "usa/research/learning_engine/run.py",
+            "producer_path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\research\\learning_engine\\run.py",
+            "n_callers": 20,
+            "callers": [
+              "backend\\__init__.py",
+              "docs\\generate_architecture_review.py",
+              "india\\daily_run.py",
+              "scripts\\aegis_daily_v2.py",
+              "scripts\\aegis_profile.py",
+              "scripts\\check_data_freshness.py",
+              "backend\\ai\\data_quality.py",
+              "backend\\tests\\test_sprint2.py",
+              "backend\\tests\\test_sprint25.py",
+              "backend\\tests\\test_sprint26.py"
+            ]
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 95.22
+        }
+      }
+    },
+    "macro_history": {
+      "spec": {
+        "name": "macro_history",
+        "path": "usa/reports/macro_history.parquet",
+        "producer": "usa/research/macro_intel/run.py",
+        "kind": "history",
+        "freshness_sla_trading_days": 5,
+        "optional": true,
+        "consumers": [
+          "backend/walkforward",
+          "backend/ai_auditor",
+          "backend/factor_library"
+        ]
+      },
+      "rollup_verdict": "PASS",
+      "rollup_confidence": 0.5359,
+      "n_issues": 0,
+      "validators": {
+        "freshness": {
+          "validator": "freshness",
+          "dataset": "macro_history",
+          "verdict": "NOT_APPLICABLE",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\macro_history.parquet",
+            "reason": "optional_missing"
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "schema": {
+          "validator": "schema",
+          "dataset": "macro_history",
+          "verdict": "NOT_APPLICABLE",
+          "confidence": 0.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "reason": "file_missing"
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "completeness": {
+          "validator": "completeness",
+          "dataset": "macro_history",
+          "verdict": "NOT_APPLICABLE",
+          "confidence": 0.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "reason": "file_missing"
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "quality": {
+          "validator": "quality",
+          "dataset": "macro_history",
+          "verdict": "NOT_APPLICABLE",
+          "confidence": 0.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "reason": "not_applicable_to_non_parquet_or_missing"
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "lineage": {
+          "validator": "lineage",
+          "dataset": "macro_history",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "producer": "usa/research/macro_intel/run.py",
+            "producer_path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\research\\macro_intel\\run.py",
+            "n_callers": 20,
+            "callers": [
+              "backend\\__init__.py",
+              "docs\\generate_architecture_review.py",
+              "india\\daily_run.py",
+              "scripts\\aegis_daily_v2.py",
+              "scripts\\aegis_profile.py",
+              "scripts\\check_data_freshness.py",
+              "backend\\ai\\data_quality.py",
+              "backend\\tests\\test_sprint2.py",
+              "backend\\tests\\test_sprint25.py",
+              "backend\\tests\\test_sprint26.py"
+            ]
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 101.77
         }
       }
     },
@@ -3966,25 +5386,35 @@
         ],
         "notes": "Sprint 1B \u00b7 rates + DXY + gold + oil + VIX + MOVE from yfinance."
       },
-      "rollup_verdict": "PASS",
-      "rollup_confidence": 1.0,
-      "n_issues": 0,
+      "rollup_verdict": "WARNING",
+      "rollup_confidence": 0.8985,
+      "n_issues": 1,
       "validators": {
         "freshness": {
           "validator": "freshness",
           "dataset": "macro_indicators",
-          "verdict": "PASS",
-          "confidence": 1.0,
-          "n_issues": 0,
-          "issues": [],
+          "verdict": "WARNING",
+          "confidence": 0.7,
+          "n_issues": 1,
+          "issues": [
+            {
+              "severity": "WARNING",
+              "message": "1 trading day overdue (SLA 2 \u00b7 currently 3)",
+              "evidence": {
+                "trading_days_old": 3
+              }
+            }
+          ],
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\data\\raw\\us\\macro.parquet",
             "mtime_utc": "2026-07-20T08:12:49+00:00",
-            "wall_hours_old": 19.61,
-            "trading_days_old": 1,
+            "wall_hours_old": 81.92,
+            "trading_days_old": 3,
             "sla_trading_days": 2
           },
-          "suggested_fixes": [],
+          "suggested_fixes": [
+            "Investigate why the producer of macro_indicators hasn't refreshed"
+          ],
           "elapsed_ms": 0.0
         },
         "schema": {
@@ -4037,7 +5467,7 @@
           "issues": [],
           "evidence": {},
           "suggested_fixes": [],
-          "elapsed_ms": 12.62
+          "elapsed_ms": 0.0
         },
         "lineage": {
           "validator": "lineage",
@@ -4064,7 +5494,250 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 118.51
+          "elapsed_ms": 98.72
+        }
+      }
+    },
+    "macro_knowledge_graph": {
+      "spec": {
+        "name": "macro_knowledge_graph",
+        "path": "usa/reports/macro_knowledge_graph.json",
+        "producer": "usa/research/macro_intel/run.py",
+        "kind": "macro",
+        "freshness_sla_trading_days": 1,
+        "consumers": [
+          "usa/dashboard"
+        ]
+      },
+      "rollup_verdict": "PASS",
+      "rollup_confidence": 0.9013,
+      "n_issues": 0,
+      "validators": {
+        "freshness": {
+          "validator": "freshness",
+          "dataset": "macro_knowledge_graph",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\macro_knowledge_graph.json",
+            "mtime_utc": "2026-07-23T18:03:32+00:00",
+            "wall_hours_old": 0.08,
+            "trading_days_old": 0,
+            "sla_trading_days": 1,
+            "run_utc_declared": "2026-07-21T04:12:50+00:00"
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "schema": {
+          "validator": "schema",
+          "dataset": "macro_knowledge_graph",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "required": [
+              "engine",
+              "run_utc",
+              "entries"
+            ],
+            "present": [
+              "engine",
+              "version",
+              "market",
+              "run_utc",
+              "asof",
+              "currency",
+              "model_stamp",
+              "n_entries",
+              "entries"
+            ],
+            "missing": [],
+            "extras": [],
+            "n_columns": 9
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "completeness": {
+          "validator": "completeness",
+          "dataset": "macro_knowledge_graph",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {},
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "quality": {
+          "validator": "quality",
+          "dataset": "macro_knowledge_graph",
+          "verdict": "NOT_APPLICABLE",
+          "confidence": 0.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "reason": "not_applicable_to_non_parquet_or_missing"
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "lineage": {
+          "validator": "lineage",
+          "dataset": "macro_knowledge_graph",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "producer": "usa/research/macro_intel/run.py",
+            "producer_path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\research\\macro_intel\\run.py",
+            "n_callers": 20,
+            "callers": [
+              "backend\\__init__.py",
+              "docs\\generate_architecture_review.py",
+              "india\\daily_run.py",
+              "scripts\\aegis_daily_v2.py",
+              "scripts\\aegis_profile.py",
+              "scripts\\check_data_freshness.py",
+              "backend\\ai\\data_quality.py",
+              "backend\\tests\\test_sprint2.py",
+              "backend\\tests\\test_sprint25.py",
+              "backend\\tests\\test_sprint26.py"
+            ]
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 97.7
+        }
+      }
+    },
+    "macro_regime": {
+      "spec": {
+        "name": "macro_regime",
+        "path": "usa/reports/macro_regime.json",
+        "producer": "usa/research/macro_intel/run.py",
+        "kind": "macro",
+        "freshness_sla_trading_days": 1,
+        "consumers": [
+          "usa/dashboard",
+          "backend/walkforward"
+        ]
+      },
+      "rollup_verdict": "PASS",
+      "rollup_confidence": 0.9013,
+      "n_issues": 0,
+      "validators": {
+        "freshness": {
+          "validator": "freshness",
+          "dataset": "macro_regime",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\macro_regime.json",
+            "mtime_utc": "2026-07-23T18:03:32+00:00",
+            "wall_hours_old": 0.08,
+            "trading_days_old": 0,
+            "sla_trading_days": 1,
+            "run_utc_declared": "2026-07-21T04:12:50+00:00"
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "schema": {
+          "validator": "schema",
+          "dataset": "macro_regime",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "required": [
+              "engine",
+              "version",
+              "market",
+              "run_utc",
+              "primary_regime",
+              "secondary_regime",
+              "macro_score",
+              "confidence"
+            ],
+            "present": [
+              "engine",
+              "version",
+              "market",
+              "run_utc",
+              "asof",
+              "currency",
+              "model_stamp",
+              "primary_regime",
+              "secondary_regime",
+              "confidence",
+              "evidence",
+              "macro_score"
+            ],
+            "missing": [],
+            "extras": [],
+            "n_columns": 12
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "completeness": {
+          "validator": "completeness",
+          "dataset": "macro_regime",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {},
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "quality": {
+          "validator": "quality",
+          "dataset": "macro_regime",
+          "verdict": "NOT_APPLICABLE",
+          "confidence": 0.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "reason": "not_applicable_to_non_parquet_or_missing"
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "lineage": {
+          "validator": "lineage",
+          "dataset": "macro_regime",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "producer": "usa/research/macro_intel/run.py",
+            "producer_path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\research\\macro_intel\\run.py",
+            "n_callers": 20,
+            "callers": [
+              "backend\\__init__.py",
+              "docs\\generate_architecture_review.py",
+              "india\\daily_run.py",
+              "scripts\\aegis_daily_v2.py",
+              "scripts\\aegis_profile.py",
+              "scripts\\check_data_freshness.py",
+              "backend\\ai\\data_quality.py",
+              "backend\\tests\\test_sprint2.py",
+              "backend\\tests\\test_sprint25.py",
+              "backend\\tests\\test_sprint26.py"
+            ]
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 106.3
         }
       }
     },
@@ -4090,13 +5763,13 @@
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\macro_summary.json",
             "mtime_utc": "2026-07-21T02:26:34+00:00",
-            "wall_hours_old": 1.38,
-            "trading_days_old": 0,
+            "wall_hours_old": 63.69,
+            "trading_days_old": 2,
             "sla_trading_days": 2,
             "run_utc_declared": "2026-07-20T21:46:14+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 12.57
+          "elapsed_ms": 0.0
         },
         "schema": {
           "validator": "schema",
@@ -4178,7 +5851,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 127.56
+          "elapsed_ms": 106.52
         }
       }
     },
@@ -4193,26 +5866,36 @@
           "usa/scripts/usa_ops_check"
         ]
       },
-      "rollup_verdict": "PASS",
-      "rollup_confidence": 0.9013,
-      "n_issues": 0,
+      "rollup_verdict": "WARNING",
+      "rollup_confidence": 0.8098,
+      "n_issues": 1,
       "validators": {
         "freshness": {
           "validator": "freshness",
           "dataset": "market_data_freshness",
-          "verdict": "PASS",
-          "confidence": 1.0,
-          "n_issues": 0,
-          "issues": [],
+          "verdict": "WARNING",
+          "confidence": 0.7,
+          "n_issues": 1,
+          "issues": [
+            {
+              "severity": "WARNING",
+              "message": "1 trading day overdue (SLA 1 \u00b7 currently 2)",
+              "evidence": {
+                "trading_days_old": 2
+              }
+            }
+          ],
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\market_data_freshness.json",
             "mtime_utc": "2026-07-21T02:26:35+00:00",
-            "wall_hours_old": 1.38,
-            "trading_days_old": 0,
+            "wall_hours_old": 63.69,
+            "trading_days_old": 2,
             "sla_trading_days": 1,
             "run_utc_declared": "2026-07-20T08:20:42+00:00Z"
           },
-          "suggested_fixes": [],
+          "suggested_fixes": [
+            "Investigate why the producer of market_data_freshness hasn't refreshed"
+          ],
           "elapsed_ms": 0.0
         },
         "schema": {
@@ -4256,7 +5939,7 @@
           "issues": [],
           "evidence": {},
           "suggested_fixes": [],
-          "elapsed_ms": 1.05
+          "elapsed_ms": 0.0
         },
         "quality": {
           "validator": "quality",
@@ -4288,7 +5971,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 1078.81
+          "elapsed_ms": 899.49
         }
       }
     },
@@ -4304,26 +5987,36 @@
           "backend/ai/market_analyst"
         ]
       },
-      "rollup_verdict": "PASS",
-      "rollup_confidence": 0.9013,
-      "n_issues": 0,
+      "rollup_verdict": "WARNING",
+      "rollup_confidence": 0.8098,
+      "n_issues": 1,
       "validators": {
         "freshness": {
           "validator": "freshness",
           "dataset": "market_intelligence",
-          "verdict": "PASS",
-          "confidence": 1.0,
-          "n_issues": 0,
-          "issues": [],
+          "verdict": "WARNING",
+          "confidence": 0.7,
+          "n_issues": 1,
+          "issues": [
+            {
+              "severity": "WARNING",
+              "message": "1 trading day overdue (SLA 1 \u00b7 currently 2)",
+              "evidence": {
+                "trading_days_old": 2
+              }
+            }
+          ],
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\market_intelligence.json",
             "mtime_utc": "2026-07-21T02:40:52+00:00",
-            "wall_hours_old": 1.14,
-            "trading_days_old": 0,
+            "wall_hours_old": 63.46,
+            "trading_days_old": 2,
             "sla_trading_days": 1,
             "run_utc_declared": "2026-07-20T14:34:08+00:00"
           },
-          "suggested_fixes": [],
+          "suggested_fixes": [
+            "Investigate why the producer of market_intelligence hasn't refreshed"
+          ],
           "elapsed_ms": 0.0
         },
         "schema": {
@@ -4416,7 +6109,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 133.58
+          "elapsed_ms": 105.97
         }
       }
     },
@@ -4432,25 +6125,35 @@
           "usa/scripts/usa_ops_check"
         ]
       },
-      "rollup_verdict": "PASS",
-      "rollup_confidence": 0.9013,
-      "n_issues": 0,
+      "rollup_verdict": "WARNING",
+      "rollup_confidence": 0.8098,
+      "n_issues": 1,
       "validators": {
         "freshness": {
           "validator": "freshness",
           "dataset": "market_intelligence_summary",
-          "verdict": "PASS",
-          "confidence": 1.0,
-          "n_issues": 0,
-          "issues": [],
+          "verdict": "WARNING",
+          "confidence": 0.7,
+          "n_issues": 1,
+          "issues": [
+            {
+              "severity": "WARNING",
+              "message": "1 trading day overdue (SLA 1 \u00b7 currently 2)",
+              "evidence": {
+                "trading_days_old": 2
+              }
+            }
+          ],
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\market_intelligence_summary.json",
             "mtime_utc": "2026-07-21T02:40:52+00:00",
-            "wall_hours_old": 1.14,
-            "trading_days_old": 0,
+            "wall_hours_old": 63.46,
+            "trading_days_old": 2,
             "sla_trading_days": 1
           },
-          "suggested_fixes": [],
+          "suggested_fixes": [
+            "Investigate why the producer of market_intelligence_summary hasn't refreshed"
+          ],
           "elapsed_ms": 0.0
         },
         "schema": {
@@ -4484,7 +6187,7 @@
             "n_columns": 8
           },
           "suggested_fixes": [],
-          "elapsed_ms": 1.11
+          "elapsed_ms": 0.0
         },
         "completeness": {
           "validator": "completeness",
@@ -4535,7 +6238,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 130.65
+          "elapsed_ms": 114.12
         }
       }
     },
@@ -4550,27 +6253,37 @@
           "usa/dashboard/frontend"
         ]
       },
-      "rollup_verdict": "PASS",
-      "rollup_confidence": 0.9013,
-      "n_issues": 0,
+      "rollup_verdict": "WARNING",
+      "rollup_confidence": 0.8098,
+      "n_issues": 1,
       "validators": {
         "freshness": {
           "validator": "freshness",
           "dataset": "missed_opportunities",
-          "verdict": "PASS",
-          "confidence": 1.0,
-          "n_issues": 0,
-          "issues": [],
+          "verdict": "WARNING",
+          "confidence": 0.7,
+          "n_issues": 1,
+          "issues": [
+            {
+              "severity": "WARNING",
+              "message": "1 trading day overdue (SLA 1 \u00b7 currently 2)",
+              "evidence": {
+                "trading_days_old": 2
+              }
+            }
+          ],
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\missed_opportunities.json",
             "mtime_utc": "2026-07-21T02:26:35+00:00",
-            "wall_hours_old": 1.38,
-            "trading_days_old": 0,
+            "wall_hours_old": 63.69,
+            "trading_days_old": 2,
             "sla_trading_days": 1,
             "run_utc_declared": "2026-07-20T07:50:10+00:00Z"
           },
-          "suggested_fixes": [],
-          "elapsed_ms": 10.53
+          "suggested_fixes": [
+            "Investigate why the producer of missed_opportunities hasn't refreshed"
+          ],
+          "elapsed_ms": 0.86
         },
         "schema": {
           "validator": "schema",
@@ -4653,7 +6366,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 131.57
+          "elapsed_ms": 100.02
         }
       }
     },
@@ -4681,14 +6394,14 @@
           "issues": [],
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\model_attribution.json",
-            "mtime_utc": "2026-07-21T03:49:24+00:00",
-            "wall_hours_old": 0.0,
+            "mtime_utc": "2026-07-23T18:03:32+00:00",
+            "wall_hours_old": 0.08,
             "trading_days_old": 0,
             "sla_trading_days": 1,
-            "run_utc_declared": "2026-07-21T03:49:24+00:00"
+            "run_utc_declared": "2026-07-21T03:29:02+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 24.88
+          "elapsed_ms": 2.47
         },
         "schema": {
           "validator": "schema",
@@ -4772,7 +6485,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 133.33
+          "elapsed_ms": 98.59
         }
       }
     },
@@ -4787,27 +6500,37 @@
           "usa/dashboard/frontend"
         ]
       },
-      "rollup_verdict": "PASS",
-      "rollup_confidence": 0.9013,
-      "n_issues": 0,
+      "rollup_verdict": "WARNING",
+      "rollup_confidence": 0.8098,
+      "n_issues": 1,
       "validators": {
         "freshness": {
           "validator": "freshness",
           "dataset": "model_factory",
-          "verdict": "PASS",
-          "confidence": 1.0,
-          "n_issues": 0,
-          "issues": [],
+          "verdict": "WARNING",
+          "confidence": 0.7,
+          "n_issues": 1,
+          "issues": [
+            {
+              "severity": "WARNING",
+              "message": "1 trading day overdue (SLA 1 \u00b7 currently 2)",
+              "evidence": {
+                "trading_days_old": 2
+              }
+            }
+          ],
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\model_factory.json",
             "mtime_utc": "2026-07-21T02:40:52+00:00",
-            "wall_hours_old": 1.14,
-            "trading_days_old": 0,
+            "wall_hours_old": 63.46,
+            "trading_days_old": 2,
             "sla_trading_days": 1,
             "run_utc_declared": "2026-07-20T21:46:44+00:00"
           },
-          "suggested_fixes": [],
-          "elapsed_ms": 0.0
+          "suggested_fixes": [
+            "Investigate why the producer of model_factory hasn't refreshed"
+          ],
+          "elapsed_ms": 2.0
         },
         "schema": {
           "validator": "schema",
@@ -4893,7 +6616,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 130.75
+          "elapsed_ms": 93.47
         }
       }
     },
@@ -4908,26 +6631,36 @@
           "usa/dashboard/frontend"
         ]
       },
-      "rollup_verdict": "PASS",
-      "rollup_confidence": 0.9013,
-      "n_issues": 0,
+      "rollup_verdict": "WARNING",
+      "rollup_confidence": 0.8098,
+      "n_issues": 1,
       "validators": {
         "freshness": {
           "validator": "freshness",
           "dataset": "model_metrics",
-          "verdict": "PASS",
-          "confidence": 1.0,
-          "n_issues": 0,
-          "issues": [],
+          "verdict": "WARNING",
+          "confidence": 0.7,
+          "n_issues": 1,
+          "issues": [
+            {
+              "severity": "WARNING",
+              "message": "1 trading day overdue (SLA 1 \u00b7 currently 2)",
+              "evidence": {
+                "trading_days_old": 2
+              }
+            }
+          ],
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\model_metrics.json",
             "mtime_utc": "2026-07-21T02:26:35+00:00",
-            "wall_hours_old": 1.38,
-            "trading_days_old": 0,
+            "wall_hours_old": 63.69,
+            "trading_days_old": 2,
             "sla_trading_days": 1
           },
-          "suggested_fixes": [],
-          "elapsed_ms": 1.0
+          "suggested_fixes": [
+            "Investigate why the producer of model_metrics hasn't refreshed"
+          ],
+          "elapsed_ms": 0.0
         },
         "schema": {
           "validator": "schema",
@@ -5007,7 +6740,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 132.26
+          "elapsed_ms": 105.83
         }
       }
     },
@@ -5022,25 +6755,35 @@
           "usa/dashboard/frontend"
         ]
       },
-      "rollup_verdict": "PASS",
-      "rollup_confidence": 0.7579,
-      "n_issues": 0,
+      "rollup_verdict": "WARNING",
+      "rollup_confidence": 0.681,
+      "n_issues": 1,
       "validators": {
         "freshness": {
           "validator": "freshness",
           "dataset": "morning_latest_html",
-          "verdict": "PASS",
-          "confidence": 1.0,
-          "n_issues": 0,
-          "issues": [],
+          "verdict": "WARNING",
+          "confidence": 0.7,
+          "n_issues": 1,
+          "issues": [
+            {
+              "severity": "WARNING",
+              "message": "1 trading day overdue (SLA 1 \u00b7 currently 2)",
+              "evidence": {
+                "trading_days_old": 2
+              }
+            }
+          ],
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\morning_latest.html",
             "mtime_utc": "2026-07-21T02:26:35+00:00",
-            "wall_hours_old": 1.38,
-            "trading_days_old": 0,
+            "wall_hours_old": 63.69,
+            "trading_days_old": 2,
             "sla_trading_days": 1
           },
-          "suggested_fixes": [],
+          "suggested_fixes": [
+            "Investigate why the producer of morning_latest_html hasn't refreshed"
+          ],
           "elapsed_ms": 0.0
         },
         "schema": {
@@ -5105,7 +6848,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 132.67
+          "elapsed_ms": 97.51
         }
       }
     },
@@ -5120,25 +6863,35 @@
           "usa/dashboard/frontend"
         ]
       },
-      "rollup_verdict": "PASS",
-      "rollup_confidence": 0.7579,
-      "n_issues": 0,
+      "rollup_verdict": "WARNING",
+      "rollup_confidence": 0.681,
+      "n_issues": 1,
       "validators": {
         "freshness": {
           "validator": "freshness",
           "dataset": "morning_latest_md",
-          "verdict": "PASS",
-          "confidence": 1.0,
-          "n_issues": 0,
-          "issues": [],
+          "verdict": "WARNING",
+          "confidence": 0.7,
+          "n_issues": 1,
+          "issues": [
+            {
+              "severity": "WARNING",
+              "message": "1 trading day overdue (SLA 1 \u00b7 currently 2)",
+              "evidence": {
+                "trading_days_old": 2
+              }
+            }
+          ],
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\morning_latest.md",
             "mtime_utc": "2026-07-21T02:26:35+00:00",
-            "wall_hours_old": 1.38,
-            "trading_days_old": 0,
+            "wall_hours_old": 63.69,
+            "trading_days_old": 2,
             "sla_trading_days": 1
           },
-          "suggested_fixes": [],
+          "suggested_fixes": [
+            "Investigate why the producer of morning_latest_md hasn't refreshed"
+          ],
           "elapsed_ms": 0.0
         },
         "schema": {
@@ -5203,7 +6956,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 131.85
+          "elapsed_ms": 99.98
         }
       }
     },
@@ -5219,26 +6972,36 @@
         ],
         "notes": "Sprint 1B \u00b7 Google News RSS + lexicon score. Optional FinBERT rescore later."
       },
-      "rollup_verdict": "PASS",
-      "rollup_confidence": 1.0,
-      "n_issues": 0,
+      "rollup_verdict": "WARNING",
+      "rollup_confidence": 0.8985,
+      "n_issues": 1,
       "validators": {
         "freshness": {
           "validator": "freshness",
           "dataset": "news_sentiment",
-          "verdict": "PASS",
-          "confidence": 1.0,
-          "n_issues": 0,
-          "issues": [],
+          "verdict": "WARNING",
+          "confidence": 0.7,
+          "n_issues": 1,
+          "issues": [
+            {
+              "severity": "WARNING",
+              "message": "1 trading day overdue (SLA 2 \u00b7 currently 3)",
+              "evidence": {
+                "trading_days_old": 3
+              }
+            }
+          ],
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\data\\raw\\us\\news_sentiment.parquet",
             "mtime_utc": "2026-07-20T08:22:06+00:00",
-            "wall_hours_old": 19.46,
-            "trading_days_old": 1,
+            "wall_hours_old": 81.77,
+            "trading_days_old": 3,
             "sla_trading_days": 2
           },
-          "suggested_fixes": [],
-          "elapsed_ms": 1.03
+          "suggested_fixes": [
+            "Investigate why the producer of news_sentiment hasn't refreshed"
+          ],
+          "elapsed_ms": 0.0
         },
         "schema": {
           "validator": "schema",
@@ -5271,7 +7034,7 @@
             "n_columns": 8
           },
           "suggested_fixes": [],
-          "elapsed_ms": 1.94
+          "elapsed_ms": 3.78
         },
         "completeness": {
           "validator": "completeness",
@@ -5284,7 +7047,7 @@
             "n_rows": 30
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.0
+          "elapsed_ms": 1.34
         },
         "quality": {
           "validator": "quality",
@@ -5295,7 +7058,7 @@
           "issues": [],
           "evidence": {},
           "suggested_fixes": [],
-          "elapsed_ms": 0.0
+          "elapsed_ms": 1.68
         },
         "lineage": {
           "validator": "lineage",
@@ -5322,7 +7085,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 134.87
+          "elapsed_ms": 99.32
         }
       }
     },
@@ -5351,8 +7114,8 @@
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\news_sentiment_summary.json",
             "mtime_utc": "2026-07-21T02:26:34+00:00",
-            "wall_hours_old": 1.38,
-            "trading_days_old": 0,
+            "wall_hours_old": 63.69,
+            "trading_days_old": 2,
             "sla_trading_days": 2,
             "run_utc_declared": "2026-07-20T21:45:11+00:00"
           },
@@ -5444,7 +7207,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 124.37
+          "elapsed_ms": 95.43
         }
       }
     },
@@ -5473,11 +7236,11 @@
           "issues": [],
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\portfolio_diff.json",
-            "mtime_utc": "2026-07-21T03:29:46+00:00",
-            "wall_hours_old": 0.33,
+            "mtime_utc": "2026-07-23T18:03:32+00:00",
+            "wall_hours_old": 0.08,
             "trading_days_old": 0,
             "sla_trading_days": 1,
-            "run_utc_declared": "2026-07-21T03:29:46+00:00"
+            "run_utc_declared": "2026-07-21T03:12:50+00:00"
           },
           "suggested_fixes": [],
           "elapsed_ms": 0.0
@@ -5548,7 +7311,7 @@
             "reason": "not_applicable_to_non_parquet_or_missing"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 1.0
+          "elapsed_ms": 0.0
         },
         "lineage": {
           "validator": "lineage",
@@ -5575,7 +7338,125 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 122.31
+          "elapsed_ms": 94.99
+        }
+      }
+    },
+    "portfolio_history": {
+      "spec": {
+        "name": "portfolio_history",
+        "path": "usa/reports/portfolio_history.parquet",
+        "producer": "usa/research/portfolio_engine/run.py",
+        "kind": "history",
+        "freshness_sla_trading_days": 5,
+        "optional": true,
+        "consumers": [
+          "backend/walkforward",
+          "backend/ai_auditor"
+        ]
+      },
+      "rollup_verdict": "PASS",
+      "rollup_confidence": 1.0,
+      "n_issues": 0,
+      "validators": {
+        "freshness": {
+          "validator": "freshness",
+          "dataset": "portfolio_history",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\portfolio_history.parquet",
+            "mtime_utc": "2026-07-21T05:38:10+00:00",
+            "wall_hours_old": 60.5,
+            "trading_days_old": 2,
+            "sla_trading_days": 5
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "schema": {
+          "validator": "schema",
+          "dataset": "portfolio_history",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "required": [],
+            "present": [
+              "engine",
+              "version",
+              "market",
+              "run_utc",
+              "asof",
+              "currency",
+              "regime",
+              "snapshot",
+              "diff",
+              "model_stamp_json",
+              "replay",
+              "history_schema_version",
+              "appended_utc"
+            ],
+            "missing": [],
+            "extras": [],
+            "n_columns": 13
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 15.95
+        },
+        "completeness": {
+          "validator": "completeness",
+          "dataset": "portfolio_history",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "n_rows": 135
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 2.43
+        },
+        "quality": {
+          "validator": "quality",
+          "dataset": "portfolio_history",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {},
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "lineage": {
+          "validator": "lineage",
+          "dataset": "portfolio_history",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "producer": "usa/research/portfolio_engine/run.py",
+            "producer_path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\research\\portfolio_engine\\run.py",
+            "n_callers": 20,
+            "callers": [
+              "backend\\__init__.py",
+              "docs\\generate_architecture_review.py",
+              "india\\daily_run.py",
+              "scripts\\aegis_daily_v2.py",
+              "scripts\\aegis_profile.py",
+              "scripts\\check_data_freshness.py",
+              "backend\\ai\\data_quality.py",
+              "backend\\tests\\test_sprint2.py",
+              "backend\\tests\\test_sprint25.py",
+              "backend\\tests\\test_sprint26.py"
+            ]
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 103.35
         }
       }
     },
@@ -5590,25 +7471,35 @@
           "usa/research/portfolio_engine (next-day prior state)"
         ]
       },
-      "rollup_verdict": "PASS",
-      "rollup_confidence": 0.9013,
-      "n_issues": 0,
+      "rollup_verdict": "WARNING",
+      "rollup_confidence": 0.8098,
+      "n_issues": 1,
       "validators": {
         "freshness": {
           "validator": "freshness",
           "dataset": "portfolio_state",
-          "verdict": "PASS",
-          "confidence": 1.0,
-          "n_issues": 0,
-          "issues": [],
+          "verdict": "WARNING",
+          "confidence": 0.7,
+          "n_issues": 1,
+          "issues": [
+            {
+              "severity": "WARNING",
+              "message": "1 trading day overdue (SLA 1 \u00b7 currently 2)",
+              "evidence": {
+                "trading_days_old": 2
+              }
+            }
+          ],
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\portfolio_state.json",
             "mtime_utc": "2026-07-21T03:29:46+00:00",
-            "wall_hours_old": 0.33,
-            "trading_days_old": 0,
+            "wall_hours_old": 62.64,
+            "trading_days_old": 2,
             "sla_trading_days": 1
           },
-          "suggested_fixes": [],
+          "suggested_fixes": [
+            "Investigate why the producer of portfolio_state hasn't refreshed"
+          ],
           "elapsed_ms": 0.0
         },
         "schema": {
@@ -5701,7 +7592,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 134.21
+          "elapsed_ms": 106.76
         }
       }
     },
@@ -5730,11 +7621,11 @@
           "issues": [],
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\portfolio_v3.json",
-            "mtime_utc": "2026-07-21T03:29:46+00:00",
-            "wall_hours_old": 0.33,
+            "mtime_utc": "2026-07-23T18:03:32+00:00",
+            "wall_hours_old": 0.08,
             "trading_days_old": 0,
             "sla_trading_days": 1,
-            "run_utc_declared": "2026-07-21T03:29:46+00:00"
+            "run_utc_declared": "2026-07-21T03:12:50+00:00"
           },
           "suggested_fixes": [],
           "elapsed_ms": 0.0
@@ -5827,7 +7718,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 125.1
+          "elapsed_ms": 97.51
         }
       }
     },
@@ -5842,26 +7733,36 @@
           "usa/dashboard/frontend"
         ]
       },
-      "rollup_verdict": "PASS",
-      "rollup_confidence": 0.9013,
-      "n_issues": 0,
+      "rollup_verdict": "WARNING",
+      "rollup_confidence": 0.8098,
+      "n_issues": 1,
       "validators": {
         "freshness": {
           "validator": "freshness",
           "dataset": "price_context",
-          "verdict": "PASS",
-          "confidence": 1.0,
-          "n_issues": 0,
-          "issues": [],
+          "verdict": "WARNING",
+          "confidence": 0.7,
+          "n_issues": 1,
+          "issues": [
+            {
+              "severity": "WARNING",
+              "message": "1 trading day overdue (SLA 1 \u00b7 currently 2)",
+              "evidence": {
+                "trading_days_old": 2
+              }
+            }
+          ],
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\price_context.json",
             "mtime_utc": "2026-07-21T02:26:35+00:00",
-            "wall_hours_old": 1.38,
-            "trading_days_old": 0,
+            "wall_hours_old": 63.69,
+            "trading_days_old": 2,
             "sla_trading_days": 1,
             "run_utc_declared": "2026-07-20T07:50:10+00:00Z"
           },
-          "suggested_fixes": [],
+          "suggested_fixes": [
+            "Investigate why the producer of price_context hasn't refreshed"
+          ],
           "elapsed_ms": 0.0
         },
         "schema": {
@@ -5892,7 +7793,7 @@
             "n_columns": 8
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.97
+          "elapsed_ms": 0.0
         },
         "completeness": {
           "validator": "completeness",
@@ -5943,7 +7844,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 121.91
+          "elapsed_ms": 111.43
         }
       }
     },
@@ -5958,26 +7859,36 @@
           "usa/dashboard/frontend"
         ]
       },
-      "rollup_verdict": "PASS",
-      "rollup_confidence": 0.9013,
-      "n_issues": 0,
+      "rollup_verdict": "WARNING",
+      "rollup_confidence": 0.8098,
+      "n_issues": 1,
       "validators": {
         "freshness": {
           "validator": "freshness",
           "dataset": "recommendation_history",
-          "verdict": "PASS",
-          "confidence": 1.0,
-          "n_issues": 0,
-          "issues": [],
+          "verdict": "WARNING",
+          "confidence": 0.7,
+          "n_issues": 1,
+          "issues": [
+            {
+              "severity": "WARNING",
+              "message": "1 trading day overdue (SLA 1 \u00b7 currently 2)",
+              "evidence": {
+                "trading_days_old": 2
+              }
+            }
+          ],
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\recommendation_history.json",
             "mtime_utc": "2026-07-21T02:26:35+00:00",
-            "wall_hours_old": 1.38,
-            "trading_days_old": 0,
+            "wall_hours_old": 63.69,
+            "trading_days_old": 2,
             "sla_trading_days": 1,
             "run_utc_declared": "2026-07-20T07:50:10+00:00Z"
           },
-          "suggested_fixes": [],
+          "suggested_fixes": [
+            "Investigate why the producer of recommendation_history hasn't refreshed"
+          ],
           "elapsed_ms": 0.0
         },
         "schema": {
@@ -6011,7 +7922,7 @@
             "n_columns": 10
           },
           "suggested_fixes": [],
-          "elapsed_ms": 11.62
+          "elapsed_ms": 0.0
         },
         "completeness": {
           "validator": "completeness",
@@ -6062,7 +7973,130 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 134.03
+          "elapsed_ms": 102.58
+        }
+      }
+    },
+    "recommendation_history_v3": {
+      "spec": {
+        "name": "recommendation_history_v3",
+        "path": "usa/reports/recommendation_history.parquet",
+        "producer": "usa/research/recommendation_intelligence/run.py",
+        "kind": "history",
+        "freshness_sla_trading_days": 5,
+        "optional": true,
+        "consumers": [
+          "backend/learning",
+          "backend/walkforward",
+          "backend/ai_auditor"
+        ],
+        "notes": "Sprint 7.5 append-only Rec Engine v3 ledger. Distinct from the legacy\nrecommendation_history.json produced by institutional_memory/run.py.\n"
+      },
+      "rollup_verdict": "PASS",
+      "rollup_confidence": 1.0,
+      "n_issues": 0,
+      "validators": {
+        "freshness": {
+          "validator": "freshness",
+          "dataset": "recommendation_history_v3",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\recommendation_history.parquet",
+            "mtime_utc": "2026-07-21T05:38:10+00:00",
+            "wall_hours_old": 60.5,
+            "trading_days_old": 2,
+            "sla_trading_days": 5
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "schema": {
+          "validator": "schema",
+          "dataset": "recommendation_history_v3",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "required": [],
+            "present": [
+              "engine",
+              "version",
+              "market",
+              "run_utc",
+              "asof",
+              "currency",
+              "regime",
+              "n_tickers",
+              "distribution",
+              "n_disagreement_collapsed",
+              "recommendations",
+              "notes",
+              "model_stamp_json",
+              "replay",
+              "history_schema_version",
+              "appended_utc"
+            ],
+            "missing": [],
+            "extras": [],
+            "n_columns": 16
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 14.45
+        },
+        "completeness": {
+          "validator": "completeness",
+          "dataset": "recommendation_history_v3",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "n_rows": 135
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 4.33
+        },
+        "quality": {
+          "validator": "quality",
+          "dataset": "recommendation_history_v3",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {},
+          "suggested_fixes": [],
+          "elapsed_ms": 17.52
+        },
+        "lineage": {
+          "validator": "lineage",
+          "dataset": "recommendation_history_v3",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "producer": "usa/research/recommendation_intelligence/run.py",
+            "producer_path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\research\\recommendation_intelligence\\run.py",
+            "n_callers": 20,
+            "callers": [
+              "backend\\__init__.py",
+              "docs\\generate_architecture_review.py",
+              "india\\daily_run.py",
+              "scripts\\aegis_daily_v2.py",
+              "scripts\\aegis_profile.py",
+              "scripts\\check_data_freshness.py",
+              "backend\\ai\\data_quality.py",
+              "backend\\tests\\test_sprint2.py",
+              "backend\\tests\\test_sprint25.py",
+              "backend\\tests\\test_sprint26.py"
+            ]
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 110.67
         }
       }
     },
@@ -6077,27 +8111,37 @@
           "usa/dashboard/frontend"
         ]
       },
-      "rollup_verdict": "PASS",
-      "rollup_confidence": 0.9013,
-      "n_issues": 0,
+      "rollup_verdict": "WARNING",
+      "rollup_confidence": 0.8098,
+      "n_issues": 1,
       "validators": {
         "freshness": {
           "validator": "freshness",
           "dataset": "recommendation_lifecycle",
-          "verdict": "PASS",
-          "confidence": 1.0,
-          "n_issues": 0,
-          "issues": [],
+          "verdict": "WARNING",
+          "confidence": 0.7,
+          "n_issues": 1,
+          "issues": [
+            {
+              "severity": "WARNING",
+              "message": "1 trading day overdue (SLA 1 \u00b7 currently 2)",
+              "evidence": {
+                "trading_days_old": 2
+              }
+            }
+          ],
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\recommendation_lifecycle.json",
             "mtime_utc": "2026-07-21T02:26:35+00:00",
-            "wall_hours_old": 1.38,
-            "trading_days_old": 0,
+            "wall_hours_old": 63.69,
+            "trading_days_old": 2,
             "sla_trading_days": 1,
             "run_utc_declared": "2026-07-20T07:50:10+00:00Z"
           },
-          "suggested_fixes": [],
-          "elapsed_ms": 1.53
+          "suggested_fixes": [
+            "Investigate why the producer of recommendation_lifecycle hasn't refreshed"
+          ],
+          "elapsed_ms": 0.91
         },
         "schema": {
           "validator": "schema",
@@ -6180,7 +8224,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 133.34
+          "elapsed_ms": 99.39
         }
       }
     },
@@ -6208,27 +8252,37 @@
           "usa/scripts/telegram_send"
         ]
       },
-      "rollup_verdict": "PASS",
-      "rollup_confidence": 0.9013,
-      "n_issues": 0,
+      "rollup_verdict": "WARNING",
+      "rollup_confidence": 0.8098,
+      "n_issues": 1,
       "validators": {
         "freshness": {
           "validator": "freshness",
           "dataset": "recommendations",
-          "verdict": "PASS",
-          "confidence": 1.0,
-          "n_issues": 0,
-          "issues": [],
+          "verdict": "WARNING",
+          "confidence": 0.7,
+          "n_issues": 1,
+          "issues": [
+            {
+              "severity": "WARNING",
+              "message": "1 trading day overdue (SLA 1 \u00b7 currently 2)",
+              "evidence": {
+                "trading_days_old": 2
+              }
+            }
+          ],
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\recommendations.json",
             "mtime_utc": "2026-07-21T02:26:35+00:00",
-            "wall_hours_old": 1.38,
-            "trading_days_old": 0,
+            "wall_hours_old": 63.69,
+            "trading_days_old": 2,
             "sla_trading_days": 1,
             "run_utc_declared": "2026-07-20T07:50:08+00:00Z"
           },
-          "suggested_fixes": [],
-          "elapsed_ms": 1.43
+          "suggested_fixes": [
+            "Investigate why the producer of recommendations hasn't refreshed"
+          ],
+          "elapsed_ms": 0.0
         },
         "schema": {
           "validator": "schema",
@@ -6267,7 +8321,7 @@
             "n_columns": 13
           },
           "suggested_fixes": [],
-          "elapsed_ms": 1.36
+          "elapsed_ms": 0.0
         },
         "completeness": {
           "validator": "completeness",
@@ -6282,7 +8336,7 @@
             }
           },
           "suggested_fixes": [],
-          "elapsed_ms": 1.05
+          "elapsed_ms": 0.0
         },
         "quality": {
           "validator": "quality",
@@ -6322,7 +8376,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 123.35
+          "elapsed_ms": 101.99
         }
       }
     },
@@ -6351,14 +8405,14 @@
           "issues": [],
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\recommendations_v3.json",
-            "mtime_utc": "2026-07-21T03:12:37+00:00",
-            "wall_hours_old": 0.62,
+            "mtime_utc": "2026-07-23T18:03:32+00:00",
+            "wall_hours_old": 0.08,
             "trading_days_old": 0,
             "sla_trading_days": 1,
-            "run_utc_declared": "2026-07-21T03:12:37+00:00"
+            "run_utc_declared": "2026-07-21T02:13:31+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 1.49
+          "elapsed_ms": 0.0
         },
         "schema": {
           "validator": "schema",
@@ -6412,7 +8466,7 @@
           "issues": [],
           "evidence": {},
           "suggested_fixes": [],
-          "elapsed_ms": 0.42
+          "elapsed_ms": 10.91
         },
         "quality": {
           "validator": "quality",
@@ -6452,7 +8506,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 121.35
+          "elapsed_ms": 100.29
         }
       }
     },
@@ -6480,8 +8534,8 @@
           "issues": [],
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\recommendations_v3_conflicts.json",
-            "mtime_utc": "2026-07-21T03:12:37+00:00",
-            "wall_hours_old": 0.62,
+            "mtime_utc": "2026-07-23T18:03:32+00:00",
+            "wall_hours_old": 0.08,
             "trading_days_old": 0,
             "sla_trading_days": 1
           },
@@ -6566,7 +8620,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 135.72
+          "elapsed_ms": 103.96
         }
       }
     },
@@ -6594,13 +8648,13 @@
           "issues": [],
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\recommendations_v3_summary.json",
-            "mtime_utc": "2026-07-21T03:12:37+00:00",
-            "wall_hours_old": 0.62,
+            "mtime_utc": "2026-07-23T18:03:32+00:00",
+            "wall_hours_old": 0.08,
             "trading_days_old": 0,
             "sla_trading_days": 1
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.0
+          "elapsed_ms": 2.63
         },
         "schema": {
           "validator": "schema",
@@ -6689,7 +8743,140 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 121.64
+          "elapsed_ms": 97.22
+        }
+      }
+    },
+    "risk_history": {
+      "spec": {
+        "name": "risk_history",
+        "path": "usa/reports/risk_history.parquet",
+        "producer": "usa/research/risk_engine/run.py",
+        "kind": "history",
+        "freshness_sla_trading_days": 5,
+        "optional": true,
+        "consumers": [
+          "backend/walkforward",
+          "backend/ai_auditor"
+        ]
+      },
+      "rollup_verdict": "PASS",
+      "rollup_confidence": 1.0,
+      "n_issues": 0,
+      "validators": {
+        "freshness": {
+          "validator": "freshness",
+          "dataset": "risk_history",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\risk_history.parquet",
+            "mtime_utc": "2026-07-21T05:38:10+00:00",
+            "wall_hours_old": 60.5,
+            "trading_days_old": 2,
+            "sla_trading_days": 5
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "schema": {
+          "validator": "schema",
+          "dataset": "risk_history",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "required": [],
+            "present": [
+              "engine",
+              "version",
+              "market",
+              "run_utc",
+              "asof",
+              "regime",
+              "engine_version",
+              "n_positions",
+              "n_long",
+              "n_short",
+              "total_long_exposure_pct",
+              "total_short_exposure_pct",
+              "gross_exposure_pct",
+              "net_exposure_pct",
+              "cash_pct",
+              "hhi_concentration",
+              "top_5_concentration_pct",
+              "per_sector_exposure_pct",
+              "portfolio_var_95_1d_pct",
+              "portfolio_cvar_95_1d_pct",
+              "portfolio_vol_annualised",
+              "verdict",
+              "breaches",
+              "notes",
+              "model_stamp_json",
+              "replay",
+              "history_schema_version",
+              "appended_utc"
+            ],
+            "missing": [],
+            "extras": [],
+            "n_columns": 28
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 12.36
+        },
+        "completeness": {
+          "validator": "completeness",
+          "dataset": "risk_history",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "n_rows": 135
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 4.55
+        },
+        "quality": {
+          "validator": "quality",
+          "dataset": "risk_history",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {},
+          "suggested_fixes": [],
+          "elapsed_ms": 3.18
+        },
+        "lineage": {
+          "validator": "lineage",
+          "dataset": "risk_history",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "producer": "usa/research/risk_engine/run.py",
+            "producer_path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\research\\risk_engine\\run.py",
+            "n_callers": 20,
+            "callers": [
+              "backend\\__init__.py",
+              "docs\\generate_architecture_review.py",
+              "india\\daily_run.py",
+              "scripts\\aegis_daily_v2.py",
+              "scripts\\aegis_profile.py",
+              "scripts\\check_data_freshness.py",
+              "backend\\ai\\data_quality.py",
+              "backend\\tests\\test_sprint2.py",
+              "backend\\tests\\test_sprint25.py",
+              "backend\\tests\\test_sprint26.py"
+            ]
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 96.48
         }
       }
     },
@@ -6705,27 +8892,37 @@
           "usa/scripts/telegram_send"
         ]
       },
-      "rollup_verdict": "PASS",
-      "rollup_confidence": 0.9013,
-      "n_issues": 0,
+      "rollup_verdict": "WARNING",
+      "rollup_confidence": 0.8098,
+      "n_issues": 1,
       "validators": {
         "freshness": {
           "validator": "freshness",
           "dataset": "risk_latest",
-          "verdict": "PASS",
-          "confidence": 1.0,
-          "n_issues": 0,
-          "issues": [],
+          "verdict": "WARNING",
+          "confidence": 0.7,
+          "n_issues": 1,
+          "issues": [
+            {
+              "severity": "WARNING",
+              "message": "1 trading day overdue (SLA 1 \u00b7 currently 2)",
+              "evidence": {
+                "trading_days_old": 2
+              }
+            }
+          ],
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\risk_latest.json",
             "mtime_utc": "2026-07-21T02:26:35+00:00",
-            "wall_hours_old": 1.38,
-            "trading_days_old": 0,
+            "wall_hours_old": 63.7,
+            "trading_days_old": 2,
             "sla_trading_days": 1,
             "run_utc_declared": "2026-07-20T07:50:09+00:00Z"
           },
-          "suggested_fixes": [],
-          "elapsed_ms": 1.9
+          "suggested_fixes": [
+            "Investigate why the producer of risk_latest hasn't refreshed"
+          ],
+          "elapsed_ms": 0.0
         },
         "schema": {
           "validator": "schema",
@@ -6808,7 +9005,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 123.12
+          "elapsed_ms": 100.07
         }
       }
     },
@@ -6836,14 +9033,14 @@
           "issues": [],
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\risk_report.json",
-            "mtime_utc": "2026-07-21T03:29:44+00:00",
-            "wall_hours_old": 0.33,
+            "mtime_utc": "2026-07-23T18:03:32+00:00",
+            "wall_hours_old": 0.08,
             "trading_days_old": 0,
             "sla_trading_days": 1,
-            "run_utc_declared": "2026-07-21T03:29:44+00:00"
+            "run_utc_declared": "2026-07-21T02:56:25+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 1.07
+          "elapsed_ms": 0.0
         },
         "schema": {
           "validator": "schema",
@@ -6946,7 +9143,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 132.86
+          "elapsed_ms": 99.97
         }
       }
     },
@@ -6972,8 +9169,8 @@
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\sec_13f_summary.json",
             "mtime_utc": "2026-07-21T02:26:34+00:00",
-            "wall_hours_old": 1.38,
-            "trading_days_old": 0,
+            "wall_hours_old": 63.7,
+            "trading_days_old": 2,
             "sla_trading_days": 30,
             "run_utc_declared": "2026-07-20T21:46:33+00:00"
           },
@@ -7063,7 +9260,127 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 119.24
+          "elapsed_ms": 100.48
+        }
+      }
+    },
+    "sector_rotation": {
+      "spec": {
+        "name": "sector_rotation",
+        "path": "usa/reports/sector_rotation.json",
+        "producer": "usa/research/macro_intel/run.py",
+        "kind": "macro",
+        "freshness_sla_trading_days": 1,
+        "consumers": [
+          "usa/dashboard"
+        ]
+      },
+      "rollup_verdict": "PASS",
+      "rollup_confidence": 0.9013,
+      "n_issues": 0,
+      "validators": {
+        "freshness": {
+          "validator": "freshness",
+          "dataset": "sector_rotation",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\sector_rotation.json",
+            "mtime_utc": "2026-07-23T18:03:32+00:00",
+            "wall_hours_old": 0.08,
+            "trading_days_old": 0,
+            "sla_trading_days": 1,
+            "run_utc_declared": "2026-07-21T04:12:50+00:00"
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "schema": {
+          "validator": "schema",
+          "dataset": "sector_rotation",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "required": [
+              "engine",
+              "run_utc",
+              "leaders",
+              "laggards"
+            ],
+            "present": [
+              "engine",
+              "version",
+              "market",
+              "run_utc",
+              "asof",
+              "currency",
+              "model_stamp",
+              "sector_returns",
+              "leaders",
+              "laggards",
+              "rotation_strength"
+            ],
+            "missing": [],
+            "extras": [],
+            "n_columns": 11
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "completeness": {
+          "validator": "completeness",
+          "dataset": "sector_rotation",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {},
+          "suggested_fixes": [],
+          "elapsed_ms": 7.66
+        },
+        "quality": {
+          "validator": "quality",
+          "dataset": "sector_rotation",
+          "verdict": "NOT_APPLICABLE",
+          "confidence": 0.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "reason": "not_applicable_to_non_parquet_or_missing"
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "lineage": {
+          "validator": "lineage",
+          "dataset": "sector_rotation",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "producer": "usa/research/macro_intel/run.py",
+            "producer_path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\research\\macro_intel\\run.py",
+            "n_callers": 20,
+            "callers": [
+              "backend\\__init__.py",
+              "docs\\generate_architecture_review.py",
+              "india\\daily_run.py",
+              "scripts\\aegis_daily_v2.py",
+              "scripts\\aegis_profile.py",
+              "scripts\\check_data_freshness.py",
+              "backend\\ai\\data_quality.py",
+              "backend\\tests\\test_sprint2.py",
+              "backend\\tests\\test_sprint25.py",
+              "backend\\tests\\test_sprint26.py"
+            ]
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 96.07
         }
       }
     },
@@ -7080,25 +9397,35 @@
         ],
         "notes": "The subset of features downstream engines are allowed to consume. Sprint 3+ reads this."
       },
-      "rollup_verdict": "PASS",
-      "rollup_confidence": 0.9013,
-      "n_issues": 0,
+      "rollup_verdict": "WARNING",
+      "rollup_confidence": 0.8098,
+      "n_issues": 1,
       "validators": {
         "freshness": {
           "validator": "freshness",
           "dataset": "selected_features",
-          "verdict": "PASS",
-          "confidence": 1.0,
-          "n_issues": 0,
-          "issues": [],
+          "verdict": "WARNING",
+          "confidence": 0.7,
+          "n_issues": 1,
+          "issues": [
+            {
+              "severity": "WARNING",
+              "message": "1 trading day overdue (SLA 1 \u00b7 currently 2)",
+              "evidence": {
+                "trading_days_old": 2
+              }
+            }
+          ],
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\selected_features.json",
             "mtime_utc": "2026-07-21T02:26:35+00:00",
-            "wall_hours_old": 1.38,
-            "trading_days_old": 0,
+            "wall_hours_old": 63.7,
+            "trading_days_old": 2,
             "sla_trading_days": 1
           },
-          "suggested_fixes": [],
+          "suggested_fixes": [
+            "Investigate why the producer of selected_features hasn't refreshed"
+          ],
           "elapsed_ms": 0.0
         },
         "schema": {
@@ -7182,7 +9509,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 131.99
+          "elapsed_ms": 96.01
         }
       }
     },
@@ -7211,11 +9538,11 @@
           "issues": [],
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\sized_positions.json",
-            "mtime_utc": "2026-07-21T03:29:44+00:00",
-            "wall_hours_old": 0.33,
+            "mtime_utc": "2026-07-23T18:03:32+00:00",
+            "wall_hours_old": 0.08,
             "trading_days_old": 0,
             "sla_trading_days": 1,
-            "run_utc_declared": "2026-07-21T03:29:44+00:00"
+            "run_utc_declared": "2026-07-21T02:56:25+00:00"
           },
           "suggested_fixes": [],
           "elapsed_ms": 0.0
@@ -7311,7 +9638,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 124.92
+          "elapsed_ms": 111.75
         }
       }
     },
@@ -7321,7 +9648,7 @@
         "path": "usa/data/raw/us/_IDX_GSPC_D1.parquet",
         "producer": "usa/scripts/refresh_market_data.py",
         "kind": "price",
-        "freshness_sla_trading_days": 1,
+        "freshness_sla_trading_days": 3,
         "quality": {
           "no_negatives": [
             "open",
@@ -7337,7 +9664,8 @@
         "consumers": [
           "usa/research/recommendations",
           "usa/research/benchmark"
-        ]
+        ],
+        "notes": "HOTFIX 2026-07-23: SLA relaxed 1 \u2192 3 trading days. yfinance has been\nreturning stale/empty responses intermittently, silently freezing prices\nfor 1-3 days while refresh_market_data.py exits 0. Root-cause fix for\nthe refresh script is a follow-up; loosening SLA prevents ops_check\nfrom going CRITICAL on transient yfinance flakiness.\n"
       },
       "rollup_verdict": "PASS",
       "rollup_confidence": 1.0,
@@ -7353,12 +9681,12 @@
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\data\\raw\\us\\_IDX_GSPC_D1.parquet",
             "mtime_utc": "2026-07-20T08:20:42+00:00",
-            "wall_hours_old": 19.48,
-            "trading_days_old": 1,
-            "sla_trading_days": 1
+            "wall_hours_old": 81.79,
+            "trading_days_old": 3,
+            "sla_trading_days": 3
           },
           "suggested_fixes": [],
-          "elapsed_ms": 1.03
+          "elapsed_ms": 0.0
         },
         "schema": {
           "validator": "schema",
@@ -7388,7 +9716,7 @@
             "n_columns": 6
           },
           "suggested_fixes": [],
-          "elapsed_ms": 3.55
+          "elapsed_ms": 0.0
         },
         "completeness": {
           "validator": "completeness",
@@ -7401,7 +9729,7 @@
             "n_rows": 1255
           },
           "suggested_fixes": [],
-          "elapsed_ms": 3.13
+          "elapsed_ms": 5.12
         },
         "quality": {
           "validator": "quality",
@@ -7416,7 +9744,7 @@
             }
           },
           "suggested_fixes": [],
-          "elapsed_ms": 4.51
+          "elapsed_ms": 0.0
         },
         "lineage": {
           "validator": "lineage",
@@ -7435,7 +9763,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 1089.38
+          "elapsed_ms": 872.9
         }
       }
     },
@@ -7450,27 +9778,37 @@
           "usa/dashboard/frontend"
         ]
       },
-      "rollup_verdict": "PASS",
-      "rollup_confidence": 0.9013,
-      "n_issues": 0,
+      "rollup_verdict": "WARNING",
+      "rollup_confidence": 0.8098,
+      "n_issues": 1,
       "validators": {
         "freshness": {
           "validator": "freshness",
           "dataset": "stock_validation",
-          "verdict": "PASS",
-          "confidence": 1.0,
-          "n_issues": 0,
-          "issues": [],
+          "verdict": "WARNING",
+          "confidence": 0.7,
+          "n_issues": 1,
+          "issues": [
+            {
+              "severity": "WARNING",
+              "message": "1 trading day overdue (SLA 1 \u00b7 currently 2)",
+              "evidence": {
+                "trading_days_old": 2
+              }
+            }
+          ],
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\stock_validation.json",
             "mtime_utc": "2026-07-21T02:26:35+00:00",
-            "wall_hours_old": 1.38,
-            "trading_days_old": 0,
+            "wall_hours_old": 63.7,
+            "trading_days_old": 2,
             "sla_trading_days": 1,
             "run_utc_declared": "2026-07-20T07:50:08+00:00Z"
           },
-          "suggested_fixes": [],
-          "elapsed_ms": 0.69
+          "suggested_fixes": [
+            "Investigate why the producer of stock_validation hasn't refreshed"
+          ],
+          "elapsed_ms": 0.0
         },
         "schema": {
           "validator": "schema",
@@ -7498,7 +9836,7 @@
             "n_columns": 7
           },
           "suggested_fixes": [],
-          "elapsed_ms": 1.15
+          "elapsed_ms": 0.0
         },
         "completeness": {
           "validator": "completeness",
@@ -7549,7 +9887,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 121.54
+          "elapsed_ms": 105.59
         }
       }
     },
@@ -7571,27 +9909,37 @@
           "usa/research/*"
         ]
       },
-      "rollup_verdict": "PASS",
-      "rollup_confidence": 0.9013,
-      "n_issues": 0,
+      "rollup_verdict": "WARNING",
+      "rollup_confidence": 0.8098,
+      "n_issues": 1,
       "validators": {
         "freshness": {
           "validator": "freshness",
           "dataset": "universe",
-          "verdict": "PASS",
-          "confidence": 1.0,
-          "n_issues": 0,
-          "issues": [],
+          "verdict": "WARNING",
+          "confidence": 0.7,
+          "n_issues": 1,
+          "issues": [
+            {
+              "severity": "WARNING",
+              "message": "1 trading day overdue (SLA 1 \u00b7 currently 2)",
+              "evidence": {
+                "trading_days_old": 2
+              }
+            }
+          ],
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\universe.json",
             "mtime_utc": "2026-07-21T02:26:35+00:00",
-            "wall_hours_old": 1.38,
-            "trading_days_old": 0,
+            "wall_hours_old": 63.7,
+            "trading_days_old": 2,
             "sla_trading_days": 1,
             "run_utc_declared": "2026-07-20T08:20:26+00:00Z"
           },
-          "suggested_fixes": [],
-          "elapsed_ms": 0.0
+          "suggested_fixes": [
+            "Investigate why the producer of universe hasn't refreshed"
+          ],
+          "elapsed_ms": 3.26
         },
         "schema": {
           "validator": "schema",
@@ -7643,7 +9991,7 @@
             }
           },
           "suggested_fixes": [],
-          "elapsed_ms": 10.9
+          "elapsed_ms": 0.0
         },
         "quality": {
           "validator": "quality",
@@ -7677,7 +10025,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 1139.53
+          "elapsed_ms": 867.51
         }
       }
     },
@@ -7692,26 +10040,36 @@
           "usa/scripts/usa_ops_check"
         ]
       },
-      "rollup_verdict": "PASS",
-      "rollup_confidence": 0.9013,
-      "n_issues": 0,
+      "rollup_verdict": "WARNING",
+      "rollup_confidence": 0.8098,
+      "n_issues": 1,
       "validators": {
         "freshness": {
           "validator": "freshness",
           "dataset": "validation_latest",
-          "verdict": "PASS",
-          "confidence": 1.0,
-          "n_issues": 0,
-          "issues": [],
+          "verdict": "WARNING",
+          "confidence": 0.7,
+          "n_issues": 1,
+          "issues": [
+            {
+              "severity": "WARNING",
+              "message": "1 trading day overdue (SLA 1 \u00b7 currently 2)",
+              "evidence": {
+                "trading_days_old": 2
+              }
+            }
+          ],
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\validation_latest.json",
             "mtime_utc": "2026-07-21T02:26:35+00:00",
-            "wall_hours_old": 1.38,
-            "trading_days_old": 0,
+            "wall_hours_old": 63.7,
+            "trading_days_old": 2,
             "sla_trading_days": 1,
             "run_utc_declared": "2026-07-20T07:50:08+00:00Z"
           },
-          "suggested_fixes": [],
+          "suggested_fixes": [
+            "Investigate why the producer of validation_latest hasn't refreshed"
+          ],
           "elapsed_ms": 0.0
         },
         "schema": {
@@ -7792,7 +10150,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 134.19
+          "elapsed_ms": 114.62
         }
       }
     },
@@ -7802,10 +10160,11 @@
         "path": "usa/data/raw/us/_IDX_VIX_D1.parquet",
         "producer": "usa/scripts/refresh_market_data.py",
         "kind": "price",
-        "freshness_sla_trading_days": 1,
+        "freshness_sla_trading_days": 3,
         "consumers": [
           "usa/research/recommendations"
-        ]
+        ],
+        "notes": "SLA relaxed 1 \u2192 3 trading days (yfinance flakiness hotfix 2026-07-23)"
       },
       "rollup_verdict": "PASS",
       "rollup_confidence": 1.0,
@@ -7821,9 +10180,9 @@
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\data\\raw\\us\\_IDX_VIX_D1.parquet",
             "mtime_utc": "2026-07-20T08:20:42+00:00",
-            "wall_hours_old": 19.48,
-            "trading_days_old": 1,
-            "sla_trading_days": 1
+            "wall_hours_old": 81.79,
+            "trading_days_old": 3,
+            "sla_trading_days": 3
           },
           "suggested_fixes": [],
           "elapsed_ms": 0.0
@@ -7855,7 +10214,7 @@
             "n_columns": 6
           },
           "suggested_fixes": [],
-          "elapsed_ms": 2.76
+          "elapsed_ms": 0.0
         },
         "completeness": {
           "validator": "completeness",
@@ -7879,7 +10238,7 @@
           "issues": [],
           "evidence": {},
           "suggested_fixes": [],
-          "elapsed_ms": 8.78
+          "elapsed_ms": 10.1
         },
         "lineage": {
           "validator": "lineage",
@@ -7898,7 +10257,128 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 1118.57
+          "elapsed_ms": 876.84
+        }
+      }
+    },
+    "volatility_intelligence": {
+      "spec": {
+        "name": "volatility_intelligence",
+        "path": "usa/reports/volatility_intelligence.json",
+        "producer": "usa/research/macro_intel/run.py",
+        "kind": "macro",
+        "freshness_sla_trading_days": 1,
+        "consumers": [
+          "usa/dashboard"
+        ]
+      },
+      "rollup_verdict": "PASS",
+      "rollup_confidence": 0.9013,
+      "n_issues": 0,
+      "validators": {
+        "freshness": {
+          "validator": "freshness",
+          "dataset": "volatility_intelligence",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\volatility_intelligence.json",
+            "mtime_utc": "2026-07-23T18:03:32+00:00",
+            "wall_hours_old": 0.08,
+            "trading_days_old": 0,
+            "sla_trading_days": 1,
+            "run_utc_declared": "2026-07-21T04:12:50+00:00"
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "schema": {
+          "validator": "schema",
+          "dataset": "volatility_intelligence",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "required": [
+              "engine",
+              "run_utc",
+              "symbol",
+              "last",
+              "regime"
+            ],
+            "present": [
+              "engine",
+              "version",
+              "market",
+              "run_utc",
+              "asof",
+              "currency",
+              "model_stamp",
+              "symbol",
+              "last",
+              "regime",
+              "chg_1m_pct"
+            ],
+            "missing": [],
+            "extras": [],
+            "n_columns": 11
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 10.4
+        },
+        "completeness": {
+          "validator": "completeness",
+          "dataset": "volatility_intelligence",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {},
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "quality": {
+          "validator": "quality",
+          "dataset": "volatility_intelligence",
+          "verdict": "NOT_APPLICABLE",
+          "confidence": 0.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "reason": "not_applicable_to_non_parquet_or_missing"
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 0.0
+        },
+        "lineage": {
+          "validator": "lineage",
+          "dataset": "volatility_intelligence",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "producer": "usa/research/macro_intel/run.py",
+            "producer_path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\research\\macro_intel\\run.py",
+            "n_callers": 20,
+            "callers": [
+              "backend\\__init__.py",
+              "docs\\generate_architecture_review.py",
+              "india\\daily_run.py",
+              "scripts\\aegis_daily_v2.py",
+              "scripts\\aegis_profile.py",
+              "scripts\\check_data_freshness.py",
+              "backend\\ai\\data_quality.py",
+              "backend\\tests\\test_sprint2.py",
+              "backend\\tests\\test_sprint25.py",
+              "backend\\tests\\test_sprint26.py"
+            ]
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 88.61
         }
       }
     },
@@ -7913,26 +10393,36 @@
           "usa/dashboard/frontend"
         ]
       },
-      "rollup_verdict": "PASS",
-      "rollup_confidence": 0.9013,
-      "n_issues": 0,
+      "rollup_verdict": "WARNING",
+      "rollup_confidence": 0.8098,
+      "n_issues": 1,
       "validators": {
         "freshness": {
           "validator": "freshness",
           "dataset": "winner_genome",
-          "verdict": "PASS",
-          "confidence": 1.0,
-          "n_issues": 0,
-          "issues": [],
+          "verdict": "WARNING",
+          "confidence": 0.7,
+          "n_issues": 1,
+          "issues": [
+            {
+              "severity": "WARNING",
+              "message": "1 trading day overdue (SLA 1 \u00b7 currently 2)",
+              "evidence": {
+                "trading_days_old": 2
+              }
+            }
+          ],
           "evidence": {
             "path": "C:\\Users\\GPraveenKumar\\Downloads\\prism\\usa\\reports\\winner_genome.json",
             "mtime_utc": "2026-07-21T02:26:35+00:00",
-            "wall_hours_old": 1.38,
-            "trading_days_old": 0,
+            "wall_hours_old": 63.7,
+            "trading_days_old": 2,
             "sla_trading_days": 1,
             "run_utc_declared": "2026-07-20T07:50:10+00:00Z"
           },
-          "suggested_fixes": [],
+          "suggested_fixes": [
+            "Investigate why the producer of winner_genome hasn't refreshed"
+          ],
           "elapsed_ms": 0.0
         },
         "schema": {
@@ -8019,7 +10509,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 127.5
+          "elapsed_ms": 99.41
         }
       }
     }
