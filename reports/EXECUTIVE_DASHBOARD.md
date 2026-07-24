@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-07-21 · Sprint 7.8 (Benchmark Report) shipped · **Phase 3 Roadmap LOCKED**
 **Overwritten every sprint** — always the current state of AEGIS.
-**Roadmap authority:** [`docs/AEGIS_PHASE3_ROADMAP.md`](../docs/AEGIS_PHASE3_ROADMAP.md)
+**Roadmap authority:** [`docs/AEGIS_PHASE3_MASTER_ROADMAP.md`](../docs/AEGIS_PHASE3_MASTER_ROADMAP.md) (locked 2026-07-24 · supersedes prior 8-module spec)
 
 ---
 
