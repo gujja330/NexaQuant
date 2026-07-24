@@ -8,6 +8,10 @@
 · [`docs/AEGIS_PHASE5_DEVELOPMENT_STANDARDS.md`](../docs/AEGIS_PHASE5_DEVELOPMENT_STANDARDS.md) — Phase 5 · HOW (coding constitution · LOCKED 2026-07-24)
 · [`docs/AEGIS_PHASE6_EXECUTION_BLUEPRINT.md`](../docs/AEGIS_PHASE6_EXECUTION_BLUEPRINT.md) — Phase 6 · WHO + WHEN (parallel execution · LOCKED 2026-07-24)
 
+**Wave 1 (Repository Intelligence) · SHIPPED 2026-07-24:**
+· [`docs/AEGIS_REPO_AUDIT.md`](../docs/AEGIS_REPO_AUDIT.md) — Sprint A1 · 10 recommendation entry points · 59 engines mapped · 6 cross-cutting risks
+· [`reports/research_engine_inventory.json`](../reports/research_engine_inventory.json) — Sprint A2 · 59 engines · 25 categories · status matrix (39 Connected · 13 Partially · 3 Active · 4 Missing)
+
 ---
 
 ## Pipeline Status
