@@ -155,24 +155,17 @@ jobs:
           AEGIS_SPREADSHEET_ID: ${{ secrets.AEGIS_SPREADSHEET_ID }}
         run: python scripts/telegram_send_with_retry.py --attempts 4
 
-      # 2026-07-24 · UX030 SENDER DISABLED (operator directive).
-      # Was previously delivering a second Telegram from reports/recommendations.json
-      # (produced by research/adaptive_rec_v2), but that pipeline stopped updating
-      # the file (2026-07-17 last run_utc), so the UX030 message repeated the same
-      # top-buys day after day with only the date changing — no entry/current/%-move
-      # tracking, no holding days, no SOLD reasons. The APOLLO "portfolio diary"
-      # Telegram (above, via india/telegram_notify.py) IS the authoritative
-      # institutional daily brief. The UX030 script is kept on disk for manual
-      # opt-in but no longer runs automatically. Per the Sprint 7.9 orchestrator
-      # roadmap: one authoritative message, not two competing ones.
-      #
-      # - name: Telegram AEGIS v2 daily brief (UX030 renderer)   [disabled]
-      #   if: steps.guard.outputs.run == 'true' && steps.freshcheck.outputs.verified == 'true'
-      #   continue-on-error: true
-      #   env:
-      #     TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-      #     TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-      #   run: python scripts/telegram_send_ux030.py
+      # 2026-07-18 · v2.0 post-LOCK operator request: deliver BOTH the legacy
+      # paper-portfolio Telegram (above) AND the AEGIS v2 UX030 daily brief.
+      # continue-on-error so a v2-sender failure never blocks the legacy delivery
+      # (which is authoritative). Uses same TELEGRAM_* secrets.
+      - name: Telegram AEGIS v2 daily brief (UX030 renderer)
+        if: steps.guard.outputs.run == 'true' && steps.freshcheck.outputs.verified == 'true'
+        continue-on-error: true
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python scripts/telegram_send_ux030.py
 
       - name: Upload Telegram delivery ledger (artifact)
         if: always() && steps.guard.outputs.run == 'true'
