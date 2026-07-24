@@ -282,14 +282,22 @@ Otherwise C1 may later discover another history source (there are already TWO �
 
 ---
 
-## Success Criteria for C1
+## Success Criteria for C1 (revised 2026-07-24 · dual-market hard rule)
 
-- 27+ regression tests passing
-- Real runtime on India: ≥ 10 open positions tracked across current lifecycle states
-- Real runtime on USA: same (once A1/A2 confirm USA also has an audit trail)
-- Zero lookahead leaks (validated by `backend/replay/lookahead_guard.py`)
-- Zero regressions on ENG001 + all Sprint 6.5/7.5/7.6/7.7/7.8 suites
-- Output ready for C2 (Trade Lifecycle Intel) + C4 (Rec Drift Intel) to consume
+Per the Phase 3 dual-market rule, ALL of these must be true — missing any = sprint NOT COMPLETE:
+
+- [ ] Shared engine complete (`backend/trade_state/`)
+- [ ] India adapter complete (`india/trade_state/run.py`)
+- [ ] USA adapter complete (`usa/research/trade_state/run.py`)
+- [ ] India tests pass
+- [ ] USA tests pass
+- [ ] India real runtime: ≥ 10 open positions tracked across current lifecycle states
+- [ ] USA real runtime: same
+- [ ] `reports/global/trade_state_comparison.json` generated — India vs USA state distributions, per-state count deltas, avg holding-day deltas, target-crossing rate deltas
+- [ ] Zero lookahead leaks (validated by `backend/replay/lookahead_guard.py`) on BOTH markets
+- [ ] Zero regressions on ENG001 + all Sprint 6.5/7.5/7.6/7.7/7.8 suites
+- [ ] 27+ regression tests passing (across the shared engine + both adapters)
+- [ ] Sprint report enumerates: India results · USA results · Global comparison
 
 ---
 
