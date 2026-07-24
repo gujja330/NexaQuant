@@ -50,14 +50,22 @@ Portfolio Engine
 Execution Simulator
      ↓
 ──────── Phase 3 begins here ────────
-Trade Lifecycle Intelligence Engine
+Trade State Engine  ⭐                (state machine per position — anchor of Phase 3)
      ↓
-Operator Intelligence Layer            (ONE authoritative recommendation surface)
+Trade Lifecycle Intelligence Engine   (entry · holding · targets · exit · reversal · re-entry · score)
      ↓
-Telegram + Dashboard + Learning
+Recommendation Lifecycle Manager      (daily updates: living positions, not static labels)
+     ↓
+Operator Intelligence Layer           (ONE authoritative surface)
+     ↓
+Portfolio Decision Intelligence       (buy · increase · reduce · exit · hedge · wait · average · rebalance)
+     ↓
+Telegram + Dashboard + Operator Daily Report + Learning
+     ↓
+Research Factory → Walk-Forward → Promotion → Production  (continuous self-improvement)
 ```
 
-Existing supporting engines (Replay Framework · Walk Forward · Persistence · Factor Library · Research Factory · Institutional Governance) remain, feeding into Trade Lifecycle Intel + Operator Intel where relevant.
+Existing supporting engines (Replay Framework · Walk Forward · Persistence · Factor Library · Research Factory · Institutional Governance) remain, feeding into every Phase 3 layer where relevant.
 
 ---
 
@@ -81,6 +89,84 @@ Existing supporting engines (Replay Framework · Walk Forward · Persistence · 
 7. **Every enhancement must pass Historical Replay + Walk-Forward + Research Governance** BEFORE production.
 8. **Free/open-source stack only.** No paid APIs.
 9. **Sealed OPS001/MON001 files untouched · fingerprint preserved · legacy engines untouched.**
+
+---
+
+## Execution Roadmap (revised 2026-07-24)
+
+Seven phases · **Trade State Engine (Phase C1) is the anchor** · every phase gated on operator "start" before code touched.
+
+### Phase A · Repository Intelligence (read-only, zero code change)
+
+| Sprint | Deliverable | Output |
+|---|---|---|
+| **A1** | Repository Audit — Runner 1/2 architecture · all rec entry points · duplicates · dead code · connected vs disconnected engines | `docs/AEGIS_REPO_AUDIT.md` |
+| **A2** | Research Engine Discovery — per-engine status matrix (Exists · Active · Connected · Partially · Planned · Missing) across the full inventory | `reports/research_engine_inventory.json` |
+
+### Phase B · Historical Intelligence
+
+| Sprint | Deliverable | Output |
+|---|---|---|
+| **B1** | Historical Replay `2025-01-01 → today` — every engine on `--asof`, no `latest` refs | expanded rec/risk/portfolio/execution/learning history parquets |
+| **B2** | Institutional Walk-Forward — Sharpe · Sortino · CAGR · Alpha · Beta · DD · PF · Win / sector / regime / model | all `walkforward_*.json` populated on real backfilled ledgers |
+| **B3** | Runner Benchmark — Runner 1 vs Runner 2 on RECONSTRUCTED history (never today's snapshot) | `reports/benchmark_compare.json` with verdict READY_FOR_COMPARISON |
+
+### Phase C · Trade Intelligence
+
+| Sprint | Deliverable | Output |
+|---|---|---|
+| **C1 ⭐** | **Trade State Engine** — state machine per position: `NEW → OPEN → TARGET1/2/3 → STOPLOSS → EXIT → POST_EXIT → REVERSAL → REENTRY → CLOSED` | `reports/trade_state.parquet` (append-only, one row per position-day) |
+| **C2** | Trade Lifecycle Intelligence Engine — entry / holding / targets / exit / reversal / re-entry / score, all keyed off Trade State | `trade_lifecycle_analysis.json` + `trade_lifecycle_score.parquet` |
+| **C3** | Target Horizon · Exit Intelligence · Re-entry Intelligence — three sub-modules of the lifecycle engine sharing the same state substrate | `profit_target_matrix.parquet` · `exit_efficiency_analysis.json` · `reentry_probability_matrix.parquet` |
+
+### Phase D · Recommendation Lifecycle
+
+| Sprint | Deliverable | Output |
+|---|---|---|
+| **D1 ⭐** | **Recommendation Lifecycle Manager** — NOT a new rec engine. Consumes Trade State + Trade Lifecycle Intel. Daily updates: holding_day · current % · highest % · lowest % · target % · target_hit · expected_exit · exit_confidence · reentry_probability · trade_state | `reports/dynamic_trade_recommendations.json` |
+| **D2** | Operator Intelligence Layer — ONE authoritative surface. Consumes D1. Blends Runner 1 + Runner 2 + Macro + Commodities + Learning + Historical Replay + Walk Forward + Risk + Portfolio + Trade Lifecycle | `reports/operator_daily_summary.json` |
+
+### Phase E · Operator Experience
+
+| Sprint | Deliverable | Output |
+|---|---|---|
+| **E1** | Unified Telegram — extends `india/telegram_notify.py` (sealed contract preserved) to render from D2 output. UX030 sender REDIRECTS to same D2 output (no more competing streams — internal merge, not external disable) | new Telegram body shape, same OPS001-I invariants |
+| **E2** | Unified Dashboard — every recommendation displays Holding Day · Current Return · Highest Return · Target Progress · Exit Status · Reversal Status · Re-entry Status · Lifecycle Score | dashboard tiles reading from D2 |
+| **E3 ⭐** | **Operator Daily Report** — NEW SIGNALS / ACTIVE POSITIONS / Target Hit Today / Exit Recommended / Re-entry Opportunity / High Risk / Trade Lifecycle Changes / Macro Change / Portfolio | `reports/operator_daily_report.md` + Telegram morning brief |
+
+### Phase F · Portfolio Decision Intelligence
+
+| Sprint | Deliverable | Output |
+|---|---|---|
+| **F1** | Portfolio Decision Engine — instead of "BUY", answers per position: should I `buy` · `increase` · `reduce` · `exit` · `hedge` · `wait` · `average` · `rebalance`? | `reports/portfolio_decisions.json` |
+
+### Phase G · Continuous Self-Improvement
+
+| Sprint | Deliverable | Output |
+|---|---|---|
+| **G1** | Research Factory ↔ Trade Lifecycle loop — trade lifecycle output feeds research tickets → walk-forward → promotion → production | `reports/research_promotion_ledger.parquet` |
+
+**Sequencing rule:** phases execute in order (A → B → C → D → E → F → G). Within each phase, sprints execute in order. **No sprint starts without explicit operator "start" — options presented, decision theirs.**
+
+---
+
+## Why Trade State Engine (C1) Is The Anchor
+
+Every downstream problem has ONE root cause: **positions are treated as stateless `BUY`/`SELL`/`HOLD` labels instead of evolving state machines.**
+
+Once C1 exists, these problems SOLVE THEMSELVES:
+
+| Problem | Fixed by Trade State Engine because... |
+|---|---|
+| Stale APOLLO recommendation (same message day after day) | APOLLO transitions `NEW → OPEN → holding day 1 → 2 → 3...` — content changes with state, not repeated as static |
+| IPCALAB repeats identically | Same as above — state evolves; the notification renderer just prints current state |
+| Day-tracking missing | Trade state carries `days_in_state`, `entry_asof`, `current_asof` |
+| %-move missing | State transitions computed from current price vs entry — arithmetic falls out |
+| Exit not tracked | `EXIT` and `POST_EXIT` are first-class states with their own timers |
+| Reversal / re-entry disconnected | `REVERSAL` and `REENTRY` are state transitions, not separate engines |
+| Dual-notification confusion | ONE state per position → ONE notification per position — competition dissolves |
+
+Once C1 ships, C2 / D1 / D2 / E1-E3 become "consume the state and render", not "invent lifecycle from scratch."
 
 ---
 
