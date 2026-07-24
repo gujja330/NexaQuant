@@ -5,6 +5,7 @@
 **Roadmap authority:**
 · [`docs/AEGIS_PHASE3_MASTER_ROADMAP.md`](../docs/AEGIS_PHASE3_MASTER_ROADMAP.md) — Phase 3 (Architecture FROZEN 2026-07-24 · 18 sprints · dual-market hard rule)
 · [`docs/AEGIS_PHASE4_PRODUCT_COMPLETION.md`](../docs/AEGIS_PHASE4_PRODUCT_COMPLETION.md) — Phase 4 (Product Completion Program · 20 modules · locked 2026-07-24)
+· [`docs/AEGIS_PHASE5_DEVELOPMENT_STANDARDS.md`](../docs/AEGIS_PHASE5_DEVELOPMENT_STANDARDS.md) — Phase 5 (Coding constitution · development standards · locked 2026-07-24)
 
 ---
 
