@@ -42,8 +42,8 @@ jobs:
           python -m pip install --upgrade pip
           pip install pandas numpy pyarrow scikit-learn pyyaml
 
-      - name: Run Operational Hardening Check
-        run: python scripts/aegis_ops_check.py
+      - name: Run Operational Hardening Check (CI mode — skips freshness gate)
+        run: python scripts/aegis_ops_check.py --ci
 
       - name: Run Backend Validation regression suite (Sprint 1)
         run: python backend/validation/tests/test_backend_validation.py

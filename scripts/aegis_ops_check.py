@@ -298,15 +298,26 @@ def build_verdict(artifacts: dict, schemas: dict, fingerprint: dict, health: dic
 
 
 def main() -> int:
+    import sys as _sys
+    # `--ci` / `--skip-backend` mode: skip the backend_validation rollup so
+    # CI push events (which run on a fresh checkout with stale committed
+    # reports and no live market data) don't fail on freshness alone.
+    # Freshness gating is the daily pipeline's responsibility; CI validates
+    # code + schema + artifact presence + fingerprint.
+    ci_mode = ("--ci" in _sys.argv) or ("--skip-backend" in _sys.argv)
+
     print("=" * 68)
-    print("  AEGIS OPS CHECK · artifact + schema + fingerprint + health")
+    print(f"  AEGIS OPS CHECK · artifact + schema + fingerprint + health"
+            f"{'  (CI mode: backend rollup skipped)' if ci_mode else ''}")
     print("=" * 68)
 
     artifacts = check_artifacts()
     schemas   = check_schemas()
     fingerprint = check_fingerprint()
-    health    = check_health()
-    backend   = check_backend_validation()
+    health    = (check_health() if not ci_mode
+                    else {"checked": False, "reason": "skipped in CI mode (health is a daily-pipeline concern)"})
+    backend   = (check_backend_validation() if not ci_mode
+                    else {"checked": False, "reason": "skipped in CI mode (freshness is a daily-pipeline concern)"})
     verdict   = build_verdict(artifacts, schemas, fingerprint, health, backend)
 
     result = {

@@ -580,7 +580,11 @@ def build_message():
     lines = []
 
     # ── HEADER (§3.1) ──────────────────────────────────────────────────
-    lines.append("🏢 <b>NEXAQUANT · AEGIS Daily</b>")
+    # 2026-07-24 · Clear branding as the authoritative daily brief. The v2 UX030
+    # sender was producing a competing message that confused the operator ("which
+    # notification to follow?"); the workflow now only fires this one.
+    lines.append("🏢 <b>NEXAQUANT · AEGIS Portfolio Diary</b>")
+    lines.append("<i>Authoritative daily brief · paper-portfolio tracker</i>")
     hdr2 = f"📅 Market asof <code>{asof}</code>"
     if weekday:
         hdr2 += f" ({weekday})"
