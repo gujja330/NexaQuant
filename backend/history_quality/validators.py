@@ -42,14 +42,20 @@ def _parse_asof_series(df: pd.DataFrame) -> Optional[pd.Series]:
 def check_history_parquet(*, family: str, path: Path, market: str,
                              required_columns: Iterable[str] = ("market", "asof"),
                              expected_min_rows: int = 1,
+                             extra_dedupe_keys: Iterable[str] = (),
                              ) -> FamilyCheckResult:
     """
     Generic append-only history-parquet validator. Used for:
     recommendation_history / risk_history / portfolio_history / execution_history
     / learning_history / macro_history / factor_library_history.
 
-    Checks: existence · schema · row count · duplicate (market, asof) rows ·
+    Checks: existence · schema · row count · duplicate rows on the natural key ·
     missing weekdays in the observed date range (soft signal).
+
+    `extra_dedupe_keys`: extends the natural key beyond (market, asof) for
+    multi-row-per-day families like factor_library (keyed on market+asof+factor).
+    Passing () treats each date as a snapshot; passing ('factor',) allows one
+    row per (market, asof, factor).
     """
     exists = path.exists()
     if not exists:
@@ -95,7 +101,16 @@ def check_history_parquet(*, family: str, path: Path, market: str,
         date_range = None
     else:
         n_unique = int(asof_series.nunique())
-        n_dup = int((asof_series.value_counts() > 1).sum())
+        # Dedupe check uses the natural key (asof + extras like `factor` for
+        # multi-row-per-day families). Without extras, N rows on the same date
+        # are duplicates. With extras, only true collisions on the full natural
+        # key count as duplicates.
+        dedupe_cols = ["asof"] + [c for c in extra_dedupe_keys if c in df.columns]
+        if len(dedupe_cols) > 1:
+            key = df[dedupe_cols].astype(str).agg("|".join, axis=1)
+            n_dup = int((key.value_counts() > 1).sum())
+        else:
+            n_dup = int((asof_series.value_counts() > 1).sum())
         dmin, dmax = asof_series.min(), asof_series.max()
         date_range = f"{dmin.isoformat()}..{dmax.isoformat()}"
         expected = _weekdays_between(dmin, dmax)

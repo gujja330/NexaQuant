@@ -12,10 +12,13 @@
 · [`docs/AEGIS_REPO_AUDIT.md`](../docs/AEGIS_REPO_AUDIT.md) — Sprint A1 · 10 recommendation entry points · 59 engines mapped · 6 cross-cutting risks
 · [`reports/research_engine_inventory.json`](../reports/research_engine_inventory.json) — Sprint A2 · 59 engines · 25 categories · status matrix (39 Connected · 13 Partially · 3 Active · 4 Missing)
 
-**Wave 2 (Historical Intelligence) · IN PROGRESS 2026-07-24:**
-· [`reports/history_quality_report.json`](history_quality_report.json) — Sprint B0 India · PARTIAL · score 69/100 · 2 CA flags (MM_D1 stalled)
+**Wave 2 (Historical Intelligence) · Sprint B0 CLOSED 2026-07-24:**
+· [`reports/history_quality_report.json`](history_quality_report.json) — Sprint B0 India · PARTIAL · score 70/100 · 2 CA flags (MM_D1 stalled — accepted debt)
 · [`usa/reports/history_quality_report.json`](../usa/reports/history_quality_report.json) — Sprint B0 USA · PARTIAL · score 58/100
-· [`reports/global/history_quality_comparison.json`](global/history_quality_comparison.json) — cross-market delta (USA -11 vs India · worse market = USA)
+· [`reports/global/history_quality_comparison.json`](global/history_quality_comparison.json) — cross-market delta (USA -12 vs India · worse market = USA)
+
+**Wave 1 + Wave 2 · CLOSED 2026-07-24:**
+· [`docs/AEGIS_WAVE_1_2_CLOSURE_REPORT.md`](../docs/AEGIS_WAVE_1_2_CLOSURE_REPORT.md) — every A1/A2/B0 finding classified · 1 Must-Fix (factor_library validator) shipped · 4 Accepted debt items ledger'd · Definition of Done ✓ for all three sprints
 
 ---
 

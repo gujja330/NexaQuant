@@ -157,6 +157,28 @@ def test_missing_columns_produce_fail():
     shutil.rmtree(tmp.parent)
 
 
+def test_extra_dedupe_keys_allow_multi_row_per_day():
+    """factor_library-style family: multiple rows on same date should NOT count
+    as duplicates when the natural key includes an extra column like 'factor'."""
+    tmp = Path(tempfile.mkdtemp()) / "h.parquet"
+    rows = [
+        {"market": "usa", "asof": "2026-07-21", "factor": "oil_wti",  "value": 82.0},
+        {"market": "usa", "asof": "2026-07-21", "factor": "vix",      "value": 18.6},
+        {"market": "usa", "asof": "2026-07-21", "factor": "gold",     "value": 4011.8},
+        {"market": "usa", "asof": "2026-07-22", "factor": "oil_wti",  "value": 83.1},
+    ]
+    pd.DataFrame(rows).to_parquet(tmp, index=False)
+    # Without extra key → all 3 rows on 2026-07-21 look like dupes → WARN
+    r_naive = check_history_parquet(family="factor_library", path=tmp, market="usa")
+    assert r_naive.n_duplicate_dates >= 1
+    # With extra key → each (asof, factor) is unique → PASS
+    r_correct = check_history_parquet(family="factor_library", path=tmp, market="usa",
+                                          extra_dedupe_keys=("factor",))
+    assert r_correct.n_duplicate_dates == 0
+    assert r_correct.status == FamilyStatus.PASS.value
+    shutil.rmtree(tmp.parent)
+
+
 def test_market_isolation():
     tmp = Path(tempfile.mkdtemp()) / "h.parquet"
     rows = [{"market": "india", "asof": "2026-07-01"},
@@ -327,6 +349,7 @@ TESTS = [
     ("history: populated + clean → PASS", test_populated_history_file_passes),
     ("history: duplicates → WARN", test_duplicate_dates_downgrade_to_warn),
     ("history: missing schema col → FAIL", test_missing_columns_produce_fail),
+    ("history: extra dedupe keys allow multi-row-per-day (factor_library)", test_extra_dedupe_keys_allow_multi_row_per_day),
     ("history: market isolation", test_market_isolation),
     ("corpus: missing → NOT_APPLICABLE", test_missing_corpus_is_not_applicable),
     ("corpus: populated → PASS", test_populated_corpus_passes),

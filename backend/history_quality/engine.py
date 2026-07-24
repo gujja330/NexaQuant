@@ -19,15 +19,18 @@ ENGINE_VERSION = "1.0.0"
 
 # Family manifest — the 10 history sources every market has (or should have) per Sprint 7.5+.
 # Each tuple = (family_name, path_template)
+# Family manifest — each entry: (family_name, path_template, extra_dedupe_keys).
+# Most families are per-day snapshots keyed on (market, asof). Factor library is
+# multi-row-per-day: one row per (market, asof, factor).
 FAMILIES = [
-    ("recommendation",           "{reports}/recommendation_history.parquet"),
-    ("recommendation_runner1",   "{reports}/recommendation_history_runner1.parquet"),
-    ("risk",                     "{reports}/risk_history.parquet"),
-    ("portfolio",                "{reports}/portfolio_history.parquet"),
-    ("execution",                "{reports}/execution_history.parquet"),
-    ("learning",                 "{reports}/learning_history.parquet"),
-    ("macro",                    "{reports}/macro_history.parquet"),
-    ("factor_library",           "{reports}/factor_library_history.parquet"),
+    ("recommendation",           "{reports}/recommendation_history.parquet",           ()),
+    ("recommendation_runner1",   "{reports}/recommendation_history_runner1.parquet",   ()),
+    ("risk",                     "{reports}/risk_history.parquet",                     ()),
+    ("portfolio",                "{reports}/portfolio_history.parquet",                ()),
+    ("execution",                "{reports}/execution_history.parquet",                ()),
+    ("learning",                 "{reports}/learning_history.parquet",                 ()),
+    ("macro",                    "{reports}/macro_history.parquet",                    ()),
+    ("factor_library",           "{reports}/factor_library_history.parquet",           ("factor",)),
 ]
 
 
@@ -48,10 +51,11 @@ class HistoryQualityEngine:
     def _run_history_families(self, market: str) -> List[FamilyCheckResult]:
         reports = self.market_reports(market)
         results: List[FamilyCheckResult] = []
-        for family, template in FAMILIES:
+        for family, template, extra_dedupe_keys in FAMILIES:
             path = Path(template.format(reports=str(reports)))
             results.append(check_history_parquet(
                 family=family, path=path, market=market,
+                extra_dedupe_keys=extra_dedupe_keys,
             ))
         # Learning corpus (different key from history)
         results.append(check_learning_corpus(
