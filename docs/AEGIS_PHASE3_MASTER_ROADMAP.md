@@ -1,6 +1,7 @@
 # AEGIS Phase 3 · Master Roadmap · ARCHITECTURE FROZEN
 ### Trade Lifecycle Intelligence + Operator Intelligence Platform
 ### 🔒 FROZEN 2026-07-24 · Supersedes docs/AEGIS_PHASE3_ROADMAP.md
+### 🎯 Phase 4 (Product Completion): [`docs/AEGIS_PHASE4_PRODUCT_COMPLETION.md`](AEGIS_PHASE4_PRODUCT_COMPLETION.md) — 20 modules wrap Phase 3 engines into an institutional platform
 
 > **Architecture freeze:** No more engines beyond what's listed below. Remaining work is **implementation quality, validation, integration** — not architecture expansion. Any request to add a Phase 3 engine after this date requires explicit operator override in writing.
 

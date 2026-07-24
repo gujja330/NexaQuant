@@ -2,7 +2,9 @@
 
 **Last updated:** 2026-07-21 · Sprint 7.8 (Benchmark Report) shipped · **Phase 3 Roadmap LOCKED**
 **Overwritten every sprint** — always the current state of AEGIS.
-**Roadmap authority:** [`docs/AEGIS_PHASE3_MASTER_ROADMAP.md`](../docs/AEGIS_PHASE3_MASTER_ROADMAP.md) (locked 2026-07-24 · supersedes prior 8-module spec)
+**Roadmap authority:**
+· [`docs/AEGIS_PHASE3_MASTER_ROADMAP.md`](../docs/AEGIS_PHASE3_MASTER_ROADMAP.md) — Phase 3 (Architecture FROZEN 2026-07-24 · 18 sprints · dual-market hard rule)
+· [`docs/AEGIS_PHASE4_PRODUCT_COMPLETION.md`](../docs/AEGIS_PHASE4_PRODUCT_COMPLETION.md) — Phase 4 (Product Completion Program · 20 modules · locked 2026-07-24)
 
 ---
 
