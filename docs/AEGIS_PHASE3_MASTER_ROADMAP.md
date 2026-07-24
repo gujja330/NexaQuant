@@ -50,20 +50,39 @@ Portfolio Engine
 Execution Simulator
      ↓
 ──────── Phase 3 begins here ────────
-Trade State Engine  ⭐                (state machine per position — anchor of Phase 3)
+Trade State Engine  ⭐                (TWO state machines: RECOMMENDATION_STATE + POSITION_STATE
+                                       — dumb data only, no calculations)
      ↓
-Trade Lifecycle Intelligence Engine   (entry · holding · targets · exit · reversal · re-entry · score)
+Trade Lifecycle Intelligence Engine   (analytics only: probabilities, expected exits, re-entry,
+                                       lifecycle scores — never touches state, never renders)
      ↓
-Recommendation Lifecycle Manager      (daily updates: living positions, not static labels)
+Recommendation Drift Intelligence     (monthly · was BUY, would model say BUY today? why diverge?)
      ↓
-Operator Intelligence Layer           (ONE authoritative surface)
+Recommendation Lifecycle Manager      (THIN RENDERER: composes State + Lifecycle + Risk +
+                                       Portfolio + Macro → JSON. Never calculates.)
      ↓
-Portfolio Decision Intelligence       (buy · increase · reduce · exit · hedge · wait · average · rebalance)
+Operator Intelligence Layer           (ONE authoritative surface + PRIORITIZATION buckets:
+                                       Immediate Action / Review Today / Healthy / Watchlist)
+     ↓
+Portfolio Decision Intelligence       (Highest Conviction · Highest Risk · Most Overvalued ·
+                                       Best Re-entry · Most Urgent Exit · Sector Concentration ·
+                                       Cash Allocation · Portfolio Health)
      ↓
 Telegram + Dashboard + Operator Daily Report + Learning
      ↓
 Research Factory → Walk-Forward → Promotion → Production  (continuous self-improvement)
 ```
+
+**Strict layer responsibilities (learned from 2026-07-24 review):**
+
+| Layer | Does | Does NOT |
+|---|---|---|
+| Trade State Engine | current state · prices · holding day · highest / lowest · transitions | intelligence · probabilities · confidence · recommendations |
+| Trade Lifecycle Intelligence | probabilities · expected exit · re-entry probability · lifecycle scores | render UI · compose messages · touch state |
+| Recommendation Drift Intelligence | monthly rec vs current-model vs outcome comparisons | daily updates · state changes · UI |
+| Recommendation Lifecycle Manager | THIN RENDERER — compose upstream outputs into unified JSON | calculate anything · invent new metrics |
+| Operator Intelligence Layer | prioritize into buckets · single-voice notification | recompute lifecycle · duplicate rec logic |
+| Portfolio Decision Intelligence | portfolio-level buy/increase/reduce/exit/hedge/wait/average/rebalance decisions | per-position lifecycle (that's above) |
 
 Existing supporting engines (Replay Framework · Walk Forward · Persistence · Factor Library · Research Factory · Institutional Governance) remain, feeding into every Phase 3 layer where relevant.
 
@@ -113,18 +132,21 @@ Seven phases · **Trade State Engine (Phase C1) is the anchor** · every phase g
 
 ### Phase C · Trade Intelligence
 
+**⛔ HARD BLOCKER:** C1 CANNOT start until A1 (Repository Audit) AND A2 (Research Engine Discovery) are **literally complete** with `docs/AEGIS_REPO_AUDIT.md` + `reports/research_engine_inventory.json` on disk and reviewed. Otherwise C1 may later discover another history source or recommendation ledger and require redesign.
+
 | Sprint | Deliverable | Output |
 |---|---|---|
-| **C1 ⭐** | **Trade State Engine** — state machine per position: `NEW → OPEN → TARGET1/2/3 → STOPLOSS → EXIT → POST_EXIT → REVERSAL → REENTRY → CLOSED` | `reports/trade_state.parquet` (append-only, one row per position-day) |
-| **C2** | Trade Lifecycle Intelligence Engine — entry / holding / targets / exit / reversal / re-entry / score, all keyed off Trade State | `trade_lifecycle_analysis.json` + `trade_lifecycle_score.parquet` |
+| **C1 ⭐** | **Trade State Engine** — TWO state machines: (a) `RecommendationState`: GENERATED → APPROVED → ACTIVE → SUPERSEDED → EXPIRED; (b) `PositionState`: NEW → OPEN → TARGET(+X%) → EXIT → POST_EXIT → REVERSAL → REENTRY → CLOSED. **Dumb data only** (current state · prices · holding day · highest / lowest · transitions). Dynamic target thresholds from config, not hardcoded slots. | `reports/trade_state.parquet` + `reports/recommendation_state.parquet` (append-only, one row per entity-day) |
+| **C2** | Trade Lifecycle Intelligence Engine — analytics on top of state: probabilities, expected exit, re-entry probability, lifecycle scores. **Consumes state, never mutates it.** | `trade_lifecycle_analysis.json` + `trade_lifecycle_score.parquet` |
 | **C3** | Target Horizon · Exit Intelligence · Re-entry Intelligence — three sub-modules of the lifecycle engine sharing the same state substrate | `profit_target_matrix.parquet` · `exit_efficiency_analysis.json` · `reentry_probability_matrix.parquet` |
+| **C4** | Recommendation Drift Intelligence — monthly cadence: for each historical recommendation, compare (a) original rec → (b) current position state → (c) actual realized outcome → (d) what the current model would recommend TODAY → (e) why did they diverge? | `reports/recommendation_drift.parquet` + `reports/recommendation_drift_summary.json` |
 
 ### Phase D · Recommendation Lifecycle
 
 | Sprint | Deliverable | Output |
 |---|---|---|
-| **D1 ⭐** | **Recommendation Lifecycle Manager** — NOT a new rec engine. Consumes Trade State + Trade Lifecycle Intel. Daily updates: holding_day · current % · highest % · lowest % · target % · target_hit · expected_exit · exit_confidence · reentry_probability · trade_state | `reports/dynamic_trade_recommendations.json` |
-| **D2** | Operator Intelligence Layer — ONE authoritative surface. Consumes D1. Blends Runner 1 + Runner 2 + Macro + Commodities + Learning + Historical Replay + Walk Forward + Risk + Portfolio + Trade Lifecycle | `reports/operator_daily_summary.json` |
+| **D1 ⭐** | **Recommendation Lifecycle Manager** — **THIN RENDERER · never calculates.** Composes Trade State + Trade Lifecycle + Risk + Portfolio + Macro upstream outputs into a unified JSON. Every field is a PASSTHROUGH from an upstream engine — this layer invents no metrics. | `reports/dynamic_trade_recommendations.json` |
+| **D2** | Operator Intelligence Layer — ONE authoritative surface WITH PRIORITIZATION. Buckets: `Immediate Action` / `Review Today` / `Healthy Holdings` / `Watchlist`. Operator reads the bucket, not all 35 positions. | `reports/operator_daily_summary.json` (grouped by bucket) |
 
 ### Phase E · Operator Experience
 
@@ -138,7 +160,7 @@ Seven phases · **Trade State Engine (Phase C1) is the anchor** · every phase g
 
 | Sprint | Deliverable | Output |
 |---|---|---|
-| **F1** | Portfolio Decision Engine — instead of "BUY", answers per position: should I `buy` · `increase` · `reduce` · `exit` · `hedge` · `wait` · `average` · `rebalance`? | `reports/portfolio_decisions.json` |
+| **F1** | Portfolio Decision Engine — per-position (buy · increase · reduce · exit · hedge · wait · average · rebalance) PLUS portfolio-level answers: **Highest Conviction · Highest Risk · Most Overvalued · Best Re-entry · Most Urgent Exit · Sector Concentration · Cash Allocation · Portfolio Health.** | `reports/portfolio_decisions.json` (per-position) + `reports/portfolio_health.json` (portfolio-level) |
 
 ### Phase G · Continuous Self-Improvement
 
@@ -147,6 +169,8 @@ Seven phases · **Trade State Engine (Phase C1) is the anchor** · every phase g
 | **G1** | Research Factory ↔ Trade Lifecycle loop — trade lifecycle output feeds research tickets → walk-forward → promotion → production | `reports/research_promotion_ledger.parquet` |
 
 **Sequencing rule:** phases execute in order (A → B → C → D → E → F → G). Within each phase, sprints execute in order. **No sprint starts without explicit operator "start" — options presented, decision theirs.**
+
+**Full sprint sequence:** A1 → A2 → B1 → B2 → B3 → **C1(⭐)** → C2 → C3 → C4 → **D1(⭐)** → D2 → E1 → E2 → **E3(⭐)** → F1 → G1
 
 ---
 
