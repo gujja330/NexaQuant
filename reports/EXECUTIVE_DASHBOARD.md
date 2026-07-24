@@ -12,6 +12,11 @@
 · [`docs/AEGIS_REPO_AUDIT.md`](../docs/AEGIS_REPO_AUDIT.md) — Sprint A1 · 10 recommendation entry points · 59 engines mapped · 6 cross-cutting risks
 · [`reports/research_engine_inventory.json`](../reports/research_engine_inventory.json) — Sprint A2 · 59 engines · 25 categories · status matrix (39 Connected · 13 Partially · 3 Active · 4 Missing)
 
+**Wave 2 (Historical Intelligence) · IN PROGRESS 2026-07-24:**
+· [`reports/history_quality_report.json`](history_quality_report.json) — Sprint B0 India · PARTIAL · score 69/100 · 2 CA flags (MM_D1 stalled)
+· [`usa/reports/history_quality_report.json`](../usa/reports/history_quality_report.json) — Sprint B0 USA · PARTIAL · score 58/100
+· [`reports/global/history_quality_comparison.json`](global/history_quality_comparison.json) — cross-market delta (USA -11 vs India · worse market = USA)
+
 ---
 
 ## Pipeline Status
