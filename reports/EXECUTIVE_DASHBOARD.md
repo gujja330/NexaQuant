@@ -2,10 +2,11 @@
 
 **Last updated:** 2026-07-21 · Sprint 7.8 (Benchmark Report) shipped · **Phase 3 Roadmap LOCKED**
 **Overwritten every sprint** — always the current state of AEGIS.
-**Roadmap authority:**
-· [`docs/AEGIS_PHASE3_MASTER_ROADMAP.md`](../docs/AEGIS_PHASE3_MASTER_ROADMAP.md) — Phase 3 (Architecture FROZEN 2026-07-24 · 18 sprints · dual-market hard rule)
-· [`docs/AEGIS_PHASE4_PRODUCT_COMPLETION.md`](../docs/AEGIS_PHASE4_PRODUCT_COMPLETION.md) — Phase 4 (Product Completion Program · 20 modules · locked 2026-07-24)
-· [`docs/AEGIS_PHASE5_DEVELOPMENT_STANDARDS.md`](../docs/AEGIS_PHASE5_DEVELOPMENT_STANDARDS.md) — Phase 5 (Coding constitution · development standards · locked 2026-07-24)
+**Roadmap authority (four-pillar):**
+· [`docs/AEGIS_PHASE3_MASTER_ROADMAP.md`](../docs/AEGIS_PHASE3_MASTER_ROADMAP.md) — Phase 3 · WHAT (18 engine sprints · FROZEN 2026-07-24)
+· [`docs/AEGIS_PHASE4_PRODUCT_COMPLETION.md`](../docs/AEGIS_PHASE4_PRODUCT_COMPLETION.md) — Phase 4 · WHICH (20 product modules · LOCKED 2026-07-24)
+· [`docs/AEGIS_PHASE5_DEVELOPMENT_STANDARDS.md`](../docs/AEGIS_PHASE5_DEVELOPMENT_STANDARDS.md) — Phase 5 · HOW (coding constitution · LOCKED 2026-07-24)
+· [`docs/AEGIS_PHASE6_EXECUTION_BLUEPRINT.md`](../docs/AEGIS_PHASE6_EXECUTION_BLUEPRINT.md) — Phase 6 · WHO + WHEN (parallel execution · LOCKED 2026-07-24)
 
 ---
 

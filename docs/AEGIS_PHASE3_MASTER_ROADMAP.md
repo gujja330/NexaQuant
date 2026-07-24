@@ -3,6 +3,7 @@
 ### 🔒 FROZEN 2026-07-24 · Supersedes docs/AEGIS_PHASE3_ROADMAP.md
 ### 🎯 Phase 4 (Product Completion): [`docs/AEGIS_PHASE4_PRODUCT_COMPLETION.md`](AEGIS_PHASE4_PRODUCT_COMPLETION.md) — 20 modules wrap Phase 3 engines into an institutional platform
 ### 📐 Phase 5 (Development Standards): [`docs/AEGIS_PHASE5_DEVELOPMENT_STANDARDS.md`](AEGIS_PHASE5_DEVELOPMENT_STANDARDS.md) — the coding constitution every sprint must follow
+### 🗺️ Phase 6 (Execution Blueprint): [`docs/AEGIS_PHASE6_EXECUTION_BLUEPRINT.md`](AEGIS_PHASE6_EXECUTION_BLUEPRINT.md) — WHO owns what + WHEN it runs · parallel streams · waves · DoD
 
 > **Architecture freeze:** No more engines beyond what's listed below. Remaining work is **implementation quality, validation, integration** — not architecture expansion. Any request to add a Phase 3 engine after this date requires explicit operator override in writing.
 
