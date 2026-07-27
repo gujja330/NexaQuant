@@ -40,6 +40,13 @@
 · Reframe rationale: C0/C1/C2 are temporary labels · after 6 months nobody remembers what C2 was · AEGIS is now an institutional platform organized by business capability, not implementation phase
 · After Wave 4 seal → AEGIS transitions to feature evolution only · no more structural sprints
 
+**Wave 4.5 · Enterprise Constitution v1.0.0 · APEX AUTHORITY · LOCKED 2026-07-27:**
+· [`docs/AEGIS_ENTERPRISE_CONSTITUTION.md`](../docs/AEGIS_ENTERPRISE_CONSTITUTION.md) — 99 articles · 24 parts · 5 appendices
+· 16 Immutable Invariants · 10-Layer Model + Domain Import Matrix (10×10 authoritative) · Sealed Contracts Registry · Six-AI-Agents roster · 20-scenario Institutional Acceptance Suite
+· Governs every future implementation forever · supersedes conflicts with all prior docs · amendable only via Article 99 (proposal + impact analysis + operator sign-off + version bump)
+· Sequencing: (1) Constitution ratified 2026-07-27 (2) Architecture frozen (3) Wave 4 D0..D8 executes AGAINST it (4) post-D8 structurally frozen (5) feature evolution only forever
+· Every future PR / sprint / AI-generated code must be checked against the Constitution FIRST
+
 ---
 
 ## Pipeline Status
