@@ -213,6 +213,24 @@ STEPS = [
         "requires": ["reports/recommendations.json"],
         "optional": True,
     },
+    # ── Enterprise Completion Program · Phase D/L/B integration ──
+    {
+        "name": "recommendation_quality",
+        "desc": "Recommendation Quality Engine · expected alpha + downside + win prob + CI (Phase D · L2 WIRED)",
+        "script": "backend/recommendation/quality/run.py",
+        "script_args": ["--market", "india"],
+        "produces": ["reports/recommendation_quality.json"],
+        "requires": ["reports/recommendations.json"],
+        "optional": True,
+    },
+    {
+        "name": "repository_intelligence",
+        "desc": "Repository Intelligence · dead code + orphan reports + stale artifacts (Phase L · L2 WIRED)",
+        "script": "backend/repository_intelligence/run.py",
+        "produces": ["reports/repository_intelligence.json"],
+        "requires": [],
+        "optional": True,
+    },
     {
         "name": "risk_engine",
         "desc": "Sprint 4 · Risk Engine (Kelly sizing + caps + vol adj + VaR/CVaR + AI risk analyst)",
