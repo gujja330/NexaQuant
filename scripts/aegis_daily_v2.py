@@ -75,6 +75,18 @@ STEPS = [
         "requires": [],
         "optional": True,
     },
+    # Enterprise Finalization · Phase 1 · Macro substrate ingest.
+    # Populates reports/macro_summary.json (+ data/raw/india/) which the
+    # macro_intel engine reads. Without this the entire macro chain is empty.
+    {
+        "name": "ingest_macro_summary",
+        "desc": "Macro summary ingest · yfinance-live with seed fallback (fixes Phase 9 substrate)",
+        "script": "backend/ingest/macro_summary_ingest.py",
+        "script_args": ["--market", "india"],
+        "produces": ["reports/macro_summary.json", "data/raw/india/macro_summary.json"],
+        "requires": [],
+        "optional": True,
+    },
     {
         "name": "ingest_corporate_actions",
         "desc": "Sprint 1B · Corporate actions ingest (dividends + splits, trailing 365d)",
