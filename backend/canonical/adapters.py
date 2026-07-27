@@ -350,13 +350,37 @@ def adapt_earnings(repo_root: Path, market: MarketProfile,
 # ─── MACRO ───────────────────────────────────────────────────────────
 def adapt_macro(repo_root: Path, market: MarketProfile,
                  cutoff: date | None = None) -> CanonicalDataset:
-    """India has no dedicated macro parquet yet — return empty for India.
-    USA uses usa/data/raw/us/macro.parquet."""
+    """India uses reports/macro_summary.json (produced by backend.ingest.macro_summary_ingest).
+    USA uses usa/data/raw/us/macro.parquet + usa/reports/macro_summary.json."""
     rows: list[CanonicalMacro] = []
     if market.name != "usa":
+        # 2026-07-27: India macro adapter · reads reports/macro_summary.json
+        sp = repo_root / "reports" / "macro_summary.json"
+        if not sp.exists():
+            return CanonicalDataset(kind="macro", market=market.name,
+                                      asof=cutoff or date.today(), n_rows=0,
+                                      source=str(sp) + ":missing")
+        try:
+            data = json.loads(sp.read_text(encoding="utf-8"))
+            per_sym = data.get("per_symbol", [])
+            for row in per_sym:
+                sym = str(row.get("symbol") or "")
+                if not sym: continue
+                rows.append(CanonicalMacro(
+                    market=market.name, symbol=sym,
+                    label=str(row.get("label") or ""),
+                    asof=cutoff or date.today(),
+                    close=float(row.get("last") or 0.0),
+                    chg_1d_pct=_f(row.get("chg_1d_pct")),
+                    chg_1w_pct=_f(row.get("chg_1w_pct")),
+                    chg_1m_pct=_f(row.get("chg_1m_pct")),
+                    source="reports/macro_summary.json",
+                ))
+        except Exception:
+            pass
         return CanonicalDataset(kind="macro", market=market.name,
-                                  asof=cutoff or date.today(), n_rows=0,
-                                  source="not-yet-ingested-for-india")
+                                  asof=cutoff or date.today(), n_rows=len(rows),
+                                  rows=rows, source=str(sp))
     p = repo_root / "usa" / "data" / "raw" / "us" / "macro.parquet"
     source = "usa.research.macro"
     if not p.exists():

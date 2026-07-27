@@ -75,9 +75,18 @@ def compute(canon: dict[str, CanonicalDataset], universe: list[str],
     sec_rank: dict[str, int] = {s: i + 1 for i, (s, _) in enumerate(ranked)}
     n_sec = len(ranked)
 
+    # 2026-07-27 fix: normalize ticker lookup. `ticker_sector` from india/sectors.py
+    # keys are BARE symbols (RELIANCE), but universe may include NSE-suffix form
+    # (RELIANCE.NS). Try both.
+    def _lookup_sector(t: str) -> str:
+        s = ticker_sector.get(t, "")
+        if s: return s
+        bare = t.split(".")[0] if "." in t else t
+        return ticker_sector.get(bare, "")
+
     out: dict[str, dict] = {}
     for t in universe:
-        sec = ticker_sector.get(t, "")
+        sec = _lookup_sector(t)
         ret = sec_return.get(sec) if sec else None
         rank = sec_rank.get(sec) if sec else None
         is_leader = 1 if (rank is not None and rank <= 3) else 0
