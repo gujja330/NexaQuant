@@ -1,7 +1,36 @@
 # AEGIS Executive Dashboard
 
-**Product state · updated 2026-07-27 · CEO cycle 1 · Learning-Loop Closure**
+**Product state · updated 2026-07-27 · CEO cycles 1-2 · Learning-Loop + Investor-Actionable Schema**
 **Governing authority:** [`Enterprise Constitution v1.2.0`](../docs/AEGIS_ENTERPRISE_CONSTITUTION.md) (APEX · Article 100 ladder MANDATORY · Article 101 Architecture Freeze)
+
+---
+
+## 0b · CEO Cycle 2 — Investor-Actionable Schema (2026-07-27)
+
+**Operator-identified defect:** The 5-level institutional scale (STRONG_BUY..STRONG_SELL) is ambiguous for a retail advisory-only platform. HOLD means nothing if you don't already own the stock. SELL is not a short recommendation — this platform does not deal intraday and does not short. The single-axis label conflates two orthogonal decisions.
+
+**Highest-ROI action taken:** Built a pure-enrichment module (`backend/recommendation/investor_actionable/`) that maps the existing percentile action into two orthogonal decisions plus a concrete position plan and a why/risks block. No new analytics engine — pure interpretation layer. Article 101.2 compliant.
+
+**Dual-decision mapping:**
+
+| Signal | Entry (don't own) | If Holding (own it) | User-facing label |
+|---|:---:|:---:|---|
+| STRONG_BUY  | BUY   | ADD    | 🟢 Strong Buy · Add if already holding |
+| BUY         | BUY   | HOLD   | 🟢 Buy · Hold if already holding |
+| HOLD        | WAIT  | HOLD   | 🟡 Watchlist · Keep holding if you own it |
+| SELL        | AVOID | REDUCE | 🔴 Avoid new entry · Reduce if you own it |
+| STRONG_SELL | AVOID | EXIT   | ⛔ Avoid new entry · Exit if you own it |
+
+**Every rec now carries:** `investor_action` (dual decision + label + is_actionable flags) · `position_plan` (allocation %, horizon bucket [swing/position/long_term], entry zone, stop-loss, target-1 [1:2 R:R], target-2 [1:4 R:R], risk level) · `why` (top 5 reasons from bull_case + top 5 risks from bear_case + disagreement flag).
+
+**Live 2026-07-27 India distribution (post-cycle-2):**
+- Entry decisions: BUY 3 · WAIT 9 · AVOID 3
+- If-holding decisions: ADD 2 · HOLD 10 · REDUCE 1 · EXIT 2
+- Actionable entries today: 3 (LUPIN, HEROMOTOCO, CHAMBLFERT) with buy zones + stops + targets
+- Actionable exits today: 5 (JSWENERGY, AMBER, BATAINDIA + REDUCE, EXIT positions)
+- Ensemble score magnitude jumped from ±0.05 → ±0.30 after cycle 1 adaptive weights + fresh v3 rerun (bonus)
+
+**Tests:** 27 new investor_actionable tests + 47/47 institutional_opt+investor_actionable green (including SSoT wiring guardrail).
 
 ---
 
@@ -51,6 +80,7 @@ Every capability status uses **L0 DESIGNED · L1 BUILT · L2 WIRED · L3 VALIDAT
 | Persistence (Sprint 7.5) | **L4** | Append-only history · 18 tests · GO 90/100 |
 | Model Factory (11 models) | **L4** | Ensemble + calibration · deterministic · **adaptive IC weights now consumed (CEO cycle 1)** |
 | Adaptive Ensemble Weights loop | **L4** ← CEO-1 | historical IC → next-day model weights · both markets · guardrail-tested |
+| Investor-Actionable Recommendation Schema | **L4** ← CEO-2 | dual-decision (entry + if_holding) + position plan (allocation, horizon, entry zone, stop, targets) + why · both markets · 27 tests |
 | Macro Intel (Sprint 6.5) | **L4** | Regime + commodities + currencies + bonds |
 | Recommendation Engine v3 | **L4** | Runner 2 · currently emits 100% HOLD (calibration cold-start) |
 | Portfolio Engine v3 | **L4** | 0 active positions (chain-dependent on Runner 2) |

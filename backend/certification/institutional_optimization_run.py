@@ -63,9 +63,26 @@ def main() -> int:
                 r["percentile_reason"] = pcd["reason"]
         payload["recommendations"] = recs
         payload["percentile_engine"] = "aegis.recommendation.percentile_classifier.v1"
-        rp.write_text(json.dumps(payload, indent=2, default=str), encoding="utf-8")
+
+        # Re-enrich investor-actionable fields · percentile_action was just
+        # added, so investor_action/position_plan/why must be refreshed.
+        # CEO cycle 2 · investor-facing dual-decision schema.
+        from backend.recommendation.investor_actionable import enrich_batch, summarize_batch
+        enrich_batch(recs)
+        payload["recommendations"] = recs
+        payload["investor_actionable_engine"] = "aegis.recommendation.investor_actionable.v1"
+        summ = summarize_batch(recs)
+        (reports / "investor_actionable_summary.json").write_text(
+            json.dumps(summ, indent=2, ensure_ascii=False), encoding="utf-8")
+
+        rp.write_text(json.dumps(payload, indent=2, default=str, ensure_ascii=False),
+                        encoding="utf-8")
         print(f"[percentile_classifier] n_recs={rep.n_recs} "
               f"action_distribution={rep.action_distribution}")
+        print(f"[investor_actionable] entry_dist={summ['entry_decision_dist']} "
+              f"if_holding_dist={summ['if_holding_decision_dist']} "
+              f"actionable_entries={len(summ['actionable_entries'])} "
+              f"actionable_exits={len(summ['actionable_exits'])}")
 
     return 0
 
