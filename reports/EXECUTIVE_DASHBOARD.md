@@ -20,6 +20,14 @@
 **Wave 1 + Wave 2 · CLOSED 2026-07-24:**
 · [`docs/AEGIS_WAVE_1_2_CLOSURE_REPORT.md`](../docs/AEGIS_WAVE_1_2_CLOSURE_REPORT.md) — every A1/A2/B0 finding classified · 1 Must-Fix (factor_library validator) shipped · 4 Accepted debt items ledger'd · Definition of Done ✓ for all three sprints
 
+**v2.2 · End-to-End Stabilization Audit · LOCKED 2026-07-27 · NO-GO (49/100):**
+· [`docs/AEGIS_V2_2_AUDIT.md`](../docs/AEGIS_V2_2_AUDIT.md) — 20-phase framework · 7 parallel investigation subagents · 42 findings classified (14 Must-Fix · 14 Accepted Debt · 2 Environment · 12 Expected Future)
+· **Weighted Production Readiness Score: 49/100 → NO-GO** (target ≥75 for GO)
+· Path to GO: **Sprint C0 → 55** (data + silent breakages) · **Sprint C1 → 75** (keystone + telegram + scheduler + champion) · **Sprint C2 → 82** (replay determinism + explainability)
+· Top 5 blockers (weight-adjusted): keystone `reports/recommendations.json` unowned · Runner 2 100% HOLD · Rec accuracy corpus n=10 · 6 Telegram senders no dedup · sector taxonomy divergence
+· Silent breakages found: ATR dead code in Feature Store (356k bars affected) · ADX uses `close.diff()` not `high.diff()` · Sector `isinstance(dict)` vs on-disk list mismatch · VEDL -64.9% unrecorded corp action · 13 India OHLC anomalies · MON001 fingerprint sentinel dormant · STRONG_BUY unreachable in stress · Classifier `_MATRIX` dead code · NIFTY200 missing LTIM/PEL/TATAMOTORS
+· No code modified in audit phase per "Investigation First" directive · 280/280 tests still green · fingerprint `e4c070673568c52d…` preserved
+
 ---
 
 ## Pipeline Status
