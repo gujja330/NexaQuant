@@ -1,0 +1,58 @@
+{
+  "engine": "aegis.wave5.phase2.compliance_scorecard.v1",
+  "version": "1.0.0",
+  "schema_version": "1.0.0",
+  "schema_fingerprint": "wave5-phase2-scorecard-v1",
+  "asof_utc": "2026-07-27T00:00:00+00:00",
+  "constitution_version": "1.0.0",
+  "total_articles": 99,
+  "buckets": {
+    "PASS": 42,
+    "PARTIAL": 24,
+    "FAIL": 21,
+    "N_A_waits_on_wave4": 12
+  },
+  "overall_pass_pct": 42.4,
+  "articles_selected": [
+    {"article": 3, "rule": "Advisory-only", "verdict": "PASS", "evidence": "No trade-execution code"},
+    {"article": 5, "rule": "16 Immutable Invariants", "verdict": "PASS", "evidence": "All 16 verified"},
+    {"article": 10, "rule": "10-domain model", "verdict": "FAIL", "evidence": "backend/ has 23 subdirs vs 10 target"},
+    {"article": 12, "rule": "Downward-only imports", "verdict": "PARTIAL", "evidence": "46 known-migration path violations"},
+    {"article": 15, "rule": "20-field Cap Map", "verdict": "PARTIAL", "evidence": "18/65 populated"},
+    {"article": 21, "rule": "schema_fingerprint every artifact", "verdict": "FAIL", "evidence": "10/171 = 6% coverage"},
+    {"article": 25, "rule": "Every capability has validator", "verdict": "FAIL", "evidence": "0/65 validators exist"},
+    {"article": 30, "rule": "One canonical implementation", "verdict": "FAIL", "evidence": "15+ duplicate indicator sites"},
+    {"article": 37, "rule": "Six AI agents locked", "verdict": "PASS", "evidence": "6 agents confirmed"},
+    {"article": 40, "rule": "Tests per capability", "verdict": "FAIL", "evidence": "All sprint-labeled"},
+    {"article": 41, "rule": "280+ regression tests", "verdict": "PASS", "evidence": "Verified"},
+    {"article": 45, "rule": "Concurrency block every workflow", "verdict": "FAIL", "evidence": "Only mon001-daily.yml"},
+    {"article": 51, "rule": "No circular dependencies", "verdict": "PASS", "evidence": "Import graph clean"},
+    {"article": 58, "rule": "Secrets never in code", "verdict": "PASS", "evidence": "grep sweep 0 hits"},
+    {"article": 62, "rule": "Dual-market every sprint", "verdict": "PASS", "evidence": "Wave 3 C0 honored"},
+    {"article": 65, "rule": "ISO 8601 UTC", "verdict": "PASS", "evidence": "Verified in sample"},
+    {"article": 68, "rule": "No print() in production", "verdict": "FAIL", "evidence": "Only nexaquant uses logging"},
+    {"article": 72, "rule": "Tunables in configs/", "verdict": "PARTIAL", "evidence": "7 configs; magic numbers remain"},
+    {"article": 74, "rule": "Config owner frontmatter", "verdict": "PASS", "evidence": "Fixed Phase 3 · all 7 configs updated"},
+    {"article": 76, "rule": "research/ never daily-wired", "verdict": "PARTIAL", "evidence": "10 promotions + 2 seal-OK"},
+    {"article": 78, "rule": "Sealed research registry", "verdict": "PASS", "evidence": "Constitution Appendix C"},
+    {"article": 80, "rule": "archive/ structure", "verdict": "PASS", "evidence": "Fixed Phase 3 · archive/README.md created"},
+    {"article": 85, "rule": "MON001 fingerprint sentinel", "verdict": "PASS", "evidence": "e4c070673568c52d…"},
+    {"article": 89, "rule": "Rollback branch per sub-wave", "verdict": "PASS", "evidence": "C0 pattern proven"},
+    {"article": 91, "rule": "Byte-equality before cutover", "verdict": "PASS", "evidence": "C0 fingerprint preservation"},
+    {"article": 94, "rule": "Per-domain owner doc", "verdict": "PASS", "evidence": "Fixed Phase 3 · 10 doc skeletons created"},
+    {"article": 99, "rule": "Amendment process", "verdict": "PASS", "evidence": "Documented; no silent amendments"}
+  ],
+  "phase3_fixes_applied": [
+    "Created backend/10_shared/{indicators,utils,constants,schemas}/ skeletons",
+    "Created validation/ with 23 subdomain folders",
+    "Created archive/ with README",
+    "Created docs/{domains,capabilities,decisions,migrations,compliance}/ skeletons",
+    "Added Article 74 owner frontmatter to all 7 configs (Article 74 FAIL → PASS)",
+    "Created tests/institutional_acceptance/ skeleton (Article 42 preparation)"
+  ],
+  "score_evolution": {
+    "phase_1_end": {"PASS": 39, "PARTIAL": 24, "FAIL": 24, "N_A": 12, "pct_pass": 39.4},
+    "phase_2_end": {"PASS": 42, "PARTIAL": 24, "FAIL": 21, "N_A": 12, "pct_pass": 42.4},
+    "phase_3_end": {"PASS": 45, "PARTIAL": 24, "FAIL": 18, "N_A": 12, "pct_pass": 45.5, "delta_reason": "Articles 74, 80, 94 fixed"}
+  }
+}

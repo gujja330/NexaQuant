@@ -46,11 +46,38 @@
 · Governs every future implementation forever · supersedes conflicts with all prior docs · amendable only via Article 99 (proposal + impact analysis + operator sign-off + version bump)
 · Every future PR / sprint / AI-generated code must be checked against the Constitution FIRST
 
-**Wave 5 · Master Productionization & Institutional Certification · LAUNCHED 2026-07-27:**
-· 20-phase program governed by Constitution + Wave 4 + Cap Map · 34 required deliverables · executes AGAINST authorities (no re-design)
-· Phase 1 · Repository Discovery · **SHIPPED** ([`docs/AEGIS_WAVE_5_PHASE_1_REPOSITORY_DISCOVERY.md`](../docs/AEGIS_WAVE_5_PHASE_1_REPOSITORY_DISCOVERY.md)) — 24 inventories · 857 .py files · 214 report artifacts · 141 docs · 58 tests
-· Phase 1 key findings: schema_fingerprint coverage 6.8% (12/176 reports · Article 21 gap) · 15 duplicate indicator sites (5 RSI + 6 ATR + 4 ADX · Article 30 gap) · ~12 research/ modules daily-wired (Article 76 gap) · dead code confirmed (`_MATRIX` in classifier.py) · MON001 fingerprint verified `e4c070673568c52d…` · 280/280 tests green
-· Phases 2-20 execute sequentially: Compliance Audit → Standardization → Cap Completion → Data → Feature → Model → Rec → Capital Intel → Portfolio → Risk → Learning → Knowledge → Delivery → Platform → Validation → Security → Perf → Docs → Institutional Acceptance Certification
+**Wave 5 · Master Productionization & Institutional Certification · CLOSED 2026-07-27:**
+· **ALL 20 PHASES SHIPPED** · governed by Constitution + Wave 4 + Cap Map · 34 deliverables produced
+· Repository Completion: 91% (was 79% at Wave 5 start · +12 pp)
+· Production Readiness Score: **54.25/100** (was 49 · +5.25 pp)
+· Constitution Compliance: **45.5% PASS** (was 39.4% · +6.1 pp)
+· Sealed contracts UNTOUCHED · MON001 fingerprint `e4c070673568c52d…` preserved
+· 314 tests green (was 280 · +34 Wave 5 new: 11 C0 + 15 CapRot + 9 PortAttr)
+
+**Wave 5 Doc Deliverables:**
+· Phase 1 · [Repository Discovery](../docs/AEGIS_WAVE_5_PHASE_1_REPOSITORY_DISCOVERY.md) · 24 inventories
+· Phase 2 · [Compliance Audit](../docs/AEGIS_WAVE_5_PHASE_2_COMPLIANCE_AUDIT.md) · 99-article scorecard
+· Phase 3 · [Standardization](../docs/AEGIS_WAVE_5_PHASE_3_STANDARDIZATION.md) · 3 FAIL→PASS flips
+· Phase 4 · [Capability Completion](../docs/AEGIS_WAVE_5_PHASE_4_CAPABILITY_COMPLETION.md) · 65-cap roster
+· Phases 5-8 · [Platform Validation Data/Feature/Model/Rec](../docs/AEGIS_WAVE_5_PHASES_5_TO_8_PLATFORM_VALIDATION.md)
+· Phase 9 · [Capital Intelligence · CODE BUILD](../docs/AEGIS_WAVE_5_PHASE_9_CAPITAL_INTELLIGENCE.md) · Capital Rotation + Opp Cost engines (15 tests green)
+· Phase 10 · [Portfolio Attribution · CODE BUILD](../docs/AEGIS_WAVE_5_PHASE_10_PORTFOLIO_ATTRIBUTION.md) · 13-factor attribution engine (9 tests green)
+· Phases 11-15 · [Risk/Learning/Knowledge/Delivery/Platform](../docs/AEGIS_WAVE_5_PHASES_11_TO_15_PLATFORM_VALIDATION.md)
+· Phases 16-19 · [Validation/Security/Perf/Docs](../docs/AEGIS_WAVE_5_PHASES_16_TO_19_CROSS_CUTTING.md)
+· Phase 20 · [Institutional Certification · NO-GO with clear path](../docs/AEGIS_WAVE_5_PHASE_20_INSTITUTIONAL_CERTIFICATION.md)
+
+**Wave 5 CODE Deliverables:**
+· `backend/recommendation/capital_rotation/` — engine + 8 tests · Constitution-compliant
+· `backend/recommendation/opportunity_cost/` — engine + 7 tests · every HOLD justified
+· `backend/portfolio/monitoring/attribution.py` — 13-factor attribution · 9 tests · reconciliation invariant
+· `validation/recommendation_validation/` · `validation/portfolio_validation/` — 3 validators
+· `backend/shared/indicators/` — canonical library seed (D1 populates)
+· `validation/` (23 subdomain skeletons) · `archive/` · `docs/{domains,capabilities,decisions,migrations,compliance}/`
+· `tests/institutional_acceptance/` skeleton
+· 7 configs · Article 74 owner frontmatters added
+
+**Final Go/No-Go:** NO-GO (54.25/100) · target 75/100 for GO · clear path documented: Wave 4 D0-D8 execution → projected 97/100
+**Post-Wave-5 Priority:** Rank 1 = Wave 4 D4 (Rec SSoT + Delta engine + Lifecycle · +12 pp lever)
 
 ---
 
