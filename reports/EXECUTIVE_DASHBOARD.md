@@ -23,10 +23,22 @@
 **v2.2 · End-to-End Stabilization Audit · LOCKED 2026-07-27 · NO-GO (49/100):**
 · [`docs/AEGIS_V2_2_AUDIT.md`](../docs/AEGIS_V2_2_AUDIT.md) — 20-phase framework · 7 parallel investigation subagents · 42 findings classified (14 Must-Fix · 14 Accepted Debt · 2 Environment · 12 Expected Future)
 · **Weighted Production Readiness Score: 49/100 → NO-GO** (target ≥75 for GO)
-· Path to GO: **Sprint C0 → 55** (data + silent breakages) · **Sprint C1 → 75** (keystone + telegram + scheduler + champion) · **Sprint C2 → 82** (replay determinism + explainability)
 · Top 5 blockers (weight-adjusted): keystone `reports/recommendations.json` unowned · Runner 2 100% HOLD · Rec accuracy corpus n=10 · 6 Telegram senders no dedup · sector taxonomy divergence
-· Silent breakages found: ATR dead code in Feature Store (356k bars affected) · ADX uses `close.diff()` not `high.diff()` · Sector `isinstance(dict)` vs on-disk list mismatch · VEDL -64.9% unrecorded corp action · 13 India OHLC anomalies · MON001 fingerprint sentinel dormant · STRONG_BUY unreachable in stress · Classifier `_MATRIX` dead code · NIFTY200 missing LTIM/PEL/TATAMOTORS
-· No code modified in audit phase per "Investigation First" directive · 280/280 tests still green · fingerprint `e4c070673568c52d…` preserved
+· Silent breakages found: ATR dead code · ADX close-only proxy · Sector schema mismatch · VEDL unrecorded corp action · 13 India OHLC anomalies · MON001 fingerprint sentinel dormant · STRONG_BUY unreachable in stress · Classifier `_MATRIX` dead code · NIFTY200 gap
+· No code modified in audit phase · 280/280 tests still green · fingerprint `e4c070673568c52d…` preserved
+
+**Wave 3 · C0 · SHIPPED 2026-07-27 (commit `6866f3b`):**
+· 3 silent-breakage substrate fixes · ATR real H/L · ADX textbook Wilder · sector schema list-shape handler
+· 11 new regression tests · 105/105 across 6 suites · MON001 fingerprint preserved
+· Live verify: India `sector_rotation.json` went 0 → 12 sectors · rotation_strength 0.0 → 0.523
+· C1..C7 SUPERSEDED by Wave 4 (below) — fixes still ship but reframed inside domain structure
+
+**Wave 4 · Enterprise Architecture Consolidation · LOCKED 2026-07-27 (last structural sweep):**
+· [`docs/AEGIS_WAVE_4_ARCHITECTURE_CONSOLIDATION.md`](../docs/AEGIS_WAVE_4_ARCHITECTURE_CONSOLIDATION.md) — 10-domain backend model · shared indicator library · SSoT enforcement · per-engine validators · migration safety protocol
+· [`docs/AEGIS_ENTERPRISE_CAPABILITY_MAP.md`](../docs/AEGIS_ENTERPRISE_CAPABILITY_MAP.md) — 20-field template · ~18 pattern examples seeded · full 65-capability inventory scoped to D0
+· Sub-waves: **D0** Cap Map full · **D1** shared indicators · **D2** feature reorg · **D3** model reorg · **D4** rec+keystone+capital rotation+opp cost · **D5** portfolio+attribution · **D6** learning+knowledge+replay determinism+champion · **D7** delivery+telegram concurrency · **D8** platform hardening+validation architecture+institutional acceptance
+· Reframe rationale: C0/C1/C2 are temporary labels · after 6 months nobody remembers what C2 was · AEGIS is now an institutional platform organized by business capability, not implementation phase
+· After Wave 4 seal → AEGIS transitions to feature evolution only · no more structural sprints
 
 ---
 
