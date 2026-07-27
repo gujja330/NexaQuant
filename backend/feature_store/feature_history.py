@@ -46,7 +46,22 @@ def write_snapshot(repo_root: Path, market: str, asof: date, df: pd.DataFrame) -
 
 
 def read_snapshot(repo_root: Path, market: str, asof: date) -> pd.DataFrame | None:
+    """Read a feature snapshot for (market, asof).
+
+    Phase A fix (2026-07-27): if `.rebuilt_HHMMSS.parquet` variants exist
+    (produced when write_snapshot preserves the original canonical file),
+    return the LATEST rebuilt file — that's the freshest computation. The
+    canonical `.parquet` is preserved for provenance but is often stale
+    when the pipeline has been re-run intraday.
+    """
     p = snapshot_path(repo_root, market, asof)
+    # Look for any rebuilt-variant files first (freshest wins)
+    base = p.parent
+    stem = p.stem   # e.g. "2026-07-27"
+    if base.exists():
+        rebuilt = sorted(base.glob(f"{stem}.rebuilt_*.parquet"))
+        if rebuilt:
+            return pd.read_parquet(rebuilt[-1])
     if not p.exists():
         return None
     return pd.read_parquet(p)

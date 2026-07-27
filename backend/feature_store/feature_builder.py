@@ -72,6 +72,18 @@ class FeatureBuilder:
 
         canon = adapt_all(self.repo_root, self.market, cutoff=cutoff)
 
+        # Phase A fix (2026-07-27): India universe uses ".NS" suffix but the
+        # canonical bars/fundamentals/etc. use bare symbols (AARTIIND). Every
+        # compute function does `if sym not in universe: continue` which
+        # silently dropped ALL tickers → 64/81 empty columns. Fix: pass a
+        # suffix-tolerant universe (union of bare + suffixed forms) and map
+        # bare-form output keys back to suffix-form for row storage.
+        def _bare(t: str) -> str:
+            return t.split(".")[0] if "." in t else t
+        universe_bare = [_bare(t) for t in universe]
+        inverse_map = dict(zip(universe_bare, universe))   # bare → suffixed
+        universe_tolerant = list(dict.fromkeys(list(universe) + universe_bare))
+
         # Identity columns (always filled)
         sec_map = self._ticker_sector()
         as_iso = (asof or date.today()).isoformat()
@@ -87,18 +99,18 @@ class FeatureBuilder:
 
         # Category computers — each returns {ticker: {feature: value}}
         computers = [
-            ("technical",         lambda: technical.compute(canon, universe, asof or date.today(), self.market.name)),
-            ("fundamental",       lambda: fundamental.compute(canon, universe, asof or date.today(), self.market.name)),
-            ("news",              lambda: news.compute(canon, universe, asof or date.today(), self.market.name)),
-            ("earnings",          lambda: earnings.compute(canon, universe, asof or date.today(), self.market.name)),
-            ("macro",             lambda: macro.compute(canon, universe, asof or date.today(), self.market.name)),
-            ("sector",            lambda: sector.compute(canon, universe, asof or date.today(), self.market.name,
+            ("technical",         lambda: technical.compute(canon, universe_tolerant, asof or date.today(), self.market.name)),
+            ("fundamental",       lambda: fundamental.compute(canon, universe_tolerant, asof or date.today(), self.market.name)),
+            ("news",              lambda: news.compute(canon, universe_tolerant, asof or date.today(), self.market.name)),
+            ("earnings",          lambda: earnings.compute(canon, universe_tolerant, asof or date.today(), self.market.name)),
+            ("macro",             lambda: macro.compute(canon, universe_tolerant, asof or date.today(), self.market.name)),
+            ("sector",            lambda: sector.compute(canon, universe_tolerant, asof or date.today(), self.market.name,
                                                             repo_root=self.repo_root)),
-            ("institutional",     lambda: institutional.compute(canon, universe, asof or date.today(), self.market.name)),
-            ("corporate_actions", lambda: corporate_actions.compute(canon, universe, asof or date.today(), self.market.name)),
-            ("market_intel",      lambda: market_intel.compute(canon, universe, asof or date.today(), self.market.name,
+            ("institutional",     lambda: institutional.compute(canon, universe_tolerant, asof or date.today(), self.market.name)),
+            ("corporate_actions", lambda: corporate_actions.compute(canon, universe_tolerant, asof or date.today(), self.market.name)),
+            ("market_intel",      lambda: market_intel.compute(canon, universe_tolerant, asof or date.today(), self.market.name,
                                                                   repo_root=self.repo_root)),
-            ("historical",        lambda: historical.compute(canon, universe, asof or date.today(), self.market.name,
+            ("historical",        lambda: historical.compute(canon, universe_tolerant, asof or date.today(), self.market.name,
                                                                  repo_root=self.repo_root)),
         ]
         for name, fn in computers:
@@ -108,8 +120,15 @@ class FeatureBuilder:
                 print(f"    | WARN computer '{name}' raised {type(e).__name__}: {e}")
                 continue
             for t, feats in per_ticker.items():
-                if t in rows and feats:
+                if not feats: continue
+                # Try direct match (compute returned suffixed form)
+                if t in rows:
                     rows[t].update(feats)
+                    continue
+                # Else translate bare → suffixed via inverse_map
+                mapped = inverse_map.get(t)
+                if mapped and mapped in rows:
+                    rows[mapped].update(feats)
 
         # Align to registry columns
         registered_cols = [f.name for f in FEATURE_REGISTRY]

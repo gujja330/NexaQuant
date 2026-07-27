@@ -60,15 +60,22 @@ def run_backfill(root: Path) -> BackfillReport:
     if "entry_date" in learning.columns:
         learning["entry_date"] = pd.to_datetime(learning["entry_date"], errors="coerce")
 
+    # Phase C fix (2026-07-27): normalize ticker suffix on BOTH sides.
+    # DNA registry has bare symbols (RELIANCE) · learning.parquet has NSE-suffixed
+    # symbols (RELIANCE.NS). Strip suffix on both sides for comparison.
+    def _bare(t) -> str:
+        s = str(t).upper().strip()
+        return s.split(".")[0] if "." in s else s
+    learning["_ticker_bare"] = learning["ticker"].map(_bare)
+
     for _, drec in dna.iterrows():
-        sym = str(drec.get("symbol", "")).upper()
+        sym = _bare(drec.get("symbol", ""))
         rec_date = drec.get("recommended_date")
         if not sym or pd.isna(rec_date):
             rep.n_unmatched_dna += 1
             continue
-        # Search learning for same ticker within window
         candidates = learning[
-            (learning["ticker"].str.upper().str.startswith(sym.split(".")[0])) &
+            (learning["_ticker_bare"] == sym) &
             (learning["entry_date"].between(
                 rec_date - pd.Timedelta(days=MATCH_WINDOW_DAYS),
                 rec_date + pd.Timedelta(days=MATCH_WINDOW_DAYS)
