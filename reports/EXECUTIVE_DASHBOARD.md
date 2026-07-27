@@ -79,6 +79,15 @@
 **Final Go/No-Go:** NO-GO (54.25/100) · target 75/100 for GO · clear path documented: Wave 4 D0-D8 execution → projected 97/100
 **Post-Wave-5 Priority:** Rank 1 = Wave 4 D4 (Rec SSoT + Delta engine + Lifecycle · +12 pp lever)
 
+**Wave X · Red Team Independent Audit · SHIPPED 2026-07-27:**
+· [`docs/AEGIS_WAVE_X_RED_TEAM_AUDIT.md`](../docs/AEGIS_WAVE_X_RED_TEAM_AUDIT.md) — adversarial reviewer stance · verifies implementation not documentation
+· **KEY FINDING:** Wave 5 used "SHIPPED" verb inconsistently across 5 levels (BUILT/WIRED/VALIDATED/CONSUMED/CERTIFIED). Capital Rotation · Opp Cost · Portfolio Attribution are **BUILT (Level 1)** — code exists · tests pass — but **NOT WIRED to daily orchestrators · NOT producing artifacts** (Level 2+)
+· Fresh Constitution recount: PASS 38 (not 45) · FAIL 21 (not 18) · Wave 5 overstated ~7 articles
+· Article 30 duplicate indicator sites: **still 19** (5 RSI + 6 ATR + 4 ADX + 3 EMA + 1 MACD) · shared library at `backend/shared/indicators/` is empty scaffold
+· Honest recalculated Score: **~50/100** (down from Wave 5's claimed 54.25 — Portfolio Consistency +15pp credit shouldn't count for unwired engine)
+· Sealed contracts VERIFIED UNTOUCHED · MON001 fingerprint `e4c070673568c52d…` preserved
+· Prioritized remediation backlog: 21 items · immediate ROI = wire Wave 5 engines to daily orchestrators (Ranks 1-3) · next largest = keystone `recommendations.json` producer (Rank 4)
+
 ---
 
 ## Pipeline Status
