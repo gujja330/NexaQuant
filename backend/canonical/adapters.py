@@ -419,7 +419,9 @@ def adapt_flow_proxy(repo_root: Path, market: MarketProfile,
                     source=source,
                 ))
     else:
-        # India: sector_context.json — frozen but present
+        # India: sector_context.json — DEV018 emits `sectors` as a LIST of
+        # {sector_key, display_name, score(0-100), ...}. Legacy shape was a dict
+        # of {name: {return_pct, ...}}. Handle both.
         p = repo_root / "reports" / "sector_context.json"
         source = "research.sector_intelligence"
         if p.exists():
@@ -438,6 +440,27 @@ def adapt_flow_proxy(repo_root: Path, market: MarketProfile,
                                 avg_dollar_volume=None,
                                 currency=market.currency,
                                 source=source))
+                elif isinstance(sectors, list):
+                    for s in sectors:
+                        if not isinstance(s, dict): continue
+                        name = str(s.get("display_name") or s.get("sector_key") or "").strip()
+                        if not name: continue
+                        # DEV018 score is a 0-100 bullish composite. Map to a
+                        # return-like symmetric metric on ~[-20, +20] range
+                        # so downstream rank/rotation math is stable.
+                        score = _f(s.get("score"))
+                        ret_pct = _f(s.get("return_pct") or s.get("mean_return_pct"))
+                        if ret_pct is None and score is not None:
+                            ret_pct = (score - 50.0) / 2.5
+                        if ret_pct is None: continue
+                        rows.append(CanonicalFlowProxy(
+                            market=market.name, symbol=name,
+                            label=name, asof=asof,
+                            period_days=int(s.get("window_days", 0) or 0),
+                            return_pct=float(ret_pct),
+                            avg_dollar_volume=None,
+                            currency=market.currency,
+                            source=source))
             except Exception:
                 pass
     return CanonicalDataset(kind="flow_proxy", market=market.name,

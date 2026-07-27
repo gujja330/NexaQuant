@@ -44,31 +44,46 @@ def _macd(closes: pd.Series) -> tuple[float | None, float | None, float | None]:
 
 
 def _atr(df: pd.DataFrame, period: int = 14) -> float | None:
-    """ATR as % of close."""
+    """ATR as % of close · true-range from real H/L/C."""
     if len(df) <= period + 1: return None
-    high = df["close"] * 1.005      # canonical bars carry close only in feature context;
-    low  = df["close"] * 0.995      # rough proxy — refined in future using true HLC
-    # If actual high/low columns are present, prefer them
-    if "high" in df.columns and "low" in df.columns:
-        high = df["high"]; low = df["low"]
-    prev_close = df["close"].shift(1)
+    if "high" not in df.columns or "low" not in df.columns:
+        return None
+    high = df["high"].astype(float)
+    low  = df["low"].astype(float)
+    prev_close = df["close"].astype(float).shift(1)
     tr = pd.concat([high - low,
                        (high - prev_close).abs(),
                        (low - prev_close).abs()], axis=1).max(axis=1)
     atr = tr.rolling(period).mean().iloc[-1]
-    close = df["close"].iloc[-1]
+    close = float(df["close"].iloc[-1])
     if pd.isna(atr) or close <= 0: return None
     return round(float(atr / close * 100), 4)
 
 
 def _adx(df: pd.DataFrame, period: int = 14) -> float | None:
-    """Simplified ADX from close-only bars."""
+    """Textbook Wilder ADX from real H/L/C. Uses simple rolling smoothing
+    (not Wilder EWM) to match ATR's convention in this module — divergence
+    from EWM Wilder is bounded and downstream models are agnostic to the
+    smoothing choice as long as it is stable."""
     if len(df) <= period * 2: return None
-    close = df["close"]
-    delta = close.diff().dropna()
-    up = delta.clip(lower=0).abs().rolling(period).mean()
-    down = delta.clip(upper=0).abs().rolling(period).mean()
-    dx = (up - down).abs() / (up + down).replace(0, np.nan) * 100
+    if "high" not in df.columns or "low" not in df.columns:
+        return None
+    high = df["high"].astype(float)
+    low  = df["low"].astype(float)
+    close = df["close"].astype(float)
+    up_move   = high.diff()
+    down_move = -low.diff()
+    plus_dm  = ((up_move > down_move) & (up_move > 0)).astype(float) * up_move.clip(lower=0)
+    minus_dm = ((down_move > up_move) & (down_move > 0)).astype(float) * down_move.clip(lower=0)
+    prev_close = close.shift(1)
+    tr = pd.concat([high - low,
+                       (high - prev_close).abs(),
+                       (low - prev_close).abs()], axis=1).max(axis=1)
+    atr_smoothed = tr.rolling(period).mean()
+    plus_di  = 100.0 * plus_dm.rolling(period).mean()  / atr_smoothed.replace(0, np.nan)
+    minus_di = 100.0 * minus_dm.rolling(period).mean() / atr_smoothed.replace(0, np.nan)
+    denom = (plus_di + minus_di).replace(0, np.nan)
+    dx = 100.0 * (plus_di - minus_di).abs() / denom
     adx = dx.rolling(period).mean().iloc[-1]
     return round(float(adx), 3) if pd.notna(adx) else None
 
@@ -80,7 +95,11 @@ def compute(canon: dict[str, CanonicalDataset], universe: list[str],
     if not bars or not bars.rows:
         return out
 
-    df = pd.DataFrame([{"symbol": b.symbol, "date": b.date, "close": b.close,
+    df = pd.DataFrame([{"symbol": b.symbol, "date": b.date,
+                          "open":   float(b.open)   if b.open   is not None else float(b.close),
+                          "high":   float(b.high)   if b.high   is not None else float(b.close),
+                          "low":    float(b.low)    if b.low    is not None else float(b.close),
+                          "close":  float(b.close),
                           "volume": b.volume}
                          for b in bars.rows])
     df["date"] = pd.to_datetime(df["date"])

@@ -43,13 +43,27 @@ def compute_sector_rotation(market: str, asof: date,
             if ret is None: continue
             sector_returns[sec] = float(ret)
     elif market == "india" and sector_context:
-        sectors = sector_context.get("sectors") or {}
+        sectors = sector_context.get("sectors")
         if isinstance(sectors, dict):
             for name, s in sectors.items():
                 if not isinstance(s, dict): continue
                 ret = s.get("return_pct") or s.get("mean_return_pct")
                 if ret is None: continue
                 sector_returns[str(name)] = float(ret)
+        elif isinstance(sectors, list):
+            # DEV018 shape: list of {display_name, score(0-100), ...}
+            for s in sectors:
+                if not isinstance(s, dict): continue
+                name = str(s.get("display_name") or s.get("sector_key") or "").strip()
+                if not name: continue
+                ret = s.get("return_pct") or s.get("mean_return_pct")
+                if ret is None:
+                    score = s.get("score")
+                    if score is None: continue
+                    # Map 0-100 bullish composite to symmetric ~[-20, +20]
+                    # return-like metric so downstream ranking/rotation math stays stable.
+                    ret = (float(score) - 50.0) / 2.5
+                sector_returns[name] = float(ret)
 
     if not sector_returns:
         return reading
