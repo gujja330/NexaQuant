@@ -227,6 +227,33 @@ STEPS = [
     },
     # ── Enterprise Completion Program · Phase D/L/B integration ──
     {
+        "name": "macro_decision_impact",
+        "desc": "Macro → Decision Impact (Phase 4 · commodity/currency/bond → sector impact chains)",
+        "script": "backend/decision_intelligence/run.py",
+        "script_args": ["--market", "india", "--only", "macro"],
+        "produces": ["reports/macro_decision_impact.json"],
+        "requires": ["reports/commodity_intelligence.json"],
+        "optional": True,
+    },
+    {
+        "name": "portfolio_decision_impact",
+        "desc": "Portfolio Decision Impact (Phase 7 · per-rec allocation + sector-exposure + HHI delta)",
+        "script": "backend/decision_intelligence/run.py",
+        "script_args": ["--market", "india", "--only", "portfolio"],
+        "produces": ["reports/portfolio_decision_impact.json"],
+        "requires": ["reports/recommendations.json", "reports/portfolio_v3.json"],
+        "optional": True,
+    },
+    {
+        "name": "consumer_audit",
+        "desc": "End-to-End Consumer Audit (Phase 1 · producer→consumer graph · orphan/broken detection)",
+        "script": "backend/decision_intelligence/run.py",
+        "script_args": ["--market", "india", "--only", "audit"],
+        "produces": ["reports/consumer_audit.json"],
+        "requires": [],
+        "optional": True,
+    },
+    {
         "name": "recommendation_quality",
         "desc": "Recommendation Quality Engine · expected alpha + downside + win prob + CI (Phase D · L2 WIRED)",
         "script": "backend/recommendation/quality/run.py",
