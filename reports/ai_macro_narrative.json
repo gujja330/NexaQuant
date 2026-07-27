@@ -2,63 +2,139 @@
   "engine": "ai_macro_narrative",
   "version": "v1.0",
   "market": "india",
-  "run_utc": "2026-07-21T04:12:49+00:00",
-  "asof": "2026-07-21",
+  "run_utc": "2026-07-27T13:21:50+00:00",
+  "asof": "2026-07-27",
   "output": {
     "agent": "macro_analyst",
     "version": "v1.0",
     "market": "india",
-    "asof": "2026-07-21",
-    "headline": "regime=risk_on \u00b7 vol=calm \u00b7 active_impacts=0 \u00b7 macro_score=+0.40",
-    "narrative": "regime=risk_on \u00b7 vol=calm \u00b7 active_impacts=0 \u00b7 macro_score=+0.40.\n\nAEGIS Macro & Intermarket Intelligence audit. Combines commodity moves, currency pressures, yield curve, VIX regime, and sector rotation into a single macro regime call. Emits an impact matrix + knowledge graph that downstream engines (Recommendation, Risk, Portfolio, Learning, AI Auditor) will consume from Sprint 8 onward.\n\nDoes NOT approve or promote \u2014 every commodity impact, sector rotation call, and regime label is DESCRIPTIVE and requires operator interpretation. AI never trades on macro alone.",
+    "asof": "2026-07-27",
+    "headline": "regime=unknown \u00b7 vol=normal \u00b7 active_impacts=2 \u00b7 macro_score=+0.10",
+    "narrative": "regime=unknown \u00b7 vol=normal \u00b7 active_impacts=2 \u00b7 macro_score=+0.10.\n\nAEGIS Macro & Intermarket Intelligence audit. Combines commodity moves, currency pressures, yield curve, VIX regime, and sector rotation into a single macro regime call. Emits an impact matrix + knowledge graph that downstream engines (Recommendation, Risk, Portfolio, Learning, AI Auditor) will consume from Sprint 8 onward.\n\nDoes NOT approve or promote \u2014 every commodity impact, sector rotation call, and regime label is DESCRIPTIVE and requires operator interpretation. AI never trades on macro alone.",
     "findings": [
       {
         "type": "macro_regime",
-        "primary": "risk_on",
+        "primary": "unknown",
         "secondary": null,
-        "confidence": 0.5,
-        "macro_score": 0.4,
+        "confidence": 0.9,
+        "macro_score": 0.1,
         "evidence": {
-          "vol_regime": "calm",
-          "oil_1w_pct": null,
-          "gold_1w_pct": null,
-          "usd_1w_pct": null,
+          "vol_regime": "normal",
+          "oil_1w_pct": 4.87,
+          "gold_1w_pct": 2.1,
+          "usd_1w_pct": 0.15,
           "yield_curve_inversion": false,
-          "ten_year_1m_bps": null
+          "ten_year_1m_bps": 8.6884
         }
       },
       {
         "type": "volatility",
         "symbol": "^VIX",
-        "level": 13.220000267028809,
-        "regime": "calm",
-        "chg_1m_pct": null
+        "level": 18.65,
+        "regime": "normal",
+        "chg_1m_pct": 4.5
       },
       {
         "type": "central_bank_state",
         "bank": "RBI",
-        "rate_cycle": "unknown",
-        "yield_curve_slope": null,
+        "rate_cycle": "neutral",
+        "yield_curve_slope": 1.0,
         "inversion": false,
         "liquidity_score": 0.0,
         "notes": [
-          "RBI: insufficient data (no short-yield reading)"
+          "RBI: cycle=neutral \u00b7 short_1m=8.966999999999999bps"
+        ]
+      },
+      {
+        "type": "commodity_impact",
+        "commodity": "Brent Crude",
+        "direction": "up",
+        "positive_sectors": [
+          "Energy",
+          "Oil Producers"
+        ],
+        "negative_sectors": [
+          "Airlines",
+          "Transportation",
+          "Auto",
+          "Paints"
+        ],
+        "confidence": 0.9,
+        "rationale": ""
+      },
+      {
+        "type": "commodity_impact",
+        "commodity": "Natural Gas",
+        "direction": "up",
+        "positive_sectors": [
+          "Gas Producers"
+        ],
+        "negative_sectors": [
+          "Fertilizers",
+          "Chemicals",
+          "Utilities",
+          "Power-intensive Industries"
+        ],
+        "confidence": 0.85,
+        "rationale": "Nat gas feedstock for urea + power \u2192 margin pressure on fertilizers, utilities."
+      },
+      {
+        "type": "sector_rotation",
+        "leaders": [
+          {
+            "sector": "Pharma",
+            "return_pct": 12.204000000000002
+          },
+          {
+            "sector": "Realty",
+            "return_pct": 10.663999999999998
+          },
+          {
+            "sector": "Consumption",
+            "return_pct": 8.683999999999997
+          }
+        ],
+        "laggards": [
+          {
+            "sector": "PSU Bank",
+            "return_pct": -4.74
+          },
+          {
+            "sector": "Metal",
+            "return_pct": -4.44
+          },
+          {
+            "sector": "IT",
+            "return_pct": -2.208000000000001
+          }
+        ],
+        "rotation_strength": 0.523
+      },
+      {
+        "type": "knowledge_graph_summary",
+        "n_entries": 2,
+        "factor_kinds": [
+          "commodity"
+        ],
+        "top_factors": [
+          "Brent Crude",
+          "Natural Gas"
         ]
       },
       {
         "type": "composition",
-        "n_commodities": 0,
-        "n_currencies": 0,
-        "n_bonds": 0,
-        "n_active_impacts": 0,
-        "n_kg_entries": 0
+        "n_commodities": 6,
+        "n_currencies": 1,
+        "n_bonds": 3,
+        "n_active_impacts": 2,
+        "n_kg_entries": 2
       }
     ],
     "evidence": {
-      "primary_regime": "risk_on",
-      "vol_regime": "calm",
-      "n_active_impacts": 0,
-      "macro_score": 0.4
+      "primary_regime": "unknown",
+      "vol_regime": "normal",
+      "n_active_impacts": 2,
+      "macro_score": 0.1
     },
     "citations": [
       "backend/macro_intel/engine.py",

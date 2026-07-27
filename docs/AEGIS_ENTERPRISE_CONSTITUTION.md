@@ -1034,6 +1034,55 @@ This retroactive correction is a documentation honesty measure, not a re-litigat
 
 ---
 
+# PART XXVI · ARCHITECTURE FREEZE (Institutional Proof Program · v1.2.0)
+
+## Article 101 · Architecture Freeze
+
+**Effective:** 2026-07-27 · Institutional Proof & Certification Program.
+
+**Text:** As of the ratification of this article, AEGIS enters **evidence-generation and certification mode**. Adding new engines, waves, or architectural components is now a Constitutional violation subject to Article 99 amendment.
+
+### Article 101.1 · What is frozen
+
+- The 10-domain backend model (Article 10) is closed. No 11th domain without full amendment.
+- The set of first-class engines is complete. No new engine may enter `backend/` unless an audit produces evidence that an existing capability cannot be extended to cover the gap.
+- The 6 AI agents (Article 37) remain locked. No 7th agent.
+- The maturity ladder (Article 100) remains the sole vocabulary for capability status.
+
+### Article 101.2 · What is unlocked
+
+- Measurement, benchmarking, and validation infrastructure MAY be built freely.
+- Data-quality remediation is permitted (macro ingest, feature backfill, etc.).
+- Bug fixes and calibration corrections to existing engines are permitted.
+- Documentation and evidence-report generation is permitted.
+
+### Article 101.3 · Motivation
+
+Per the operator's proof-directive: "The next major gains are unlikely to come from adding more engines; they will come from proving that the existing system consistently produces higher-quality investment decisions, learns from outcomes, and operates reliably under real-world conditions."
+
+Every future prompt now defaults to **prove before build**. If a proof step reveals a genuinely missing capability, only then does Article 101.4 apply.
+
+### Article 101.4 · Amendment path (post-freeze)
+
+To add a new engine after this freeze:
+1. Author writes a proposal at `docs/constitutional_amendments/<date>_add_<engine>.md`
+2. Proposal must include: (a) evidence of the gap · (b) proof that no existing engine can be extended · (c) full 20-field Cap Map entry · (d) test plan
+3. Operator signs off
+4. Constitution version bumps · Article 10 domain list may be amended if the new engine requires a new domain
+
+---
+
+## Constitutional Version (post-Institutional-Proof)
+
+**Version 1.2.0 · AMENDED 2026-07-27** · adds Article 101 (Architecture Freeze) + Part XXVI.
+
+Amendment history:
+- 1.0.0 · 2026-07-27 · Initial ratification (Wave 4.5)
+- 1.1.0 · 2026-07-27 · Wave Y · Article 100 · Six-Level Maturity Ladder
+- 1.2.0 · 2026-07-27 · Institutional Proof · Article 101 · Architecture Freeze
+
+---
+
 ## Ratification
 
 This Constitution is the apex architectural authority for AEGIS/NexaQuant. Every existing document (Phase 3/4/5/6 roadmaps · Wave 4 spec · Capability Map · Implementation Mode · v2.2 audit) is subordinate. Every future document is subordinate.
