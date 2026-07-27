@@ -5,7 +5,7 @@
   "schema_fingerprint": "aegis.recommendation_ssot.v1.20260727",
   "market": "usa",
   "asof": "2026-07-27",
-  "run_utc": "2026-07-27T15:55:36.517552+00:00",
+  "run_utc": "2026-07-27T16:09:12.636761+00:00",
   "source": "recommendations_v3.json",
   "n": 15,
   "n_source": 15,
@@ -112,9 +112,9 @@
         "suggested_allocation_pct": 5.0,
         "risk_level": "moderate",
         "max_capital_exposure_pct": 6.0,
-        "time_horizon_days": 60,
-        "time_horizon_bucket": "position",
-        "time_horizon_desc": "Weeks-to-months · trend-following",
+        "time_horizon_days": 17,
+        "time_horizon_bucket": "swing",
+        "time_horizon_desc": "Days-to-weeks · exit near target or on stop",
         "entry_zone": {
           "current_price": 368.98,
           "ideal_buy_low": 365.29,
@@ -125,7 +125,8 @@
           "risk_reward_ratio": "1:2 (T1) · 1:4 (T2)",
           "risk_per_share_pct": 6.0
         },
-        "sizing_note": "preview allocation · real position size determined by risk engine (fractional Kelly · half-Kelly cap · per-sector cap · VIX-adjusted)"
+        "sizing_note": "preview allocation · real position size determined by risk engine (fractional Kelly · half-Kelly cap · per-sector cap · VIX-adjusted)",
+        "dynamic_holding_reason": "dynamic holding 17d = base 21 × composite 0.816 · drivers: risk trim (0.80x)"
       },
       "why": {
         "top_reasons": [
@@ -140,6 +141,21 @@
           "leverage above 1x amplifies downside if fundamentals slip"
         ],
         "signal_quality": "STRONG"
+      },
+      "rotation_intelligence": {
+        "should_rotate": false,
+        "replacement_ticker": null,
+        "edge": -0.0245,
+        "expected_alpha_delta_pct": 0.0,
+        "keep_score": 0.3135,
+        "candidate_score": 0.289,
+        "reason": "keep · already in top bucket · candidate edge -0.0245 insufficient to justify churn"
+      },
+      "lifecycle_state": {
+        "current_state": "BUY",
+        "previous_state": "DISCOVERED",
+        "ts_last_transition": "2026-07-27T16:09:11.060552+00:00",
+        "n_events": 2
       },
       "percentile_action": "STRONG_BUY",
       "score_percentile": 1.0,
@@ -238,9 +254,9 @@
         "suggested_allocation_pct": 5.0,
         "risk_level": "moderate",
         "max_capital_exposure_pct": 6.0,
-        "time_horizon_days": 60,
-        "time_horizon_bucket": "position",
-        "time_horizon_desc": "Weeks-to-months · trend-following",
+        "time_horizon_days": 17,
+        "time_horizon_bucket": "swing",
+        "time_horizon_desc": "Days-to-weeks · exit near target or on stop",
         "entry_zone": {
           "current_price": 358.56,
           "ideal_buy_low": 354.97,
@@ -251,7 +267,8 @@
           "risk_reward_ratio": "1:2 (T1) · 1:4 (T2)",
           "risk_per_share_pct": 6.0
         },
-        "sizing_note": "preview allocation · real position size determined by risk engine (fractional Kelly · half-Kelly cap · per-sector cap · VIX-adjusted)"
+        "sizing_note": "preview allocation · real position size determined by risk engine (fractional Kelly · half-Kelly cap · per-sector cap · VIX-adjusted)",
+        "dynamic_holding_reason": "dynamic holding 17d = base 21 × composite 0.816 · drivers: risk trim (0.80x)"
       },
       "why": {
         "top_reasons": [
@@ -268,6 +285,21 @@
           "leverage above 1x amplifies downside if fundamentals slip"
         ],
         "signal_quality": "STRONG"
+      },
+      "rotation_intelligence": {
+        "should_rotate": false,
+        "replacement_ticker": null,
+        "edge": 0.0245,
+        "expected_alpha_delta_pct": 0.0,
+        "keep_score": 0.289,
+        "candidate_score": 0.3135,
+        "reason": "keep · already in top bucket · candidate edge +0.0245 insufficient to justify churn"
+      },
+      "lifecycle_state": {
+        "current_state": "BUY",
+        "previous_state": "DISCOVERED",
+        "ts_last_transition": "2026-07-27T16:09:11.060552+00:00",
+        "n_events": 2
       },
       "percentile_action": "STRONG_BUY",
       "score_percentile": 0.9286,
@@ -364,9 +396,9 @@
         "suggested_allocation_pct": 3.0,
         "risk_level": "moderate",
         "max_capital_exposure_pct": 6.0,
-        "time_horizon_days": 60,
-        "time_horizon_bucket": "position",
-        "time_horizon_desc": "Weeks-to-months · trend-following",
+        "time_horizon_days": 9,
+        "time_horizon_bucket": "swing",
+        "time_horizon_desc": "Days-to-weeks · exit near target or on stop",
         "entry_zone": {
           "current_price": 225.02,
           "ideal_buy_low": 222.77,
@@ -377,7 +409,8 @@
           "risk_reward_ratio": "1:2 (T1) · 1:4 (T2)",
           "risk_per_share_pct": 6.0
         },
-        "sizing_note": "preview allocation · real position size determined by risk engine (fractional Kelly · half-Kelly cap · per-sector cap · VIX-adjusted)"
+        "sizing_note": "preview allocation · real position size determined by risk engine (fractional Kelly · half-Kelly cap · per-sector cap · VIX-adjusted)",
+        "dynamic_holding_reason": "dynamic holding 9d = base 21 × composite 0.408 · drivers: risk trim (0.80x)"
       },
       "why": {
         "top_reasons": [
@@ -391,6 +424,21 @@
           "model disagreement · signal not unanimous"
         ],
         "signal_quality": "MODERATE"
+      },
+      "rotation_intelligence": {
+        "should_rotate": true,
+        "replacement_ticker": "TRV",
+        "edge": 0.1383,
+        "expected_alpha_delta_pct": 13.83,
+        "keep_score": 0.1752,
+        "candidate_score": 0.3135,
+        "reason": "rotate → TRV · candidate_score +0.3135 vs current +0.1752 · edge +0.1383 > threshold 0.05 · expected alpha +13.83%"
+      },
+      "lifecycle_state": {
+        "current_state": "HOLD",
+        "previous_state": "DISCOVERED",
+        "ts_last_transition": "2026-07-27T16:09:11.060552+00:00",
+        "n_events": 2
       },
       "percentile_action": "BUY",
       "score_percentile": 0.8571,
@@ -487,14 +535,15 @@
         "suggested_allocation_pct": 0.0,
         "risk_level": "moderate",
         "max_capital_exposure_pct": 6.0,
-        "time_horizon_days": 60,
-        "time_horizon_bucket": "position",
-        "time_horizon_desc": "Weeks-to-months · trend-following",
+        "time_horizon_days": 9,
+        "time_horizon_bucket": "swing",
+        "time_horizon_desc": "Days-to-weeks · exit near target or on stop",
         "entry_zone": {
           "current_price": 1065.22,
           "note": "watchlist · re-check when signal strengthens"
         },
-        "sizing_note": "preview allocation · real position size determined by risk engine (fractional Kelly · half-Kelly cap · per-sector cap · VIX-adjusted)"
+        "sizing_note": "preview allocation · real position size determined by risk engine (fractional Kelly · half-Kelly cap · per-sector cap · VIX-adjusted)",
+        "dynamic_holding_reason": "dynamic holding 9d = base 21 × composite 0.408 · drivers: risk trim (0.80x)"
       },
       "why": {
         "top_reasons": [
@@ -509,6 +558,21 @@
           "weak trend strength (ADX 15.571) — call may be premature"
         ],
         "signal_quality": "MODERATE"
+      },
+      "rotation_intelligence": {
+        "should_rotate": true,
+        "replacement_ticker": "TRV",
+        "edge": 0.1436,
+        "expected_alpha_delta_pct": 14.36,
+        "keep_score": 0.1699,
+        "candidate_score": 0.3135,
+        "reason": "rotate → TRV · candidate_score +0.3135 vs current +0.1699 · edge +0.1436 > threshold 0.05 · expected alpha +14.36%"
+      },
+      "lifecycle_state": {
+        "current_state": "HOLD",
+        "previous_state": "DISCOVERED",
+        "ts_last_transition": "2026-07-27T16:09:11.060552+00:00",
+        "n_events": 2
       },
       "percentile_action": "HOLD",
       "score_percentile": 0.7857,
@@ -603,14 +667,15 @@
         "suggested_allocation_pct": 0.0,
         "risk_level": "moderate",
         "max_capital_exposure_pct": 6.0,
-        "time_horizon_days": 60,
-        "time_horizon_bucket": "position",
-        "time_horizon_desc": "Weeks-to-months · trend-following",
+        "time_horizon_days": 9,
+        "time_horizon_bucket": "swing",
+        "time_horizon_desc": "Days-to-weeks · exit near target or on stop",
         "entry_zone": {
           "current_price": 202.81,
           "note": "watchlist · re-check when signal strengthens"
         },
-        "sizing_note": "preview allocation · real position size determined by risk engine (fractional Kelly · half-Kelly cap · per-sector cap · VIX-adjusted)"
+        "sizing_note": "preview allocation · real position size determined by risk engine (fractional Kelly · half-Kelly cap · per-sector cap · VIX-adjusted)",
+        "dynamic_holding_reason": "dynamic holding 9d = base 21 × composite 0.408 · drivers: risk trim (0.80x)"
       },
       "why": {
         "top_reasons": [
@@ -623,6 +688,21 @@
           "model disagreement · signal not unanimous"
         ],
         "signal_quality": "MODERATE"
+      },
+      "rotation_intelligence": {
+        "should_rotate": true,
+        "replacement_ticker": "TRV",
+        "edge": 0.1653,
+        "expected_alpha_delta_pct": 16.53,
+        "keep_score": 0.1482,
+        "candidate_score": 0.3135,
+        "reason": "rotate → TRV · candidate_score +0.3135 vs current +0.1482 · edge +0.1653 > threshold 0.05 · expected alpha +16.53%"
+      },
+      "lifecycle_state": {
+        "current_state": "HOLD",
+        "previous_state": "DISCOVERED",
+        "ts_last_transition": "2026-07-27T16:09:11.060552+00:00",
+        "n_events": 2
       },
       "percentile_action": "HOLD",
       "score_percentile": 0.7143,
@@ -717,14 +797,15 @@
         "suggested_allocation_pct": 0.0,
         "risk_level": "moderate",
         "max_capital_exposure_pct": 6.0,
-        "time_horizon_days": 60,
-        "time_horizon_bucket": "position",
-        "time_horizon_desc": "Weeks-to-months · trend-following",
+        "time_horizon_days": 9,
+        "time_horizon_bucket": "swing",
+        "time_horizon_desc": "Days-to-weeks · exit near target or on stop",
         "entry_zone": {
           "current_price": 341.1,
           "note": "watchlist · re-check when signal strengthens"
         },
-        "sizing_note": "preview allocation · real position size determined by risk engine (fractional Kelly · half-Kelly cap · per-sector cap · VIX-adjusted)"
+        "sizing_note": "preview allocation · real position size determined by risk engine (fractional Kelly · half-Kelly cap · per-sector cap · VIX-adjusted)",
+        "dynamic_holding_reason": "dynamic holding 9d = base 21 × composite 0.408 · drivers: risk trim (0.80x)"
       },
       "why": {
         "top_reasons": [
@@ -736,6 +817,21 @@
           "net insider selling ($-13,715,101, 90d)"
         ],
         "signal_quality": "MODERATE"
+      },
+      "rotation_intelligence": {
+        "should_rotate": true,
+        "replacement_ticker": "TRV",
+        "edge": 0.1849,
+        "expected_alpha_delta_pct": 18.49,
+        "keep_score": 0.1286,
+        "candidate_score": 0.3135,
+        "reason": "rotate → TRV · candidate_score +0.3135 vs current +0.1286 · edge +0.1849 > threshold 0.05 · expected alpha +18.49%"
+      },
+      "lifecycle_state": {
+        "current_state": "HOLD",
+        "previous_state": "DISCOVERED",
+        "ts_last_transition": "2026-07-27T16:09:11.060552+00:00",
+        "n_events": 2
       },
       "percentile_action": "HOLD",
       "score_percentile": 0.6429,
@@ -832,14 +928,15 @@
         "suggested_allocation_pct": 0.0,
         "risk_level": "moderate",
         "max_capital_exposure_pct": 6.0,
-        "time_horizon_days": 60,
-        "time_horizon_bucket": "position",
-        "time_horizon_desc": "Weeks-to-months · trend-following",
+        "time_horizon_days": 9,
+        "time_horizon_bucket": "swing",
+        "time_horizon_desc": "Days-to-weeks · exit near target or on stop",
         "entry_zone": {
           "current_price": 333.74,
           "note": "watchlist · re-check when signal strengthens"
         },
-        "sizing_note": "preview allocation · real position size determined by risk engine (fractional Kelly · half-Kelly cap · per-sector cap · VIX-adjusted)"
+        "sizing_note": "preview allocation · real position size determined by risk engine (fractional Kelly · half-Kelly cap · per-sector cap · VIX-adjusted)",
+        "dynamic_holding_reason": "dynamic holding 9d = base 21 × composite 0.408 · drivers: risk trim (0.80x)"
       },
       "why": {
         "top_reasons": [
@@ -856,6 +953,21 @@
           "earnings in 4 days — reduce position size ahead of print"
         ],
         "signal_quality": "MODERATE"
+      },
+      "rotation_intelligence": {
+        "should_rotate": true,
+        "replacement_ticker": "TRV",
+        "edge": 0.1944,
+        "expected_alpha_delta_pct": 19.44,
+        "keep_score": 0.1191,
+        "candidate_score": 0.3135,
+        "reason": "rotate → TRV · candidate_score +0.3135 vs current +0.1191 · edge +0.1944 > threshold 0.05 · expected alpha +19.44%"
+      },
+      "lifecycle_state": {
+        "current_state": "HOLD",
+        "previous_state": "DISCOVERED",
+        "ts_last_transition": "2026-07-27T16:09:11.060552+00:00",
+        "n_events": 2
       },
       "percentile_action": "HOLD",
       "score_percentile": 0.5714,
@@ -952,14 +1064,15 @@
         "suggested_allocation_pct": 0.0,
         "risk_level": "moderate",
         "max_capital_exposure_pct": 6.0,
-        "time_horizon_days": 60,
-        "time_horizon_bucket": "position",
-        "time_horizon_desc": "Weeks-to-months · trend-following",
+        "time_horizon_days": 9,
+        "time_horizon_bucket": "swing",
+        "time_horizon_desc": "Days-to-weeks · exit near target or on stop",
         "entry_zone": {
           "current_price": 81.56,
           "note": "watchlist · re-check when signal strengthens"
         },
-        "sizing_note": "preview allocation · real position size determined by risk engine (fractional Kelly · half-Kelly cap · per-sector cap · VIX-adjusted)"
+        "sizing_note": "preview allocation · real position size determined by risk engine (fractional Kelly · half-Kelly cap · per-sector cap · VIX-adjusted)",
+        "dynamic_holding_reason": "dynamic holding 9d = base 21 × composite 0.408 · drivers: risk trim (0.80x)"
       },
       "why": {
         "top_reasons": [
@@ -974,6 +1087,21 @@
           "model disagreement · signal not unanimous"
         ],
         "signal_quality": "MODERATE"
+      },
+      "rotation_intelligence": {
+        "should_rotate": true,
+        "replacement_ticker": "TRV",
+        "edge": 0.2271,
+        "expected_alpha_delta_pct": 22.71,
+        "keep_score": 0.0864,
+        "candidate_score": 0.3135,
+        "reason": "rotate → TRV · candidate_score +0.3135 vs current +0.0864 · edge +0.2271 > threshold 0.05 · expected alpha +22.71%"
+      },
+      "lifecycle_state": {
+        "current_state": "HOLD",
+        "previous_state": "DISCOVERED",
+        "ts_last_transition": "2026-07-27T16:09:11.060552+00:00",
+        "n_events": 2
       },
       "percentile_action": "HOLD",
       "score_percentile": 0.5,
@@ -1068,14 +1196,15 @@
         "suggested_allocation_pct": 0.0,
         "risk_level": "moderate",
         "max_capital_exposure_pct": 6.0,
-        "time_horizon_days": 60,
-        "time_horizon_bucket": "position",
-        "time_horizon_desc": "Weeks-to-months · trend-following",
+        "time_horizon_days": 9,
+        "time_horizon_bucket": "swing",
+        "time_horizon_desc": "Days-to-weeks · exit near target or on stop",
         "entry_zone": {
           "current_price": 355.35,
           "note": "watchlist · re-check when signal strengthens"
         },
-        "sizing_note": "preview allocation · real position size determined by risk engine (fractional Kelly · half-Kelly cap · per-sector cap · VIX-adjusted)"
+        "sizing_note": "preview allocation · real position size determined by risk engine (fractional Kelly · half-Kelly cap · per-sector cap · VIX-adjusted)",
+        "dynamic_holding_reason": "dynamic holding 9d = base 21 × composite 0.408 · drivers: risk trim (0.80x)"
       },
       "why": {
         "top_reasons": [
@@ -1089,6 +1218,21 @@
           "model disagreement · signal not unanimous"
         ],
         "signal_quality": "MODERATE"
+      },
+      "rotation_intelligence": {
+        "should_rotate": true,
+        "replacement_ticker": "TRV",
+        "edge": 0.2428,
+        "expected_alpha_delta_pct": 24.28,
+        "keep_score": 0.0707,
+        "candidate_score": 0.3135,
+        "reason": "rotate → TRV · candidate_score +0.3135 vs current +0.0707 · edge +0.2428 > threshold 0.05 · expected alpha +24.28%"
+      },
+      "lifecycle_state": {
+        "current_state": "HOLD",
+        "previous_state": "DISCOVERED",
+        "ts_last_transition": "2026-07-27T16:09:11.060552+00:00",
+        "n_events": 2
       },
       "percentile_action": "HOLD",
       "score_percentile": 0.4286,
@@ -1183,14 +1327,15 @@
         "suggested_allocation_pct": 0.0,
         "risk_level": "moderate",
         "max_capital_exposure_pct": 6.0,
-        "time_horizon_days": 60,
-        "time_horizon_bucket": "position",
-        "time_horizon_desc": "Weeks-to-months · trend-following",
+        "time_horizon_days": 9,
+        "time_horizon_bucket": "swing",
+        "time_horizon_desc": "Days-to-weeks · exit near target or on stop",
         "entry_zone": {
           "current_price": 43.76,
           "note": "watchlist · re-check when signal strengthens"
         },
-        "sizing_note": "preview allocation · real position size determined by risk engine (fractional Kelly · half-Kelly cap · per-sector cap · VIX-adjusted)"
+        "sizing_note": "preview allocation · real position size determined by risk engine (fractional Kelly · half-Kelly cap · per-sector cap · VIX-adjusted)",
+        "dynamic_holding_reason": "dynamic holding 9d = base 21 × composite 0.408 · drivers: risk trim (0.80x)"
       },
       "why": {
         "top_reasons": [
@@ -1202,6 +1347,21 @@
           "model disagreement · signal not unanimous"
         ],
         "signal_quality": "MODERATE"
+      },
+      "rotation_intelligence": {
+        "should_rotate": true,
+        "replacement_ticker": "TRV",
+        "edge": 0.2435,
+        "expected_alpha_delta_pct": 24.35,
+        "keep_score": 0.07,
+        "candidate_score": 0.3135,
+        "reason": "rotate → TRV · candidate_score +0.3135 vs current +0.0700 · edge +0.2435 > threshold 0.05 · expected alpha +24.35%"
+      },
+      "lifecycle_state": {
+        "current_state": "HOLD",
+        "previous_state": "DISCOVERED",
+        "ts_last_transition": "2026-07-27T16:09:11.060552+00:00",
+        "n_events": 2
       },
       "percentile_action": "HOLD",
       "score_percentile": 0.3571,
@@ -1285,14 +1445,15 @@
         "suggested_allocation_pct": 0.0,
         "risk_level": "moderate",
         "max_capital_exposure_pct": 6.0,
-        "time_horizon_days": 60,
-        "time_horizon_bucket": "position",
-        "time_horizon_desc": "Weeks-to-months · trend-following",
+        "time_horizon_days": 9,
+        "time_horizon_bucket": "swing",
+        "time_horizon_desc": "Days-to-weeks · exit near target or on stop",
         "entry_zone": {
           "current_price": 111.94,
           "note": "watchlist · re-check when signal strengthens"
         },
-        "sizing_note": "preview allocation · real position size determined by risk engine (fractional Kelly · half-Kelly cap · per-sector cap · VIX-adjusted)"
+        "sizing_note": "preview allocation · real position size determined by risk engine (fractional Kelly · half-Kelly cap · per-sector cap · VIX-adjusted)",
+        "dynamic_holding_reason": "dynamic holding 9d = base 21 × composite 0.408 · drivers: risk trim (0.80x)"
       },
       "why": {
         "top_reasons": [
@@ -1305,6 +1466,21 @@
           "earnings in 17 days — reduce position size ahead of print"
         ],
         "signal_quality": "MODERATE"
+      },
+      "rotation_intelligence": {
+        "should_rotate": true,
+        "replacement_ticker": "TRV",
+        "edge": 0.3789,
+        "expected_alpha_delta_pct": 37.89,
+        "keep_score": -0.0654,
+        "candidate_score": 0.3135,
+        "reason": "rotate → TRV · candidate_score +0.3135 vs current -0.0654 · edge +0.3789 > threshold 0.05 · expected alpha +37.89%"
+      },
+      "lifecycle_state": {
+        "current_state": "HOLD",
+        "previous_state": "DISCOVERED",
+        "ts_last_transition": "2026-07-27T16:09:11.060552+00:00",
+        "n_events": 2
       },
       "percentile_action": "HOLD",
       "score_percentile": 0.2857,
@@ -1386,14 +1562,15 @@
         "suggested_allocation_pct": 0.0,
         "risk_level": "moderate",
         "max_capital_exposure_pct": 6.0,
-        "time_horizon_days": 60,
-        "time_horizon_bucket": "position",
-        "time_horizon_desc": "Weeks-to-months · trend-following",
+        "time_horizon_days": 9,
+        "time_horizon_bucket": "swing",
+        "time_horizon_desc": "Days-to-weeks · exit near target or on stop",
         "entry_zone": {
           "current_price": 95.04,
           "note": "watchlist · re-check when signal strengthens"
         },
-        "sizing_note": "preview allocation · real position size determined by risk engine (fractional Kelly · half-Kelly cap · per-sector cap · VIX-adjusted)"
+        "sizing_note": "preview allocation · real position size determined by risk engine (fractional Kelly · half-Kelly cap · per-sector cap · VIX-adjusted)",
+        "dynamic_holding_reason": "dynamic holding 9d = base 21 × composite 0.408 · drivers: risk trim (0.80x)"
       },
       "why": {
         "top_reasons": [
@@ -1408,6 +1585,21 @@
           "deep 60d drawdown (-32.57%)"
         ],
         "signal_quality": "MODERATE"
+      },
+      "rotation_intelligence": {
+        "should_rotate": true,
+        "replacement_ticker": "TRV",
+        "edge": 0.4141,
+        "expected_alpha_delta_pct": 41.41,
+        "keep_score": -0.1006,
+        "candidate_score": 0.3135,
+        "reason": "rotate → TRV · candidate_score +0.3135 vs current -0.1006 · edge +0.4141 > threshold 0.05 · expected alpha +41.41%"
+      },
+      "lifecycle_state": {
+        "current_state": "HOLD",
+        "previous_state": "DISCOVERED",
+        "ts_last_transition": "2026-07-27T16:09:11.060552+00:00",
+        "n_events": 2
       },
       "percentile_action": "HOLD",
       "score_percentile": 0.2143,
@@ -1491,16 +1683,17 @@
         "suggested_allocation_pct": 0.0,
         "risk_level": "moderate",
         "max_capital_exposure_pct": 6.0,
-        "time_horizon_days": 60,
-        "time_horizon_bucket": "position",
-        "time_horizon_desc": "Weeks-to-months · trend-following",
+        "time_horizon_days": 9,
+        "time_horizon_bucket": "swing",
+        "time_horizon_desc": "Days-to-weeks · exit near target or on stop",
         "entry_zone": {
           "current_price": 97.67,
           "exit_range_low": 96.69,
           "exit_range_high": 98.65,
           "note": "exit if holding · no new entry recommended"
         },
-        "sizing_note": "preview allocation · real position size determined by risk engine (fractional Kelly · half-Kelly cap · per-sector cap · VIX-adjusted)"
+        "sizing_note": "preview allocation · real position size determined by risk engine (fractional Kelly · half-Kelly cap · per-sector cap · VIX-adjusted)",
+        "dynamic_holding_reason": "dynamic holding 9d = base 21 × composite 0.408 · drivers: risk trim (0.80x)"
       },
       "why": {
         "top_reasons": [
@@ -1512,6 +1705,21 @@
           "earnings in 9 days — reduce position size ahead of print"
         ],
         "signal_quality": "MODERATE"
+      },
+      "rotation_intelligence": {
+        "should_rotate": true,
+        "replacement_ticker": "TRV",
+        "edge": 0.4759,
+        "expected_alpha_delta_pct": 47.59,
+        "keep_score": -0.1624,
+        "candidate_score": 0.3135,
+        "reason": "rotate → TRV · candidate_score +0.3135 vs current -0.1624 · edge +0.4759 > threshold 0.05 · expected alpha +47.59%"
+      },
+      "lifecycle_state": {
+        "current_state": "HOLD",
+        "previous_state": "DISCOVERED",
+        "ts_last_transition": "2026-07-27T16:09:11.060552+00:00",
+        "n_events": 2
       },
       "percentile_action": "SELL",
       "score_percentile": 0.1429,
@@ -1593,16 +1801,17 @@
         "suggested_allocation_pct": 0.0,
         "risk_level": "moderate",
         "max_capital_exposure_pct": 6.0,
-        "time_horizon_days": 60,
-        "time_horizon_bucket": "position",
-        "time_horizon_desc": "Weeks-to-months · trend-following",
+        "time_horizon_days": 9,
+        "time_horizon_bucket": "swing",
+        "time_horizon_desc": "Days-to-weeks · exit near target or on stop",
         "entry_zone": {
           "current_price": 338.87,
           "exit_range_low": 335.48,
           "exit_range_high": 342.26,
           "note": "exit if holding · no new entry recommended"
         },
-        "sizing_note": "preview allocation · real position size determined by risk engine (fractional Kelly · half-Kelly cap · per-sector cap · VIX-adjusted)"
+        "sizing_note": "preview allocation · real position size determined by risk engine (fractional Kelly · half-Kelly cap · per-sector cap · VIX-adjusted)",
+        "dynamic_holding_reason": "dynamic holding 9d = base 21 × composite 0.408 · drivers: risk trim (0.80x)"
       },
       "why": {
         "top_reasons": [
@@ -1613,6 +1822,21 @@
           "high leverage (D/E 459.356)"
         ],
         "signal_quality": "MODERATE"
+      },
+      "rotation_intelligence": {
+        "should_rotate": true,
+        "replacement_ticker": "TRV",
+        "edge": 0.4774,
+        "expected_alpha_delta_pct": 47.74,
+        "keep_score": -0.1639,
+        "candidate_score": 0.3135,
+        "reason": "rotate → TRV · candidate_score +0.3135 vs current -0.1639 · edge +0.4774 > threshold 0.05 · expected alpha +47.74%"
+      },
+      "lifecycle_state": {
+        "current_state": "HOLD",
+        "previous_state": "DISCOVERED",
+        "ts_last_transition": "2026-07-27T16:09:11.060552+00:00",
+        "n_events": 2
       },
       "percentile_action": "STRONG_SELL",
       "score_percentile": 0.0714,
@@ -1696,16 +1920,17 @@
         "suggested_allocation_pct": 0.0,
         "risk_level": "moderate",
         "max_capital_exposure_pct": 6.0,
-        "time_horizon_days": 60,
-        "time_horizon_bucket": "position",
-        "time_horizon_desc": "Weeks-to-months · trend-following",
+        "time_horizon_days": 9,
+        "time_horizon_bucket": "swing",
+        "time_horizon_desc": "Days-to-weeks · exit near target or on stop",
         "entry_zone": {
           "current_price": 267.71,
           "exit_range_low": 265.03,
           "exit_range_high": 270.39,
           "note": "exit if holding · no new entry recommended"
         },
-        "sizing_note": "preview allocation · real position size determined by risk engine (fractional Kelly · half-Kelly cap · per-sector cap · VIX-adjusted)"
+        "sizing_note": "preview allocation · real position size determined by risk engine (fractional Kelly · half-Kelly cap · per-sector cap · VIX-adjusted)",
+        "dynamic_holding_reason": "dynamic holding 9d = base 21 × composite 0.408 · drivers: risk trim (0.80x)"
       },
       "why": {
         "top_reasons": [
@@ -1718,6 +1943,21 @@
           "earnings in 8 days — reduce position size ahead of print"
         ],
         "signal_quality": "MODERATE"
+      },
+      "rotation_intelligence": {
+        "should_rotate": true,
+        "replacement_ticker": "TRV",
+        "edge": 0.4813,
+        "expected_alpha_delta_pct": 48.13,
+        "keep_score": -0.1678,
+        "candidate_score": 0.3135,
+        "reason": "rotate → TRV · candidate_score +0.3135 vs current -0.1678 · edge +0.4813 > threshold 0.05 · expected alpha +48.13%"
+      },
+      "lifecycle_state": {
+        "current_state": "HOLD",
+        "previous_state": "DISCOVERED",
+        "ts_last_transition": "2026-07-27T16:09:11.060552+00:00",
+        "n_events": 2
       },
       "percentile_action": "STRONG_SELL",
       "score_percentile": 0.0,

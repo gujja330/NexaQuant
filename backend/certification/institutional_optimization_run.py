@@ -65,10 +65,31 @@ def main() -> int:
         payload["percentile_engine"] = "aegis.recommendation.percentile_classifier.v1"
 
         # Re-enrich investor-actionable fields · percentile_action was just
-        # added, so investor_action/position_plan/why must be refreshed.
-        # CEO cycle 2 · investor-facing dual-decision schema.
+        # added, so investor_action/position_plan/why + rotation_intelligence
+        # + lifecycle_state must be refreshed.
+        # CEO cycles 2-3 · investor-facing dual-decision + rotation + lifecycle.
         from backend.recommendation.investor_actionable import enrich_batch, summarize_batch
-        enrich_batch(recs)
+        # Load context artifacts if their engines have run today
+        lifecycle_records = None
+        dynamic_holding_decisions = None
+        try:
+            lp = reports / "recommendation_lifecycle.json"
+            if lp.exists():
+                lifecycle_records = (json.loads(lp.read_text(encoding="utf-8"))
+                                        .get("records") or {})
+            dhp = reports / "dynamic_holding.json"
+            if dhp.exists():
+                decisions = (json.loads(dhp.read_text(encoding="utf-8"))
+                                .get("decisions") or [])
+                dynamic_holding_decisions = {
+                    str(d.get("ticker") or ""): d for d in decisions if d.get("ticker")
+                }
+        except Exception:
+            pass
+
+        enrich_batch(recs,
+                        lifecycle_records=lifecycle_records,
+                        dynamic_holding_decisions=dynamic_holding_decisions)
         payload["recommendations"] = recs
         payload["investor_actionable_engine"] = "aegis.recommendation.investor_actionable.v1"
         summ = summarize_batch(recs)
@@ -82,7 +103,9 @@ def main() -> int:
         print(f"[investor_actionable] entry_dist={summ['entry_decision_dist']} "
               f"if_holding_dist={summ['if_holding_decision_dist']} "
               f"actionable_entries={len(summ['actionable_entries'])} "
-              f"actionable_exits={len(summ['actionable_exits'])}")
+              f"actionable_exits={len(summ['actionable_exits'])} "
+              f"rotations={summ.get('n_rotation_suggestions', 0)} "
+              f"lifecycle_dist={summ.get('lifecycle_state_dist', {})}")
 
     return 0
 

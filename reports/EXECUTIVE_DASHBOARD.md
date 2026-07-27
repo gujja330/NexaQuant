@@ -1,7 +1,62 @@
 # AEGIS Executive Dashboard
 
-**Product state · updated 2026-07-27 · CEO cycles 1-2 · Learning-Loop + Investor-Actionable Schema**
+**Product state · updated 2026-07-27 · CEO cycles 1-3 · Learning-Loop + Investor-Actionable Schema + Rotation Intelligence**
 **Governing authority:** [`Enterprise Constitution v1.2.0`](../docs/AEGIS_ENTERPRISE_CONSTITUTION.md) (APEX · Article 100 ladder MANDATORY · Article 101 Architecture Freeze)
+
+---
+
+## 0c · CEO Cycle 3 — Rotation Intelligence · Lifecycle · Dynamic Holding (2026-07-27)
+
+**Operator directive:** "Never evaluate stocks independently — always evaluate opportunity cost." Rotation Intelligence is Phase 8 · declared HIGHEST priority in the 14-phase Investor Decision Layer prompt.
+
+**Honest audit finding:** most of the 14 phases already have engines in the repo (`capital_rotation`, `dynamic_holding`, `recommendation_lifecycle`, `delta`, `quality`, `opportunity_cost`, `risk`). The real gap was **surfacing** — their outputs sit in dedicated JSON files but never reach `recommendations.json`.
+
+**Highest-ROI action taken (no new engines · pure surfacing · Article 101.2):**
+
+Extended `investor_actionable` enricher to consume three context artifacts and add three new blocks to every rec:
+
+| New block | Source | Fields |
+|---|---|---|
+| `rotation_intelligence` | Hypothetical rotation using capital_rotation.engine principle | `should_rotate` · `replacement_ticker` · `edge` · `expected_alpha_delta_pct` · `keep_score` · `candidate_score` · `reason` |
+| `lifecycle_state` | `reports/recommendation_lifecycle.json` (9-state machine already runs daily) | `current_state` · `previous_state` · `ts_last_transition` · `n_events` |
+| `position_plan.time_horizon_days` | `reports/dynamic_holding.json` (12-factor composite already runs daily) | Overrides fixed 45d fallback |
+
+**Anti-churn guards built in:**
+- Never rotate out of STRONG_BUY unless edge > 2× threshold (0.10)
+- Never suggest rotating a ticker to itself
+- Edge threshold 0.05 ensemble-score delta before rotation is recommended
+
+**Live 2026-07-27 India distribution (post-cycle-3):**
+- Rotations suggested today: **5** (all 5 negative-signal recs → LUPIN with +51-56% expected alpha delta)
+- Lifecycle: 15/15 HOLD (fresh tracking · previous state DISCOVERED)
+- Dynamic holding: 17d (swing bucket) · was fixed 60d
+- Anti-churn works: LUPIN (top rec) shows KEEP despite HEROMOTOCO being similar; STRONG_BUY tickers don't churn to each other on small edges
+
+**Tests:** 12 new cycle-3 tests (rotation + lifecycle + dynamic holding wiring + anti-churn) · **69/69 green** (39 investor_actionable + 20 institutional_opt + 10 alpha_opt).
+
+### Investor Decision Layer · Phase Completion Map (14-phase prompt)
+
+| Phase | Status | Notes |
+|---|:---:|---|
+| 1  Entry Decision | ✅ Cycle 2 | percentile_classifier + dual-action + labels |
+| 2  Existing Position Decision | 🟡 Cycle 2 partial | `if_holding` ✅ · "what changed" ❌ (Cycle 4) |
+| 3  Dynamic Position Sizing | 🟡 Cycle 2 preview | Lookup table ✅ · full Kelly wire ❌ (Cycle 5) |
+| 4  Dynamic Entry Zone | 🟡 Cycle 2 minimal | ideal buy/stop/T1/T2 ✅ · ATR/chase/pullback/gap ❌ (Cycle 6) |
+| 5  Intelligent Stop-Loss | ❌ Cycle 6 | Currently fixed 6% · needs ATR/swing/support/trailing methodology |
+| 6  Intelligent Target System | 🟡 Cycle 2 partial | T1/T2 ✅ · probability of reach + ETA ❌ (Cycle 7) |
+| 7  **Dynamic Holding Period** | ✅ **Cycle 3** | Wired from dynamic_holding.json composite (12 factors) |
+| 8  **Rotation Intelligence** | ✅ **Cycle 3** | Hypothetical rotation per rec · anti-churn guards · both markets |
+| 9  Portfolio Intelligence | 🟡 Runs | portfolio_v3 exists · per-rec surface ❌ (Cycle 8) |
+| 10 Confidence Decomposition | 🟡 Fields exist | Not grouped · needs 8-component structured block (Cycle 9) |
+| 11 Investor Explanation Layer | 🟡 Cycle 2 partial | bull/bear surfaced ✅ · structured Q&A ❌ (Cycle 9) |
+| 12 Delivery Formats | ❌ Cycle 10 | Telegram/WhatsApp/Email/PDF must consume `investor_action` block |
+| 13 **Portfolio Lifecycle Monitoring** | ✅ **Cycle 3** | 9-state lifecycle surfaced · alerts wiring in Cycle 10 |
+| 14 CEO Validation | ✅ Ongoing | This report |
+
+**Ranked next-cycle candidates by ROI:**
+1. **Cycle 4** — Delta engine wire + snapshot infra (Phase 2 completeness) · adds "what changed since yesterday"
+2. **Cycle 5** — Real Kelly sizing wire (Phase 3) · replaces preview lookup with backend/risk/engine.py output
+3. **Cycle 10** — Telegram + dashboard consume `investor_action` (Phase 12) · biggest UX impact of remaining phases
 
 ---
 
@@ -81,6 +136,9 @@ Every capability status uses **L0 DESIGNED · L1 BUILT · L2 WIRED · L3 VALIDAT
 | Model Factory (11 models) | **L4** | Ensemble + calibration · deterministic · **adaptive IC weights now consumed (CEO cycle 1)** |
 | Adaptive Ensemble Weights loop | **L4** ← CEO-1 | historical IC → next-day model weights · both markets · guardrail-tested |
 | Investor-Actionable Recommendation Schema | **L4** ← CEO-2 | dual-decision (entry + if_holding) + position plan (allocation, horizon, entry zone, stop, targets) + why · both markets · 27 tests |
+| Rotation Intelligence surfaced per-rec | **L4** ← CEO-3 | hypothetical rotation on every rec · anti-churn guards · both markets · 6 tests |
+| Recommendation Lifecycle surfaced per-rec | **L4** ← CEO-3 | 9-state machine surfaced from recommendation_lifecycle.json · both markets |
+| Dynamic Holding wired into position_plan | **L4** ← CEO-3 | 12-factor composite from dynamic_holding.json overrides fixed 45d · both markets |
 | Macro Intel (Sprint 6.5) | **L4** | Regime + commodities + currencies + bonds |
 | Recommendation Engine v3 | **L4** | Runner 2 · currently emits 100% HOLD (calibration cold-start) |
 | Portfolio Engine v3 | **L4** | 0 active positions (chain-dependent on Runner 2) |

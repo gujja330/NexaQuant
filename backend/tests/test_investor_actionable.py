@@ -256,3 +256,145 @@ def test_ssot_chain_wired_into_ssot_run():
         "SSoT runner missing investor_actionable enrichment call · "
         "recommendations.json will not be investor-actionable"
     )
+
+
+# ── CEO cycle 3 · Rotation Intelligence ─────────────────────
+def test_rotation_intelligence_recommends_rotation_when_edge_large():
+    recs = [
+        {"ticker": "MID",   "percentile_action": "HOLD",       "ensemble_score": 0.02},
+        {"ticker": "STAR",  "percentile_action": "STRONG_BUY", "ensemble_score": 0.30},
+    ]
+    enrich_batch(recs)
+    ri_mid = recs[0]["rotation_intelligence"]
+    assert ri_mid["should_rotate"] is True
+    assert ri_mid["replacement_ticker"] == "STAR"
+    assert ri_mid["edge"] > 0.05
+    assert ri_mid["expected_alpha_delta_pct"] > 0
+
+
+def test_rotation_intelligence_holds_when_edge_small():
+    recs = [
+        {"ticker": "MINE",  "percentile_action": "HOLD",       "ensemble_score": 0.10},
+        {"ticker": "OTHER", "percentile_action": "BUY",        "ensemble_score": 0.12},
+    ]
+    enrich_batch(recs)
+    ri_mine = recs[0]["rotation_intelligence"]
+    assert ri_mine["should_rotate"] is False
+    assert ri_mine["replacement_ticker"] is None
+
+
+def test_rotation_intelligence_never_recommends_when_no_buy_candidates():
+    recs = [
+        {"ticker": "A", "percentile_action": "HOLD", "ensemble_score": 0.05},
+        {"ticker": "B", "percentile_action": "HOLD", "ensemble_score": 0.04},
+    ]
+    enrich_batch(recs)
+    for r in recs:
+        assert r["rotation_intelligence"]["should_rotate"] is False
+        assert "no BUY" in r["rotation_intelligence"]["reason"]
+
+
+def test_rotation_intelligence_never_churns_out_of_top_bucket_on_small_edge():
+    """Anti-churn: STRONG_BUY should not rotate to another STRONG_BUY unless
+    edge is 2× threshold."""
+    recs = [
+        {"ticker": "A", "percentile_action": "STRONG_BUY", "ensemble_score": 0.25},
+        {"ticker": "B", "percentile_action": "STRONG_BUY", "ensemble_score": 0.31},  # only 0.06 edge
+    ]
+    enrich_batch(recs)
+    assert recs[0]["rotation_intelligence"]["should_rotate"] is False
+
+
+def test_rotation_intelligence_will_rotate_from_top_bucket_when_edge_huge():
+    recs = [
+        {"ticker": "A", "percentile_action": "BUY",         "ensemble_score": 0.10},
+        {"ticker": "B", "percentile_action": "STRONG_BUY",  "ensemble_score": 0.40},  # 0.30 edge >> 0.10
+    ]
+    enrich_batch(recs)
+    assert recs[0]["rotation_intelligence"]["should_rotate"] is True
+
+
+def test_rotation_intelligence_excludes_self_from_replacement():
+    """Never suggest rotating a ticker to itself."""
+    recs = [
+        {"ticker": "SAME", "percentile_action": "HOLD", "ensemble_score": 0.05},
+        {"ticker": "OTHR", "percentile_action": "BUY",  "ensemble_score": 0.20},
+    ]
+    enrich_batch(recs)
+    for r in recs:
+        ri = r["rotation_intelligence"]
+        if ri["replacement_ticker"]:
+            assert ri["replacement_ticker"] != r["ticker"]
+
+
+# ── CEO cycle 3 · Lifecycle State ───────────────────────────
+def test_lifecycle_untracked_when_no_records():
+    rec = {"ticker": "T", "percentile_action": "HOLD"}
+    enrich_batch([rec])
+    assert rec["lifecycle_state"]["current_state"] == "UNTRACKED"
+    assert rec["lifecycle_state"]["n_events"] == 0
+
+
+def test_lifecycle_surface_reads_current_and_previous():
+    rec = {"ticker": "AARTIIND.NS", "percentile_action": "HOLD"}
+    lifecycle_records = {
+        "AARTIIND.NS": {
+            "ticker":        "AARTIIND.NS",
+            "current_state": "HOLD",
+            "events": [
+                {"state": "DISCOVERED", "ts_utc": "2026-07-27T10:00:00+00:00", "reason": "bootstrap"},
+                {"state": "HOLD",       "ts_utc": "2026-07-27T12:00:00+00:00", "reason": "daily rec"},
+            ],
+        },
+    }
+    enrich_batch([rec], lifecycle_records=lifecycle_records)
+    ls = rec["lifecycle_state"]
+    assert ls["current_state"] == "HOLD"
+    assert ls["previous_state"] == "DISCOVERED"
+    assert ls["n_events"] == 2
+    assert ls["ts_last_transition"] == "2026-07-27T12:00:00+00:00"
+
+
+# ── CEO cycle 3 · Dynamic holding wired ─────────────────────
+def test_dynamic_holding_overrides_static_suggested_days():
+    rec = {"ticker": "T", "percentile_action": "BUY",
+             "suggested_holding_period_days": 60,   # fallback
+             "entry_zone": {"current": 100.0}}
+    dh = {"T": {"ticker": "T", "holding_days": 18,
+                  "reason": "dynamic holding 18d = base 21 × drivers"}}
+    enrich_batch([rec], dynamic_holding_decisions=dh)
+    pp = rec["position_plan"]
+    assert pp["time_horizon_days"] == 18                # NOT 60
+    assert pp["time_horizon_bucket"] == "swing"          # 18d falls in swing
+    assert "dynamic_holding_reason" in pp
+
+
+def test_dynamic_holding_falls_back_when_engine_output_missing():
+    rec = {"ticker": "T", "percentile_action": "BUY",
+             "suggested_holding_period_days": 60}
+    enrich_batch([rec])
+    assert rec["position_plan"]["time_horizon_days"] == 60
+
+
+def test_dynamic_holding_handles_malformed_days():
+    rec = {"ticker": "T", "percentile_action": "BUY",
+             "suggested_holding_period_days": 60}
+    dh = {"T": {"holding_days": "not-a-number"}}
+    enrich_batch([rec], dynamic_holding_decisions=dh)
+    # Should fall back to 60, never crash
+    assert rec["position_plan"]["time_horizon_days"] == 60
+
+
+# ── Summary rollup ──────────────────────────────────────────
+def test_summarize_includes_rotation_and_lifecycle_counts():
+    from backend.recommendation.investor_actionable import summarize_batch
+    recs = [
+        {"ticker": "MID",  "percentile_action": "HOLD",       "ensemble_score": 0.01},
+        {"ticker": "STAR", "percentile_action": "STRONG_BUY", "ensemble_score": 0.30},
+    ]
+    enrich_batch(recs)
+    s = summarize_batch(recs)
+    assert "n_rotation_suggestions" in s
+    assert "lifecycle_state_dist" in s
+    assert s["n_rotation_suggestions"] >= 1
+    assert s["lifecycle_state_dist"].get("UNTRACKED") == 2
