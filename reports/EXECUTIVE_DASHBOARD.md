@@ -44,8 +44,13 @@
 · [`docs/AEGIS_ENTERPRISE_CONSTITUTION.md`](../docs/AEGIS_ENTERPRISE_CONSTITUTION.md) — 99 articles · 24 parts · 5 appendices
 · 16 Immutable Invariants · 10-Layer Model + Domain Import Matrix (10×10 authoritative) · Sealed Contracts Registry · Six-AI-Agents roster · 20-scenario Institutional Acceptance Suite
 · Governs every future implementation forever · supersedes conflicts with all prior docs · amendable only via Article 99 (proposal + impact analysis + operator sign-off + version bump)
-· Sequencing: (1) Constitution ratified 2026-07-27 (2) Architecture frozen (3) Wave 4 D0..D8 executes AGAINST it (4) post-D8 structurally frozen (5) feature evolution only forever
 · Every future PR / sprint / AI-generated code must be checked against the Constitution FIRST
+
+**Wave 5 · Master Productionization & Institutional Certification · LAUNCHED 2026-07-27:**
+· 20-phase program governed by Constitution + Wave 4 + Cap Map · 34 required deliverables · executes AGAINST authorities (no re-design)
+· Phase 1 · Repository Discovery · **SHIPPED** ([`docs/AEGIS_WAVE_5_PHASE_1_REPOSITORY_DISCOVERY.md`](../docs/AEGIS_WAVE_5_PHASE_1_REPOSITORY_DISCOVERY.md)) — 24 inventories · 857 .py files · 214 report artifacts · 141 docs · 58 tests
+· Phase 1 key findings: schema_fingerprint coverage 6.8% (12/176 reports · Article 21 gap) · 15 duplicate indicator sites (5 RSI + 6 ATR + 4 ADX · Article 30 gap) · ~12 research/ modules daily-wired (Article 76 gap) · dead code confirmed (`_MATRIX` in classifier.py) · MON001 fingerprint verified `e4c070673568c52d…` · 280/280 tests green
+· Phases 2-20 execute sequentially: Compliance Audit → Standardization → Cap Completion → Data → Feature → Model → Rec → Capital Intel → Portfolio → Risk → Learning → Knowledge → Delivery → Platform → Validation → Security → Perf → Docs → Institutional Acceptance Certification
 
 ---
 
