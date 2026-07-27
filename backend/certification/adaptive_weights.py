@@ -124,3 +124,37 @@ def write_ensemble_weights_config(weights: dict, out_path: Path) -> None:
     }
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+
+def load_ensemble_weights_config(cfg_path: Path) -> dict | None:
+    """Load persisted adaptive weights · returns {model_id: weight} or None.
+
+    Consumed by india/model_factory/run.py + usa/research/model_factory/run.py
+    to close the learning loop end-to-end (historical IC → tomorrow's ensemble).
+
+    Silent-fallback rule: returns None if config missing, malformed, empty, or
+    fingerprint mismatch. Caller must fall back to equal-weight and log the
+    reason. Never crash the daily pipeline on config error.
+    """
+    import json
+    if not cfg_path.exists():
+        return None
+    try:
+        payload = json.loads(cfg_path.read_text(encoding="utf-8"))
+    except (ValueError, OSError):
+        return None
+    if payload.get("schema_fingerprint") != SCHEMA_FINGERPRINT:
+        return None
+    w = payload.get("weights") or {}
+    if not isinstance(w, dict) or not w:
+        return None
+    # Validate all values numeric and non-negative
+    clean = {}
+    for k, v in w.items():
+        try:
+            fv = float(v)
+        except (TypeError, ValueError):
+            continue
+        if fv >= 0:
+            clean[str(k)] = fv
+    return clean or None

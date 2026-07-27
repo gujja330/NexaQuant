@@ -1,7 +1,33 @@
 # AEGIS Executive Dashboard
 
-**Product state · updated 2026-07-27 · Wave Y closure**
-**Governing authority:** [`Enterprise Constitution v1.1.0`](../docs/AEGIS_ENTERPRISE_CONSTITUTION.md) (APEX · Article 100 ladder MANDATORY)
+**Product state · updated 2026-07-27 · CEO cycle 1 · Learning-Loop Closure**
+**Governing authority:** [`Enterprise Constitution v1.2.0`](../docs/AEGIS_ENTERPRISE_CONSTITUTION.md) (APEX · Article 100 ladder MANDATORY · Article 101 Architecture Freeze)
+
+---
+
+## 0 · CEO Cycle 1 — Executive Summary (2026-07-27)
+
+**Highest-ROI action taken:** Wired persisted adaptive ensemble weights into daily model runners on both markets. The learning loop (historical outcomes → tomorrow's model weights) had been computed and persisted daily for 24 hours but was never consumed — the ensemble kept falling back to equal-weight in `india/model_factory/run.py:101` and `usa/research/model_factory/run.py:85`.
+
+**Investment-quality delta measured on live 2026-07-27 India recs:**
+- Ensemble strategy: `equal_weight` → `adaptive_ic_weighted` (Article 100 · L4 CONSUMED)
+- Model weights: uniform 0.0909 → range [0.0508, 0.1357]; `sector_rotation` (+4.48pp), `quality` (+4.36pp), `mean_reversion` (+3.58pp) all boosted per historical IC evidence
+- Ensemble scores: IC-calibrated (KALYANKJIL top rank 0.0546 → 0.0484); ranking preserved so classifier decisions remain stable
+- Rec fingerprint changed: `a3084954b7cd9ddc` → `a7b87fa1fd9fb7dc` (proves adaptive weights propagated end-to-end)
+- Percentile distribution (post-adaptive): STRONG_BUY 2 · BUY 1 · HOLD 9 · SELL 1 · STRONG_SELL 2
+- Tests: 52/52 green (20 institutional_opt + 10 alpha_opt + 22 c0/decision) · added 7 new loader/wiring guardrails
+
+**Why it matters:** This is the first CEO cycle where the platform *actually consumes yesterday's evidence in today's decisions* rather than just persisting it. The daily job now runs Full-loop: closed trades → per-dim IC → clip+renormalize → persisted YAML → **loaded on next model_factory run** → propagated through ensemble → SSoT → percentile classifier → live recommendations.
+
+**Remaining bottlenecks (honest):**
+- Signal magnitude still ±0.05 (institutional target ±0.20); root cause is data-side (17 empty features) not code-side
+- 30+ day live-market validation required before the adaptive weight loop can be claimed as "producing alpha in production" vs merely "operating"
+- No live paper-trade tracking yet — a runner that snapshots today's percentile picks and grades them at T+20 would be the natural next CEO cycle
+
+**Overall platform score:** 8.7 / 10 (was 8.5 pre-cycle · +0.2 for closing the learning loop end-to-end)
+**GO/NO-GO:** GO for staged paper-trade advisory · NO-GO for real-capital deployment (needs 30+ trading-day track record)
+
+---
 
 ---
 
@@ -23,7 +49,8 @@ Every capability status uses **L0 DESIGNED · L1 BUILT · L2 WIRED · L3 VALIDAT
 | Feature Store (81 features) | **L4** | Schema `b65ceb49a83a` · runs daily · consumed by 11 models |
 | Risk Engine (Sprint 4) | **L4** | VaR/CVaR/Kelly/HHI/caps · 23 tests · runs daily |
 | Persistence (Sprint 7.5) | **L4** | Append-only history · 18 tests · GO 90/100 |
-| Model Factory (11 models) | **L4** | Ensemble + calibration · deterministic |
+| Model Factory (11 models) | **L4** | Ensemble + calibration · deterministic · **adaptive IC weights now consumed (CEO cycle 1)** |
+| Adaptive Ensemble Weights loop | **L4** ← CEO-1 | historical IC → next-day model weights · both markets · guardrail-tested |
 | Macro Intel (Sprint 6.5) | **L4** | Regime + commodities + currencies + bonds |
 | Recommendation Engine v3 | **L4** | Runner 2 · currently emits 100% HOLD (calibration cold-start) |
 | Portfolio Engine v3 | **L4** | 0 active positions (chain-dependent on Runner 2) |

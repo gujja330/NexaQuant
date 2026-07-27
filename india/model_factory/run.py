@@ -33,6 +33,7 @@ from backend.model_factory              import (                                
 )
 from backend.model_registry.registry    import register_model, ModelStatus                 # noqa: E402
 from backend.ai                         import model_analyst                                # noqa: E402
+from backend.certification.adaptive_weights import load_ensemble_weights_config              # noqa: E402
 
 
 OUT_FACTORY    = _ROOT / "reports" / "model_factory.json"
@@ -41,6 +42,7 @@ OUT_ENSEMBLE   = _ROOT / "reports" / "ensemble.json"
 OUT_NARRATIVE  = _ROOT / "reports" / "ai_model_narrative.json"
 SELECTED_FEATS = _ROOT / "reports" / "selected_features.json"
 LEARNING_CORPUS = _ROOT / "reports" / "learning.parquet"
+ADAPTIVE_WEIGHTS_CFG = _ROOT / "configs" / "ensemble_weights_adaptive.yaml"
 
 
 def _stringify(v):
@@ -97,9 +99,18 @@ def main() -> int:
     metrics_list = [evaluate_model(p, learning_corpus_path=LEARNING_CORPUS)
                      for p in predictions]
 
-    # Ensemble (equal-weight v0)
-    ens = ensemble_predict(predictions, weights=None, market="india", asof=latest)
-    print(f"  ensemble: {ens.n_models} models · {len(ens.predictions)} tickers scored")
+    # Ensemble · adaptive weights (historical IC → tomorrow's weights) if
+    # available, else fall back to equal-weight. Article 100 · L4 CONSUMED.
+    adaptive = load_ensemble_weights_config(ADAPTIVE_WEIGHTS_CFG)
+    if adaptive:
+        ens_weights = EnsembleWeights(weights=adaptive, strategy="adaptive_ic_weighted")
+        print(f"  ensemble weights: adaptive · {len(adaptive)} models · "
+              f"max={max(adaptive.values()):.4f} min={min(adaptive.values()):.4f}")
+    else:
+        ens_weights = None
+        print("  ensemble weights: equal_weight (adaptive config missing/invalid)")
+    ens = ensemble_predict(predictions, weights=ens_weights, market="india", asof=latest)
+    print(f"  ensemble: {ens.n_models} models · {len(ens.predictions)} tickers scored · strategy={ens.strategy}")
 
     # Register each model in the model registry (marks all as EXPERIMENTAL until approved)
     for m in factory.models:

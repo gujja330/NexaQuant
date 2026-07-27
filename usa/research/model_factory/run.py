@@ -25,6 +25,7 @@ from backend.model_factory              import (                                
 )
 from backend.model_registry.registry    import register_model, ModelStatus                 # noqa: E402
 from backend.ai                         import model_analyst                                # noqa: E402
+from backend.certification.adaptive_weights import load_ensemble_weights_config              # noqa: E402
 
 
 OUT_FACTORY    = _USA / "reports" / "model_factory.json"
@@ -33,6 +34,7 @@ OUT_ENSEMBLE   = _USA / "reports" / "ensemble.json"
 OUT_NARRATIVE  = _USA / "reports" / "ai_model_narrative.json"
 SELECTED_FEATS = _USA / "reports" / "selected_features.json"
 LEARNING_CORPUS = _USA / "reports" / "learning.parquet"
+ADAPTIVE_WEIGHTS_CFG = _USA / "configs" / "ensemble_weights_adaptive.yaml"
 
 
 def _stringify(v):
@@ -82,8 +84,19 @@ def main() -> int:
 
     metrics_list = [evaluate_model(p, learning_corpus_path=LEARNING_CORPUS)
                      for p in predictions]
-    ens = ensemble_predict(predictions, weights=None, market="usa", asof=latest)
-    print(f"  ensemble: {ens.n_models} models · {len(ens.predictions)} tickers")
+    # Adaptive weights (historical IC → tomorrow's ensemble) · Article 100 L4
+    # Fallback lookups: usa/configs first, then repo-root configs (India shares).
+    adaptive = load_ensemble_weights_config(ADAPTIVE_WEIGHTS_CFG) or \
+                 load_ensemble_weights_config(_ROOT / "configs" / "ensemble_weights_adaptive.yaml")
+    if adaptive:
+        ens_weights = EnsembleWeights(weights=adaptive, strategy="adaptive_ic_weighted")
+        print(f"  ensemble weights: adaptive · {len(adaptive)} models · "
+              f"max={max(adaptive.values()):.4f} min={min(adaptive.values()):.4f}")
+    else:
+        ens_weights = None
+        print("  ensemble weights: equal_weight (adaptive config missing/invalid)")
+    ens = ensemble_predict(predictions, weights=ens_weights, market="usa", asof=latest)
+    print(f"  ensemble: {ens.n_models} models · {len(ens.predictions)} tickers · strategy={ens.strategy}")
 
     for m in factory.models:
         register_model(_ROOT,

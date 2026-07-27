@@ -17,6 +17,7 @@ from backend.certification.permutation_importance import (  # noqa: E402
 from backend.certification.adaptive_weights import (  # noqa: E402
     compute_adaptive_weights, SCHEMA_FINGERPRINT as AW_FP,
     MIN_MODEL_WEIGHT, MAX_MODEL_WEIGHT,
+    load_ensemble_weights_config, write_ensemble_weights_config,
 )
 
 
@@ -156,3 +157,56 @@ def test_adaptive_weights_high_ic_boosts_model():
     mom_weight = aw.adaptive_weights["aegis.momentum.v1"]
     trend_weight = aw.adaptive_weights["aegis.trend.v1"]
     assert mom_weight > trend_weight
+
+
+# ── Loader / round-trip (learning-loop closure test) ────────
+def test_load_ensemble_weights_returns_none_on_missing(tmp_path):
+    assert load_ensemble_weights_config(tmp_path / "does_not_exist.yaml") is None
+
+
+def test_load_ensemble_weights_returns_none_on_malformed(tmp_path):
+    p = tmp_path / "bad.yaml"
+    p.write_text("this-is-not-json", encoding="utf-8")
+    assert load_ensemble_weights_config(p) is None
+
+
+def test_load_ensemble_weights_returns_none_on_fingerprint_mismatch(tmp_path):
+    import json
+    p = tmp_path / "wrong.yaml"
+    p.write_text(json.dumps({"schema_fingerprint": "OTHER", "weights": {"a": 0.5, "b": 0.5}}),
+                   encoding="utf-8")
+    assert load_ensemble_weights_config(p) is None
+
+
+def test_load_ensemble_weights_round_trip(tmp_path):
+    # Write then read · must recover identical dict
+    original = {"aegis.momentum.v1": 0.15, "aegis.trend.v1": 0.10, "aegis.value.v1": 0.05}
+    p = tmp_path / "roundtrip.yaml"
+    write_ensemble_weights_config(original, p)
+    loaded = load_ensemble_weights_config(p)
+    assert loaded is not None
+    assert loaded == original
+
+
+def test_load_ensemble_weights_strips_negative_and_nonnumeric(tmp_path):
+    import json
+    p = tmp_path / "dirty.yaml"
+    p.write_text(json.dumps({
+        "schema_fingerprint": AW_FP,
+        "weights": {"good": 0.5, "bad_neg": -0.1, "bad_str": "abc", "ok_zero": 0.0},
+    }), encoding="utf-8")
+    loaded = load_ensemble_weights_config(p)
+    assert loaded == {"good": 0.5, "ok_zero": 0.0}
+
+
+def test_adaptive_weights_wired_into_india_runner():
+    """Guardrail against future regression: verify india runner imports the loader."""
+    src = (Path(__file__).resolve().parents[2] / "india" / "model_factory" / "run.py").read_text(encoding="utf-8")
+    assert "load_ensemble_weights_config" in src, "india runner missing adaptive-weights loader import"
+    assert "adaptive_ic_weighted" in src, "india runner not passing adaptive weights to ensemble_predict"
+
+
+def test_adaptive_weights_wired_into_usa_runner():
+    src = (Path(__file__).resolve().parents[2] / "usa" / "research" / "model_factory" / "run.py").read_text(encoding="utf-8")
+    assert "load_ensemble_weights_config" in src, "usa runner missing adaptive-weights loader import"
+    assert "adaptive_ic_weighted" in src, "usa runner not passing adaptive weights to ensemble_predict"
