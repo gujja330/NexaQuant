@@ -46,9 +46,18 @@ def test_required_checklists_exist():
 
 
 def test_required_eng_reports_exist():
-    missing = [r for r in REQUIRED_ENG_REPORTS if not (ROOT / r).exists()]
+    """Wave Y (2026-07-27): reports may live at either docs/<name>.md OR
+    docs/archive/<name>.md (Article 82 preservation-first archival). The
+    governance invariant is that the report EXISTS somewhere reachable —
+    not its exact location."""
+    missing = []
+    for r in REQUIRED_ENG_REPORTS:
+        name = Path(r).name
+        candidates = [ROOT / r, ROOT / "docs" / "archive" / name]
+        if not any(p.exists() for p in candidates):
+            missing.append(r)
     assert not missing, f"required reports missing: {missing}"
-    print(f"  governance: {len(REQUIRED_ENG_REPORTS)} required reports present")
+    print(f"  governance: {len(REQUIRED_ENG_REPORTS)} required reports present (live or archived)")
 
 
 def test_gitignore_consistency():
