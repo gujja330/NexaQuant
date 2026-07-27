@@ -7,11 +7,13 @@ from enum import Enum
 
 
 class Action(str, Enum):
-    STRONG_BUY  = "STRONG_BUY"
-    BUY         = "BUY"
-    HOLD        = "HOLD"
-    SELL        = "SELL"
-    STRONG_SELL = "STRONG_SELL"
+    STRONG_BUY        = "STRONG_BUY"
+    BUY               = "BUY"
+    HOLD              = "HOLD"
+    SELL              = "SELL"
+    STRONG_SELL       = "STRONG_SELL"
+    # Institutional Completion Program · honest signal for depleted substrate
+    INSUFFICIENT_DATA = "INSUFFICIENT_DATA"
 
 
 @dataclass

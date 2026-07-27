@@ -31,22 +31,23 @@ ENGINE_ID = "aegis.recommendation.ssot.v1"
 
 # Action canonicalization — accept every synonym, normalize to legacy vocab
 ACTION_MAP = {
-    "STRONG_BUY":   "STRONG BUY",
-    "STRONGBUY":    "STRONG BUY",
-    "STRONG-BUY":   "STRONG BUY",
-    "BUY":          "BUY",
-    "ACCUMULATE":   "BUY",
-    "ADD":          "ADD",
-    "HOLD":         "HOLD",
-    "WATCH":        "HOLD",
-    "TRIM":         "TRIM",
-    "REDUCE":       "TRIM",
-    "SELL":         "SELL",
-    "STRONG_SELL":  "STRONG SELL",
-    "STRONGSELL":   "STRONG SELL",
-    "STRONG-SELL":  "STRONG SELL",
-    "EXIT":         "EXIT",
-    "NEW_POSITION": "BUY",
+    "STRONG_BUY":         "STRONG BUY",
+    "STRONGBUY":          "STRONG BUY",
+    "STRONG-BUY":         "STRONG BUY",
+    "BUY":                "BUY",
+    "ACCUMULATE":         "BUY",
+    "ADD":                "ADD",
+    "HOLD":               "HOLD",
+    "WATCH":              "HOLD",
+    "TRIM":               "TRIM",
+    "REDUCE":             "TRIM",
+    "SELL":               "SELL",
+    "STRONG_SELL":        "STRONG SELL",
+    "STRONGSELL":         "STRONG SELL",
+    "STRONG-SELL":        "STRONG SELL",
+    "EXIT":               "EXIT",
+    "NEW_POSITION":       "BUY",
+    "INSUFFICIENT_DATA":  "INSUFFICIENT DATA",
 }
 
 
@@ -109,15 +110,91 @@ def translate_v3_to_legacy(v3_rec: dict, rank: int) -> dict:
         "exit_conditions":           v3_rec.get("exit_conditions"),
         "model_stamp":               v3_rec.get("model_stamp"),
         "provenance":                "aegis.recommendation.ssot.v1 (bridged from Runner 2 v3)",
+        # Institutional Completion Program · explainability enrichment
+        "explainability": {
+            "top_features_count":    len(v3_rec.get("top_features") or []),
+            "n_models_scoring":      v3_rec.get("n_models_scoring", 0),
+            "model_agreement":       v3_rec.get("model_agreement", 0.0),
+            "disagreement":          bool(v3_rec.get("disagreement_flag", False)),
+            "confidence_reason":     _confidence_reason(v3_rec),
+            "action_reason":         _action_reason(action, v3_rec),
+        },
+        # Institutional Completion Program · signal quality flag
+        "signal_quality": _classify_signal_quality(v3_rec),
     }
+
+
+def _classify_signal_quality(v3_rec: dict) -> str:
+    """Categorize the substrate quality behind this rec."""
+    s = abs(float(v3_rec.get("ensemble_score", 0.0)))
+    c = float(v3_rec.get("calibrated_confidence", 0.0))
+    if s < 0.001 and c < 0.01:
+        return "INSUFFICIENT"   # substrate depleted
+    if s < 0.05 or c < 0.10:
+        return "WEAK"           # signal present but faint
+    if s < 0.20 or c < 0.40:
+        return "MODERATE"
+    return "STRONG"
+
+
+def _confidence_reason(v3_rec: dict) -> str:
+    c = float(v3_rec.get("calibrated_confidence", 0.0))
+    raw = float(v3_rec.get("raw_confidence", 0.0))
+    agree = float(v3_rec.get("model_agreement", 0.0))
+    if c < 0.01:
+        return f"insufficient confidence · raw {raw:.4f} · agreement {agree:.2f} — substrate depleted"
+    if v3_rec.get("disagreement_flag"):
+        return f"models disagree · calibrated confidence {c:.3f} dampened"
+    if c < 0.20:
+        return f"low confidence · raw {raw:.3f} → calibrated {c:.3f}"
+    return f"confidence {c:.3f} · agreement {agree:.2f}"
+
+
+def _action_reason(action: str, v3_rec: dict) -> str:
+    s = float(v3_rec.get("ensemble_score", 0.0))
+    if action == "INSUFFICIENT DATA":
+        return "action deferred · ensemble produced ~0 signal with ~0 confidence · not a HOLD decision"
+    if action == "HOLD":
+        return (f"HOLD · score {s:+.3f} inside neutral band"
+                + (" · plus disagreement" if v3_rec.get("disagreement_flag") else ""))
+    return f"{action} · ensemble score {s:+.3f}"
+
+
+def _apply_opportunity_cost(recs: list[dict]) -> None:
+    """Every HOLD gets oc_next_best_ticker · oc_expected_alpha_delta ·
+    oc_reason_not_to_rotate fields (Wave 5 Opp Cost engine consumer wire-in).
+    In-place mutation."""
+    try:
+        from backend.recommendation.opportunity_cost.engine import enrich_holds
+    except Exception:
+        return
+    holds = [{"ticker": r["ticker"], "current_score": r.get("composite_decision_score", 50.0),
+              "sector": r.get("sector", "")} for r in recs if r.get("recommendation") == "HOLD"]
+    candidates = [{"ticker": r["ticker"], "score": r.get("composite_decision_score", 50.0),
+                   "sector": r.get("sector", "")} for r in recs]
+    if not holds:
+        return
+    enrichments = enrich_holds(holds, candidates)
+    by_ticker = {e["hold_ticker"]: e for e in enrichments}
+    for r in recs:
+        e = by_ticker.get(r["ticker"])
+        if e:
+            r["oc_next_best_ticker"]     = e["oc_next_best_ticker"]
+            r["oc_next_best_score"]      = e["oc_next_best_score"]
+            r["oc_expected_alpha_delta"] = e["oc_expected_alpha_delta"]
+            r["oc_reason_not_to_rotate"] = e["oc_reason_not_to_rotate"]
 
 
 def publish_ssot(v3_path: Path,
                   out_path: Path,
                   market: str = "india",
                   asof: date | str | None = None,
-                  run_utc: str | None = None) -> dict:
+                  run_utc: str | None = None,
+                  apply_opportunity_cost: bool = True) -> dict:
     """Read v3 · translate every rec · write legacy-schema output.
+
+    Institutional Completion Program: also applies Opportunity Cost
+    enrichment to every HOLD (each answers "why not rotate?").
 
     Returns the emitted payload dict."""
     if not v3_path.exists():
@@ -132,6 +209,17 @@ def publish_ssot(v3_path: Path,
     legacy_recs = [translate_v3_to_legacy(r, rank=i + 1)
                    for i, r in enumerate(v3_sorted)]
 
+    # Institutional Completion Program · consume Opportunity Cost engine
+    if apply_opportunity_cost:
+        _apply_opportunity_cost(legacy_recs)
+
+    # Aggregate signal quality tallies for the payload header
+    quality_counts = {"STRONG": 0, "MODERATE": 0, "WEAK": 0, "INSUFFICIENT": 0}
+    action_counts: dict[str, int] = {}
+    for r in legacy_recs:
+        quality_counts[r.get("signal_quality", "WEAK")] = quality_counts.get(r.get("signal_quality", "WEAK"), 0) + 1
+        action_counts[r.get("recommendation")] = action_counts.get(r.get("recommendation"), 0) + 1
+
     payload = {
         "engine":              ENGINE_ID,
         "version":             "1.0.0",
@@ -143,6 +231,8 @@ def publish_ssot(v3_path: Path,
         "source":              str(v3_path.name),
         "n":                   len(legacy_recs),
         "n_source":            len(v3_recs),
+        "signal_quality_dist": quality_counts,
+        "action_distribution": action_counts,
         "recommendations":     legacy_recs,
     }
     out_path.parent.mkdir(parents=True, exist_ok=True)

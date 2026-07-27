@@ -184,6 +184,35 @@ STEPS = [
         "requires": ["reports/recommendations_v3.json"],
         "optional": False,   # keystone · MUST succeed
     },
+    # ── Institutional Completion Program · L1→L2 wire-in for Phase 2/3/4 engines ──
+    {
+        "name": "recommendation_lifecycle",
+        "desc": "Recommendation Lifecycle state machine (Phase 2 · L2 WIRED)",
+        "script": "backend/recommendation/lifecycle/run.py",
+        "script_args": ["--market", "india"],
+        "produces": ["reports/recommendation_lifecycle.json",
+                       "reports/recommendation_lifecycle_ledger.jsonl"],
+        "requires": ["reports/recommendations.json"],
+        "optional": True,
+    },
+    {
+        "name": "recommendation_deltas",
+        "desc": "Recommendation Delta engine · 11 delta fields per rec (Phase 3 · L2 WIRED)",
+        "script": "backend/recommendation/delta/run.py",
+        "script_args": ["--market", "india"],
+        "produces": ["reports/recommendation_deltas.json"],
+        "requires": ["reports/recommendations.json"],
+        "optional": True,
+    },
+    {
+        "name": "dynamic_holding",
+        "desc": "Dynamic Holding Engine · adaptive holding periods (Phase 4 · L2 WIRED · replaces static 60d)",
+        "script": "backend/recommendation/dynamic_holding/run.py",
+        "script_args": ["--market", "india"],
+        "produces": ["reports/dynamic_holding.json"],
+        "requires": ["reports/recommendations.json"],
+        "optional": True,
+    },
     {
         "name": "risk_engine",
         "desc": "Sprint 4 · Risk Engine (Kelly sizing + caps + vol adj + VaR/CVaR + AI risk analyst)",

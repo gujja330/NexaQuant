@@ -309,6 +309,33 @@ STEPS = [
         "requires": ["usa/reports/recommendations_v3.json"],
         "optional": True,
     },
+    {
+        "name":     "recommendation_lifecycle",
+        "desc":     "USA Recommendation Lifecycle state machine (Phase 2 · L2 WIRED)",
+        "script":   "backend/recommendation/lifecycle/run.py",
+        "script_args": ["--market", "usa"],
+        "produces": ["usa/reports/recommendation_lifecycle.json"],
+        "requires": ["usa/reports/recommendations.json"],
+        "optional": True,
+    },
+    {
+        "name":     "recommendation_deltas",
+        "desc":     "USA Recommendation Delta engine (Phase 3 · L2 WIRED)",
+        "script":   "backend/recommendation/delta/run.py",
+        "script_args": ["--market", "usa"],
+        "produces": ["usa/reports/recommendation_deltas.json"],
+        "requires": ["usa/reports/recommendations.json"],
+        "optional": True,
+    },
+    {
+        "name":     "dynamic_holding",
+        "desc":     "USA Dynamic Holding Engine (Phase 4 · L2 WIRED)",
+        "script":   "backend/recommendation/dynamic_holding/run.py",
+        "script_args": ["--market", "usa"],
+        "produces": ["usa/reports/dynamic_holding.json"],
+        "requires": ["usa/reports/recommendations.json"],
+        "optional": True,
+    },
     # ── Wave 5 P9/P10 · Capital Intelligence + Portfolio Attribution (USA) ──
     # Wave Y wire-in · elevate L1 BUILT → L2 WIRED for USA market.
     {

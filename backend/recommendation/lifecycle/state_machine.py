@@ -30,12 +30,17 @@ class RecommendationState(str, Enum):
 
 
 # Legal transitions (directed graph). Any transition not listed is INVALID.
+# Institutional practice: DISCOVERED can go directly to HOLD (fresh signal
+# we chose not to act on · monitor mode) OR to WATCHLIST (formal analyst
+# tracking).
 VALID_TRANSITIONS: dict[RecommendationState, set[RecommendationState]] = {
-    RecommendationState.DISCOVERED: {RecommendationState.WATCHLIST, RecommendationState.BUY, RecommendationState.ARCHIVED},
-    RecommendationState.WATCHLIST:  {RecommendationState.BUY, RecommendationState.DISCOVERED, RecommendationState.ARCHIVED},
+    RecommendationState.DISCOVERED: {RecommendationState.WATCHLIST, RecommendationState.HOLD,
+                                       RecommendationState.BUY, RecommendationState.ARCHIVED},
+    RecommendationState.WATCHLIST:  {RecommendationState.HOLD, RecommendationState.BUY,
+                                       RecommendationState.DISCOVERED, RecommendationState.ARCHIVED},
     RecommendationState.BUY:        {RecommendationState.ADD, RecommendationState.HOLD, RecommendationState.TRIM, RecommendationState.EXIT, RecommendationState.ROTATED},
     RecommendationState.ADD:        {RecommendationState.HOLD, RecommendationState.TRIM, RecommendationState.EXIT, RecommendationState.ROTATED},
-    RecommendationState.HOLD:       {RecommendationState.ADD, RecommendationState.TRIM, RecommendationState.EXIT, RecommendationState.ROTATED, RecommendationState.HOLD},
+    RecommendationState.HOLD:       {RecommendationState.ADD, RecommendationState.BUY, RecommendationState.TRIM, RecommendationState.EXIT, RecommendationState.ROTATED, RecommendationState.HOLD, RecommendationState.WATCHLIST},
     RecommendationState.TRIM:       {RecommendationState.HOLD, RecommendationState.EXIT, RecommendationState.ROTATED},
     RecommendationState.EXIT:       {RecommendationState.ARCHIVED, RecommendationState.ROTATED},
     RecommendationState.ROTATED:    {RecommendationState.ARCHIVED},
