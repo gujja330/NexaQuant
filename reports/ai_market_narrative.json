@@ -2,49 +2,49 @@
   "engine": "ai_market_narrative",
   "version": "v1.0",
   "market": "india",
-  "run_utc": "2026-07-21T02:14:26+00:00",
-  "asof": "2026-07-21",
+  "run_utc": "2026-07-27T15:36:30+00:00",
+  "asof": "2026-07-27",
   "agents": {
     "market_analyst": {
       "agent": "market_analyst",
       "version": "v1.0",
       "market": "india",
-      "asof": "2026-07-21",
-      "headline": "Neutral \u00b7 constructive \u00b7 Composite Market Health 48.7/100.",
-      "narrative": "Neutral \u00b7 constructive \u00b7 Composite Market Health 48.7/100.\n\nBreadth: 44.1% of universe above 20-day MA. 35.8% within 5% of 52W high. Mixed participation \u2014 bulls have not yet won the tape.\n\n^NSEI 5-day: +0.20%; ^NSEI 1-month: +0.30%. Positive short-term and monthly momentum.\n\nVolatility: VIX 13.22 (calm). Calm tape; complacency risk is the classic setup for a downside surprise.\n\nPulse: news pulse +0.21 (pos=110 \u00b7 neg=20) \u00b7 FII net \u20b90 Cr \u00b7 DII net \u20b911,318 Cr.\n\nSupportive: news pulse +0.21 (pos=110 \u00b7 neg=20)",
+      "asof": "2026-07-27",
+      "headline": "Neutral \u00b7 leaning cautious \u00b7 Composite Market Health 42.5/100.",
+      "narrative": "Neutral \u00b7 leaning cautious \u00b7 Composite Market Health 42.5/100.\n\nBreadth: 31.9% of universe above 20-day MA. 24.0% within 5% of 52W high. Narrow tape \u2014 most of the universe is weakening.\n\n^NSEI 5-day: -2.07%; ^NSEI 1-month: -1.32%. Negative on both windows \u2014 a downtrend, not just a dip.\n\nVolatility: VIX 14.15 (calm). Calm tape; complacency risk is the classic setup for a downside surprise.\n\nSector rotation: leaders \u2014 Pharma (+12.2%), Realty (+10.7%), Consumption (+8.7%); laggards \u2014 PSU Bank (-4.7%), Metal (-4.4%), IT (-2.2%).\n\nPulse: news pulse +0.21 (pos=110 \u00b7 neg=20) \u00b7 FII net \u20b90 Cr \u00b7 DII net \u20b911,318 Cr.\n\nSupportive: news pulse +0.21 (pos=110 \u00b7 neg=20)\nCautionary: 31.9% of universe above 20-day MA",
       "findings": [
         {
           "signal": "breadth_above_20ma",
-          "value": 44.1,
-          "label": "44.1% of universe above 20-day MA",
+          "value": 31.88,
+          "label": "31.9% of universe above 20-day MA",
           "evidence": {
             "n_symbols": 229,
-            "n_above": 101
+            "n_above": 73
           }
         },
         {
           "signal": "breadth_at_52w_high",
-          "value": 35.81,
-          "label": "35.8% within 5% of 52W high",
+          "value": 24.02,
+          "label": "24.0% within 5% of 52W high",
           "evidence": {
             "n_symbols": 229,
-            "n_at_high": 82,
+            "n_at_high": 55,
             "threshold": 0.95
           }
         },
         {
           "signal": "liquidity_5v20",
-          "value": -50.21,
-          "label": "volume falling (-50.2%)",
+          "value": -25.54,
+          "label": "volume falling (-25.5%)",
           "evidence": {
-            "n_symbols": 228,
-            "median_ratio": 0.498
+            "n_symbols": 227,
+            "median_ratio": 0.745
           }
         },
         {
           "signal": "benchmark_5d_pct",
-          "value": 0.2,
-          "label": "^NSEI 5-day: +0.20%",
+          "value": -2.07,
+          "label": "^NSEI 5-day: -2.07%",
           "evidence": {
             "symbol": "^NSEI",
             "window_days": 5
@@ -52,8 +52,8 @@
         },
         {
           "signal": "benchmark_1m_pct",
-          "value": 0.3,
-          "label": "^NSEI 1-month: +0.30%",
+          "value": -1.32,
+          "label": "^NSEI 1-month: -1.32%",
           "evidence": {
             "symbol": "^NSEI",
             "window_days": 21
@@ -61,10 +61,51 @@
         },
         {
           "signal": "vix",
-          "value": 13.22,
-          "label": "VIX 13.22 (calm)",
+          "value": 14.15,
+          "label": "VIX 14.15 (calm)",
           "evidence": {
             "symbol": "INDIAVIX"
+          }
+        },
+        {
+          "signal": "sector_rotation",
+          "value": 12,
+          "label": "top: Pharma +12.2%; bottom: PSU Bank -4.7%",
+          "evidence": {
+            "top_3": [
+              {
+                "symbol": "Pharma",
+                "label": "Pharma",
+                "return_pct": 12.204000000000002
+              },
+              {
+                "symbol": "Realty",
+                "label": "Realty",
+                "return_pct": 10.663999999999998
+              },
+              {
+                "symbol": "Consumption",
+                "label": "Consumption",
+                "return_pct": 8.683999999999997
+              }
+            ],
+            "bottom_3": [
+              {
+                "symbol": "PSU Bank",
+                "label": "PSU Bank",
+                "return_pct": -4.74
+              },
+              {
+                "symbol": "Metal",
+                "label": "Metal",
+                "return_pct": -4.44
+              },
+              {
+                "symbol": "IT",
+                "label": "IT",
+                "return_pct": -2.208000000000001
+              }
+            ]
           }
         },
         {
@@ -89,8 +130,8 @@
         }
       ],
       "evidence": {
-        "n_signals": 8,
-        "composite_score": 48.71,
+        "n_signals": 9,
+        "composite_score": 42.46,
         "regime": "neutral"
       },
       "citations": [
@@ -101,10 +142,11 @@
         "market_intelligence.signals.benchmark_5d_pct",
         "market_intelligence.signals.benchmark_1m_pct",
         "market_intelligence.signals.vix",
+        "market_intelligence.signals.sector_rotation",
         "market_intelligence.signals.news_pulse",
         "market_intelligence.signals.flow_pulse"
       ],
-      "confidence": 0.9,
+      "confidence": 0.95,
       "caveats": [],
       "determinism": "template"
     },
@@ -112,54 +154,54 @@
       "agent": "data_quality",
       "version": "v1.0",
       "market": "india",
-      "asof": "2026-07-21",
-      "headline": "Backend health is DEGRADED \u2014 5 dataset(s) crossed warning thresholds.",
-      "narrative": "Backend health is DEGRADED \u2014 5 dataset(s) crossed warning thresholds.\n\nComposite confidence is 0.900 (weighted geometric mean across freshness \u00b7 schema \u00b7 completeness \u00b7 quality \u00b7 lineage).\n\nTop issues to look at:\n  1. [WARNING] company_context \u00b7 freshness \u00b7 1 trading day overdue (SLA 1 \u00b7 currently 2)\n  2. [WARNING] global_context \u00b7 freshness \u00b7 1 trading day overdue (SLA 1 \u00b7 currently 2)\n  3. [WARNING] industry_context \u00b7 freshness \u00b7 1 trading day overdue (SLA 1 \u00b7 currently 2)\n  4. [WARNING] recommendations \u00b7 freshness \u00b7 1 trading day overdue (SLA 1 \u00b7 currently 2)\n  5. [WARNING] sector_context \u00b7 freshness \u00b7 1 trading day overdue (SLA 1 \u00b7 currently 2)\n\nRecommended: schedule the affected ingestion module to run again and re-check before the next orchestrator cycle.",
+      "asof": "2026-07-27",
+      "headline": "Backend health is CRITICAL \u2014 33 dataset(s) failed their SLA.",
+      "narrative": "Backend health is CRITICAL \u2014 33 dataset(s) failed their SLA.\n\nComposite confidence is 0.780 (weighted geometric mean across freshness \u00b7 schema \u00b7 completeness \u00b7 quality \u00b7 lineage).\n\nTop issues to look at:\n  1. [CRITICAL] ai_execution_narrative \u00b7 freshness \u00b7 3 trading days overdue (SLA 1)\n  2. [CRITICAL] ai_feature_narrative \u00b7 freshness \u00b7 3 trading days overdue (SLA 1)\n  3. [CRITICAL] ai_feature_research \u00b7 freshness \u00b7 3 trading days overdue (SLA 1)\n  4. [CRITICAL] ai_market_narrative \u00b7 freshness \u00b7 3 trading days overdue (SLA 1)\n  5. [CRITICAL] ai_model_narrative \u00b7 freshness \u00b7 3 trading days overdue (SLA 1)\n\nRecommended: pause downstream inference for any engine that depends on a failed dataset, or explicitly acknowledge stale-data risk in the recommendation output.",
       "findings": [
         {
           "rank": 1,
-          "severity": "WARNING",
-          "dataset": "company_context",
+          "severity": "CRITICAL",
+          "dataset": "ai_execution_narrative",
           "validator": "freshness",
-          "message": "1 trading day overdue (SLA 1 \u00b7 currently 2)"
+          "message": "3 trading days overdue (SLA 1)"
         },
         {
           "rank": 2,
-          "severity": "WARNING",
-          "dataset": "global_context",
+          "severity": "CRITICAL",
+          "dataset": "ai_feature_narrative",
           "validator": "freshness",
-          "message": "1 trading day overdue (SLA 1 \u00b7 currently 2)"
+          "message": "3 trading days overdue (SLA 1)"
         },
         {
           "rank": 3,
-          "severity": "WARNING",
-          "dataset": "industry_context",
+          "severity": "CRITICAL",
+          "dataset": "ai_feature_research",
           "validator": "freshness",
-          "message": "1 trading day overdue (SLA 1 \u00b7 currently 2)"
+          "message": "3 trading days overdue (SLA 1)"
         },
         {
           "rank": 4,
-          "severity": "WARNING",
-          "dataset": "recommendations",
+          "severity": "CRITICAL",
+          "dataset": "ai_market_narrative",
           "validator": "freshness",
-          "message": "1 trading day overdue (SLA 1 \u00b7 currently 2)"
+          "message": "3 trading days overdue (SLA 1)"
         },
         {
           "rank": 5,
-          "severity": "WARNING",
-          "dataset": "sector_context",
+          "severity": "CRITICAL",
+          "dataset": "ai_model_narrative",
           "validator": "freshness",
-          "message": "1 trading day overdue (SLA 1 \u00b7 currently 2)"
+          "message": "3 trading days overdue (SLA 1)"
         }
       ],
       "evidence": {
-        "n_datasets": 42,
-        "verdict": "WARNING",
-        "confidence": 0.9,
+        "n_datasets": 73,
+        "verdict": "FAIL",
+        "confidence": 0.78,
         "counts": {
-          "PASS": 37,
-          "WARNING": 5,
-          "FAIL": 0,
+          "PASS": 40,
+          "WARNING": 0,
+          "FAIL": 33,
           "NOT_APPLICABLE": 0
         },
         "n_top_issues": 5
@@ -167,7 +209,7 @@
       "citations": [
         "reports/backend_validation_summary.json"
       ],
-      "confidence": 0.9,
+      "confidence": 0.78,
       "caveats": [],
       "determinism": "template"
     },
@@ -175,9 +217,9 @@
       "agent": "evidence_summarizer",
       "version": "v1.0",
       "market": "india",
-      "asof": "2026-07-21",
+      "asof": "2026-07-27",
       "headline": "Data snapshot \u00b7 INDIA.",
-      "narrative": "Data snapshot \u00b7 INDIA. News: 150 tickers scored across 0 headlines. Average sentiment +0.21 (positive=110, negative=20). Fundamentals: 228 rows \u00b7 ROE median 17.6% \u00b7 D/E median 75.83 \u00b7 P/E median 53.9. Institutional flows: 4 rows, net +11,318 INR. Earnings: 207 tickers have a next-earnings date on the calendar. Corporate actions: 264 dividend event(s), 14 split(s) in the trailing window.",
+      "narrative": "Data snapshot \u00b7 INDIA. News: 150 tickers scored across 0 headlines. Average sentiment +0.21 (positive=110, negative=20). Fundamentals: 228 rows \u00b7 ROE median 17.6% \u00b7 D/E median 75.83 \u00b7 P/E median 53.9. Institutional flows: 4 rows, net +11,318 INR. Earnings: 207 tickers have a next-earnings date on the calendar. Corporate actions: 264 dividend event(s), 14 split(s) in the trailing window. Macro: 19 indicators (CL=F 82.19, BZ=F 88.56, GC=F 4029.50, SI=F 48.32).",
       "findings": [],
       "evidence": {
         "kinds_present": [
@@ -195,9 +237,10 @@
         "canonical.fundamentals (228 rows)",
         "canonical.flow (4 rows)",
         "canonical.earnings (207 rows)",
-        "canonical.corporate_action (278 rows)"
+        "canonical.corporate_action (278 rows)",
+        "canonical.macro (19 rows)"
       ],
-      "confidence": 0.9,
+      "confidence": 1.0,
       "caveats": [],
       "determinism": "template"
     }

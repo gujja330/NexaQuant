@@ -2,15 +2,15 @@
   "engine": "ai_model_narrative",
   "version": "v1.0",
   "market": "usa",
-  "run_utc": "2026-07-27T13:21:45+00:00",
+  "run_utc": "2026-07-27T15:37:09+00:00",
   "asof": "2026-07-27",
   "output": {
     "agent": "model_analyst",
     "version": "v1.0",
     "market": "usa",
     "asof": "2026-07-27",
-    "headline": "11 models registered \u00b7 11 ready for ensemble \u00b7 3 flagged for review",
-    "narrative": "11 models registered \u00b7 11 ready for ensemble \u00b7 3 flagged for review.\n\nThe AI Model Analyst compares each model's business rationale against its current-day scoring behavior. Metrics like win-rate and profit-factor stay 'insufficient_history' until Sprint 9 rebuilds the learning corpus \u2014 that's honest, not broken. Once outcomes accumulate, the same interface fills in.\n\nAI never promotes or removes models. Every 'ensemble_recommendation' here is a proposal \u2014 promotion goes through backend/promotion/promotion_gate.py with explicit operator approval.",
+    "headline": "11 models registered \u00b7 11 ready for ensemble \u00b7 2 flagged for review",
+    "narrative": "11 models registered \u00b7 11 ready for ensemble \u00b7 2 flagged for review.\n\nThe AI Model Analyst compares each model's business rationale against its current-day scoring behavior. Metrics like win-rate and profit-factor stay 'insufficient_history' until Sprint 9 rebuilds the learning corpus \u2014 that's honest, not broken. Once outcomes accumulate, the same interface fills in.\n\nAI never promotes or removes models. Every 'ensemble_recommendation' here is a proposal \u2014 promotion goes through backend/promotion/promotion_gate.py with explicit operator approval.",
     "findings": [
       {
         "type": "model_narrative",
@@ -135,8 +135,8 @@
         "model_type": "event_driven",
         "approval_status": "EXPERIMENTAL",
         "n_scored": 30,
-        "avg_score": 0.0,
-        "top_10_confidence": 0.0,
+        "avg_score": -0.0083,
+        "top_10_confidence": 0.5,
         "status": "insufficient_history",
         "business_rationale": "Discrete events (earnings, insider trades, dividends) create predictable pockets of alpha via PEAD, insider signal, and dividend anchor.",
         "economic_intuition": "Anchoring bias + slow analyst updates cause gradual price adjustment for weeks post-event.",
@@ -148,8 +148,8 @@
         "model_type": "ai_hybrid",
         "approval_status": "EXPERIMENTAL",
         "n_scored": 30,
-        "avg_score": 0.0465,
-        "top_10_confidence": 0.6333,
+        "avg_score": 0.0428,
+        "top_10_confidence": 0.6833,
         "status": "insufficient_history",
         "business_rationale": "No single style wins in every regime. A meta-model that trusts each style according to its recent walk-forward accuracy adapts without over-fitting one lens.",
         "economic_intuition": "Ensembles reduce single-model idiosyncratic risk; the WF-weighted variant tilts toward the styles the market is currently paying for.",
@@ -166,17 +166,11 @@
         "model_id": "aegis.sector_rotation.v1",
         "reason": "top_10_pct_confidence < 0.05 \u2014 model has no conviction",
         "recommended_step": "review_data_dependencies"
-      },
-      {
-        "type": "deprecation_candidate",
-        "model_id": "aegis.event_driven.v1",
-        "reason": "top_10_pct_confidence < 0.05 \u2014 model has no conviction",
-        "recommended_step": "review_data_dependencies"
       }
     ],
     "evidence": {
       "n_models": 11,
-      "ensemble_strategy": "equal_weight"
+      "ensemble_strategy": "adaptive_ic_weighted"
     },
     "citations": [
       "backend/model_factory",
