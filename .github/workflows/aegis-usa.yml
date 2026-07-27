@@ -11,6 +11,11 @@ on:
     - cron: "30 20 * * 1-5"   # 20:30 UTC = 16:30 EDT (30min after close)
   workflow_dispatch:
 
+# Wave Y · Constitution Article 45: concurrency block prevents overlapping runs.
+concurrency:
+  group: aegis-usa
+  cancel-in-progress: false
+
 permissions:
   contents: write
 

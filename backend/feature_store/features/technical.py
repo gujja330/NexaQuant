@@ -3,6 +3,10 @@
 Computes: returns, volatility, RSI, MACD, SMAs, ATR, ADX, 52W distances,
 drawdown, volume ratios. All computations are as-of the last row per ticker
 (walk-forward safe — adapter already cuts off future dates).
+
+Wave Y · Constitution Article 30: all indicator primitives now import from
+the canonical shared library at `backend.shared.indicators`. Local
+reimplementations removed.
 """
 from __future__ import annotations
 
@@ -12,80 +16,28 @@ import numpy as np
 import pandas as pd
 
 from backend.canonical.schemas import CanonicalDataset
+from backend.shared.indicators import (
+    rsi as _rsi_shared,
+    atr_pct as _atr_pct_shared,
+    adx as _adx_shared,
+    macd as _macd_shared,
+    returns_pct as _returns_pct_shared,
+    volatility_daily as _volatility_daily_shared,
+    max_drawdown_pct as _max_drawdown_pct_shared,
+)
 
 
-def _returns_pct(series: pd.Series, window: int) -> float | None:
-    if len(series) <= window: return None
-    a = float(series.iloc[-window - 1])
-    b = float(series.iloc[-1])
-    if a <= 0: return None
-    return round((b / a - 1.0) * 100, 4)
+# Thin adapters kept for backward-compat with any legacy callers of these
+# module-level names. Delegate to shared. Do NOT reimplement here.
+_returns_pct = _returns_pct_shared
+_rsi         = _rsi_shared
+_macd        = _macd_shared
 
 
-def _rsi(closes: pd.Series, period: int = 14) -> float | None:
-    if len(closes) <= period: return None
-    d = closes.diff().dropna()
-    up = d.clip(lower=0).rolling(period).mean()
-    dn = (-d.clip(upper=0)).rolling(period).mean()
-    rs = up / dn.replace(0, np.nan)
-    rsi = 100 - (100 / (1 + rs))
-    v = rsi.iloc[-1]
-    return round(float(v), 3) if pd.notna(v) else None
-
-
-def _macd(closes: pd.Series) -> tuple[float | None, float | None, float | None]:
-    if len(closes) < 35: return None, None, None
-    ema12 = closes.ewm(span=12, adjust=False).mean()
-    ema26 = closes.ewm(span=26, adjust=False).mean()
-    macd  = ema12 - ema26
-    signal = macd.ewm(span=9, adjust=False).mean()
-    hist   = macd - signal
-    return round(float(macd.iloc[-1]), 4), round(float(signal.iloc[-1]), 4), round(float(hist.iloc[-1]), 4)
-
-
-def _atr(df: pd.DataFrame, period: int = 14) -> float | None:
-    """ATR as % of close · true-range from real H/L/C."""
-    if len(df) <= period + 1: return None
-    if "high" not in df.columns or "low" not in df.columns:
-        return None
-    high = df["high"].astype(float)
-    low  = df["low"].astype(float)
-    prev_close = df["close"].astype(float).shift(1)
-    tr = pd.concat([high - low,
-                       (high - prev_close).abs(),
-                       (low - prev_close).abs()], axis=1).max(axis=1)
-    atr = tr.rolling(period).mean().iloc[-1]
-    close = float(df["close"].iloc[-1])
-    if pd.isna(atr) or close <= 0: return None
-    return round(float(atr / close * 100), 4)
-
-
-def _adx(df: pd.DataFrame, period: int = 14) -> float | None:
-    """Textbook Wilder ADX from real H/L/C. Uses simple rolling smoothing
-    (not Wilder EWM) to match ATR's convention in this module — divergence
-    from EWM Wilder is bounded and downstream models are agnostic to the
-    smoothing choice as long as it is stable."""
-    if len(df) <= period * 2: return None
-    if "high" not in df.columns or "low" not in df.columns:
-        return None
-    high = df["high"].astype(float)
-    low  = df["low"].astype(float)
-    close = df["close"].astype(float)
-    up_move   = high.diff()
-    down_move = -low.diff()
-    plus_dm  = ((up_move > down_move) & (up_move > 0)).astype(float) * up_move.clip(lower=0)
-    minus_dm = ((down_move > up_move) & (down_move > 0)).astype(float) * down_move.clip(lower=0)
-    prev_close = close.shift(1)
-    tr = pd.concat([high - low,
-                       (high - prev_close).abs(),
-                       (low - prev_close).abs()], axis=1).max(axis=1)
-    atr_smoothed = tr.rolling(period).mean()
-    plus_di  = 100.0 * plus_dm.rolling(period).mean()  / atr_smoothed.replace(0, np.nan)
-    minus_di = 100.0 * minus_dm.rolling(period).mean() / atr_smoothed.replace(0, np.nan)
-    denom = (plus_di + minus_di).replace(0, np.nan)
-    dx = 100.0 * (plus_di - minus_di).abs() / denom
-    adx = dx.rolling(period).mean().iloc[-1]
-    return round(float(adx), 3) if pd.notna(adx) else None
+# Wave Y · Constitution Article 30: ATR + ADX delegated to shared library.
+# Local Wave 3 · C0 implementations removed. Contract preserved via thin adapters.
+_atr = _atr_pct_shared
+_adx = _adx_shared
 
 
 def compute(canon: dict[str, CanonicalDataset], universe: list[str],

@@ -284,6 +284,36 @@ STEPS = [
                        "reports/decision_center_notifications.json"],
         "requires": [],   # runs even without prior snapshot (baseline mode)
     },
+    # ── Wave 5 Phase 9/10 · Capital Intelligence + Portfolio Attribution ──
+    # Wave Y wire-in: elevate L1 BUILT → L2 WIRED. Producers only run when
+    # upstream artifacts exist (recommendations_v3.json · portfolio_v3.json).
+    {
+        "name": "capital_rotation",
+        "desc": "Capital Rotation Engine v1.0 (Wave 5 P9 · rotation_plan.json)",
+        "script": "backend/recommendation/capital_rotation/run.py",
+        "script_args": ["--market", "india"],
+        "produces": ["reports/rotation_plan.json"],
+        "requires": ["reports/recommendations_v3.json", "reports/portfolio_v3.json"],
+        "optional": True,
+    },
+    {
+        "name": "opportunity_cost",
+        "desc": "Opportunity Cost Engine v1.0 (Wave 5 P9 · every HOLD justifies)",
+        "script": "backend/recommendation/opportunity_cost/run.py",
+        "script_args": ["--market", "india"],
+        "produces": ["reports/opportunity_cost.json"],
+        "requires": ["reports/recommendations_v3.json"],
+        "optional": True,
+    },
+    {
+        "name": "portfolio_attribution",
+        "desc": "Portfolio Attribution Engine v1.0 (Wave 5 P10 · 13-factor)",
+        "script": "backend/portfolio/monitoring/run_attribution.py",
+        "script_args": ["--market", "india"],
+        "produces": ["reports/portfolio_attribution.json"],
+        "requires": ["reports/portfolio_v3.json"],
+        "optional": True,
+    },
     {
         "name": "institutional_memory",
         "desc": "Institutional Memory v1.0 (archive + lifecycle + missed-opps + per-ticker history)",
@@ -414,17 +444,20 @@ def _run_step(step: dict, dry_run: bool = False) -> dict:
             "missing_inputs": missing_reqs,
         }
 
+    # Wave Y: optional script_args passed through to the child process.
+    _cmd = [sys.executable, str(script)] + list(step.get("script_args", []))
+
     if dry_run:
         return {
             "name": step["name"], "verdict": "DRY_RUN",
             "elapsed_s": 0.0, "returncode": None,
-            "command": [sys.executable, str(script)],
+            "command": _cmd,
         }
 
     ts_start = _iso_utc()
     t0 = time.perf_counter()
     r = subprocess.run(
-        [sys.executable, str(script)],
+        _cmd,
         cwd=str(_ROOT),
         capture_output=True, text=True,
         timeout=600,

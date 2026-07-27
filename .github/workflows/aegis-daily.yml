@@ -33,6 +33,14 @@ on:
     - cron: "30 2 * * 1-5"    # ~08:00 IST — backup 3 (last morning slot)
   workflow_dispatch:
 
+# Wave Y · Constitution Article 45: workflows touching shared state MUST
+# declare concurrency. Fixes v2.2 T1/Sch1 (duplicate scheduler+Telegram sends).
+# Mirrors mon001-daily.yml pattern. In-progress runs cancel newer duplicates
+# so only ONE aegis-daily is active at a time.
+concurrency:
+  group: aegis-daily
+  cancel-in-progress: false
+
 permissions:
   contents: write
 

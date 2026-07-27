@@ -8,15 +8,8 @@ from __future__ import annotations
 from backend.recommendation.types import Action
 
 
-# Thresholds (score_lower, score_upper, min_confidence) → Action
-_MATRIX = [
-    #   score threshold  min_conf   action
-    ( 0.50,               0.70,      Action.STRONG_BUY),
-    ( 0.20,               0.50,      Action.BUY),
-    (-0.20,               0.00,      Action.HOLD),           # inclusive range check below
-    (-0.50,               0.50,      Action.SELL),
-    (-1.01,               0.70,      Action.STRONG_SELL),
-]
+# Wave Y · dead code `_MATRIX` removed (Red Team G4 · v2.2 S7).
+# Actual decision logic lives in the if-else chain in `classify()` below.
 
 
 def classify(score: float, calibrated_confidence: float,

@@ -299,6 +299,35 @@ STEPS = [
         "produces": ["usa/reports/price_context.json"],
         "requires": ["usa/reports/universe.json"],
     },
+    # ── Wave 5 P9/P10 · Capital Intelligence + Portfolio Attribution (USA) ──
+    # Wave Y wire-in · elevate L1 BUILT → L2 WIRED for USA market.
+    {
+        "name":     "capital_rotation",
+        "desc":     "USA Capital Rotation Engine v1.0",
+        "script":   "backend/recommendation/capital_rotation/run.py",
+        "script_args": ["--market", "usa"],
+        "produces": ["usa/reports/rotation_plan.json"],
+        "requires": ["usa/reports/recommendations_v3.json", "usa/reports/portfolio_v3.json"],
+        "optional": True,
+    },
+    {
+        "name":     "opportunity_cost",
+        "desc":     "USA Opportunity Cost Engine v1.0",
+        "script":   "backend/recommendation/opportunity_cost/run.py",
+        "script_args": ["--market", "usa"],
+        "produces": ["usa/reports/opportunity_cost.json"],
+        "requires": ["usa/reports/recommendations_v3.json"],
+        "optional": True,
+    },
+    {
+        "name":     "portfolio_attribution",
+        "desc":     "USA Portfolio Attribution Engine v1.0",
+        "script":   "backend/portfolio/monitoring/run_attribution.py",
+        "script_args": ["--market", "usa"],
+        "produces": ["usa/reports/portfolio_attribution.json"],
+        "requires": ["usa/reports/portfolio_v3.json"],
+        "optional": True,
+    },
     {
         "name":     "institutional_memory",
         "desc":     "USA Institutional Memory (archive + lifecycle + missed-opps + history)",
@@ -382,9 +411,12 @@ def _run_step(step: dict) -> dict:
                 "missing": req,
             }
 
+    # Wave Y: optional script_args passthrough.
+    _cmd = [sys.executable, step["script"]] + list(step.get("script_args", []))
+
     t0 = time.time()
     r = subprocess.run(
-        [sys.executable, step["script"]],
+        _cmd,
         cwd=str(_ROOT), capture_output=True, text=True, timeout=600,
     )
     elapsed = time.time() - t0

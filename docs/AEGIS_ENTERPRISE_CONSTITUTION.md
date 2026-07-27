@@ -951,10 +951,86 @@ Full 65-capability inventory maintained at [`docs/AEGIS_ENTERPRISE_CAPABILITY_MA
 
 ## Constitutional Version
 
-**Version 1.0.0 · LOCKED 2026-07-27**
+**Version 1.1.0 · AMENDED 2026-07-27 (Wave Y)**
 
-Amendment history (future updates recorded here):
+Amendment history:
 - 1.0.0 · 2026-07-27 · Initial ratification · locks Wave 4.5 authority · governs all future implementation
+- 1.1.0 · 2026-07-27 · Wave Y amendment · adds Article 100 (Maturity Ladder) after Red Team Audit exposed "SHIPPED" verb ambiguity across Wave 5. See Part XXV.
+
+---
+
+# PART XXV · MATURITY LADDER (Wave Y · v1.1.0 Amendment)
+
+## Article 100 · The Six-Level Maturity Ladder (MANDATORY)
+
+Every capability, engine, validator, and artifact status claim MUST specify a maturity level from this ladder. The words "SHIPPED", "DONE", "READY", "COMPLETE" without a level are henceforth Constitutional violations.
+
+| Level | Name | Definition | Verification |
+|:---:|---|---|---|
+| **L0** | DESIGNED | Spec written · no code | Doc exists |
+| **L1** | BUILT | Code exists in-tree · imports · unit tests green | `python -c "import <pkg>"` OK · tests pass |
+| **L2** | WIRED | Invoked from an orchestrator (daily / replay / scheduler) | Grep for the runner in `scripts/aegis_daily_v2.py` / `usa/scripts/usa_daily.py` / workflows |
+| **L3** | VALIDATED | Validator exists in `validation/` · CI-enforced · passes on production data | Validator file present + wired to a CI workflow |
+| **L4** | CONSUMED | Downstream artifacts read by ≥1 of: dashboard · report · Telegram · replay · benchmark | Grep the artifact path in consumer files |
+| **L5** | CERTIFIED | Passes Institutional Acceptance (Article 42 · 20 scenarios) | Recorded in `tests/institutional_acceptance/` results |
+
+### Article 100.1 · Mandatory Status Reporting
+
+Every Cap Map row, every capability doc, every sprint report, every commit message MUST include:
+
+```
+<Capability>: <L0|L1|L2|L3|L4|L5> (target: <L#>)
+```
+
+Examples:
+- `Capital Rotation Engine: L2 (target: L3)` — wired but validator not CI-wired
+- `Portfolio Attribution: L1 (target: L2)` — built but not wired
+- `MON001 sentinel: L5` — fully certified
+
+### Article 100.2 · Verb-to-Level Translation Table
+
+To eliminate ambiguity when documentation refers to level informally:
+
+| Prose verb | Required Level | Meaning |
+|:---:|:---:|---|
+| "designed" · "planned" · "spec'd" | L0 | Idea only |
+| "built" · "implemented" · "coded" | L1 | Code exists · unit-tested |
+| "wired" · "integrated" · "hooked up" | L2 | Runs in orchestrator |
+| "validated" · "CI-passing" · "regression-covered" | L3 | Validator in CI |
+| "in production" · "consumed" · "on dashboard" | L4 | Downstream reads it |
+| "shipped" · "certified" · "GA" · "ready" · "done" | L5 | Full institutional acceptance |
+
+**The word "shipped" NOW implies Level 5. Using it below L5 requires an explicit level suffix: `"Capital Rotation shipped-at-L2"`.**
+
+### Article 100.3 · Cap Map Field Amendment
+
+Article 15's 20-field template is amended: field **Status** now takes an L0-L5 value plus a target-level annotation. Old values (`Active` · `Planned` · `Missing` · `Deprecated`) map as follows:
+
+| Old value | New level | Reason |
+|:---:|:---:|---|
+| `Missing` | L0 | Not built |
+| `Planned` | L0 | Designed only |
+| `Active-Legacy` (untouched, runs daily) | L4 | Runs · consumed downstream · pre-existing without full CI validation |
+| `Active` (Wave-5 tests + producer wired) | L4 | Runs + consumed |
+| `Deprecated` | L4→archive | Runs but slated for archive |
+
+### Article 100.4 · Enforcement
+
+`validation/capability_validation/ladder_completeness_check.py` (D8 target) will parse the Cap Map and fail CI if any capability's Status field lacks a valid L0-L5 value + target.
+
+### Article 100.5 · Retroactive Correction
+
+Wave 5's "SHIPPED" claims for Capital Rotation · Opportunity Cost · Portfolio Attribution are corrected to:
+- Post-Wave-5, pre-Wave-Y: **L1 BUILT (target L5)** — code exists, tests pass, not wired
+- Post-Wave-Y: **L2 WIRED (target L5)** — wire-in shipped Wave Y
+
+This retroactive correction is a documentation honesty measure, not a re-litigation of engineering. The engines themselves are unchanged.
+
+---
+
+## Constitutional Version (post-Wave-Y)
+
+**Version 1.1.0 · AMENDED 2026-07-27 (Wave Y)** · adds Article 100 (Maturity Ladder) + Part XXV.
 
 ---
 
