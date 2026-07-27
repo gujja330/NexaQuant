@@ -299,6 +299,16 @@ STEPS = [
         "produces": ["usa/reports/price_context.json"],
         "requires": ["usa/reports/universe.json"],
     },
+    # ── FINAL PLATFORM COMPLETION · Phase 1 · SSoT Bridge (USA) ──
+    {
+        "name":     "recommendation_ssot",
+        "desc":     "USA Recommendation SSoT bridge · publishes fresh recommendations.json from Runner 2 v3",
+        "script":   "backend/recommendation/ssot/run.py",
+        "script_args": ["--market", "usa"],
+        "produces": ["usa/reports/recommendations.json"],
+        "requires": ["usa/reports/recommendations_v3.json"],
+        "optional": True,
+    },
     # ── Wave 5 P9/P10 · Capital Intelligence + Portfolio Attribution (USA) ──
     # Wave Y wire-in · elevate L1 BUILT → L2 WIRED for USA market.
     {

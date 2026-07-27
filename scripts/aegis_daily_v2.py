@@ -172,6 +172,18 @@ STEPS = [
         "requires": ["reports/ensemble.json"],
         "optional": True,
     },
+    # ── FINAL PLATFORM COMPLETION · Phase 1 · SSoT Bridge ──
+    # Publishes fresh recommendations.json (legacy schema) from Runner 2 v3.
+    # Closes the v2.2-audit keystone gap · unblocks 8+ downstream steps.
+    {
+        "name": "recommendation_ssot",
+        "desc": "Recommendation SSoT bridge · publishes fresh recommendations.json from Runner 2 v3 (Phase 1 keystone fix)",
+        "script": "backend/recommendation/ssot/run.py",
+        "script_args": ["--market", "india"],
+        "produces": ["reports/recommendations.json"],
+        "requires": ["reports/recommendations_v3.json"],
+        "optional": False,   # keystone · MUST succeed
+    },
     {
         "name": "risk_engine",
         "desc": "Sprint 4 · Risk Engine (Kelly sizing + caps + vol adj + VaR/CVaR + AI risk analyst)",
