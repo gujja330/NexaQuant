@@ -48,6 +48,16 @@ jobs:
       - name: Run USA ops check
         run: python usa/scripts/usa_ops_check.py
 
+      - name: Telegram Command Center (USA · cycle 6 · single crisp message)
+        # Consumes usa/reports/recommendations.json enriched by cycles 3-4.
+        # First USA-side Telegram delivery · matches India parity.
+        if: always()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
+        continue-on-error: true
+        run: python scripts/telegram_command_center_send.py --market usa
+
       - name: Upload USA morning report
         if: always()
         uses: actions/upload-artifact@v4

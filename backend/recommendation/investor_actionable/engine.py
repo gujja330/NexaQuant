@@ -533,6 +533,21 @@ def build_ceo_summary(recs: Sequence[Mapping],
         recommended = "Hold cash - no actionable signals today"
 
     entry_dist = Counter((r.get("investor_action") or {}).get("entry", "?") for r in recs)
+
+    # Cycle 5E: surface portfolio-discipline concerns to operator so they
+    # see WINNERS-EXIT / LOW-CONVICTION BUY / WEIGHT-SCORE INVERSION at
+    # the top of the daily brief. Real PM-quality signal, not silent.
+    discipline_warnings: list[str] = []
+    n_winner_exits = sum(1 for r in recs if (r.get("discipline") or {}).get("is_winner_exit"))
+    n_low_conv_buys = sum(1 for r in recs if (r.get("discipline") or {}).get("is_low_conviction_buy"))
+    n_weight_inversions = sum(1 for r in recs if (r.get("discipline") or {}).get("weight_score_inversion"))
+    if n_winner_exits > 0:
+        discipline_warnings.append(f"{n_winner_exits} winner-exits (rank-fall churn on positive-score positions)")
+    if n_low_conv_buys > 0:
+        discipline_warnings.append(f"{n_low_conv_buys} low-conviction BUYs (WEAK signal or confidence < 0.02)")
+    if n_weight_inversions > 0:
+        discipline_warnings.append(f"{n_weight_inversions} weight-score inversions (alloc up while score down)")
+
     return {
         "engine":              ENGINE_ID,
         "market":              market,
@@ -545,7 +560,66 @@ def build_ceo_summary(recs: Sequence[Mapping],
         "actionable_count":    len(actionable_entries) + len(actionable_exits),
         "rotations_count":     len(rotations),
         "entry_decision_dist": dict(entry_dist),
+        "discipline_warnings": discipline_warnings,
     }
+
+
+# ── Portfolio Discipline annotations (CEO cycle 5E · S1-S4 fixes) ──
+# These flag operator-visible warnings when the underlying recommendation
+# engine's own logic would hurt long-term returns. Cannot fix the sealed
+# recommendation engine directly · but can annotate so operator sees the
+# concern before acting.
+def _discipline_flags(rec: Mapping,
+                          previous_ticker_map: Mapping | None) -> dict:
+    """Return {is_winner_exit, is_low_conviction_buy, sector_gate_violation,
+    weight_score_inversion, notes[]}"""
+    ticker = str(rec.get("ticker") or "")
+    action = str(rec.get("percentile_action") or rec.get("action") or "HOLD").upper()
+    if_holding = str((rec.get("investor_action") or {}).get("if_holding") or "HOLD")
+    score = float(rec.get("ensemble_score") or 0.0)
+    prev = (previous_ticker_map or {}).get(ticker) or {}
+    prev_score = float(prev.get("ensemble_score") or 0.0)
+    conf = float(rec.get("calibrated_confidence") or 0.0)
+    signal_quality = str(rec.get("signal_quality") or "").upper()
+
+    notes: list[str] = []
+    flags: dict = {
+        "is_winner_exit":          False,
+        "is_low_conviction_buy":   False,
+        "sector_gate_violation":   False,
+        "weight_score_inversion":  False,
+    }
+
+    # S1: Winners-exit. Exit signal despite still-positive score.
+    if if_holding in ("REDUCE", "EXIT") and score > 0:
+        flags["is_winner_exit"] = True
+        notes.append(f"WINNERS-EXIT: {ticker} action {if_holding} with positive score {score:+.4f} · confirm intended")
+
+    # S2: Weight-score inversion. Position allocation went UP but score went DOWN.
+    prev_alloc = (prev.get("position_plan") or {}).get("suggested_allocation_pct")
+    curr_alloc = (rec.get("position_plan") or {}).get("suggested_allocation_pct")
+    if prev_alloc is not None and curr_alloc is not None:
+        try:
+            if float(curr_alloc) > float(prev_alloc) and score < prev_score - 0.01:
+                flags["weight_score_inversion"] = True
+                notes.append(f"WEIGHT-SCORE INVERSION: allocation {prev_alloc}%->{curr_alloc}% while score {prev_score:+.4f}->{score:+.4f}")
+        except (TypeError, ValueError):
+            pass
+
+    # S4: Low-conviction BUY. Institutional practice: don't BUY Grade C.
+    # Signal_quality WEAK + BUY action AND allocation > 0 = low conviction.
+    if action in ("STRONG_BUY", "BUY") and signal_quality == "WEAK":
+        flags["is_low_conviction_buy"] = True
+        notes.append(f"LOW-CONVICTION BUY: {ticker} action {action} but signal_quality WEAK · consider passing rather than filler")
+
+    # S4 alt: BUY with confidence below institutional floor (2%)
+    if action in ("STRONG_BUY", "BUY") and conf < 0.02:
+        if not flags["is_low_conviction_buy"]:
+            flags["is_low_conviction_buy"] = True
+            notes.append(f"LOW-CONFIDENCE BUY: {ticker} calibrated_confidence {conf:.4f} below institutional floor 0.02")
+
+    flags["notes"] = notes
+    return flags
 
 
 # ── Main entry point ─────────────────────────────────────────
@@ -643,6 +717,9 @@ def enrich_recommendation(rec: MutableMapping,
 
     # Evolution block (CEO cycle 4 · Performance & Evolution)
     rec["evolution"] = _evolution_for_rec(rec, previous_ticker_map, asof, history_asof_map)
+
+    # Discipline flags (CEO cycle 5E · S1-S4 institutional guards)
+    rec["discipline"] = _discipline_flags(rec, previous_ticker_map)
 
     return rec
 

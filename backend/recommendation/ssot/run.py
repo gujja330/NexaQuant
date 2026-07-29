@@ -39,6 +39,9 @@ from backend.recommendation.snapshot import (  # noqa: E402
     load_snapshot_for_date,
 )
 from backend.recommendation.snapshot.store import snapshot_to_ticker_map  # noqa: E402
+from backend.portfolio.position_store import (  # noqa: E402
+    update_from_recs, load_all_positions,
+)
 
 
 def _reports_dir(market: str) -> Path:
@@ -73,12 +76,19 @@ def main() -> int:
         recs = pub.get("recommendations", [])
         if recs:
             lifecycle_records, dynamic_holding_decisions = _load_context(reports)
-            # Cycle 4: load previous snapshot for evolution deltas + build
-            # history_asof_map for accurate days_recommended.
+            # Cycle 4: load previous snapshot for evolution deltas.
+            # Cycle 5-Cmd: real first_seen dates from position_store.
             asof_str = pub.get("asof") or ""
             prev_snap = load_previous_snapshot(reports, args.market, asof_str) if asof_str else None
             previous_ticker_map = snapshot_to_ticker_map(prev_snap)
-            history_asof_map = _build_history_asof_map(reports, args.market, asof_str)
+            # Update position store BEFORE enrichment so the enricher sees
+            # today's first-seen dates for newly-recommended tickers.
+            try:
+                update_from_recs(reports, args.market, recs, asof=asof_str or "")
+            except Exception as _e:
+                print(f"[position_store:{args.market}] update failed · {type(_e).__name__}: {_e}")
+            positions = load_all_positions(reports, args.market)
+            history_asof_map = {t: pr.first_seen_date for t, pr in positions.items()}
 
             enrich_batch(recs,
                             lifecycle_records=lifecycle_records,
