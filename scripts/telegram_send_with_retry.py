@@ -73,9 +73,14 @@ DEFAULT_BACKOFF: tuple[float, ...] = (5.0, 15.0, 45.0)
 
 # Signals in telegram_notify.py's stdout that indicate outcome.
 SUCCESS_MARKERS: tuple[str, ...] = ("sent (",)
+# Failure markers are ONLY consulted if no success marker is present.
+# The sealed sender intentionally emits an HTML failure line and then falls
+# back to plain-text, so intermediate "send failed" strings are expected in
+# a successful run. Real failures never emit the terminal "sent (N messages)"
+# confirmation. See fix note below.
 FAILURE_MARKERS: tuple[str, ...] = (
     "cannot send",
-    "send failed",
+    "send failed",           # only meaningful in absence of SUCCESS marker
     "returned not-ok",
     "MISSING TELEGRAM",
 )
@@ -85,14 +90,35 @@ def _iso_utc() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
-def _classify(stdout: str) -> tuple[str, str]:
-    """Return (verdict, matched_marker). verdict ∈ {'SUCCESS','FAILURE','UNKNOWN'}."""
-    for m in FAILURE_MARKERS:
-        if m in stdout:
-            return "FAILURE", m
+def _classify(stdout: str, exit_code: int = 0) -> tuple[str, str]:
+    """Return (verdict, matched_marker). verdict ∈ {'SUCCESS','FAILURE','UNKNOWN'}.
+
+    Fix (2026-07-29 · CI blocker): SUCCESS is checked FIRST because the sealed
+    india/telegram_notify.py emits an intentional "HTML send failed → falling
+    back to plain-text → plain-text delivered → sent (N messages)" sequence
+    on every message whose HTML parsing Telegram rejects. The prior order
+    (failure-first) matched the intermediate "send failed" line and reported
+    FAILURE even though delivery succeeded, causing 4× retry storm and
+    duplicate operator messages.
+
+    Additionally, honor subprocess exit_code as primary signal — the sealed
+    sender is the authority on its own success. Only reach for stdout markers
+    when exit_code is 0 (need to distinguish "delivered" from "no-op").
+    """
+    # Exit code non-zero is unambiguous failure regardless of stdout content.
+    if exit_code != 0:
+        for m in FAILURE_MARKERS:
+            if m in stdout:
+                return "FAILURE", m
+        return "FAILURE", f"exit_code={exit_code}"
+    # Exit code 0 → SUCCESS markers first (terminal "sent (N)" confirmation).
     for m in SUCCESS_MARKERS:
         if m in stdout:
             return "SUCCESS", m
+    # Exit 0 with no SUCCESS marker → check FAILURE markers as fallback.
+    for m in FAILURE_MARKERS:
+        if m in stdout:
+            return "FAILURE", m
     return "UNKNOWN", ""
 
 
@@ -159,7 +185,7 @@ def main() -> int:
         t0 = time.perf_counter()
         exit_code, stdout, stderr = _run_notify(python_exe)
         elapsed = time.perf_counter() - t0
-        verdict, marker = _classify(stdout + "\n" + stderr)
+        verdict, marker = _classify(stdout + "\n" + stderr, exit_code=exit_code)
 
         # Print notify's own stdout so operators see the same content in the
         # GitHub Actions log.
