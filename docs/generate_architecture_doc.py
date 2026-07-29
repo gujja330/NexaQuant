@@ -404,7 +404,7 @@ def build_pdf(diagrams: dict) -> None:
     version_data = [
         ["Version", "Date", "Highlights"],
         ["v1.0",    "2026-07-18",  "Initial architecture (India only · NSE 200 · 13-step pipeline)"],
-        ["v2.0",    "2026-07-18",  "USA parallel deployment · Dow 30 · dual-market · shared engines"],
+        ["v2.0",    "2026-07-18",  "USA parallel deployment · dual-market · shared engines (initial Dow 30 universe · later expanded in v3.0)"],
         ["v2.3",    "2026-07-29",  "Snapshot persistence · CEO summary · Evolution block"],
         ["v2.4",    "2026-07-29",  "Backtrack Engine · AI Scorecard · Sector Attribution · Command Center"],
         [f"v{VERSION} LOCKED", TODAY, "Constitutional freeze · S&P 500+MidCap 400 (918 tickers) · single sender · zero legacy · Article 100 L4 all engines"],
@@ -437,9 +437,11 @@ def build_pdf(diagrams: dict) -> None:
     # ── Section 2 · The daily pipeline ──
     story.append(Paragraph("2 · The Daily Pipeline (9 stages)", h1))
     story.append(Paragraph(
-        "Every business day, both markets (India NSE 200 + USA Dow 30) run the same "
-        "deterministic 9-stage flow. Every stage is idempotent per date · every output is "
-        "auditable · every rerun produces byte-identical results.",
+        "Every business day, both markets (India NSE 200 · ~200 tickers · and USA "
+        "S&P 500 + MidCap 400 · ~918 tickers) run the same deterministic 9-stage "
+        "flow — <b>1,118 companies daily on one architecture</b>. Every stage is "
+        "idempotent per date · every output is auditable · every rerun produces "
+        "byte-identical results.",
         body))
     story.append(Image(str(diagrams["pipeline_flow"]), width=17*cm, height=6.2*cm))
 
@@ -458,7 +460,7 @@ def build_pdf(diagrams: dict) -> None:
         ["Universes (post-lock)",       "India NSE 200 (~200 tickers) + USA S&P 500 + MidCap 400 (~918 tickers) = 1,118 companies daily"],
         ["Architecture",                "24-stage pipeline · both markets share ALL engines"],
         ["Only per-market differences", "universe · benchmark · currency · trading calendar · sector mapping"],
-        ["Single Source of Truth",      "reports/recommendations.json (India) · usa/reports/recommendations.json (USA)"],
+        ["Single Source of Truth",      "ONE canonical recommendation schema · ONE renderer · ONE contract · TWO market-specific artifacts (reports/recommendations.json · usa/reports/recommendations.json). Same shape, same enrichment blocks, same downstream consumers on both."],
         ["Delivery",                    "Command Center Telegram · single sender · Markdown → plain-text fallback"],
         ["Zero legacy in production",   "legacy Telegram + UX030 retired in workflow · sealed contracts (MON001, sealed research) untouched"],
         ["No hardcoded dates",          "CI guardrail enforces on every push"],
@@ -488,7 +490,7 @@ def build_pdf(diagrams: dict) -> None:
         body))
     data_src = [
         ["Category",       "Source",                     "What we extract",                            "Refresh"],
-        ["Universe",       "manifest.jsonl",             "NSE 200 (India) · Dow 30 (USA) tickers",     "on change"],
+        ["Universe",       "configs/universes/*.json",   "NSE 200 (India) · S&P 500 + MidCap 400 (USA · 918 tickers)", "config-driven"],
         ["Market data",    "yfinance",                   "OHLCV daily bars · adjusted closes",          "daily post-close"],
         ["Fundamentals",   "yfinance info + statements", "P/E · P/B · ROE · D/E · margins · growth · cashflow", "daily"],
         ["News",           "yfinance / RSS aggregator",  "headline sentiment · polarity · count",       "daily"],
@@ -749,7 +751,7 @@ def build_pdf(diagrams: dict) -> None:
         ("Deterministic", "Same inputs · same date · byte-identical outputs. Every rerun is auditable."),
         ("Sealed contracts", "MON001 fingerprint · Feature Store schema · sealed research (adaptive_rec_v2, risk_capital_v2) untouched since day one · protected by fingerprint checks in every daily CI run."),
         ("No hardcoded dates", "Production code contains zero hardcoded date literals. Every date derives from the wall clock or the incoming payload · guardrail test enforces this."),
-        ("Single source of truth", "Every consumer (Telegram, dashboard, tests) reads from the same reports/recommendations.json. No two pipelines can drift."),
+        ("Single Source of Truth Contract", "ONE canonical schema · ONE renderer · ONE contract. Market-specific data lives in reports/recommendations.json (India) and usa/reports/recommendations.json (USA) — same fields, same shape, same enrichment blocks. Every consumer (Telegram, dashboard, tests, backtrack) reads the SSoT artifact for the market it serves. No parallel pipelines. No legacy renderers."),
         ("Append-only history", "Snapshots · position store · lifecycle ledger · all append-only. Nothing is ever overwritten historically · full audit trail preserved."),
         ("Advisory only", "AEGIS never executes trades. Every output is labelled PAPER · every artifact is signed with the MON001 fingerprint."),
     ]
@@ -798,7 +800,7 @@ def build_pdf(diagrams: dict) -> None:
         ("30-day Recommendation Journey", "per-ticker table across snapshot dates"),
         ("Backtrack Timeline (7d / 30d / 90d / 1yr)", "load_snapshot_range already wired"),
         ("Monthly CEO Letter",             "narrative from attribution + scorecard evidence"),
-        ("Full 1-3 year backtest",         "against NIFTY + Dow benchmarks"),
+        ("Full 1-3 year backtest",         "India: vs NIFTY 200 · USA: vs S&P 500 (primary) + Russell MidCap (secondary) — matches new universes"),
         ("Tune from evidence",             "not from intuition · not from adding features"),
     ]
     for name, desc in nexts:
@@ -844,8 +846,9 @@ sell, what to rotate, and why. **It never executes trades.**
 
 ## 2 · The Daily Pipeline (9 stages)
 
-Every business day, both markets (India NSE 200 + USA Dow 30) run the same deterministic
-9-stage flow. Every stage is idempotent per date · every output is auditable.
+Every business day, both markets (India NSE 200 · ~200 tickers · and USA
+S&P 500 + MidCap 400 · ~918 tickers) run the same deterministic 9-stage flow —
+**1,118 companies daily on one architecture**. Every stage is idempotent per date · every output is auditable.
 
 ![Pipeline](images/{rel(diagrams["pipeline_flow"])})
 
@@ -857,7 +860,7 @@ Every business day, both markets (India NSE 200 + USA Dow 30) run the same deter
 
 | Category | Source | What we extract | Refresh |
 |---|---|---|---|
-| Universe | manifest.jsonl | NSE 200 (India) · Dow 30 (USA) tickers | on change |
+| Universe | configs/universes/*.json | NSE 200 (India) · S&P 500 + MidCap 400 (USA · 918 tickers) | config-driven |
 | Market data | yfinance | OHLCV daily bars · adjusted closes | daily post-close |
 | Fundamentals | yfinance info + statements | P/E · P/B · ROE · D/E · margins · growth · cashflow | daily |
 | News | yfinance / RSS aggregator | headline sentiment · polarity · count | daily |
@@ -1013,8 +1016,7 @@ Five of six metrics hit institutional or top-tier level. The one below-target me
   untouched since day one, protected by CI fingerprint checks
 - **No hardcoded dates** — production code contains zero hardcoded date literals · CI
   guardrail enforces this
-- **Single source of truth** — every consumer reads from the same
-  `reports/recommendations.json` · no two pipelines can drift
+- **Single Source of Truth Contract** — ONE canonical schema · ONE renderer · ONE contract. Two market-specific artifacts (India `reports/recommendations.json`, USA `usa/reports/recommendations.json`) with identical shape + enrichment blocks. Every consumer reads the SSoT for its market. No parallel pipelines. No legacy renderers.
 - **Append-only history** — snapshots · position store · lifecycle ledger all append-only
 - **Advisory only** — never executes trades · every output labelled PAPER
 
@@ -1044,7 +1046,7 @@ Shift from **building intelligence** to **building trust**. Next 30-day window a
 - **30-day Recommendation Journey** — per-ticker table across snapshot dates
 - **Backtrack Timeline** — 7/30/90/365-day windows (engine already wired)
 - **Monthly CEO Letter** — narrative from attribution + scorecard evidence
-- **Full 1-3 year backtest** — against NIFTY + Dow benchmarks
+- **Full 1-3 year backtest** — India: vs NIFTY 200 · USA: vs S&P 500 (primary) + Russell MidCap (secondary) — benchmarks now match the v3.0 universes
 - **Tune from evidence** — not from intuition · not from adding features
 
 ---

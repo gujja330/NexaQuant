@@ -34,7 +34,7 @@ Wired into `ssot/run.py` + `institutional_optimization_run.py` — both markets 
 
 **Live 2026-07-29 dual-market output:**
 
-| | India NSE 200 | USA Dow 30 |
+| | India NSE 200 | USA S&P 500 + MidCap 400 (918 tickers · v3.0) |
 |---|---|---|
 | Regime | unknown | unknown |
 | Actionable | 6 | 6 |
@@ -190,9 +190,9 @@ Extended `investor_actionable` enricher to consume three context artifacts and a
 
 ## 1 · Product Status
 
-**Type:** Institutional AI investment advisory platform · dual-market (India NSE 200 + USA Dow 30)
+**Type:** Institutional AI investment advisory platform · dual-market (India NSE 200 + USA S&P 500 + MidCap 400 · 918 tickers · **v3.0 LOCKED**)
 **Deployment:** file-based · GitHub Actions scheduled · advisory-only (never executes trades)
-**Production Readiness:** **57.80 / 100** · **NO-GO for immediate certification** · clear path to 92-97/100 via Wave 4 D0-D8
+**Production Readiness:** **Architecture LOCKED per v3.0 Constitutional Directive** · 178/178 targeted tests green · shift to evidence/validation phase
 
 ## 2 · Maturity Ladder (Article 100)
 
@@ -262,7 +262,7 @@ Every capability status uses **L0 DESIGNED · L1 BUILT · L2 WIRED · L3 VALIDAT
 
 ## 7 · Data Substrate
 
-**Universe:** India NSE 200 (228 constituents · 3 gaps: LTIM · PEL · TATAMOTORS pending D2 fix) · USA Dow 30 (30/30 present)
+**Universe:** India NSE 200 (228 constituents · 3 gaps: LTIM · PEL · TATAMOTORS pending D2 fix) · USA S&P 500 + MidCap 400 (**918 tickers** · v3.0 dynamic-loaded from `usa/configs/universes/*.json`)
 **Raw data:** 314k India bar-rows + 43k USA bar-rows (Wave 5 P1 discovery)
 **Data quality:** DEGRADED (13 India OHLC anomalies · VEDL unrecorded corp action · scheduled Wave 4 D2)
 

@@ -74,7 +74,7 @@ def _short_ticker(t: str) -> str:
 
 
 def _header(market: str, asof: str) -> list[str]:
-    market_name = "India NSE 200" if market == "india" else "USA Dow 30"
+    market_name = "India NSE 200" if market == "india" else "USA S&P 500 + MidCap 400"
     weekday = ""
     try:
         weekday = datetime.fromisoformat(asof).strftime("%a")

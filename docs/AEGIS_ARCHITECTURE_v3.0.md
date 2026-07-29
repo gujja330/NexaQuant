@@ -25,8 +25,9 @@ sell, what to rotate, and why. **It never executes trades.**
 
 ## 2 · The Daily Pipeline (9 stages)
 
-Every business day, both markets (India NSE 200 + USA Dow 30) run the same deterministic
-9-stage flow. Every stage is idempotent per date · every output is auditable.
+Every business day, both markets (India NSE 200 · ~200 tickers · and USA
+S&P 500 + MidCap 400 · ~918 tickers) run the same deterministic 9-stage flow —
+**1,118 companies daily on one architecture**. Every stage is idempotent per date · every output is auditable.
 
 ![Pipeline](images/images/aegis_v3.0_pipeline_flow.png)
 
@@ -38,7 +39,7 @@ Every business day, both markets (India NSE 200 + USA Dow 30) run the same deter
 
 | Category | Source | What we extract | Refresh |
 |---|---|---|---|
-| Universe | manifest.jsonl | NSE 200 (India) · Dow 30 (USA) tickers | on change |
+| Universe | configs/universes/*.json | NSE 200 (India) · S&P 500 + MidCap 400 (USA · 918 tickers) | config-driven |
 | Market data | yfinance | OHLCV daily bars · adjusted closes | daily post-close |
 | Fundamentals | yfinance info + statements | P/E · P/B · ROE · D/E · margins · growth · cashflow | daily |
 | News | yfinance / RSS aggregator | headline sentiment · polarity · count | daily |
@@ -194,8 +195,7 @@ Five of six metrics hit institutional or top-tier level. The one below-target me
   untouched since day one, protected by CI fingerprint checks
 - **No hardcoded dates** — production code contains zero hardcoded date literals · CI
   guardrail enforces this
-- **Single source of truth** — every consumer reads from the same
-  `reports/recommendations.json` · no two pipelines can drift
+- **Single Source of Truth Contract** — ONE canonical schema · ONE renderer · ONE contract. Two market-specific artifacts (India `reports/recommendations.json`, USA `usa/reports/recommendations.json`) with identical shape + enrichment blocks. Every consumer reads the SSoT for its market. No parallel pipelines. No legacy renderers.
 - **Append-only history** — snapshots · position store · lifecycle ledger all append-only
 - **Advisory only** — never executes trades · every output labelled PAPER
 
@@ -225,7 +225,7 @@ Shift from **building intelligence** to **building trust**. Next 30-day window a
 - **30-day Recommendation Journey** — per-ticker table across snapshot dates
 - **Backtrack Timeline** — 7/30/90/365-day windows (engine already wired)
 - **Monthly CEO Letter** — narrative from attribution + scorecard evidence
-- **Full 1-3 year backtest** — against NIFTY + Dow benchmarks
+- **Full 1-3 year backtest** — India: vs NIFTY 200 · USA: vs S&P 500 (primary) + Russell MidCap (secondary) — benchmarks now match the v3.0 universes
 - **Tune from evidence** — not from intuition · not from adding features
 
 ---

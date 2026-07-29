@@ -1,22 +1,34 @@
 # AEGIS USA · Parallel Deployment
 
-**Status:** Phase 1 · scaffold + market data ingestion + universe
+**Status:** v3.0 LOCKED (2026-07-29) · Constitutional Freeze active · S&P 500 + MidCap 400
 
-This is a **completely separate** deployment from the India AEGIS
-pipeline. Nothing under `usa/` modifies the India codebase. India is
-frozen at v2.0 (2026-07-18) and stays untouched.
+This deployment shares the AEGIS architecture with India — same engines,
+same data contracts, same downstream consumers. Only per-market inputs
+differ: universe, benchmark, currency, trading calendar, sector mapping.
 
 ## Currency
 
 **All prices are in USD ($).** Every renderer, formatter, dashboard
 tile, Telegram message, and report under `usa/` uses `$` — never `₹`.
 
-## Universe
+## Universe (v3.0 · dynamic)
 
-Starting universe: **Dow 30** (`usa/configs/universe.yaml`). 30
-large-cap USA tickers, all from NYSE + NASDAQ. Small enough to iterate
-quickly, big enough to prove the pipeline. Expand to S&P 500 / NASDAQ
-100 in a later phase.
+**Active:** S&P 500 + S&P MidCap 400 = **918 unique tickers** (US large +
+mid cap). Loaded dynamically from `usa/configs/universes/*.json` via
+`usa/configs/universe.yaml → active_universe: sp500_plus_midcap400`.
+
+Refresh the constituent lists (Wikipedia canonical) with:
+
+```
+python usa/scripts/refresh_universe.py
+```
+
+Switching universes (Russell 1000, UK, Europe, ...) requires only a new
+JSON + one yaml entry — zero code changes (Article 3 of the v3.0
+Constitutional Directive · dynamic universe contract).
+
+Historical/rollback universes still available in `universe.yaml`:
+`dow30` (30 tickers · original v2.0 default) · `nasdaq100` · `sp500_top50`.
 
 ## Directory layout
 

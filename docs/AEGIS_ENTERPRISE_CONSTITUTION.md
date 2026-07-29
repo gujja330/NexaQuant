@@ -9,7 +9,7 @@ The Constitution is **amendable but not casually.** See Part XXIII — Amendment
 
 ## Preamble
 
-AEGIS is an **institutional AI investment platform** for dual-market (India NSE 200 + USA Dow 30) deployment. It is *advisory-only* — it never executes trades. It exists to produce daily, deterministic, explainable, auditable investment recommendations from raw market data through a chain of independent engines communicating via file-based artifacts.
+AEGIS is an **institutional AI investment platform** for dual-market (India NSE 200 + USA S&P 500 + MidCap 400 (~918 tickers · v3.0 Lock)) deployment. It is *advisory-only* — it never executes trades. It exists to produce daily, deterministic, explainable, auditable investment recommendations from raw market data through a chain of independent engines communicating via file-based artifacts.
 
 This Constitution defines what AEGIS is, how it evolves, what can never change, and how disputes are resolved.
 
@@ -23,7 +23,7 @@ To become the reference institutional investment platform where every recommenda
 
 ## Article 2 · Mission
 
-Produce daily, deterministic, explainable, capital-efficient investment recommendations for institutional-grade dual-market portfolios (India NSE 200 + USA Dow 30), through a chain of independent engines communicating via file-based artifacts.
+Produce daily, deterministic, explainable, capital-efficient investment recommendations for institutional-grade dual-market portfolios (India NSE 200 + USA S&P 500 + MidCap 400 (~918 tickers · v3.0 Lock)), through a chain of independent engines communicating via file-based artifacts.
 
 ## Article 3 · What AEGIS IS
 
@@ -544,7 +544,7 @@ Every dual-market engine produces a global comparison artifact showing India vs 
 ## Article 66 · Universe Independence
 
 - India NSE 200 (from `india.data_nse.NIFTY200`)
-- USA Dow 30 (from `usa/reports/universe.json`)
+- USA S&P 500 + MidCap 400 · ~918 tickers · dynamic-loaded from `usa/reports/universe.json` (built from `usa/configs/universes/*.json` per Article 2 of v3.0 Constitutional Directive)
 - No engine assumes ticker overlap. Each market has its own universe object.
 
 ---

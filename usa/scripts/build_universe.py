@@ -37,7 +37,7 @@ def main() -> int:
         return 1
 
     cfg = yaml.safe_load(cfg_path.read_text(encoding="utf-8"))
-    active_name = cfg.get("active_universe") or "dow30"
+    active_name = cfg.get("active_universe") or "sp500_plus_midcap400"
     universes   = cfg.get("universes") or {}
     universe = universes.get(active_name)
     if not universe:

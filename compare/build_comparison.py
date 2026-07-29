@@ -148,7 +148,7 @@ def render_markdown(ctx: dict) -> str:
     L.append("India and USA are **fully independent deployments**. They share the repo but nothing else:")
     L.append("")
     L.append("- Different currencies (INR ₹ vs USD $)")
-    L.append("- Different universes (Nifty vs Dow 30)")
+    L.append("- Different universes (Nifty 200 vs S&P 500 + MidCap 400 · v3.0 Lock)")
     L.append("- Different benchmarks (NIFTY vs S&P 500)")
     L.append("- Different archives (`data/archive/` vs `usa/data/archive/`)")
     L.append("- Different Constitutions (`AEGIS_CONSTITUTION.md` vs `usa/AEGIS_USA_CONSTITUTION.md`)")
