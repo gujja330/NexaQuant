@@ -238,6 +238,36 @@ def _risk_pulse(cs: Mapping, recs: Sequence[Mapping], market: str) -> list[str]:
     return lines
 
 
+def _ai_scorecard_line(payload: Mapping) -> list[str]:
+    """v2.4: one-line AI Scorecard right below CEO CALL."""
+    sc = payload.get("ai_scorecard") or {}
+    if not sc or not sc.get("overall_score"):
+        return []
+    stars = "★" * max(0, min(5, sc.get("overall_stars") or 0)) + "☆" * max(0, 5 - (sc.get("overall_stars") or 0))
+    n = sc.get("n_trades") or 0
+    verdict = sc.get("verdict") or "-"
+    return ["", f"*AI SCORECARD*  {stars}  {sc.get('overall_score')}/100 · {verdict} · {n} closed trades"]
+
+
+def _attribution_top(payload: Mapping) -> list[str]:
+    """v2.4: which models drove today's decisions."""
+    a = payload.get("attribution_summary") or {}
+    if not a:
+        return []
+    drivers = a.get("dominant_drivers") or {}
+    if not drivers:
+        return []
+    top_two = list(drivers.items())[:2]
+    sector_share = a.get("avg_sector_share_pct")
+    lines = ["", "*DECISION DRIVERS*"]
+    for label, count in top_two:
+        lines.append(f"  {label}: dominant on {count} rec(s)")
+    if sector_share is not None:
+        active = "active" if a.get("sector_engine_measurably_active") else "quiet"
+        lines.append(f"  Sector engine share: {sector_share}%  ({active})")
+    return lines
+
+
 def _integrity_footer(payload: Mapping) -> list[str]:
     run_utc = str(payload.get("run_utc") or "")[:16].replace("T", " ")
     engine = payload.get("investor_actionable_engine") or "aegis"
@@ -267,10 +297,12 @@ def render_command_center_message(payload: Mapping, market: str,
     sections = [
         ("header",       _header(market, asof)),
         ("ceo_call",     _ceo_call(cs)),
+        ("ai_scorecard", _ai_scorecard_line(payload)),
         ("rotations",    _rotation_calls(recs, market)),
         ("new_buys",     _actionable_entries(recs, market)),
         ("exits",        _actionable_exits(recs, market)),
         ("evolution",    _evolution_summary(recs)),
+        ("attribution",  _attribution_top(payload)),
         ("risk_pulse",   _risk_pulse(cs, recs, market)),
         ("footer",       _integrity_footer(payload)),
     ]

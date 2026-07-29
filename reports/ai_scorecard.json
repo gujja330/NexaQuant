@@ -1,0 +1,60 @@
+{
+  "engine": "aegis.analytics.scorecard.v1",
+  "schema_fingerprint": "aegis.analytics.scorecard.v1.20260729",
+  "version": "1.0.0",
+  "run_utc": "2026-07-29T05:40:40.708018+00:00",
+  "source": "learning.parquet",
+  "n_trades": 1060,
+  "period_start": "2022-01-31",
+  "period_end": "2026-06-30",
+  "metrics": [
+    {
+      "name": "Recommendation Accuracy",
+      "value": 0.583,
+      "stars": 4,
+      "unit": "win_rate",
+      "n_observations": 1060,
+      "description": "% of closed trades that ended profitable",
+      "benchmark": "institutional 58%+, top-tier 65%+"
+    },
+    {
+      "name": "Exit Timing",
+      "value": 0.8262,
+      "stars": 5,
+      "unit": "mfe_capture_ratio",
+      "n_observations": 618,
+      "description": "Median fraction of max-favorable-move captured at exit",
+      "benchmark": "institutional 55%+, expert 70%+"
+    },
+    {
+      "name": "Target Hit Rate",
+      "value": 0.4962,
+      "stars": 4,
+      "unit": "pct_hit_5pct_target",
+      "n_observations": 1060,
+      "description": "% of trades reaching +5% target before exit",
+      "benchmark": "institutional 30-40%"
+    },
+    {
+      "name": "Risk Control",
+      "value": -3.66,
+      "stars": 5,
+      "unit": "pct_median_mae",
+      "n_observations": 1060,
+      "description": "Median max-adverse-excursion (lower absolute is better)",
+      "benchmark": "institutional > -8%, top-tier > -5%"
+    },
+    {
+      "name": "Rotation Quality",
+      "value": 1.73,
+      "stars": 3,
+      "unit": "profit_factor",
+      "n_observations": 1060,
+      "description": "Profit factor: Σ winners / |Σ losers|",
+      "benchmark": "institutional 1.75+, top-tier 2.5+"
+    }
+  ],
+  "overall_stars": 4,
+  "overall_score": 84.0,
+  "verdict": "institutional_grade"
+}

@@ -42,6 +42,12 @@ from backend.recommendation.snapshot.store import snapshot_to_ticker_map  # noqa
 from backend.portfolio.position_store import (  # noqa: E402
     update_from_recs, load_all_positions,
 )
+# v2.4 trust-surface modules (Article 101.2 · pure attribution)
+from backend.analytics.scorecard import run_scorecard  # noqa: E402
+from backend.analytics.attribution import (  # noqa: E402
+    enrich_recs_with_attribution, summarize_attribution,
+)
+from backend.analytics.backtrack import build_market_backtrack  # noqa: E402
 
 
 def _reports_dir(market: str) -> Path:
@@ -81,12 +87,9 @@ def main() -> int:
             asof_str = pub.get("asof") or ""
             prev_snap = load_previous_snapshot(reports, args.market, asof_str) if asof_str else None
             previous_ticker_map = snapshot_to_ticker_map(prev_snap)
-            # Update position store BEFORE enrichment so the enricher sees
-            # today's first-seen dates for newly-recommended tickers.
-            try:
-                update_from_recs(reports, args.market, recs, asof=asof_str or "")
-            except Exception as _e:
-                print(f"[position_store:{args.market}] update failed · {type(_e).__name__}: {_e}")
+            # Pre-load ANY existing positions so the enricher can compute
+            # days_recommended from first_seen_date. Then enrich, then
+            # update position store with the ENRICHED prices.
             positions = load_all_positions(reports, args.market)
             history_asof_map = {t: pr.first_seen_date for t, pr in positions.items()}
 
@@ -96,6 +99,13 @@ def main() -> int:
                             previous_ticker_map=previous_ticker_map,
                             asof=asof_str,
                             history_asof_map=history_asof_map)
+
+            # Update position store AFTER enrichment so entry_zone.current_price
+            # is populated. Position store is idempotent per (ticker, asof).
+            try:
+                update_from_recs(reports, args.market, recs, asof=asof_str or "")
+            except Exception as _e:
+                print(f"[position_store:{args.market}] update failed · {type(_e).__name__}: {_e}")
 
             # Cycle 4: CEO executive summary block at the top of payload
             ceo_summary = build_ceo_summary(recs,
@@ -112,8 +122,55 @@ def main() -> int:
             (reports / "investor_actionable_summary.json").write_text(
                 json.dumps(summ, indent=2, ensure_ascii=False), encoding="utf-8")
 
+            # v2.4: Sector/Decision Attribution — decompose ensemble score
+            # into per-model contributions. Runs BEFORE snapshot archive so
+            # the attribution block is preserved in history.
+            try:
+                enrich_recs_with_attribution(recs, reports, _ROOT)
+                pub["recommendations"] = recs
+                pub["attribution_summary"] = summarize_attribution(recs)
+                (reports / "attribution_summary.json").write_text(
+                    json.dumps(pub["attribution_summary"], indent=2, ensure_ascii=False),
+                    encoding="utf-8"
+                )
+            except Exception as _e:
+                print(f"[attribution:{args.market}] failed · {type(_e).__name__}: {_e}")
+
+            # v2.4: AI Scorecard from learning.parquet (India only — closed
+            # trades ledger is India-side; will extend to USA when learning
+            # corpus grows there).
+            if args.market == "india":
+                try:
+                    scorecard = run_scorecard(_ROOT)
+                    pub["ai_scorecard"] = {
+                        "overall_score":  scorecard.get("overall_score"),
+                        "overall_stars":  scorecard.get("overall_stars"),
+                        "verdict":        scorecard.get("verdict"),
+                        "n_trades":       scorecard.get("n_trades"),
+                        "period_start":   scorecard.get("period_start"),
+                        "period_end":     scorecard.get("period_end"),
+                    }
+                    print(f"[ai_scorecard] {scorecard.get('overall_score')}/100 · "
+                          f"{scorecard.get('verdict')} · {scorecard.get('n_trades')} trades")
+                except Exception as _e:
+                    print(f"[ai_scorecard] failed · {type(_e).__name__}: {_e}")
+
+            # Persist enrichment updates before snapshot archive
+            out.write_text(json.dumps(pub, indent=2, default=str, ensure_ascii=False),
+                            encoding="utf-8")
+
             # Cycle 4: archive today's snapshot for tomorrow's evolution deltas
             snap_path = archive_snapshot(pub, reports, args.market, asof=asof_str or None)
+
+            # v2.4: Backtrack Engine — regenerate per-ticker timelines from
+            # the accumulated snapshot + position_store history. Runs AFTER
+            # snapshot archive so today's data is included.
+            try:
+                bt = build_market_backtrack(reports, args.market)
+                print(f"[backtrack:{args.market}] tracked {bt['n_tickers_tracked']} tickers "
+                      f"across {len(bt['snapshot_dates'])} snapshot dates")
+            except Exception as _e:
+                print(f"[backtrack:{args.market}] failed · {type(_e).__name__}: {_e}")
 
             print(f"[investor_actionable:{args.market}] "
                   f"entry_dist={summ['entry_decision_dist']} "
