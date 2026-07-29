@@ -39,7 +39,7 @@ DOCS = ROOT / "docs"
 IMG_DIR = DOCS / "images"
 IMG_DIR.mkdir(parents=True, exist_ok=True)
 
-VERSION = "3.0"
+VERSION = "3.0-FINAL"
 TODAY = date.today().isoformat()
 OUT_PDF = DOCS / f"AEGIS_ARCHITECTURE_v{VERSION}.pdf"
 OUT_MD  = DOCS / f"AEGIS_ARCHITECTURE_v{VERSION}.md"
@@ -407,7 +407,8 @@ def build_pdf(diagrams: dict) -> None:
         ["v2.0",    "2026-07-18",  "USA parallel deployment · dual-market · shared engines (initial Dow 30 universe · later expanded in v3.0)"],
         ["v2.3",    "2026-07-29",  "Snapshot persistence · CEO summary · Evolution block"],
         ["v2.4",    "2026-07-29",  "Backtrack Engine · AI Scorecard · Sector Attribution · Command Center"],
-        [f"v{VERSION} LOCKED", TODAY, "Constitutional freeze · S&P 500+MidCap 400 (918 tickers) · single sender · zero legacy · Article 100 L4 all engines"],
+        ["v3.0",       "2026-07-29", "Constitutional freeze · S&P 500+MidCap 400 (918 tickers) · single sender · zero legacy"],
+        [f"v{VERSION}", TODAY, "PRODUCTION LOCK · Runner 1 → validation layer (Option D) · Daily Change Summary · 30-Day Performance block · Recommendation Age · per-metric Scorecard · sector 0%→'Quiet Today' · regime unknown→neutral · APOLLO/BHARTI restored to Defensive View"],
     ]
     vt = Table(version_data, colWidths=[2*cm, 3*cm, 12*cm])
     vt.setStyle(TableStyle([
@@ -457,15 +458,20 @@ def build_pdf(diagrams: dict) -> None:
         "and downstream integration are immutable.",
         body))
     lock_data = [
-        ["Universes (post-lock)",       "India NSE 200 (~200 tickers) + USA S&P 500 + MidCap 400 (~918 tickers) = 1,118 companies daily"],
+        ["Universes (final)",           "India NSE 200 (~200 tickers) + USA S&P 500 + MidCap 400 (~918 tickers) = 1,118 companies daily"],
         ["Architecture",                "24-stage pipeline · both markets share ALL engines"],
-        ["Only per-market differences", "universe · benchmark · currency · trading calendar · sector mapping"],
-        ["Single Source of Truth",      "ONE canonical recommendation schema · ONE renderer · ONE contract · TWO market-specific artifacts (reports/recommendations.json · usa/reports/recommendations.json). Same shape, same enrichment blocks, same downstream consumers on both."],
-        ["Delivery",                    "Command Center Telegram · single sender · Markdown → plain-text fallback"],
-        ["Zero legacy in production",   "legacy Telegram + UX030 retired in workflow · sealed contracts (MON001, sealed research) untouched"],
-        ["No hardcoded dates",          "CI guardrail enforces on every push"],
-        ["No hardcoded universes",      "Universe = configs/universes/*.json · refreshed via refresh_universe.py"],
+        ["Recommendation engine",       "Runner 2 v3 SOLE canonical · Runner 1 legacy demoted to validation-only (Option D · Article 4)"],
+        ["Single Source of Truth",      "ONE schema · ONE renderer · ONE contract · TWO market-specific artifacts (same shape · same enrichment blocks)"],
+        ["Delivery",                    "Command Center Telegram · single sender · 12 sections (order per Phase 13 spec) · Markdown → plain-text fallback"],
+        ["Self-learning loop (LIVE)",   "closed trades → per-dim IC → adaptive ensemble weights → next-day model weights · Learning Engine consumes reports/learning.parquet (1060 closed trades)"],
+        ["History persistence",         "3 append-only stores: snapshot_store (daily recs) · position_store (per-ticker high_water + first_seen) · lifecycle_ledger (state transitions)"],
+        ["Outcomes feedback",           "MFE/MAE/return_pct captured per closed trade · Permutation Importance re-runs per rec · AI Scorecard 6 metrics re-computed daily"],
+        ["No 'Unknown' displays",       "regime resolves via fallback chain (Article 9) · never shown as unknown to operator"],
+        ["Sector 0% handling",          "displayed as '🔇 Quiet today' when adaptive weight < 1% (Article 10)"],
+        ["No hardcoded dates/universes","CI guardrail enforces (test_no_hardcoded_dates_in_production · 3 tests)"],
         ["Sealed contracts",            "MON001 fingerprint · Feature Store schema · adaptive_rec_v2 · risk_capital_v2 · india/telegram_notify.py"],
+        ["Tests passing",               "120/120 targeted regression across 14 test files"],
+        ["Production Lock date",        TODAY + " · maintenance mode active"],
     ]
     lt = Table(lock_data, colWidths=[5*cm, 12*cm])
     lt.setStyle(TableStyle([

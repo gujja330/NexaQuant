@@ -127,24 +127,36 @@ def main() -> int:
             except Exception as _e:
                 print(f"[runner1_validation:india] re-run failed · {type(_e).__name__}: {_e}")
 
-        # Cycle 4: rebuild CEO summary with post-percentile distribution.
-        # Read live macro regime source (post-fix: honors primary_regime + fallback).
+        # Rebuild CEO summary with post-percentile distribution + LIVE regime.
+        # v3.0 FINAL Phase 9 · never surface "unknown" · treat it as null-value
+        # and fall back to the market_intelligence source.
+        def _is_valid_regime(v):
+            return v and str(v).strip().lower() not in ("unknown", "n/a", "none", "")
         try:
-            mr_p = reports / "macro_regime.json"
             regime = None
+            mr_p = reports / "macro_regime.json"
             if mr_p.exists():
                 mr_d = json.loads(mr_p.read_text(encoding="utf-8"))
-                regime = (mr_d.get("primary_regime") or mr_d.get("regime")
-                             or mr_d.get("current_regime"))
-            if not regime:
+                for k in ("primary_regime", "regime", "current_regime"):
+                    v = mr_d.get(k)
+                    if _is_valid_regime(v):
+                        regime = v
+                        break
+            if not _is_valid_regime(regime):
                 mi_p = reports / "market_intelligence.json"
                 if mi_p.exists():
                     mi_d = json.loads(mi_p.read_text(encoding="utf-8"))
-                    regime = (mi_d.get("regime") or mi_d.get("current_regime"))
+                    for k in ("regime", "current_regime"):
+                        v = mi_d.get(k)
+                        if _is_valid_regime(v):
+                            regime = v
+                            break
         except Exception:
             regime = None
+        # Article 9: never display "unknown" · fall back to "not_available"
+        # ONLY if truly no source resolved (should never happen in prod).
         ceo_summary = build_ceo_summary(recs, market=args.market,
-                                             macro_regime=regime or "not_available")
+                                             macro_regime=regime if _is_valid_regime(regime) else "not_available")
         payload["ceo_summary"] = ceo_summary
 
         summ = summarize_batch(recs)
