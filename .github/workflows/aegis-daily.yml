@@ -185,7 +185,14 @@ jobs:
           retention-days: 30
 
       - name: Mark published + commit report/data
-        if: steps.guard.outputs.run == 'true' && steps.freshcheck.outputs.verified == 'true'
+        # CEO cycle 5 · defense-in-depth: commit fresh artifacts even when
+        # Telegram delivery fails. Prior condition let a spurious Telegram
+        # failure (e.g. the 2026-07-29 HTML-parse retry misclassification)
+        # skip this step and leave data/aegis_today.csv frozen in git for
+        # DAYS. Fresh data is worth committing regardless of notification
+        # delivery status. Engine + freshcheck are still required — those
+        # guarantee the data itself is valid.
+        if: always() && steps.engine.outcome == 'success' && steps.guard.outputs.run == 'true' && steps.freshcheck.outputs.verified == 'true'
         run: |
           echo "${{ steps.guard.outputs.ist }}" > data/.published
           git config user.name  "aegis-bot"
