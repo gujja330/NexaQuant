@@ -36,6 +36,13 @@ jobs:
           pip install pandas numpy pyarrow pyyaml yfinance scikit-learn
 
       - name: Run USA daily orchestrator
+        # CEO cycle 4: pass Telegram secrets so usa/scripts/telegram_send.py
+        # (STEPS[40]) actually delivers instead of silently no-op skipping.
+        # Same TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID secrets as India — one
+        # bot serves both markets; sender emits USD-labelled USA content.
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
         run: python usa/scripts/usa_daily.py
 
       - name: Run USA ops check

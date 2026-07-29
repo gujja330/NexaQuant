@@ -19,12 +19,14 @@ Article 101.2 compliant · pure enrichment · no new analytics engine.
 """
 from .engine import (
     enrich_recommendation, enrich_batch, summarize_batch,
+    build_ceo_summary,
     SCHEMA_FINGERPRINT, ENGINE_ID,
     ENTRY_MAP, IF_HOLDING_MAP, HORIZON_BUCKETS, LABEL_MAP,
 )
 
 __all__ = [
     "enrich_recommendation", "enrich_batch", "summarize_batch",
+    "build_ceo_summary",
     "SCHEMA_FINGERPRINT", "ENGINE_ID",
     "ENTRY_MAP", "IF_HOLDING_MAP", "HORIZON_BUCKETS", "LABEL_MAP",
 ]

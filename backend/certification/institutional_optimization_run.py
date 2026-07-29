@@ -66,9 +66,18 @@ def main() -> int:
 
         # Re-enrich investor-actionable fields · percentile_action was just
         # added, so investor_action/position_plan/why + rotation_intelligence
-        # + lifecycle_state must be refreshed.
-        # CEO cycles 2-3 · investor-facing dual-decision + rotation + lifecycle.
-        from backend.recommendation.investor_actionable import enrich_batch, summarize_batch
+        # + lifecycle_state + evolution must be refreshed. Also rebuild
+        # ceo_summary because the entry distribution + top opportunity
+        # change after percentile classification.
+        # CEO cycles 2-4 · investor-facing dual-decision + rotation + lifecycle + evolution + ceo summary.
+        from backend.recommendation.investor_actionable import (
+            enrich_batch, summarize_batch, build_ceo_summary,
+        )
+        from backend.recommendation.snapshot import (
+            archive_snapshot, load_previous_snapshot,
+        )
+        from backend.recommendation.snapshot.store import snapshot_to_ticker_map
+
         # Load context artifacts if their engines have run today
         lifecycle_records = None
         dynamic_holding_decisions = None
@@ -87,17 +96,34 @@ def main() -> int:
         except Exception:
             pass
 
+        # Cycle 4: previous snapshot for evolution deltas (post-percentile run)
+        asof_str = payload.get("asof") or ""
+        prev_snap = load_previous_snapshot(reports, args.market, asof_str) if asof_str else None
+        previous_ticker_map = snapshot_to_ticker_map(prev_snap)
+
         enrich_batch(recs,
                         lifecycle_records=lifecycle_records,
-                        dynamic_holding_decisions=dynamic_holding_decisions)
+                        dynamic_holding_decisions=dynamic_holding_decisions,
+                        previous_ticker_map=previous_ticker_map,
+                        asof=asof_str)
         payload["recommendations"] = recs
         payload["investor_actionable_engine"] = "aegis.recommendation.investor_actionable.v1"
+
+        # Cycle 4: rebuild CEO summary with post-percentile distribution.
+        ceo_summary = build_ceo_summary(recs, market=args.market)
+        payload["ceo_summary"] = ceo_summary
+
         summ = summarize_batch(recs)
         (reports / "investor_actionable_summary.json").write_text(
             json.dumps(summ, indent=2, ensure_ascii=False), encoding="utf-8")
 
         rp.write_text(json.dumps(payload, indent=2, default=str, ensure_ascii=False),
                         encoding="utf-8")
+
+        # Cycle 4: re-archive today's snapshot so history reflects the
+        # POST-percentile enrichment (idempotent for the same date).
+        archive_snapshot(payload, reports, args.market, asof=asof_str or None)
+
         print(f"[percentile_classifier] n_recs={rep.n_recs} "
               f"action_distribution={rep.action_distribution}")
         print(f"[investor_actionable] entry_dist={summ['entry_decision_dist']} "
@@ -106,6 +132,9 @@ def main() -> int:
               f"actionable_exits={len(summ['actionable_exits'])} "
               f"rotations={summ.get('n_rotation_suggestions', 0)} "
               f"lifecycle_dist={summ.get('lifecycle_state_dist', {})}")
+        print(f"[ceo_summary:{args.market}] {ceo_summary.get('recommended_action')} "
+              f"| actionable={ceo_summary.get('actionable_count')} "
+              f"| rotations={ceo_summary.get('rotations_count')}")
 
     return 0
 

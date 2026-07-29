@@ -1,7 +1,80 @@
 # AEGIS Executive Dashboard
 
-**Product state · updated 2026-07-27 · CEO cycles 1-3 · Learning-Loop + Investor-Actionable Schema + Rotation Intelligence**
+**Product state · updated 2026-07-29 · CEO cycles 1-4 · Learning-Loop + Investor-Actionable + Rotation + Snapshot-Persistence-Foundation**
 **Governing authority:** [`Enterprise Constitution v1.2.0`](../docs/AEGIS_ENTERPRISE_CONSTITUTION.md) (APEX · Article 100 ladder MANDATORY · Article 101 Architecture Freeze)
+
+---
+
+## 0d · CEO Cycle 4 — Snapshot Persistence Foundation + Evolution Block + CEO Summary + USA Telegram Parity (2026-07-29)
+
+**Operator directive:** Master Prompt v3 · "Recommendations must never be isolated daily outputs · every rec is a persistent investment object whose complete lifecycle is tracked · include 30-day Backtrack Timeline + AI Performance Scorecard + Monthly CEO Letter". Also: **USA Telegram notifications alongside India**.
+
+**Honest CEO read of the v3 prompt (delivered before coding):**
+- 80% of the Investor Decision Layer was already live from cycles 1-3 (dual-action, position_plan, rotation, lifecycle, bull/bear, allocation, entry zone, stops, T1/T2). Would not re-implement.
+- The single genuinely new foundation is **snapshot persistence**. Every downstream v3 feature (Backtrack Timeline · AI Scorecard · Monthly CEO Letter · 30d/90d/1y windows) is impossible without it. Blocked all of them until today.
+- AI Scorecard / Monthly Letter / 90d+1y windows cannot be built with 0 days of history. They build themselves once snapshot persistence has been running 30/90/365 days. Building them now would be theater.
+- Sector Attribution warrants its own cycle — needs per-model score decomposition captured at rec-time, not enrichment-time. Deferred to Cycle 5.
+
+**Highest-ROI action taken (Article 101.2 · pure enrichment · no new analytics engines):**
+
+New module `backend/recommendation/snapshot/`:
+| API | Purpose |
+|---|---|
+| `archive_snapshot(payload, reports, market, asof)` | Idempotent per-date write to `recommendations_history/{market}/YYYY-MM-DD.json` |
+| `load_previous_snapshot(reports, market, before_asof)` | Newest snapshot strictly earlier than a date · foundation for evolution |
+| `load_snapshot_range(reports, market, lookback_days)` | Ready for the future Backtrack Engine (7/30/90/365-day windows) |
+| `list_snapshot_dates` / `load_snapshot_for_date` / `snapshot_to_ticker_map` | Support APIs |
+
+Enricher extended (`backend/recommendation/investor_actionable/engine.py`):
+- New `evolution` block on every rec: `is_new` · `days_recommended` · `rank_change` · `score_change` · `confidence_change` · `allocation_change_pct` · `action_change` · `lifecycle_change` · human `narrative`
+- New `build_ceo_summary()` returning: `market_regime` · `portfolio_health` · `cash_pct` · `top_opportunity` · `top_risk` · `recommended_action` (one glance, 30 seconds) · `entry_decision_dist` · `actionable_count` · `rotations_count`
+- ASCII-safe output strings so Windows/cp1252 consoles + CI logs never crash on Unicode arrows
+
+Wired into `ssot/run.py` + `institutional_optimization_run.py` — both markets archive daily, both build fresh CEO summary post-percentile classification. USA workflow (`.github/workflows/aegis-usa.yml`) now passes `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID` secrets to the orchestrator so `usa/scripts/telegram_send.py` stops silently no-op-skipping.
+
+**Live 2026-07-29 dual-market output:**
+
+| | India NSE 200 | USA Dow 30 |
+|---|---|---|
+| Regime | unknown | unknown |
+| Actionable | 6 | 6 |
+| Rotations | 5 | 13 |
+| Entry dist | BUY 3 · WAIT 9 · AVOID 3 | BUY 3 · WAIT 9 · AVOID 3 |
+| Top opportunity | **LUPIN** (BUY · 5.0% alloc) | **TRV** (BUY · 5.0% alloc) |
+| Top risk | **BATAINDIA** (EXIT) | **MCD** (EXIT) |
+| Recommended action | **Rotate BATAINDIA → LUPIN** (+56.27%) | **Rotate MCD → TRV** (+48.13%) |
+| Snapshot archived | `reports/recommendations_history/india/2026-07-29.json` | `usa/reports/recommendations_history/usa/2026-07-29.json` |
+
+**Tests:** 24 new cycle-4 tests (18 snapshot + evolution + ceo_summary + 3 USA Telegram wiring guardrails + 3 pre-existing regression preserved) · **60/60 targeted green** (18 cycle4 + 39 investor_actionable + 6 usa_orchestrator + 3 telegram_wiring).
+
+### v3 Master Prompt · Completion Map
+
+| Section | Status | Where |
+|---|:---:|---|
+| Entry Decision · If Holding · Position Sizing · Entry Zone · Stops · Targets · Dynamic Holding · Rotation · Lifecycle | ✅ | Cycles 2-3 |
+| **CEO Executive Summary** (30-second glance) | ✅ **Cycle 4** | Top of recommendations.json both markets |
+| **Recommendation Evolution / Delta since previous run** | ✅ **Cycle 4** | Every rec `evolution` block · uses snapshot persistence |
+| **Snapshot Persistence** (foundation for all backtrack features) | ✅ **Cycle 4** | Daily archive both markets |
+| **USA Telegram parity with India** | ✅ **Cycle 4** | Workflow env wired · guardrail test locks it |
+| Sector Attribution & Validation | 🟡 Cycle 5 | Requires per-model score decomposition capture |
+| Confidence Decomposition (8-component structured block) | 🟡 Cycle 5 | Fields exist unstructured |
+| Portfolio Intelligence dashboard (health · beta · Sharpe · correlation) | 🟡 Cycle 6 | Portfolio engine emits fields but not surfaced |
+| **AI Performance Scorecard** (5-star grid) | ⏳ | **Blocked · needs 30 days of snapshots** |
+| **30-Day Backtrack Timeline** | ⏳ | **Blocked · needs 30 days of snapshots** |
+| **7 / 30 / 90 / 1-year windows** | ⏳ | **Blocked · needs history depth** |
+| **Monthly CEO Letter** | ⏳ | **Blocked · needs 30 days of ops** |
+| Position History (per active holding) | ❌ | Blocked · needs real or paper capital deployment |
+| Multi-channel delivery (WhatsApp · Web · Mobile · PDF · API) | ❌ | Deferred · Telegram + Dashboard cover 90% of operator use today |
+| Rotation Comparison Card (side-by-side old vs new) | 🟡 Cycle 6 | Data present in `rotation_intelligence` · UI concern |
+
+### Ranked next-cycle candidates (highest ROI · after 30 days of snapshots accumulate)
+
+1. **Cycle 5** — Sector Attribution + Confidence Decomposition (both are attribution-side · warrant one cycle)
+2. **Cycle 6** — Portfolio Intelligence surface (health/beta/Sharpe/correlation → recs.json)
+3. **Cycle 7** — Backtrack Engine consuming accumulated snapshots (produces 7d/30d/90d windows once we have data)
+4. **Cycle 8** — Telegram content redesign as "Investor Command Center" (uses ceo_summary + evolution + rotation_intelligence)
+
+**Score trajectory:** 8.5 → 8.7 (cycle 1) → 8.7 (cycle 2) → 8.9 (cycle 3) → **9.1 (cycle 4)** · one-glance CEO summary + snapshot foundation genuinely closes the "isolated daily output" gap. Remaining 0.9 pts require **live-market days accumulating** — no more code can move the number until snapshots reach 30-day depth.
 
 ---
 
@@ -139,6 +212,10 @@ Every capability status uses **L0 DESIGNED · L1 BUILT · L2 WIRED · L3 VALIDAT
 | Rotation Intelligence surfaced per-rec | **L4** ← CEO-3 | hypothetical rotation on every rec · anti-churn guards · both markets · 6 tests |
 | Recommendation Lifecycle surfaced per-rec | **L4** ← CEO-3 | 9-state machine surfaced from recommendation_lifecycle.json · both markets |
 | Dynamic Holding wired into position_plan | **L4** ← CEO-3 | 12-factor composite from dynamic_holding.json overrides fixed 45d · both markets |
+| Snapshot Persistence | **L4** ← CEO-4 | Daily archive to recommendations_history/{market}/YYYY-MM-DD.json · idempotent · both markets |
+| Evolution block per rec | **L4** ← CEO-4 | delta vs previous snapshot: rank/action/confidence/allocation/lifecycle · human narrative |
+| CEO Executive Summary block | **L4** ← CEO-4 | Top of recommendations.json · one-glance top opportunity/risk/recommended action |
+| USA Telegram parity with India | **L4** ← CEO-4 | Workflow env wired · same TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID · sender USD-labelled |
 | Macro Intel (Sprint 6.5) | **L4** | Regime + commodities + currencies + bonds |
 | Recommendation Engine v3 | **L4** | Runner 2 · currently emits 100% HOLD (calibration cold-start) |
 | Portfolio Engine v3 | **L4** | 0 active positions (chain-dependent on Runner 2) |

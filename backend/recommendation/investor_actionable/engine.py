@@ -367,11 +367,195 @@ def _dynamic_holding_days(ticker: str,
     return max(1, di), reason
 
 
+# ── Evolution surface (CEO cycle 4 · Recommendation Performance & Evolution) ─
+# Compares today's rec against the previous snapshot to answer the
+# operator's "how has this recommendation changed since previous run?"
+# question. Depends on backend.recommendation.snapshot.store persisting
+# yesterday's payload. First-ever run → all deltas are None (fresh rec).
+def _evolution_for_rec(rec: Mapping,
+                          previous_ticker_map: Mapping | None,
+                          asof: str | None,
+                          history_asof_map: Mapping | None = None) -> dict:
+    ticker = str(rec.get("ticker") or "")
+    prev = (previous_ticker_map or {}).get(ticker)
+    if not prev:
+        return {
+            "is_new":                    True,
+            "days_recommended":          1,
+            "previous_asof":             None,
+            "rank_change":               None,
+            "score_change":              None,
+            "action_change":             None,
+            "confidence_change":         None,
+            "lifecycle_change":          None,
+            "allocation_change_pct":     None,
+            "narrative":                 "NEW recommendation · no prior snapshot",
+        }
+    prev_asof = prev.get("asof") or (previous_ticker_map or {}).get("__asof__")
+    # Days recommended: use history_asof_map (ticker → first-seen date) if
+    # provided; else conservatively return 2 (yesterday + today).
+    days_rec = 2
+    if history_asof_map and ticker in history_asof_map:
+        try:
+            from datetime import date as _date
+            first = _date.fromisoformat(str(history_asof_map[ticker])[:10])
+            today = _date.fromisoformat(str(asof)[:10]) if asof else _date.today()
+            days_rec = max(1, (today - first).days + 1)
+        except (ValueError, TypeError):
+            days_rec = 2
+
+    def _delta(now, was, ndigits=4):
+        try:
+            n = float(now) if now is not None else None
+            w = float(was) if was is not None else None
+        except (TypeError, ValueError):
+            return None
+        if n is None or w is None:
+            return None
+        return round(n - w, ndigits)
+
+    prev_action = prev.get("percentile_action") or prev.get("action") or "HOLD"
+    curr_action = rec.get("percentile_action") or rec.get("action") or "HOLD"
+    action_changed = str(prev_action).upper() != str(curr_action).upper()
+
+    prev_lc = ((prev.get("lifecycle_state") or {}).get("current_state")
+                or prev.get("lifecycle_current_state"))
+    curr_lc = (rec.get("lifecycle_state") or {}).get("current_state")
+    # Normalize: None/missing/UNTRACKED are all equivalent (no lifecycle yet).
+    def _norm_lc(v):
+        u = str(v or "").upper()
+        return "" if u in ("", "UNTRACKED", "NONE") else u
+    lifecycle_changed = _norm_lc(prev_lc) != _norm_lc(curr_lc) and (
+        _norm_lc(prev_lc) != "" or _norm_lc(curr_lc) != ""
+    )
+
+    prev_alloc = ((prev.get("position_plan") or {}).get("suggested_allocation_pct"))
+    curr_alloc = ((rec.get("position_plan") or {}).get("suggested_allocation_pct"))
+
+    parts: list[str] = []
+    if action_changed:
+        parts.append(f"action {prev_action} → {curr_action}")
+    if lifecycle_changed:
+        parts.append(f"lifecycle {prev_lc} → {curr_lc}")
+    rank_d = _delta(rec.get("rank"), prev.get("rank"), 0)
+    if rank_d not in (None, 0.0):
+        arrow = "↑" if rank_d < 0 else "↓"   # lower rank number = better
+        parts.append(f"rank {arrow}{abs(int(rank_d))}")
+    alloc_d = _delta(curr_alloc, prev_alloc, 2)
+    if alloc_d not in (None, 0.0):
+        parts.append(f"allocation {prev_alloc}% → {curr_alloc}% ({alloc_d:+.2f}pp)")
+    conf_d = _delta(rec.get("calibrated_confidence"), prev.get("calibrated_confidence"))
+    if conf_d not in (None, 0.0):
+        parts.append(f"confidence {conf_d:+.4f}")
+    score_d = _delta(rec.get("ensemble_score"), prev.get("ensemble_score"))
+    if score_d not in (None, 0.0):
+        parts.append(f"score {score_d:+.4f}")
+
+    narrative = " · ".join(parts) if parts else "no material change since previous snapshot"
+
+    return {
+        "is_new":                False,
+        "days_recommended":      days_rec,
+        "previous_asof":         prev_asof,
+        "rank_change":           _delta(rec.get("rank"), prev.get("rank"), 0),
+        "score_change":          _delta(rec.get("ensemble_score"), prev.get("ensemble_score")),
+        "confidence_change":     _delta(rec.get("calibrated_confidence"), prev.get("calibrated_confidence")),
+        "allocation_change_pct": _delta(curr_alloc, prev_alloc, 2),
+        "action_change":         f"{prev_action} → {curr_action}" if action_changed else None,
+        "lifecycle_change":      f"{prev_lc} → {curr_lc}" if lifecycle_changed else None,
+        "narrative":             narrative,
+    }
+
+
+# ── CEO Executive Summary block (CEO cycle 4) ────────────────
+def build_ceo_summary(recs: Sequence[Mapping],
+                         market: str,
+                         macro_regime: str | None = None,
+                         portfolio_cash_pct: float | None = None,
+                         portfolio_health_score: int | None = None) -> dict:
+    """One-glance operator summary · rendered at top of recommendations.json.
+
+    Consumes already-enriched recs (needs investor_action + rotation
+    + position_plan). Missing macro/portfolio inputs degrade gracefully.
+    """
+    if not recs:
+        return {
+            "engine":              ENGINE_ID,
+            "market":              market,
+            "market_regime":       macro_regime or "unknown",
+            "portfolio_health":    portfolio_health_score,
+            "cash_pct":            portfolio_cash_pct,
+            "top_opportunity":     None,
+            "top_risk":            None,
+            "recommended_action":  "no recommendations available today",
+            "actionable_count":    0,
+        }
+    from collections import Counter
+    actionable_entries = [r for r in recs
+                            if (r.get("investor_action") or {}).get("is_actionable_entry")]
+    actionable_exits = [r for r in recs
+                          if (r.get("investor_action") or {}).get("if_holding") in ("REDUCE", "EXIT")]
+    rotations = [r for r in recs
+                   if (r.get("rotation_intelligence") or {}).get("should_rotate")]
+    # Top opportunity = highest ensemble_score among actionable entries
+    top_opp = None
+    if actionable_entries:
+        top = max(actionable_entries, key=lambda r: r.get("ensemble_score") or 0.0)
+        top_opp = {
+            "ticker": top.get("ticker"),
+            "action": (top.get("investor_action") or {}).get("entry"),
+            "allocation_pct": (top.get("position_plan") or {}).get("suggested_allocation_pct"),
+            "expected_alpha_note": (top.get("why") or {}).get("signal_quality"),
+        }
+    # Top risk = lowest ensemble_score among actionable exits
+    top_risk = None
+    if actionable_exits:
+        worst = min(actionable_exits, key=lambda r: r.get("ensemble_score") or 0.0)
+        top_risk = {
+            "ticker": worst.get("ticker"),
+            "if_holding": (worst.get("investor_action") or {}).get("if_holding"),
+            "reason": (worst.get("why") or {}).get("top_risks") or [],
+        }
+    # Recommended one-line action
+    # ASCII-safe strings · terminals + CI logs (Windows cp1252) cannot
+    # encode → / · reliably. Emojis stay in Telegram output layer only.
+    if rotations:
+        best_rot = max(rotations,
+                          key=lambda r: (r.get("rotation_intelligence") or {}).get("expected_alpha_delta_pct") or 0)
+        ri = best_rot.get("rotation_intelligence") or {}
+        recommended = (f"Rotate {best_rot.get('ticker')} -> {ri.get('replacement_ticker')} "
+                        f"(expected alpha +{ri.get('expected_alpha_delta_pct')}%)")
+    elif actionable_entries:
+        recommended = f"Deploy capital: {top_opp['ticker']} {top_opp['action']} / {top_opp['allocation_pct']}%"
+    elif actionable_exits:
+        recommended = f"Trim/exit: {top_risk['ticker']} -> {top_risk['if_holding']}"
+    else:
+        recommended = "Hold cash - no actionable signals today"
+
+    entry_dist = Counter((r.get("investor_action") or {}).get("entry", "?") for r in recs)
+    return {
+        "engine":              ENGINE_ID,
+        "market":              market,
+        "market_regime":       macro_regime or "unknown",
+        "portfolio_health":    portfolio_health_score,
+        "cash_pct":            portfolio_cash_pct,
+        "top_opportunity":     top_opp,
+        "top_risk":            top_risk,
+        "recommended_action":  recommended,
+        "actionable_count":    len(actionable_entries) + len(actionable_exits),
+        "rotations_count":     len(rotations),
+        "entry_decision_dist": dict(entry_dist),
+    }
+
+
 # ── Main entry point ─────────────────────────────────────────
 def enrich_recommendation(rec: MutableMapping,
                              all_recs: Sequence[Mapping] | None = None,
                              lifecycle_records: Mapping | None = None,
-                             dynamic_holding_decisions: Mapping | None = None) -> MutableMapping:
+                             dynamic_holding_decisions: Mapping | None = None,
+                             previous_ticker_map: Mapping | None = None,
+                             asof: str | None = None,
+                             history_asof_map: Mapping | None = None) -> MutableMapping:
     """Enrich a single rec dict in-place · returns the same dict.
 
     Reads: percentile_action (preferred) OR action, ensemble_score,
@@ -457,23 +641,34 @@ def enrich_recommendation(rec: MutableMapping,
     # Lifecycle state block (CEO cycle 3 · Phase 13 + Lifecycle)
     rec["lifecycle_state"] = _lifecycle_for_rec(rec, lifecycle_records)
 
+    # Evolution block (CEO cycle 4 · Performance & Evolution)
+    rec["evolution"] = _evolution_for_rec(rec, previous_ticker_map, asof, history_asof_map)
+
     return rec
 
 
 def enrich_batch(recs: Sequence[MutableMapping],
                     lifecycle_records: Mapping | None = None,
-                    dynamic_holding_decisions: Mapping | None = None) -> list[MutableMapping]:
+                    dynamic_holding_decisions: Mapping | None = None,
+                    previous_ticker_map: Mapping | None = None,
+                    asof: str | None = None,
+                    history_asof_map: Mapping | None = None) -> list[MutableMapping]:
     """Enrich a list of recs in-place · returns the same list.
 
-    Context artifacts (lifecycle_records, dynamic_holding_decisions) are
-    optional; when absent the enricher falls back to per-rec fields.
+    Context artifacts (lifecycle_records, dynamic_holding_decisions,
+    previous_ticker_map for evolution deltas, history_asof_map for
+    days_recommended) are optional · when absent the enricher falls back
+    gracefully.
     """
     recs_list = list(recs)
     for r in recs_list:
         enrich_recommendation(r,
                                  all_recs=recs_list,
                                  lifecycle_records=lifecycle_records,
-                                 dynamic_holding_decisions=dynamic_holding_decisions)
+                                 dynamic_holding_decisions=dynamic_holding_decisions,
+                                 previous_ticker_map=previous_ticker_map,
+                                 asof=asof,
+                                 history_asof_map=history_asof_map)
     return recs_list
 
 
