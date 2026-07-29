@@ -207,6 +207,24 @@ STEPS = [
         "requires": ["reports/recommendations.json"],
         "optional": True,
     },
+    # ── v3.0 lock · v2.4 trust-surface layer ──
+    # Runs percentile_classifier + adaptive_weights + permutation importance,
+    # THEN re-enriches recommendations.json with post-percentile action +
+    # rebuilds CEO summary + refreshes AI scorecard + attribution + backtrack.
+    # Without this step, recommendations.json ships with pre-percentile
+    # HOLD-only distribution — Command Center would render nothing actionable.
+    {
+        "name": "institutional_optimization",
+        "desc": "v2.4 trust surfaces · percentile classifier + adaptive weights + scorecard + attribution",
+        "script": "backend/certification/institutional_optimization_run.py",
+        "script_args": ["--market", "india"],
+        "produces": ["reports/percentile_classification.json",
+                       "reports/adaptive_ensemble_weights.json",
+                       "reports/permutation_importance.json"],
+        "requires": ["reports/recommendations.json",
+                       "reports/learning.parquet"],
+        "optional": False,   # v3.0 lock · MUST succeed
+    },
     {
         "name": "recommendation_deltas",
         "desc": "Recommendation Delta engine · 11 delta fields per rec (Phase 3 · L2 WIRED)",

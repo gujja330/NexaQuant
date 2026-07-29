@@ -45,6 +45,33 @@ def main() -> int:
         return 1
 
     tickers = universe.get("tickers") or []
+
+    # v3.0 dynamic universe · Article 3 compliance:
+    # A universe may point to an external JSON list via `tickers_from_json`.
+    # This lets S&P 500 / MidCap 400 / Russell 1000 be refreshed via a fetcher
+    # script without editing YAML. Sector/industry can be filled from adapters
+    # downstream OR left blank (adapters tolerate this).
+    if not tickers and universe.get("tickers_from_json"):
+        json_rel = universe["tickers_from_json"]
+        json_path = _USA / json_rel
+        if not json_path.exists():
+            print(f"FATAL: tickers_from_json points to missing file {json_path}")
+            print(f"       run: python usa/scripts/refresh_universe.py")
+            return 1
+        import json as _json
+        payload = _json.loads(json_path.read_text(encoding="utf-8"))
+        raw_tickers = payload.get("tickers") or []
+        # Compose ticker dicts with metadata defaults
+        default_sector = universe.get("default_sector", "Unknown")
+        default_exchange = universe.get("default_exchange", "NYSE")
+        tickers = [
+            {"symbol": t, "name": t, "sector": default_sector,
+              "industry": "Unknown", "exchange": default_exchange}
+            for t in raw_tickers
+        ]
+        print(f"[build_universe] loaded {len(tickers)} tickers dynamically from "
+              f"{json_rel} · source={payload.get('description', '?')}")
+
     if not tickers:
         print(f"FATAL: universe '{active_name}' has no tickers")
         return 1

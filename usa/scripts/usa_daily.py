@@ -318,6 +318,16 @@ STEPS = [
         "requires": ["usa/reports/recommendations.json"],
         "optional": True,
     },
+    # v3.0 lock · USA trust-surface parity with India
+    {
+        "name":     "institutional_optimization",
+        "desc":     "USA v2.4 trust surfaces · percentile classifier + attribution + backtrack",
+        "script":   "backend/certification/institutional_optimization_run.py",
+        "script_args": ["--market", "usa"],
+        "produces": ["usa/reports/percentile_classification.json"],
+        "requires": ["usa/reports/recommendations.json"],
+        "optional": True,
+    },
     {
         "name":     "recommendation_deltas",
         "desc":     "USA Recommendation Delta engine (Phase 3 · L2 WIRED)",

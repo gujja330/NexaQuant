@@ -39,7 +39,7 @@ DOCS = ROOT / "docs"
 IMG_DIR = DOCS / "images"
 IMG_DIR.mkdir(parents=True, exist_ok=True)
 
-VERSION = "2.4"
+VERSION = "3.0"
 TODAY = date.today().isoformat()
 OUT_PDF = DOCS / f"AEGIS_ARCHITECTURE_v{VERSION}.pdf"
 OUT_MD  = DOCS / f"AEGIS_ARCHITECTURE_v{VERSION}.md"
@@ -403,10 +403,11 @@ def build_pdf(diagrams: dict) -> None:
     # Version history table
     version_data = [
         ["Version", "Date", "Highlights"],
-        ["v1.0",    "2026-07-18",  "Initial architecture (India only)"],
-        ["v2.0",    "2026-07-18",  "USA parallel deployment · dual-market"],
-        ["v2.3",    "2026-07-29",  "Snapshot persistence · CEO summary · Evolution"],
-        [f"v{VERSION}",    TODAY,  "Backtrack · AI Scorecard · Sector Attribution · Command Center"],
+        ["v1.0",    "2026-07-18",  "Initial architecture (India only · NSE 200 · 13-step pipeline)"],
+        ["v2.0",    "2026-07-18",  "USA parallel deployment · Dow 30 · dual-market · shared engines"],
+        ["v2.3",    "2026-07-29",  "Snapshot persistence · CEO summary · Evolution block"],
+        ["v2.4",    "2026-07-29",  "Backtrack Engine · AI Scorecard · Sector Attribution · Command Center"],
+        [f"v{VERSION} LOCKED", TODAY, "Constitutional freeze · S&P 500+MidCap 400 (918 tickers) · single sender · zero legacy · Article 100 L4 all engines"],
     ]
     vt = Table(version_data, colWidths=[2*cm, 3*cm, 12*cm])
     vt.setStyle(TableStyle([
@@ -441,6 +442,41 @@ def build_pdf(diagrams: dict) -> None:
         "auditable · every rerun produces byte-identical results.",
         body))
     story.append(Image(str(diagrams["pipeline_flow"]), width=17*cm, height=6.2*cm))
+
+    # ── Section 2a · The Constitutional Lock ──
+    story.append(PageBreak())
+    story.append(Paragraph(f"2a · The v{VERSION} Constitutional Lock", h1))
+    story.append(Paragraph(
+        "As of the version stamped on the cover, AEGIS is in <b>Constitutional "
+        "Freeze</b>. The architecture below cannot be redesigned without creating "
+        "a new major version (v4.x). Data sources may evolve, models may improve, "
+        "universes may expand through configuration, bugs may be fixed. But the "
+        "engine sequencing, data contracts, lifecycle model, Single Source of Truth, "
+        "and downstream integration are immutable.",
+        body))
+    lock_data = [
+        ["Universes (post-lock)",       "India NSE 200 (~200 tickers) + USA S&P 500 + MidCap 400 (~918 tickers) = 1,118 companies daily"],
+        ["Architecture",                "24-stage pipeline · both markets share ALL engines"],
+        ["Only per-market differences", "universe · benchmark · currency · trading calendar · sector mapping"],
+        ["Single Source of Truth",      "reports/recommendations.json (India) · usa/reports/recommendations.json (USA)"],
+        ["Delivery",                    "Command Center Telegram · single sender · Markdown → plain-text fallback"],
+        ["Zero legacy in production",   "legacy Telegram + UX030 retired in workflow · sealed contracts (MON001, sealed research) untouched"],
+        ["No hardcoded dates",          "CI guardrail enforces on every push"],
+        ["No hardcoded universes",      "Universe = configs/universes/*.json · refreshed via refresh_universe.py"],
+        ["Sealed contracts",            "MON001 fingerprint · Feature Store schema · adaptive_rec_v2 · risk_capital_v2 · india/telegram_notify.py"],
+    ]
+    lt = Table(lock_data, colWidths=[5*cm, 12*cm])
+    lt.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (0, -1), HexColor(C_PRIMARY)),
+        ("TEXTCOLOR",  (0, 0), (0, -1), white),
+        ("FONTNAME",   (0, 0), (0, -1), "Helvetica-Bold"),
+        ("FONTSIZE",   (0, 0), (-1, -1), 8),
+        ("VALIGN",     (0, 0), (-1, -1), "MIDDLE"),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+        ("TOPPADDING",    (0, 0), (-1, -1), 5),
+        ("ROWBACKGROUNDS", (0, 0), (-1, -1), [white, HexColor(C_BG)]),
+    ]))
+    story.append(lt)
 
     # ── Section 2b · Data Sources catalog ──
     story.append(PageBreak())

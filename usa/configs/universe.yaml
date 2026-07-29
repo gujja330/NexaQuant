@@ -7,7 +7,13 @@
 #
 # ALL PRICES IN USD ($). Never ₹.
 
-active_universe: dow30
+# v3.0 Constitutional Directive Article 2 · USA universe = S&P 500 + MidCap 400
+# (~918 unique tickers, US large + mid cap).
+# Universes below marked `tickers_from_json:` load dynamically from
+# usa/configs/universes/*.json which are refreshed via
+#     python usa/scripts/refresh_universe.py
+# No hardcoded ticker lists in code · pure config expansion.
+active_universe: sp500_plus_midcap400
 
 universes:
   dow30:
@@ -45,10 +51,32 @@ universes:
       - {symbol: AMGN,  name: "Amgen Inc.",                       sector: Healthcare,             industry: "Biotechnology",               exchange: NASDAQ}
       - {symbol: HON,   name: "Honeywell International",          sector: Industrials,            industry: "Conglomerates",               exchange: NYSE}
 
-  # Expansion universes — switch active_universe to any of these.
-  # Phase-1 default is dow30; expanding requires no code change, just flip
-  # active_universe: <name> above. Universe expansion is operational config,
-  # not architectural (per AEGIS_USA_CONSTITUTION.md).
+  # v3.0 dynamic universes — load ticker lists from JSON files that are
+  # refreshed via `python usa/scripts/refresh_universe.py`. Zero hardcoded
+  # tickers in this yaml for these entries. Article 3 compliance.
+  sp500:
+    description: "S&P 500 · US large-cap · Wikipedia canonical (refresh weekly)"
+    exchange_mix: [NYSE, NASDAQ]
+    tickers_from_json: "configs/universes/sp500.json"
+    default_sector: "Large-Cap"
+    default_exchange: "NYSE"
+
+  sp400_midcap:
+    description: "S&P MidCap 400 · US mid-cap · Wikipedia canonical (refresh weekly)"
+    exchange_mix: [NYSE, NASDAQ]
+    tickers_from_json: "configs/universes/sp400_midcap.json"
+    default_sector: "Mid-Cap"
+    default_exchange: "NYSE"
+
+  sp500_plus_midcap400:
+    description: "v3.0 lock default · S&P 500 + S&P MidCap 400 combined · US large + mid cap (~918 tickers)"
+    exchange_mix: [NYSE, NASDAQ]
+    tickers_from_json: "configs/universes/sp500_plus_midcap400.json"
+    default_sector: "Large-or-Mid-Cap"
+    default_exchange: "NYSE"
+
+  # ── Legacy static universes (kept for rollback) ───────────────────────
+  # Switch active_universe: dow30 (or nasdaq100 or sp500_top50) to revert.
   #
   # NOTE: NASDAQ tickers are ALREADY included in dow30 (7 of 30 are NASDAQ:
   # AAPL, MSFT, NVDA, AMZN, CSCO, INTC, AMGN). And ^NDX (NASDAQ 100) is
