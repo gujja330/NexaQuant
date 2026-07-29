@@ -155,37 +155,34 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: python scripts/telegram_health_check.py
 
-      - name: Telegram daily notification (legacy MON001 paper portfolio)
-        if: steps.guard.outputs.run == 'true' && steps.freshcheck.outputs.verified == 'true'
-        env:
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          AEGIS_SPREADSHEET_ID: ${{ secrets.AEGIS_SPREADSHEET_ID }}
-        run: python scripts/telegram_send_with_retry.py --attempts 4
-
-      # 2026-07-18 · v2.0 post-LOCK operator request: deliver BOTH the legacy
-      # paper-portfolio Telegram (above) AND the AEGIS v2 UX030 daily brief.
-      # continue-on-error so a v2-sender failure never blocks the legacy delivery
-      # (which is authoritative). Uses same TELEGRAM_* secrets.
-      - name: Telegram AEGIS v2 daily brief (UX030 renderer)
-        if: steps.guard.outputs.run == 'true' && steps.freshcheck.outputs.verified == 'true'
-        continue-on-error: true
-        env:
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        run: python scripts/telegram_send_ux030.py
-
-      - name: Telegram Command Center (India · cycle 6 · single crisp message)
+      # ─────────────────────────────────────────────────────────
+      # Telegram delivery · v2.4 · SINGLE-SOURCE-OF-TRUTH cutover
+      # ─────────────────────────────────────────────────────────
+      # Per operator's consistency-audit directive (2026-07-29):
+      #   "one source of truth: every UI (Telegram, Dashboard, PDF, API)
+      #    must read from the same recommendations.json"
+      #   "no legacy renderers: remove or retire the old Telegram/Champion
+      #    pipeline so there is only one daily report"
+      #
+      # Retired here (kept as scripts on disk · sealed contracts untouched):
+      #   scripts/telegram_send_with_retry.py  (legacy MON001 paper portfolio
+      #     · read data/aegis_today.csv · caused "Hold 2M" hardcoded static
+      #     display + duplicate messages)
+      #   scripts/telegram_send_ux030.py       (UX030 · read a different
+      #     context bundle · disagreed with new SSoT on regime/cash/BUYs)
+      #
+      # Only sender that runs is the Command Center. If ever needed, either
+      # legacy sender can be re-enabled by uncommenting its step block.
+      - name: Telegram Command Center (India · SINGLE SENDER · cycle 6)
         # Consumes reports/recommendations.json enriched by cycles 3-4
-        # (ceo_summary + rotation_intelligence + evolution + investor_action).
-        # Replaces the legacy multi-message flow · runs alongside legacy
-        # for now so operator can compare · legacy will be retired in a
-        # follow-up cycle once the operator confirms the new format.
-        if: always() && steps.guard.outputs.run == 'true' && steps.freshcheck.outputs.verified == 'true'
+        # (ceo_summary + rotation_intelligence + evolution + investor_action
+        # + position_plan.time_horizon_days from dynamic_holding.json +
+        # ai_scorecard + attribution_summary from v2.4).
+        # This is the ONLY Telegram delivery path — no more two-pipeline drift.
+        if: steps.guard.outputs.run == 'true' && steps.freshcheck.outputs.verified == 'true'
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
-        continue-on-error: true
         run: python scripts/telegram_command_center_send.py --market india
 
       - name: Upload Telegram delivery ledger (artifact)

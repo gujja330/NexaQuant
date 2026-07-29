@@ -60,8 +60,11 @@ class Feature:
     version:            str  = "1.0.0"
     status:             FeatureStatus = FeatureStatus.ACTIVE
     owner:              str  = "aegis-core"
-    created:            str  = "2026-07-20"        # ISO date
-    last_updated:       str  = "2026-07-20"
+    # Governance dates default to empty (unknown) rather than a stale
+    # hardcoded string — operator directive: never hardcode dates. Features
+    # authored explicitly should pass created= at registration time.
+    created:            str  = ""
+    last_updated:       str  = ""
     confidence:         float = 1.0                 # governance confidence (0..1)
     formula:            str  = ""                   # human-readable formula / definition
     dependencies:       tuple = ()                  # upstream feature names this depends on

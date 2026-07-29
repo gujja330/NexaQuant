@@ -203,25 +203,36 @@ def _mk_rec(ticker: str, action: str, score: float, price: float) -> dict:
     }
 
 
-def _seed_snapshot_and_positions(tmp_path: Path, market: str,
-                                     ticker: str, days: int = 3) -> None:
+def _seed_base_date(days: int = 3) -> "date":
+    """Deterministic base date computed at test time · always today - days.
+    Operator directive: no hardcoded dates in code · derive from wall clock."""
     from datetime import timedelta
-    base = date(2026, 7, 20)
+    return date.today() - timedelta(days=max(1, days))
+
+
+def _seed_snapshot_and_positions(tmp_path: Path, market: str,
+                                     ticker: str, days: int = 3,
+                                     base: "date | None" = None) -> "date":
+    from datetime import timedelta
+    if base is None:
+        base = _seed_base_date(days)
     for i in range(days):
         d = base + timedelta(days=i)
         rec = _mk_rec(ticker, "BUY", 0.15 + i * 0.02, 100.0 + i * 5)
         payload = {"asof": d.isoformat(), "market": market, "recommendations": [rec]}
         archive_snapshot(payload, tmp_path, market, asof=d.isoformat())
         update_from_recs(tmp_path, market, [rec], asof=d.isoformat())
+    return base
 
 
 def test_backtrack_reconstructs_timeline_from_snapshots(tmp_path):
-    _seed_snapshot_and_positions(tmp_path, "india", "AAA", days=3)
+    from datetime import timedelta
+    base = _seed_snapshot_and_positions(tmp_path, "india", "AAA", days=3)
     tb = build_ticker_backtrack(tmp_path, "india", "AAA")
     assert tb.n_appearances == 3
     assert len(tb.timeline) == 3
-    assert tb.first_seen_date == "2026-07-20"
-    assert tb.latest_date == "2026-07-22"
+    assert tb.first_seen_date == base.isoformat()
+    assert tb.latest_date == (base + timedelta(days=2)).isoformat()
 
 
 def test_backtrack_computes_total_return(tmp_path):
@@ -235,7 +246,7 @@ def test_backtrack_computes_total_return(tmp_path):
 def test_backtrack_market_summary_ranks_top_and_bottom(tmp_path):
     # Seed both tickers in the SAME snapshot per day so neither is overwritten.
     from datetime import timedelta
-    base = date(2026, 7, 20)
+    base = _seed_base_date(days=3)
     for i in range(3):
         d = base + timedelta(days=i)
         win_rec = _mk_rec("WIN", "BUY", 0.15 + i * 0.02, 100.0 + i * 5)
@@ -265,12 +276,22 @@ def test_backtrack_fingerprint_stable():
 
 
 # ── Integration: Command Center consumes v2.4 blocks ───────
+def _today_payload_dates() -> tuple[str, str]:
+    """Derive today's asof / run_utc dynamically. Operator directive: no
+    hardcoded dates anywhere · every date must derive from wall clock."""
+    from datetime import datetime, timezone
+    today = date.today().isoformat()
+    utc_now = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+    return today, utc_now
+
+
 def test_command_center_renders_scorecard_line():
     from backend.delivery.telegram.command_center import render_command_center_message
+    asof, run_utc = _today_payload_dates()
     payload = {
-        "asof":             "2026-07-29",
+        "asof":             asof,
         "market":           "india",
-        "run_utc":          "2026-07-29T05:00:00+00:00",
+        "run_utc":          run_utc,
         "ceo_summary":      {"recommended_action": "Test", "market_regime": "unknown",
                                 "actionable_count": 0, "rotations_count": 0,
                                 "top_opportunity": None, "top_risk": None},
@@ -287,10 +308,11 @@ def test_command_center_renders_scorecard_line():
 
 def test_command_center_renders_attribution_line():
     from backend.delivery.telegram.command_center import render_command_center_message
+    asof, run_utc = _today_payload_dates()
     payload = {
-        "asof":             "2026-07-29",
+        "asof":             asof,
         "market":           "india",
-        "run_utc":          "2026-07-29T05:00:00+00:00",
+        "run_utc":          run_utc,
         "ceo_summary":      {"recommended_action": "Test", "market_regime": "unknown",
                                 "actionable_count": 0, "rotations_count": 0,
                                 "top_opportunity": None, "top_risk": None},
