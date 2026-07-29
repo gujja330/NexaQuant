@@ -320,20 +320,49 @@ def _risk_pulse(cs: Mapping, recs: Sequence[Mapping], market: str) -> list[str]:
     return lines
 
 
-def _ai_scorecard_line(payload: Mapping) -> list[str]:
-    """v2.4: one-line AI Scorecard right below CEO CALL."""
+def _ai_scorecard_line(payload: Mapping, market: str) -> list[str]:
+    """v2.4: one-line AI Scorecard right below CEO CALL.
+    v3.0 expansion: also list per-metric star breakdown so operator sees
+    WHICH dimensions the AI is strong/weak on, not just the overall grade."""
     sc = payload.get("ai_scorecard") or {}
     if not sc or not sc.get("overall_score"):
         return []
     stars = "⭐" * max(0, min(5, sc.get("overall_stars") or 0))
     n = sc.get("n_trades") or 0
     verdict = (sc.get("verdict") or "-").replace("_", " ")
-    return [
+    period = f"{sc.get('period_start', '')[:10]} → {sc.get('period_end', '')[:10]}"
+    lines = [
         "",
         f"📊 *AI PERFORMANCE SCORECARD*",
         f"   {stars}   {sc.get('overall_score')}/100 · {verdict}",
-        f"   Measured on {n} closed trades since inception",
+        f"   {n} closed trades · {period}",
     ]
+    # Per-metric breakdown (load full scorecard if available)
+    try:
+        from pathlib import Path
+        sc_path = Path("reports/ai_scorecard.json") if market == "india" else None
+        if sc_path and sc_path.exists():
+            full = json.loads(sc_path.read_text(encoding="utf-8"))
+            metrics = full.get("metrics") or []
+            if metrics:
+                # Emoji per metric name for quick visual parsing
+                emoji_map = {
+                    "Recommendation Accuracy": "🎯",
+                    "Exit Timing":              "🚪",
+                    "Target Hit Rate":          "🏹",
+                    "Risk Control":             "🛡",
+                    "Rotation Quality":         "🔄",
+                    "Confidence Calibration":   "📐",
+                }
+                for m in metrics:
+                    name = m.get("name", "?")
+                    e = emoji_map.get(name, "•")
+                    st = "⭐" * (m.get("stars") or 0)
+                    v = m.get("value", "-")
+                    lines.append(f"   {e} {name}: {st} ({v})")
+    except Exception:
+        pass
+    return lines
 
 
 def _attribution_top(payload: Mapping) -> list[str]:
@@ -353,6 +382,61 @@ def _attribution_top(payload: Mapping) -> list[str]:
         active_emoji = "🟢 active" if a.get("sector_engine_measurably_active") else "⚪ quiet"
         lines.append(f"   • Sector engine share: {sector_share}%   ({active_emoji})")
     return lines
+
+
+def _runner1_orphans(payload: Mapping, market: str, max_rows: int = 5) -> list[str]:
+    """v3.0 Option D: Runner 1's active picks that Runner 2 did NOT include.
+
+    Runner 1 is the defensive/legacy engine · demoted to a validation layer.
+    Its picks are NOT active AEGIS recommendations — but showing them here
+    preserves continuity ('where did APOLLO go?') and lets the operator
+    see what a conservative model thinks vs what Runner 2 v3 (canonical)
+    chose to promote.
+    """
+    if market != "india":
+        return []   # Runner 1 covers India only today
+    rv = payload.get("runner1_validation") or {}
+    orphans = rv.get("runner1_orphans") or []
+    if not orphans:
+        return []
+    lines = ["", f"📜 *DEFENSIVE VIEW · Runner 1 picks Runner 2 skipped ({len(orphans)})*",
+             "   _Legacy engine's active picks · not AEGIS canonical recs · shown for continuity_"]
+    for o in orphans[:max_rows]:
+        t = _ticker_with_name(o.get("ticker") or "", market)
+        strength = o.get("strength") or "?"
+        score = o.get("score")
+        score_s = f" · score {score:.0f}/100" if isinstance(score, (int, float)) else ""
+        reason_short = (o.get("reason") or "")[:70]
+        lines.append(f"   • *{t}* — {strength}{score_s}")
+        if reason_short:
+            lines.append(f"     _{reason_short}_")
+    if len(orphans) > max_rows:
+        lines.append(f"   _...+{len(orphans) - max_rows} more defensive picks_")
+    lines.append(f"   ↳ Runner 1 → validation layer only (Option D · Article 4 SSoT)")
+    return lines
+
+
+def _runner1_agreement_summary(payload: Mapping, market: str) -> list[str]:
+    """v3.0: one-line "Runner 1 agrees with N of M today's picks" summary."""
+    if market != "india":
+        return []
+    rv = payload.get("runner1_validation") or {}
+    if not rv:
+        return []
+    consensus = rv.get("consensus_pct")
+    counts = rv.get("agreement_counts") or {}
+    if consensus is None:
+        return []
+    emoji = "🟢" if consensus >= 40 else ("🟡" if consensus >= 20 else "🟠")
+    return [
+        "",
+        f"🤝 *DUAL-ENGINE VALIDATION*",
+        f"   {emoji} Runner 1 agrees with {counts.get('AGREE', 0)}/{rv.get('n_runner2_recs', 0)} "
+        f"of today's picks ({consensus}% consensus)",
+        f"   Disagreements: {counts.get('DISAGREE', 0)} · "
+        f"Neutral: {counts.get('NEUTRAL', 0)} · "
+        f"Not tracked: {counts.get('NOT_TRACKED', 0)}",
+    ]
 
 
 def _integrity_footer(payload: Mapping) -> list[str]:
@@ -383,10 +467,12 @@ def render_command_center_message(payload: Mapping, market: str,
     sections = [
         ("header",       _header(market, asof)),
         ("ceo_call",     _ceo_call(cs)),
-        ("ai_scorecard", _ai_scorecard_line(payload)),
+        ("dual_engine",  _runner1_agreement_summary(payload, market)),
+        ("ai_scorecard", _ai_scorecard_line(payload, market)),
         ("rotations",    _rotation_calls(recs, market)),
         ("new_buys",     _actionable_entries(recs, market)),
         ("exits",        _actionable_exits(recs, market)),
+        ("r1_orphans",   _runner1_orphans(payload, market)),
         ("evolution",    _evolution_summary(recs)),
         ("attribution",  _attribution_top(payload)),
         ("risk_pulse",   _risk_pulse(cs, recs, market)),

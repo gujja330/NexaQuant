@@ -84,11 +84,11 @@ def test_command_center_renders_all_required_sections():
     msg = render_command_center_message(_sample_payload(), "india")
     assert "CEO CALL TODAY" in msg
     assert "Rotate BADCO -> GOODCO" in msg
-    assert "NEW BUYS" in msg
+    assert "NEW BUY IDEAS" in msg   # v3.0 label ("NEW BUYS" → "NEW BUY IDEAS")
     assert "GOODCO" in msg
-    assert "EXITS IF HOLDING" in msg
+    assert "EXITS IF YOU HOLD" in msg  # v3.0 label
     assert "BADCO" in msg
-    assert "RISK PULSE" in msg
+    assert "PORTFOLIO PULSE" in msg  # v3.0 label
     assert "PAPER" in msg
 
 

@@ -109,8 +109,42 @@ def main() -> int:
         payload["recommendations"] = recs
         payload["investor_actionable_engine"] = "aegis.recommendation.investor_actionable.v1"
 
+        # v3.0 Option D: re-run Runner 1 validation after percentile (India-only).
+        if args.market == "india":
+            try:
+                from backend.recommendation.validation_layer import build_validation_report
+                from backend.recommendation.validation_layer.engine import enrich_recs_with_validation
+                r1_csv = _ROOT / "data" / "aegis_today.csv"
+                enrich_recs_with_validation(recs, r1_csv)
+                v_report = build_validation_report(recs, r1_csv)
+                payload["runner1_validation"] = {k: v for k, v in v_report.items()
+                                                       if k != "per_rec_validation"}
+                ac = v_report.get("agreement_counts", {})
+                print(f"[runner1_validation:india] post-percentile consensus="
+                      f"{v_report.get('consensus_pct')}% · agree={ac.get('AGREE', 0)} · "
+                      f"disagree={ac.get('DISAGREE', 0)} · "
+                      f"orphans={len(v_report.get('runner1_orphans', []))}")
+            except Exception as _e:
+                print(f"[runner1_validation:india] re-run failed · {type(_e).__name__}: {_e}")
+
         # Cycle 4: rebuild CEO summary with post-percentile distribution.
-        ceo_summary = build_ceo_summary(recs, market=args.market)
+        # Read live macro regime source (post-fix: honors primary_regime + fallback).
+        try:
+            mr_p = reports / "macro_regime.json"
+            regime = None
+            if mr_p.exists():
+                mr_d = json.loads(mr_p.read_text(encoding="utf-8"))
+                regime = (mr_d.get("primary_regime") or mr_d.get("regime")
+                             or mr_d.get("current_regime"))
+            if not regime:
+                mi_p = reports / "market_intelligence.json"
+                if mi_p.exists():
+                    mi_d = json.loads(mi_p.read_text(encoding="utf-8"))
+                    regime = (mi_d.get("regime") or mi_d.get("current_regime"))
+        except Exception:
+            regime = None
+        ceo_summary = build_ceo_summary(recs, market=args.market,
+                                             macro_regime=regime or "not_available")
         payload["ceo_summary"] = ceo_summary
 
         summ = summarize_batch(recs)

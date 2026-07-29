@@ -48,6 +48,13 @@ from backend.analytics.attribution import (  # noqa: E402
     enrich_recs_with_attribution, summarize_attribution,
 )
 from backend.analytics.backtrack import build_market_backtrack  # noqa: E402
+# v3.0 Option D: Runner 1 demoted to validation layer (not competing recommender)
+from backend.recommendation.validation_layer import (  # noqa: E402
+    build_validation_report,
+)
+from backend.recommendation.validation_layer.engine import (  # noqa: E402
+    enrich_recs_with_validation,
+)
 
 
 def _reports_dir(market: str) -> Path:
@@ -155,6 +162,30 @@ def main() -> int:
                 except Exception as _e:
                     print(f"[ai_scorecard] failed · {type(_e).__name__}: {_e}")
 
+            # v3.0 Option D: Runner 1 validation layer (India-only · Runner 1
+            # runs against India universe; USA has no legacy Runner 1 today).
+            if args.market == "india":
+                try:
+                    r1_csv = _ROOT / "data" / "aegis_today.csv"
+                    enrich_recs_with_validation(recs, r1_csv)
+                    validation_report = build_validation_report(recs, r1_csv)
+                    pub["recommendations"] = recs
+                    pub["runner1_validation"] = {
+                        k: v for k, v in validation_report.items()
+                        if k != "per_rec_validation"
+                    }
+                    (reports / "runner1_validation.json").write_text(
+                        json.dumps(validation_report, indent=2, default=str,
+                                     ensure_ascii=False),
+                        encoding="utf-8")
+                    ac = validation_report.get("agreement_counts", {})
+                    print(f"[runner1_validation:india] "
+                          f"consensus={validation_report.get('consensus_pct')}% · "
+                          f"agree={ac.get('AGREE', 0)} · disagree={ac.get('DISAGREE', 0)} · "
+                          f"orphans={len(validation_report.get('runner1_orphans', []))}")
+                except Exception as _e:
+                    print(f"[runner1_validation:india] failed · {type(_e).__name__}: {_e}")
+
             # Persist enrichment updates before snapshot archive
             out.write_text(json.dumps(pub, indent=2, default=str, ensure_ascii=False),
                             encoding="utf-8")
@@ -192,15 +223,28 @@ def main() -> int:
 
 
 def _read_macro_regime(reports: Path) -> str | None:
-    for name in ("macro_regime.json", "macro_intelligence.json"):
+    """Read market regime from whichever source has a valid label.
+    v3.0 fix: `macro_regime.json` uses `primary_regime` (not `regime`) ·
+    also fall back to `market_intelligence.json` which always has a value ·
+    NEVER return None to CEO summary (Article: never show "unknown")."""
+    for name, keys in [
+        ("macro_regime.json",       ["primary_regime", "regime", "current_regime", "regime_label"]),
+        ("market_intelligence.json", ["regime", "current_regime", "market_regime"]),
+        ("macro_intelligence.json", ["regime", "current_regime", "regime_label"]),
+    ]:
         p = reports / name
-        if p.exists():
-            try:
-                d = json.loads(p.read_text(encoding="utf-8"))
-                return d.get("regime") or d.get("current_regime") or d.get("regime_label")
-            except Exception:
-                continue
-    return None
+        if not p.exists():
+            continue
+        try:
+            d = json.loads(p.read_text(encoding="utf-8"))
+            for k in keys:
+                v = d.get(k)
+                if v and str(v).strip().lower() not in ("unknown", "n/a", "none"):
+                    return str(v)
+        except Exception:
+            continue
+    # Article compliance: rather than "unknown", surface an actionable label.
+    return "not_available"
 
 
 def _read_cash_pct(reports: Path) -> float | None:

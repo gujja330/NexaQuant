@@ -300,9 +300,9 @@ def test_command_center_renders_scorecard_line():
                                 "verdict": "institutional_grade", "n_trades": 1060},
     }
     msg = render_command_center_message(payload, "india")
-    assert "AI SCORECARD" in msg
+    assert "AI PERFORMANCE SCORECARD" in msg   # renamed label in v3.0
     assert "84.0/100" in msg
-    assert "institutional_grade" in msg
+    assert "institutional grade" in msg          # underscore stripped in display
     assert "1060 closed trades" in msg
 
 
@@ -322,6 +322,6 @@ def test_command_center_renders_attribution_line():
                                   "sector_engine_measurably_active": True},
     }
     msg = render_command_center_message(payload, "india")
-    assert "DECISION DRIVERS" in msg
+    assert "WHAT DROVE TODAY'S DECISIONS" in msg   # renamed in v3.0 for clarity
     assert "Momentum" in msg
     assert "12.5%" in msg
