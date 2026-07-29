@@ -40,9 +40,18 @@ def flow_signal(window=5):
     df = pd.read_parquet(OUT)
     if len(df) < window:
         return 1.0
-    net = (df.get("FII_net", 0) + df.get("DII_net", 0)).tail(window)
-    z = (net.mean() - df.get("FII_net", 0).add(df.get("DII_net", 0)).mean()) / \
-        (df.get("FII_net", 0).add(df.get("DII_net", 0)).std() + 1e-9)
+    # Guard: when the parquet is missing FII_net / DII_net columns,
+    # df.get(col, 0) returns the scalar 0 (int), and int has no .add() —
+    # that used to crash the daily pipeline with AttributeError. Coerce
+    # everything to Series so .mean() / .std() / .add() always work.
+    zero_series = pd.Series([0.0] * len(df), index=df.index)
+    fii = df["FII_net"] if "FII_net" in df.columns else zero_series
+    dii = df["DII_net"] if "DII_net" in df.columns else zero_series
+    combined = fii.add(dii, fill_value=0.0)
+    if combined.std() == 0 or len(combined) == 0:
+        return 1.0
+    net = combined.tail(window)
+    z = (net.mean() - combined.mean()) / (combined.std() + 1e-9)
     # persistent heavy net selling -> de-risk
     return 0.7 if z < -1.0 else (0.85 if z < -0.3 else 1.0)
 

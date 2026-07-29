@@ -86,6 +86,11 @@ def main() -> int:
     snap["market"] = args.market
     snap["applied"] = applied
     snap["skipped_illegal"] = skipped_illegal
+    # Schema-compat aliases · usa/scripts/usa_ops_check.py expects
+    # `n_total` + `by_ticker` (previous naming); we also keep the current
+    # `n_tickers` + `records` for consumers already on that shape.
+    snap["n_total"] = snap.get("n_tickers", 0)
+    snap["by_ticker"] = snap.get("records") or {}
     snap_path.write_text(json.dumps(snap, indent=2, default=str), encoding="utf-8")
 
     print(f"[lifecycle:{args.market}] applied={applied} illegal_skipped={skipped_illegal} "

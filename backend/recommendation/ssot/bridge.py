@@ -230,6 +230,11 @@ def publish_ssot(v3_path: Path,
         "run_utc":             run_utc or datetime.now(timezone.utc).isoformat(),
         "source":              str(v3_path.name),
         "n":                   len(legacy_recs),
+        # Schema-compat alias · ops_check (scripts/aegis_ops_check.py +
+        # usa/scripts/usa_ops_check.py) and both markets' backend_validation
+        # datasets.yaml require this exact key.
+        "n_companies_evaluated": len(legacy_recs),
+        "n_currently_held":      0,
         "n_source":            len(v3_recs),
         "signal_quality_dist": quality_counts,
         "action_distribution": action_counts,

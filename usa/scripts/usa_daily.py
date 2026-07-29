@@ -497,26 +497,54 @@ def main() -> int:
     total_elapsed = round(time.time() - t_total, 2)
     n_ok  = sum(1 for r in results if r["verdict"] == "SUCCESS")
 
+    # Exit-code logic (fixed): the pipeline is green as long as every
+    # non-optional step succeeded. Optional-step failures are logged but
+    # do NOT fail the CI job — that is the entire point of `optional: True`.
+    # Previously we returned 1 whenever n_ok < len(STEPS), which meant a
+    # single rate-limited yfinance ingest killed the whole pipeline.
+    step_by_name = {s["name"]: s for s in STEPS}
+    required_failures = [
+        r for r in results
+        if r["verdict"] != "SUCCESS"
+        and not step_by_name.get(r["name"], {}).get("optional")
+    ]
+    optional_failures = [
+        r for r in results
+        if r["verdict"] != "SUCCESS"
+        and step_by_name.get(r["name"], {}).get("optional")
+    ]
+
     _banner("SUMMARY")
     print(f"  steps:    {n_ok}/{len(STEPS)} ok")
+    print(f"  required failures: {len(required_failures)}")
+    if required_failures:
+        for rf in required_failures[:8]:
+            print(f"    ✗ {rf['name']} · verdict={rf['verdict']}")
+    print(f"  optional failures: {len(optional_failures)} (non-fatal)")
+    if optional_failures:
+        for of in optional_failures[:8]:
+            print(f"    ! {of['name']} · verdict={of['verdict']}")
     print(f"  elapsed:  {total_elapsed}s")
 
     # Append to ledger
     LEDGER.parent.mkdir(parents=True, exist_ok=True)
     entry = {
-        "run_utc":         datetime.now(timezone.utc).isoformat(timespec="seconds") + "Z",
-        "phase":           1,
-        "n_steps":         len(STEPS),
-        "n_success":       n_ok,
-        "n_failure":       len(results) - n_ok,
-        "total_elapsed_s": total_elapsed,
-        "results":         results,
+        "run_utc":            datetime.now(timezone.utc).isoformat(timespec="seconds") + "Z",
+        "phase":              1,
+        "n_steps":            len(STEPS),
+        "n_success":          n_ok,
+        "n_failure":          len(results) - n_ok,
+        "n_required_failure": len(required_failures),
+        "n_optional_failure": len(optional_failures),
+        "total_elapsed_s":    total_elapsed,
+        "results":            results,
     }
     with LEDGER.open("a", encoding="utf-8") as f:
         f.write(json.dumps(entry, default=str) + "\n")
     print(f"  ledger:   {LEDGER.relative_to(_ROOT)}")
 
-    return 0 if n_ok == len(STEPS) else 1
+    # Pipeline is green iff every required step succeeded.
+    return 0 if not required_failures else 1
 
 
 if __name__ == "__main__":
