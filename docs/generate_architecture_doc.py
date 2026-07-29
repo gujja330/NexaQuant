@@ -39,7 +39,7 @@ DOCS = ROOT / "docs"
 IMG_DIR = DOCS / "images"
 IMG_DIR.mkdir(parents=True, exist_ok=True)
 
-VERSION = "3.0-FINAL"
+VERSION = "3.0-LOCKED"
 TODAY = date.today().isoformat()
 OUT_PDF = DOCS / f"AEGIS_ARCHITECTURE_v{VERSION}.pdf"
 OUT_MD  = DOCS / f"AEGIS_ARCHITECTURE_v{VERSION}.md"
@@ -408,7 +408,7 @@ def build_pdf(diagrams: dict) -> None:
         ["v2.3",    "2026-07-29",  "Snapshot persistence · CEO summary · Evolution block"],
         ["v2.4",    "2026-07-29",  "Backtrack Engine · AI Scorecard · Sector Attribution · Command Center"],
         ["v3.0",       "2026-07-29", "Constitutional freeze · S&P 500+MidCap 400 (918 tickers) · single sender · zero legacy"],
-        [f"v{VERSION}", TODAY, "PRODUCTION LOCK · Runner 1 → validation layer (Option D) · Daily Change Summary · 30-Day Performance block · Recommendation Age · per-metric Scorecard · sector 0%→'Quiet Today' · regime unknown→neutral · APOLLO/BHARTI restored to Defensive View"],
+        [f"v{VERSION}", TODAY, "ARCHITECTURE FROZEN — NOT '100% complete' · Runner 1 → validation layer (Option D) · Daily Change Summary · 30-Day Performance · Recommendation Age · per-metric Scorecard · sector 0%→'Quiet Today' · regime→neutral · APOLLO restored to Defensive View. Models · data · calibration will continue to evolve; the ARCHITECTURE will not."],
     ]
     vt = Table(version_data, colWidths=[2*cm, 3*cm, 12*cm])
     vt.setStyle(TableStyle([
@@ -471,7 +471,8 @@ def build_pdf(diagrams: dict) -> None:
         ["No hardcoded dates/universes","CI guardrail enforces (test_no_hardcoded_dates_in_production · 3 tests)"],
         ["Sealed contracts",            "MON001 fingerprint · Feature Store schema · adaptive_rec_v2 · risk_capital_v2 · india/telegram_notify.py"],
         ["Tests passing",               "120/120 targeted regression across 14 test files"],
-        ["Production Lock date",        TODAY + " · maintenance mode active"],
+        ["Production Lock date",        TODAY + " · Architecture Frozen · Maintenance Mode active"],
+        ["What Locked means",           "NOT '100% complete' · the architecture (engine sequencing · data contracts · lifecycle · SSoT · downstream integration) is immutable. Data · models · calibration · UX will continue to evolve as v3.x. Only a new major version (v4.x) would touch the architecture."],
     ]
     lt = Table(lock_data, colWidths=[5*cm, 12*cm])
     lt.setStyle(TableStyle([
