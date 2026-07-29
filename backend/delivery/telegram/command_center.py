@@ -73,32 +73,105 @@ def _short_ticker(t: str) -> str:
     return str(t).split(".", 1)[0]
 
 
+# Static well-known company-name lookups per market. Used when the
+# universe.json name is missing or equal to the ticker (which is the
+# case for the dynamic S&P 500 + MidCap 400 universes populated by
+# refresh_universe.py from Wikipedia — those come without names).
+# When universe.json DOES carry names (Dow 30, NSE 200), those win.
+_INDIA_COMPANY_NAMES = {
+    "LUPIN": "Lupin",             "HEROMOTOCO": "Hero MotoCorp",
+    "CHAMBLFERT": "Chambal Fert.", "PIDILITIND": "Pidilite",
+    "SUNPHARMA": "Sun Pharma",     "ICICIBANK": "ICICI Bank",
+    "TCS": "TCS",                  "HCLTECH": "HCL Tech",
+    "NAUKRI": "Info Edge",         "COALINDIA": "Coal India",
+    "BATAINDIA": "Bata India",     "BIOCON": "Biocon",
+    "AMBER": "Amber Ent.",         "JSWENERGY": "JSW Energy",
+    "PATANJALI": "Patanjali",       "TATAELXSI": "Tata Elxsi",
+    "GUJGASLTD": "Gujarat Gas",    "KPITTECH": "KPIT Tech",
+    "BANDHANBNK": "Bandhan Bank",  "KALYANKJIL": "Kalyan Jewel.",
+    "VEDL": "Vedanta",             "ITC": "ITC",
+    "GODREJIND": "Godrej Ind.",    "SONACOMS": "Sona Comstar",
+    "LODHA": "Lodha",              "PNB": "Punjab Natl. Bank",
+    "HINDZINC": "Hindustan Zinc",   "FORTIS": "Fortis Healthcare",
+    "NTPC": "NTPC",                "IRCTC": "IRCTC",
+    "TATAPOWER": "Tata Power",     "BEL": "Bharat Electronics",
+    "APOLLOHOSP": "Apollo Hosp.",   "BHARTIARTL": "Bharti Airtel",
+    "POWERGRID": "Power Grid",     "RELIANCE": "Reliance Ind.",
+    "KOTAKBANK": "Kotak Bank",     "TATAMOTORS": "Tata Motors",
+    "LTIM": "LTIMindtree",         "PEL": "Piramal Ent.",
+}
+_USA_COMPANY_NAMES = {
+    "AAPL": "Apple",              "MSFT": "Microsoft",
+    "NVDA": "NVIDIA",             "AMZN": "Amazon",
+    "GOOGL": "Alphabet",          "META": "Meta Platforms",
+    "TSLA": "Tesla",              "AVGO": "Broadcom",
+    "JPM": "JPMorgan Chase",      "V": "Visa",
+    "WMT": "Walmart",             "JNJ": "Johnson & Johnson",
+    "PG": "Procter & Gamble",     "UNH": "UnitedHealth",
+    "HD": "Home Depot",           "KO": "Coca-Cola",
+    "MCD": "McDonald's",          "DIS": "Walt Disney",
+    "CSCO": "Cisco",              "CRM": "Salesforce",
+    "VZ": "Verizon",              "INTC": "Intel",
+    "BA": "Boeing",               "CAT": "Caterpillar",
+    "MRK": "Merck",               "NKE": "Nike",
+    "IBM": "IBM",                 "GS": "Goldman Sachs",
+    "AXP": "American Express",    "TRV": "Travelers",
+    "MMM": "3M",                  "CVX": "Chevron",
+    "AMGN": "Amgen",              "HON": "Honeywell",
+    "NFLX": "Netflix",            "AMD": "AMD",
+    "ADBE": "Adobe",              "TMUS": "T-Mobile",
+    "CMCSA": "Comcast",           "QCOM": "Qualcomm",
+    "COST": "Costco",             "PEP": "PepsiCo",
+    "BLK": "BlackRock",           "SPGI": "S&P Global",
+    "SBUX": "Starbucks",          "PYPL": "PayPal",
+}
+
+
+def _company_name(ticker: str, market: str) -> str:
+    """Return best-known company short name for a ticker; empty if unknown."""
+    if not ticker:
+        return ""
+    short = _short_ticker(ticker).upper()
+    src = _INDIA_COMPANY_NAMES if market == "india" else _USA_COMPANY_NAMES
+    return src.get(short, "")
+
+
+def _ticker_with_name(ticker: str, market: str, width: int = 22) -> str:
+    """Format `TICKER (Name)` · falls back to just ticker when name unknown."""
+    short = _short_ticker(ticker)
+    name = _company_name(ticker, market)
+    if name:
+        return f"{short} ({name})"
+    return short
+
+
 def _header(market: str, asof: str) -> list[str]:
-    market_name = "India NSE 200" if market == "india" else "USA S&P 500 + MidCap 400"
+    market_name = "🇮🇳 India NSE 200" if market == "india" else "🇺🇸 USA S&P 500 + MidCap 400"
     weekday = ""
     try:
         weekday = datetime.fromisoformat(asof).strftime("%a")
     except Exception:
         pass
     return [
-        f"AEGIS · {market_name} · {asof}" + (f" ({weekday})" if weekday else ""),
+        f"🏢 *AEGIS DAILY* · {market_name}",
+        f"📅 {asof}" + (f" ({weekday})" if weekday else ""),
         SEPARATOR,
     ]
 
 
 def _ceo_call(cs: Mapping) -> list[str]:
     """Top block — the 30-second recommendation."""
-    lines = ["*CEO CALL TODAY*"]
+    lines = ["🎯 *CEO CALL TODAY*"]
     action = cs.get("recommended_action") or "no signal"
-    lines.append(f"  {action}")
+    lines.append(f"   {action}")
     regime = cs.get("market_regime") or "unknown"
     actionable = cs.get("actionable_count") or 0
     rotations = cs.get("rotations_count") or 0
-    lines.append(f"  Regime {regime} · Actionable {actionable} · Rotations {rotations}")
-    # Cycle 5E: discipline warnings surface right below the CEO call.
+    lines.append(f"   🌐 Market: {regime}   ·   ⚡ Actionable: {actionable}   ·   🔄 Rotations: {rotations}")
+    # Discipline warnings surface right below the CEO call.
     warnings = cs.get("discipline_warnings") or []
     for w in warnings[:3]:
-        lines.append(f"  ⚠ {w}")
+        lines.append(f"   ⚠️ {w}")
     return lines
 
 
@@ -109,19 +182,24 @@ def _rotation_calls(recs: Sequence[Mapping], market: str, max_rows: int = 3) -> 
         ri = r.get("rotation_intelligence") or {}
         if ri.get("should_rotate"):
             rots.append({
-                "from":  _short_ticker(r.get("ticker") or ""),
-                "to":    _short_ticker(ri.get("replacement_ticker") or ""),
+                "from":  r.get("ticker") or "",
+                "to":    ri.get("replacement_ticker") or "",
                 "alpha": ri.get("expected_alpha_delta_pct") or 0,
                 "edge":  ri.get("edge") or 0,
             })
     if not rots:
         return []
     rots.sort(key=lambda x: -abs(x["alpha"]))
-    lines = ["", f"*ROTATIONS ({len(rots)})*"]
+    lines = ["", f"🔄 *ROTATION SIGNALS ({len(rots)})*",
+             "   _Sell weaker positions, buy stronger ones — expected alpha gain_"]
     for r in rots[:max_rows]:
-        lines.append(f"  {r['from']} -> {r['to']}  a+{r['alpha']:.1f}%")
+        from_name = _ticker_with_name(r["from"], market)
+        to_name = _ticker_with_name(r["to"], market)
+        lines.append(f"   🔻 {from_name}")
+        lines.append(f"      ⬇️ replace with")
+        lines.append(f"   🟢 {to_name}   +{r['alpha']:.1f}% expected alpha")
     if len(rots) > max_rows:
-        lines.append(f"  ...+{len(rots) - max_rows} more")
+        lines.append(f"   _...+{len(rots) - max_rows} more rotation signals_")
     return lines
 
 
@@ -133,31 +211,34 @@ def _actionable_entries(recs: Sequence[Mapping], market: str,
     picks.sort(key=lambda r: -(r.get("ensemble_score") or 0))
     if not picks:
         return []
-    lines = ["", f"*NEW BUYS ({len(picks)})*"]
+    lines = ["", f"🟢 *NEW BUY IDEAS ({len(picks)})*",
+             "   _If you don't own these, consider entering_"]
     for r in picks[:max_rows]:
-        t = _short_ticker(r.get("ticker") or "?")
+        t = _ticker_with_name(r.get("ticker") or "?", market)
         ia = r.get("investor_action") or {}
         pp = r.get("position_plan") or {}
         ez = pp.get("entry_zone") or {}
         alloc = pp.get("suggested_allocation_pct") or 0
-        horizon = pp.get("time_horizon_bucket") or "?"
         hdays = pp.get("time_horizon_days") or 0
         entry = ia.get("entry") or "?"
+        # Emoji per entry-level
+        emoji = "🟢🟢" if entry == "BUY" and (r.get("percentile_action") == "STRONG_BUY") else "🟢"
+        lines.append(f"   {emoji} *{t}*")
+        lines.append(f"      💰 {entry} · size {alloc}% of capital · hold ~{hdays} days")
         if ez.get("stop_loss") is not None and ez.get("target_1") is not None:
             lines.append(
-                f"  {t}  {entry} · alloc {alloc}% · {horizon} {hdays}d"
+                f"      📥 Buy zone: {_fmt_price(ez.get('ideal_buy_low'), market)}"
+                f"–{_fmt_price(ez.get('ideal_buy_high'), market)}"
             )
             lines.append(
-                f"     buy {_fmt_price(ez.get('ideal_buy_low'), market)}"
-                f"-{_fmt_price(ez.get('ideal_buy_high'), market)}"
-                f" · stop {_fmt_price(ez.get('stop_loss'), market)}"
-                f" · T1 {_fmt_price(ez.get('target_1'), market)}"
+                f"      🛡 Stop: {_fmt_price(ez.get('stop_loss'), market)}"
+                f"   🎯 Target: {_fmt_price(ez.get('target_1'), market)}"
             )
         else:
             cp = _fmt_price(ez.get("current_price"), market)
-            lines.append(f"  {t}  {entry} · alloc {alloc}% · price {cp}")
+            lines.append(f"      💵 Current: {cp}")
     if len(picks) > max_rows:
-        lines.append(f"  ...+{len(picks) - max_rows} more")
+        lines.append(f"   _...+{len(picks) - max_rows} more new-buy ideas_")
     return lines
 
 
@@ -168,24 +249,25 @@ def _actionable_exits(recs: Sequence[Mapping], market: str,
     exits.sort(key=lambda r: r.get("ensemble_score") or 0)   # worst first
     if not exits:
         return []
-    lines = ["", f"*EXITS IF HOLDING ({len(exits)})*"]
+    lines = ["", f"🔴 *EXITS IF YOU HOLD ({len(exits)})*",
+             "   _If any of these are in your portfolio, act on them_"]
     for r in exits[:max_rows]:
-        t = _short_ticker(r.get("ticker") or "?")
+        t = _ticker_with_name(r.get("ticker") or "?", market)
         ia = r.get("investor_action") or {}
         action = ia.get("if_holding") or "?"
+        emoji = "🔴🔴" if action == "EXIT" else "🟠"
         # Discipline check: if the exit reason class is RANK_ONLY / churn
         # AND ensemble_score is still positive, flag it.
         score = r.get("ensemble_score") or 0
-        warn = ""
-        if action in ("REDUCE", "EXIT") and score > 0:
-            warn = "  ⚠ still positive-score — confirm intended"
+        churn_warn = "   ⚠️ still positive-score — confirm intended" if (
+            action in ("REDUCE", "EXIT") and score > 0) else ""
         risks = ((r.get("why") or {}).get("top_risks") or [None])[0]
-        risks_short = (str(risks)[:60] + "...") if risks and len(str(risks)) > 60 else (risks or "")
-        lines.append(f"  {t}  {action}{warn}")
+        risks_short = (str(risks)[:80] + "...") if risks and len(str(risks)) > 80 else (risks or "")
+        lines.append(f"   {emoji} *{t}*   →   {action}{churn_warn}")
         if risks_short:
-            lines.append(f"     risk: {risks_short}")
+            lines.append(f"      ⚠️ Reason: {risks_short}")
     if len(exits) > max_rows:
-        lines.append(f"  ...+{len(exits) - max_rows} more")
+        lines.append(f"   _...+{len(exits) - max_rows} more exit signals_")
     return lines
 
 
@@ -224,16 +306,16 @@ def _risk_pulse(cs: Mapping, recs: Sequence[Mapping], market: str) -> list[str]:
     lines = []
     if top_opp.get("ticker") or top_risk.get("ticker"):
         lines.append("")
-        lines.append("*RISK PULSE*")
+        lines.append("💼 *PORTFOLIO PULSE*")
     if top_opp.get("ticker"):
         lines.append(
-            f"  Top pick: {_short_ticker(top_opp['ticker'])} "
-            f"({top_opp.get('action', '?')}) · alloc {top_opp.get('allocation_pct', 0)}%"
+            f"   🎯 Top opportunity: {_ticker_with_name(top_opp['ticker'], market)} · "
+            f"{top_opp.get('action', '?')} · size {top_opp.get('allocation_pct', 0)}%"
         )
     if top_risk.get("ticker"):
         lines.append(
-            f"  Top risk: {_short_ticker(top_risk['ticker'])} "
-            f"({top_risk.get('if_holding', '?')})"
+            f"   ⚠️ Top risk: {_ticker_with_name(top_risk['ticker'], market)} · "
+            f"{top_risk.get('if_holding', '?')}"
         )
     return lines
 
@@ -243,10 +325,15 @@ def _ai_scorecard_line(payload: Mapping) -> list[str]:
     sc = payload.get("ai_scorecard") or {}
     if not sc or not sc.get("overall_score"):
         return []
-    stars = "★" * max(0, min(5, sc.get("overall_stars") or 0)) + "☆" * max(0, 5 - (sc.get("overall_stars") or 0))
+    stars = "⭐" * max(0, min(5, sc.get("overall_stars") or 0))
     n = sc.get("n_trades") or 0
-    verdict = sc.get("verdict") or "-"
-    return ["", f"*AI SCORECARD*  {stars}  {sc.get('overall_score')}/100 · {verdict} · {n} closed trades"]
+    verdict = (sc.get("verdict") or "-").replace("_", " ")
+    return [
+        "",
+        f"📊 *AI PERFORMANCE SCORECARD*",
+        f"   {stars}   {sc.get('overall_score')}/100 · {verdict}",
+        f"   Measured on {n} closed trades since inception",
+    ]
 
 
 def _attribution_top(payload: Mapping) -> list[str]:
@@ -259,23 +346,22 @@ def _attribution_top(payload: Mapping) -> list[str]:
         return []
     top_two = list(drivers.items())[:2]
     sector_share = a.get("avg_sector_share_pct")
-    lines = ["", "*DECISION DRIVERS*"]
+    lines = ["", "🧠 *WHAT DROVE TODAY'S DECISIONS*"]
     for label, count in top_two:
-        lines.append(f"  {label}: dominant on {count} rec(s)")
+        lines.append(f"   • {label}: dominant on {count} rec(s)")
     if sector_share is not None:
-        active = "active" if a.get("sector_engine_measurably_active") else "quiet"
-        lines.append(f"  Sector engine share: {sector_share}%  ({active})")
+        active_emoji = "🟢 active" if a.get("sector_engine_measurably_active") else "⚪ quiet"
+        lines.append(f"   • Sector engine share: {sector_share}%   ({active_emoji})")
     return lines
 
 
 def _integrity_footer(payload: Mapping) -> list[str]:
     run_utc = str(payload.get("run_utc") or "")[:16].replace("T", " ")
-    engine = payload.get("investor_actionable_engine") or "aegis"
     return [
         "",
         SEPARATOR,
-        f"Run {run_utc} · {engine}",
-        "Advisory only · PAPER · Not investment advice",
+        f"🔐 Run {run_utc} UTC · AEGIS v3.0",
+        f"⚖️ Advisory only · PAPER · Not investment advice",
     ]
 
 
