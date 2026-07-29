@@ -1,33 +1,59 @@
 {
   "engine": "ops_check",
   "version": "v1.1",
-  "run_utc": "2026-07-24T05:06:17+00:00Z",
-  "verdict": "DEGRADED",
+  "run_utc": "2026-07-29T04:32:17+00:00Z",
+  "verdict": "CRITICAL",
   "artifacts": {
     "n_required": 23,
     "n_present": 23,
     "n_missing": 0,
     "n_invalid": 0,
-    "total_bytes": 4625373,
+    "total_bytes": 4466952,
     "missing": [],
     "invalid": []
   },
   "schemas": {
     "n_schemas": 14,
-    "n_pass": 14,
-    "n_fail": 0,
-    "failures": []
+    "n_pass": 12,
+    "n_fail": 2,
+    "failures": [
+      {
+        "name": "recommendations.json",
+        "ok": false,
+        "reason": "'recommendations[0]' missing keys: ['entry_exit']"
+      },
+      {
+        "name": "recommendation_lifecycle.json",
+        "ok": false,
+        "reason": "missing keys: ['by_state']"
+      }
+    ]
   },
   "fingerprint": {
     "checked": false,
     "reason": "sealed_baseline_fingerprint.txt not on disk"
   },
   "health": {
-    "checked": false,
-    "reason": "skipped in CI mode (health is a daily-pipeline concern)"
+    "checked": true,
+    "run_utc": "2026-07-24T03:57:03+00:00",
+    "n_steps": 32,
+    "n_ok": 29,
+    "n_fail": 3,
+    "elapsed_s": 140.18
   },
   "backend_validation": {
-    "checked": false,
-    "reason": "skipped in CI mode (freshness is a daily-pipeline concern)"
+    "checked": true,
+    "market": "india",
+    "verdict": "PASS",
+    "confidence": 0.9163,
+    "n_datasets": 73,
+    "counts": {
+      "PASS": 73,
+      "WARNING": 0,
+      "FAIL": 0,
+      "NOT_APPLICABLE": 0
+    },
+    "n_top_issues": 0,
+    "run_utc": "2026-07-29T04:32:16+00:00Z"
   }
 }
