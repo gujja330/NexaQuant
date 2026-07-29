@@ -236,6 +236,24 @@ def publish_ssot(v3_path: Path,
         "n_companies_evaluated": len(legacy_recs),
         "n_currently_held":      0,
         "n_source":            len(v3_recs),
+    }
+    # Schema-compat: legacy scripts/aegis_ops_check.py expects every rec to
+    # carry an `entry_exit` field. Compose it from the enriched fields our
+    # cycle 3-4 investor_action + position_plan blocks emit.
+    for r in legacy_recs:
+        ez = None
+        pp = r.get("position_plan") if isinstance(r, dict) else None
+        if pp and isinstance(pp, dict):
+            ez = pp.get("entry_zone")
+        ia = r.get("investor_action") if isinstance(r, dict) else None
+        r["entry_exit"] = {
+            "entry_zone":    ez or r.get("entry_zone") or {},
+            "if_holding":    (ia or {}).get("if_holding"),
+            "entry":         (ia or {}).get("entry"),
+            "exit_reason":   (r.get("exit_conditions") or [None])[0] if r.get("exit_conditions") else None,
+        }
+    payload = {
+        **payload,
         "signal_quality_dist": quality_counts,
         "action_distribution": action_counts,
         "recommendations":     legacy_recs,

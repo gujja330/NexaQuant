@@ -5,7 +5,7 @@
   "schema_fingerprint": "aegis.recommendation_ssot.v1.20260727",
   "market": "usa",
   "asof": "2026-07-29",
-  "run_utc": "2026-07-29T05:41:43.231591+00:00",
+  "run_utc": "2026-07-29T06:05:23.835511+00:00",
   "source": "recommendations_v3.json",
   "n": 15,
   "n_companies_evaluated": 15,
@@ -102,6 +102,17 @@
         "action_reason": "BUY · ensemble score +0.314"
       },
       "signal_quality": "STRONG",
+      "entry_exit": {
+        "entry_zone": {
+          "low": 361.6,
+          "high": 376.36,
+          "current": 368.98,
+          "note": "±2% band around current price"
+        },
+        "if_holding": null,
+        "entry": null,
+        "exit_reason": "time-based: review after 60 days if action still holds"
+      },
       "investor_action": {
         "entry": "BUY",
         "if_holding": "HOLD",
@@ -157,7 +168,7 @@
         "current_state": "BUY",
         "previous_state": "DISCOVERED",
         "ts_last_transition": "2026-07-27T16:09:11.060552+00:00",
-        "n_events": 2
+        "n_events": 8
       },
       "evolution": {
         "is_new": true,
@@ -181,74 +192,74 @@
       "attribution": {
         "per_model": [
           {
+            "model_id": "aegis.value.v1",
+            "label": "Value",
+            "raw_score": 0.8786,
+            "weight": 0.0909,
+            "weighted_contribution": 0.079865,
+            "share_pct": 17.92
+          },
+          {
             "model_id": "aegis.trend.v1",
             "label": "Trend",
             "raw_score": 0.8133,
-            "weight": 0.1198,
-            "weighted_contribution": 0.097433,
-            "share_pct": 21.16
+            "weight": 0.0909,
+            "weighted_contribution": 0.073929,
+            "share_pct": 16.59
           },
           {
             "model_id": "aegis.momentum.v1",
             "label": "Momentum",
             "raw_score": 0.7233,
-            "weight": 0.1105,
-            "weighted_contribution": 0.079925,
-            "share_pct": 17.36
+            "weight": 0.0909,
+            "weighted_contribution": 0.065748,
+            "share_pct": 14.75
           },
           {
             "model_id": "aegis.event_driven.v1",
             "label": "Event",
             "raw_score": 0.5172,
-            "weight": 0.1185,
-            "weighted_contribution": 0.061288,
-            "share_pct": 13.31
-          },
-          {
-            "model_id": "aegis.value.v1",
-            "label": "Value",
-            "raw_score": 0.8786,
-            "weight": 0.0508,
-            "weighted_contribution": 0.044633,
-            "share_pct": 9.69
-          },
-          {
-            "model_id": "aegis.sector_rotation.v1",
-            "label": "Sector",
-            "raw_score": 0.3,
-            "weight": 0.1357,
-            "weighted_contribution": 0.04071,
-            "share_pct": 8.84
-          },
-          {
-            "model_id": "aegis.quality.v1",
-            "label": "Quality",
-            "raw_score": 0.2048,
-            "weight": 0.1345,
-            "weighted_contribution": 0.027546,
-            "share_pct": 5.98
+            "weight": 0.0909,
+            "weighted_contribution": 0.047013,
+            "share_pct": 10.55
           },
           {
             "model_id": "aegis.ai_hybrid.v1",
             "label": "AI-Hybrid",
             "raw_score": 0.3629,
-            "weight": 0.0508,
-            "weighted_contribution": 0.018435,
-            "share_pct": 4.0
+            "weight": 0.0909,
+            "weighted_contribution": 0.032988,
+            "share_pct": 7.4
           },
           {
             "model_id": "aegis.growth.v1",
             "label": "Growth",
             "raw_score": 0.3333,
-            "weight": 0.0508,
-            "weighted_contribution": 0.016932,
-            "share_pct": 3.68
+            "weight": 0.0909,
+            "weighted_contribution": 0.030297,
+            "share_pct": 6.8
+          },
+          {
+            "model_id": "aegis.sector_rotation.v1",
+            "label": "Sector",
+            "raw_score": 0.3,
+            "weight": 0.0909,
+            "weighted_contribution": 0.02727,
+            "share_pct": 6.12
+          },
+          {
+            "model_id": "aegis.quality.v1",
+            "label": "Quality",
+            "raw_score": 0.2048,
+            "weight": 0.0909,
+            "weighted_contribution": 0.018616,
+            "share_pct": 4.18
           },
           {
             "model_id": "aegis.macro.v1",
             "label": "Macro",
             "raw_score": 0.0,
-            "weight": 0.0508,
+            "weight": 0.0909,
             "weighted_contribution": 0.0,
             "share_pct": 0.0
           },
@@ -256,30 +267,30 @@
             "model_id": "aegis.news.v1",
             "label": "News",
             "raw_score": -0.3167,
-            "weight": 0.0508,
-            "weighted_contribution": -0.016088,
-            "share_pct": 3.49
+            "weight": 0.0909,
+            "weighted_contribution": -0.028788,
+            "share_pct": 6.46
           },
           {
             "model_id": "aegis.mean_reversion.v1",
             "label": "MeanReversion",
             "raw_score": -0.4533,
-            "weight": 0.1267,
-            "weighted_contribution": -0.057433,
-            "share_pct": 12.47
+            "weight": 0.0909,
+            "weighted_contribution": -0.041205,
+            "share_pct": 9.24
           }
         ],
         "dominant_driver": {
-          "label": "Trend",
-          "contribution": 0.097433
+          "label": "Value",
+          "contribution": 0.079865
         },
         "opposition": {
           "label": "MeanReversion",
-          "contribution": -0.057433
+          "contribution": -0.041205
         },
-        "sector_engine_contribution_pct": 8.84,
-        "total_positive": 0.3869,
-        "total_negative": -0.0735
+        "sector_engine_contribution_pct": 6.12,
+        "total_positive": 0.3757,
+        "total_negative": -0.07
       }
     },
     {
@@ -363,6 +374,17 @@
         "action_reason": "BUY · ensemble score +0.289"
       },
       "signal_quality": "STRONG",
+      "entry_exit": {
+        "entry_zone": {
+          "low": 351.389,
+          "high": 365.731,
+          "current": 358.56,
+          "note": "±2% band around current price"
+        },
+        "if_holding": null,
+        "entry": null,
+        "exit_reason": "time-based: review after 60 days if action still holds"
+      },
       "investor_action": {
         "entry": "BUY",
         "if_holding": "HOLD",
@@ -420,7 +442,7 @@
         "current_state": "BUY",
         "previous_state": "DISCOVERED",
         "ts_last_transition": "2026-07-27T16:09:11.060552+00:00",
-        "n_events": 2
+        "n_events": 8
       },
       "evolution": {
         "is_new": true,
@@ -447,102 +469,102 @@
             "model_id": "aegis.trend.v1",
             "label": "Trend",
             "raw_score": 0.73,
-            "weight": 0.1198,
-            "weighted_contribution": 0.087454,
-            "share_pct": 21.58
+            "weight": 0.0909,
+            "weighted_contribution": 0.066357,
+            "share_pct": 17.36
           },
           {
             "model_id": "aegis.quality.v1",
             "label": "Quality",
             "raw_score": 0.6381,
-            "weight": 0.1345,
-            "weighted_contribution": 0.085824,
-            "share_pct": 21.18
-          },
-          {
-            "model_id": "aegis.momentum.v1",
-            "label": "Momentum",
-            "raw_score": 0.5667,
-            "weight": 0.1105,
-            "weighted_contribution": 0.06262,
-            "share_pct": 15.45
-          },
-          {
-            "model_id": "aegis.sector_rotation.v1",
-            "label": "Sector",
-            "raw_score": 0.3,
-            "weight": 0.1357,
-            "weighted_contribution": 0.04071,
-            "share_pct": 10.05
+            "weight": 0.0909,
+            "weighted_contribution": 0.058003,
+            "share_pct": 15.17
           },
           {
             "model_id": "aegis.news.v1",
             "label": "News",
             "raw_score": 0.5833,
-            "weight": 0.0508,
-            "weighted_contribution": 0.029632,
-            "share_pct": 7.31
+            "weight": 0.0909,
+            "weighted_contribution": 0.053022,
+            "share_pct": 13.87
+          },
+          {
+            "model_id": "aegis.momentum.v1",
+            "label": "Momentum",
+            "raw_score": 0.5667,
+            "weight": 0.0909,
+            "weighted_contribution": 0.051513,
+            "share_pct": 13.47
           },
           {
             "model_id": "aegis.growth.v1",
             "label": "Growth",
             "raw_score": 0.3841,
-            "weight": 0.0508,
-            "weighted_contribution": 0.019512,
-            "share_pct": 4.82
+            "weight": 0.0909,
+            "weighted_contribution": 0.034915,
+            "share_pct": 9.13
+          },
+          {
+            "model_id": "aegis.sector_rotation.v1",
+            "label": "Sector",
+            "raw_score": 0.3,
+            "weight": 0.0909,
+            "weighted_contribution": 0.02727,
+            "share_pct": 7.13
           },
           {
             "model_id": "aegis.ai_hybrid.v1",
             "label": "AI-Hybrid",
             "raw_score": 0.2753,
-            "weight": 0.0508,
-            "weighted_contribution": 0.013985,
-            "share_pct": 3.45
+            "weight": 0.0909,
+            "weighted_contribution": 0.025025,
+            "share_pct": 6.55
           },
           {
             "model_id": "aegis.event_driven.v1",
             "label": "Event",
             "raw_score": 0.0621,
-            "weight": 0.1185,
-            "weighted_contribution": 0.007359,
-            "share_pct": 1.82
+            "weight": 0.0909,
+            "weighted_contribution": 0.005645,
+            "share_pct": 1.48
           },
           {
             "model_id": "aegis.macro.v1",
             "label": "Macro",
             "raw_score": 0.0,
-            "weight": 0.0508,
+            "weight": 0.0909,
             "weighted_contribution": 0.0,
             "share_pct": 0.0
-          },
-          {
-            "model_id": "aegis.value.v1",
-            "label": "Value",
-            "raw_score": -0.3462,
-            "weight": 0.0508,
-            "weighted_contribution": -0.017587,
-            "share_pct": 4.34
           },
           {
             "model_id": "aegis.mean_reversion.v1",
             "label": "MeanReversion",
             "raw_score": -0.32,
-            "weight": 0.1267,
-            "weighted_contribution": -0.040544,
-            "share_pct": 10.01
+            "weight": 0.0909,
+            "weighted_contribution": -0.029088,
+            "share_pct": 7.61
+          },
+          {
+            "model_id": "aegis.value.v1",
+            "label": "Value",
+            "raw_score": -0.3462,
+            "weight": 0.0909,
+            "weighted_contribution": -0.03147,
+            "share_pct": 8.23
           }
         ],
         "dominant_driver": {
           "label": "Trend",
-          "contribution": 0.087454
+          "contribution": 0.066357
         },
         "opposition": {
-          "label": "MeanReversion",
-          "contribution": -0.040544
+          "label": "Value",
+          "contribution": -0.03147
         },
-        "sector_engine_contribution_pct": 10.05,
-        "total_positive": 0.3471,
-        "total_negative": -0.0581
+        "sector_engine_contribution_pct": 7.13,
+        "total_positive": 0.3218,
+        "total_negative": -0.0606
       }
     },
     {
@@ -624,6 +646,15 @@
       "oc_next_best_score": 65.675,
       "oc_expected_alpha_delta": 6.915,
       "oc_reason_not_to_rotate": "opportunity_cost_high · TRV score 65.675 vs hold 58.76 (edge 6.9150 > rotate threshold 0.25) — recommend Capital Rotation review",
+      "entry_exit": {
+        "entry_zone": {
+          "current": 225.02,
+          "note": "hold — no entry"
+        },
+        "if_holding": null,
+        "entry": null,
+        "exit_reason": "no active exit trigger — HOLD position"
+      },
       "investor_action": {
         "entry": "WAIT",
         "if_holding": "HOLD",
@@ -671,8 +702,8 @@
       "lifecycle_state": {
         "current_state": "HOLD",
         "previous_state": "HOLD",
-        "ts_last_transition": "2026-07-29T04:30:05.622481+00:00",
-        "n_events": 3
+        "ts_last_transition": "2026-07-29T06:05:22.014595+00:00",
+        "n_events": 12
       },
       "evolution": {
         "is_new": true,
@@ -699,55 +730,55 @@
             "model_id": "aegis.mean_reversion.v1",
             "label": "MeanReversion",
             "raw_score": 1.0,
-            "weight": 0.1267,
-            "weighted_contribution": 0.1267,
-            "share_pct": 34.14
-          },
-          {
-            "model_id": "aegis.quality.v1",
-            "label": "Quality",
-            "raw_score": 0.4305,
-            "weight": 0.1345,
-            "weighted_contribution": 0.057902,
-            "share_pct": 15.6
+            "weight": 0.0909,
+            "weighted_contribution": 0.0909,
+            "share_pct": 24.84
           },
           {
             "model_id": "aegis.growth.v1",
             "label": "Growth",
             "raw_score": 0.727,
-            "weight": 0.0508,
-            "weighted_contribution": 0.036932,
-            "share_pct": 9.95
+            "weight": 0.0909,
+            "weighted_contribution": 0.066084,
+            "share_pct": 18.06
           },
           {
             "model_id": "aegis.value.v1",
             "label": "Value",
             "raw_score": 0.7067,
-            "weight": 0.0508,
-            "weighted_contribution": 0.0359,
-            "share_pct": 9.67
+            "weight": 0.0909,
+            "weighted_contribution": 0.064239,
+            "share_pct": 17.55
+          },
+          {
+            "model_id": "aegis.quality.v1",
+            "label": "Quality",
+            "raw_score": 0.4305,
+            "weight": 0.0909,
+            "weighted_contribution": 0.039132,
+            "share_pct": 10.69
           },
           {
             "model_id": "aegis.ai_hybrid.v1",
             "label": "AI-Hybrid",
             "raw_score": 0.3057,
-            "weight": 0.0508,
-            "weighted_contribution": 0.01553,
-            "share_pct": 4.19
+            "weight": 0.0909,
+            "weighted_contribution": 0.027788,
+            "share_pct": 7.59
           },
           {
             "model_id": "aegis.news.v1",
             "label": "News",
             "raw_score": 0.0033,
-            "weight": 0.0508,
-            "weighted_contribution": 0.000168,
-            "share_pct": 0.05
+            "weight": 0.0909,
+            "weighted_contribution": 0.0003,
+            "share_pct": 0.08
           },
           {
             "model_id": "aegis.macro.v1",
             "label": "Macro",
             "raw_score": 0.0,
-            "weight": 0.0508,
+            "weight": 0.0909,
             "weighted_contribution": 0.0,
             "share_pct": 0.0
           },
@@ -755,7 +786,7 @@
             "model_id": "aegis.sector_rotation.v1",
             "label": "Sector",
             "raw_score": 0.0,
-            "weight": 0.1357,
+            "weight": 0.0909,
             "weighted_contribution": 0.0,
             "share_pct": 0.0
           },
@@ -763,7 +794,7 @@
             "model_id": "aegis.event_driven.v1",
             "label": "Event",
             "raw_score": 0.0,
-            "weight": 0.1185,
+            "weight": 0.0909,
             "weighted_contribution": 0.0,
             "share_pct": 0.0
           },
@@ -771,30 +802,30 @@
             "model_id": "aegis.trend.v1",
             "label": "Trend",
             "raw_score": -0.3933,
-            "weight": 0.1198,
-            "weighted_contribution": -0.047117,
-            "share_pct": 12.7
+            "weight": 0.0909,
+            "weighted_contribution": -0.035751,
+            "share_pct": 9.77
           },
           {
             "model_id": "aegis.momentum.v1",
             "label": "Momentum",
             "raw_score": -0.46,
-            "weight": 0.1105,
-            "weighted_contribution": -0.05083,
-            "share_pct": 13.7
+            "weight": 0.0909,
+            "weighted_contribution": -0.041814,
+            "share_pct": 11.42
           }
         ],
         "dominant_driver": {
           "label": "MeanReversion",
-          "contribution": 0.1267
+          "contribution": 0.0909
         },
         "opposition": {
           "label": "Momentum",
-          "contribution": -0.05083
+          "contribution": -0.041814
         },
         "sector_engine_contribution_pct": 0.0,
-        "total_positive": 0.2731,
-        "total_negative": -0.0979
+        "total_positive": 0.2884,
+        "total_negative": -0.0776
       }
     },
     {
@@ -876,6 +907,15 @@
       "oc_next_best_score": 65.675,
       "oc_expected_alpha_delta": 7.18,
       "oc_reason_not_to_rotate": "opportunity_cost_high · TRV score 65.675 vs hold 58.495 (edge 7.1800 > rotate threshold 0.25) — recommend Capital Rotation review",
+      "entry_exit": {
+        "entry_zone": {
+          "current": 1065.22,
+          "note": "hold — no entry"
+        },
+        "if_holding": null,
+        "entry": null,
+        "exit_reason": "no active exit trigger — HOLD position"
+      },
       "investor_action": {
         "entry": "WAIT",
         "if_holding": "HOLD",
@@ -924,8 +964,8 @@
       "lifecycle_state": {
         "current_state": "HOLD",
         "previous_state": "HOLD",
-        "ts_last_transition": "2026-07-29T04:30:05.622481+00:00",
-        "n_events": 3
+        "ts_last_transition": "2026-07-29T06:05:22.014595+00:00",
+        "n_events": 12
       },
       "evolution": {
         "is_new": true,
@@ -949,66 +989,66 @@
       "attribution": {
         "per_model": [
           {
-            "model_id": "aegis.event_driven.v1",
-            "label": "Event",
-            "raw_score": 0.3931,
-            "weight": 0.1185,
-            "weighted_contribution": 0.046582,
-            "share_pct": 22.11
-          },
-          {
-            "model_id": "aegis.sector_rotation.v1",
-            "label": "Sector",
-            "raw_score": 0.3,
-            "weight": 0.1357,
-            "weighted_contribution": 0.04071,
-            "share_pct": 19.32
-          },
-          {
             "model_id": "aegis.value.v1",
             "label": "Value",
             "raw_score": 0.6598,
-            "weight": 0.0508,
-            "weighted_contribution": 0.033518,
-            "share_pct": 15.91
+            "weight": 0.0909,
+            "weighted_contribution": 0.059976,
+            "share_pct": 24.45
           },
           {
             "model_id": "aegis.news.v1",
             "label": "News",
             "raw_score": 0.5833,
-            "weight": 0.0508,
-            "weighted_contribution": 0.029632,
-            "share_pct": 14.06
+            "weight": 0.0909,
+            "weighted_contribution": 0.053022,
+            "share_pct": 21.62
           },
           {
-            "model_id": "aegis.momentum.v1",
-            "label": "Momentum",
-            "raw_score": 0.16,
-            "weight": 0.1105,
-            "weighted_contribution": 0.01768,
-            "share_pct": 8.39
+            "model_id": "aegis.event_driven.v1",
+            "label": "Event",
+            "raw_score": 0.3931,
+            "weight": 0.0909,
+            "weighted_contribution": 0.035733,
+            "share_pct": 14.57
+          },
+          {
+            "model_id": "aegis.sector_rotation.v1",
+            "label": "Sector",
+            "raw_score": 0.3,
+            "weight": 0.0909,
+            "weighted_contribution": 0.02727,
+            "share_pct": 11.12
           },
           {
             "model_id": "aegis.growth.v1",
             "label": "Growth",
             "raw_score": 0.2381,
-            "weight": 0.0508,
-            "weighted_contribution": 0.012095,
-            "share_pct": 5.74
+            "weight": 0.0909,
+            "weighted_contribution": 0.021643,
+            "share_pct": 8.82
           },
           {
             "model_id": "aegis.ai_hybrid.v1",
             "label": "AI-Hybrid",
             "raw_score": 0.198,
-            "weight": 0.0508,
-            "weighted_contribution": 0.010058,
-            "share_pct": 4.77
+            "weight": 0.0909,
+            "weighted_contribution": 0.017998,
+            "share_pct": 7.34
+          },
+          {
+            "model_id": "aegis.momentum.v1",
+            "label": "Momentum",
+            "raw_score": 0.16,
+            "weight": 0.0909,
+            "weighted_contribution": 0.014544,
+            "share_pct": 5.93
           },
           {
             "model_id": "aegis.macro.v1",
             "label": "Macro",
             "raw_score": 0.0,
-            "weight": 0.0508,
+            "weight": 0.0909,
             "weighted_contribution": 0.0,
             "share_pct": 0.0
           },
@@ -1016,38 +1056,38 @@
             "model_id": "aegis.quality.v1",
             "label": "Quality",
             "raw_score": -0.0095,
-            "weight": 0.1345,
-            "weighted_contribution": -0.001278,
-            "share_pct": 0.61
+            "weight": 0.0909,
+            "weighted_contribution": -0.000864,
+            "share_pct": 0.35
           },
           {
             "model_id": "aegis.mean_reversion.v1",
             "label": "MeanReversion",
             "raw_score": -0.0533,
-            "weight": 0.1267,
-            "weighted_contribution": -0.006753,
-            "share_pct": 3.21
+            "weight": 0.0909,
+            "weighted_contribution": -0.004845,
+            "share_pct": 1.98
           },
           {
             "model_id": "aegis.trend.v1",
             "label": "Trend",
             "raw_score": -0.1033,
-            "weight": 0.1198,
-            "weighted_contribution": -0.012375,
-            "share_pct": 5.87
+            "weight": 0.0909,
+            "weighted_contribution": -0.00939,
+            "share_pct": 3.83
           }
         ],
         "dominant_driver": {
-          "label": "Event",
-          "contribution": 0.046582
+          "label": "Value",
+          "contribution": 0.059976
         },
         "opposition": {
           "label": "Trend",
-          "contribution": -0.012375
+          "contribution": -0.00939
         },
-        "sector_engine_contribution_pct": 19.32,
-        "total_positive": 0.1903,
-        "total_negative": -0.0204
+        "sector_engine_contribution_pct": 11.12,
+        "total_positive": 0.2302,
+        "total_negative": -0.0151
       }
     },
     {
@@ -1127,6 +1167,15 @@
       "oc_next_best_score": 65.675,
       "oc_expected_alpha_delta": 8.265,
       "oc_reason_not_to_rotate": "opportunity_cost_high · TRV score 65.675 vs hold 57.41 (edge 8.2650 > rotate threshold 0.25) — recommend Capital Rotation review",
+      "entry_exit": {
+        "entry_zone": {
+          "current": 202.81,
+          "note": "hold — no entry"
+        },
+        "if_holding": null,
+        "entry": null,
+        "exit_reason": "no active exit trigger — HOLD position"
+      },
       "investor_action": {
         "entry": "WAIT",
         "if_holding": "HOLD",
@@ -1173,8 +1222,8 @@
       "lifecycle_state": {
         "current_state": "HOLD",
         "previous_state": "HOLD",
-        "ts_last_transition": "2026-07-29T04:30:05.622481+00:00",
-        "n_events": 3
+        "ts_last_transition": "2026-07-29T06:05:22.014595+00:00",
+        "n_events": 12
       },
       "evolution": {
         "is_new": true,
@@ -1201,47 +1250,47 @@
             "model_id": "aegis.quality.v1",
             "label": "Quality",
             "raw_score": 0.8957,
-            "weight": 0.1345,
-            "weighted_contribution": 0.120472,
-            "share_pct": 34.81
-          },
-          {
-            "model_id": "aegis.mean_reversion.v1",
-            "label": "MeanReversion",
-            "raw_score": 0.5867,
-            "weight": 0.1267,
-            "weighted_contribution": 0.074335,
-            "share_pct": 21.48
+            "weight": 0.0909,
+            "weighted_contribution": 0.081419,
+            "share_pct": 24.54
           },
           {
             "model_id": "aegis.growth.v1",
             "label": "Growth",
             "raw_score": 0.8254,
-            "weight": 0.0508,
-            "weighted_contribution": 0.04193,
-            "share_pct": 12.12
+            "weight": 0.0909,
+            "weighted_contribution": 0.075029,
+            "share_pct": 22.62
+          },
+          {
+            "model_id": "aegis.mean_reversion.v1",
+            "label": "MeanReversion",
+            "raw_score": 0.5867,
+            "weight": 0.0909,
+            "weighted_contribution": 0.053331,
+            "share_pct": 16.08
           },
           {
             "model_id": "aegis.ai_hybrid.v1",
             "label": "AI-Hybrid",
             "raw_score": 0.2013,
-            "weight": 0.0508,
-            "weighted_contribution": 0.010226,
-            "share_pct": 2.95
+            "weight": 0.0909,
+            "weighted_contribution": 0.018298,
+            "share_pct": 5.52
           },
           {
             "model_id": "aegis.news.v1",
             "label": "News",
             "raw_score": 0.0033,
-            "weight": 0.0508,
-            "weighted_contribution": 0.000168,
-            "share_pct": 0.05
+            "weight": 0.0909,
+            "weighted_contribution": 0.0003,
+            "share_pct": 0.09
           },
           {
             "model_id": "aegis.macro.v1",
             "label": "Macro",
             "raw_score": 0.0,
-            "weight": 0.0508,
+            "weight": 0.0909,
             "weighted_contribution": 0.0,
             "share_pct": 0.0
           },
@@ -1249,54 +1298,54 @@
             "model_id": "aegis.sector_rotation.v1",
             "label": "Sector",
             "raw_score": -0.1,
-            "weight": 0.1357,
-            "weighted_contribution": -0.01357,
-            "share_pct": 3.92
+            "weight": 0.0909,
+            "weighted_contribution": -0.00909,
+            "share_pct": 2.74
           },
           {
             "model_id": "aegis.event_driven.v1",
             "label": "Event",
             "raw_score": -0.1448,
-            "weight": 0.1185,
-            "weighted_contribution": -0.017159,
-            "share_pct": 4.96
-          },
-          {
-            "model_id": "aegis.momentum.v1",
-            "label": "Momentum",
-            "raw_score": -0.1833,
-            "weight": 0.1105,
-            "weighted_contribution": -0.020255,
-            "share_pct": 5.85
+            "weight": 0.0909,
+            "weighted_contribution": -0.013162,
+            "share_pct": 3.97
           },
           {
             "model_id": "aegis.trend.v1",
             "label": "Trend",
             "raw_score": -0.1733,
-            "weight": 0.1198,
-            "weighted_contribution": -0.020761,
-            "share_pct": 6.0
+            "weight": 0.0909,
+            "weighted_contribution": -0.015753,
+            "share_pct": 4.75
+          },
+          {
+            "model_id": "aegis.momentum.v1",
+            "label": "Momentum",
+            "raw_score": -0.1833,
+            "weight": 0.0909,
+            "weighted_contribution": -0.016662,
+            "share_pct": 5.02
           },
           {
             "model_id": "aegis.value.v1",
             "label": "Value",
             "raw_score": -0.5356,
-            "weight": 0.0508,
-            "weighted_contribution": -0.027208,
-            "share_pct": 7.86
+            "weight": 0.0909,
+            "weighted_contribution": -0.048686,
+            "share_pct": 14.68
           }
         ],
         "dominant_driver": {
           "label": "Quality",
-          "contribution": 0.120472
+          "contribution": 0.081419
         },
         "opposition": {
           "label": "Value",
-          "contribution": -0.027208
+          "contribution": -0.048686
         },
-        "sector_engine_contribution_pct": 3.92,
-        "total_positive": 0.2471,
-        "total_negative": -0.099
+        "sector_engine_contribution_pct": 2.74,
+        "total_positive": 0.2284,
+        "total_negative": -0.1034
       }
     },
     {
@@ -1376,6 +1425,15 @@
       "oc_next_best_score": 65.675,
       "oc_expected_alpha_delta": 9.245,
       "oc_reason_not_to_rotate": "opportunity_cost_high · TRV score 65.675 vs hold 56.43 (edge 9.2450 > rotate threshold 0.25) — recommend Capital Rotation review",
+      "entry_exit": {
+        "entry_zone": {
+          "current": 341.1,
+          "note": "hold — no entry"
+        },
+        "if_holding": null,
+        "entry": null,
+        "exit_reason": "no active exit trigger — HOLD position"
+      },
       "investor_action": {
         "entry": "WAIT",
         "if_holding": "HOLD",
@@ -1421,8 +1479,8 @@
       "lifecycle_state": {
         "current_state": "HOLD",
         "previous_state": "HOLD",
-        "ts_last_transition": "2026-07-29T04:30:05.622481+00:00",
-        "n_events": 3
+        "ts_last_transition": "2026-07-29T06:05:22.014595+00:00",
+        "n_events": 12
       },
       "evolution": {
         "is_new": true,
@@ -1446,74 +1504,74 @@
       "attribution": {
         "per_model": [
           {
+            "model_id": "aegis.value.v1",
+            "label": "Value",
+            "raw_score": 0.7692,
+            "weight": 0.0909,
+            "weighted_contribution": 0.06992,
+            "share_pct": 30.4
+          },
+          {
             "model_id": "aegis.trend.v1",
             "label": "Trend",
             "raw_score": 0.3433,
-            "weight": 0.1198,
-            "weighted_contribution": 0.041127,
-            "share_pct": 17.02
+            "weight": 0.0909,
+            "weighted_contribution": 0.031206,
+            "share_pct": 13.57
           },
           {
             "model_id": "aegis.sector_rotation.v1",
             "label": "Sector",
             "raw_score": 0.3,
-            "weight": 0.1357,
-            "weighted_contribution": 0.04071,
-            "share_pct": 16.85
-          },
-          {
-            "model_id": "aegis.value.v1",
-            "label": "Value",
-            "raw_score": 0.7692,
-            "weight": 0.0508,
-            "weighted_contribution": 0.039075,
-            "share_pct": 16.17
+            "weight": 0.0909,
+            "weighted_contribution": 0.02727,
+            "share_pct": 11.86
           },
           {
             "model_id": "aegis.momentum.v1",
             "label": "Momentum",
             "raw_score": 0.2367,
-            "weight": 0.1105,
-            "weighted_contribution": 0.026155,
-            "share_pct": 10.82
+            "weight": 0.0909,
+            "weighted_contribution": 0.021516,
+            "share_pct": 9.36
           },
           {
             "model_id": "aegis.quality.v1",
             "label": "Quality",
             "raw_score": 0.1914,
-            "weight": 0.1345,
-            "weighted_contribution": 0.025743,
-            "share_pct": 10.65
+            "weight": 0.0909,
+            "weighted_contribution": 0.017398,
+            "share_pct": 7.57
           },
           {
             "model_id": "aegis.ai_hybrid.v1",
             "label": "AI-Hybrid",
             "raw_score": 0.1657,
-            "weight": 0.0508,
-            "weighted_contribution": 0.008418,
-            "share_pct": 3.48
+            "weight": 0.0909,
+            "weighted_contribution": 0.015062,
+            "share_pct": 6.55
           },
           {
             "model_id": "aegis.growth.v1",
             "label": "Growth",
             "raw_score": 0.073,
-            "weight": 0.0508,
-            "weighted_contribution": 0.003708,
-            "share_pct": 1.53
+            "weight": 0.0909,
+            "weighted_contribution": 0.006636,
+            "share_pct": 2.89
           },
           {
             "model_id": "aegis.news.v1",
             "label": "News",
             "raw_score": 0.0033,
-            "weight": 0.0508,
-            "weighted_contribution": 0.000168,
-            "share_pct": 0.07
+            "weight": 0.0909,
+            "weighted_contribution": 0.0003,
+            "share_pct": 0.13
           },
           {
             "model_id": "aegis.macro.v1",
             "label": "Macro",
             "raw_score": 0.0,
-            "weight": 0.0508,
+            "weight": 0.0909,
             "weighted_contribution": 0.0,
             "share_pct": 0.0
           },
@@ -1521,30 +1579,30 @@
             "model_id": "aegis.event_driven.v1",
             "label": "Event",
             "raw_score": -0.0207,
-            "weight": 0.1185,
-            "weighted_contribution": -0.002453,
-            "share_pct": 1.02
+            "weight": 0.0909,
+            "weighted_contribution": -0.001882,
+            "share_pct": 0.82
           },
           {
             "model_id": "aegis.mean_reversion.v1",
             "label": "MeanReversion",
             "raw_score": -0.4267,
-            "weight": 0.1267,
-            "weighted_contribution": -0.054063,
-            "share_pct": 22.38
+            "weight": 0.0909,
+            "weighted_contribution": -0.038787,
+            "share_pct": 16.87
           }
         ],
         "dominant_driver": {
-          "label": "Trend",
-          "contribution": 0.041127
+          "label": "Value",
+          "contribution": 0.06992
         },
         "opposition": {
           "label": "MeanReversion",
-          "contribution": -0.054063
+          "contribution": -0.038787
         },
-        "sector_engine_contribution_pct": 16.85,
-        "total_positive": 0.1851,
-        "total_negative": -0.0565
+        "sector_engine_contribution_pct": 11.86,
+        "total_positive": 0.1893,
+        "total_negative": -0.0407
       }
     },
     {
@@ -1626,6 +1684,15 @@
       "oc_next_best_score": 65.675,
       "oc_expected_alpha_delta": 9.72,
       "oc_reason_not_to_rotate": "opportunity_cost_high · TRV score 65.675 vs hold 55.955 (edge 9.7200 > rotate threshold 0.25) — recommend Capital Rotation review",
+      "entry_exit": {
+        "entry_zone": {
+          "current": 333.74,
+          "note": "hold — no entry"
+        },
+        "if_holding": null,
+        "entry": null,
+        "exit_reason": "no active exit trigger — HOLD position"
+      },
       "investor_action": {
         "entry": "WAIT",
         "if_holding": "HOLD",
@@ -1676,8 +1743,8 @@
       "lifecycle_state": {
         "current_state": "HOLD",
         "previous_state": "HOLD",
-        "ts_last_transition": "2026-07-29T04:30:05.622481+00:00",
-        "n_events": 3
+        "ts_last_transition": "2026-07-29T06:05:22.014595+00:00",
+        "n_events": 12
       },
       "evolution": {
         "is_new": true,
@@ -1701,66 +1768,66 @@
       "attribution": {
         "per_model": [
           {
-            "model_id": "aegis.quality.v1",
-            "label": "Quality",
-            "raw_score": 0.5052,
-            "weight": 0.1345,
-            "weighted_contribution": 0.067949,
-            "share_pct": 22.4
-          },
-          {
             "model_id": "aegis.trend.v1",
             "label": "Trend",
             "raw_score": 0.5467,
-            "weight": 0.1198,
-            "weighted_contribution": 0.065495,
-            "share_pct": 21.59
+            "weight": 0.0909,
+            "weighted_contribution": 0.049695,
+            "share_pct": 16.88
+          },
+          {
+            "model_id": "aegis.quality.v1",
+            "label": "Quality",
+            "raw_score": 0.5052,
+            "weight": 0.0909,
+            "weighted_contribution": 0.045923,
+            "share_pct": 15.6
           },
           {
             "model_id": "aegis.momentum.v1",
             "label": "Momentum",
             "raw_score": 0.44,
-            "weight": 0.1105,
-            "weighted_contribution": 0.04862,
-            "share_pct": 16.03
+            "weight": 0.0909,
+            "weighted_contribution": 0.039996,
+            "share_pct": 13.58
           },
           {
             "model_id": "aegis.growth.v1",
             "label": "Growth",
             "raw_score": 0.3492,
-            "weight": 0.0508,
-            "weighted_contribution": 0.017739,
-            "share_pct": 5.85
+            "weight": 0.0909,
+            "weighted_contribution": 0.031742,
+            "share_pct": 10.78
           },
           {
             "model_id": "aegis.ai_hybrid.v1",
             "label": "AI-Hybrid",
             "raw_score": 0.1217,
-            "weight": 0.0508,
-            "weighted_contribution": 0.006182,
-            "share_pct": 2.04
+            "weight": 0.0909,
+            "weighted_contribution": 0.011063,
+            "share_pct": 3.76
           },
           {
             "model_id": "aegis.mean_reversion.v1",
             "label": "MeanReversion",
             "raw_score": 0.04,
-            "weight": 0.1267,
-            "weighted_contribution": 0.005068,
-            "share_pct": 1.67
+            "weight": 0.0909,
+            "weighted_contribution": 0.003636,
+            "share_pct": 1.23
           },
           {
             "model_id": "aegis.news.v1",
             "label": "News",
             "raw_score": 0.0033,
-            "weight": 0.0508,
-            "weighted_contribution": 0.000168,
-            "share_pct": 0.06
+            "weight": 0.0909,
+            "weighted_contribution": 0.0003,
+            "share_pct": 0.1
           },
           {
             "model_id": "aegis.macro.v1",
             "label": "Macro",
             "raw_score": 0.0,
-            "weight": 0.0508,
+            "weight": 0.0909,
             "weighted_contribution": 0.0,
             "share_pct": 0.0
           },
@@ -1768,38 +1835,38 @@
             "model_id": "aegis.sector_rotation.v1",
             "label": "Sector",
             "raw_score": -0.1,
-            "weight": 0.1357,
-            "weighted_contribution": -0.01357,
-            "share_pct": 4.47
+            "weight": 0.0909,
+            "weighted_contribution": -0.00909,
+            "share_pct": 3.09
           },
           {
             "model_id": "aegis.event_driven.v1",
             "label": "Event",
             "raw_score": -0.3103,
-            "weight": 0.1185,
-            "weighted_contribution": -0.036771,
-            "share_pct": 12.12
+            "weight": 0.0909,
+            "weighted_contribution": -0.028206,
+            "share_pct": 9.58
           },
           {
             "model_id": "aegis.value.v1",
             "label": "Value",
             "raw_score": -0.8225,
-            "weight": 0.0508,
-            "weighted_contribution": -0.041783,
-            "share_pct": 13.77
+            "weight": 0.0909,
+            "weighted_contribution": -0.074765,
+            "share_pct": 25.39
           }
         ],
         "dominant_driver": {
-          "label": "Quality",
-          "contribution": 0.067949
+          "label": "Trend",
+          "contribution": 0.049695
         },
         "opposition": {
           "label": "Value",
-          "contribution": -0.041783
+          "contribution": -0.074765
         },
-        "sector_engine_contribution_pct": 4.47,
-        "total_positive": 0.2112,
-        "total_negative": -0.0921
+        "sector_engine_contribution_pct": 3.09,
+        "total_positive": 0.1824,
+        "total_negative": -0.1121
       }
     },
     {
@@ -1881,6 +1948,15 @@
       "oc_next_best_score": 65.675,
       "oc_expected_alpha_delta": 11.355,
       "oc_reason_not_to_rotate": "opportunity_cost_high · TRV score 65.675 vs hold 54.32 (edge 11.3550 > rotate threshold 0.25) — recommend Capital Rotation review",
+      "entry_exit": {
+        "entry_zone": {
+          "current": 81.56,
+          "note": "hold — no entry"
+        },
+        "if_holding": null,
+        "entry": null,
+        "exit_reason": "no active exit trigger — HOLD position"
+      },
       "investor_action": {
         "entry": "WAIT",
         "if_holding": "HOLD",
@@ -1929,8 +2005,8 @@
       "lifecycle_state": {
         "current_state": "HOLD",
         "previous_state": "HOLD",
-        "ts_last_transition": "2026-07-29T04:30:05.622481+00:00",
-        "n_events": 3
+        "ts_last_transition": "2026-07-29T06:05:22.014595+00:00",
+        "n_events": 12
       },
       "evolution": {
         "is_new": true,
@@ -1957,63 +2033,63 @@
             "model_id": "aegis.quality.v1",
             "label": "Quality",
             "raw_score": 0.4043,
-            "weight": 0.1345,
-            "weighted_contribution": 0.054378,
-            "share_pct": 38.25
+            "weight": 0.0909,
+            "weighted_contribution": 0.036751,
+            "share_pct": 26.75
           },
           {
             "model_id": "aegis.trend.v1",
             "label": "Trend",
             "raw_score": 0.27,
-            "weight": 0.1198,
-            "weighted_contribution": 0.032346,
-            "share_pct": 22.75
+            "weight": 0.0909,
+            "weighted_contribution": 0.024543,
+            "share_pct": 17.86
           },
           {
             "model_id": "aegis.mean_reversion.v1",
             "label": "MeanReversion",
             "raw_score": 0.1333,
-            "weight": 0.1267,
-            "weighted_contribution": 0.016889,
-            "share_pct": 11.88
+            "weight": 0.0909,
+            "weighted_contribution": 0.012117,
+            "share_pct": 8.82
           },
           {
             "model_id": "aegis.ai_hybrid.v1",
             "label": "AI-Hybrid",
             "raw_score": 0.0788,
-            "weight": 0.0508,
-            "weighted_contribution": 0.004003,
-            "share_pct": 2.82
-          },
-          {
-            "model_id": "aegis.momentum.v1",
-            "label": "Momentum",
-            "raw_score": 0.0233,
-            "weight": 0.1105,
-            "weighted_contribution": 0.002575,
-            "share_pct": 1.81
-          },
-          {
-            "model_id": "aegis.event_driven.v1",
-            "label": "Event",
-            "raw_score": 0.0207,
-            "weight": 0.1185,
-            "weighted_contribution": 0.002453,
-            "share_pct": 1.73
+            "weight": 0.0909,
+            "weighted_contribution": 0.007163,
+            "share_pct": 5.21
           },
           {
             "model_id": "aegis.growth.v1",
             "label": "Growth",
             "raw_score": 0.0317,
-            "weight": 0.0508,
-            "weighted_contribution": 0.00161,
-            "share_pct": 1.13
+            "weight": 0.0909,
+            "weighted_contribution": 0.002882,
+            "share_pct": 2.1
+          },
+          {
+            "model_id": "aegis.momentum.v1",
+            "label": "Momentum",
+            "raw_score": 0.0233,
+            "weight": 0.0909,
+            "weighted_contribution": 0.002118,
+            "share_pct": 1.54
+          },
+          {
+            "model_id": "aegis.event_driven.v1",
+            "label": "Event",
+            "raw_score": 0.0207,
+            "weight": 0.0909,
+            "weighted_contribution": 0.001882,
+            "share_pct": 1.37
           },
           {
             "model_id": "aegis.macro.v1",
             "label": "Macro",
             "raw_score": 0.0,
-            "weight": 0.0508,
+            "weight": 0.0909,
             "weighted_contribution": 0.0,
             "share_pct": 0.0
           },
@@ -2021,7 +2097,7 @@
             "model_id": "aegis.sector_rotation.v1",
             "label": "Sector",
             "raw_score": 0.0,
-            "weight": 0.1357,
+            "weight": 0.0909,
             "weighted_contribution": 0.0,
             "share_pct": 0.0
           },
@@ -2029,30 +2105,30 @@
             "model_id": "aegis.value.v1",
             "label": "Value",
             "raw_score": -0.1126,
-            "weight": 0.0508,
-            "weighted_contribution": -0.00572,
-            "share_pct": 4.02
+            "weight": 0.0909,
+            "weighted_contribution": -0.010235,
+            "share_pct": 7.45
           },
           {
             "model_id": "aegis.news.v1",
             "label": "News",
             "raw_score": -0.4367,
-            "weight": 0.0508,
-            "weighted_contribution": -0.022184,
-            "share_pct": 15.61
+            "weight": 0.0909,
+            "weighted_contribution": -0.039696,
+            "share_pct": 28.89
           }
         ],
         "dominant_driver": {
           "label": "Quality",
-          "contribution": 0.054378
+          "contribution": 0.036751
         },
         "opposition": {
           "label": "News",
-          "contribution": -0.022184
+          "contribution": -0.039696
         },
         "sector_engine_contribution_pct": 0.0,
-        "total_positive": 0.1143,
-        "total_negative": -0.0279
+        "total_positive": 0.0875,
+        "total_negative": -0.0499
       }
     },
     {
@@ -2132,6 +2208,15 @@
       "oc_next_best_score": 65.675,
       "oc_expected_alpha_delta": 12.14,
       "oc_reason_not_to_rotate": "opportunity_cost_high · TRV score 65.675 vs hold 53.535 (edge 12.1400 > rotate threshold 0.25) — recommend Capital Rotation review",
+      "entry_exit": {
+        "entry_zone": {
+          "current": 355.35,
+          "note": "hold — no entry"
+        },
+        "if_holding": null,
+        "entry": null,
+        "exit_reason": "no active exit trigger — HOLD position"
+      },
       "investor_action": {
         "entry": "WAIT",
         "if_holding": "HOLD",
@@ -2179,8 +2264,8 @@
       "lifecycle_state": {
         "current_state": "HOLD",
         "previous_state": "HOLD",
-        "ts_last_transition": "2026-07-29T04:30:05.622481+00:00",
-        "n_events": 3
+        "ts_last_transition": "2026-07-29T06:05:22.014595+00:00",
+        "n_events": 12
       },
       "evolution": {
         "is_new": true,
@@ -2207,55 +2292,55 @@
             "model_id": "aegis.trend.v1",
             "label": "Trend",
             "raw_score": 0.59,
-            "weight": 0.1198,
-            "weighted_contribution": 0.070682,
-            "share_pct": 28.97
+            "weight": 0.0909,
+            "weighted_contribution": 0.053631,
+            "share_pct": 26.95
           },
           {
             "model_id": "aegis.sector_rotation.v1",
             "label": "Sector",
             "raw_score": 0.3,
-            "weight": 0.1357,
-            "weighted_contribution": 0.04071,
-            "share_pct": 16.69
+            "weight": 0.0909,
+            "weighted_contribution": 0.02727,
+            "share_pct": 13.7
           },
           {
             "model_id": "aegis.momentum.v1",
             "label": "Momentum",
             "raw_score": 0.2733,
-            "weight": 0.1105,
-            "weighted_contribution": 0.0302,
-            "share_pct": 12.38
+            "weight": 0.0909,
+            "weighted_contribution": 0.024843,
+            "share_pct": 12.48
           },
           {
             "model_id": "aegis.value.v1",
             "label": "Value",
             "raw_score": 0.2543,
-            "weight": 0.0508,
-            "weighted_contribution": 0.012918,
-            "share_pct": 5.3
+            "weight": 0.0909,
+            "weighted_contribution": 0.023116,
+            "share_pct": 11.62
           },
           {
             "model_id": "aegis.ai_hybrid.v1",
             "label": "AI-Hybrid",
             "raw_score": 0.0523,
-            "weight": 0.0508,
-            "weighted_contribution": 0.002657,
-            "share_pct": 1.09
+            "weight": 0.0909,
+            "weighted_contribution": 0.004754,
+            "share_pct": 2.39
           },
           {
             "model_id": "aegis.news.v1",
             "label": "News",
             "raw_score": 0.0033,
-            "weight": 0.0508,
-            "weighted_contribution": 0.000168,
-            "share_pct": 0.07
+            "weight": 0.0909,
+            "weighted_contribution": 0.0003,
+            "share_pct": 0.15
           },
           {
             "model_id": "aegis.macro.v1",
             "label": "Macro",
             "raw_score": 0.0,
-            "weight": 0.0508,
+            "weight": 0.0909,
             "weighted_contribution": 0.0,
             "share_pct": 0.0
           },
@@ -2263,7 +2348,7 @@
             "model_id": "aegis.event_driven.v1",
             "label": "Event",
             "raw_score": 0.0,
-            "weight": 0.1185,
+            "weight": 0.0909,
             "weighted_contribution": 0.0,
             "share_pct": 0.0
           },
@@ -2271,38 +2356,38 @@
             "model_id": "aegis.growth.v1",
             "label": "Growth",
             "raw_score": -0.0698,
-            "weight": 0.0508,
-            "weighted_contribution": -0.003546,
-            "share_pct": 1.45
+            "weight": 0.0909,
+            "weighted_contribution": -0.006345,
+            "share_pct": 3.19
           },
           {
             "model_id": "aegis.quality.v1",
             "label": "Quality",
             "raw_score": -0.1529,
-            "weight": 0.1345,
-            "weighted_contribution": -0.020565,
-            "share_pct": 8.43
+            "weight": 0.0909,
+            "weighted_contribution": -0.013899,
+            "share_pct": 6.98
           },
           {
             "model_id": "aegis.mean_reversion.v1",
             "label": "MeanReversion",
             "raw_score": -0.4933,
-            "weight": 0.1267,
-            "weighted_contribution": -0.062501,
-            "share_pct": 25.62
+            "weight": 0.0909,
+            "weighted_contribution": -0.044841,
+            "share_pct": 22.53
           }
         ],
         "dominant_driver": {
           "label": "Trend",
-          "contribution": 0.070682
+          "contribution": 0.053631
         },
         "opposition": {
           "label": "MeanReversion",
-          "contribution": -0.062501
+          "contribution": -0.044841
         },
-        "sector_engine_contribution_pct": 16.69,
-        "total_positive": 0.1573,
-        "total_negative": -0.0866
+        "sector_engine_contribution_pct": 13.7,
+        "total_positive": 0.1339,
+        "total_negative": -0.0651
       }
     },
     {
@@ -2382,6 +2467,15 @@
       "oc_next_best_score": 65.675,
       "oc_expected_alpha_delta": 12.175,
       "oc_reason_not_to_rotate": "opportunity_cost_high · TRV score 65.675 vs hold 53.5 (edge 12.1750 > rotate threshold 0.25) — recommend Capital Rotation review",
+      "entry_exit": {
+        "entry_zone": {
+          "current": 43.76,
+          "note": "hold — no entry"
+        },
+        "if_holding": null,
+        "entry": null,
+        "exit_reason": "no active exit trigger — HOLD position"
+      },
       "investor_action": {
         "entry": "WAIT",
         "if_holding": "HOLD",
@@ -2427,8 +2521,8 @@
       "lifecycle_state": {
         "current_state": "HOLD",
         "previous_state": "HOLD",
-        "ts_last_transition": "2026-07-29T04:30:05.622481+00:00",
-        "n_events": 3
+        "ts_last_transition": "2026-07-29T06:05:22.014595+00:00",
+        "n_events": 12
       },
       "evolution": {
         "is_new": true,
@@ -2455,47 +2549,47 @@
             "model_id": "aegis.event_driven.v1",
             "label": "Event",
             "raw_score": 0.5586,
-            "weight": 0.1185,
-            "weighted_contribution": 0.066194,
-            "share_pct": 23.97
-          },
-          {
-            "model_id": "aegis.mean_reversion.v1",
-            "label": "MeanReversion",
-            "raw_score": 0.4133,
-            "weight": 0.1267,
-            "weighted_contribution": 0.052365,
-            "share_pct": 18.96
+            "weight": 0.0909,
+            "weighted_contribution": 0.050777,
+            "share_pct": 18.24
           },
           {
             "model_id": "aegis.growth.v1",
             "label": "Growth",
             "raw_score": 0.4857,
-            "weight": 0.0508,
-            "weighted_contribution": 0.024674,
-            "share_pct": 8.94
+            "weight": 0.0909,
+            "weighted_contribution": 0.04415,
+            "share_pct": 15.86
           },
           {
             "model_id": "aegis.value.v1",
             "label": "Value",
             "raw_score": 0.4556,
-            "weight": 0.0508,
-            "weighted_contribution": 0.023144,
-            "share_pct": 8.38
+            "weight": 0.0909,
+            "weighted_contribution": 0.041414,
+            "share_pct": 14.88
+          },
+          {
+            "model_id": "aegis.mean_reversion.v1",
+            "label": "MeanReversion",
+            "raw_score": 0.4133,
+            "weight": 0.0909,
+            "weighted_contribution": 0.037569,
+            "share_pct": 13.5
           },
           {
             "model_id": "aegis.ai_hybrid.v1",
             "label": "AI-Hybrid",
             "raw_score": 0.1318,
-            "weight": 0.0508,
-            "weighted_contribution": 0.006695,
-            "share_pct": 2.42
+            "weight": 0.0909,
+            "weighted_contribution": 0.011981,
+            "share_pct": 4.3
           },
           {
             "model_id": "aegis.macro.v1",
             "label": "Macro",
             "raw_score": 0.0,
-            "weight": 0.0508,
+            "weight": 0.0909,
             "weighted_contribution": 0.0,
             "share_pct": 0.0
           },
@@ -2503,54 +2597,54 @@
             "model_id": "aegis.sector_rotation.v1",
             "label": "Sector",
             "raw_score": -0.1,
-            "weight": 0.1357,
-            "weighted_contribution": -0.01357,
-            "share_pct": 4.91
-          },
-          {
-            "model_id": "aegis.news.v1",
-            "label": "News",
-            "raw_score": -0.3167,
-            "weight": 0.0508,
-            "weighted_contribution": -0.016088,
-            "share_pct": 5.83
+            "weight": 0.0909,
+            "weighted_contribution": -0.00909,
+            "share_pct": 3.27
           },
           {
             "model_id": "aegis.momentum.v1",
             "label": "Momentum",
             "raw_score": -0.1533,
-            "weight": 0.1105,
-            "weighted_contribution": -0.01694,
-            "share_pct": 6.13
+            "weight": 0.0909,
+            "weighted_contribution": -0.013935,
+            "share_pct": 5.01
           },
           {
             "model_id": "aegis.quality.v1",
             "label": "Quality",
             "raw_score": -0.1971,
-            "weight": 0.1345,
-            "weighted_contribution": -0.02651,
-            "share_pct": 9.6
+            "weight": 0.0909,
+            "weighted_contribution": -0.017916,
+            "share_pct": 6.44
           },
           {
             "model_id": "aegis.trend.v1",
             "label": "Trend",
             "raw_score": -0.25,
-            "weight": 0.1198,
-            "weighted_contribution": -0.02995,
-            "share_pct": 10.85
+            "weight": 0.0909,
+            "weighted_contribution": -0.022725,
+            "share_pct": 8.16
+          },
+          {
+            "model_id": "aegis.news.v1",
+            "label": "News",
+            "raw_score": -0.3167,
+            "weight": 0.0909,
+            "weighted_contribution": -0.028788,
+            "share_pct": 10.34
           }
         ],
         "dominant_driver": {
           "label": "Event",
-          "contribution": 0.066194
+          "contribution": 0.050777
         },
         "opposition": {
-          "label": "Trend",
-          "contribution": -0.02995
+          "label": "News",
+          "contribution": -0.028788
         },
-        "sector_engine_contribution_pct": 4.91,
-        "total_positive": 0.1731,
-        "total_negative": -0.1031
+        "sector_engine_contribution_pct": 3.27,
+        "total_positive": 0.1859,
+        "total_negative": -0.0925
       }
     },
     {
@@ -2619,6 +2713,15 @@
       "oc_next_best_score": 65.675,
       "oc_expected_alpha_delta": 18.945,
       "oc_reason_not_to_rotate": "opportunity_cost_high · TRV score 65.675 vs hold 46.73 (edge 18.9450 > rotate threshold 0.25) — recommend Capital Rotation review",
+      "entry_exit": {
+        "entry_zone": {
+          "current": 111.94,
+          "note": "hold — no entry"
+        },
+        "if_holding": null,
+        "entry": null,
+        "exit_reason": "no active exit trigger — HOLD position"
+      },
       "investor_action": {
         "entry": "WAIT",
         "if_holding": "HOLD",
@@ -2665,8 +2768,8 @@
       "lifecycle_state": {
         "current_state": "HOLD",
         "previous_state": "HOLD",
-        "ts_last_transition": "2026-07-29T04:30:05.622481+00:00",
-        "n_events": 3
+        "ts_last_transition": "2026-07-29T06:05:22.014595+00:00",
+        "n_events": 12
       },
       "evolution": {
         "is_new": true,
@@ -2761,6 +2864,15 @@
       "oc_next_best_score": 65.675,
       "oc_expected_alpha_delta": 20.705,
       "oc_reason_not_to_rotate": "opportunity_cost_high · TRV score 65.675 vs hold 44.97 (edge 20.7050 > rotate threshold 0.25) — recommend Capital Rotation review",
+      "entry_exit": {
+        "entry_zone": {
+          "current": 95.04,
+          "note": "hold — no entry"
+        },
+        "if_holding": null,
+        "entry": null,
+        "exit_reason": "no active exit trigger — HOLD position"
+      },
       "investor_action": {
         "entry": "WAIT",
         "if_holding": "HOLD",
@@ -2809,8 +2921,8 @@
       "lifecycle_state": {
         "current_state": "HOLD",
         "previous_state": "HOLD",
-        "ts_last_transition": "2026-07-29T04:30:05.622481+00:00",
-        "n_events": 3
+        "ts_last_transition": "2026-07-29T06:05:22.014595+00:00",
+        "n_events": 12
       },
       "evolution": {
         "is_new": true,
@@ -2907,6 +3019,15 @@
       "oc_next_best_score": 65.675,
       "oc_expected_alpha_delta": 23.795,
       "oc_reason_not_to_rotate": "opportunity_cost_high · TRV score 65.675 vs hold 41.88 (edge 23.7950 > rotate threshold 0.25) — recommend Capital Rotation review",
+      "entry_exit": {
+        "entry_zone": {
+          "current": 97.67,
+          "note": "hold — no entry"
+        },
+        "if_holding": null,
+        "entry": null,
+        "exit_reason": "no active exit trigger — HOLD position"
+      },
       "investor_action": {
         "entry": "WAIT",
         "if_holding": "HOLD",
@@ -2952,8 +3073,8 @@
       "lifecycle_state": {
         "current_state": "HOLD",
         "previous_state": "HOLD",
-        "ts_last_transition": "2026-07-29T04:30:05.622481+00:00",
-        "n_events": 3
+        "ts_last_transition": "2026-07-29T06:05:22.014595+00:00",
+        "n_events": 12
       },
       "evolution": {
         "is_new": true,
@@ -3048,6 +3169,15 @@
       "oc_next_best_score": 65.675,
       "oc_expected_alpha_delta": 23.87,
       "oc_reason_not_to_rotate": "opportunity_cost_high · TRV score 65.675 vs hold 41.805 (edge 23.8700 > rotate threshold 0.25) — recommend Capital Rotation review",
+      "entry_exit": {
+        "entry_zone": {
+          "current": 338.87,
+          "note": "hold — no entry"
+        },
+        "if_holding": null,
+        "entry": null,
+        "exit_reason": "no active exit trigger — HOLD position"
+      },
       "investor_action": {
         "entry": "WAIT",
         "if_holding": "HOLD",
@@ -3092,8 +3222,8 @@
       "lifecycle_state": {
         "current_state": "HOLD",
         "previous_state": "HOLD",
-        "ts_last_transition": "2026-07-29T04:30:05.622481+00:00",
-        "n_events": 3
+        "ts_last_transition": "2026-07-29T06:05:22.014595+00:00",
+        "n_events": 12
       },
       "evolution": {
         "is_new": true,
@@ -3190,6 +3320,15 @@
       "oc_next_best_score": 65.675,
       "oc_expected_alpha_delta": 24.065,
       "oc_reason_not_to_rotate": "opportunity_cost_high · TRV score 65.675 vs hold 41.61 (edge 24.0650 > rotate threshold 0.25) — recommend Capital Rotation review",
+      "entry_exit": {
+        "entry_zone": {
+          "current": 267.71,
+          "note": "hold — no entry"
+        },
+        "if_holding": null,
+        "entry": null,
+        "exit_reason": "no active exit trigger — HOLD position"
+      },
       "investor_action": {
         "entry": "WAIT",
         "if_holding": "HOLD",
@@ -3236,8 +3375,8 @@
       "lifecycle_state": {
         "current_state": "HOLD",
         "previous_state": "HOLD",
-        "ts_last_transition": "2026-07-29T04:30:05.622481+00:00",
-        "n_events": 3
+        "ts_last_transition": "2026-07-29T06:05:22.014595+00:00",
+        "n_events": 12
       },
       "evolution": {
         "is_new": true,
@@ -3297,19 +3436,20 @@
     "schema_fingerprint": "aegis.analytics.attribution.v1.20260729",
     "n_recs": 15,
     "dominant_drivers": {
-      "Trend": 4,
-      "Quality": 3,
-      "Event": 2,
-      "MeanReversion": 1
+      "Value": 3,
+      "Trend": 3,
+      "Quality": 2,
+      "MeanReversion": 1,
+      "Event": 1
     },
     "persistent_opposition": {
-      "MeanReversion": 4,
-      "Trend": 2,
-      "Value": 2,
+      "MeanReversion": 3,
+      "Value": 3,
+      "News": 2,
       "Momentum": 1,
-      "News": 1
+      "Trend": 1
     },
-    "avg_sector_share_pct": 8.5,
+    "avg_sector_share_pct": 5.9,
     "sector_engine_measurably_active": true
   }
 }

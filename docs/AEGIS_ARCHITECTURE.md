@@ -1,5 +1,17 @@
 # AEGIS — System Architecture (High-Level, for External Review)
 
+> **⚠ SUPERSEDED by [AEGIS_ARCHITECTURE_v2.4.md](AEGIS_ARCHITECTURE_v2.4.md)** (also published as
+> `AEGIS_ARCHITECTURE_v2.4.pdf`). The v2.4 doc reflects everything shipped through cycles 1-6 +
+> v2.4 trust surfaces (Backtrack, AI Scorecard, Sector Attribution, Command Center) and is
+> layman-friendly with 7 embedded diagrams. This original v1 document is preserved for git-history
+> reference — do not remove.
+>
+> Version history:
+> - **v2.4** (2026-07-29) — Backtrack + AI Scorecard + Sector Attribution + Command Center + full engine catalog
+> - **v2.3** (2026-07-29) — Snapshot persistence + CEO summary + Evolution
+> - **v2.0** (2026-07-18) — USA parallel deployment · dual-market
+> - **v1.0** (2026-07-18) — Initial architecture (India only) · this document
+
 > A risk-managed Indian-equity recommendation system. This document describes the **concepts and
 > architecture** at a level suitable for an independent expert to review and comment on. It deliberately
 > omits proprietary selection rules, thresholds, weightings, and configuration values. The intent is to

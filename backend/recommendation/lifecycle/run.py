@@ -86,11 +86,17 @@ def main() -> int:
     snap["market"] = args.market
     snap["applied"] = applied
     snap["skipped_illegal"] = skipped_illegal
-    # Schema-compat aliases · usa/scripts/usa_ops_check.py expects
-    # `n_total` + `by_ticker` (previous naming); we also keep the current
-    # `n_tickers` + `records` for consumers already on that shape.
+    # Schema-compat aliases · scripts/aegis_ops_check.py + usa_ops_check.py
+    # expect `n_total` + `by_ticker` + `by_state`. Provide alongside the
+    # current `n_tickers` + `records` shape.
     snap["n_total"] = snap.get("n_tickers", 0)
     snap["by_ticker"] = snap.get("records") or {}
+    # by_state = {state_name: count} across all tracked tickers
+    from collections import Counter
+    _states = Counter((rec.get("current_state") or "UNKNOWN")
+                       for rec in (snap.get("records") or {}).values()
+                       if isinstance(rec, dict))
+    snap["by_state"] = dict(_states)
     snap_path.write_text(json.dumps(snap, indent=2, default=str), encoding="utf-8")
 
     print(f"[lifecycle:{args.market}] applied={applied} illegal_skipped={skipped_illegal} "
