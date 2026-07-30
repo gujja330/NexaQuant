@@ -539,21 +539,25 @@ def _daily_change_summary(recs: Sequence[Mapping], market: str, max_rows: int = 
         lines.append(f"   All {len(fresh)} recs are fresh today (day 1 of snapshot tracking)")
         return lines
 
+    # Compact one-line-per-change format · saves ~30 chars per change vs
+    # the older multi-line block format. Still preserves all key deltas.
     for c in changes[:max_rows]:
-        t = _ticker_with_name(c["ticker"], market)
-        lines.append(f"   • *{t}*")
+        t = _short_ticker(c["ticker"])
+        parts = []
         if c["action_change"]:
-            lines.append(f"      Action: {c['action_change']}")
+            parts.append(f"{c['action_change']}")
         if c["rank_change"]:
             arrow = "↑" if c["rank_change"] < 0 else "↓"
-            lines.append(f"      Rank: {arrow}{abs(int(c['rank_change']))}")
+            parts.append(f"rank {arrow}{abs(int(c['rank_change']))}")
         if c["confidence_change"]:
-            lines.append(f"      Confidence: {c['confidence_change']:+.3f}")
+            parts.append(f"conf {c['confidence_change']:+.3f}")
         if c["allocation_change"]:
-            lines.append(f"      Weight: {c['allocation_change']:+.2f}%")
+            parts.append(f"wt {c['allocation_change']:+.1f}%")
+        detail = "  ·  ".join(parts) if parts else "—"
+        lines.append(f"   • *{t}*  ·  {detail}")
 
     if len(changes) > max_rows:
-        lines.append(f"   _...+{len(changes) - max_rows} more changes_")
+        lines.append(f"   _...+{len(changes) - max_rows} more_")
 
     if fresh:
         fresh_list = ", ".join(_short_ticker(t) for t in fresh[:5])
@@ -1324,11 +1328,19 @@ def render_intraday_platform_message(market: str,
     target = prog.get("window_days_target") or 90
     market_flag = "🇮🇳" if market == "india" else "🌐"
 
+    # Intraday-specific parameters (tighter than swing · session-scoped)
+    INTRADAY_STOP_PCT = 0.003    # -0.3% intraday stop (much tighter than swing -5%)
+    INTRADAY_T1_PCT   = 0.005    # +0.5% intraday T1
+    INTRADAY_T2_PCT   = 0.010    # +1.0% intraday T2 (stretch)
+
     lines: list[str] = [
         "⚡ *AEGIS INTRADAY · shadow evaluation*",
         f"{market_flag} {market.upper()}  ·  📅 Day *{day}* of {target}",
         SEPARATOR,
         "🏛 *Status:* DEFERRED as product · measurement only · no orders",
+        "🎯 *Session:* open → close  ·  ⏳ *Hold:* same-day (1 session)",
+        ("_📚 SHADOW UNIVERSE: reuses swing picks as measurement corpus._ "
+             "_No separate intraday-selection engine yet (would need vol/breakout ranker)._"),
     ]
 
     if market != "india":
@@ -1366,13 +1378,30 @@ def render_intraday_platform_message(market: str,
         for t, p in positions.items():
             entry = p.get("entry_price") or 0
             last = p.get("last_seen_price") or 0
+            high = p.get("high_water_price") or last
+            low = p.get("low_water_price") or last
             if entry <= 0:
                 continue
+            ret = (last / entry - 1.0) * 100
+            stop = entry * (1 - INTRADAY_STOP_PCT)
+            t1 = entry * (1 + INTRADAY_T1_PCT)
+            t2 = entry * (1 + INTRADAY_T2_PCT)
+            hit_t1 = high >= t1
+            hit_t2 = high >= t2
+            hit_stop = low <= stop
             rows.append({
                 "ticker":  t,
                 "entry":   entry,
                 "close":   last,
-                "ret_pct": (last / entry - 1.0) * 100,
+                "high":    high,
+                "low":     low,
+                "ret_pct": ret,
+                "stop":    stop,
+                "t1":      t1,
+                "t2":      t2,
+                "hit_t1":  hit_t1,
+                "hit_t2":  hit_t2,
+                "hit_stop": hit_stop,
             })
         rows.sort(key=lambda r: -r["ret_pct"])
         return rows
@@ -1380,67 +1409,60 @@ def render_intraday_platform_message(market: str,
     r1_rows = _stock_rows(r1_positions)
     r2_rows = _stock_rows(r2_positions)
 
-    # ── RUNNER 1 · per-stock intraday breakdown ──
-    lines += ["", f"🇮🇳 *RUNNER 1 · INTRADAY ({len(r1_rows)} stocks)*"]
-    if r1_rows:
-        winners = [r for r in r1_rows if r["ret_pct"] > 0]
-        losers = [r for r in r1_rows if r["ret_pct"] < 0]
-        lines.append(f"   📊 Return {r1h.get('total_return_pct', 0):+.2f}%  ·  "
-                        f"Win {(r1h.get('win_rate') or 0)*100:.0f}%  ·  "
-                        f"{len(winners)}W / {len(losers)}L")
+    def _emit_stock_lines(rows: list[dict], runner_label: str) -> None:
+        lines.append("")
+        lines.append(f"🇮🇳 *{runner_label} · INTRADAY ({len(rows)} stocks)*")
+        if not rows:
+            lines.append(f"   _no picks today · {runner_label} emitted no BUYs today_")
+            return
+        winners = [r for r in rows if r["ret_pct"] > 0]
+        losers = [r for r in rows if r["ret_pct"] < 0]
+        hit_t1 = sum(1 for r in rows if r["hit_t1"])
+        hit_t2 = sum(1 for r in rows if r["hit_t2"])
+        hit_stop = sum(1 for r in rows if r["hit_stop"])
+        # Aggregate line
+        lines.append(f"   📊 Return _{_mean_ret(rows):+.2f}%_  ·  "
+                        f"Win {len(winners)}/{len(rows)}  ·  "
+                        f"🏹 T1 hit {hit_t1}  ·  🎯🎯 T2 hit {hit_t2}  ·  "
+                        f"🛡 stop hit {hit_stop}")
         # Winners
         if winners:
             lines.append("   🟢 *WINNERS*")
             for r in winners:
-                short = _short_ticker(r["ticker"])
-                name = _company_name(r["ticker"], market)
-                nm = f" ({name})" if name else ""
-                lines.append(f"      🟢 *{short}*{nm}  ·  "
-                                f"{currency}{r['entry']:,.2f} → {currency}{r['close']:,.2f}  ·  "
-                                f"*{r['ret_pct']:+.2f}%*")
-        # Losers
+                _emit_stock(r, currency, market)
         if losers:
             lines.append("   🔴 *LOSERS*")
             for r in losers:
-                short = _short_ticker(r["ticker"])
-                name = _company_name(r["ticker"], market)
-                nm = f" ({name})" if name else ""
-                lines.append(f"      🔴 *{short}*{nm}  ·  "
-                                f"{currency}{r['entry']:,.2f} → {currency}{r['close']:,.2f}  ·  "
-                                f"*{r['ret_pct']:+.2f}%*")
-    else:
-        lines.append("   _no picks today_")
+                _emit_stock(r, currency, market)
 
-    # ── RUNNER 2 · per-stock intraday breakdown ──
-    lines += ["", f"🇮🇳 *RUNNER 2 · INTRADAY ({len(r2_rows)} stocks)*"]
-    if r2_rows:
-        winners = [r for r in r2_rows if r["ret_pct"] > 0]
-        losers = [r for r in r2_rows if r["ret_pct"] < 0]
-        lines.append(f"   📊 Return {r2h.get('total_return_pct', 0):+.2f}%  ·  "
-                        f"Win {(r2h.get('win_rate') or 0)*100:.0f}%  ·  "
-                        f"{len(winners)}W / {len(losers)}L")
-        if winners:
-            lines.append("   🟢 *WINNERS*")
-            for r in winners:
-                short = _short_ticker(r["ticker"])
-                name = _company_name(r["ticker"], market)
-                nm = f" ({name})" if name else ""
-                lines.append(f"      🟢 *{short}*{nm}  ·  "
-                                f"{currency}{r['entry']:,.2f} → {currency}{r['close']:,.2f}  ·  "
-                                f"*{r['ret_pct']:+.2f}%*")
-        if losers:
-            lines.append("   🔴 *LOSERS*")
-            for r in losers:
-                short = _short_ticker(r["ticker"])
-                name = _company_name(r["ticker"], market)
-                nm = f" ({name})" if name else ""
-                lines.append(f"      🔴 *{short}*{nm}  ·  "
-                                f"{currency}{r['entry']:,.2f} → {currency}{r['close']:,.2f}  ·  "
-                                f"*{r['ret_pct']:+.2f}%*")
-    else:
-        lines.append("   _no picks today · Runner 2 emitted no BUYs today_")
+    def _mean_ret(rows) -> float:
+        if not rows:
+            return 0.0
+        return sum(r["ret_pct"] for r in rows) / len(rows)
 
-    # ── Head-to-head aggregate + correlation footer ──
+    def _emit_stock(r: dict, currency: str, market: str) -> None:
+        short = _short_ticker(r["ticker"])
+        name = _company_name(r["ticker"], market)
+        nm = f" ({name})" if name else ""
+        # Line 1: ticker · open → close · intraday %
+        lines.append(f"      {'🟢' if r['ret_pct'] > 0 else '🔴'} *{short}*{nm}  ·  "
+                        f"{currency}{r['entry']:,.2f} → {currency}{r['close']:,.2f}  ·  "
+                        f"*{r['ret_pct']:+.2f}%*")
+        # Line 2: intra-session H/L
+        lines.append(f"         📈 H {currency}{r['high']:,.2f}  ·  "
+                        f"📉 L {currency}{r['low']:,.2f}")
+        # Line 3: session-scoped stop / T1 / T2 with hit markers
+        t1_mark = " ✅" if r["hit_t1"] else ""
+        t2_mark = " ✅" if r["hit_t2"] else ""
+        stop_mark = " ⚠️" if r["hit_stop"] else ""
+        lines.append(f"         🛡 Stop {currency}{r['stop']:,.2f}{stop_mark}  ·  "
+                        f"🎯 T1 {currency}{r['t1']:,.2f}{t1_mark}  ·  "
+                        f"🎯🎯 T2 {currency}{r['t2']:,.2f}{t2_mark}")
+
+    _emit_stock_lines(r1_rows, "RUNNER 1")
+    _emit_stock_lines(r2_rows, "RUNNER 2")
+
+    # ── Head-to-head aggregate ──
     dp = intra.get("daily_proxy") or {}
     dp_leader = dp.get("leader") or "TIE"
     dp_edge = dp.get("leader_edge_pct") or 0.0
@@ -1448,12 +1470,19 @@ def render_intraday_platform_message(market: str,
                  "🥇 *HEAD-TO-HEAD*",
                  f"   Leader: *{dp_leader}*  ·  Edge {dp_edge:+.2f}pp"]
 
+    # ── Historical intraday backtrack (per-year via correlation-lab data) ──
+    # Uses the pearson + sector-slice tests as the historical evidence panel.
     corr = corr_from_intraday or {}
     if corr and corr.get("pearson") is not None:
         pear = corr.get("pearson")
         n_levers = len(corr.get("top_refinement_levers") or [])
-        lines.append(f"   🔬 Intraday↔Delivery pearson {pear:+.3f}  ·  "
-                        f"{n_levers} refinement lever(s)")
+        interp = (corr.get("interpretation") or "")[:120]
+        lines += ["",
+                     "📚 *INTRADAY BACKTRACK · historical evidence*",
+                     f"   Corpus n_trades: {corr.get('n_trades', 0)}",
+                     f"   Pearson intraday↔swing: {pear:+.3f}",
+                     f"   🔬 {n_levers} refinement lever(s) surfaced (sector-scoped)",
+                     f"   _{interp}_"]
 
     lines += ["",
                  SEPARATOR,
@@ -1563,19 +1592,21 @@ def render_command_center_message(payload: Mapping, market: str,
         ("footer",            _integrity_footer(payload, market)),
     ]
 
+    # Reserve footer size upfront so we NEVER blow past budget on final render.
+    footer_lines = sections[-1][1]
+    footer_len = len("\n".join(footer_lines)) + 1 if footer_lines else 0
+    effective_budget = max(0, budget - footer_len)
+
     out: list[str] = []
     used = 0
-    for name, lines in sections:
+    for name, lines in sections[:-1]:      # everything except footer
         block = "\n".join(lines) + ("\n" if lines else "")
-        if used + len(block) > budget:
-            # Never truncate footer — it carries integrity info
-            if name == "footer":
-                out.extend(sections[-1][1])
-                break
-            # Otherwise drop the whole section rather than half-render
-            continue
+        if used + len(block) > effective_budget:
+            continue                         # drop this section entirely
         out.extend(lines)
         used += len(block)
+    # Footer always fits · pre-reserved above
+    out.extend(footer_lines)
 
     return "\n".join(out).strip()
 
