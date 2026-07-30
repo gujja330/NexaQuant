@@ -273,15 +273,23 @@ def _actionable_entries(recs: Sequence[Mapping], market: str,
         alloc = pp.get("suggested_allocation_pct") or 0
         hdays = pp.get("time_horizon_days") or 0
         entry = ia.get("entry") or "?"
-        # Recommendation Age (v3.0 FINAL · Phase 5)
+        rank = r.get("rank")
+        conf = r.get("calibrated_confidence") or r.get("confidence")
+        # Recommendation Age (Phase 5)
         days_rec = ev.get("days_recommended") or 1
         remaining = max(0, hdays - days_rec + 1)
         age_str = ("NEW today" if ev.get("is_new") else
                     f"day {days_rec} of {hdays} · {remaining}d left")
+        # Ticket 4: performance since rec date from position_store
+        perf = _perf_since_rec(r.get("ticker") or "", market)
         # Emoji per entry-level
         emoji = "🟢🟢" if entry == "BUY" and (r.get("percentile_action") == "STRONG_BUY") else "🟢"
-        lines.append(f"   {emoji} *{t}*   _{age_str}_")
-        lines.append(f"      💰 {entry} · size {alloc}% of capital · hold ~{hdays} days")
+        # Header line with rank + confidence + current price
+        rank_str = f"#{rank}" if rank else "—"
+        conf_str = f"{conf:.0%}" if isinstance(conf, (int, float)) and conf else "—"
+        cp = _fmt_price(ez.get("current_price") or perf.get("current_price"), market)
+        lines.append(f"   {emoji} *{t}*   rank {rank_str}  ·  conf {conf_str}  ·  now {cp}")
+        lines.append(f"      _{age_str}_ · 💰 {entry} · size {alloc}% · hold ~{hdays} days")
         if ez.get("stop_loss") is not None and ez.get("target_1") is not None:
             lines.append(
                 f"      📥 Buy zone: {_fmt_price(ez.get('ideal_buy_low'), market)}"
@@ -291,12 +299,57 @@ def _actionable_entries(recs: Sequence[Mapping], market: str,
                 f"      🛡 Stop: {_fmt_price(ez.get('stop_loss'), market)}"
                 f"   🎯 Target: {_fmt_price(ez.get('target_1'), market)}"
             )
-        else:
-            cp = _fmt_price(ez.get("current_price"), market)
-            lines.append(f"      💵 Current: {cp}")
+        # Ticket 4: Performance since recommendation date (per rec inline)
+        if perf and not ev.get("is_new") and perf.get("current_return_pct") is not None:
+            lines.append(
+                f"      📈 Since {perf.get('first_seen_date')}: "
+                f"entry {_fmt_price(perf.get('entry_price'), market)} → "
+                f"now {_fmt_price(perf.get('current_price'), market)}  "
+                f"({perf['current_return_pct']:+.2f}%)"
+            )
+            if perf.get("max_gain_pct") is not None or perf.get("max_drawdown_pct") is not None:
+                lines.append(
+                    f"      🔺 Max gain +{perf.get('max_gain_pct', 0):.2f}%   "
+                    f"🔻 Max DD {perf.get('max_drawdown_pct', 0):+.2f}%"
+                )
     if len(picks) > max_rows:
         lines.append(f"   _...+{len(picks) - max_rows} more new-buy ideas_")
     return lines
+
+
+def _perf_since_rec(ticker: str, market: str) -> dict:
+    """Ticket 4 · Recommendation Performance Since Rec Date.
+
+    Reads from backend/portfolio/position_store which already tracks
+    first_seen_date · first_seen_price · high_water · low_water · last_seen_price
+    per ticker. Returns the enriched performance dict for the Command Center.
+    """
+    try:
+        from pathlib import Path
+        from backend.portfolio.position_store import load_position
+        reports_dir = Path("reports") if market == "india" else Path("usa/reports")
+        rec = load_position(reports_dir, market, ticker)
+        if rec is None:
+            return {}
+        entry = rec.first_seen_price
+        curr = rec.last_seen_price
+        high = rec.high_water_price
+        low = rec.low_water_price
+        if entry and entry > 0:
+            return {
+                "first_seen_date":    rec.first_seen_date,
+                "entry_price":        entry,
+                "current_price":      curr,
+                "high_water":         high,
+                "low_water":          low,
+                "current_return_pct": round((curr / entry - 1) * 100, 2) if curr else None,
+                "max_gain_pct":       round((high / entry - 1) * 100, 2) if high else None,
+                "max_drawdown_pct":   round((low / entry - 1) * 100, 2) if low else None,
+                "n_appearances":      rec.n_appearances,
+            }
+    except Exception:
+        pass
+    return {}
 
 
 def _actionable_exits(recs: Sequence[Mapping], market: str,
