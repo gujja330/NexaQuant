@@ -151,29 +151,11 @@ def _send_one_market(market: str, token: str, chat_id: str) -> tuple[bool, dict]
         **meta,
     })
 
-    # v3.1: Research Platform follow-up (own budget · full evidence panel)
-    # Sent as a SEPARATE Telegram so it never competes with the daily
-    # advisory for space. Delivery failure here does NOT fail the main send.
+    # Research Platform second message DISABLED 2026-07-30 per operator:
+    # "ensure single message for india and single message for usa."
+    # Compact R1-vs-R2 headline + historical + disagreements now folded
+    # into the Command Center message via _r1_vs_r2_headline + _research_tail.
     research_ok = True
-    try:
-        research_msg = render_research_platform_message(market)
-        if research_msg:
-            research_ok, research_detail = _send_markdown(token, chat_id, research_msg)
-            print(f"[research_platform:{market}] chars={len(research_msg)} · sent={research_ok}")
-            if not research_ok:
-                print(f"  detail: {research_detail[:180]}")
-            _append_delivery_ledger({
-                "ts_utc":  datetime.now(timezone.utc).isoformat(),
-                "engine":  "aegis.research.telegram.v1",
-                "market":  market,
-                "kind":    "research_platform",
-                "ok":      research_ok,
-                "chars":   len(research_msg),
-                "detail_head":  research_detail[:200] if not research_ok else "",
-            })
-    except Exception as e:
-        print(f"[research_platform:{market}] render/send failed · {type(e).__name__}: {e}")
-        research_ok = False
 
     # Intraday MSG 3 REMOVED per operator directive 2026-07-30.
     # The shadow-of-delivery approach was rejected: reusing swing picks

@@ -298,6 +298,225 @@ def _ceo_call(cs: Mapping) -> list[str]:
     return lines
 
 
+def _r1_vs_r2_headline(payload: Mapping, market: str) -> list[str]:
+    """Compact Runner 1 vs Runner 2 head-to-head block · prominent placement.
+
+    Reads reports/research/delivery_platform.json (or research_platform.json
+    legacy combined view). India only (Runner 1 doesn't cover USA · shown
+    as a single 'USA R2 only · R1 not applicable' line).
+    """
+    try:
+        dp_path = Path("reports/research/delivery_platform.json")
+        if not dp_path.exists():
+            return []
+        dp = json.loads(dp_path.read_text(encoding="utf-8"))
+    except Exception:
+        return []
+    program = dp.get("program") or {}
+    live = dp.get("live_evaluation") or {}
+    day = program.get("day_of_program") or 0
+    minimum = program.get("window_days_minimum") or 60
+    target = program.get("window_days_target") or 90
+
+    if market == "usa":
+        usa = live.get("usa") or {}
+        r2 = usa.get("runner2") or {}
+        if not r2 or not r2.get("n_positions"):
+            return []
+        return [
+            "",
+            f"🥊 *R1 vs R2 · USA (Day {day} · min {minimum}d · target {target}d)*",
+            f"   R1: n/a (Runner 1 does not cover USA)",
+            f"   R2: {r2.get('n_positions', 0)} picks · Ret {r2.get('total_return_pct', 0):+.2f}% · Win {(r2.get('win_rate') or 0)*100:.0f}%",
+        ]
+
+    ind = live.get("india") or {}
+    r1 = ind.get("runner1") or {}
+    r2 = ind.get("runner2") or {}
+    if not (r1.get("n_positions") or r2.get("n_positions")):
+        return []
+    leader = ind.get("leader") or "TIE"
+    edge = ind.get("leader_edge_pct") or 0.0
+    return [
+        "",
+        f"🥊 *R1 vs R2 · INDIA (Day {day} · min {minimum}d · target {target}d)*",
+        f"   🥇 Leader: *{leader}*  ·  Edge {edge:+.2f}pp",
+        f"   R1: {r1.get('n_positions', 0)} picks · Ret *{r1.get('total_return_pct', 0):+.2f}%* · Win {(r1.get('win_rate') or 0)*100:.0f}% · Sharpe {_fmt(r1.get('sharpe_ratio'))}",
+        f"   R2: {r2.get('n_positions', 0)} picks · Ret *{r2.get('total_return_pct', 0):+.2f}%* · Win {(r2.get('win_rate') or 0)*100:.0f}% · Sharpe {_fmt(r2.get('sharpe_ratio'))}",
+    ]
+
+
+def _runner_attribution_table(payload: Mapping, market: str,
+                                  max_rows: int = 20) -> list[str]:
+    """Unified wide table · every rec on one row with EVERYTHING.
+
+    Columns: Ticker · Runner · Action · Conf · Stop · T1 · T2 · Days
+    Wrapped in triple-backtick fenced code block so Telegram allows
+    horizontal scroll on mobile (readable on desktop, scrollable on phone).
+
+    Merges Runner 2's picks + Runner 1's active picks into a single ranked
+    view · one row per unique ticker · Runner column identifies source.
+    """
+    recs = payload.get("recommendations") or []
+    if not recs:
+        return []
+
+    currency = "Rs" if market == "india" else "$"
+
+    def _short_action(a: str | None) -> str:
+        if not a: return "—"
+        a = str(a).upper()
+        if a in ("STRONG_BUY", "STRONG BUY"): return "S.BUY"
+        if a in ("BUY", "ACCUMULATE"):        return "BUY"
+        if a in ("HOLD", "WAIT", "WATCH"):    return "HOLD"
+        if a in ("SELL", "EXIT", "REDUCE",
+                    "STRONG_SELL", "STRONG SELL", "AVOID"): return "EXIT"
+        return a[:6]
+
+    def _px(v) -> str:
+        if v is None or v == 0:
+            return "—"
+        try:
+            f = float(v)
+            if f >= 1000: return f"{currency}{f:,.0f}"
+            if f >= 100:  return f"{currency}{f:.0f}"
+            return f"{currency}{f:.1f}"
+        except (TypeError, ValueError):
+            return "—"
+
+    def _pct(v) -> str:
+        if v is None:
+            return "—"
+        try:
+            f = float(v)
+            if f <= 1: f *= 100
+            return f"{f:.0f}%"
+        except (TypeError, ValueError):
+            return "—"
+
+    def _t2_from_t1(cp, t1) -> float | None:
+        if not cp or not t1 or t1 <= cp:
+            return None
+        return cp + (t1 - cp) * 1.5
+
+    rows = []
+    # Runner 2 picks
+    for r in recs[:max_rows]:
+        ticker = _short_ticker(str(r.get("ticker") or "?"))
+        ia = r.get("investor_action") or {}
+        r2_action = _short_action(ia.get("entry") or r.get("percentile_action"))
+        conf = r.get("calibrated_confidence") or r.get("confidence")
+        pp = r.get("position_plan") or {}
+        ez = pp.get("entry_zone") or {}
+        stop = ez.get("stop_loss")
+        t1 = ez.get("target_1")
+        cp = ez.get("current_price")
+        t2 = ez.get("target_2") or _t2_from_t1(cp, t1)
+        days = pp.get("time_horizon_days") or 0
+        rows.append({
+            "ticker":  ticker,
+            "runner":  "R2",
+            "action":  r2_action,
+            "conf":    _pct(conf),
+            "stop":    _px(stop),
+            "t1":      _px(t1),
+            "t2":      _px(t2),
+            "days":    str(days) if days else "—",
+        })
+
+    # Runner 1 active picks (India only · not covering USA)
+    if market == "india":
+        rv = payload.get("runner1_validation") or {}
+        for o in (rv.get("runner1_orphans") or [])[:10]:
+            ticker = _short_ticker(o.get("ticker") or "?")
+            price = o.get("price")
+            hist_target = o.get("hist_target")
+            stop = price * 0.95 if isinstance(price, (int, float)) and price else None
+            t1 = hist_target if isinstance(hist_target, (int, float)) else (
+                price * 1.08 if isinstance(price, (int, float)) else None)
+            t2 = price * 1.15 if isinstance(price, (int, float)) else None
+            holding = str(o.get("holding") or "").strip()
+            # crude days extractor from "2 months (2M)" or "45 days"
+            days_str = "60"
+            if "month" in holding.lower():
+                try:
+                    n = int(holding.split()[0])
+                    days_str = str(n * 30)
+                except Exception:
+                    pass
+            elif "day" in holding.lower():
+                try:
+                    days_str = holding.split()[0]
+                except Exception:
+                    pass
+            rows.append({
+                "ticker":  ticker,
+                "runner":  "R1",
+                "action":  _short_action(o.get("strength")),
+                "conf":    _pct(o.get("confidence")),
+                "stop":    _px(stop),
+                "t1":      _px(t1),
+                "t2":      _px(t2),
+                "days":    days_str,
+            })
+
+    if not rows:
+        return []
+
+    # Sort: actionable first (BUY/S.BUY), then HOLD, then EXIT
+    order = {"S.BUY": 0, "BUY": 1, "HOLD": 2, "EXIT": 3}
+    rows.sort(key=lambda x: order.get(x["action"], 4))
+
+    # Column widths (chosen to fit key data · code-block scrolls on mobile)
+    W = {"ticker": 11, "runner": 3, "action": 6, "conf": 5,
+            "stop": 8, "t1": 8, "t2": 8, "days": 4}
+
+    def _fmt(r: dict) -> str:
+        return (f"{r['ticker']:<{W['ticker']}} "
+                    f"{r['runner']:<{W['runner']}} "
+                    f"{r['action']:<{W['action']}} "
+                    f"{r['conf']:>{W['conf']}} "
+                    f"{r['stop']:>{W['stop']}} "
+                    f"{r['t1']:>{W['t1']}} "
+                    f"{r['t2']:>{W['t2']}} "
+                    f"{r['days']:>{W['days']}}")
+
+    header_row = _fmt({
+        "ticker": "Ticker", "runner": "Src", "action": "Action",
+        "conf": "Conf", "stop": "Stop", "t1": "T1", "t2": "T2", "days": "Days",
+    })
+
+    body_rows = [_fmt(r) for r in rows]
+
+    header_line = f"🥊 *UNIFIED RECS TABLE · {len(rows)} picks*"
+    lines = ["", header_line, "```", header_row] + body_rows + ["```"]
+    return lines
+
+
+def _research_tail(payload: Mapping, market: str) -> list[str]:
+    """Compact Research Platform tail — historical winner + disagreement panel.
+    Fits in a few lines so it doesn't need a separate Telegram message."""
+    try:
+        dp_path = Path("reports/research/delivery_platform.json")
+        if not dp_path.exists():
+            return []
+        dp = json.loads(dp_path.read_text(encoding="utf-8"))
+    except Exception:
+        return []
+    hist = (dp.get("historical") or {}).get(market) or {}
+    dis = dp.get("disagreements") or {}
+    lines: list[str] = []
+    if hist and hist.get("overall_winner"):
+        y1 = hist.get("year_wins_runner1", 0)
+        y2 = hist.get("year_wins_runner2", 0)
+        yt = hist.get("year_ties", 0)
+        lines += ["",
+                     f"📚 *HISTORICAL* ({market.upper()}): overall *{hist.get('overall_winner')}* · R1 {y1} yrs · R2 {y2} yrs · ties {yt}"]
+    if dis and dis.get("n_total"):
+        lines.append(f"⚖️ *DISAGREEMENTS*: {dis.get('n_total')} logged · {dis.get('n_scorable', 0)} scorable · verdict panel building")
+    return lines
+
+
 def _rotation_calls(recs: Sequence[Mapping], market: str, max_rows: int = 4,
                        per_ticker_cap_pct: float = 6.0) -> list[str]:
     """Every rec with should_rotate=True · GROUPED by destination ticker.
@@ -1594,6 +1813,7 @@ def render_command_center_message(payload: Mapping, market: str,
     sections = [
         ("header",           _header(market, asof)),
         ("ceo_call",         _ceo_call(cs)),
+        ("r1_vs_r2",         _r1_vs_r2_headline(payload, market)),
         ("perf_summary",     _performance_summary(payload, market)),
         ("ai_scorecard",     _ai_scorecard_line(payload, market)),
         ("dual_engine",      _runner1_agreement_summary(payload, market)),
@@ -1601,14 +1821,11 @@ def render_command_center_message(payload: Mapping, market: str,
         ("rotations",        _rotation_calls(recs, market)),
         ("new_buys",         _actionable_entries(recs, market)),
         ("exits",            _actionable_exits(recs, market)),
-        ("r1_orphans",       _runner1_orphans(payload, market)),
-        ("r2_exclusive",     _runner2_exclusive(payload, market)),
-        # Intraday hint removed 2026-07-30 · shadow approach rejected.
-        # See docs/AEGIS_INTRADAY_ARCHITECTURE.md for real intraday spec.
+        ("runner_table",     _runner_attribution_table(payload, market)),
+        # r1_orphans + r2_exclusive folded into runner_table above
         ("attribution",      _attribution_top(payload)),
         ("risk_pulse",       _risk_pulse(cs, recs, market)),
-        # Full Research Platform detail sent as a dedicated follow-up message
-        # (render_research_platform_message) · no longer competes for budget
+        ("research_tail",    _research_tail(payload, market)),
         ("footer",            _integrity_footer(payload, market)),
     ]
 
