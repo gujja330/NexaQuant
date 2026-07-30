@@ -280,4 +280,107 @@ A new ticket file `research/tickets/R004_intraday_engine_india.json` is created 
 
 ---
 
+## 18 · Execution Plan (no day counts · phase-gated)
+
+Reads §1–§17 end-to-end. Every phase gates on the previous being green. No calendar in this plan — advancement is evidence-driven only.
+
+### Phase 0 · Prerequisites (operator + infra)
+
+- Operator sign-off on §16 acceptance criteria (§4 universe · §5 signals · §6 exits · §7 risk)
+- Procure feeds: Zerodha Kite API key (India) + Polygon.io Starter (USA)
+- Store keys in `.env.intraday`
+- Add `configs/intraday_feeds.json` — feed URLs · symbols · rate limits · retry policy
+- Advance ticket R004 → `HISTORICAL_BACKTEST`
+
+### Phase 1 · Data layer (foundation)
+
+- `backend/intraday/feed/` new module
+  - `kite_adapter.py` — India 1-min bars via Kite WebSocket + REST backfill
+  - `polygon_adapter.py` — USA 1-min bars
+  - `feed_router.py` — market → adapter selection + degraded-fallback
+- `data/raw/india_minute/{TICKER}_M1.parquet` + `data/raw/us_minute/{TICKER}_M1.parquet` (append-only cache · same pattern as daily bars)
+- `backend/intraday/universe/` — daily universe filter per §4.1 (India) + §4.2 (USA) · emits `configs/intraday_universe_{market}_{YYYY-MM-DD}.json`
+- Session-clock utility (India 09:15–15:30 IST · USA 09:30–16:00 ET · auction windows)
+- Backfill 12 months of 1-min bars for both universes to seed backtest
+
+### Phase 2 · Signal factories (five models × two markets)
+
+Each factory lives at `backend/intraday/signals/{name}.py` · emits `{ticker: score}` per minute-tick:
+
+- `orb.py` — Opening-Range Breakout (§5.1)
+- `gap_go.py` — Gap-and-Go (§5.2)
+- `vwap_reversion.py` — VWAP-Reversion (§5.3)
+- `sector_momentum.py` — Sector-Momentum-Follow (§5.4 · needs sector-ETF minute feed)
+- `news_impact.py` — News-Impact (§5.5 · reuses existing FinBERT + Google News RSS)
+- Shared: `intraday_signal_registry.py` + per-signal unit tests with recorded fixtures
+
+### Phase 3 · Ensemble + classifier
+
+- `backend/intraday/ensemble/adaptive_weights.py` — same mechanism as delivery's adaptive weights but independent corpus (its own `reports/intraday_learning.parquet`)
+- `backend/intraday/ensemble/percentile_classifier.py` — score → `INTRADAY_LONG / INTRADAY_SHORT / SKIP`
+- Emits `reports/intraday/recommendations_intraday_{market}_{YYYY-MM-DD}.json` at session start + updates during session
+- Ticket R004 → `PAPER_PORTFOLIO`
+
+### Phase 4 · Risk engine + execution simulator
+
+- `backend/intraday/risk/session_manager.py` — position sizing (§6.2) · daily loss cap · consecutive-loss circuit breaker · correlation cap · VIX kill switch (§7)
+- `backend/intraday/exec/simulator.py` — marketable-limit fills · slippage model · commissions per market · partial-fills · rejects (§8)
+- `backend/intraday/exec/session_state.py` — open positions · trailing stops · time-stop enforcement (never past 15:15 IST / 15:55 ET)
+- Every fill/exit logged to `reports/intraday/fills_{market}_{YYYY-MM-DD}.jsonl` for full audit
+
+### Phase 5 · Historical backtest
+
+- `backend/intraday/backtest/runner.py` — replay 12 months of 1-min bars through the full stack (Phase 2 + 3 + 4)
+- Metrics per §9 emitted to `reports/intraday/backtest_{market}.json`
+- **Gate**: net-of-slippage Sharpe > 1.0 · max DD < 5% · win rate > 50%
+- If any market fails, revise §5 signal weights or §6 exits · re-run · document in ticket decisions
+
+### Phase 6 · Paper trading (short live window)
+
+- `scripts/intraday_paper_run.py` — standalone parallel job (same pattern as previous `intraday_hourly_run.py`)
+- Live feed → real-time signals → simulated fills → session P&L
+- **Gate**: live paper metrics within 20% of backtest (§10 PAPER_PORTFOLIO row)
+- Ticket R004 → `LIVE_60D` on green
+
+### Phase 7 · LIVE_60D window
+
+- Same script continues over 60 trading sessions
+- Full metric panel green per §9 sustained
+- No engine changes during this window (evidence is advisory · never autotunes production)
+- Session-close Telegram MSG 4 rendered (per §12 format · still paper-only)
+
+### Phase 8 · VALIDATED_90D window
+
+- 90 sessions cumulative · sustained metrics
+- Independent adversarial review of trade log + slippage realized/model ratio
+- Ticket R004 → `VALIDATED_90D` on green
+
+### Phase 9 · CEO_REVIEW + PRODUCTION
+
+- Written CEO note approving:
+  - Session-capital carve-out (default 10% of portfolio equity per §6.2)
+  - Signed risk limits per §7
+  - Kill-switch escalation path
+- Constitutional amendment (Article X): ticket R004 cited in production diff
+- Ticket R004 → `PRODUCTION`
+- Continue logging every trade forever · quarterly review
+
+### Parallel USA track
+
+Everything above runs in parallel for USA on ticket R005 (opened as a companion when R004 clears Phase 1). Same code · per-market instantiation via §11 table. USA does not gate on India VALIDATED_90D — each market advances on its own evidence.
+
+### What stays untouched throughout
+
+- Delivery engine · code, config, corpus
+- Delivery Telegram messages (MSG 1 + MSG 2)
+- Position store for delivery
+- Existing tests
+- Existing Research Platform (`backend/research/`) — intraday gets its own module tree at `backend/intraday/`
+
+### Kick-off signal
+
+Ping operator with "start R004 Phase 0" to begin. Phase 1 starts the moment feed credentials land.
+
+---
+
 **End of specification** · 2026-07-30 · under operator authority
