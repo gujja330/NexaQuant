@@ -555,6 +555,15 @@ def _ai_scorecard_line(payload: Mapping, market: str) -> list[str]:
         f"   {stars}   {sc.get('overall_score')}/100 · {verdict}",
         f"   {n} closed trades · {period}",
     ]
+    # Evidence Cycle 1: calibration verdict — never a new section,
+    # just an honest label under the scorecard. Silent if data missing.
+    cal_verdict = sc.get("calibration_verdict")
+    if cal_verdict:
+        cal_slope = sc.get("calibration_slope")
+        if cal_slope is not None and (cal_slope < 0.5 or cal_slope > 1.5):
+            lines.append(f"   ⚠️ Confidence calibration: {cal_verdict}")
+        else:
+            lines.append(f"   ✓ Confidence calibration: {cal_verdict}")
     # Per-metric breakdown (load full scorecard if available)
     try:
         from pathlib import Path

@@ -48,6 +48,10 @@ from backend.analytics.attribution import (  # noqa: E402
     enrich_recs_with_attribution, summarize_attribution,
 )
 from backend.analytics.backtrack import build_market_backtrack  # noqa: E402
+# Evidence Cycle 1 · Phases 1.1 / 1.2 / 2 / 3 · pure measurement, zero features
+from backend.analytics.evidence import (  # noqa: E402
+    run_calibration, run_alpha_validation, run_yoy, run_rolling_ic,
+)
 # v3.0 Option D: Runner 1 demoted to validation layer (not competing recommender)
 from backend.recommendation.validation_layer import (  # noqa: E402
     build_validation_report,
@@ -161,6 +165,39 @@ def main() -> int:
                           f"{scorecard.get('verdict')} · {scorecard.get('n_trades')} trades")
                 except Exception as _e:
                     print(f"[ai_scorecard] failed · {type(_e).__name__}: {_e}")
+
+                # Evidence Cycle 1 · 4 measurement engines · India-only for now
+                try:
+                    cal = run_calibration(_ROOT)
+                    pub.setdefault("ai_scorecard", {})["calibration_verdict"] = cal.get("verdict_short")
+                    pub["ai_scorecard"]["calibration_slope"] = cal.get("calibration_slope")
+                    pub["ai_scorecard"]["brier_score"] = cal.get("brier_score")
+                    print(f"[evidence.calibration] {cal.get('verdict_short')} · "
+                          f"slope={cal.get('calibration_slope')} · brier={cal.get('brier_score')}")
+                except Exception as _e:
+                    print(f"[evidence.calibration] failed · {type(_e).__name__}: {_e}")
+                try:
+                    av = run_alpha_validation(_ROOT)
+                    print(f"[evidence.alpha_validation] {av.get('verdict')} · "
+                          f"pearson_r={av.get('pearson_r')} · "
+                          f"directional={av.get('directional_accuracy')}")
+                except Exception as _e:
+                    print(f"[evidence.alpha_validation] failed · {type(_e).__name__}: {_e}")
+                try:
+                    yoy = run_yoy(_ROOT)
+                    print(f"[evidence.yoy] {yoy.get('verdict')} · "
+                          f"win_rate_trend={yoy.get('win_rate_trend')} · "
+                          f"median_return_trend={yoy.get('median_return_trend')}")
+                except Exception as _e:
+                    print(f"[evidence.yoy] failed · {type(_e).__name__}: {_e}")
+                try:
+                    ric = run_rolling_ic(_ROOT)
+                    n_retire = sum(1 for d in ric.get("per_dim_summary") or []
+                                        if "retire" in d.get("verdict", ""))
+                    print(f"[evidence.rolling_ic] {ric.get('verdict')} · "
+                          f"{n_retire} retire-candidates")
+                except Exception as _e:
+                    print(f"[evidence.rolling_ic] failed · {type(_e).__name__}: {_e}")
 
             # v3.0 Option D: Runner 1 validation layer (India-only · Runner 1
             # runs against India universe; USA has no legacy Runner 1 today).
