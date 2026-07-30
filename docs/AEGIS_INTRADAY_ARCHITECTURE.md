@@ -571,4 +571,104 @@ Building an intraday engine that leans on fundamentals would be either duplicati
 
 ---
 
-**End of specification** · 2026-07-30 · under operator authority · §19 (canonical/rotation) + §20 (data pillars) added same date
+---
+
+## 21 · Strategies implemented (operator's 4 + AEGIS 4 = 8 signal factories)
+
+Per operator directives (2026-07-30), the following 8 signal factories are
+built at `backend/intraday/signals/` · each declares which trading slot
++ session window it activates in:
+
+| # | Signal | Slot | Concept |
+|---|---|---|---|
+| 1 | Opening Range Breakout | HIGH_VOL | First 15-min range · 5-min close breakout · stop at midpoint |
+| 2 | VWAP Pullback | STABLE_TREND | Uptrend + pullback to VWAP · buy bounce |
+| 3 | Bollinger Reversion | STABLE_TREND | 20 SMA + 2σ · pierce band → mean-revert to SMA |
+| 4 | EMA Crossover 9/21 | HIGH_VOL + STABLE_TREND | Fast/slow EMA cross with ATR-scaled targets |
+| 5 | Gap-and-Go | HIGH_VOL (opening only) | Overnight gap ≥ 0.5% · continuation on volume |
+| 6 | Sector Momentum Follow | STABLE_TREND | Track sector ETF · fire when stock lags |
+| 7 | News Impact | all slots | FinBERT sentiment · 30-min recency decay |
+| 8 | Smart Money Concepts | HIGH_VOL + STABLE_TREND | BOS + CHoCH + Order Blocks + FVG + Liquidity Sweep + Prem/Disc |
+
+Ensemble default weights (investor-editable at `configs/intraday_ensemble_weights.json`):
+
+```
+smart_money         0.35
+orb                 0.15
+vwap_pullback       0.10
+bollinger_reversion 0.10
+ema_crossover       0.10
+gap_and_go          0.10
+sector_momentum     0.05
+news_impact         0.05
+```
+
+## 22 · Trading Slots (operator's 3-slot framework)
+
+Slots gate which signals fire when. Coarser than the 7-window classifier.
+
+| Slot | India time | USA time | Character | Signals active |
+|---|---|---|---|---|
+| HIGH_VOL | 09:15 – 10:15 IST | 09:30 – 10:30 ET | Sharp spikes · overnight news reactions · high volume | ORB · Gap-and-Go · EMA cross · SMC · News |
+| STABLE_TREND | 10:15 – 14:30 IST | 10:30 – 15:00 ET | Institutional trends · smooth patterns · safest for entries | VWAP-Pullback · Bollinger · EMA cross · Sector-Momentum · SMC · News |
+| SQUARE_OFF | 14:30 – 15:30 IST | 15:00 – 16:00 ET | Institutions closing · liquidity traps · NO new entries | (exits only · no new signals) |
+
+## 23 · Honest first-backtest results (2026-07-30 · India · 42 sessions)
+
+Framework end-to-end verified. Data-honest results below · no cherry-picking:
+
+| Interval | Trades | Win % | Total P&L | Best per-signal |
+|---|---|---|---|---|
+| 5-min · confluence≥3 · threshold 0.30 | 370 | 30 % | −17.28 % | smart_money +0.04 % avg |
+| 15-min · same filters | 16 | 31 % | −2.15 % | — |
+| 30-min · same filters | 11 | 27 % | −2.26 % | — |
+| 1-hour · same filters | 0 | — | — | insufficient cache |
+
+**Direction of evidence**: higher timeframes → far fewer trades → much smaller losses. Tighter filters help. But **corpus is not yet net-positive** on any interval tested.
+
+### 23.1 · Root causes (why intraday alpha is genuinely hard here)
+
+1. **Retail-grade signals only** — every factory in §21 is a public-domain rule. Institutional intraday alpha comes from order flow, not price patterns.
+2. **No order-flow data** — we have OHLCV, not bid-ask depth, aggressor side, VPIN, dark-pool prints, or options-flow-derived gamma exposure.
+3. **Slippage tax** — ~5 bps per trade × ~2 trades/session × 42 sessions = ~4 % baseline drag before any alpha.
+4. **Session-open bar reliability** — 5-min bars at 09:15 IST are often incomplete/noisy from Kite feeds; we saw this affect ORB scoring.
+5. **Bar cache limits** — yfinance intraday history caps mean we cannot backtest more than ~60 sessions per ticker.
+
+### 23.2 · What would move results to positive
+
+Not more tuning of the same 8 signals — they've been fit. What moves alpha:
+
+- **Order-flow feed** (Kite depth WebSocket + level-2 book) → enables aggressor-side, VPIN, book-imbalance signals
+- **Options-flow proxy** (unusual volume + put/call skew) → India via NSE F&O · USA via Polygon options
+- **Multi-timeframe context** (H1/H4 SMC feeds into 5m/15m entries)
+- **Regime filter** (session VIX + macro-regime) — skip trading in choppy regimes entirely
+- **Sizing by conviction** (Kelly-inspired · already partially in place via score magnitude)
+
+### 23.3 · Immediate next-cycle plan
+
+Do NOT ship this to production. Continue as PAPER-ONLY under R004 while:
+
+1. Procure Kite feed (Phase 0 of §18 execution plan) · unlocks order-flow signals
+2. Add Order Flow signal (§21 addition #9) once depth-book data lands
+3. Add Multi-Timeframe Confirmation (H4 SMC → 15m entry) as signal #10
+4. Add Regime Filter (session-VIX + macro) as a global gate before ensemble
+5. Re-run backtest quarterly · gate PAPER_PORTFOLIO promotion on Sharpe > 1.0 net of slippage
+
+### 23.4 · Framework value even without positive alpha
+
+Even with negative backtest today, the framework itself is the deliverable:
+
+- 8 signal factories · unit-tested · pluggable
+- Ensemble with investor-editable weights
+- Risk engine with 5 circuit breakers
+- Execution simulator with slippage model
+- Backtest runner with per-slot / per-window / per-signal attribution
+- Standalone Telegram sender
+- Fully isolated from delivery (zero disturbance to daily pipelines)
+- All 8 signals swap in/out via `SIGNAL_REGISTRY` at import time
+
+When Kite feed lands, adding order-flow becomes a 1-file addition — not a redesign.
+
+---
+
+**End of specification** · 2026-07-30 · under operator authority · §19 (canonical/rotation) + §20 (data pillars) + §21 (strategies) + §22 (slots) + §23 (honest results) all added same date
