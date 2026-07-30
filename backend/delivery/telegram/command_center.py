@@ -977,7 +977,33 @@ def _attribution_top(payload: Mapping) -> list[str]:
     return lines
 
 
-def _runner1_orphans(payload: Mapping, market: str, max_rows: int = 12) -> list[str]:
+_R1_HOLDING_CACHE: dict[str, str] | None = None
+
+
+def _lookup_r1_holding(ticker: str) -> str:
+    """Read Runner 1's 'Recommended Holding' from data/aegis_today.csv.
+    Cached per-render. Returns '' when CSV missing or ticker absent."""
+    global _R1_HOLDING_CACHE
+    if _R1_HOLDING_CACHE is None:
+        _R1_HOLDING_CACHE = {}
+        try:
+            import csv as _csv
+            p = Path("data/aegis_today.csv")
+            if p.exists():
+                with p.open(encoding="utf-8", errors="replace") as fh:
+                    for row in _csv.DictReader(fh):
+                        t = str(row.get("Stock") or "").strip().upper()
+                        h = str(row.get("Recommended Holding") or "").strip()
+                        if t:
+                            _R1_HOLDING_CACHE[t] = h
+        except Exception:
+            _R1_HOLDING_CACHE = {}
+    if not ticker:
+        return ""
+    return _R1_HOLDING_CACHE.get(_short_ticker(ticker).upper(), "")
+
+
+def _runner1_orphans(payload: Mapping, market: str, max_rows: int = 6) -> list[str]:
     """v3.0 Option D: Runner 1's active picks that Runner 2 did NOT include.
 
     Runner 1 is the defensive/legacy engine · demoted to a validation layer.
@@ -1040,34 +1066,20 @@ def _runner1_orphans(payload: Mapping, market: str, max_rows: int = 12) -> list[
             header_parts.append(f"conf {conf:.0f}%")
         lines.append("   " + "  ·  ".join(header_parts))
 
-        # Line 2: price only · matches operator's referenced format
+        # Line 2: price · hold days (read from CSV if payload doesn't have it)
+        # holding is populated by newer validation_layer/engine.py · older
+        # payloads (restored from git) don't have it · fall back to CSV
+        if not holding:
+            holding = _lookup_r1_holding(o.get("ticker") or "")
+        detail_parts = []
         if isinstance(price, (int, float)) and price > 0:
-            lines.append(f"      💰 now {currency}{price:,.2f}")
+            detail_parts.append(f"💰 now {currency}{price:,.2f}")
+        if holding:
+            detail_parts.append(f"⏳ hold: {holding}")
+        if detail_parts:
+            lines.append("      " + "  ·  ".join(detail_parts))
 
-        # Line 3: reason text · matches operator's referenced format
-        if reason_short:
-            lines.append(f"      _{reason_short}_")
-
-        # (Buy zone / Stop / T1 / T2 / hold intentionally OMITTED here ·
-        # kept only for actionable NEW BUY IDEAS block via _actionable_entries)
-        if False and isinstance(price, (int, float)) and price > 0:
-            stop = price * 0.95
-            t1 = hist_target if isinstance(hist_target, (int, float)) and hist_target > price else price * 1.08
-            t2 = price * 1.15
-            targets_line = (f"      🛡 Stop: {currency}{stop:,.2f}"
-                                f"   🎯 T1: {currency}{t1:,.2f}"
-                                f"   🎯🎯 T2: {currency}{t2:,.2f}")
-            lines.append(targets_line)
-
-        # Line 4: expected range + valid-until (compact)
-        meta_parts = []
-        if expected_range:
-            meta_parts.append(f"📊 range {expected_range}")
-        if valid_until:
-            meta_parts.append(f"✅ valid → {valid_until}")
-        if meta_parts:
-            lines.append("      " + "  ·  ".join(meta_parts))
-
+        # Line 3: reason
         if reason_short:
             lines.append(f"      _{reason_short}_")
 
@@ -1852,19 +1864,21 @@ def render_command_center_message(payload: Mapping, market: str,
     #   · No AI Scorecard
     #   · Both runners' picks visible with rank/conf/price/stop/T1/T2/hold
     #   · Old rich per-stock format · not the compact card
+    # Priority order · CRITICAL sections FIRST · lower-value dropped by budget
+    # · Operator hard-locked format: R1 DEFENSIVE must always show with hold days
     sections = [
         ("header",           _header(market, asof)),
         ("ceo_call",         _ceo_call(cs)),
         ("r1_vs_r2",         _r1_vs_r2_headline(payload, market)),
         ("rotations",        _rotation_calls(recs, market)),
         ("new_buys",         _actionable_entries(recs, market)),
-        ("r1_orphans",       _runner1_orphans(payload, market)),
-        ("exits",            _actionable_exits(recs, market)),
+        ("exits",            _actionable_exits(recs, market)),           # what to sell
+        ("r1_orphans",       _runner1_orphans(payload, market)),          # R1 defensive picks
         ("what_changed",     _daily_change_summary(recs, market)),
-        ("perf_summary",     _performance_summary(payload, market)),
-        ("attribution",      _attribution_top(payload)),
         ("risk_pulse",       _risk_pulse(cs, recs, market)),
-        ("research_tail",    _research_tail(payload, market)),
+        # perf_summary + attribution + research_tail dropped from primary
+        # section list · they're historical/decorative · never critical
+        # for daily action · restore only if operator asks
         ("footer",            _integrity_footer(payload, market)),
     ]
 
