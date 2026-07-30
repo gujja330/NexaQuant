@@ -65,6 +65,9 @@ from backend.research import (  # noqa: E402
     build_research_platform,
 )
 from backend.research.disagreement_store import mark_forward_outcomes  # noqa: E402
+# NOTE: Intraday HOURLY (real yfinance bars) runs as a SEPARATE parallel job
+# via scripts/intraday_hourly_run.py · NEVER clubbed with the main daily
+# pipeline (external fetch + rate-limit risk would block advisory delivery).
 # v3.0 Option D: Runner 1 demoted to validation layer (not competing recommender)
 from backend.recommendation.validation_layer import (  # noqa: E402
     build_validation_report,

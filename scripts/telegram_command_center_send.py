@@ -43,6 +43,7 @@ sys.path.insert(0, str(_ROOT))
 
 from backend.delivery.telegram.command_center import (  # noqa: E402
     load_and_render, render_research_platform_message,
+    render_intraday_platform_message,
     ENGINE_ID, SCHEMA_FINGERPRINT,
 )
 
@@ -174,8 +175,36 @@ def _send_one_market(market: str, token: str, chat_id: str) -> tuple[bool, dict]
         print(f"[research_platform:{market}] render/send failed · {type(e).__name__}: {e}")
         research_ok = False
 
-    return (ok and research_ok), {"market": market, "ok": ok,
-                                        "research_ok": research_ok, **meta}
+    # v3.1: Intraday Platform follow-up (MSG 3 · parallel to delivery)
+    # Same sender · own budget · rendered from hourly + daily-proxy shadow.
+    intraday_ok = True
+    try:
+        intraday_msg = render_intraday_platform_message(market, budget=4000)
+        if intraday_msg:
+            intraday_ok, intraday_detail = _send_markdown(token, chat_id, intraday_msg)
+            print(f"[intraday_platform:{market}] chars={len(intraday_msg)} · sent={intraday_ok}")
+            if not intraday_ok:
+                print(f"  detail: {intraday_detail[:180]}")
+            _append_delivery_ledger({
+                "ts_utc":  datetime.now(timezone.utc).isoformat(),
+                "engine":  "aegis.intraday.telegram.v1",
+                "market":  market,
+                "kind":    "intraday_platform",
+                "ok":      intraday_ok,
+                "chars":   len(intraday_msg),
+                "detail_head":  intraday_detail[:200] if not intraday_ok else "",
+            })
+    except Exception as e:
+        print(f"[intraday_platform:{market}] render/send failed · {type(e).__name__}: {e}")
+        intraday_ok = False
+
+    return (ok and research_ok and intraday_ok), {
+        "market":        market,
+        "ok":            ok,
+        "research_ok":   research_ok,
+        "intraday_ok":   intraday_ok,
+        **meta,
+    }
 
 
 def main() -> int:

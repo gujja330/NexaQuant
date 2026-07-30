@@ -1238,6 +1238,144 @@ def _fmt(v) -> str:
         return str(v)
 
 
+# ═══ Standalone Intraday Platform message (Msg 3 · parallel to delivery) ═══
+def render_intraday_platform_message(market: str,
+                                          budget: int = 4000) -> str:
+    """Dedicated Intraday message · parallel to delivery/research platform.
+
+    Operator ask: "goahead and do same operations runner 1, runner 2
+    implement fully for intraday, make a parallel implementation."
+
+    Structure mirrors the delivery Research Platform message but scoped
+    to INTRADAY shadow only:
+      · Runner 1 vs Runner 2 hourly-intraday side-by-side (all metrics)
+      · Intraday daily-proxy fallback (single-bar open→close) for coverage
+      · Historical intraday signal test (correlation lab verdict)
+      · Refinement lever list (sector-scoped ORC pockets)
+      · Explicit deferred-as-product framing per CEO
+
+    Reads reports/research/research_platform.json (unified SSoT).
+    Sent as a THIRD Telegram message after the daily advisory and the
+    delivery Research Platform message.
+    """
+    from pathlib import Path
+    try:
+        p = Path("reports/research/research_platform.json")
+        if not p.exists():
+            return ""
+        rp = json.loads(p.read_text(encoding="utf-8"))
+    except Exception:
+        return ""
+
+    layers = rp.get("layers") or {}
+    live = layers.get("live_evaluation") or {}
+    intra = live.get("india_intraday") or {}
+    prog = rp.get("program") or {}
+
+    day = prog.get("day_of_program") or 0
+    target = prog.get("window_days_target") or 90
+    market_flag = "🇮🇳" if market == "india" else "🌐"
+
+    lines: list[str] = [
+        "⚡ *AEGIS INTRADAY · shadow evaluation*",
+        f"{market_flag} {market.upper()}  ·  📅 Day *{day}* of {target}",
+        SEPARATOR,
+        "🏛 *Status:* DEFERRED as product · measurement only · no orders",
+    ]
+
+    if market != "india":
+        lines += ["",
+                     "_Intraday shadow currently India-only · USA not yet enabled_"]
+        return "\n".join(lines).strip()
+
+    # ── Hourly (real yfinance bars · updated by parallel job) ──
+    hourly = intra.get("hourly") or {}
+    r1h = hourly.get("runner1") or {}
+    r2h = hourly.get("runner2") or {}
+
+    lines += ["",
+                 "🕐 *HOURLY BARS · session open → session close* (parallel job)"]
+    if not (r1h.get("n_positions") or r2h.get("n_positions")):
+        lines.append("   _No hourly data yet · run: python scripts/intraday_hourly_run.py_")
+    else:
+        # Head-to-head hourly metrics table
+        rows = [
+            ("N picks",         r1h.get("n_positions", 0),  r2h.get("n_positions", 0)),
+            ("Return %",        f"{r1h.get('total_return_pct', 0):+.2f}",
+                                     f"{r2h.get('total_return_pct', 0):+.2f}"),
+            ("Win rate %",      f"{(r1h.get('win_rate') or 0)*100:.0f}",
+                                     f"{(r2h.get('win_rate') or 0)*100:.0f}"),
+            ("Median %",        f"{r1h.get('median_return_pct', 0):+.2f}",
+                                     f"{r2h.get('median_return_pct', 0):+.2f}"),
+            ("Avg Winner %",    f"{r1h.get('avg_winner_pct', 0):+.2f}",
+                                     f"{r2h.get('avg_winner_pct', 0):+.2f}"),
+            ("Avg Loser %",     f"{r1h.get('avg_loser_pct', 0):+.2f}",
+                                     f"{r2h.get('avg_loser_pct', 0):+.2f}"),
+            ("Profit Factor",   _fmt(r1h.get('profit_factor')),
+                                     _fmt(r2h.get('profit_factor'))),
+            ("Best pick",       r1h.get('best_pick') or "—",
+                                     r2h.get('best_pick') or "—"),
+            ("Worst pick",      r1h.get('worst_pick') or "—",
+                                     r2h.get('worst_pick') or "—"),
+        ]
+        lines.append(f"   `{'Metric':<15} {'R1':>10} {'R2':>10}`")
+        for label, v1, v2 in rows:
+            lines.append(f"   `{label:<15} {str(v1):>10} {str(v2):>10}`")
+
+    # ── Daily-proxy fallback (from main advisory pipeline · always present) ──
+    dp = intra.get("daily_proxy") or {}
+    r1d = dp.get("runner1") or {}
+    r2d = dp.get("runner2") or {}
+    dp_leader = dp.get("leader") or "TIE"
+    dp_edge = dp.get("leader_edge_pct") or 0.0
+    lines += ["",
+                 "📊 *DAILY-OHLC PROXY* (same-day open→close · always fresh)",
+                 f"   Leader *{dp_leader}*  ·  Edge {dp_edge:+.2f}pp",
+                 f"   R1: {r1d.get('total_return_pct', 0):+.2f}%  ·  "
+                 f"Win {(r1d.get('win_rate') or 0)*100:.0f}%  ·  N {r1d.get('n_positions', 0)}",
+                 f"   R2: {r2d.get('total_return_pct', 0):+.2f}%  ·  "
+                 f"Win {(r2d.get('win_rate') or 0)*100:.0f}%  ·  N {r2d.get('n_positions', 0)}"]
+
+    # ── Historical intraday signal ──
+    hc = intra.get("historical_correlation") or {}
+    if hc:
+        verdict = hc.get("verdict") or "—"
+        rec_short = (hc.get("recommendation") or "")[:180]
+        lines += ["",
+                     "📜 *HISTORICAL INTRADAY SIGNAL*",
+                     f"   Verdict: {verdict}",
+                     f"   n_trades: {hc.get('n_trades', 0)}"]
+        if rec_short:
+            lines.append(f"   _{rec_short}_")
+
+    # ── Correlation lab (intraday↔delivery multi-dim) ──
+    corr = layers.get("correlation_lab") or {}
+    if corr and corr.get("pearson") is not None:
+        pear = corr.get("pearson")
+        n_levers = len(corr.get("top_refinement_levers") or [])
+        interp = (corr.get("interpretation") or "")[:180]
+        lines += ["",
+                     "🔬 *CORRELATION LAB · intraday↔delivery*",
+                     f"   Pearson {pear:+.3f}  ·  {n_levers} refinement lever(s)",
+                     f"   _{interp}_"]
+        for lev in (corr.get("top_refinement_levers") or [])[:3]:
+            slice_pieces = [f"{k}={v}" for k, v in (lev.get("slice") or {}).items()
+                                 if k in ("sector", "industry", "dimension_bucket")]
+            if slice_pieces:
+                lines.append(f"   • {lev.get('category')}: {', '.join(slice_pieces)}")
+
+    # ── Footer ──
+    lines += ["",
+                 SEPARATOR,
+                 "_Ticket R003 · intraday_shadow_india · LIVE_60D · not a product_",
+                 "_Hourly bars fetched by scripts/intraday_hourly_run.py (parallel job)_"]
+
+    msg = "\n".join(lines).strip()
+    if len(msg) > budget:
+        msg = msg[:budget - 100] + "\n\n_...truncated to budget..._"
+    return msg
+
+
 def _integrity_footer(payload: Mapping, market: str) -> list[str]:
     """Tickets 16+17 · timestamps in operator-relevant timezone.
 
