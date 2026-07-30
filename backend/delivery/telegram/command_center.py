@@ -695,20 +695,27 @@ def _integrity_footer(payload: Mapping, market: str) -> list[str]:
     # India: fixed IST = UTC+5:30 (no DST)
     ist_dt = run_dt.astimezone(timezone(timedelta(hours=5, minutes=30)))
     ist_str = ist_dt.strftime("%H:%M IST")
-    # USA: ET auto-DST · use zoneinfo · fall back to fixed EST if unavailable
+    # USA: ET (NYSE market time) + CT (Central · operator-requested)
+    # both auto-DST via zoneinfo · fall back to fixed offsets if unavailable
     try:
         from zoneinfo import ZoneInfo
         et_dt = run_dt.astimezone(ZoneInfo("America/New_York"))
         et_label = "EDT" if et_dt.dst() != timedelta(0) else "EST"
         et_str = et_dt.strftime("%H:%M ") + et_label
+        ct_dt = run_dt.astimezone(ZoneInfo("America/Chicago"))
+        ct_label = "CDT" if ct_dt.dst() != timedelta(0) else "CST"
+        ct_str = ct_dt.strftime("%H:%M ") + ct_label
     except Exception:
         et_dt = run_dt.astimezone(timezone(timedelta(hours=-5)))
         et_str = et_dt.strftime("%H:%M EST")
+        ct_dt = run_dt.astimezone(timezone(timedelta(hours=-6)))
+        ct_str = ct_dt.strftime("%H:%M CST")
 
     if market == "india":
         local_line = f"🕒 Run {ist_str}  ·  {utc_str}  ·  AEGIS v3.0"
     else:
-        local_line = f"🕒 Run {et_str}  ·  {utc_str}  ·  AEGIS v3.0"
+        # USA · NYSE ET is authoritative market time · CT is operator convenience
+        local_line = f"🕒 Run NYSE {et_str}  ·  Chicago {ct_str}  ·  {utc_str}  ·  AEGIS v3.0"
 
     prices_line = f"💵 Prices as of last market close ({asof})" if asof else ""
 
