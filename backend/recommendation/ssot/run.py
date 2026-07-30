@@ -57,6 +57,7 @@ from backend.analytics.evidence import (  # noqa: E402
 # 60-day minimum / 90-day target · canonical UNDECIDED during evaluation
 from backend.research import (  # noqa: E402
     ingest_runner1_picks_for_date, ingest_runner2_picks_for_date,
+    ingest_runner2_picks_usa_for_date,
     ingest_runner1_intraday_picks_for_date, ingest_runner2_intraday_picks_for_date,
     log_daily_disagreements, compute_disagreement_verdict,
     compute_daily_explainability,
@@ -279,6 +280,9 @@ def main() -> int:
     # break the SSoT pipeline.
     try:
         asof_str_rp = payload.get("asof") or date.today().isoformat()
+        if args.market == "usa":
+            # USA delivery paper portfolio (Runner 2 only · R1 doesn't cover USA)
+            ingest_runner2_picks_usa_for_date(_ROOT, asof=asof_str_rp)
         if args.market == "india":
             # Delivery paper portfolios (both runners)
             ingest_runner1_picks_for_date(_ROOT, asof=asof_str_rp)

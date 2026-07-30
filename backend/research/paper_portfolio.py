@@ -239,41 +239,125 @@ def ingest_runner2_picks_for_date(root: Path, asof: str) -> dict:
     return event
 
 
-def _fallback_price(root: Path, ticker: str) -> float | None:
-    """Read latest close price from daily parquet."""
+def _bar_path(root: Path, ticker: str, market: str) -> Path:
+    """Locate the daily bar parquet · India first, then USA."""
+    if market == "usa":
+        # USA daily bars live at data/raw/us/{TICKER}_D1.parquet
+        return root / "data" / "raw" / "us" / f"{ticker}_D1.parquet"
+    return root / "data" / "raw" / "india" / f"{ticker}_D1.parquet"
+
+
+def _fallback_price(root: Path, ticker: str, market: str = "india") -> float | None:
+    """Read latest close price · local parquet first, yfinance fallback for USA."""
     try:
         import pandas as pd
     except ImportError:
         return None
-    p = root / "data" / "raw" / "india" / f"{ticker}_D1.parquet"
-    if not p.exists():
-        return None
+    p = _bar_path(root, ticker, market)
+    if p.exists():
+        try:
+            df = pd.read_parquet(p)
+            if not df.empty:
+                return float(df["close"].iloc[-1])
+        except Exception:
+            pass
     try:
-        df = pd.read_parquet(p)
-        if df.empty:
+        import yfinance as yf
+        df = yf.download(ticker, period="5d", interval="1d",
+                            progress=False, auto_adjust=False, threads=False)
+        if df is None or df.empty:
             return None
-        return float(df["close"].iloc[-1])
+        close_col = df["Close"] if "Close" in df.columns else df.iloc[:, 3]
+        return float(close_col.iloc[-1])
     except Exception:
         return None
 
 
-def _prior_close(root: Path, ticker: str) -> float | None:
+def _prior_close(root: Path, ticker: str, market: str = "india") -> float | None:
     """Yesterday's close (or the row before latest) from daily parquet.
-    Used as entry_price on first-seen day so today's move shows non-zero."""
+    Used as entry_price on first-seen day so today's move shows non-zero.
+    Falls back to on-demand yfinance fetch (USA · no local cache)."""
     try:
         import pandas as pd
     except ImportError:
         return None
-    p = root / "data" / "raw" / "india" / f"{ticker}_D1.parquet"
-    if not p.exists():
-        return None
+    p = _bar_path(root, ticker, market)
+    if p.exists():
+        try:
+            df = pd.read_parquet(p)
+            if len(df) >= 2:
+                return float(df["close"].iloc[-2])
+        except Exception:
+            pass
+    # On-demand yfinance fallback (USA typically has no local cache)
     try:
-        df = pd.read_parquet(p)
-        if len(df) < 2:
+        import yfinance as yf
+        symbol = ticker  # USA tickers already bare
+        df = yf.download(symbol, period="10d", interval="1d",
+                            progress=False, auto_adjust=False, threads=False)
+        if df is None or df.empty or len(df) < 2:
             return None
-        return float(df["close"].iloc[-2])
+        # Column may be MultiIndex when threads=False for single symbol
+        close_col = df["Close"] if "Close" in df.columns else df.iloc[:, 3]
+        try:
+            return float(close_col.iloc[-2])
+        except Exception:
+            return None
     except Exception:
         return None
+
+
+def ingest_runner2_picks_usa_for_date(root: Path, asof: str) -> dict:
+    """USA Runner 2 delivery paper portfolio · reads usa/reports/recommendations.json.
+    Stores at reports/research/runner2_usa/positions.json + history.jsonl.
+    Runner 1 does NOT cover USA · so only Runner 2 is tracked."""
+    recs_path = root / "usa" / "reports" / "recommendations.json"
+    positions = _load_positions(root, "runner2_usa")
+    active_today: set[str] = set()
+    n_opened, n_updated = 0, 0
+    if recs_path.exists():
+        try:
+            payload = json.loads(recs_path.read_text(encoding="utf-8"))
+            for r in payload.get("recommendations") or []:
+                ia = r.get("investor_action") or {}
+                pact = str(r.get("percentile_action") or "").upper()
+                if ia.get("entry") != "BUY" and pact not in ("STRONG_BUY", "BUY"):
+                    continue
+                ticker = _normalize(r.get("ticker") or "")
+                if not ticker:
+                    continue
+                pp = r.get("position_plan") or {}
+                ez = pp.get("entry_zone") or {}
+                mtm = _fallback_price(root, ticker, "usa") or ez.get("current_price")
+                if not mtm or mtm <= 0:
+                    continue
+                prior = _prior_close(root, ticker, "usa")
+                active_today.add(ticker)
+                evt, _ = _upsert(positions, ticker, float(mtm), asof,
+                                    entry_price_override=prior)
+                if evt == "OPENED":
+                    n_opened += 1
+                elif evt == "UPDATED":
+                    n_updated += 1
+        except (ValueError, OSError):
+            pass
+    n_dropped = 0
+    for t, p in positions.items():
+        if t not in active_today and p.is_active:
+            p.is_active = False
+            n_dropped += 1
+    _save_positions(root, "runner2_usa", positions)
+    event = {
+        "ts_utc":      datetime.now(timezone.utc).isoformat(),
+        "asof":        asof,
+        "n_active":    len(active_today),
+        "n_opened":    n_opened,
+        "n_updated":   n_updated,
+        "n_dropped":   n_dropped,
+        "n_closed":    n_dropped,
+    }
+    _append_history(root, "runner2_usa", event)
+    return event
 
 
 def mark_to_market(root: Path, runner: str, prices: Mapping[str, float],

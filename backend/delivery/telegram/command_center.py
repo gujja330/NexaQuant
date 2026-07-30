@@ -33,9 +33,73 @@ SCHEMA_FINGERPRINT = "aegis.delivery.telegram.command_center.v1.20260729"
 SCHEMA_VERSION = "1.0.0"
 ENGINE_ID = "aegis.delivery.telegram.command_center.v1"
 
-# Character budget · Telegram hard cap is 4096 · reserve headroom.
-BUDGET_CHARS = 4090   # near Telegram cap 4096 · Research Platform moved to separate follow-up message
+# Telegram hard cap = 4096 · used as ultimate ceiling.
+TELEGRAM_HARD_CAP = 4096
+# Fallback default if configs/telegram_budget.json is missing or unreadable.
+_FALLBACK_BUDGET = 4076
 SEPARATOR = "━━━━━━━━━━━━━━━━━━━━━━"
+
+# Cache to avoid re-reading budget config on every render call.
+_BUDGET_CACHE: dict | None = None
+
+
+def resolve_budget(message_kind: str = "command_center",
+                      override: int | None = None) -> int:
+    """Return the investor-configured budget for a message type.
+
+    Precedence (highest wins):
+      1. Explicit `override` arg passed by caller
+      2. configs/telegram_budget.json → per_message[message_kind]
+      3. configs/telegram_budget.json → global_default
+      4. _FALLBACK_BUDGET
+
+    Never exceeds TELEGRAM_HARD_CAP. Budget is fully investor-controlled —
+    edit configs/telegram_budget.json to adjust.
+    """
+    if override is not None and override > 0:
+        return min(int(override), TELEGRAM_HARD_CAP)
+    global _BUDGET_CACHE
+    if _BUDGET_CACHE is None:
+        _BUDGET_CACHE = _load_budget_config()
+    cfg = _BUDGET_CACHE or {}
+    per = (cfg.get("per_message") or {}).get(message_kind)
+    if isinstance(per, (int, float)) and per > 0:
+        return min(int(per), TELEGRAM_HARD_CAP)
+    default = cfg.get("global_default")
+    if isinstance(default, (int, float)) and default > 0:
+        return min(int(default), TELEGRAM_HARD_CAP)
+    return _FALLBACK_BUDGET
+
+
+def _load_budget_config() -> dict:
+    p = Path("configs/telegram_budget.json")
+    if not p.exists():
+        return {}
+    try:
+        return json.loads(p.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+
+
+def reload_budget_config() -> None:
+    """Force reload of budget config · call after operator edits the file."""
+    global _BUDGET_CACHE
+    _BUDGET_CACHE = None
+
+
+# Backwards-compat constant · anything importing BUDGET_CHARS still works
+# but the value is now resolved dynamically from investor config on first
+# read rather than being frozen at module load.
+def _budget_chars() -> int:
+    return resolve_budget("command_center")
+
+
+class _LazyBudget(int):
+    """int subclass that re-resolves from config on any arithmetic use."""
+    def __new__(cls):
+        return int.__new__(cls, resolve_budget("command_center"))
+
+BUDGET_CHARS = _LazyBudget()
 
 # Currency symbols per market — plain-ASCII fallbacks used because
 # Telegram Markdown mode + Windows CI cp1252 both stumble on some Unicode.
@@ -744,12 +808,11 @@ def _intraday_hint(payload: Mapping, market: str) -> list[str]:
     if market != "india":
         return []
     try:
-        p = Path("reports/research/research_platform.json")
+        p = Path("reports/research/intraday_platform.json")
         if not p.exists():
             return []
         rp = json.loads(p.read_text(encoding="utf-8"))
-        intra = ((rp.get("layers") or {}).get("live_evaluation") or {}) \
-                    .get("india_intraday") or {}
+        intra = (rp.get("live_evaluation") or {}).get("india") or {}
         dp = intra.get("daily_proxy") or {}
         r1 = dp.get("runner1") or {}
         r2 = dp.get("runner2") or {}
@@ -1006,7 +1069,7 @@ def _backtest_snapshot_block(payload: Mapping, market: str) -> list[str]:
 
 # ═══ Standalone Research Platform message (sent as second Telegram) ═══
 def render_research_platform_message(market: str,
-                                          budget: int = 4000) -> str:
+                                          budget: int | None = None) -> str:
     """Render the full AEGIS Research Platform report as a standalone
     Telegram message. Sent right after the main Command Center · gives
     the operator the full evidence panel without competing for budget.
@@ -1022,8 +1085,10 @@ def render_research_platform_message(market: str,
       · Explainability narrative
     """
     from pathlib import Path
+    # Delivery-ONLY JSON · separate from intraday (operator directive · no clubbing)
+    budget = resolve_budget("research_platform", override=budget)
     try:
-        p = Path("reports/research/research_platform.json")
+        p = Path("reports/research/delivery_platform.json")
         if not p.exists():
             return ""
         rp = json.loads(p.read_text(encoding="utf-8"))
@@ -1032,13 +1097,12 @@ def render_research_platform_message(market: str,
 
     prog = rp.get("program") or {}
     status = rp.get("status") or {}
-    layers = rp.get("layers") or {}
-    live = layers.get("live_evaluation") or {}
-    hist = layers.get("historical") or {}
-    corr = layers.get("correlation_lab") or {}
-    dis = layers.get("disagreements") or {}
-    expl = layers.get("explainability") or {}
+    live = rp.get("live_evaluation") or {}
+    hist = rp.get("historical") or {}
+    dis = rp.get("disagreements") or {}
+    expl = rp.get("explainability") or {}
     tickets = rp.get("tickets") or []
+    corr = None  # correlation lab lives in intraday_platform.json now
 
     day = prog.get("day_of_program") or 0
     target = prog.get("window_days_target") or 90
@@ -1066,8 +1130,9 @@ def render_research_platform_message(market: str,
     ]
 
     # ── India Delivery · side-by-side R1 vs R2 ──
+    # (Intraday content lives EXCLUSIVELY in MSG 3 · never mixed here)
     if market != "usa":
-        ind = live.get("india_delivery") or {}
+        ind = live.get("india") or {}
         r1 = ind.get("runner1") or {}
         r2 = ind.get("runner2") or {}
         overlap = ind.get("overlap") or {}
@@ -1101,7 +1166,6 @@ def render_research_platform_message(market: str,
             ("Stability %",     f"{r1.get('recommendation_stability_pct', 0):.1f}",
                                      f"{r2.get('recommendation_stability_pct', 0):.1f}"),
         ]
-        # Table-style output with fixed column widths for professional feel
         lines.append(f"   `{'Metric':<15} {'R1':>10} {'R2':>10} {'Δ':>8}`")
         for label, v1, v2 in rows:
             try:
@@ -1117,24 +1181,6 @@ def render_research_platform_message(market: str,
                          f"⚔️ Disagreement {overlap.get('disagreement_pct')}%",
                          f"   🎯 Buy Overlap {overlap.get('buy_overlap_pct')}%  ·  "
                          f"🏷 Sector Overlap {overlap.get('sector_overlap_pct')}%"]
-
-        # ── Intraday shadow ──
-        intra = live.get("india_intraday") or {}
-        dp = intra.get("daily_proxy") or {}
-        r1i = dp.get("runner1") or {}
-        r2i = dp.get("runner2") or {}
-        if r1i or r2i:
-            it_leader = dp.get("leader") or "TIE"
-            it_edge = dp.get("leader_edge_pct") or 0.0
-            lines += ["",
-                         "⚡ *INDIA INTRADAY · shadow (deferred as product)*",
-                         f"   🥇 Leader: *{it_leader}*  ·  Edge {it_edge:+.2f}pp",
-                         f"   R1: {r1i.get('total_return_pct', 0):+.2f}%  ·  "
-                         f"Win {(r1i.get('win_rate') or 0)*100:.0f}%  ·  "
-                         f"N {r1i.get('n_positions', 0)}",
-                         f"   R2: {r2i.get('total_return_pct', 0):+.2f}%  ·  "
-                         f"Win {(r2i.get('win_rate') or 0)*100:.0f}%  ·  "
-                         f"N {r2i.get('n_positions', 0)}"]
 
         # ── Historical backtracking (per-year) ──
         h_india = hist.get("india") or {}
@@ -1191,7 +1237,7 @@ def render_research_platform_message(market: str,
 
     # ── USA slice (Runner 2 only) ──
     if market == "usa":
-        usa = live.get("usa_delivery") or {}
+        usa = live.get("usa") or {}
         r2 = usa.get("runner2") or {}
         lines += ["",
                      "🇺🇸 *USA DELIVERY* (Runner 2 only · R1 does not cover USA)",
@@ -1240,7 +1286,7 @@ def _fmt(v) -> str:
 
 # ═══ Standalone Intraday Platform message (Msg 3 · parallel to delivery) ═══
 def render_intraday_platform_message(market: str,
-                                          budget: int = 4000) -> str:
+                                          budget: int | None = None) -> str:
     """Dedicated Intraday message · parallel to delivery/research platform.
 
     Operator ask: "goahead and do same operations runner 1, runner 2
@@ -1254,23 +1300,25 @@ def render_intraday_platform_message(market: str,
       · Refinement lever list (sector-scoped ORC pockets)
       · Explicit deferred-as-product framing per CEO
 
-    Reads reports/research/research_platform.json (unified SSoT).
+    Reads reports/research/intraday_platform.json (SEPARATE from delivery).
     Sent as a THIRD Telegram message after the daily advisory and the
-    delivery Research Platform message.
+    delivery Research Platform message. NEVER reads delivery data.
     """
     from pathlib import Path
+    budget = resolve_budget("intraday_platform", override=budget)
     try:
-        p = Path("reports/research/research_platform.json")
+        p = Path("reports/research/intraday_platform.json")
         if not p.exists():
             return ""
         rp = json.loads(p.read_text(encoding="utf-8"))
     except Exception:
         return ""
 
-    layers = rp.get("layers") or {}
-    live = layers.get("live_evaluation") or {}
-    intra = live.get("india_intraday") or {}
+    live = rp.get("live_evaluation") or {}
+    intra = live.get("india") or {}
     prog = rp.get("program") or {}
+    corr_from_intraday = rp.get("correlation_lab") or {}
+    layers = {}   # legacy · not used in split-file mode
 
     day = prog.get("day_of_program") or 0
     target = prog.get("window_days_target") or 90
@@ -1288,87 +1336,128 @@ def render_intraday_platform_message(market: str,
                      "_Intraday shadow currently India-only · USA not yet enabled_"]
         return "\n".join(lines).strip()
 
-    # ── Hourly (real yfinance bars · updated by parallel job) ──
+    currency = "Rs"
+
+    # ── Load per-stock positions from the paper stores (both runners) ──
+    def _load_intraday_positions(runner_slug: str) -> dict:
+        p = Path(f"reports/research/{runner_slug}/positions.json")
+        if not p.exists():
+            return {}
+        try:
+            return json.loads(p.read_text(encoding="utf-8")).get("positions") or {}
+        except Exception:
+            return {}
+
+    r1_positions = _load_intraday_positions("runner1_intraday_h1")
+    r2_positions = _load_intraday_positions("runner2_intraday_h1")
+
+    # If no hourly yet, fall back to daily-proxy positions so user sees SOMETHING
+    if not r1_positions:
+        r1_positions = _load_intraday_positions("runner1_intraday")
+    if not r2_positions:
+        r2_positions = _load_intraday_positions("runner2_intraday")
+
     hourly = intra.get("hourly") or {}
     r1h = hourly.get("runner1") or {}
     r2h = hourly.get("runner2") or {}
 
-    lines += ["",
-                 "🕐 *HOURLY BARS · session open → session close* (parallel job)"]
-    if not (r1h.get("n_positions") or r2h.get("n_positions")):
-        lines.append("   _No hourly data yet · run: python scripts/intraday_hourly_run.py_")
-    else:
-        # Head-to-head hourly metrics table
-        rows = [
-            ("N picks",         r1h.get("n_positions", 0),  r2h.get("n_positions", 0)),
-            ("Return %",        f"{r1h.get('total_return_pct', 0):+.2f}",
-                                     f"{r2h.get('total_return_pct', 0):+.2f}"),
-            ("Win rate %",      f"{(r1h.get('win_rate') or 0)*100:.0f}",
-                                     f"{(r2h.get('win_rate') or 0)*100:.0f}"),
-            ("Median %",        f"{r1h.get('median_return_pct', 0):+.2f}",
-                                     f"{r2h.get('median_return_pct', 0):+.2f}"),
-            ("Avg Winner %",    f"{r1h.get('avg_winner_pct', 0):+.2f}",
-                                     f"{r2h.get('avg_winner_pct', 0):+.2f}"),
-            ("Avg Loser %",     f"{r1h.get('avg_loser_pct', 0):+.2f}",
-                                     f"{r2h.get('avg_loser_pct', 0):+.2f}"),
-            ("Profit Factor",   _fmt(r1h.get('profit_factor')),
-                                     _fmt(r2h.get('profit_factor'))),
-            ("Best pick",       r1h.get('best_pick') or "—",
-                                     r2h.get('best_pick') or "—"),
-            ("Worst pick",      r1h.get('worst_pick') or "—",
-                                     r2h.get('worst_pick') or "—"),
-        ]
-        lines.append(f"   `{'Metric':<15} {'R1':>10} {'R2':>10}`")
-        for label, v1, v2 in rows:
-            lines.append(f"   `{label:<15} {str(v1):>10} {str(v2):>10}`")
+    def _stock_rows(positions: dict) -> list[dict]:
+        rows = []
+        for t, p in positions.items():
+            entry = p.get("entry_price") or 0
+            last = p.get("last_seen_price") or 0
+            if entry <= 0:
+                continue
+            rows.append({
+                "ticker":  t,
+                "entry":   entry,
+                "close":   last,
+                "ret_pct": (last / entry - 1.0) * 100,
+            })
+        rows.sort(key=lambda r: -r["ret_pct"])
+        return rows
 
-    # ── Daily-proxy fallback (from main advisory pipeline · always present) ──
+    r1_rows = _stock_rows(r1_positions)
+    r2_rows = _stock_rows(r2_positions)
+
+    # ── RUNNER 1 · per-stock intraday breakdown ──
+    lines += ["", f"🇮🇳 *RUNNER 1 · INTRADAY ({len(r1_rows)} stocks)*"]
+    if r1_rows:
+        winners = [r for r in r1_rows if r["ret_pct"] > 0]
+        losers = [r for r in r1_rows if r["ret_pct"] < 0]
+        lines.append(f"   📊 Return {r1h.get('total_return_pct', 0):+.2f}%  ·  "
+                        f"Win {(r1h.get('win_rate') or 0)*100:.0f}%  ·  "
+                        f"{len(winners)}W / {len(losers)}L")
+        # Winners
+        if winners:
+            lines.append("   🟢 *WINNERS*")
+            for r in winners:
+                short = _short_ticker(r["ticker"])
+                name = _company_name(r["ticker"], market)
+                nm = f" ({name})" if name else ""
+                lines.append(f"      🟢 *{short}*{nm}  ·  "
+                                f"{currency}{r['entry']:,.2f} → {currency}{r['close']:,.2f}  ·  "
+                                f"*{r['ret_pct']:+.2f}%*")
+        # Losers
+        if losers:
+            lines.append("   🔴 *LOSERS*")
+            for r in losers:
+                short = _short_ticker(r["ticker"])
+                name = _company_name(r["ticker"], market)
+                nm = f" ({name})" if name else ""
+                lines.append(f"      🔴 *{short}*{nm}  ·  "
+                                f"{currency}{r['entry']:,.2f} → {currency}{r['close']:,.2f}  ·  "
+                                f"*{r['ret_pct']:+.2f}%*")
+    else:
+        lines.append("   _no picks today_")
+
+    # ── RUNNER 2 · per-stock intraday breakdown ──
+    lines += ["", f"🇮🇳 *RUNNER 2 · INTRADAY ({len(r2_rows)} stocks)*"]
+    if r2_rows:
+        winners = [r for r in r2_rows if r["ret_pct"] > 0]
+        losers = [r for r in r2_rows if r["ret_pct"] < 0]
+        lines.append(f"   📊 Return {r2h.get('total_return_pct', 0):+.2f}%  ·  "
+                        f"Win {(r2h.get('win_rate') or 0)*100:.0f}%  ·  "
+                        f"{len(winners)}W / {len(losers)}L")
+        if winners:
+            lines.append("   🟢 *WINNERS*")
+            for r in winners:
+                short = _short_ticker(r["ticker"])
+                name = _company_name(r["ticker"], market)
+                nm = f" ({name})" if name else ""
+                lines.append(f"      🟢 *{short}*{nm}  ·  "
+                                f"{currency}{r['entry']:,.2f} → {currency}{r['close']:,.2f}  ·  "
+                                f"*{r['ret_pct']:+.2f}%*")
+        if losers:
+            lines.append("   🔴 *LOSERS*")
+            for r in losers:
+                short = _short_ticker(r["ticker"])
+                name = _company_name(r["ticker"], market)
+                nm = f" ({name})" if name else ""
+                lines.append(f"      🔴 *{short}*{nm}  ·  "
+                                f"{currency}{r['entry']:,.2f} → {currency}{r['close']:,.2f}  ·  "
+                                f"*{r['ret_pct']:+.2f}%*")
+    else:
+        lines.append("   _no picks today · Runner 2 emitted no BUYs today_")
+
+    # ── Head-to-head aggregate + correlation footer ──
     dp = intra.get("daily_proxy") or {}
-    r1d = dp.get("runner1") or {}
-    r2d = dp.get("runner2") or {}
     dp_leader = dp.get("leader") or "TIE"
     dp_edge = dp.get("leader_edge_pct") or 0.0
     lines += ["",
-                 "📊 *DAILY-OHLC PROXY* (same-day open→close · always fresh)",
-                 f"   Leader *{dp_leader}*  ·  Edge {dp_edge:+.2f}pp",
-                 f"   R1: {r1d.get('total_return_pct', 0):+.2f}%  ·  "
-                 f"Win {(r1d.get('win_rate') or 0)*100:.0f}%  ·  N {r1d.get('n_positions', 0)}",
-                 f"   R2: {r2d.get('total_return_pct', 0):+.2f}%  ·  "
-                 f"Win {(r2d.get('win_rate') or 0)*100:.0f}%  ·  N {r2d.get('n_positions', 0)}"]
+                 "🥇 *HEAD-TO-HEAD*",
+                 f"   Leader: *{dp_leader}*  ·  Edge {dp_edge:+.2f}pp"]
 
-    # ── Historical intraday signal ──
-    hc = intra.get("historical_correlation") or {}
-    if hc:
-        verdict = hc.get("verdict") or "—"
-        rec_short = (hc.get("recommendation") or "")[:180]
-        lines += ["",
-                     "📜 *HISTORICAL INTRADAY SIGNAL*",
-                     f"   Verdict: {verdict}",
-                     f"   n_trades: {hc.get('n_trades', 0)}"]
-        if rec_short:
-            lines.append(f"   _{rec_short}_")
-
-    # ── Correlation lab (intraday↔delivery multi-dim) ──
-    corr = layers.get("correlation_lab") or {}
+    corr = corr_from_intraday or {}
     if corr and corr.get("pearson") is not None:
         pear = corr.get("pearson")
         n_levers = len(corr.get("top_refinement_levers") or [])
-        interp = (corr.get("interpretation") or "")[:180]
-        lines += ["",
-                     "🔬 *CORRELATION LAB · intraday↔delivery*",
-                     f"   Pearson {pear:+.3f}  ·  {n_levers} refinement lever(s)",
-                     f"   _{interp}_"]
-        for lev in (corr.get("top_refinement_levers") or [])[:3]:
-            slice_pieces = [f"{k}={v}" for k, v in (lev.get("slice") or {}).items()
-                                 if k in ("sector", "industry", "dimension_bucket")]
-            if slice_pieces:
-                lines.append(f"   • {lev.get('category')}: {', '.join(slice_pieces)}")
+        lines.append(f"   🔬 Intraday↔Delivery pearson {pear:+.3f}  ·  "
+                        f"{n_levers} refinement lever(s)")
 
-    # ── Footer ──
     lines += ["",
                  SEPARATOR,
-                 "_Ticket R003 · intraday_shadow_india · LIVE_60D · not a product_",
-                 "_Hourly bars fetched by scripts/intraday_hourly_run.py (parallel job)_"]
+                 "_Ticket R003 · Article IX · not a product · hourly bars fetched by parallel job_"]
 
     msg = "\n".join(lines).strip()
     if len(msg) > budget:
@@ -1433,7 +1522,7 @@ def _integrity_footer(payload: Mapping, market: str) -> list[str]:
 
 
 def render_command_center_message(payload: Mapping, market: str,
-                                       budget: int = BUDGET_CHARS) -> str:
+                                       budget: int | None = None) -> str:
     """Render single crisp Telegram message from enriched recommendations.json.
 
     Returns a single string ≤ budget chars. Sections are added in priority
@@ -1443,6 +1532,8 @@ def render_command_center_message(payload: Mapping, market: str,
     """
     if not payload:
         return "AEGIS: no data available"
+    # Resolve investor-configured budget (configs/telegram_budget.json)
+    budget = resolve_budget("command_center", override=budget)
     cs = payload.get("ceo_summary") or {}
     recs = payload.get("recommendations") or []
     asof = str(payload.get("asof") or "?")
@@ -1490,17 +1581,18 @@ def render_command_center_message(payload: Mapping, market: str,
 
 
 def load_and_render(reports_dir: Path, market: str,
-                       budget: int = BUDGET_CHARS) -> tuple[str, dict]:
+                       budget: int | None = None) -> tuple[str, dict]:
     """Load recommendations.json and render. Returns (message, meta)."""
     p = reports_dir / "recommendations.json"
     if not p.exists():
         return f"AEGIS {market}: recommendations.json missing", {"n_recs": 0}
     payload = json.loads(p.read_text(encoding="utf-8"))
     msg = render_command_center_message(payload, market, budget=budget)
+    effective_budget = budget if budget is not None else resolve_budget("command_center")
     meta = {
         "n_recs":          len(payload.get("recommendations") or []),
         "asof":            payload.get("asof"),
-        "budget_chars":    budget,
+        "budget_chars":    effective_budget,
         "message_chars":   len(msg),
         "n_rotations":     (payload.get("ceo_summary") or {}).get("rotations_count", 0),
         "n_actionable":    (payload.get("ceo_summary") or {}).get("actionable_count", 0),

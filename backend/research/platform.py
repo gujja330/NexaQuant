@@ -115,29 +115,12 @@ def build_research_platform(root: Path,
     india_leader, india_edge = _leader(asdict(r1_india), asdict(r2_india))
 
     # USA delivery: Runner 2 only (Runner 1 doesn't cover USA)
-    r2_usa = None
-    usa_r2_pos = root / "usa" / "reports" / "position_store" / "usa" / "positions.json"
-    if usa_r2_pos.exists():
-        r2_usa_m = RunnerMetrics(runner="runner2", market="usa", mode="delivery")
-        try:
-            payload = json.loads(usa_r2_pos.read_text(encoding="utf-8"))
-            positions = payload.get("positions") or {}
-            r2_usa_m.n_positions = len(positions)
-            r2_usa_m.n_open = sum(1 for p in positions.values() if p.get("is_active"))
-            r2_usa_m.n_closed = r2_usa_m.n_positions - r2_usa_m.n_open
-            rets = [(p.get("last_seen_price", 0) / (p.get("first_seen_price") or 1) - 1) * 100
-                    for p in positions.values() if p.get("first_seen_price")]
-            if rets:
-                winners = [r for r in rets if r > 0]
-                r2_usa_m.n_winners = len(winners)
-                r2_usa_m.n_losers = len(rets) - len(winners)
-                r2_usa_m.win_rate = round(len(winners) / len(rets), 4)
-                r2_usa_m.total_return_pct = round(sum(rets) / len(rets), 3)
-                r2_usa_m.median_return_pct = round(sorted(rets)[len(rets) // 2], 3)
-                r2_usa_m.mtd_return_pct = r2_usa_m.total_return_pct
-        except Exception:
-            pass
-        r2_usa = asdict(r2_usa_m)
+    # Uses the runner2_usa paper store built by paper_portfolio.py which
+    # applies proper mark-to-market (prior-close as entry, latest close as
+    # last_seen) so Day 1 returns are non-zero.
+    r2_usa_m = compute_runner_metrics(root, "runner2_usa", "usa", "delivery",
+                                            experiment_start=experiment_start)
+    r2_usa = asdict(r2_usa_m) if r2_usa_m.n_positions > 0 else None
 
     # ── Intraday layer (daily-proxy + hourly if present) ──
     r1_it = compute_runner_metrics(root, "runner1_intraday", "india",
@@ -278,7 +261,12 @@ def build_research_platform(root: Path,
     else:
         confidence = "stable"
 
-    payload = {
+    # Operator directive: delivery and intraday are SEPARATE JSONs · no clubbing.
+    # Each file is standalone, has its own program/status/tickets · nothing bleeds
+    # between them. Legacy research_platform.json still emitted as a combined
+    # convenience view but the two split files are authoritative.
+
+    common = {
         "engine":               ENGINE_ID,
         "schema_fingerprint":   SCHEMA_FINGERPRINT,
         "run_utc":              now.isoformat(),
@@ -291,51 +279,85 @@ def build_research_platform(root: Path,
             "canonical":            canonical,
             "canonical_reason":     canonical_reason,
         },
-        "tickets":              tickets,
-        "layers": {
-            "live_evaluation": {
-                "india_delivery": {
-                    "runner1":          asdict(r1_india),
-                    "runner2":          asdict(r2_india),
-                    "leader":           india_leader,
-                    "leader_edge_pct":  india_edge,
-                    "overlap":          overlap,
-                },
-                "usa_delivery": {
-                    "runner1":       None,
-                    "runner1_note":  "Runner 1 (adaptive_rec_v2) does not cover USA universe",
-                    "runner2":       r2_usa,
-                    "leader":        "RUNNER_2_ONLY" if r2_usa else "NO_DATA",
-                },
-                "india_intraday":    intraday_india,
-            },
-            "historical": {
-                "india":                hist_india,
-                "usa":                  hist_usa,
-                "reduced_2y_backtest":  reduced,
-            },
-            "correlation_lab":        correlation_summary or {"note": "run correlation lab to populate"},
-            "explainability":         expl_summary or {"note": "run explainability layer"},
-            "disagreements":          disagreement_summary or {"note": "run disagreement store"},
-        },
-        "status": {
-            "canonical":     canonical,
-            "leader":        india_leader,
-            "leader_edge_pct": india_edge,
-            "confidence":    confidence,
-        },
-        "note": ("Both runners are CANDIDATES · neither is canonical during evaluation. "
-                    "Article IX (Research Lifecycle) + Article X (Evidence-First Promotion) "
-                    "govern any state transition."),
     }
 
-    out = root / "reports" / "research" / "research_platform.json"
-    out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(json.dumps(payload, indent=2, default=str, ensure_ascii=False),
-                    encoding="utf-8")
+    # ── DELIVERY-ONLY JSON ──
+    delivery_payload = {
+        **common,
+        "kind":               "delivery",
+        "tickets":            [t for t in tickets if t.get("mode") == "delivery"],
+        "live_evaluation": {
+            "india": {
+                "runner1":          asdict(r1_india),
+                "runner2":          asdict(r2_india),
+                "leader":           india_leader,
+                "leader_edge_pct":  india_edge,
+                "overlap":          overlap,
+            },
+            "usa": {
+                "runner1":       None,
+                "runner1_note":  "Runner 1 (adaptive_rec_v2) does not cover USA universe",
+                "runner2":       r2_usa,
+                "leader":        "RUNNER_2_ONLY" if r2_usa else "NO_DATA",
+            },
+        },
+        "historical": {
+            "india":                hist_india,
+            "usa":                  hist_usa,
+            "reduced_2y_backtest":  reduced,
+        },
+        "explainability":     expl_summary or {"note": "run explainability layer"},
+        "disagreements":      disagreement_summary or {"note": "run disagreement store"},
+        "status": {
+            "canonical":       canonical,
+            "leader":          india_leader,
+            "leader_edge_pct": india_edge,
+            "confidence":      confidence,
+        },
+        "note": ("Both runners are CANDIDATES · neither is canonical during evaluation. "
+                    "Article IX + X govern any state transition."),
+    }
 
-    # Also emit an alias at the legacy path for anything still reading it
-    alias = root / "reports" / "runner_metrics.json"
-    alias.write_text(json.dumps(payload, indent=2, default=str, ensure_ascii=False),
-                        encoding="utf-8")
-    return payload
+    # ── INTRADAY-ONLY JSON ──
+    intraday_payload = {
+        **common,
+        "kind":               "intraday",
+        "tickets":            [t for t in tickets if t.get("mode") == "intraday"],
+        "live_evaluation": {
+            "india": intraday_india,
+        },
+        "correlation_lab":    correlation_summary or {"note": "run correlation lab"},
+        "status": {
+            "canonical":       "UNDECIDED",
+            "leader":          (intraday_india.get("daily_proxy") or {}).get("leader") or "TIE",
+            "leader_edge_pct": (intraday_india.get("daily_proxy") or {}).get("leader_edge_pct") or 0.0,
+            "confidence":      confidence,
+            "product_status":  "DEFERRED",
+        },
+        "note": "Intraday is SHADOW · no user-facing recs · measurement only · Article IX ticket R003.",
+    }
+
+    out_dir = root / "reports" / "research"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / "delivery_platform.json").write_text(
+        json.dumps(delivery_payload, indent=2, default=str, ensure_ascii=False),
+        encoding="utf-8")
+    (out_dir / "intraday_platform.json").write_text(
+        json.dumps(intraday_payload, indent=2, default=str, ensure_ascii=False),
+        encoding="utf-8")
+
+    # Legacy combined view (deprecated · kept for one release cycle)
+    legacy_combined = {
+        **common,
+        "tickets":              tickets,
+        "delivery":             delivery_payload,
+        "intraday":             intraday_payload,
+        "_deprecated":          "prefer delivery_platform.json + intraday_platform.json",
+    }
+    (out_dir / "research_platform.json").write_text(
+        json.dumps(legacy_combined, indent=2, default=str, ensure_ascii=False),
+        encoding="utf-8")
+    (root / "reports" / "runner_metrics.json").write_text(
+        json.dumps(legacy_combined, indent=2, default=str, ensure_ascii=False),
+        encoding="utf-8")
+    return legacy_combined

@@ -26,6 +26,7 @@ from .metrics import compute_runner_metrics, RunnerMetrics
 from .paper_portfolio import (
     ingest_runner1_picks_for_date,
     ingest_runner2_picks_for_date,
+    ingest_runner2_picks_usa_for_date,
     mark_to_market,
     compute_head_to_head_summary,
 )
@@ -57,6 +58,7 @@ __all__ = [
     "RunnerMetrics",
     "ingest_runner1_picks_for_date",
     "ingest_runner2_picks_for_date",
+    "ingest_runner2_picks_usa_for_date",
     "mark_to_market",
     "compute_head_to_head_summary",
     "ingest_runner1_intraday_picks_for_date",
