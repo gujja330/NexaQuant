@@ -52,7 +52,11 @@ class Runner1Pick:
     confidence: float | None
     current_price: float | None
     buy_range: str
+    hist_target: float | None
+    expected_range: str
     holding: str
+    review_date: str
+    valid_until: str
     sector: str
     reason: str
 
@@ -91,7 +95,11 @@ def load_runner1_picks(csv_path: Path) -> dict[str, Runner1Pick]:
                     confidence=_num(row.get("Rec Confidence %")),
                     current_price=_num(row.get("Current Price")),
                     buy_range=str(row.get("Buy Range", "")).strip(),
+                    hist_target=_num(row.get("Hist Target")),
+                    expected_range=str(row.get("Expected Range (hist)", "")).strip(),
                     holding=str(row.get("Recommended Holding", "")).strip(),
+                    review_date=str(row.get("Review Date", "")).strip(),
+                    valid_until=str(row.get("Valid Until", "")).strip(),
                     sector=str(row.get("Sector", "")).strip(),
                     reason=str(row.get("Why", "")).strip(),
                 )
@@ -193,14 +201,19 @@ def build_validation_report(runner2_recs: Sequence[Mapping],
         if pick.action not in ("BUY", "WATCH"):
             continue   # only surface active Runner 1 picks
         orphans.append({
-            "ticker":     ticker,
-            "sector":     pick.sector,
-            "action":     pick.action,
-            "strength":   pick.strength,
-            "score":      pick.score,
-            "confidence": pick.confidence,
-            "price":      pick.current_price,
-            "reason":     pick.reason[:120] + ("..." if len(pick.reason) > 120 else ""),
+            "ticker":         ticker,
+            "sector":         pick.sector,
+            "action":         pick.action,
+            "strength":       pick.strength,
+            "score":          pick.score,
+            "confidence":     pick.confidence,
+            "price":          pick.current_price,
+            "buy_range":      pick.buy_range,
+            "hist_target":    pick.hist_target,
+            "expected_range": pick.expected_range,
+            "holding":        pick.holding,
+            "valid_until":    pick.valid_until,
+            "reason":         pick.reason[:120] + ("..." if len(pick.reason) > 120 else ""),
         })
     orphans.sort(key=lambda o: -(o.get("score") or 0))
 

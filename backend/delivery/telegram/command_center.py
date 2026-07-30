@@ -34,7 +34,7 @@ SCHEMA_VERSION = "1.0.0"
 ENGINE_ID = "aegis.delivery.telegram.command_center.v1"
 
 # Character budget · Telegram hard cap is 4096 · reserve headroom.
-BUDGET_CHARS = 3500
+BUDGET_CHARS = 4090   # near Telegram cap 4096 · Research Platform moved to separate follow-up message
 SEPARATOR = "━━━━━━━━━━━━━━━━━━━━━━"
 
 # Currency symbols per market — plain-ASCII fallbacks used because
@@ -340,9 +340,19 @@ def _actionable_entries(recs: Sequence[Mapping], market: str,
                 f"      📥 Buy zone: {_fmt_price(ez.get('ideal_buy_low'), market)}"
                 f"–{_fmt_price(ez.get('ideal_buy_high'), market)}"
             )
+            # Target 1 (conservative) + Target 2 (stretch · +50% headroom on target-1 range)
+            t1 = ez.get("target_1")
+            t2 = ez.get("target_2")
+            if t2 is None and t1 is not None and ez.get("current_price"):
+                # Derive Target 2 as +50% of Target 1's headroom over current price
+                cp_val = ez.get("current_price")
+                if cp_val and t1 > cp_val:
+                    t2 = cp_val + (t1 - cp_val) * 1.5
+            t1_str = _fmt_price(t1, market)
+            t2_str = _fmt_price(t2, market) if t2 else "—"
             lines.append(
                 f"      🛡 Stop: {_fmt_price(ez.get('stop_loss'), market)}"
-                f"   🎯 Target: {_fmt_price(ez.get('target_1'), market)}"
+                f"   🎯 T1: {t1_str}   🎯🎯 T2: {t2_str}"
             )
         # Ticket 4: Performance since recommendation date (per rec inline)
         if perf and not ev.get("is_new") and perf.get("current_return_pct") is not None:
@@ -409,8 +419,10 @@ def _actionable_exits(recs: Sequence[Mapping], market: str,
     for r in exits[:max_rows]:
         t = _ticker_with_name(r.get("ticker") or "?", market)
         ia = r.get("investor_action") or {}
-        action = ia.get("if_holding") or "?"
-        emoji = "🔴🔴" if action == "EXIT" else "🟠"
+        raw_action = ia.get("if_holding") or "?"
+        # 4-state vocabulary · REDUCE + AVOID collapse to EXIT
+        action = "EXIT" if raw_action in ("REDUCE", "SELL", "AVOID", "EXIT") else raw_action
+        emoji = "🔴"
         # Discipline check: if the exit reason class is RANK_ONLY / churn
         # AND ensemble_score is still positive, flag it.
         score = r.get("ensemble_score") or 0
@@ -564,7 +576,7 @@ def _ai_scorecard_line(payload: Mapping, market: str) -> list[str]:
             lines.append(f"   ⚠️ Confidence calibration: {cal_verdict}")
         else:
             lines.append(f"   ✓ Confidence calibration: {cal_verdict}")
-    # Per-metric breakdown (load full scorecard if available)
+    # Per-metric breakdown · one compact line per metric with emoji+stars+value
     try:
         from pathlib import Path
         sc_path = Path("reports/ai_scorecard.json") if market == "india" else None
@@ -572,7 +584,6 @@ def _ai_scorecard_line(payload: Mapping, market: str) -> list[str]:
             full = json.loads(sc_path.read_text(encoding="utf-8"))
             metrics = full.get("metrics") or []
             if metrics:
-                # Emoji per metric name for quick visual parsing
                 emoji_map = {
                     "Recommendation Accuracy": "🎯",
                     "Exit Timing":              "🚪",
@@ -581,12 +592,15 @@ def _ai_scorecard_line(payload: Mapping, market: str) -> list[str]:
                     "Rotation Quality":         "🔄",
                     "Confidence Calibration":   "📐",
                 }
+                # Compact two-per-line format so 6 metrics = 3 lines (vs 6)
+                pieces = []
                 for m in metrics:
-                    name = m.get("name", "?")
-                    e = emoji_map.get(name, "•")
-                    st = "⭐" * (m.get("stars") or 0)
-                    v = m.get("value", "-")
-                    lines.append(f"   {e} {name}: {st} ({v})")
+                    e = emoji_map.get(m.get("name", ""), "•")
+                    st = "⭐" * (m.get("stars") or 0) or "—"
+                    pieces.append(f"{e}{st}")
+                # 3 columns per line
+                for i in range(0, len(pieces), 3):
+                    lines.append("   " + "   ".join(pieces[i:i+3]))
     except Exception:
         pass
     return lines
@@ -616,7 +630,7 @@ def _attribution_top(payload: Mapping) -> list[str]:
     return lines
 
 
-def _runner1_orphans(payload: Mapping, market: str, max_rows: int = 5) -> list[str]:
+def _runner1_orphans(payload: Mapping, market: str, max_rows: int = 3) -> list[str]:
     """v3.0 Option D: Runner 1's active picks that Runner 2 did NOT include.
 
     Runner 1 is the defensive/legacy engine · demoted to a validation layer.
@@ -631,20 +645,174 @@ def _runner1_orphans(payload: Mapping, market: str, max_rows: int = 5) -> list[s
     orphans = rv.get("runner1_orphans") or []
     if not orphans:
         return []
-    lines = ["", f"📜 *DEFENSIVE VIEW · Runner 1 picks Runner 2 skipped ({len(orphans)})*",
-             "   _Legacy engine's active picks · not AEGIS canonical recs · shown for continuity_"]
+    # Operator's 4-state vocabulary: STRONG BUY · BUY · HOLD · EXIT
+    strength_emoji = {
+        "STRONG BUY":  "🟢🟢",
+        "BUY":         "🟢",
+        "ACCUMULATE":  "🟢",           # collapsed → BUY
+        "HOLD":        "⚪",
+        "WATCH":       "⚪",           # collapsed → HOLD
+        "EXIT":        "🔴",
+        "SELL":        "🔴",           # collapsed → EXIT
+        "STRONG SELL": "🔴",           # collapsed → EXIT
+        "REDUCE":      "🔴",           # collapsed → EXIT
+        "AVOID":       "🔴",           # collapsed → EXIT
+    }
+    strength_display = {
+        "ACCUMULATE":  "BUY",
+        "WATCH":       "HOLD",
+        "SELL":        "EXIT",
+        "STRONG SELL": "EXIT",
+        "REDUCE":      "EXIT",
+        "AVOID":       "EXIT",
+    }
+    lines = ["",
+                f"🛡 *DEFENSIVE VIEW · Runner 1 picks Runner 2 skipped ({len(orphans)})*",
+                "   _Legacy engine's active picks · not AEGIS canonical · shown for continuity_"]
+    currency = "Rs" if market == "india" else "$"
     for o in orphans[:max_rows]:
         t = _ticker_with_name(o.get("ticker") or "", market)
-        strength = o.get("strength") or "?"
+        raw_strength = (o.get("strength") or "?").upper()
+        strength = strength_display.get(raw_strength, raw_strength)
+        emoji = strength_emoji.get(raw_strength, "⚪")
         score = o.get("score")
-        score_s = f" · score {score:.0f}/100" if isinstance(score, (int, float)) else ""
-        reason_short = (o.get("reason") or "")[:70]
-        lines.append(f"   • *{t}* — {strength}{score_s}")
+        conf = o.get("confidence")
+        price = o.get("price")
+        buy_range = (o.get("buy_range") or "").strip()
+        hist_target = o.get("hist_target")
+        expected_range = (o.get("expected_range") or "").strip()
+        holding = (o.get("holding") or "").strip()
+        valid_until = (o.get("valid_until") or "").strip()
+        reason_short = (o.get("reason") or "")[:60]
+
+        # Line 1: emoji · ticker · strength · score · confidence
+        header_parts = [f"{emoji} *{t}* — {strength}"]
+        if isinstance(score, (int, float)):
+            header_parts.append(f"📊 {score:.0f}/100")
+        if isinstance(conf, (int, float)):
+            header_parts.append(f"conf {conf:.0f}%")
+        lines.append("   " + "  ·  ".join(header_parts))
+
+        # Line 2: current price · buy zone · hold period
+        detail_parts = []
+        if isinstance(price, (int, float)) and price > 0:
+            detail_parts.append(f"💰 now {currency}{price:,.2f}")
+        if buy_range:
+            detail_parts.append(f"📥 Buy: {currency}{buy_range}")
+        if holding:
+            detail_parts.append(f"⏳ {holding}")
+        if detail_parts:
+            lines.append("      " + "  ·  ".join(detail_parts))
+
+        # Line 3: stop-loss · T1 · T2 (parity with rotational display)
+        # Stop = -5% of current (Runner 1 CSV doesn't ship stop · standard AEGIS-Shield policy)
+        # T1 = Runner 1's Hist Target when available · else current+8%
+        # T2 = current + 15% (stretch)
+        if isinstance(price, (int, float)) and price > 0:
+            stop = price * 0.95
+            t1 = hist_target if isinstance(hist_target, (int, float)) and hist_target > price else price * 1.08
+            t2 = price * 1.15
+            targets_line = (f"      🛡 Stop: {currency}{stop:,.2f}"
+                                f"   🎯 T1: {currency}{t1:,.2f}"
+                                f"   🎯🎯 T2: {currency}{t2:,.2f}")
+            lines.append(targets_line)
+
+        # Line 4: expected range + valid-until (compact)
+        meta_parts = []
+        if expected_range:
+            meta_parts.append(f"📊 range {expected_range}")
+        if valid_until:
+            meta_parts.append(f"✅ valid → {valid_until}")
+        if meta_parts:
+            lines.append("      " + "  ·  ".join(meta_parts))
+
         if reason_short:
-            lines.append(f"     _{reason_short}_")
+            lines.append(f"      _{reason_short}_")
+
     if len(orphans) > max_rows:
         lines.append(f"   _...+{len(orphans) - max_rows} more defensive picks_")
-    lines.append(f"   ↳ Runner 1 → validation layer only (Option D · Article 4 SSoT)")
+    lines.append(f"   ↳ 📚 Runner 1 → validation layer only (Option D · Article 4 SSoT)")
+    return lines
+
+
+def _intraday_hint(payload: Mapping, market: str) -> list[str]:
+    """One-liner pointing at today's intraday shadow snapshot.
+
+    Reads reports/research/research_platform.json (unified SSoT). If no
+    Research Platform data yet, returns empty (graceful).
+    """
+    if market != "india":
+        return []
+    try:
+        p = Path("reports/research/research_platform.json")
+        if not p.exists():
+            return []
+        rp = json.loads(p.read_text(encoding="utf-8"))
+        intra = ((rp.get("layers") or {}).get("live_evaluation") or {}) \
+                    .get("india_intraday") or {}
+        dp = intra.get("daily_proxy") or {}
+        r1 = dp.get("runner1") or {}
+        r2 = dp.get("runner2") or {}
+        leader = dp.get("leader") or "TIE"
+        edge = dp.get("leader_edge_pct") or 0.0
+        if not (r1 or r2):
+            return []
+        return [
+            "",
+            f"⚡ *INTRADAY SHADOW* (measurement only · deferred as product)",
+            f"   R1 {r1.get('total_return_pct', 0):+.2f}%  ·  "
+            f"R2 {r2.get('total_return_pct', 0):+.2f}%  ·  "
+            f"Leader *{leader}*  ·  Edge {edge:+.2f}pp",
+        ]
+    except Exception:
+        return []
+
+
+def _runner2_exclusive(payload: Mapping, market: str, max_rows: int = 5) -> list[str]:
+    """Symmetric to Defensive View · Runner 2 picks Runner 1 does NOT include.
+
+    Operator asked: "you said both runners said CHAMBLFERT but I cannot see it
+    in defensive?" — because CHAMBLFERT is a Runner-2-only pick (not in
+    Runner 1's active list). This block surfaces such picks so the operator
+    has visibility BOTH ways: R1-only AND R2-only.
+    """
+    if market != "india":
+        return []
+    recs = payload.get("recommendations") or []
+    exclusive = []
+    for r in recs:
+        ia = r.get("investor_action") or {}
+        if ia.get("entry") != "BUY":
+            continue
+        v = r.get("validation") or {}
+        # NOT_TRACKED means Runner 1 doesn't have it at all today
+        if v.get("agreement_label") == "NOT_TRACKED":
+            exclusive.append(r)
+    if not exclusive:
+        return []
+    lines = ["",
+                f"🎯 *R2-EXCLUSIVE · Runner 2 picks Runner 1 not tracking ({len(exclusive)})*",
+                "   _AEGIS canonical picks with no Runner 1 opinion today_"]
+    currency = "Rs" if market == "india" else "$"
+    for r in exclusive[:max_rows]:
+        t = _ticker_with_name(r.get("ticker") or "?", market)
+        pp = r.get("position_plan") or {}
+        ez = pp.get("entry_zone") or {}
+        conf = r.get("calibrated_confidence")
+        rank = r.get("rank")
+        cp = _fmt_price(ez.get("current_price"), market)
+        pct = r.get("percentile_action") or "BUY"
+        # Collapse to 4-state
+        pct_disp = "STRONG BUY" if pct == "STRONG_BUY" else "BUY"
+        emoji = "🟢🟢" if pct == "STRONG_BUY" else "🟢"
+        rank_str = f"#{rank}" if rank else "—"
+        conf_str = f"conf {conf:.0%}" if isinstance(conf, (int, float)) else ""
+        lines.append(f"   {emoji} *{t}* — {pct_disp}  ·  rank {rank_str}  ·  {conf_str}")
+        lines.append(f"      💰 now {cp}"
+                        + (f"  ·  🎯 T1 {_fmt_price(ez.get('target_1'), market)}"
+                                if ez.get("target_1") else ""))
+    if len(exclusive) > max_rows:
+        lines.append(f"   _...+{len(exclusive) - max_rows} more R2-exclusive_")
     return lines
 
 
@@ -669,6 +837,405 @@ def _runner1_agreement_summary(payload: Mapping, market: str) -> list[str]:
         f"Neutral: {counts.get('NEUTRAL', 0)} · "
         f"Not tracked: {counts.get('NOT_TRACKED', 0)}",
     ]
+
+
+def _research_platform_block(payload: Mapping, market: str) -> list[str]:
+    """AEGIS Research Platform · executive dashboard block.
+
+    Reads reports/research/research_platform.json (unified SSoT). Compact
+    executive format per operator spec — program status, live leader,
+    historical winner, disagreement panel, correlation lab lever count.
+
+    Renders identically for India and USA · USA sees only its own
+    delivery slice + the historical layer.
+    """
+    from pathlib import Path
+    try:
+        p = Path("reports/research/research_platform.json")
+        if not p.exists():
+            return []
+        rp = json.loads(p.read_text(encoding="utf-8"))
+    except Exception:
+        return []
+
+    prog = rp.get("program") or {}
+    status = rp.get("status") or {}
+    layers = rp.get("layers") or {}
+    live = layers.get("live_evaluation") or {}
+    hist = layers.get("historical") or {}
+    corr = layers.get("correlation_lab") or {}
+    dis = layers.get("disagreements") or {}
+    expl = layers.get("explainability") or {}
+
+    day = prog.get("day_of_program") or 0
+    target = prog.get("window_days_target") or 90
+    minimum = prog.get("window_days_minimum") or 60
+    canonical = prog.get("canonical") or "UNDECIDED"
+    leader = status.get("leader") or "TIE"
+    edge = status.get("leader_edge_pct") or 0.0
+    confidence = status.get("confidence") or "insufficient"
+
+    # Historical winner (for the operator's chosen market)
+    hist_key = market if market in ("india", "usa") else "india"
+    hist_market = (hist.get(hist_key) or {})
+    hist_overall = hist_market.get("overall_winner") if hist_market else None
+    hist_wins = None
+    if hist_market:
+        y1 = hist_market.get("year_wins_runner1", 0)
+        y2 = hist_market.get("year_wins_runner2", 0)
+        yt = hist_market.get("year_ties", 0)
+        hist_wins = f"R1 {y1} / R2 {y2} / TIE {yt}"
+
+    def _fmt_runner(label: str, m: dict | None) -> str:
+        if not m:
+            return f"   {label}: no data"
+        ret = m.get("total_return_pct", 0.0)
+        wr = (m.get("win_rate") or 0) * 100
+        n = m.get("n_positions", 0)
+        sharpe = m.get("sharpe_ratio")
+        dd = m.get("max_drawdown_pct", 0.0)
+        pf = m.get("profit_factor")
+        parts = [f"   *{label}*",
+                    f"      Ret {ret:+.2f}% · Win {wr:.0f}% · N {n}"]
+        secondary = []
+        if sharpe is not None:
+            secondary.append(f"Sharpe {sharpe:.2f}")
+        if pf is not None:
+            secondary.append(f"PF {pf:.2f}")
+        if dd:
+            secondary.append(f"DD {dd:.1f}%")
+        if secondary:
+            parts.append(f"      " + " · ".join(secondary))
+        return "\n".join(parts)
+
+    lines: list[str] = ["", "━━━━━━━━━━━━━━━━━━━━━",
+                            "🏁 *AEGIS RESEARCH PLATFORM*",
+                            "━━━━━━━━━━━━━━━━━━━━━",
+                            f"Program: {minimum} / {target} Days · Day {day}",
+                            f"Canonical: *{canonical}*  ·  Leader: {leader}  ·  Edge: {edge:+.2f}%",
+                            f"Confidence: {confidence}"]
+
+    if market == "usa":
+        # USA slice
+        usa = live.get("usa_delivery") or {}
+        r2 = usa.get("runner2")
+        lines += ["", "🇺🇸 *USA DELIVERY* (Runner 2 only · R1 does not cover USA)"]
+        lines.append(_fmt_runner("Runner 2", r2))
+        if hist_market:
+            lines += ["", f"📚 Historical: winner {hist_overall or '—'} · {hist_wins or ''}"]
+        return lines
+
+    # India · full display
+    ind = live.get("india_delivery") or {}
+    r1 = ind.get("runner1")
+    r2 = ind.get("runner2")
+    ind_leader = ind.get("leader")
+    ind_edge = ind.get("leader_edge_pct") or 0.0
+    overlap = ind.get("overlap") or {}
+
+    lines += ["", "🇮🇳 *INDIA DELIVERY*",
+                 f"   Leader: {ind_leader}  ·  Edge {ind_edge:+.2f}pp"]
+    lines.append(_fmt_runner("Runner 1", r1))
+    lines.append(_fmt_runner("Runner 2", r2))
+    if overlap and overlap.get("agreement_pct") is not None:
+        lines.append(f"   Overlap: agree {overlap.get('agreement_pct')}%  ·  "
+                        f"disagree {overlap.get('disagreement_pct')}%  ·  "
+                        f"buy-overlap {overlap.get('buy_overlap_pct')}%")
+
+    # Intraday · shadow (deferred per CEO)
+    intra = live.get("india_intraday") or {}
+    dp = intra.get("daily_proxy") or {}
+    r1i = dp.get("runner1")
+    r2i = dp.get("runner2")
+    it_leader = dp.get("leader") or "TIE"
+    it_edge = dp.get("leader_edge_pct") or 0.0
+    if r1i or r2i:
+        lines += ["", "⚡ *INDIA INTRADAY* (shadow · deferred as product · measurement only)",
+                     f"   Leader: {it_leader}  ·  Edge {it_edge:+.2f}pp"]
+        if r1i:
+            lines.append(f"   R1: {r1i.get('total_return_pct', 0):+.2f}% · "
+                            f"Win {(r1i.get('win_rate') or 0)*100:.0f}% · "
+                            f"N {r1i.get('n_positions', 0)}")
+        if r2i:
+            lines.append(f"   R2: {r2i.get('total_return_pct', 0):+.2f}% · "
+                            f"Win {(r2i.get('win_rate') or 0)*100:.0f}% · "
+                            f"N {r2i.get('n_positions', 0)}")
+
+    # Historical winner
+    if hist_market:
+        lines += ["", f"📚 *Historical (India)*: winner {hist_overall or '—'}  ·  {hist_wins or ''}"]
+
+    # Disagreement panel · show up to 3 decisive buckets
+    if dis and dis.get("decisive_buckets"):
+        lines += ["", "⚖️ *DISAGREEMENTS · verdict panel*"]
+        for bucket, v in list(dis.get("decisive_buckets", {}).items())[:3]:
+            lines.append(f"   {bucket}: winner {v.get('winner')} · "
+                            f"R1 WR {(v.get('r1_win_rate') or 0)*100:.0f}% · "
+                            f"R2 WR {(v.get('r2_win_rate') or 0)*100:.0f}% · "
+                            f"n {v.get('n_scored', 0)}")
+    elif dis and dis.get("n_total"):
+        lines += ["", f"⚖️ Disagreements: {dis.get('n_total')} logged · "
+                         f"{dis.get('n_scorable', 0)} scorable · verdict panel building"]
+
+    # Correlation lab summary
+    if corr and corr.get("pearson") is not None:
+        pear = corr.get("pearson")
+        n_levers = len((corr.get("top_refinement_levers") or []))
+        lines += ["", f"🔬 *Correlation Lab*: intraday↔delivery pearson {pear:+.3f}  ·  "
+                         f"{n_levers} refinement lever(s) surfaced"]
+
+    # Explainability narrative (today)
+    if expl and expl.get("narrative"):
+        lines += ["", f"📝 {expl.get('narrative')[:200]}"]
+
+    lines += ["",
+                 "_Governed by Article IX (Research Lifecycle) + Article X (Evidence-First Promotion) · Paper-only · Both runners CANDIDATES · No canonicity declaration until Day-60 first-decision + Day-90 target confirmed._"]
+    return lines
+
+
+# Legacy aliases (kept so section-order tuple below doesn't break)
+def _head_to_head_block(payload: Mapping, market: str) -> list[str]:
+    """Deprecated · superseded by _research_platform_block. Kept as no-op alias."""
+    return []
+
+
+def _backtest_snapshot_block(payload: Mapping, market: str) -> list[str]:
+    """Deprecated · content now consolidated inside _research_platform_block."""
+    return []
+
+
+# ═══ Standalone Research Platform message (sent as second Telegram) ═══
+def render_research_platform_message(market: str,
+                                          budget: int = 4000) -> str:
+    """Render the full AEGIS Research Platform report as a standalone
+    Telegram message. Sent right after the main Command Center · gives
+    the operator the full evidence panel without competing for budget.
+
+    Reads reports/research/research_platform.json (SSoT). Returns a
+    single string ≤ budget chars, with all Research artefacts:
+      · Program status + canonical decision
+      · Runner 1 vs Runner 2 side-by-side (all metrics)
+      · India Intraday shadow (both runners)
+      · Historical per-year winner (backtracking)
+      · Disagreement verdict panel
+      · Correlation Lab · refinement levers
+      · Explainability narrative
+    """
+    from pathlib import Path
+    try:
+        p = Path("reports/research/research_platform.json")
+        if not p.exists():
+            return ""
+        rp = json.loads(p.read_text(encoding="utf-8"))
+    except Exception:
+        return ""
+
+    prog = rp.get("program") or {}
+    status = rp.get("status") or {}
+    layers = rp.get("layers") or {}
+    live = layers.get("live_evaluation") or {}
+    hist = layers.get("historical") or {}
+    corr = layers.get("correlation_lab") or {}
+    dis = layers.get("disagreements") or {}
+    expl = layers.get("explainability") or {}
+    tickets = rp.get("tickets") or []
+
+    day = prog.get("day_of_program") or 0
+    target = prog.get("window_days_target") or 90
+    minimum = prog.get("window_days_minimum") or 60
+    canonical = prog.get("canonical") or "UNDECIDED"
+    leader = status.get("leader") or "TIE"
+    edge = status.get("leader_edge_pct") or 0.0
+    confidence = status.get("confidence") or "insufficient"
+
+    conf_emoji = {
+        "insufficient": "🟠",
+        "flipping":     "🟡",
+        "growing":      "🟢",
+        "stable":       "🟢",
+    }.get(confidence, "⚪")
+
+    market_flag = "🇮🇳" if market == "india" else ("🇺🇸" if market == "usa" else "🌐")
+
+    lines: list[str] = [
+        "🏁 *AEGIS RESEARCH PLATFORM*",
+        f"{market_flag} {market.upper()}  ·  📅 Day *{day}* of {target}  (min {minimum})",
+        SEPARATOR,
+        f"🏛 *Canonical:* {canonical}   ·   🥇 *Leader:* {leader}",
+        f"📊 *Edge:* {edge:+.2f}pp   ·   {conf_emoji} *Confidence:* {confidence}",
+    ]
+
+    # ── India Delivery · side-by-side R1 vs R2 ──
+    if market != "usa":
+        ind = live.get("india_delivery") or {}
+        r1 = ind.get("runner1") or {}
+        r2 = ind.get("runner2") or {}
+        overlap = ind.get("overlap") or {}
+        ind_leader = ind.get("leader")
+        ind_edge = ind.get("leader_edge_pct") or 0.0
+        lines += ["",
+                     "🇮🇳 *INDIA DELIVERY · Runner 1 vs Runner 2*",
+                     f"   🥇 Leader: *{ind_leader}*  ·  Edge {ind_edge:+.2f}pp"]
+        lines += ["",
+                     "   📊 *Head-to-Head Metrics*"]
+        rows = [
+            ("N picks",         r1.get("n_positions", 0),     r2.get("n_positions", 0)),
+            ("Return %",        f"{r1.get('total_return_pct', 0):+.2f}",
+                                     f"{r2.get('total_return_pct', 0):+.2f}"),
+            ("Win rate %",      f"{(r1.get('win_rate') or 0)*100:.0f}",
+                                     f"{(r2.get('win_rate') or 0)*100:.0f}"),
+            ("Median %",        f"{r1.get('median_return_pct', 0):+.2f}",
+                                     f"{r2.get('median_return_pct', 0):+.2f}"),
+            ("Sharpe",          _fmt(r1.get('sharpe_ratio')),
+                                     _fmt(r2.get('sharpe_ratio'))),
+            ("Sortino",         _fmt(r1.get('sortino_ratio')),
+                                     _fmt(r2.get('sortino_ratio'))),
+            ("Profit Factor",   _fmt(r1.get('profit_factor')),
+                                     _fmt(r2.get('profit_factor'))),
+            ("Max DD %",        f"{r1.get('max_drawdown_pct', 0):.2f}",
+                                     f"{r2.get('max_drawdown_pct', 0):.2f}"),
+            ("Tail Loss (CVaR)", _fmt(r1.get('tail_loss_cvar_pct')),
+                                     _fmt(r2.get('tail_loss_cvar_pct'))),
+            ("Turnover %",      f"{r1.get('turnover_pct', 0):.1f}",
+                                     f"{r2.get('turnover_pct', 0):.1f}"),
+            ("Stability %",     f"{r1.get('recommendation_stability_pct', 0):.1f}",
+                                     f"{r2.get('recommendation_stability_pct', 0):.1f}"),
+        ]
+        # Table-style output with fixed column widths for professional feel
+        lines.append(f"   `{'Metric':<15} {'R1':>10} {'R2':>10} {'Δ':>8}`")
+        for label, v1, v2 in rows:
+            try:
+                delta = float(str(v2).replace('+','')) - float(str(v1).replace('+',''))
+                delta_str = f"{delta:+.2f}" if isinstance(delta, float) else ""
+            except (ValueError, TypeError):
+                delta_str = "—"
+            lines.append(f"   `{label:<15} {str(v1):>10} {str(v2):>10} {delta_str:>8}`")
+
+        if overlap.get("agreement_pct") is not None:
+            lines += ["",
+                         f"   🤝 Agreement {overlap.get('agreement_pct')}%  ·  "
+                         f"⚔️ Disagreement {overlap.get('disagreement_pct')}%",
+                         f"   🎯 Buy Overlap {overlap.get('buy_overlap_pct')}%  ·  "
+                         f"🏷 Sector Overlap {overlap.get('sector_overlap_pct')}%"]
+
+        # ── Intraday shadow ──
+        intra = live.get("india_intraday") or {}
+        dp = intra.get("daily_proxy") or {}
+        r1i = dp.get("runner1") or {}
+        r2i = dp.get("runner2") or {}
+        if r1i or r2i:
+            it_leader = dp.get("leader") or "TIE"
+            it_edge = dp.get("leader_edge_pct") or 0.0
+            lines += ["",
+                         "⚡ *INDIA INTRADAY · shadow (deferred as product)*",
+                         f"   🥇 Leader: *{it_leader}*  ·  Edge {it_edge:+.2f}pp",
+                         f"   R1: {r1i.get('total_return_pct', 0):+.2f}%  ·  "
+                         f"Win {(r1i.get('win_rate') or 0)*100:.0f}%  ·  "
+                         f"N {r1i.get('n_positions', 0)}",
+                         f"   R2: {r2i.get('total_return_pct', 0):+.2f}%  ·  "
+                         f"Win {(r2i.get('win_rate') or 0)*100:.0f}%  ·  "
+                         f"N {r2i.get('n_positions', 0)}"]
+
+        # ── Historical backtracking (per-year) ──
+        h_india = hist.get("india") or {}
+        years = h_india.get("years") or []
+        if years:
+            lines += ["",
+                         "📚 *HISTORICAL BACKTRACK · India · per-year*"]
+            for y in years[-5:]:
+                w = y.get("winner_this_year") or "—"
+                edge_y = y.get("edge_pp", 0)
+                lines.append(f"   {y.get('year')}: winner *{w}*  ·  "
+                                f"R1 med {y.get('runner1',{}).get('median_return_pct',0):+.2f}%  ·  "
+                                f"R2 med {y.get('runner2',{}).get('median_return_pct',0):+.2f}%  ·  "
+                                f"Δ {edge_y:+.2f}pp")
+            overall = h_india.get("overall_winner")
+            y1 = h_india.get("year_wins_runner1", 0)
+            y2 = h_india.get("year_wins_runner2", 0)
+            yt = h_india.get("year_ties", 0)
+            lines.append(f"   🏆 Overall: *{overall}*  ·  R1 wins {y1} / R2 wins {y2} / ties {yt}")
+
+        # ── Disagreement panel ──
+        if dis and dis.get("all_buckets"):
+            lines += ["",
+                         "⚖️ *DISAGREEMENT VERDICT PANEL* (gold layer)"]
+            for bucket, v in list((dis.get("all_buckets") or {}).items())[:6]:
+                w = v.get("winner", "—")
+                n = v.get("n_scored", 0)
+                lines.append(f"   {bucket}: winner *{w}*  ·  "
+                                f"R1 WR {(v.get('r1_win_rate') or 0)*100:.0f}%  ·  "
+                                f"R2 WR {(v.get('r2_win_rate') or 0)*100:.0f}%  ·  n {n}")
+            note = dis.get("sample_size_note") or ""
+            if note:
+                lines.append(f"   _{note}_")
+
+        # ── Correlation lab ──
+        if corr and corr.get("pearson") is not None:
+            pear = corr.get("pearson")
+            n_levers = len(corr.get("top_refinement_levers") or [])
+            interp = corr.get("interpretation", "") or ""
+            lines += ["",
+                         f"🔬 *CORRELATION LAB · Intraday↔Delivery*",
+                         f"   Pearson {pear:+.3f}  ·  {n_levers} refinement lever(s)",
+                         f"   _{interp[:180]}_"]
+            for lev in (corr.get("top_refinement_levers") or [])[:3]:
+                slice_str = ", ".join(f"{k}={v}" for k, v in (lev.get("slice") or {}).items()
+                                            if k in ("sector", "industry", "dimension_bucket"))
+                lines.append(f"   • {lev.get('category')}: {slice_str}")
+
+        # ── Explainability narrative ──
+        if expl and expl.get("narrative"):
+            lines += ["",
+                         "📝 *TODAY'S NARRATIVE*",
+                         f"   {expl.get('narrative')[:250]}"]
+
+    # ── USA slice (Runner 2 only) ──
+    if market == "usa":
+        usa = live.get("usa_delivery") or {}
+        r2 = usa.get("runner2") or {}
+        lines += ["",
+                     "🇺🇸 *USA DELIVERY* (Runner 2 only · R1 does not cover USA)",
+                     f"   N picks {r2.get('n_positions', 0)}  ·  "
+                     f"Return {r2.get('total_return_pct', 0):+.2f}%  ·  "
+                     f"Win {(r2.get('win_rate') or 0)*100:.0f}%",
+                     f"   Sharpe {_fmt(r2.get('sharpe_ratio'))}  ·  "
+                     f"PF {_fmt(r2.get('profit_factor'))}  ·  "
+                     f"Max DD {r2.get('max_drawdown_pct', 0):.2f}%"]
+        h_usa = hist.get("usa") or {}
+        if h_usa.get("years"):
+            lines += ["", "📚 *HISTORICAL BACKTRACK · USA · per-year*"]
+            for y in h_usa["years"][-5:]:
+                lines.append(f"   {y.get('year')}: winner *{y.get('winner_this_year')}*")
+
+    # ── Tickets summary ──
+    if tickets:
+        lines += ["",
+                     "🎫 *RESEARCH TICKETS*"]
+        for t in tickets[:5]:
+            cand = "🏛 candidate" if t.get("canonical_candidate") else "⏸ deferred"
+            lines.append(f"   • {t.get('ticket_id')}: {t.get('lifecycle_state')}  ·  {cand}")
+
+    # ── Footer ──
+    lines += ["",
+                 SEPARATOR,
+                 "_Governed by Article IX (Research Lifecycle) + Article X (Evidence-First Promotion)_",
+                 "_Paper-only · Both runners CANDIDATES · No canonicity declaration before Day 60_"]
+
+    msg = "\n".join(lines).strip()
+    if len(msg) > budget:
+        # Hard-cap only if exceeded · rare
+        msg = msg[:budget - 100] + "\n\n_...truncated to budget..._"
+    return msg
+
+
+def _fmt(v) -> str:
+    """Format an optional numeric metric for display · '—' for None."""
+    if v is None:
+        return "—"
+    try:
+        return f"{float(v):.2f}"
+    except (TypeError, ValueError):
+        return str(v)
 
 
 def _integrity_footer(payload: Mapping, market: str) -> list[str]:
@@ -758,9 +1325,13 @@ def render_command_center_message(payload: Mapping, market: str,
         ("new_buys",         _actionable_entries(recs, market)),
         ("exits",            _actionable_exits(recs, market)),
         ("r1_orphans",       _runner1_orphans(payload, market)),
+        ("r2_exclusive",     _runner2_exclusive(payload, market)),
+        ("intraday_hint",    _intraday_hint(payload, market)),
         ("attribution",      _attribution_top(payload)),
         ("risk_pulse",       _risk_pulse(cs, recs, market)),
-        ("footer",           _integrity_footer(payload, market)),
+        # Full Research Platform detail sent as a dedicated follow-up message
+        # (render_research_platform_message) · no longer competes for budget
+        ("footer",            _integrity_footer(payload, market)),
     ]
 
     out: list[str] = []

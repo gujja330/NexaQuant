@@ -42,7 +42,8 @@ _ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_ROOT))
 
 from backend.delivery.telegram.command_center import (  # noqa: E402
-    load_and_render, ENGINE_ID, SCHEMA_FINGERPRINT,
+    load_and_render, render_research_platform_message,
+    ENGINE_ID, SCHEMA_FINGERPRINT,
 )
 
 
@@ -75,9 +76,9 @@ def _load_env() -> None:
 def _send_markdown(token: str, chat_id: str, text: str) -> tuple[bool, str]:
     if not text:
         return True, "empty"
-    # Telegram hard cap; renderer targets 3500 but guard anyway.
-    if len(text) > 4000:
-        text = text[:3900] + "\n\n...truncated for delivery"
+    # Telegram hard cap 4096 · trim only if actually over
+    if len(text) > 4096:
+        text = text[:4080] + "\n\n...truncated"
     url = f"https://api.telegram.org/bot{token}/sendMessage"
     data = urllib.parse.urlencode({
         "chat_id":                  chat_id,
@@ -148,7 +149,33 @@ def _send_one_market(market: str, token: str, chat_id: str) -> tuple[bool, dict]
         "detail_head": detail[:200],
         **meta,
     })
-    return ok, {"market": market, "ok": ok, **meta}
+
+    # v3.1: Research Platform follow-up (own budget · full evidence panel)
+    # Sent as a SEPARATE Telegram so it never competes with the daily
+    # advisory for space. Delivery failure here does NOT fail the main send.
+    research_ok = True
+    try:
+        research_msg = render_research_platform_message(market, budget=4000)
+        if research_msg:
+            research_ok, research_detail = _send_markdown(token, chat_id, research_msg)
+            print(f"[research_platform:{market}] chars={len(research_msg)} · sent={research_ok}")
+            if not research_ok:
+                print(f"  detail: {research_detail[:180]}")
+            _append_delivery_ledger({
+                "ts_utc":  datetime.now(timezone.utc).isoformat(),
+                "engine":  "aegis.research.telegram.v1",
+                "market":  market,
+                "kind":    "research_platform",
+                "ok":      research_ok,
+                "chars":   len(research_msg),
+                "detail_head":  research_detail[:200] if not research_ok else "",
+            })
+    except Exception as e:
+        print(f"[research_platform:{market}] render/send failed · {type(e).__name__}: {e}")
+        research_ok = False
+
+    return (ok and research_ok), {"market": market, "ok": ok,
+                                        "research_ok": research_ok, **meta}
 
 
 def main() -> int:

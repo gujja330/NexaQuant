@@ -39,10 +39,16 @@ DOCS = ROOT / "docs"
 IMG_DIR = DOCS / "images"
 IMG_DIR.mkdir(parents=True, exist_ok=True)
 
-VERSION = "3.0-LOCKED"
+VERSION = "3.1-RESEARCH-PLATFORM"
 TODAY = date.today().isoformat()
 OUT_PDF = DOCS / f"AEGIS_ARCHITECTURE_v{VERSION}.pdf"
 OUT_MD  = DOCS / f"AEGIS_ARCHITECTURE_v{VERSION}.md"
+
+# A4 = 21.0cm wide × 29.7cm tall
+# With margins below (1.8cm each side) usable = 17.4cm × 26.1cm
+# All embedded images must fit within 16.5cm wide to leave safety margin
+# (prior v3.0-LOCKED used 17cm which occasionally clipped on some viewers).
+MAX_IMG_WIDTH_CM = 16.5
 
 
 # ═══ Color palette (institutional / calm) ══════════════════════════
@@ -342,6 +348,86 @@ def make_rec_structure_diagram(path: Path) -> None:
     plt.close()
 
 
+# ═══ Diagram 8 · Research Platform (v3.1) ══════════════════════════
+def make_research_platform_diagram(path: Path) -> None:
+    """AEGIS Research Platform · permanent evaluation framework.
+
+    Shows the Research Lifecycle (7 states), three evidence layers,
+    and the unified SSoT emitter. Introduced in v3.1 with Articles IX + X.
+    """
+    fig, ax = plt.subplots(figsize=(10, 5.2))
+    ax.set_xlim(0, 10); ax.set_ylim(0, 5.2); ax.axis("off")
+
+    ax.text(5, 4.95, "AEGIS Research Platform",
+             ha="center", fontsize=13, weight="bold", color=C_PRIMARY)
+    ax.text(5, 4.7, "Permanent evaluation framework · Articles IX + X",
+             ha="center", fontsize=9, color=C_MUTED)
+
+    # Lifecycle band (7 states)
+    lifecycle = ["OPEN", "BACKTEST", "PAPER", "LIVE 60d",
+                    "VALID 90d", "CEO", "PRODUCTION"]
+    x0 = 0.4
+    w = 1.28
+    y = 3.7
+    h = 0.55
+    for i, state in enumerate(lifecycle):
+        cx = x0 + i * w
+        color = C_PRIMARY if i in (0, 6) else C_ACCENT
+        ax.add_patch(FancyBboxPatch((cx, y), w * 0.88, h,
+                                          boxstyle="round,pad=0.03",
+                                          linewidth=0, facecolor=color, alpha=0.85))
+        ax.text(cx + (w * 0.88) / 2, y + h / 2, state,
+                 ha="center", va="center", fontsize=7.5, color="white", weight="bold")
+        if i < 6:
+            ax.annotate("", xy=(cx + w, y + h/2), xytext=(cx + w*0.88, y + h/2),
+                         arrowprops=dict(arrowstyle="->", color=C_MUTED, lw=1))
+    ax.text(5, 3.4, "Lifecycle · no shortcuts · every transition requires evidence",
+             ha="center", fontsize=8, color=C_TEXT, style="italic")
+
+    # Three evidence layers
+    layers = [
+        ("Historical",    "did it work?",       "backtest_2y · per-year", C_PRIMARY),
+        ("Live",          "does it still work?", "60/90-day paper P&L",     C_ACCENT),
+        ("Explainability", "why won/lost?",       "daily narrative · sector attribution", C_WARN),
+    ]
+    ly = 2.1
+    lh = 0.85
+    lw = 2.9
+    lx0 = 0.5
+    for i, (name, q, sub, color) in enumerate(layers):
+        cx = lx0 + i * (lw + 0.15)
+        ax.add_patch(FancyBboxPatch((cx, ly), lw, lh,
+                                          boxstyle="round,pad=0.05",
+                                          linewidth=1.5, edgecolor=color,
+                                          facecolor="white"))
+        ax.text(cx + lw/2, ly + lh*0.72, name, ha="center", fontsize=9.5,
+                 weight="bold", color=color)
+        ax.text(cx + lw/2, ly + lh*0.42, q, ha="center", fontsize=8, color=C_TEXT)
+        ax.text(cx + lw/2, ly + lh*0.15, sub, ha="center", fontsize=7, color=C_MUTED)
+
+    # Feeding into SSoT
+    ax.add_patch(FancyBboxPatch((1.5, 0.6), 7, 0.9,
+                                      boxstyle="round,pad=0.05",
+                                      linewidth=0, facecolor=C_PRIMARY, alpha=0.9))
+    ax.text(5, 1.25, "reports/research/research_platform.json  (SSoT)",
+             ha="center", fontsize=10, color="white", weight="bold")
+    ax.text(5, 0.85, "Telegram · Dashboards · APIs read only from here",
+             ha="center", fontsize=7.5, color="white", alpha=0.85)
+
+    # Arrows from layers → SSoT
+    for i in range(3):
+        cx = lx0 + i * (lw + 0.15) + lw/2
+        ax.annotate("", xy=(5 - 2 + i * 2, 1.55), xytext=(cx, 2.1),
+                     arrowprops=dict(arrowstyle="->", color=C_MUTED, lw=1, alpha=0.6))
+
+    ax.text(5, 0.3, "Candidates tracked: R001 (Runner 1) · R002 (Runner 2) · R003 (Intraday Shadow)",
+             ha="center", fontsize=7.5, color=C_MUTED, style="italic")
+
+    plt.tight_layout()
+    plt.savefig(path, dpi=150, bbox_inches="tight", facecolor="white")
+    plt.close()
+
+
 # ═══ Build all diagrams ══════════════════════════════════════════
 def build_all_diagrams() -> dict:
     diagrams = {
@@ -352,6 +438,7 @@ def build_all_diagrams() -> dict:
         "scorecard":        IMG_DIR / f"aegis_v{VERSION}_scorecard.png",
         "cycles_timeline":  IMG_DIR / f"aegis_v{VERSION}_cycles.png",
         "rec_structure":    IMG_DIR / f"aegis_v{VERSION}_rec_structure.png",
+        "research_platform": IMG_DIR / f"aegis_v{VERSION}_research_platform.png",
     }
     make_overview_diagram(diagrams["overview"])
     make_model_ensemble_diagram(diagrams["ensemble"])
@@ -360,15 +447,18 @@ def build_all_diagrams() -> dict:
     make_scorecard_diagram(diagrams["scorecard"])
     make_cycles_timeline(diagrams["cycles_timeline"])
     make_rec_structure_diagram(diagrams["rec_structure"])
+    make_research_platform_diagram(diagrams["research_platform"])
     return diagrams
 
 
 # ═══ PDF builder ═════════════════════════════════════════════════
 def build_pdf(diagrams: dict) -> None:
+    # Wider margins + safer image widths fix cropped/missing-text reports
+    # on some PDF viewers with the v3.0-LOCKED artifact.
     doc = SimpleDocTemplate(
         str(OUT_PDF), pagesize=A4,
-        rightMargin=1.5*cm, leftMargin=1.5*cm,
-        topMargin=1.5*cm, bottomMargin=1.5*cm,
+        rightMargin=1.8*cm, leftMargin=1.8*cm,
+        topMargin=1.8*cm, bottomMargin=1.8*cm,
         title=f"AEGIS Architecture v{VERSION}",
         author="AEGIS / NexaQuant",
     )
@@ -408,7 +498,8 @@ def build_pdf(diagrams: dict) -> None:
         ["v2.3",    "2026-07-29",  "Snapshot persistence · CEO summary · Evolution block"],
         ["v2.4",    "2026-07-29",  "Backtrack Engine · AI Scorecard · Sector Attribution · Command Center"],
         ["v3.0",       "2026-07-29", "Constitutional freeze · S&P 500+MidCap 400 (918 tickers) · single sender · zero legacy"],
-        [f"v{VERSION}", TODAY, "ARCHITECTURE FROZEN — NOT '100% complete' · Runner 1 → validation layer (Option D) · Daily Change Summary · 30-Day Performance · Recommendation Age · per-metric Scorecard · sector 0%→'Quiet Today' · regime→neutral · APOLLO restored to Defensive View. Models · data · calibration will continue to evolve; the ARCHITECTURE will not."],
+        ["v3.0-LOCKED", "2026-07-30", "ARCHITECTURE FROZEN · Runner 1 → validation layer (Option D) · Daily Change Summary · 30-Day Performance · Recommendation Age · per-metric Scorecard · sector 0%→'Quiet Today' · regime→neutral · APOLLO restored to Defensive View"],
+        [f"v{VERSION}", TODAY, "RESEARCH PLATFORM · Article IX (Research Lifecycle) + Article X (Evidence-First Promotion) added. Permanent evaluation framework · 60-day min / 90-day target · both runners CANDIDATES · Disagreement Store · Explainability Layer · Intraday Shadow (hourly + daily proxy) · Correlation Lab · Per-year historical · Executive Telegram \"AEGIS Research\" block. PDF revised: wider margins, safer image widths, KeepTogether on section-headers, fixes cropped/missing-text reports."],
     ]
     vt = Table(version_data, colWidths=[2*cm, 3*cm, 12*cm])
     vt.setStyle(TableStyle([
@@ -432,7 +523,7 @@ def build_pdf(diagrams: dict) -> None:
         "runs 11 AI models daily, and produces one crisp Telegram message telling the operator: "
         "what to buy, what to sell, what to rotate, and why. It never executes trades.",
         body))
-    story.append(Image(str(diagrams["overview"]), width=17*cm, height=7.6*cm))
+    story.append(Image(str(diagrams["overview"]), width=MAX_IMG_WIDTH_CM*cm, height=7.6*cm))
     story.append(Spacer(1, 6))
 
     # ── Section 2 · The daily pipeline ──
@@ -444,7 +535,7 @@ def build_pdf(diagrams: dict) -> None:
         "idempotent per date · every output is auditable · every rerun produces "
         "byte-identical results.",
         body))
-    story.append(Image(str(diagrams["pipeline_flow"]), width=17*cm, height=6.2*cm))
+    story.append(Image(str(diagrams["pipeline_flow"]), width=MAX_IMG_WIDTH_CM*cm, height=6.2*cm))
 
     # ── Section 2a · The Constitutional Lock ──
     story.append(PageBreak())
@@ -577,7 +668,7 @@ def build_pdf(diagrams: dict) -> None:
         "tomorrow's weights automatically. High-IC models get more voice; zero-IC models "
         "are downweighted.",
         body))
-    story.append(Image(str(diagrams["ensemble"]), width=17*cm, height=8.5*cm))
+    story.append(Image(str(diagrams["ensemble"]), width=MAX_IMG_WIDTH_CM*cm, height=8.5*cm))
     story.append(Spacer(1, 4))
 
     # Detailed model catalog
@@ -709,7 +800,7 @@ def build_pdf(diagrams: dict) -> None:
         "Every recommendation carries the answer to <b>six questions</b> an investor asks: "
         "should I enter · what if I already own it · how much · when · what changed · why.",
         body))
-    story.append(Image(str(diagrams["decision_layer"]), width=17*cm, height=9.4*cm))
+    story.append(Image(str(diagrams["decision_layer"]), width=MAX_IMG_WIDTH_CM*cm, height=9.4*cm))
     story.append(Paragraph(
         "This is what makes AEGIS a <b>portfolio manager</b>, not a stock screener. "
         "A screener says 'BUY LUPIN'. AEGIS says: <i>BUY LUPIN, alloc 5%, 17-day swing, "
@@ -724,7 +815,7 @@ def build_pdf(diagrams: dict) -> None:
         "Under the hood, every rec in <code>reports/recommendations.json</code> carries "
         "eight enriched blocks. Every field is derived from a specific engine or module.",
         body))
-    story.append(Image(str(diagrams["rec_structure"]), width=17*cm, height=10*cm))
+    story.append(Image(str(diagrams["rec_structure"]), width=MAX_IMG_WIDTH_CM*cm, height=10*cm))
 
     # ── Section 10 · AI Scorecard ──
     story.append(PageBreak())
@@ -733,7 +824,7 @@ def build_pdf(diagrams: dict) -> None:
         "Trust is earned, not claimed. AEGIS measures <b>itself</b> against institutional "
         "benchmarks using 1,060 historical closed trades. Live scorecard below:",
         body))
-    story.append(Image(str(diagrams["scorecard"]), width=17*cm, height=7.5*cm))
+    story.append(Image(str(diagrams["scorecard"]), width=MAX_IMG_WIDTH_CM*cm, height=7.5*cm))
     story.append(Paragraph(
         "<b>How to read this:</b> 84/100 on 1060 real trades since 2022. Five out of six "
         "metrics hit institutional or top-tier level. This is honest measurement · the "
@@ -749,7 +840,7 @@ def build_pdf(diagrams: dict) -> None:
         "Each cycle shipped end-to-end with tests, both markets, no new engines · pure "
         "enrichment of existing infrastructure.",
         body))
-    story.append(Image(str(diagrams["cycles_timeline"]), width=17*cm, height=5.5*cm))
+    story.append(Image(str(diagrams["cycles_timeline"]), width=MAX_IMG_WIDTH_CM*cm, height=5.5*cm))
 
     # ── Section 12 · Guarantees ──
     story.append(PageBreak())
@@ -812,6 +903,160 @@ def build_pdf(diagrams: dict) -> None:
     ]
     for name, desc in nexts:
         story.append(Paragraph(f"• <b>{name}</b> — {desc}", bullet))
+
+    # ── Section 15 · AEGIS Research Platform (new in v3.1) ──
+    story.append(PageBreak())
+    story.append(Paragraph("15 · AEGIS Research Platform (added in v3.1)", h1))
+    story.append(Paragraph(
+        "AEGIS v3.1 introduces a <b>permanent Research Platform</b>: an "
+        "institutional framework through which every future idea — a new "
+        "recommendation engine, a risk overlay, a factor, a position-sizing rule, "
+        "a macro overlay, a market expansion — must pass before it may reach "
+        "production. No shortcuts. Ever. Governed by <b>Article IX</b> "
+        "(Research Lifecycle) and <b>Article X</b> (Evidence-First Promotion).",
+        body))
+    story.append(KeepTogether([
+        Image(str(diagrams["research_platform"]),
+                width=MAX_IMG_WIDTH_CM*cm, height=8.6*cm),
+        Spacer(1, 4),
+    ]))
+
+    story.append(Paragraph("15.1 · Research Lifecycle", h2))
+    story.append(Paragraph(
+        "Every candidate flows through a fixed 7-state lifecycle. Each transition "
+        "is logged with a timestamp + evidence reference in the ticket's "
+        "<i>decisions</i> array. Tickets live at <b>research/tickets/{ID}.json</b> "
+        "and are the SINGLE source-of-truth for a candidate's status.",
+        body))
+    lifecycle_rows = [
+        ["State",                "Meaning"],
+        ["OPEN",                 "Idea registered · hypothesis captured"],
+        ["HISTORICAL_BACKTEST",  "Historical evidence gathered · per-year per-market"],
+        ["PAPER_PORTFOLIO",     "Paper P&L instrumented · not yet live-tracked"],
+        ["LIVE_60D",             "Live paper-portfolio tracking · minimum 60 trading days"],
+        ["VALIDATED_90D",        "90-day target window met · full institutional metric suite computed"],
+        ["CEO_REVIEW",           "CEO reviews full evidence panel · signs written note"],
+        ["PRODUCTION / REJECTED / DEFERRED", "Terminal state · with rationale recorded"],
+    ]
+    lt = Table(lifecycle_rows, colWidths=[5*cm, 11.5*cm])
+    lt.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), HexColor(C_PRIMARY)),
+        ("TEXTCOLOR",  (0, 0), (-1, 0), white),
+        ("FONTNAME",   (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTSIZE",   (0, 0), (-1, -1), 8.5),
+        ("VALIGN",     (0, 0), (-1, -1), "MIDDLE"),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+        ("TOPPADDING",    (0, 0), (-1, -1), 5),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [white, HexColor(C_BG)]),
+    ]))
+    story.append(lt)
+
+    story.append(PageBreak())
+    story.append(Paragraph("15.2 · Evaluation Window", h2))
+    story.append(Paragraph(
+        "Both current runners (Runner 1 · adaptive_rec_v2 · and Runner 2 · v3 "
+        "ensemble) are CANDIDATES during evaluation — neither is canonical. The "
+        "word <b>canonical</b> is reserved for a state reached only after "
+        "<b>sustained superiority</b> across the target window in return · risk · "
+        "consistency · benchmark-relative performance.",
+        body))
+    window_rows = [
+        ["Checkpoint",       "Days", "Role"],
+        ["Minimum",          "60",   "Earliest a leader may be tentatively declared"],
+        ["Target",           "90",   "Final production-promotion decision"],
+        ["Day 30",           "—",    "Informational report ONLY · NOT a decision checkpoint"],
+        ["Day 60",           "—",    "First-decision checkpoint · signed CEO note may promote"],
+        ["Day 90",           "—",    "Terminal decision · promote to PRODUCTION or REJECTED"],
+    ]
+    wt = Table(window_rows, colWidths=[3.5*cm, 2*cm, 11*cm])
+    wt.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), HexColor(C_PRIMARY)),
+        ("TEXTCOLOR",  (0, 0), (-1, 0), white),
+        ("FONTNAME",   (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTSIZE",   (0, 0), (-1, -1), 8.5),
+        ("ALIGN",      (1, 0), (1, -1), "CENTER"),
+        ("VALIGN",     (0, 0), (-1, -1), "MIDDLE"),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+        ("TOPPADDING",    (0, 0), (-1, -1), 5),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [white, HexColor(C_BG)]),
+    ]))
+    story.append(wt); story.append(Spacer(1, 10))
+
+    story.append(Paragraph("15.3 · What the Platform Measures", h2))
+    story.append(Paragraph(
+        "Institutional metric suite computed per candidate · far beyond win rate.",
+        body))
+    metric_groups = [
+        ("Performance",   "Total Return · CAGR · Win Rate · Median Return · "
+                                "Profit Factor · Sharpe · Sortino · Calmar · Max Drawdown"),
+        ("Portfolio",     "Exposure · Cash · Concentration (top-5 %) · Turnover · "
+                                "Rotations · Avg Holding Days · Holding-days stdev"),
+        ("Decisions",     "Recommendation Stability · Agreement % · Disagreement % · "
+                                "Buy Overlap · Sector Overlap"),
+        ("Risk",          "Max DD · Recovery Days · Worst Week · Worst Month · "
+                                "Volatility · Tail Loss (CVaR 5 %)"),
+    ]
+    for name, desc in metric_groups:
+        story.append(Paragraph(f"<b>{name}.</b> {desc}", bullet))
+
+    story.append(Paragraph("15.4 · The Disagreement Store (gold layer)", h2))
+    story.append(Paragraph(
+        "Every day, every ticker where R1 and R2 disagree is logged to "
+        "<b>reports/research/disagreements/ledger.jsonl</b> (append-only). "
+        "Forward outcomes at 5 / 10 / 21 trading-day horizons are marked as "
+        "prices become available. Aggregated verdicts appear in "
+        "<b>reports/research/disagreements/verdict.json</b> — one bucket per "
+        "action-pair (BUY_vs_WAIT, BUY_vs_SELL, …) with the winning runner "
+        "and win-rate edge. Over 90 days this becomes the primary evidence "
+        "for <b>where</b> each engine is genuinely better.",
+        body))
+
+    story.append(Paragraph("15.5 · The Explainability Layer", h2))
+    story.append(Paragraph(
+        "Every daily run emits <b>reports/research/explainability_YYYY-MM-DD.json</b> "
+        "with today's narrative: leader, biggest edge, biggest miss, per-sector "
+        "delta between runners, top winners/losers per runner. This is Layer 3 "
+        "of the platform — the human-readable answer to \"why did the leader win today?\".",
+        body))
+
+    story.append(Paragraph("15.6 · Intraday Research (deferred as product)", h2))
+    story.append(Paragraph(
+        "Two intraday shadow streams run in parallel — daily-OHLC proxy (cheap · "
+        "no external fetches) and hourly bars from yfinance (real intraday, "
+        "populated once cache warms). Both are SHADOW: no user-facing "
+        "recommendations, no orders, no risk-manager engagement — measurement only. "
+        "First correlation-lab evidence: intraday↔swing pearson ≈ 0.004 corpus-wide "
+        "(essentially independent) with pockets in PSU Bank and Financial Services "
+        "showing ORC (Opening-Range Confirmation) uplift. Not sufficient to justify "
+        "intraday-product infrastructure today.",
+        body))
+
+    story.append(Paragraph("15.7 · Ticket R001 · R002 · R003 (current candidates)", h2))
+    ticket_rows = [
+        ["Ticket",                          "Title",                                     "State",       "Canonical"],
+        ["R001_runner1_adaptive_v2",        "Runner 1 · adaptive_rec_v2 (legacy)",       "LIVE_60D",    "candidate"],
+        ["R002_runner2_ensemble_v3",        "Runner 2 · v3 canonical ensemble",           "LIVE_60D",    "candidate"],
+        ["R003_intraday_shadow_india",      "Intraday shadow · India (deferred product)", "LIVE_60D",   "no (deferred)"],
+    ]
+    tt = Table(ticket_rows, colWidths=[6*cm, 5.5*cm, 2.5*cm, 2.5*cm])
+    tt.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), HexColor(C_PRIMARY)),
+        ("TEXTCOLOR",  (0, 0), (-1, 0), white),
+        ("FONTNAME",   (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTSIZE",   (0, 0), (-1, -1), 8),
+        ("VALIGN",     (0, 0), (-1, -1), "MIDDLE"),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+        ("TOPPADDING",    (0, 0), (-1, -1), 5),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [white, HexColor(C_BG)]),
+    ]))
+    story.append(tt); story.append(Spacer(1, 6))
+    story.append(Paragraph(
+        "<i>Every future candidate — a new engine, factor, sizing rule, "
+        "overlay, market — will register as R00N, follow the same lifecycle, "
+        "and be evaluated by the same evidence framework. The platform is "
+        "the durable investment. Individual candidates are the passing traffic.</i>",
+        ParagraphStyle("Note", parent=body, textColor=HexColor(C_MUTED),
+                          fontSize=8.5, alignment=TA_LEFT)))
 
     story.append(Spacer(1, 20))
     story.append(Paragraph(
@@ -1065,14 +1310,19 @@ under `docs/AEGIS_ARCHITECTURE_*.pdf`.*
 
 
 def main() -> int:
-    print(f"Building AEGIS Architecture v{VERSION} · {TODAY}")
-    print(f"  · diagrams → {IMG_DIR.relative_to(ROOT)}")
+    # Force UTF-8 on the parent stdout so Windows cp1252 doesn't crash on arrows.
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except (AttributeError, TypeError):
+        pass
+    print(f"Building AEGIS Architecture v{VERSION} - {TODAY}")
+    print(f"  * diagrams -> {IMG_DIR.relative_to(ROOT)}")
     diagrams = build_all_diagrams()
-    print(f"  · generated {len(diagrams)} diagrams")
+    print(f"  * generated {len(diagrams)} diagrams")
     build_markdown(diagrams)
-    print(f"  · markdown → {OUT_MD.relative_to(ROOT)}")
+    print(f"  * markdown -> {OUT_MD.relative_to(ROOT)}")
     build_pdf(diagrams)
-    print(f"  · PDF      → {OUT_PDF.relative_to(ROOT)}")
+    print(f"  * PDF      -> {OUT_PDF.relative_to(ROOT)}")
     return 0
 
 

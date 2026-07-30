@@ -52,6 +52,19 @@ from backend.analytics.backtrack import build_market_backtrack  # noqa: E402
 from backend.analytics.evidence import (  # noqa: E402
     run_calibration, run_alpha_validation, run_yoy, run_rolling_ic,
 )
+# AEGIS Research Platform · permanent evaluation framework
+# (Article IX Research Lifecycle · Article X Evidence-First Promotion)
+# 60-day minimum / 90-day target · canonical UNDECIDED during evaluation
+from backend.research import (  # noqa: E402
+    ingest_runner1_picks_for_date, ingest_runner2_picks_for_date,
+    ingest_runner1_intraday_picks_for_date, ingest_runner2_intraday_picks_for_date,
+    log_daily_disagreements, compute_disagreement_verdict,
+    compute_daily_explainability,
+    run_intraday_delivery_correlation,
+    run_reduced_backtest, run_historical_per_year,
+    build_research_platform,
+)
+from backend.research.disagreement_store import mark_forward_outcomes  # noqa: E402
 # v3.0 Option D: Runner 1 demoted to validation layer (not competing recommender)
 from backend.recommendation.validation_layer import (  # noqa: E402
     build_validation_report,
@@ -255,6 +268,64 @@ def main() -> int:
     except Exception as exc:
         # Enrichment failure must NEVER break the SSoT pipeline · log and continue
         print(f"[investor_actionable:{args.market}] enrichment failed · {type(exc).__name__}: {exc}")
+
+    # ── AEGIS Research Platform (Article IX + X) ──
+    # Runs AFTER investor-actionable enrichment so it has today's fresh
+    # recommendations file. India-run is authoritative (has both runners);
+    # USA-run refreshes only its USA-scoped slice. Failures must never
+    # break the SSoT pipeline.
+    try:
+        asof_str_rp = payload.get("asof") or date.today().isoformat()
+        if args.market == "india":
+            # Delivery paper portfolios (both runners)
+            ingest_runner1_picks_for_date(_ROOT, asof=asof_str_rp)
+            ingest_runner2_picks_for_date(_ROOT, asof=asof_str_rp)
+            # Intraday shadow (both runners · same-day OHLC proxy)
+            ingest_runner1_intraday_picks_for_date(_ROOT, as_of=asof_str_rp)
+            ingest_runner2_intraday_picks_for_date(_ROOT, as_of=asof_str_rp)
+            # Disagreement store + forward-outcome marking + verdict rollup
+            dis = log_daily_disagreements(_ROOT, as_of=asof_str_rp)
+            mark_forward_outcomes(_ROOT)
+            compute_disagreement_verdict(_ROOT)
+            # Explainability
+            compute_daily_explainability(_ROOT, as_of=asof_str_rp)
+            # Correlation lab (multi-dim)
+            run_intraday_delivery_correlation(_ROOT)
+            # Historical per-year (both markets refreshed from India run)
+            run_reduced_backtest(_ROOT)
+            run_historical_per_year(_ROOT, "india")
+            run_historical_per_year(_ROOT, "usa")
+            print(f"[research_platform:india] agreement={dis.get('agreement_pct')}% "
+                    f"disagreement={dis.get('disagreement_pct')}% "
+                    f"new_ledger_rows={dis.get('new_rows_appended')}")
+        # Both markets emit the unified SSoT.
+        # experiment_start = first day the research platform was activated.
+        # Read it from a lightweight config file · falls back to today on
+        # first-ever run (bootstrap). Never hardcoded (guardrail-friendly).
+        cfg_path = _ROOT / "configs" / "research_program.json"
+        exp_start = None
+        try:
+            if cfg_path.exists():
+                exp_start = json.loads(cfg_path.read_text(encoding="utf-8")).get("experiment_start")
+        except Exception:
+            exp_start = None
+        if not exp_start:
+            exp_start = asof_str_rp
+            cfg_path.parent.mkdir(parents=True, exist_ok=True)
+            cfg_path.write_text(json.dumps({"experiment_start": exp_start,
+                                                     "note": "Locked at first activation of the Research Platform"},
+                                                indent=2), encoding="utf-8")
+        rp = build_research_platform(_ROOT, experiment_start=exp_start)
+        prog = rp.get("program", {})
+        status = rp.get("status", {})
+        print(f"[research_platform:{args.market}] "
+                f"day={prog.get('day_of_program')}/{prog.get('window_days_target')} "
+                f"canonical={status.get('canonical')} "
+                f"leader={status.get('leader')} "
+                f"edge={status.get('leader_edge_pct')}pp "
+                f"confidence={status.get('confidence')}")
+    except Exception as exc:
+        print(f"[research_platform:{args.market}] failed · {type(exc).__name__}: {exc}")
 
     return 0
 

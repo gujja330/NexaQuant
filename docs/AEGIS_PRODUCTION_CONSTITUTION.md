@@ -151,6 +151,66 @@ This Constitution may only be amended by:
 
 No silent amendments. No default-to-yes changes.
 
+## Article IX · Research Lifecycle (added 2026-07-30)
+
+Every candidate idea — a new recommendation engine, a risk overlay, a
+factor, a position-sizing rule, a macro overlay, a market expansion — MUST
+flow through the AEGIS Research Platform lifecycle before it may reach
+production. **No shortcuts. Ever.**
+
+Lifecycle states (in order, no skipping):
+
+    OPEN → HISTORICAL_BACKTEST → PAPER_PORTFOLIO → LIVE_60D →
+    VALIDATED_90D → CEO_REVIEW → {PRODUCTION | REJECTED | DEFERRED}
+
+Each transition requires evidence recorded in the ticket's `decisions`
+array with timestamp + evidence reference. Tickets live at
+`research/tickets/{ID}.json` and are the SINGLE source-of-truth for a
+candidate's status. The Research Platform SSoT at
+`reports/research/research_platform.json` reads every ticket and surfaces
+their state in Telegram + dashboards.
+
+Evaluation window:
+* **Minimum**: 60 trading days live paper-portfolio observation
+* **Target**: 90 trading days
+* **Day 30**: informational report only · NOT a decision checkpoint
+* **Day 60**: first-decision checkpoint · winner may be declared
+* **Day 90**: final production-promotion decision
+
+Both runners (Runner 1 · adaptive_rec_v2 · and Runner 2 · v3 ensemble)
+are CANDIDATES during evaluation. Neither is canonical. The word
+"canonical" is reserved for a state reached only after sustained
+superiority across the target window in return · risk · consistency ·
+benchmark-relative performance.
+
+## Article X · Evidence-First Promotion (added 2026-07-30)
+
+Every production change MUST cite a completed Research Ticket in
+VALIDATED_90D or later state.
+
+Prohibited without a completed ticket:
+* Modifying a shared engine (recommendation · risk · portfolio · macro)
+* Adding a new dimension score or ensemble weight
+* Changing sizing rules
+* Adding a new market
+* Promoting a candidate runner to production
+
+Permitted without a ticket (Article III polish work):
+* Bug fixes with regression tests
+* Performance optimizations
+* Explainability polish
+* Documentation
+
+The Research Platform's disagreement store (`reports/research/disagreements/`)
+and explainability layer (`reports/research/explainability_*.json`) are
+mandatory inputs to any CEO_REVIEW decision. A ticket may NOT advance to
+PRODUCTION without a signed CEO note referencing both.
+
+Intraday research (Ticket R003) sits in `LIVE_60D` state with an explicit
+DEFERRED note: evidence collection continues indefinitely; production
+promotion requires an amended ticket + separate ticket for infra buildout.
+
 ---
 
 **Signed into force 2026-07-30. AEGIS v3.0 LOCKED. Maintenance Mode active.**
+**Articles IX + X added 2026-07-30 by AEGIS Research Platform ship.**

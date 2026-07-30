@@ -1,0 +1,661 @@
+{
+  "engine": "aegis.research.correlation_lab.v1",
+  "schema_fingerprint": "aegis.research.correlation_lab.v1.20260731",
+  "run_utc": "2026-07-30T04:13:07.025551+00:00",
+  "market": "india",
+  "n_trades_evaluated": 1060,
+  "pearson_intraday_vs_swing": 0.004,
+  "spearman_intraday_vs_swing": -0.0197,
+  "interpretation": "intraday_and_swing_independent · intraday direction carries almost NO information about the swing outcome. Same-day confirmation filters unlikely to help globally · check by_sector for pocket levers.",
+  "filters": [
+    {
+      "filter_name": "opening_range_confirmation_intraday_gt_0",
+      "n_before": 1060,
+      "n_after": 663,
+      "median_before_pct": 1.582,
+      "median_after_pct": 1.353,
+      "win_rate_before": 0.583,
+      "win_rate_after": 0.5822,
+      "uplift_median_pp": -0.229,
+      "uplift_win_rate_pp": -0.0008,
+      "verdict": "no_uplift_or_harmful",
+      "recommendation": "REJECT · filter does not improve the corpus"
+    },
+    {
+      "filter_name": "skip_gap_up_over_2.0pct",
+      "n_before": 1060,
+      "n_after": 1039,
+      "median_before_pct": 1.582,
+      "median_after_pct": 1.548,
+      "win_rate_before": 0.583,
+      "win_rate_after": 0.5833,
+      "uplift_median_pp": -0.034,
+      "uplift_win_rate_pp": 0.0002,
+      "verdict": "marginal_uplift",
+      "recommendation": "Marginal · monitor further · not decision-grade"
+    },
+    {
+      "filter_name": "hybrid_orc_plus_gap_filter",
+      "n_before": 1060,
+      "n_after": 653,
+      "median_before_pct": 1.582,
+      "median_after_pct": 1.328,
+      "win_rate_before": 0.583,
+      "win_rate_after": 0.5789,
+      "uplift_median_pp": -0.254,
+      "uplift_win_rate_pp": -0.0042,
+      "verdict": "no_uplift_or_harmful",
+      "recommendation": "REJECT · filter does not improve the corpus"
+    },
+    {
+      "filter_name": "what_if_we_still_bought_when_intraday_negative",
+      "n_before": 1060,
+      "n_after": 394,
+      "median_before_pct": 1.582,
+      "median_after_pct": 1.799,
+      "win_rate_before": 0.583,
+      "win_rate_after": 0.5863,
+      "uplift_median_pp": 0.217,
+      "uplift_win_rate_pp": 0.0033,
+      "verdict": "marginal_uplift",
+      "recommendation": "Marginal · monitor further · not decision-grade"
+    }
+  ],
+  "best_filter": null,
+  "hybrid_strategy_recommendation": "NO BROAD FILTER · but 4 sector/dimension pockets show ORC uplift · candidate for narrow refinement research tickets.",
+  "by_sector": [
+    {
+      "sector": "Metal (chemicals proxy)",
+      "n": 54,
+      "pearson": -0.1368,
+      "median_ret_pct": 0.849,
+      "win_rate": 0.537,
+      "orc_median_uplift": -4.594,
+      "orc_win_uplift": -0.2267,
+      "orc_n_after": 29
+    },
+    {
+      "sector": "PSU Bank",
+      "n": 46,
+      "pearson": -0.0808,
+      "median_ret_pct": 1.749,
+      "win_rate": 0.587,
+      "orc_median_uplift": 1.899,
+      "orc_win_uplift": 0.0068,
+      "orc_n_after": 32
+    },
+    {
+      "sector": "IT",
+      "n": 39,
+      "pearson": 0.0824,
+      "median_ret_pct": -2.512,
+      "win_rate": 0.4103,
+      "orc_median_uplift": 1.772,
+      "orc_win_uplift": 0.0443,
+      "orc_n_after": 22
+    },
+    {
+      "sector": "Energy",
+      "n": 94,
+      "pearson": 0.109,
+      "median_ret_pct": 1.693,
+      "win_rate": 0.5638,
+      "orc_median_uplift": -0.908,
+      "orc_win_uplift": -0.0281,
+      "orc_n_after": 56
+    },
+    {
+      "sector": "Financial Services",
+      "n": 127,
+      "pearson": 0.0357,
+      "median_ret_pct": 3.863,
+      "win_rate": 0.6614,
+      "orc_median_uplift": 0.572,
+      "orc_win_uplift": 0.0694,
+      "orc_n_after": 78
+    },
+    {
+      "sector": "Pharma",
+      "n": 91,
+      "pearson": -0.0252,
+      "median_ret_pct": 0.6,
+      "win_rate": 0.5275,
+      "orc_median_uplift": -0.496,
+      "orc_win_uplift": -0.0275,
+      "orc_n_after": 66
+    },
+    {
+      "sector": "Infrastructure",
+      "n": 189,
+      "pearson": -0.1094,
+      "median_ret_pct": 1.533,
+      "win_rate": 0.5873,
+      "orc_median_uplift": -0.422,
+      "orc_win_uplift": -0.0097,
+      "orc_n_after": 116
+    },
+    {
+      "sector": "Banking",
+      "n": 67,
+      "pearson": 0.0366,
+      "median_ret_pct": 0.0,
+      "win_rate": 0.4925,
+      "orc_median_uplift": 0.363,
+      "orc_win_uplift": 0.0338,
+      "orc_n_after": 38
+    },
+    {
+      "sector": "Consumption",
+      "n": 62,
+      "pearson": 0.0611,
+      "median_ret_pct": 1.957,
+      "win_rate": 0.629,
+      "orc_median_uplift": 0.346,
+      "orc_win_uplift": 0.0138,
+      "orc_n_after": 42
+    },
+    {
+      "sector": "FMCG",
+      "n": 64,
+      "pearson": 0.1876,
+      "median_ret_pct": 0.835,
+      "win_rate": 0.5469,
+      "orc_median_uplift": 0.22,
+      "orc_win_uplift": -0.012,
+      "orc_n_after": 43
+    },
+    {
+      "sector": "Auto",
+      "n": 115,
+      "pearson": 0.0225,
+      "median_ret_pct": 2.798,
+      "win_rate": 0.6696,
+      "orc_median_uplift": 0.159,
+      "orc_win_uplift": 0.0406,
+      "orc_n_after": 69
+    },
+    {
+      "sector": "Realty",
+      "n": 25,
+      "pearson": 0.0216,
+      "median_ret_pct": 2.062,
+      "win_rate": 0.68,
+      "orc_median_uplift": -0.006,
+      "orc_win_uplift": -0.0484,
+      "orc_n_after": 19
+    },
+    {
+      "sector": "Healthcare",
+      "n": 25,
+      "pearson": -0.191,
+      "median_ret_pct": 3.03,
+      "win_rate": 0.52,
+      "orc_median_uplift": 0.0,
+      "orc_win_uplift": 0.0038,
+      "orc_n_after": 21
+    },
+    {
+      "sector": "Metal",
+      "n": 55,
+      "pearson": 0.1052,
+      "median_ret_pct": 2.817,
+      "win_rate": 0.5818,
+      "orc_median_uplift": 0.0,
+      "orc_win_uplift": 0.0108,
+      "orc_n_after": 27
+    }
+  ],
+  "by_industry": [
+    {
+      "industry": "Fertilizers",
+      "n": 22,
+      "pearson": -0.1259,
+      "median_ret_pct": 4.452,
+      "win_rate": 0.6818,
+      "orc_median_uplift": -5.785,
+      "orc_win_uplift": -0.2818,
+      "orc_n_after": 10
+    },
+    {
+      "industry": "IT Services",
+      "n": 29,
+      "pearson": 0.1247,
+      "median_ret_pct": -3.974,
+      "win_rate": 0.3793,
+      "orc_median_uplift": 4.645,
+      "orc_win_uplift": 0.1207,
+      "orc_n_after": 16
+    },
+    {
+      "industry": "Specialty Chemicals",
+      "n": 24,
+      "pearson": -0.0884,
+      "median_ret_pct": -0.299,
+      "win_rate": 0.4167,
+      "orc_median_uplift": -4.31,
+      "orc_win_uplift": -0.1859,
+      "orc_n_after": 13
+    },
+    {
+      "industry": "Insurance",
+      "n": 22,
+      "pearson": 0.2891,
+      "median_ret_pct": 0.641,
+      "win_rate": 0.5455,
+      "orc_median_uplift": 3.816,
+      "orc_win_uplift": 0.1818,
+      "orc_n_after": 11
+    },
+    {
+      "industry": "Non-Ferrous Metals",
+      "n": 21,
+      "pearson": 0.079,
+      "median_ret_pct": 3.466,
+      "win_rate": 0.6667,
+      "orc_median_uplift": 2.595,
+      "orc_win_uplift": 0.0,
+      "orc_n_after": 9
+    },
+    {
+      "industry": "Defence & Aerospace",
+      "n": 31,
+      "pearson": -0.138,
+      "median_ret_pct": 5.839,
+      "win_rate": 0.6774,
+      "orc_median_uplift": -2.477,
+      "orc_win_uplift": -0.0774,
+      "orc_n_after": 15
+    },
+    {
+      "industry": "Power Generation",
+      "n": 43,
+      "pearson": 0.1756,
+      "median_ret_pct": -0.128,
+      "win_rate": 0.4884,
+      "orc_median_uplift": -2.442,
+      "orc_win_uplift": -0.03,
+      "orc_n_after": 24
+    },
+    {
+      "industry": "PSU Banks",
+      "n": 46,
+      "pearson": -0.0808,
+      "median_ret_pct": 1.749,
+      "win_rate": 0.587,
+      "orc_median_uplift": 1.899,
+      "orc_win_uplift": 0.0068,
+      "orc_n_after": 32
+    },
+    {
+      "industry": "Auto Ancillary",
+      "n": 32,
+      "pearson": -0.032,
+      "median_ret_pct": 2.711,
+      "win_rate": 0.6562,
+      "orc_median_uplift": -1.816,
+      "orc_win_uplift": -0.0563,
+      "orc_n_after": 15
+    },
+    {
+      "industry": "Telecom Services",
+      "n": 22,
+      "pearson": 0.0193,
+      "median_ret_pct": 2.843,
+      "win_rate": 0.5909,
+      "orc_median_uplift": 1.17,
+      "orc_win_uplift": 0.0091,
+      "orc_n_after": 15
+    },
+    {
+      "industry": "Pharma (Large Cap)",
+      "n": 46,
+      "pearson": -0.0177,
+      "median_ret_pct": 1.563,
+      "win_rate": 0.587,
+      "orc_median_uplift": -0.963,
+      "orc_win_uplift": -0.0718,
+      "orc_n_after": 33
+    },
+    {
+      "industry": "Capital Markets & AMC",
+      "n": 32,
+      "pearson": 0.1523,
+      "median_ret_pct": 4.292,
+      "win_rate": 0.625,
+      "orc_median_uplift": 0.837,
+      "orc_win_uplift": 0.1477,
+      "orc_n_after": 22
+    },
+    {
+      "industry": "Cement",
+      "n": 39,
+      "pearson": -0.2334,
+      "median_ret_pct": 1.264,
+      "win_rate": 0.5641,
+      "orc_median_uplift": -0.792,
+      "orc_win_uplift": -0.0256,
+      "orc_n_after": 26
+    },
+    {
+      "industry": "Personal Care",
+      "n": 20,
+      "pearson": -0.0171,
+      "median_ret_pct": -1.098,
+      "win_rate": 0.45,
+      "orc_median_uplift": -0.517,
+      "orc_win_uplift": -0.05,
+      "orc_n_after": 10
+    },
+    {
+      "industry": "NBFC",
+      "n": 73,
+      "pearson": -0.1061,
+      "median_ret_pct": 4.395,
+      "win_rate": 0.7123,
+      "orc_median_uplift": -0.415,
+      "orc_win_uplift": -0.0012,
+      "orc_n_after": 45
+    }
+  ],
+  "by_dimension_score": [
+    {
+      "dimension_bucket": "dim_rs_nifty=MID",
+      "n": 48,
+      "pearson": 0.1,
+      "median_ret_pct": 1.321,
+      "win_rate": 0.5417,
+      "orc_median_uplift": 1.639,
+      "orc_win_uplift": 0.125,
+      "orc_n_after": 18
+    },
+    {
+      "dimension_bucket": "dim_rs_nifty=LOW",
+      "n": 46,
+      "pearson": 0.0518,
+      "median_ret_pct": 1.292,
+      "win_rate": 0.5435,
+      "orc_median_uplift": 0.792,
+      "orc_win_uplift": -0.005,
+      "orc_n_after": 26
+    },
+    {
+      "dimension_bucket": "dim_position_52w=LOW",
+      "n": 350,
+      "pearson": -0.0807,
+      "median_ret_pct": 1.309,
+      "win_rate": 0.5771,
+      "orc_median_uplift": -0.78,
+      "orc_win_uplift": -0.0322,
+      "orc_n_after": 178
+    },
+    {
+      "dimension_bucket": "dim_volatility=LOW",
+      "n": 350,
+      "pearson": 0.0533,
+      "median_ret_pct": 2.051,
+      "win_rate": 0.6086,
+      "orc_median_uplift": 0.55,
+      "orc_win_uplift": 0.0152,
+      "orc_n_after": 210
+    },
+    {
+      "dimension_bucket": "dim_momentum=LOW",
+      "n": 350,
+      "pearson": -0.0428,
+      "median_ret_pct": 1.314,
+      "win_rate": 0.5629,
+      "orc_median_uplift": -0.519,
+      "orc_win_uplift": -0.024,
+      "orc_n_after": 219
+    },
+    {
+      "dimension_bucket": "dim_volatility=MID",
+      "n": 360,
+      "pearson": -0.0781,
+      "median_ret_pct": 1.421,
+      "win_rate": 0.5778,
+      "orc_median_uplift": -0.498,
+      "orc_win_uplift": -0.0227,
+      "orc_n_after": 227
+    },
+    {
+      "dimension_bucket": "dim_drawdown=HIGH",
+      "n": 350,
+      "pearson": 0.0676,
+      "median_ret_pct": 1.325,
+      "win_rate": 0.5714,
+      "orc_median_uplift": -0.214,
+      "orc_win_uplift": 0.0082,
+      "orc_n_after": 226
+    },
+    {
+      "dimension_bucket": "dim_momentum=MID",
+      "n": 360,
+      "pearson": 0.0354,
+      "median_ret_pct": 0.884,
+      "win_rate": 0.5583,
+      "orc_median_uplift": 0.15,
+      "orc_win_uplift": 0.0085,
+      "orc_n_after": 217
+    },
+    {
+      "dimension_bucket": "dim_rs_nifty=HIGH",
+      "n": 46,
+      "pearson": -0.073,
+      "median_ret_pct": 0.337,
+      "win_rate": 0.5435,
+      "orc_median_uplift": 0.149,
+      "orc_win_uplift": -0.0078,
+      "orc_n_after": 28
+    },
+    {
+      "dimension_bucket": "dim_momentum=HIGH",
+      "n": 350,
+      "pearson": 0.0048,
+      "median_ret_pct": 2.929,
+      "win_rate": 0.6286,
+      "orc_median_uplift": 0.122,
+      "orc_win_uplift": 0.0102,
+      "orc_n_after": 227
+    },
+    {
+      "dimension_bucket": "dim_position_52w=MID",
+      "n": 360,
+      "pearson": -0.0479,
+      "median_ret_pct": 1.312,
+      "win_rate": 0.575,
+      "orc_median_uplift": -0.071,
+      "orc_win_uplift": 0.0118,
+      "orc_n_after": 167
+    },
+    {
+      "dimension_bucket": "dim_drawdown=LOW",
+      "n": 350,
+      "pearson": 0.0233,
+      "median_ret_pct": 1.352,
+      "win_rate": 0.5943,
+      "orc_median_uplift": -0.042,
+      "orc_win_uplift": -0.0027,
+      "orc_n_after": 213
+    },
+    {
+      "dimension_bucket": "dim_drawdown=MID",
+      "n": 360,
+      "pearson": -0.0924,
+      "median_ret_pct": 2.04,
+      "win_rate": 0.5833,
+      "orc_median_uplift": -0.028,
+      "orc_win_uplift": -0.0074,
+      "orc_n_after": 224
+    },
+    {
+      "dimension_bucket": "dim_volatility=HIGH",
+      "n": 350,
+      "pearson": -0.0183,
+      "median_ret_pct": 1.32,
+      "win_rate": 0.5629,
+      "orc_median_uplift": -0.011,
+      "orc_win_uplift": 0.0079,
+      "orc_n_after": 226
+    },
+    {
+      "dimension_bucket": "dim_position_52w=HIGH",
+      "n": 350,
+      "pearson": 0.1532,
+      "median_ret_pct": 2.409,
+      "win_rate": 0.5971,
+      "orc_median_uplift": 0.01,
+      "orc_win_uplift": 0.0035,
+      "orc_n_after": 318
+    }
+  ],
+  "by_execution_flags": [
+    {
+      "execution_flag": "hit_5pct_target=False",
+      "n": 534,
+      "pearson": 0.0362,
+      "median_ret_pct": -3.109,
+      "win_rate": 0.2697,
+      "orc_median_uplift": -0.142,
+      "orc_win_uplift": -0.0092,
+      "orc_n_after": 334
+    },
+    {
+      "execution_flag": "hit_5pct_target=True",
+      "n": 526,
+      "pearson": -0.0473,
+      "median_ret_pct": 7.298,
+      "win_rate": 0.9011,
+      "orc_median_uplift": -0.598,
+      "orc_win_uplift": 0.0077,
+      "orc_n_after": 329
+    },
+    {
+      "execution_flag": "hit_10pct_target=False",
+      "n": 811,
+      "pearson": 0.0227,
+      "median_ret_pct": -0.654,
+      "win_rate": 0.4636,
+      "orc_median_uplift": 0.204,
+      "orc_win_uplift": 0.0082,
+      "orc_n_after": 515
+    },
+    {
+      "execution_flag": "hit_10pct_target=True",
+      "n": 249,
+      "pearson": -0.0585,
+      "median_ret_pct": 12.238,
+      "win_rate": 0.9719,
+      "orc_median_uplift": -0.322,
+      "orc_win_uplift": -0.0057,
+      "orc_n_after": 148
+    },
+    {
+      "execution_flag": "hit_5pct_stop=False",
+      "n": 642,
+      "pearson": -0.0115,
+      "median_ret_pct": 4.905,
+      "win_rate": 0.8318,
+      "orc_median_uplift": 0.0,
+      "orc_win_uplift": 0.0142,
+      "orc_n_after": 396
+    },
+    {
+      "execution_flag": "hit_5pct_stop=True",
+      "n": 418,
+      "pearson": -0.009,
+      "median_ret_pct": -5.175,
+      "win_rate": 0.201,
+      "orc_median_uplift": 0.029,
+      "orc_win_uplift": -0.0099,
+      "orc_n_after": 267
+    },
+    {
+      "execution_flag": "hit_10pct_stop=False",
+      "n": 891,
+      "pearson": -0.0189,
+      "median_ret_pct": 3.242,
+      "win_rate": 0.6835,
+      "orc_median_uplift": 0.0,
+      "orc_win_uplift": -0.0068,
+      "orc_n_after": 563
+    },
+    {
+      "execution_flag": "hit_10pct_stop=True",
+      "n": 169,
+      "pearson": -0.0668,
+      "median_ret_pct": -10.999,
+      "win_rate": 0.0533,
+      "orc_median_uplift": -0.095,
+      "orc_win_uplift": -0.0033,
+      "orc_n_after": 100
+    }
+  ],
+  "by_confidence_bucket": [],
+  "by_holding_period_bucket": [
+    {
+      "holding_bucket": "LONG_16d_plus",
+      "n": 1059,
+      "pearson": 0.0037,
+      "median_ret_pct": 1.548,
+      "win_rate": 0.5826,
+      "orc_median_uplift": -0.196,
+      "orc_win_uplift": -0.0011,
+      "orc_n_after": 662
+    }
+  ],
+  "top_refinement_levers": [
+    {
+      "category": "sector",
+      "slice": {
+        "sector": "PSU Bank",
+        "n": 46,
+        "pearson": -0.0808,
+        "median_ret_pct": 1.749,
+        "win_rate": 0.587,
+        "orc_median_uplift": 1.899,
+        "orc_win_uplift": 0.0068
+      },
+      "recommendation": "HIGH-CONVICTION REFINEMENT · apply ORC within this slice · +1.90pp median · +0.7pp win-rate"
+    },
+    {
+      "category": "industry",
+      "slice": {
+        "industry": "PSU Banks",
+        "n": 46,
+        "pearson": -0.0808,
+        "median_ret_pct": 1.749,
+        "win_rate": 0.587,
+        "orc_median_uplift": 1.899,
+        "orc_win_uplift": 0.0068
+      },
+      "recommendation": "HIGH-CONVICTION REFINEMENT · apply ORC within this slice · +1.90pp median · +0.7pp win-rate"
+    },
+    {
+      "category": "sector",
+      "slice": {
+        "sector": "Financial Services",
+        "n": 127,
+        "pearson": 0.0357,
+        "median_ret_pct": 3.863,
+        "win_rate": 0.6614,
+        "orc_median_uplift": 0.572,
+        "orc_win_uplift": 0.0694
+      },
+      "recommendation": "HIGH-CONVICTION REFINEMENT · apply ORC within this slice · +0.57pp median · +6.9pp win-rate"
+    },
+    {
+      "category": "dimension",
+      "slice": {
+        "dimension_bucket": "dim_volatility=LOW",
+        "n": 350,
+        "pearson": 0.0533,
+        "median_ret_pct": 2.051,
+        "win_rate": 0.6086,
+        "orc_median_uplift": 0.55,
+        "orc_win_uplift": 0.0152
+      },
+      "recommendation": "HIGH-CONVICTION REFINEMENT · apply ORC within this slice · +0.55pp median · +1.5pp win-rate"
+    }
+  ]
+}
