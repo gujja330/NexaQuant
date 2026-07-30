@@ -226,8 +226,15 @@ def _ceo_call(cs: Mapping) -> list[str]:
     return lines
 
 
-def _rotation_calls(recs: Sequence[Mapping], market: str, max_rows: int = 3) -> list[str]:
-    """Every rec with should_rotate=True · ranked by expected alpha."""
+def _rotation_calls(recs: Sequence[Mapping], market: str, max_rows: int = 4,
+                       per_ticker_cap_pct: float = 6.0) -> list[str]:
+    """Every rec with should_rotate=True · GROUPED by destination ticker.
+
+    Ticket 14 fix: previously three separate BATA→LUPIN / AMBER→LUPIN /
+    JSW→LUPIN lines invited an operator to allocate 3×5%=15% into LUPIN
+    (violates 6% per-ticker cap). Now consolidated: ONE LUPIN destination
+    line listing all sources · consolidated allocation capped at 6%.
+    """
     rots = []
     for r in recs:
         ri = r.get("rotation_intelligence") or {}
@@ -240,17 +247,45 @@ def _rotation_calls(recs: Sequence[Mapping], market: str, max_rows: int = 3) -> 
             })
     if not rots:
         return []
-    rots.sort(key=lambda x: -abs(x["alpha"]))
-    lines = ["", f"🔄 *ROTATION SIGNALS ({len(rots)})*",
+
+    # Aggregate by destination ticker
+    from collections import defaultdict
+    by_dest: dict[str, list[dict]] = defaultdict(list)
+    for r in rots:
+        by_dest[r["to"]].append(r)
+
+    # Sort destinations by best-alpha rotation
+    dest_order = sorted(by_dest.items(),
+                          key=lambda kv: -max(x["alpha"] for x in kv[1]))
+
+    lines = ["", f"🔄 *ROTATION SIGNALS ({len(rots)} rotations · {len(by_dest)} destinations)*",
              "   _Sell weaker positions, buy stronger ones — expected alpha gain_"]
-    for r in rots[:max_rows]:
-        from_name = _ticker_with_name(r["from"], market)
-        to_name = _ticker_with_name(r["to"], market)
-        lines.append(f"   🔻 {from_name}")
-        lines.append(f"      ⬇️ replace with")
-        lines.append(f"   🟢 {to_name}   +{r['alpha']:.1f}% expected alpha")
-    if len(rots) > max_rows:
-        lines.append(f"   _...+{len(rots) - max_rows} more rotation signals_")
+
+    # Portfolio-cap awareness (Ticket 14 · Portfolio Intelligence article)
+    lines.append(f"   ⚖️ Allocation cap: {per_ticker_cap_pct}% per ticker (Portfolio Engine)")
+
+    for dest, sources in dest_order[:max_rows]:
+        dest_name = _ticker_with_name(dest, market)
+        best_alpha = max(s["alpha"] for s in sources)
+        # Rank sources by expected alpha
+        sources.sort(key=lambda x: -x["alpha"])
+        source_labels = []
+        for s in sources[:4]:
+            source_labels.append(f"{_short_ticker(s['from'])} (+{s['alpha']:.1f}%)")
+        if len(sources) > 4:
+            source_labels.append(f"+{len(sources) - 4} more")
+        # Consolidation warning if multiple sources point to same dest
+        consolidated_note = ""
+        if len(sources) > 1:
+            consolidated_note = (f"      ⚠️ {len(sources)} sources rotate to same target · "
+                                    f"cap consolidated allocation at {per_ticker_cap_pct}%")
+        lines.append(f"   🟢 *{dest_name}* — best +{best_alpha:.1f}% α")
+        lines.append(f"      Sources: {', '.join(source_labels)}")
+        if consolidated_note:
+            lines.append(consolidated_note)
+
+    if len(dest_order) > max_rows:
+        lines.append(f"   _...+{len(dest_order) - max_rows} more destinations_")
     return lines
 
 
@@ -274,7 +309,17 @@ def _actionable_entries(recs: Sequence[Mapping], market: str,
         hdays = pp.get("time_horizon_days") or 0
         entry = ia.get("entry") or "?"
         rank = r.get("rank")
-        conf = r.get("calibrated_confidence") or r.get("confidence")
+        # Ticket 12 · Explicit confidence field selection + label.
+        # We display `calibrated_confidence` from the SSoT bridge · this is
+        # the post-calibration probability (Runner 2 v3 · [0,1]) NOT the
+        # legacy Runner 1 "Rec Confidence %" which was on a different scale.
+        # If operator sees older 80-90% values it's because they were seeing
+        # Runner 1's raw score · Runner 2's calibrated numbers are honest.
+        conf = r.get("calibrated_confidence")
+        conf_label = "cal"   # explicit · shows in header as "conf 52% cal"
+        if conf is None:
+            conf = r.get("confidence")
+            conf_label = "raw"
         # Recommendation Age (Phase 5)
         days_rec = ev.get("days_recommended") or 1
         remaining = max(0, hdays - days_rec + 1)
@@ -286,7 +331,7 @@ def _actionable_entries(recs: Sequence[Mapping], market: str,
         emoji = "🟢🟢" if entry == "BUY" and (r.get("percentile_action") == "STRONG_BUY") else "🟢"
         # Header line with rank + confidence + current price
         rank_str = f"#{rank}" if rank else "—"
-        conf_str = f"{conf:.0%}" if isinstance(conf, (int, float)) and conf else "—"
+        conf_str = f"{conf:.0%} {conf_label}" if isinstance(conf, (int, float)) and conf else "—"
         cp = _fmt_price(ez.get("current_price") or perf.get("current_price"), market)
         lines.append(f"   {emoji} *{t}*   rank {rank_str}  ·  conf {conf_str}  ·  now {cp}")
         lines.append(f"      _{age_str}_ · 💰 {entry} · size {alloc}% · hold ~{hdays} days")
@@ -617,14 +662,53 @@ def _runner1_agreement_summary(payload: Mapping, market: str) -> list[str]:
     ]
 
 
-def _integrity_footer(payload: Mapping) -> list[str]:
-    run_utc = str(payload.get("run_utc") or "")[:16].replace("T", " ")
-    return [
-        "",
-        SEPARATOR,
-        f"🔐 Run {run_utc} UTC · AEGIS v3.0",
-        f"⚖️ Advisory only · PAPER · Not investment advice",
-    ]
+def _integrity_footer(payload: Mapping, market: str) -> list[str]:
+    """Tickets 16+17 · timestamps in operator-relevant timezone.
+
+    Instead of pure UTC (unfriendly), render:
+      · IST for India delivery
+      · ET (auto-DST) for USA delivery
+      · UTC as the audit anchor
+    Also surface prices-as-of asof date so operator knows staleness.
+    """
+    from datetime import datetime, timezone, timedelta
+    run_iso = str(payload.get("run_utc") or "")
+    asof = str(payload.get("asof") or "")
+    # Parse run_utc
+    try:
+        run_dt = datetime.fromisoformat(run_iso.replace("Z", "+00:00"))
+        if run_dt.tzinfo is None:
+            run_dt = run_dt.replace(tzinfo=timezone.utc)
+    except (ValueError, TypeError):
+        run_dt = datetime.now(timezone.utc)
+
+    utc_str = run_dt.astimezone(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    # India: fixed IST = UTC+5:30 (no DST)
+    ist_dt = run_dt.astimezone(timezone(timedelta(hours=5, minutes=30)))
+    ist_str = ist_dt.strftime("%H:%M IST")
+    # USA: ET auto-DST · use zoneinfo · fall back to fixed EST if unavailable
+    try:
+        from zoneinfo import ZoneInfo
+        et_dt = run_dt.astimezone(ZoneInfo("America/New_York"))
+        et_label = "EDT" if et_dt.dst() != timedelta(0) else "EST"
+        et_str = et_dt.strftime("%H:%M ") + et_label
+    except Exception:
+        et_dt = run_dt.astimezone(timezone(timedelta(hours=-5)))
+        et_str = et_dt.strftime("%H:%M EST")
+
+    if market == "india":
+        local_line = f"🕒 Run {ist_str}  ·  {utc_str}  ·  AEGIS v3.0"
+    else:
+        local_line = f"🕒 Run {et_str}  ·  {utc_str}  ·  AEGIS v3.0"
+
+    prices_line = f"💵 Prices as of last market close ({asof})" if asof else ""
+
+    lines = ["", SEPARATOR]
+    if prices_line:
+        lines.append(prices_line)
+    lines.append(local_line)
+    lines.append(f"⚖️ Advisory only · PAPER · Not investment advice")
+    return lines
 
 
 def render_command_center_message(payload: Mapping, market: str,
@@ -660,7 +744,7 @@ def render_command_center_message(payload: Mapping, market: str,
         ("r1_orphans",       _runner1_orphans(payload, market)),
         ("attribution",      _attribution_top(payload)),
         ("risk_pulse",       _risk_pulse(cs, recs, market)),
-        ("footer",           _integrity_footer(payload)),
+        ("footer",           _integrity_footer(payload, market)),
     ]
 
     out: list[str] = []
