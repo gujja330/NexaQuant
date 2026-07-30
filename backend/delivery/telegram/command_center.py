@@ -318,6 +318,9 @@ def _r1_vs_r2_headline(payload: Mapping, market: str) -> list[str]:
     minimum = program.get("window_days_minimum") or 60
     target = program.get("window_days_target") or 90
 
+    R1_EMOJI = "🛡"
+    R2_EMOJI = "🚀"
+
     if market == "usa":
         usa = live.get("usa") or {}
         r2 = usa.get("runner2") or {}
@@ -326,8 +329,8 @@ def _r1_vs_r2_headline(payload: Mapping, market: str) -> list[str]:
         return [
             "",
             f"🥊 *R1 vs R2 · USA (Day {day} · min {minimum}d · target {target}d)*",
-            f"   R1: n/a (Runner 1 does not cover USA)",
-            f"   R2: {r2.get('n_positions', 0)} picks · Ret {r2.get('total_return_pct', 0):+.2f}% · Win {(r2.get('win_rate') or 0)*100:.0f}%",
+            f"   {R1_EMOJI} R1: n/a (Runner 1 does not cover USA)",
+            f"   {R2_EMOJI} R2: {r2.get('n_positions', 0)} picks · Ret {r2.get('total_return_pct', 0):+.2f}% · Win {(r2.get('win_rate') or 0)*100:.0f}%",
         ]
 
     ind = live.get("india") or {}
@@ -341,21 +344,24 @@ def _r1_vs_r2_headline(payload: Mapping, market: str) -> list[str]:
         "",
         f"🥊 *R1 vs R2 · INDIA (Day {day} · min {minimum}d · target {target}d)*",
         f"   🥇 Leader: *{leader}*  ·  Edge {edge:+.2f}pp",
-        f"   R1: {r1.get('n_positions', 0)} picks · Ret *{r1.get('total_return_pct', 0):+.2f}%* · Win {(r1.get('win_rate') or 0)*100:.0f}% · Sharpe {_fmt(r1.get('sharpe_ratio'))}",
-        f"   R2: {r2.get('n_positions', 0)} picks · Ret *{r2.get('total_return_pct', 0):+.2f}%* · Win {(r2.get('win_rate') or 0)*100:.0f}% · Sharpe {_fmt(r2.get('sharpe_ratio'))}",
+        f"   {R1_EMOJI} R1: {r1.get('n_positions', 0)} picks · Ret *{r1.get('total_return_pct', 0):+.2f}%* · Win {(r1.get('win_rate') or 0)*100:.0f}% · Sharpe {_fmt(r1.get('sharpe_ratio'))}",
+        f"   {R2_EMOJI} R2: {r2.get('n_positions', 0)} picks · Ret *{r2.get('total_return_pct', 0):+.2f}%* · Win {(r2.get('win_rate') or 0)*100:.0f}% · Sharpe {_fmt(r2.get('sharpe_ratio'))}",
     ]
 
 
 def _runner_attribution_table(payload: Mapping, market: str,
-                                  max_rows: int = 20) -> list[str]:
-    """Unified wide table · every rec on one row with EVERYTHING.
+                                  max_rows: int = 15) -> list[str]:
+    """Per-ticker CARD format · R1 and R2 verdicts side-by-side on the same line.
 
-    Columns: Ticker · Runner · Action · Conf · Stop · T1 · T2 · Days
-    Wrapped in triple-backtick fenced code block so Telegram allows
-    horizontal scroll on mobile (readable on desktop, scrollable on phone).
+    Ditched the monospace table because Telegram mobile clients render
+    non-monospace fonts inside backticks on some devices · columns misaligned.
+    This format uses ONE unified per-ticker card (2 lines) so both runner
+    verdicts sit next to each other for every stock. Renders identically on
+    all Telegram clients (desktop + iOS + Android).
 
-    Merges Runner 2's picks + Runner 1's active picks into a single ranked
-    view · one row per unique ticker · Runner column identifies source.
+    Each ticker gets 2 lines:
+      📌 TICKER · R1 <emoji> <action> <conf%> | R2 <emoji> <action> <conf%>
+         💰 now <px> · 🛡 <stop> · 🎯 T1 <t1> · 🎯🎯 T2 <t2> · ⏳ <days>d
     """
     recs = payload.get("recommendations") or []
     if not recs:
@@ -372,6 +378,14 @@ def _runner_attribution_table(payload: Mapping, market: str,
         if a in ("SELL", "EXIT", "REDUCE",
                     "STRONG_SELL", "STRONG SELL", "AVOID"): return "EXIT"
         return a[:6]
+
+    def _action_emoji(a: str) -> str:
+        return {
+            "S.BUY": "🟢🟢",
+            "BUY":   "🟢",
+            "HOLD":  "⚪",
+            "EXIT":  "🔴",
+        }.get(a, "⚪")
 
     def _px(v) -> str:
         if v is None or v == 0:
@@ -399,36 +413,51 @@ def _runner_attribution_table(payload: Mapping, market: str,
             return None
         return cp + (t1 - cp) * 1.5
 
-    rows = []
-    # Runner 2 picks
-    for r in recs[:max_rows]:
+    # Build a unified {ticker → {r1: card, r2: card}} view
+    def _empty_card() -> dict:
+        return {"action": "—", "conf": "—", "px": "—", "stop": "—",
+                  "t1": "—", "t2": "—", "days": "—"}
+
+    unified: dict[str, dict] = {}
+
+    # Runner 2 (India + USA)
+    for r in recs:
         ticker = _short_ticker(str(r.get("ticker") or "?"))
+        u = unified.setdefault(ticker, {"r1": _empty_card(), "r2": _empty_card()})
         ia = r.get("investor_action") or {}
-        r2_action = _short_action(ia.get("entry") or r.get("percentile_action"))
-        conf = r.get("calibrated_confidence") or r.get("confidence")
         pp = r.get("position_plan") or {}
         ez = pp.get("entry_zone") or {}
-        stop = ez.get("stop_loss")
-        t1 = ez.get("target_1")
         cp = ez.get("current_price")
+        t1 = ez.get("target_1")
         t2 = ez.get("target_2") or _t2_from_t1(cp, t1)
-        days = pp.get("time_horizon_days") or 0
-        rows.append({
-            "ticker":  ticker,
-            "runner":  "R2",
-            "action":  r2_action,
-            "conf":    _pct(conf),
-            "stop":    _px(stop),
+        u["r2"] = {
+            "action":  _short_action(ia.get("entry") or r.get("percentile_action")),
+            "conf":    _pct(r.get("calibrated_confidence") or r.get("confidence")),
+            "px":      _px(cp),
+            "stop":    _px(ez.get("stop_loss")),
             "t1":      _px(t1),
             "t2":      _px(t2),
-            "days":    str(days) if days else "—",
-        })
+            "days":    str(pp.get("time_horizon_days") or 0),
+        }
 
-    # Runner 1 active picks (India only · not covering USA)
+    # Runner 1 (India only · not covering USA)
     if market == "india":
         rv = payload.get("runner1_validation") or {}
-        for o in (rv.get("runner1_orphans") or [])[:10]:
+        # First, agreements/disagreements from per-rec validation block
+        for r in recs:
+            v = r.get("validation") or {}
+            if v.get("runner1_action"):
+                ticker = _short_ticker(str(r.get("ticker") or "?"))
+                u = unified.setdefault(ticker, {"r1": _empty_card(), "r2": _empty_card()})
+                u["r1"] = {
+                    "action":  _short_action(v.get("runner1_strength") or v.get("runner1_action")),
+                    "conf":    _pct(v.get("runner1_confidence")),
+                    "px":      "—", "stop": "—", "t1": "—", "t2": "—", "days": "—",
+                }
+        # Then Runner-1-only orphans with full detail
+        for o in (rv.get("runner1_orphans") or []):
             ticker = _short_ticker(o.get("ticker") or "?")
+            u = unified.setdefault(ticker, {"r1": _empty_card(), "r2": _empty_card()})
             price = o.get("price")
             hist_target = o.get("hist_target")
             stop = price * 0.95 if isinstance(price, (int, float)) and price else None
@@ -436,60 +465,65 @@ def _runner_attribution_table(payload: Mapping, market: str,
                 price * 1.08 if isinstance(price, (int, float)) else None)
             t2 = price * 1.15 if isinstance(price, (int, float)) else None
             holding = str(o.get("holding") or "").strip()
-            # crude days extractor from "2 months (2M)" or "45 days"
             days_str = "60"
             if "month" in holding.lower():
-                try:
-                    n = int(holding.split()[0])
-                    days_str = str(n * 30)
-                except Exception:
-                    pass
+                try: days_str = str(int(holding.split()[0]) * 30)
+                except Exception: pass
             elif "day" in holding.lower():
-                try:
-                    days_str = holding.split()[0]
-                except Exception:
-                    pass
-            rows.append({
-                "ticker":  ticker,
-                "runner":  "R1",
+                try: days_str = holding.split()[0]
+                except Exception: pass
+            u["r1"] = {
                 "action":  _short_action(o.get("strength")),
                 "conf":    _pct(o.get("confidence")),
+                "px":      _px(price),
                 "stop":    _px(stop),
                 "t1":      _px(t1),
                 "t2":      _px(t2),
                 "days":    days_str,
-            })
+            }
 
-    if not rows:
+    if not unified:
         return []
 
-    # Sort: actionable first (BUY/S.BUY), then HOLD, then EXIT
-    order = {"S.BUY": 0, "BUY": 1, "HOLD": 2, "EXIT": 3}
-    rows.sort(key=lambda x: order.get(x["action"], 4))
+    # Score each ticker for sort priority
+    priority_map = {"S.BUY": 4, "BUY": 3, "HOLD": 1, "EXIT": 0, "—": 0}
 
-    # Column widths (chosen to fit key data · code-block scrolls on mobile)
-    W = {"ticker": 11, "runner": 3, "action": 6, "conf": 5,
-            "stop": 8, "t1": 8, "t2": 8, "days": 4}
+    def _score(entry: dict) -> int:
+        return priority_map.get(entry["r1"]["action"], 0) + \
+                 priority_map.get(entry["r2"]["action"], 0)
 
-    def _fmt(r: dict) -> str:
-        return (f"{r['ticker']:<{W['ticker']}} "
-                    f"{r['runner']:<{W['runner']}} "
-                    f"{r['action']:<{W['action']}} "
-                    f"{r['conf']:>{W['conf']}} "
-                    f"{r['stop']:>{W['stop']}} "
-                    f"{r['t1']:>{W['t1']}} "
-                    f"{r['t2']:>{W['t2']}} "
-                    f"{r['days']:>{W['days']}}")
+    ranked = sorted(unified.items(), key=lambda kv: -_score(kv[1]))[:max_rows]
 
-    header_row = _fmt({
-        "ticker": "Ticker", "runner": "Src", "action": "Action",
-        "conf": "Conf", "stop": "Stop", "t1": "T1", "t2": "T2", "days": "Days",
-    })
+    # Emit cards
+    lines = ["", f"🥊 *R1 vs R2 · PER-TICKER VERDICTS ({len(ranked)} of {len(unified)})*",
+                 "   _Both engines side-by-side for every ticker_"]
 
-    body_rows = [_fmt(r) for r in rows]
+    # Distinctive runner emblems (operator ask · add emojis for both runners)
+    R1_EMOJI = "🛡"     # Shield · Runner 1 = legacy defensive adaptive_rec_v2
+    R2_EMOJI = "🚀"     # Rocket · Runner 2 = v3 ensemble advanced
 
-    header_line = f"🥊 *UNIFIED RECS TABLE · {len(rows)} picks*"
-    lines = ["", header_line, "```", header_row] + body_rows + ["```"]
+    for ticker, u in ranked:
+        r1, r2 = u["r1"], u["r2"]
+        # Line 1: ticker + both verdicts (runner emblem + action emoji + action + conf)
+        r1_str = f"{R1_EMOJI} R1 {_action_emoji(r1['action'])} {r1['action']}"
+        if r1['conf'] != "—":
+            r1_str += f" ({r1['conf']})"
+        r2_str = f"{R2_EMOJI} R2 {_action_emoji(r2['action'])} {r2['action']}"
+        if r2['conf'] != "—":
+            r2_str += f" ({r2['conf']})"
+        lines.append(f"📌 *{ticker}*  ·  {r1_str}  │  {r2_str}")
+        # Line 2: consolidated price plan · prefers R1 detail (has full plan)
+        # falls back to R2 (Runner 2 stop/T1/T2 present only for BUYs)
+        src = r1 if r1["stop"] != "—" else r2
+        if src["stop"] != "—" or src["t1"] != "—":
+            plan_parts = []
+            if src["px"] != "—":  plan_parts.append(f"💰 {src['px']}")
+            if src["stop"] != "—": plan_parts.append(f"🛡 {src['stop']}")
+            if src["t1"] != "—":   plan_parts.append(f"🎯 T1 {src['t1']}")
+            if src["t2"] != "—":   plan_parts.append(f"🎯🎯 T2 {src['t2']}")
+            if src["days"] != "—": plan_parts.append(f"⏳ {src['days']}d")
+            if plan_parts:
+                lines.append("   " + "  ·  ".join(plan_parts))
     return lines
 
 
