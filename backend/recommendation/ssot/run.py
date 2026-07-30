@@ -134,7 +134,7 @@ def _stamp_canonical(pub: dict, market: str, root: Path) -> None:
     ceo["canonical_leader"]  = leader
     ceo["canonical_edge_pct"] = leader_edge_pct
     ceo["proposed_by"]       = proposed_by
-    ceo["evaluation_day"]    = f"{day_of_program} of {window_target}"
+    ceo["evaluation_day"]    = f"{day_of_program} · min {window_min}d · target {window_target}d"
     pub["ceo_summary"] = ceo
     # Stamp every rotation_intelligence with proposer + canonical marker
     for r in pub.get("recommendations") or []:
@@ -144,7 +144,7 @@ def _stamp_canonical(pub: dict, market: str, root: Path) -> None:
         rot["proposed_by"]      = proposed_by
         rot["canonical_status"] = canonical
         rot["canonical_leader"] = leader
-        rot["evaluation_day"]   = f"{day_of_program} of {window_target}"
+        rot["evaluation_day"]   = f"{day_of_program} · min {window_min}d · target {window_target}d"
 
 
 def main() -> int:

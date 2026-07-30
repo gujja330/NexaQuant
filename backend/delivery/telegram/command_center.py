@@ -290,6 +290,7 @@ def _ceo_call(cs: Mapping) -> list[str]:
     if proposed_by and canonical:
         eval_str = f"  ·  📅 Day {eval_day}" if eval_day else ""
         lines.append(f"   🏛 Proposed by: *{proposed_by}*  ·  Canonical: *{canonical}*{eval_str}")
+        lines.append(f"   _60d = first-decision checkpoint · 90d = final production decision_")
     # Discipline warnings surface right below the CEO call.
     warnings = cs.get("discipline_warnings") or []
     for w in warnings[:3]:
