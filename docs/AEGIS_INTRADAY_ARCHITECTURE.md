@@ -383,4 +383,192 @@ Ping operator with "start R004 Phase 0" to begin. Phase 1 starts the moment feed
 
 ---
 
-**End of specification** · 2026-07-30 · under operator authority
+## 19 · Canonical + Rotation semantics for intraday
+
+**Question raised**: "execution happens same as canonical and rotation method for intraday?"
+
+Short answer: **canonical — yes, same lifecycle. Rotation — NO, a different concept applies.**
+
+### 19.1 · Canonical (SAME as delivery)
+
+Intraday follows the identical Article IX / Article X pipeline as delivery:
+
+- Multiple intraday **candidates** run in parallel paper (e.g. Intraday-R1 rule-based vs Intraday-R2 ML-ensemble)
+- Neither is canonical during evaluation
+- After 90 sessions of sustained superiority (§10), the winning candidate becomes the **canonical intraday engine** via written CEO note + Article X promotion
+- All Runner 1 vs Runner 2 head-to-head machinery from `backend/research/` is reused — same disagreement store, same explainability layer, same metric table — just scoped to intraday_delivery, intraday_r1, intraday_r2 stores instead of runner1, runner2
+- **New ticket line**: R004 (India intraday Runner 1) + R004b (India intraday Runner 2) + R005 series for USA · both run through OPEN → HISTORICAL_BACKTEST → PAPER_PORTFOLIO → LIVE_60D → VALIDATED_90D → CEO_REVIEW → PRODUCTION
+
+### 19.2 · Rotation (NO · replaced by "Signal Switch")
+
+Delivery rotation = "sell weaker position, buy stronger one, expected alpha gain over multi-day hold." That model does NOT apply intraday because:
+
+1. Every intraday position exits before session close by hard rule (§6.3). There is no held-position pool to rotate FROM.
+2. Alpha edges intraday are decayed within minutes · you can't "rotate to a better ticker" and hold overnight — the second position must also exit by close.
+3. Position sizing is per-signal-fire (§6.2), not per-portfolio-rebalance.
+
+**The intraday-analog is called Signal Switch, not Rotation:**
+
+| Delivery Rotation | Intraday Signal Switch |
+|---|---|
+| Triggered by daily ranking shift | Triggered by session VWAP break / stop hit / T1 hit |
+| From existing HOLD → new BUY | From open intraday position → close · optionally open new intraday from separate signal fire |
+| Alpha expected over 17-60 day hold | Freshly-sized fill · must still exit by session close |
+| One-per-day-per-name cadence | Can happen many times per session per name (though correlation cap in §7 limits sector overlap) |
+| Rendered in MSG 1 "🔄 ROTATION SIGNALS" | Rendered in MSG 4 as sequential open/close events with timestamps |
+
+### 19.3 · Execution flow (per session)
+
+```
+09:15 IST session-open auction settles
+  ↓
+09:30 IST universe filter (§4.1) fires · emits today's tradable subset
+  ↓
+09:30-09:45 IST opening range forms (all signal factories dormant for ORB warmup)
+  ↓
+09:45 IST onwards: signal factories (§5) emit scores every minute
+  ↓
+Ensemble (§5.6) → percentile classifier → INTRADAY_LONG / INTRADAY_SHORT / SKIP per candidate
+  ↓
+Risk engine (§7) approves/blocks each proposed entry (session daily loss cap · correlation cap · VIX kill switch)
+  ↓
+Execution simulator (§8) fills approved entries as marketable limits
+  ↓
+Position state machine tracks each open position:
+    · T1 hit → partial 50% off
+    · T2 hit → remainder off
+    · Stop hit → full exit
+    · VWAP break 3-min → exit
+    · Trailing stop → exit
+  ↓
+13:00 IST no new entries allowed (§6.1)
+  ↓
+15:15 IST TIME STOP: every open position force-closed regardless of P&L
+  ↓
+15:30 IST session-close · MSG 4 sent to Telegram (§12)
+  ↓
+Overnight: adaptive weights (§5.6) updated from today's per-signal outcomes for tomorrow
+```
+
+### 19.4 · What this means for the Research Platform
+
+The existing `backend/research/` module is reused unchanged for intraday · with intraday-scoped stores as a new market_scope value:
+
+- `reports/research/intraday_r1_india/positions.json` — Intraday Runner 1 (rule-based ORB baseline)
+- `reports/research/intraday_r2_india/positions.json` — Intraday Runner 2 (ML ensemble candidate)
+- `reports/research/intraday_r2_usa/positions.json` — USA equivalent
+- Existing `compute_runner_metrics()` in `backend/research/metrics.py` reads these paths identically
+- Existing `disagreement_store.py` logs Intraday-R1-vs-Intraday-R2 disagreements (WHEN one says LONG and the other says SKIP for same ticker in same minute)
+- Existing `explainability.py` emits daily "why intraday leader won" narrative
+
+**Net effect**: 90% of the Research Platform framework carries over to intraday for free. Only the ingest layer + signal factories + risk/execution are net-new.
+
+### 19.5 · Telegram delivery pattern (post-VALIDATED_90D)
+
+- MSG 1 · Command Center · daily swing advisory (unchanged)
+- MSG 2 · Research Platform · delivery-only R1 vs R2 evidence (unchanged)
+- **MSG 4 · Intraday Live** (NEW · sent at India session-close 15:35 IST + USA session-close 16:05 ET · never during session):
+  - Session summary line
+  - Trades executed (winners + losers with entry/exit timestamps + hold duration in minutes)
+  - Session P&L · realized/model slippage ratio · daily-loss-cap status
+  - Model attribution (which signal factory drove each trade)
+  - Canonical intraday engine banner + Article X evidence pointer
+
+MSG 4 is skipped on days where no signal fired (quiet session · shown as one-liner "quiet session · no entries · standard").
+
+---
+
+---
+
+## 20 · Data pillars · what intraday uses and what it deliberately does NOT use
+
+**Question raised**: "intraday purely depends on technicals, not fundamentals, AI concepts?"
+
+Short answer: **primarily technicals + microstructure. Fundamentals used ONLY as a universe filter (never as a live signal). AI used narrowly as an ensemble blender and news sentiment parser, NOT for fundamental analysis.**
+
+### 20.1 · The three pillars, ranked by intraday weight
+
+| Pillar | Role in intraday | Why |
+|---|---|---|
+| **Technicals + Microstructure** | 90% of signal weight | Prices, volumes, order flow, VWAP, opening range, gaps — the only things that change minute-by-minute during a session. Every one of the five signal factories (§5) is fundamentally a technical/microstructure signal. |
+| **News / Sentiment** | 10% of signal weight (via News-Impact signal only) | New information hitting the wire during session — earnings preannouncements, regulatory news, macro surprises. Parsed by FinBERT (AI), timestamped, decayed. Only unscheduled ticker-specific news counts. |
+| **Fundamentals** | 0% of signal weight | Fundamentals don't move intraday. P/E on Monday morning = P/E on Monday afternoon. Fully priced-in at the open. Using fundamentals for intraday would be double-counting what swing already captures. |
+
+### 20.2 · Where fundamentals DO appear
+
+Fundamentals are used exactly ONCE per day, at 09:30 IST / 09:35 ET, and only to **filter the universe** (§4):
+
+- Not in earnings-today list (fundamentals-driven filter)
+- Not in ex-div-today list (fundamentals-driven filter)
+- Not in F&O ban list (structural filter derived from fundamentals + regulatory)
+- Not in Reg SHO threshold list (USA · regulatory)
+- Not halted / not in circuit-breaker
+
+After the universe is set at session-open, fundamentals are **never consulted again during the session**. Every intraday decision from that moment onward is 100% technical + microstructure + news-if-any.
+
+### 20.3 · Where AI appears (narrow, specific)
+
+AI is NOT the star of intraday. It plays exactly two roles:
+
+1. **Ensemble adaptive weighting (§5.6)**
+   - Takes yesterday's per-signal-factory realized IC (information coefficient)
+   - Adjusts today's ensemble weights so the signals that recently worked get more voice
+   - Same mechanism as delivery's `adaptive_weights.py`, independent corpus
+   - This is ML-classical (weighted-average tuning), not deep learning
+
+2. **News sentiment classification (§5.5)**
+   - FinBERT classifies headline sentiment as bullish/bearish/neutral + intensity
+   - Purely a text-classifier · does NOT reason about company fundamentals
+   - Signal decays exponentially with time since headline (`exp(-minutes_ago/30)`)
+
+**Everything else is deterministic technicals**: opening-range calculation is arithmetic, VWAP is a rolling weighted mean, gap-and-go is `(open - prev_close) / prev_close` with a volume filter, sector-momentum-follow is a rolling correlation.
+
+### 20.4 · What is EXPLICITLY excluded from intraday
+
+The following are used by delivery but are NOT signals in the intraday engine:
+
+- P/E, P/B, EV/EBITDA, dividend yield, any valuation ratio
+- ROE, ROA, margins, revenue growth, EPS growth
+- Analyst estimate revisions
+- Insider transactions
+- ETF-holdings-based flow proxies (too slow for intraday · sector-momentum via minute-bar ETF prices is used instead)
+- Macro regime scores (used by session-level VIX kill switch in §7 as a circuit breaker, but not as a per-trade signal)
+- Sector-strength scores from swing engine
+- Any dimension score used by the delivery ensemble (dim_momentum, dim_trend, dim_quality, dim_value, etc.)
+
+If a signal doesn't refresh at least every 5 minutes with new data, it doesn't belong in the intraday engine.
+
+### 20.5 · Reasoning behind this design
+
+Swing trades hold 17–60 days. Over that horizon, fundamentals + valuation + regime + technicals all matter because there's time for each to play out.
+
+Intraday trades hold minutes-to-hours. Over that horizon:
+
+- Fundamentals are constant — they can't create alpha because they don't change
+- Regime is a session backdrop — matters for risk-off (VIX kill switch) but not per-trade
+- Technicals + microstructure are the only things that GENERATE new information every minute
+- News occasionally creates step-change alpha (earnings surprise, deal announcement) — the News-Impact signal captures this
+
+Building an intraday engine that leans on fundamentals would be either duplicating swing (already priced in the open) or noise (fundamentals don't change intraday). The design is deliberately narrow.
+
+### 20.6 · Summary table
+
+| Data | Refresh rate | Used in intraday? | How |
+|---|---|---|---|
+| 1-min OHLCV bars | 60s | YES · every signal | All five signal factories |
+| Level-1 quote (bid/ask/mid) | tick | YES · execution | Entry sizing + slippage model |
+| Sector-ETF 1-min bars | 60s | YES · Sector-Momentum | §5.4 |
+| Session VWAP | rolling | YES · VWAP-Reversion + exit rule | §5.3 + §6.3 |
+| Real-time headlines | 15-min poll | YES · News-Impact only | §5.5 |
+| VIX intraday | 60s | YES · session-level kill switch only | §7 |
+| Fundamentals (P/E, growth, margins) | daily / quarterly | NO signal · UNIVERSE FILTER ONLY | §4 |
+| Analyst estimates | daily | NO | — |
+| Insider trades | daily | NO | — |
+| Macro regime | daily | NO signal · VIX proxy only | §7 |
+| Dimension scores from swing | daily | NO | — |
+| Adaptive weights | overnight-updated | YES (ML-classical) | §5.6 |
+| FinBERT (news sentiment AI) | per-headline | YES (narrow · text-only) | §5.5 |
+
+---
+
+**End of specification** · 2026-07-30 · under operator authority · §19 (canonical/rotation) + §20 (data pillars) added same date
