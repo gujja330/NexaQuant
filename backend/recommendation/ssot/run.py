@@ -151,14 +151,34 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--market", required=True, choices=["india", "usa"])
     ap.add_argument("--asof", default=None)
+    ap.add_argument("--force", action="store_true",
+                       help="DESTRUCTIVE · overwrite existing snapshot for asof · "
+                            "required when the pipeline was already run for this date")
     args = ap.parse_args()
 
     reports = _reports_dir(args.market)
     v3 = reports / "recommendations_v3.json"
     out = reports / "recommendations.json"
+    asof_run = args.asof or date.today().isoformat()
+
+    # ── Guard 1 · same-day idempotency lock (Article: never destroy today's picks) ──
+    # Post-mortem 2026-07-30: re-running ssot on the same date silently overwrote
+    # morning-good state (LUPIN/HEROMOTOCO/CHAMBLFERT demoted to HOLD by evolution
+    # enricher). Prevention: refuse rerun unless --force is passed explicitly.
+    # Display-layer changes should use scripts/stamp_only.py which is non-destructive.
+    snap_existing = (reports / "recommendations_history" / args.market
+                        / f"{asof_run}.json")
+    if snap_existing.exists() and not args.force:
+        print(f"[recommendation_ssot:{args.market}] REFUSED · snapshot for "
+                f"{asof_run} already exists at {snap_existing.relative_to(_ROOT)}.")
+        print(f"  · Use 'scripts/stamp_only.py --market {args.market}' for display "
+                f"or canonical stamp updates (non-destructive).")
+        print(f"  · Pass --force to this script only if you truly need to REGENERATE "
+                f"today's picks (destroys the current snapshot).")
+        return 2
 
     payload = publish_ssot(v3, out, market=args.market,
-                             asof=(args.asof or date.today().isoformat()),
+                             asof=asof_run,
                              run_utc=datetime.now(timezone.utc).isoformat())
     print(f"[recommendation_ssot:{args.market}] "
           f"n={payload['n']} (source: {payload['source']}) -> {out.name}")

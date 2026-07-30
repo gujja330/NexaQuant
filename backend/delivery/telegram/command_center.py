@@ -502,28 +502,32 @@ def _runner_attribution_table(payload: Mapping, market: str,
     R1_EMOJI = "🛡"     # Shield · Runner 1 = legacy defensive adaptive_rec_v2
     R2_EMOJI = "🚀"     # Rocket · Runner 2 = v3 ensemble advanced
 
+    # CONSISTENT card format · every ticker gets EXACTLY 2 lines
+    # Line 1: 📌 TICKER · 🛡 R1 <emoji> <action> (<conf>) │ 🚀 R2 <emoji> <action> (<conf>)
+    # Line 2: price plan OR placeholder ("no active plan · monitor")
     for ticker, u in ranked:
         r1, r2 = u["r1"], u["r2"]
-        # Line 1: ticker + both verdicts (runner emblem + action emoji + action + conf)
-        r1_str = f"{R1_EMOJI} R1 {_action_emoji(r1['action'])} {r1['action']}"
-        if r1['conf'] != "—":
-            r1_str += f" ({r1['conf']})"
-        r2_str = f"{R2_EMOJI} R2 {_action_emoji(r2['action'])} {r2['action']}"
-        if r2['conf'] != "—":
-            r2_str += f" ({r2['conf']})"
+        # Line 1 · verdicts side-by-side · always shows both engines
+        r1_conf = f" ({r1['conf']})" if r1['conf'] != "—" else " (n/a)"
+        r2_conf = f" ({r2['conf']})" if r2['conf'] != "—" else " (n/a)"
+        r1_str = f"{R1_EMOJI} R1 {_action_emoji(r1['action'])} {r1['action']}{r1_conf}"
+        r2_str = f"{R2_EMOJI} R2 {_action_emoji(r2['action'])} {r2['action']}{r2_conf}"
         lines.append(f"📌 *{ticker}*  ·  {r1_str}  │  {r2_str}")
-        # Line 2: consolidated price plan · prefers R1 detail (has full plan)
-        # falls back to R2 (Runner 2 stop/T1/T2 present only for BUYs)
+
+        # Line 2 · plan · prefer R1 (has full plan) else R2 else placeholder
         src = r1 if r1["stop"] != "—" else r2
-        if src["stop"] != "—" or src["t1"] != "—":
+        has_plan = src["stop"] != "—" or src["t1"] != "—"
+        if has_plan:
             plan_parts = []
-            if src["px"] != "—":  plan_parts.append(f"💰 {src['px']}")
-            if src["stop"] != "—": plan_parts.append(f"🛡 {src['stop']}")
-            if src["t1"] != "—":   plan_parts.append(f"🎯 T1 {src['t1']}")
-            if src["t2"] != "—":   plan_parts.append(f"🎯🎯 T2 {src['t2']}")
-            if src["days"] != "—": plan_parts.append(f"⏳ {src['days']}d")
-            if plan_parts:
-                lines.append("   " + "  ·  ".join(plan_parts))
+            plan_parts.append(f"💰 {src['px']}" if src['px'] != "—" else "💰 —")
+            plan_parts.append(f"🛡 {src['stop']}" if src['stop'] != "—" else "🛡 —")
+            plan_parts.append(f"🎯 T1 {src['t1']}" if src['t1'] != "—" else "🎯 T1 —")
+            plan_parts.append(f"🎯🎯 T2 {src['t2']}" if src['t2'] != "—" else "🎯🎯 T2 —")
+            plan_parts.append(f"⏳ {src['days']}d" if src['days'] != "—" else "⏳ —")
+            lines.append("   " + "  ·  ".join(plan_parts))
+        else:
+            # Placeholder line keeps every card the SAME structure
+            lines.append("   _no active plan · monitoring only_")
     return lines
 
 
@@ -748,8 +752,11 @@ def _actionable_exits(recs: Sequence[Mapping], market: str,
     exits = [r for r in recs
               if (r.get("investor_action") or {}).get("if_holding") in ("REDUCE", "EXIT")]
     exits.sort(key=lambda r: r.get("ensemble_score") or 0)   # worst first
+    # ALWAYS render an EXITS block · explicit "no exits" line when empty
+    # (operator directive · answers "where are exits?" every day)
     if not exits:
-        return []
+        return ["", "🔴 *EXITS IF YOU HOLD (0)*",
+                    "   _No exit signals today · nothing to sell · engine says HOLD everything_"]
     lines = ["", f"🔴 *EXITS IF YOU HOLD ({len(exits)})*",
              "   _If any of these are in your portfolio, act on them_"]
     for r in exits[:max_rows]:
@@ -970,7 +977,7 @@ def _attribution_top(payload: Mapping) -> list[str]:
     return lines
 
 
-def _runner1_orphans(payload: Mapping, market: str, max_rows: int = 3) -> list[str]:
+def _runner1_orphans(payload: Mapping, market: str, max_rows: int = 12) -> list[str]:
     """v3.0 Option D: Runner 1's active picks that Runner 2 did NOT include.
 
     Runner 1 is the defensive/legacy engine · demoted to a validation layer.
@@ -1007,10 +1014,10 @@ def _runner1_orphans(payload: Mapping, market: str, max_rows: int = 3) -> list[s
         "AVOID":       "EXIT",
     }
     lines = ["",
-                f"🛡 *DEFENSIVE VIEW · Runner 1 picks Runner 2 skipped ({len(orphans)})*",
-                "   _Legacy engine's active picks · not AEGIS canonical · shown for continuity_"]
+                f"🛡 *RUNNER 1 · ACTIVE PICKS ({len(orphans)})*",
+                "   _Legacy defensive engine · full plan per pick_"]
     currency = "Rs" if market == "india" else "$"
-    for o in orphans[:max_rows]:
+    for rank, o in enumerate(orphans[:max_rows], start=1):
         t = _ticker_with_name(o.get("ticker") or "", market)
         raw_strength = (o.get("strength") or "?").upper()
         strength = strength_display.get(raw_strength, raw_strength)
@@ -1025,30 +1032,25 @@ def _runner1_orphans(payload: Mapping, market: str, max_rows: int = 3) -> list[s
         valid_until = (o.get("valid_until") or "").strip()
         reason_short = (o.get("reason") or "")[:60]
 
-        # Line 1: emoji · ticker · strength · score · confidence
-        header_parts = [f"{emoji} *{t}* — {strength}"]
+        # Line 1: rank + emoji · ticker · strength · score · confidence
+        header_parts = [f"{emoji} *{t}*  rank #{rank}  ·  {strength}"]
         if isinstance(score, (int, float)):
             header_parts.append(f"📊 {score:.0f}/100")
         if isinstance(conf, (int, float)):
             header_parts.append(f"conf {conf:.0f}%")
         lines.append("   " + "  ·  ".join(header_parts))
 
-        # Line 2: current price · buy zone · hold period
-        detail_parts = []
+        # Line 2: price only · matches operator's referenced format
         if isinstance(price, (int, float)) and price > 0:
-            detail_parts.append(f"💰 now {currency}{price:,.2f}")
-        if buy_range:
-            detail_parts.append(f"📥 Buy: {currency}{buy_range}")
-        if holding:
-            detail_parts.append(f"⏳ {holding}")
-        if detail_parts:
-            lines.append("      " + "  ·  ".join(detail_parts))
+            lines.append(f"      💰 now {currency}{price:,.2f}")
 
-        # Line 3: stop-loss · T1 · T2 (parity with rotational display)
-        # Stop = -5% of current (Runner 1 CSV doesn't ship stop · standard AEGIS-Shield policy)
-        # T1 = Runner 1's Hist Target when available · else current+8%
-        # T2 = current + 15% (stretch)
-        if isinstance(price, (int, float)) and price > 0:
+        # Line 3: reason text · matches operator's referenced format
+        if reason_short:
+            lines.append(f"      _{reason_short}_")
+
+        # (Buy zone / Stop / T1 / T2 / hold intentionally OMITTED here ·
+        # kept only for actionable NEW BUY IDEAS block via _actionable_entries)
+        if False and isinstance(price, (int, float)) and price > 0:
             stop = price * 0.95
             t1 = hist_target if isinstance(hist_target, (int, float)) and hist_target > price else price * 1.08
             t2 = price * 1.15
@@ -1844,19 +1846,22 @@ def render_command_center_message(payload: Mapping, market: str,
     #   → What Changed → Rotation Signals → New Buy Ideas → Exits
     #   → Defensive View (Recommendation History proxy) → Decision Drivers
     #   → Portfolio Pulse → Run Metadata
+    # Section order · PRIORITY: stock-level detail FIRST (R1/R2 picks with
+    # full plan) · lower-value sections at the end · they drop first when
+    # over budget. Operator directives:
+    #   · No AI Scorecard
+    #   · Both runners' picks visible with rank/conf/price/stop/T1/T2/hold
+    #   · Old rich per-stock format · not the compact card
     sections = [
         ("header",           _header(market, asof)),
         ("ceo_call",         _ceo_call(cs)),
         ("r1_vs_r2",         _r1_vs_r2_headline(payload, market)),
-        ("perf_summary",     _performance_summary(payload, market)),
-        ("ai_scorecard",     _ai_scorecard_line(payload, market)),
-        ("dual_engine",      _runner1_agreement_summary(payload, market)),
-        ("what_changed",     _daily_change_summary(recs, market)),
         ("rotations",        _rotation_calls(recs, market)),
         ("new_buys",         _actionable_entries(recs, market)),
+        ("r1_orphans",       _runner1_orphans(payload, market)),
         ("exits",            _actionable_exits(recs, market)),
-        ("runner_table",     _runner_attribution_table(payload, market)),
-        # r1_orphans + r2_exclusive folded into runner_table above
+        ("what_changed",     _daily_change_summary(recs, market)),
+        ("perf_summary",     _performance_summary(payload, market)),
         ("attribution",      _attribution_top(payload)),
         ("risk_pulse",       _risk_pulse(cs, recs, market)),
         ("research_tail",    _research_tail(payload, market)),
