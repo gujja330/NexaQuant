@@ -5,7 +5,7 @@
   "schema_fingerprint": "aegis.recommendation_ssot.v1.20260727",
   "market": "india",
   "asof": "2026-07-30",
-  "run_utc": "2026-07-30T04:53:12.967152+00:00",
+  "run_utc": "2026-07-30T17:26:08.376619+00:00",
   "source": "recommendations_v3.json",
   "n": 15,
   "n_companies_evaluated": 15,
@@ -108,15 +108,15 @@
         "exit_reason": "no active exit trigger — HOLD position"
       },
       "investor_action": {
-        "entry": "BUY",
-        "if_holding": "ADD",
-        "user_facing_label": "🟢 Strong Buy · Add if already holding",
-        "is_actionable_entry": true,
-        "is_actionable_if_holding": true,
-        "source_action": "STRONG_BUY"
+        "entry": "WAIT",
+        "if_holding": "HOLD",
+        "user_facing_label": "🟡 Watchlist · Keep holding if you own it",
+        "is_actionable_entry": false,
+        "is_actionable_if_holding": false,
+        "source_action": "HOLD"
       },
       "position_plan": {
-        "suggested_allocation_pct": 5.0,
+        "suggested_allocation_pct": 0.0,
         "risk_level": "moderate",
         "max_capital_exposure_pct": 6.0,
         "time_horizon_days": 60,
@@ -124,13 +124,7 @@
         "time_horizon_desc": "Weeks-to-months · trend-following",
         "entry_zone": {
           "current_price": 2452.2,
-          "ideal_buy_low": 2427.68,
-          "ideal_buy_high": 2476.72,
-          "stop_loss": 2305.07,
-          "target_1": 2746.46,
-          "target_2": 3040.73,
-          "risk_reward_ratio": "1:2 (T1) · 1:4 (T2)",
-          "risk_per_share_pct": 6.0
+          "note": "watchlist · re-check when signal strengthens"
         },
         "sizing_note": "preview allocation · real position size determined by risk engine (fractional Kelly · half-Kelly cap · per-sector cap · VIX-adjusted)"
       },
@@ -149,11 +143,15 @@
       "rotation_intelligence": {
         "should_rotate": false,
         "replacement_ticker": null,
-        "edge": -0.0011,
-        "expected_alpha_delta_pct": 0.0,
+        "edge": null,
+        "expected_alpha_delta_pct": null,
         "keep_score": 0.2626,
-        "candidate_score": 0.2615,
-        "reason": "keep · already in top bucket · candidate edge -0.0011 insufficient to justify churn"
+        "candidate_score": null,
+        "reason": "no BUY/STRONG_BUY alternative on current board",
+        "proposed_by": "RUNNER_2",
+        "canonical_status": "UNDECIDED",
+        "canonical_leader": "TIE",
+        "evaluation_day": "1 of 90"
       },
       "lifecycle_state": {
         "current_state": "HOLD",
@@ -168,10 +166,10 @@
         "rank_change": -8.0,
         "score_change": 0.0433,
         "confidence_change": 0.0219,
-        "allocation_change_pct": 5.0,
-        "action_change": "HOLD → STRONG_BUY",
+        "allocation_change_pct": 0.0,
+        "action_change": null,
         "lifecycle_change": null,
-        "narrative": "action HOLD → STRONG_BUY · rank ↑8 · allocation 0.0% → 5.0% (+5.00pp) · confidence +0.0219 · score +0.0433"
+        "narrative": "rank ↑8 · confidence +0.0219 · score +0.0433"
       },
       "discipline": {
         "is_winner_exit": false,
@@ -287,10 +285,7 @@
         "agreement": 0,
         "agreement_label": "NOT_TRACKED",
         "note": "Runner 1 does not cover this ticker today"
-      },
-      "percentile_action": "STRONG_BUY",
-      "score_percentile": 1.0,
-      "percentile_reason": "score +0.2626 in top 10% (percentile 1.00)"
+      }
     },
     {
       "ticker": "HEROMOTOCO.NS",
@@ -381,15 +376,15 @@
         "exit_reason": "no active exit trigger — HOLD position"
       },
       "investor_action": {
-        "entry": "BUY",
-        "if_holding": "ADD",
-        "user_facing_label": "🟢 Strong Buy · Add if already holding",
-        "is_actionable_entry": true,
-        "is_actionable_if_holding": true,
-        "source_action": "STRONG_BUY"
+        "entry": "WAIT",
+        "if_holding": "HOLD",
+        "user_facing_label": "🟡 Watchlist · Keep holding if you own it",
+        "is_actionable_entry": false,
+        "is_actionable_if_holding": false,
+        "source_action": "HOLD"
       },
       "position_plan": {
-        "suggested_allocation_pct": 5.0,
+        "suggested_allocation_pct": 0.0,
         "risk_level": "moderate",
         "max_capital_exposure_pct": 6.0,
         "time_horizon_days": 17,
@@ -397,13 +392,7 @@
         "time_horizon_desc": "Days-to-weeks · exit near target or on stop",
         "entry_zone": {
           "current_price": 5196.6,
-          "ideal_buy_low": 5144.63,
-          "ideal_buy_high": 5248.57,
-          "stop_loss": 4884.8,
-          "target_1": 5820.19,
-          "target_2": 6443.78,
-          "risk_reward_ratio": "1:2 (T1) · 1:4 (T2)",
-          "risk_per_share_pct": 6.0
+          "note": "watchlist · re-check when signal strengthens"
         },
         "sizing_note": "preview allocation · real position size determined by risk engine (fractional Kelly · half-Kelly cap · per-sector cap · VIX-adjusted)",
         "dynamic_holding_reason": "dynamic holding 17d = base 21 × composite 0.816 · drivers: risk trim (0.80x)"
@@ -423,11 +412,15 @@
       "rotation_intelligence": {
         "should_rotate": false,
         "replacement_ticker": null,
-        "edge": 0.0011,
-        "expected_alpha_delta_pct": 0.0,
+        "edge": null,
+        "expected_alpha_delta_pct": null,
         "keep_score": 0.2615,
-        "candidate_score": 0.2626,
-        "reason": "keep · already in top bucket · candidate edge +0.0011 insufficient to justify churn"
+        "candidate_score": null,
+        "reason": "no BUY/STRONG_BUY alternative on current board",
+        "proposed_by": "RUNNER_2",
+        "canonical_status": "UNDECIDED",
+        "canonical_leader": "TIE",
+        "evaluation_day": "1 of 90"
       },
       "lifecycle_state": {
         "current_state": "HOLD",
@@ -442,10 +435,10 @@
         "rank_change": 0.0,
         "score_change": 0.0065,
         "confidence_change": 0.0,
-        "allocation_change_pct": 0.0,
-        "action_change": null,
+        "allocation_change_pct": -5.0,
+        "action_change": "STRONG_BUY → HOLD",
         "lifecycle_change": null,
-        "narrative": "score +0.0065"
+        "narrative": "action STRONG_BUY → HOLD · allocation 5.0% → 0.0% (-5.00pp) · score +0.0065"
       },
       "discipline": {
         "is_winner_exit": false,
@@ -561,10 +554,7 @@
         "agreement": 0,
         "agreement_label": "NOT_TRACKED",
         "note": "Runner 1 does not cover this ticker today"
-      },
-      "percentile_action": "STRONG_BUY",
-      "score_percentile": 0.9286,
-      "percentile_reason": "score +0.2615 in top 10% (percentile 0.93)"
+      }
     },
     {
       "ticker": "IEX.NS",
@@ -655,15 +645,15 @@
         "exit_reason": "no active exit trigger — HOLD position"
       },
       "investor_action": {
-        "entry": "BUY",
+        "entry": "WAIT",
         "if_holding": "HOLD",
-        "user_facing_label": "🟢 Buy · Hold if already holding",
-        "is_actionable_entry": true,
+        "user_facing_label": "🟡 Watchlist · Keep holding if you own it",
+        "is_actionable_entry": false,
         "is_actionable_if_holding": false,
-        "source_action": "BUY"
+        "source_action": "HOLD"
       },
       "position_plan": {
-        "suggested_allocation_pct": 3.0,
+        "suggested_allocation_pct": 0.0,
         "risk_level": "moderate",
         "max_capital_exposure_pct": 6.0,
         "time_horizon_days": 60,
@@ -671,13 +661,7 @@
         "time_horizon_desc": "Weeks-to-months · trend-following",
         "entry_zone": {
           "current_price": 133.14,
-          "ideal_buy_low": 131.81,
-          "ideal_buy_high": 134.47,
-          "stop_loss": 125.15,
-          "target_1": 149.12,
-          "target_2": 165.09,
-          "risk_reward_ratio": "1:2 (T1) · 1:4 (T2)",
-          "risk_per_share_pct": 6.0
+          "note": "watchlist · re-check when signal strengthens"
         },
         "sizing_note": "preview allocation · real position size determined by risk engine (fractional Kelly · half-Kelly cap · per-sector cap · VIX-adjusted)"
       },
@@ -696,11 +680,15 @@
       "rotation_intelligence": {
         "should_rotate": false,
         "replacement_ticker": null,
-        "edge": 0.0198,
-        "expected_alpha_delta_pct": 0.0,
+        "edge": null,
+        "expected_alpha_delta_pct": null,
         "keep_score": 0.2428,
-        "candidate_score": 0.2626,
-        "reason": "keep · already in top bucket · candidate edge +0.0198 insufficient to justify churn"
+        "candidate_score": null,
+        "reason": "no BUY/STRONG_BUY alternative on current board",
+        "proposed_by": "RUNNER_2",
+        "canonical_status": "UNDECIDED",
+        "canonical_leader": "TIE",
+        "evaluation_day": "1 of 90"
       },
       "lifecycle_state": {
         "current_state": "UNTRACKED",
@@ -835,10 +823,7 @@
         "agreement": 0,
         "agreement_label": "NOT_TRACKED",
         "note": "Runner 1 does not cover this ticker today"
-      },
-      "percentile_action": "BUY",
-      "score_percentile": 0.8571,
-      "percentile_reason": "score +0.2428 in top 20% (percentile 0.86)"
+      }
     },
     {
       "ticker": "PERSISTENT.NS",
@@ -968,11 +953,15 @@
       "rotation_intelligence": {
         "should_rotate": false,
         "replacement_ticker": null,
-        "edge": 0.0247,
-        "expected_alpha_delta_pct": 0.0,
+        "edge": null,
+        "expected_alpha_delta_pct": null,
         "keep_score": 0.2379,
-        "candidate_score": 0.2626,
-        "reason": "keep · candidate edge +0.0247 ≤ threshold 0.05 · rotation would not add expected alpha"
+        "candidate_score": null,
+        "reason": "no BUY/STRONG_BUY alternative on current board",
+        "proposed_by": "RUNNER_2",
+        "canonical_status": "UNDECIDED",
+        "canonical_leader": "TIE",
+        "evaluation_day": "1 of 90"
       },
       "lifecycle_state": {
         "current_state": "UNTRACKED",
@@ -1110,10 +1099,7 @@
         "agreement": 0,
         "agreement_label": "NOT_TRACKED",
         "note": "Runner 1 does not cover this ticker today"
-      },
-      "percentile_action": "HOLD",
-      "score_percentile": 0.7857,
-      "percentile_reason": "score +0.2379 in middle 60% (percentile 0.79)"
+      }
     },
     {
       "ticker": "HCLTECH.NS",
@@ -1239,11 +1225,15 @@
       "rotation_intelligence": {
         "should_rotate": false,
         "replacement_ticker": null,
-        "edge": 0.0251,
-        "expected_alpha_delta_pct": 0.0,
+        "edge": null,
+        "expected_alpha_delta_pct": null,
         "keep_score": 0.2375,
-        "candidate_score": 0.2626,
-        "reason": "keep · candidate edge +0.0251 ≤ threshold 0.05 · rotation would not add expected alpha"
+        "candidate_score": null,
+        "reason": "no BUY/STRONG_BUY alternative on current board",
+        "proposed_by": "RUNNER_2",
+        "canonical_status": "UNDECIDED",
+        "canonical_leader": "TIE",
+        "evaluation_day": "1 of 90"
       },
       "lifecycle_state": {
         "current_state": "HOLD",
@@ -1377,10 +1367,7 @@
         "agreement": 0,
         "agreement_label": "NOT_TRACKED",
         "note": "Runner 1 does not cover this ticker today"
-      },
-      "percentile_action": "HOLD",
-      "score_percentile": 0.6429,
-      "percentile_reason": "score +0.2375 in middle 60% (percentile 0.64)"
+      }
     },
     {
       "ticker": "OFSS.NS",
@@ -1506,11 +1493,15 @@
       "rotation_intelligence": {
         "should_rotate": false,
         "replacement_ticker": null,
-        "edge": 0.0251,
-        "expected_alpha_delta_pct": 0.0,
+        "edge": null,
+        "expected_alpha_delta_pct": null,
         "keep_score": 0.2375,
-        "candidate_score": 0.2626,
-        "reason": "keep · candidate edge +0.0251 ≤ threshold 0.05 · rotation would not add expected alpha"
+        "candidate_score": null,
+        "reason": "no BUY/STRONG_BUY alternative on current board",
+        "proposed_by": "RUNNER_2",
+        "canonical_status": "UNDECIDED",
+        "canonical_leader": "TIE",
+        "evaluation_day": "1 of 90"
       },
       "lifecycle_state": {
         "current_state": "UNTRACKED",
@@ -1648,10 +1639,7 @@
         "agreement": 0,
         "agreement_label": "NOT_TRACKED",
         "note": "Runner 1 does not cover this ticker today"
-      },
-      "percentile_action": "HOLD",
-      "score_percentile": 0.7143,
-      "percentile_reason": "score +0.2375 in middle 60% (percentile 0.71)"
+      }
     },
     {
       "ticker": "INFY.NS",
@@ -1779,11 +1767,15 @@
       "rotation_intelligence": {
         "should_rotate": false,
         "replacement_ticker": null,
-        "edge": 0.0322,
-        "expected_alpha_delta_pct": 0.0,
+        "edge": null,
+        "expected_alpha_delta_pct": null,
         "keep_score": 0.2304,
-        "candidate_score": 0.2626,
-        "reason": "keep · candidate edge +0.0322 ≤ threshold 0.05 · rotation would not add expected alpha"
+        "candidate_score": null,
+        "reason": "no BUY/STRONG_BUY alternative on current board",
+        "proposed_by": "RUNNER_2",
+        "canonical_status": "UNDECIDED",
+        "canonical_leader": "TIE",
+        "evaluation_day": "1 of 90"
       },
       "lifecycle_state": {
         "current_state": "UNTRACKED",
@@ -1921,10 +1913,7 @@
         "agreement": 0,
         "agreement_label": "NOT_TRACKED",
         "note": "Runner 1 does not cover this ticker today"
-      },
-      "percentile_action": "HOLD",
-      "score_percentile": 0.5714,
-      "percentile_reason": "score +0.2304 in middle 60% (percentile 0.57)"
+      }
     },
     {
       "ticker": "CHAMBLFERT.NS",
@@ -2051,11 +2040,15 @@
       "rotation_intelligence": {
         "should_rotate": false,
         "replacement_ticker": null,
-        "edge": 0.0388,
-        "expected_alpha_delta_pct": 0.0,
+        "edge": null,
+        "expected_alpha_delta_pct": null,
         "keep_score": 0.2238,
-        "candidate_score": 0.2626,
-        "reason": "keep · candidate edge +0.0388 ≤ threshold 0.05 · rotation would not add expected alpha"
+        "candidate_score": null,
+        "reason": "no BUY/STRONG_BUY alternative on current board",
+        "proposed_by": "RUNNER_2",
+        "canonical_status": "UNDECIDED",
+        "canonical_leader": "TIE",
+        "evaluation_day": "1 of 90"
       },
       "lifecycle_state": {
         "current_state": "HOLD",
@@ -2192,10 +2185,7 @@
         "agreement": 0,
         "agreement_label": "NOT_TRACKED",
         "note": "Runner 1 does not cover this ticker today"
-      },
-      "percentile_action": "HOLD",
-      "score_percentile": 0.5,
-      "percentile_reason": "score +0.2238 in middle 60% (percentile 0.50)"
+      }
     },
     {
       "ticker": "ITC.NS",
@@ -2321,11 +2311,15 @@
       "rotation_intelligence": {
         "should_rotate": false,
         "replacement_ticker": null,
-        "edge": 0.0466,
-        "expected_alpha_delta_pct": 0.0,
+        "edge": null,
+        "expected_alpha_delta_pct": null,
         "keep_score": 0.216,
-        "candidate_score": 0.2626,
-        "reason": "keep · candidate edge +0.0466 ≤ threshold 0.05 · rotation would not add expected alpha"
+        "candidate_score": null,
+        "reason": "no BUY/STRONG_BUY alternative on current board",
+        "proposed_by": "RUNNER_2",
+        "canonical_status": "UNDECIDED",
+        "canonical_leader": "TIE",
+        "evaluation_day": "1 of 90"
       },
       "lifecycle_state": {
         "current_state": "HOLD",
@@ -2457,15 +2451,12 @@
       },
       "validation": {
         "runner1_action": "BUY",
-        "runner1_strength": "BUY",
-        "runner1_confidence": 73.0,
+        "runner1_strength": "ACCUMULATE",
+        "runner1_confidence": 72.0,
         "agreement": 0,
-        "agreement_label": "NEUTRAL (Runner 1: BUY)",
-        "note": "Runner 1 says BUY (score 55.0) · Low-risk FMCG holding (low vol) • below 200-dma (-14.1%) • sector strength 20/10"
-      },
-      "percentile_action": "HOLD",
-      "score_percentile": 0.4286,
-      "percentile_reason": "score +0.2160 in middle 60% (percentile 0.43)"
+        "agreement_label": "NEUTRAL (Runner 1: ACCUMULATE)",
+        "note": "Runner 1 says ACCUMULATE (score 54.0) · Low-risk FMCG holding (low vol) • below 200-dma (-14.3%) • sector strength 20/10"
+      }
     },
     {
       "ticker": "BAJAJHLDNG.NS",
@@ -2590,13 +2581,17 @@
         "signal_quality": "MODERATE"
       },
       "rotation_intelligence": {
-        "should_rotate": true,
-        "replacement_ticker": "TCS.NS",
-        "edge": 0.0554,
-        "expected_alpha_delta_pct": 5.54,
+        "should_rotate": false,
+        "replacement_ticker": null,
+        "edge": null,
+        "expected_alpha_delta_pct": null,
         "keep_score": 0.2072,
-        "candidate_score": 0.2626,
-        "reason": "rotate → TCS.NS · candidate_score +0.2626 vs current +0.2072 · edge +0.0554 > threshold 0.05 · expected alpha +5.54%"
+        "candidate_score": null,
+        "reason": "no BUY/STRONG_BUY alternative on current board",
+        "proposed_by": "RUNNER_2",
+        "canonical_status": "UNDECIDED",
+        "canonical_leader": "TIE",
+        "evaluation_day": "1 of 90"
       },
       "lifecycle_state": {
         "current_state": "HOLD",
@@ -2733,10 +2728,7 @@
         "agreement": 0,
         "agreement_label": "NOT_TRACKED",
         "note": "Runner 1 does not cover this ticker today"
-      },
-      "percentile_action": "HOLD",
-      "score_percentile": 0.3571,
-      "percentile_reason": "score +0.2072 in middle 60% (percentile 0.36)"
+      }
     },
     {
       "ticker": "FORTIS.NS",
@@ -2849,13 +2841,17 @@
         "signal_quality": "MODERATE"
       },
       "rotation_intelligence": {
-        "should_rotate": true,
-        "replacement_ticker": "TCS.NS",
-        "edge": 0.5288,
-        "expected_alpha_delta_pct": 52.88,
+        "should_rotate": false,
+        "replacement_ticker": null,
+        "edge": null,
+        "expected_alpha_delta_pct": null,
         "keep_score": -0.2662,
-        "candidate_score": 0.2626,
-        "reason": "rotate → TCS.NS · candidate_score +0.2626 vs current -0.2662 · edge +0.5288 > threshold 0.05 · expected alpha +52.88%"
+        "candidate_score": null,
+        "reason": "no BUY/STRONG_BUY alternative on current board",
+        "proposed_by": "RUNNER_2",
+        "canonical_status": "UNDECIDED",
+        "canonical_leader": "TIE",
+        "evaluation_day": "1 of 90"
       },
       "lifecycle_state": {
         "current_state": "HOLD",
@@ -2898,10 +2894,7 @@
         "agreement": 0,
         "agreement_label": "NOT_TRACKED",
         "note": "Runner 1 does not cover this ticker today"
-      },
-      "percentile_action": "HOLD",
-      "score_percentile": 0.2857,
-      "percentile_reason": "score -0.2662 in middle 60% (percentile 0.29)"
+      }
     },
     {
       "ticker": "BIOCON.NS",
@@ -3013,13 +3006,17 @@
         "signal_quality": "MODERATE"
       },
       "rotation_intelligence": {
-        "should_rotate": true,
-        "replacement_ticker": "TCS.NS",
-        "edge": 0.5436,
-        "expected_alpha_delta_pct": 54.36,
+        "should_rotate": false,
+        "replacement_ticker": null,
+        "edge": null,
+        "expected_alpha_delta_pct": null,
         "keep_score": -0.281,
-        "candidate_score": 0.2626,
-        "reason": "rotate → TCS.NS · candidate_score +0.2626 vs current -0.2810 · edge +0.5436 > threshold 0.05 · expected alpha +54.36%"
+        "candidate_score": null,
+        "reason": "no BUY/STRONG_BUY alternative on current board",
+        "proposed_by": "RUNNER_2",
+        "canonical_status": "UNDECIDED",
+        "canonical_leader": "TIE",
+        "evaluation_day": "1 of 90"
       },
       "lifecycle_state": {
         "current_state": "HOLD",
@@ -3062,10 +3059,7 @@
         "agreement": 0,
         "agreement_label": "NOT_TRACKED",
         "note": "Runner 1 does not cover this ticker today"
-      },
-      "percentile_action": "HOLD",
-      "score_percentile": 0.2143,
-      "percentile_reason": "score -0.2810 in middle 60% (percentile 0.21)"
+      }
     },
     {
       "ticker": "BHARATFORG.NS",
@@ -3144,12 +3138,12 @@
         "exit_reason": "no active exit trigger — HOLD position"
       },
       "investor_action": {
-        "entry": "AVOID",
-        "if_holding": "REDUCE",
-        "user_facing_label": "🔴 Avoid new entry · Reduce if you own it",
+        "entry": "WAIT",
+        "if_holding": "HOLD",
+        "user_facing_label": "🟡 Watchlist · Keep holding if you own it",
         "is_actionable_entry": false,
-        "is_actionable_if_holding": true,
-        "source_action": "SELL"
+        "is_actionable_if_holding": false,
+        "source_action": "HOLD"
       },
       "position_plan": {
         "suggested_allocation_pct": 0.0,
@@ -3160,9 +3154,7 @@
         "time_horizon_desc": "Weeks-to-months · trend-following",
         "entry_zone": {
           "current_price": 2157.8,
-          "exit_range_low": 2136.22,
-          "exit_range_high": 2179.38,
-          "note": "exit if holding · no new entry recommended"
+          "note": "watchlist · re-check when signal strengthens"
         },
         "sizing_note": "preview allocation · real position size determined by risk engine (fractional Kelly · half-Kelly cap · per-sector cap · VIX-adjusted)"
       },
@@ -3180,13 +3172,17 @@
         "signal_quality": "MODERATE"
       },
       "rotation_intelligence": {
-        "should_rotate": true,
-        "replacement_ticker": "TCS.NS",
-        "edge": 0.5465,
-        "expected_alpha_delta_pct": 54.65,
+        "should_rotate": false,
+        "replacement_ticker": null,
+        "edge": null,
+        "expected_alpha_delta_pct": null,
         "keep_score": -0.2839,
-        "candidate_score": 0.2626,
-        "reason": "rotate → TCS.NS · candidate_score +0.2626 vs current -0.2839 · edge +0.5465 > threshold 0.05 · expected alpha +54.65%"
+        "candidate_score": null,
+        "reason": "no BUY/STRONG_BUY alternative on current board",
+        "proposed_by": "RUNNER_2",
+        "canonical_status": "UNDECIDED",
+        "canonical_leader": "TIE",
+        "evaluation_day": "1 of 90"
       },
       "lifecycle_state": {
         "current_state": "UNTRACKED",
@@ -3230,10 +3226,7 @@
         "agreement": 0,
         "agreement_label": "NOT_TRACKED",
         "note": "Runner 1 does not cover this ticker today"
-      },
-      "percentile_action": "SELL",
-      "score_percentile": 0.1429,
-      "percentile_reason": "score -0.2839 in bottom 20% (percentile 0.14)"
+      }
     },
     {
       "ticker": "JSWENERGY.NS",
@@ -3311,12 +3304,12 @@
         "exit_reason": "no active exit trigger — HOLD position"
       },
       "investor_action": {
-        "entry": "AVOID",
-        "if_holding": "EXIT",
-        "user_facing_label": "⛔ Avoid new entry · Exit if you own it",
+        "entry": "WAIT",
+        "if_holding": "HOLD",
+        "user_facing_label": "🟡 Watchlist · Keep holding if you own it",
         "is_actionable_entry": false,
-        "is_actionable_if_holding": true,
-        "source_action": "STRONG_SELL"
+        "is_actionable_if_holding": false,
+        "source_action": "HOLD"
       },
       "position_plan": {
         "suggested_allocation_pct": 0.0,
@@ -3327,9 +3320,7 @@
         "time_horizon_desc": "Weeks-to-months · trend-following",
         "entry_zone": {
           "current_price": 547.4,
-          "exit_range_low": 541.93,
-          "exit_range_high": 552.87,
-          "note": "exit if holding · no new entry recommended"
+          "note": "watchlist · re-check when signal strengthens"
         },
         "sizing_note": "preview allocation · real position size determined by risk engine (fractional Kelly · half-Kelly cap · per-sector cap · VIX-adjusted)"
       },
@@ -3346,13 +3337,17 @@
         "signal_quality": "MODERATE"
       },
       "rotation_intelligence": {
-        "should_rotate": true,
-        "replacement_ticker": "TCS.NS",
-        "edge": 0.562,
-        "expected_alpha_delta_pct": 56.2,
+        "should_rotate": false,
+        "replacement_ticker": null,
+        "edge": null,
+        "expected_alpha_delta_pct": null,
         "keep_score": -0.2994,
-        "candidate_score": 0.2626,
-        "reason": "rotate → TCS.NS · candidate_score +0.2626 vs current -0.2994 · edge +0.5620 > threshold 0.05 · expected alpha +56.20%"
+        "candidate_score": null,
+        "reason": "no BUY/STRONG_BUY alternative on current board",
+        "proposed_by": "RUNNER_2",
+        "canonical_status": "UNDECIDED",
+        "canonical_leader": "TIE",
+        "evaluation_day": "1 of 90"
       },
       "lifecycle_state": {
         "current_state": "HOLD",
@@ -3368,9 +3363,9 @@
         "score_change": -0.0394,
         "confidence_change": 0.0,
         "allocation_change_pct": 0.0,
-        "action_change": "SELL → STRONG_SELL",
+        "action_change": "SELL → HOLD",
         "lifecycle_change": null,
-        "narrative": "action SELL → STRONG_SELL · rank ↓1 · score -0.0394"
+        "narrative": "action SELL → HOLD · rank ↓1 · score -0.0394"
       },
       "discipline": {
         "is_winner_exit": false,
@@ -3395,10 +3390,7 @@
         "agreement": 0,
         "agreement_label": "NOT_TRACKED",
         "note": "Runner 1 does not cover this ticker today"
-      },
-      "percentile_action": "STRONG_SELL",
-      "score_percentile": 0.0714,
-      "percentile_reason": "score -0.2994 in bottom 10% (percentile 0.07)"
+      }
     },
     {
       "ticker": "ADANIGREEN.NS",
@@ -3474,12 +3466,12 @@
         "exit_reason": "no active exit trigger — HOLD position"
       },
       "investor_action": {
-        "entry": "AVOID",
-        "if_holding": "EXIT",
-        "user_facing_label": "⛔ Avoid new entry · Exit if you own it",
+        "entry": "WAIT",
+        "if_holding": "HOLD",
+        "user_facing_label": "🟡 Watchlist · Keep holding if you own it",
         "is_actionable_entry": false,
-        "is_actionable_if_holding": true,
-        "source_action": "STRONG_SELL"
+        "is_actionable_if_holding": false,
+        "source_action": "HOLD"
       },
       "position_plan": {
         "suggested_allocation_pct": 0.0,
@@ -3490,9 +3482,7 @@
         "time_horizon_desc": "Weeks-to-months · trend-following",
         "entry_zone": {
           "current_price": 1363.0,
-          "exit_range_low": 1349.37,
-          "exit_range_high": 1376.63,
-          "note": "exit if holding · no new entry recommended"
+          "note": "watchlist · re-check when signal strengthens"
         },
         "sizing_note": "preview allocation · real position size determined by risk engine (fractional Kelly · half-Kelly cap · per-sector cap · VIX-adjusted)"
       },
@@ -3510,13 +3500,17 @@
         "signal_quality": "MODERATE"
       },
       "rotation_intelligence": {
-        "should_rotate": true,
-        "replacement_ticker": "TCS.NS",
-        "edge": 0.5773,
-        "expected_alpha_delta_pct": 57.73,
+        "should_rotate": false,
+        "replacement_ticker": null,
+        "edge": null,
+        "expected_alpha_delta_pct": null,
         "keep_score": -0.3147,
-        "candidate_score": 0.2626,
-        "reason": "rotate → TCS.NS · candidate_score +0.2626 vs current -0.3147 · edge +0.5773 > threshold 0.05 · expected alpha +57.73%"
+        "candidate_score": null,
+        "reason": "no BUY/STRONG_BUY alternative on current board",
+        "proposed_by": "RUNNER_2",
+        "canonical_status": "UNDECIDED",
+        "canonical_leader": "TIE",
+        "evaluation_day": "1 of 90"
       },
       "lifecycle_state": {
         "current_state": "HOLD",
@@ -3559,10 +3553,7 @@
         "agreement": 0,
         "agreement_label": "NOT_TRACKED",
         "note": "Runner 1 does not cover this ticker today"
-      },
-      "percentile_action": "STRONG_SELL",
-      "score_percentile": 0.0,
-      "percentile_reason": "score -0.3147 in bottom 10% (percentile 0.00)"
+      }
     }
   ],
   "ceo_summary": {
@@ -3571,33 +3562,36 @@
     "market_regime": "neutral",
     "portfolio_health": null,
     "cash_pct": null,
-    "top_opportunity": {
-      "ticker": "TCS.NS",
-      "action": "BUY",
-      "allocation_pct": 5.0,
-      "expected_alpha_note": "MODERATE"
-    },
-    "top_risk": {
-      "ticker": "ADANIGREEN.NS",
-      "if_holding": "EXIT",
-      "reason": [
-        "1-month drawdown -11.44%",
-        "stretched valuation (P/E 158.111)",
-        "high leverage (D/E 346.548)",
-        "negative news sentiment (-0.250)"
-      ]
-    },
-    "recommended_action": "Rotate ADANIGREEN.NS -> TCS.NS (expected alpha +57.73%)",
-    "actionable_count": 6,
-    "rotations_count": 6,
+    "top_opportunity": null,
+    "top_risk": null,
+    "recommended_action": "Hold cash - no actionable signals today",
+    "actionable_count": 0,
+    "rotations_count": 0,
     "entry_decision_dist": {
-      "BUY": 3,
-      "WAIT": 9,
-      "AVOID": 3
+      "WAIT": 15
     },
-    "discipline_warnings": []
+    "discipline_warnings": [],
+    "canonical_engine": "UNDECIDED",
+    "canonical_status": "UNDECIDED",
+    "canonical_leader": "TIE",
+    "canonical_edge_pct": 0.973,
+    "proposed_by": "RUNNER_2",
+    "evaluation_day": "1 of 90"
   },
   "investor_actionable_engine": "aegis.recommendation.investor_actionable.v1",
+  "canonical": {
+    "canonical": "UNDECIDED",
+    "canonical_reason": "evaluation program in progress · day 1 of 90",
+    "leader": "TIE",
+    "leader_edge_pct": 0.973,
+    "day_of_program": 1,
+    "window_days_minimum": 60,
+    "window_days_target": 90,
+    "confidence": "insufficient",
+    "proposed_by": "RUNNER_2",
+    "governance": "Article IX (Research Lifecycle) + Article X (Evidence-First Promotion)",
+    "source_ssot": "reports/research/delivery_platform.json"
+  },
   "attribution_summary": {
     "engine": "aegis.analytics.attribution.v1",
     "schema_fingerprint": "aegis.analytics.attribution.v1.20260729",
@@ -3630,7 +3624,7 @@
   "runner1_validation": {
     "engine": "aegis.recommendation.validation_layer.runner1.v1",
     "schema_fingerprint": "aegis.recommendation.validation_layer.runner1.v1.20260729",
-    "run_utc": "2026-07-30T04:53:34.075970+00:00",
+    "run_utc": "2026-07-30T17:26:09.891905+00:00",
     "runner1_csv": "aegis_today.csv",
     "n_runner1_picks": 12,
     "n_runner2_recs": 15,
@@ -3649,13 +3643,13 @@
         "strength": "STRONG BUY",
         "score": 77.0,
         "confidence": 90.0,
-        "price": 1974.0,
-        "buy_range": "1921 - 2027",
-        "hist_target": 2065.0,
+        "price": 1989.9,
+        "buy_range": "1936 - 2044",
+        "hist_target": 2081.0,
         "expected_range": "-4% to +14%",
         "holding": "2 months (2M)",
-        "valid_until": "2026-08-05",
-        "reason": "Low-risk Pharma holding (low vol) • above 200-dma (+11.5%) • outperforming Nifty • sector strength 80/100 • regime cauti..."
+        "valid_until": "2026-08-06",
+        "reason": "Low-risk Pharma holding (low vol) • above 200-dma (+12.3%) • outperforming Nifty • sector strength 87/100 • regime cauti..."
       },
       {
         "ticker": "ICICIBANK",
@@ -3664,88 +3658,88 @@
         "strength": "STRONG BUY",
         "score": 77.0,
         "confidence": 83.0,
-        "price": 1440.1,
-        "buy_range": "1399 - 1481",
-        "hist_target": 1517.0,
+        "price": 1437.9,
+        "buy_range": "1397 - 1478",
+        "hist_target": 1514.0,
         "expected_range": "+2% to +8%",
         "holding": "2 months (2M)",
-        "valid_until": "2026-08-05",
-        "reason": "Low-risk Financials holding (low vol) • above 200-dma (+6.8%) • outperforming Nifty • sector strength 67/100 • regime ca..."
+        "valid_until": "2026-08-06",
+        "reason": "Low-risk Financials holding (low vol) • above 200-dma (+6.6%) • outperforming Nifty • sector strength 67/100 • regime ca..."
       },
       {
         "ticker": "LUPIN",
         "sector": "Pharma",
         "action": "BUY",
         "strength": "STRONG BUY",
-        "score": 73.0,
+        "score": 74.0,
         "confidence": 73.0,
-        "price": 2443.4,
-        "buy_range": "2380 - 2507",
+        "price": 2447.0,
+        "buy_range": "2383 - 2511",
         "hist_target": null,
         "expected_range": "—",
         "holding": "2 months (2M)",
-        "valid_until": "2026-08-05",
-        "reason": "Low-risk Pharma holding (low vol) • above 200-dma (+10.3%) • outperforming Nifty • sector strength 80/100 • regime cauti..."
+        "valid_until": "2026-08-06",
+        "reason": "Low-risk Pharma holding (low vol) • above 200-dma (+10.3%) • outperforming Nifty • sector strength 87/100 • regime cauti..."
       },
       {
         "ticker": "PIDILITIND",
         "sector": "Chemicals",
         "action": "BUY",
         "strength": "STRONG BUY",
-        "score": 71.0,
-        "confidence": 87.0,
-        "price": 1619.4,
-        "buy_range": "1568 - 1671",
-        "hist_target": 1641.0,
+        "score": 70.0,
+        "confidence": 86.0,
+        "price": 1629.9,
+        "buy_range": "1578 - 1682",
+        "hist_target": 1652.0,
         "expected_range": "-5% to +7%",
         "holding": "2 months (2M)",
-        "valid_until": "2026-08-05",
-        "reason": "Low-risk Chemicals holding (low vol) • above 200-dma (+10.1%) • outperforming Nifty • sector strength 87/100 • regime ca..."
+        "valid_until": "2026-08-06",
+        "reason": "Low-risk Chemicals holding (low vol) • above 200-dma (+10.8%) • outperforming Nifty • sector strength 80/100 • regime ca..."
       },
       {
         "ticker": "NTPC",
         "sector": "Power",
         "action": "BUY",
         "strength": "STRONG BUY",
-        "score": 65.0,
-        "confidence": 72.0,
-        "price": 342.5,
-        "buy_range": "333 - 352",
+        "score": 66.0,
+        "confidence": 73.0,
+        "price": 343.5,
+        "buy_range": "334 - 353",
         "hist_target": null,
         "expected_range": "—",
         "holding": "2 months (2M)",
-        "valid_until": "2026-08-05",
-        "reason": "Low-risk Power holding (low vol) • below 200-dma (-4.1%) • sector strength 27/100 • regime cautious (partial deploy) • 4..."
+        "valid_until": "2026-08-06",
+        "reason": "Low-risk Power holding (low vol) • below 200-dma (-3.8%) • sector strength 27/100 • regime cautious (partial deploy) • 4..."
       },
       {
         "ticker": "KOTAKBANK",
         "sector": "Financials",
         "action": "BUY",
-        "strength": "BUY",
-        "score": 63.0,
-        "confidence": 71.0,
-        "price": 388.3,
-        "buy_range": "377 - 400",
+        "strength": "STRONG BUY",
+        "score": 65.0,
+        "confidence": 72.0,
+        "price": 390.2,
+        "buy_range": "379 - 402",
         "hist_target": null,
         "expected_range": "—",
         "holding": "2 months (2M)",
-        "valid_until": "2026-08-05",
-        "reason": "Low-risk Financials holding (low vol) • below 200-dma (-3.9%) • sector strength 67/100 • regime cautious (partial deploy..."
+        "valid_until": "2026-08-06",
+        "reason": "Low-risk Financials holding (low vol) • below 200-dma (-3.4%) • sector strength 67/100 • regime cautious (partial deploy..."
       },
       {
-        "ticker": "TATAPOWER",
+        "ticker": "POWERGRID",
         "sector": "Power",
         "action": "BUY",
-        "strength": "ACCUMULATE",
-        "score": 54.0,
-        "confidence": 64.0,
-        "price": 373.5,
-        "buy_range": "363 - 384",
+        "strength": "BUY",
+        "score": 58.0,
+        "confidence": 69.0,
+        "price": 282.9,
+        "buy_range": "275 - 290",
         "hist_target": null,
         "expected_range": "—",
         "holding": "2 months (2M)",
-        "valid_until": "2026-08-05",
-        "reason": "Low-risk Power holding (low vol) • below 200-dma (-4.5%) • sector strength 27/100 • regime cautious (partial deploy) • n..."
+        "valid_until": "2026-08-06",
+        "reason": "Low-risk Power holding (low vol) • below 200-dma (-1.1%) • sector strength 27/100 • regime cautious (partial deploy) • 2..."
       },
       {
         "ticker": "IRCTC",
@@ -3754,13 +3748,13 @@
         "strength": "WATCH",
         "score": 54.0,
         "confidence": 67.0,
-        "price": 493.6,
-        "buy_range": "479 - 509",
+        "price": 496.0,
+        "buy_range": "481 - 511",
         "hist_target": null,
         "expected_range": "—",
         "holding": "2 months (2M)",
-        "valid_until": "2026-08-05",
-        "reason": "Low-risk Transport holding (low vol) • below 200-dma (-17.4%) • sector strength 60/100 • regime cautious (partial deploy..."
+        "valid_until": "2026-08-06",
+        "reason": "Low-risk Transport holding (low vol) • below 200-dma (-16.8%) • sector strength 60/100 • regime cautious (partial deploy..."
       },
       {
         "ticker": "BEL",
@@ -3769,13 +3763,13 @@
         "strength": "ACCUMULATE",
         "score": 53.0,
         "confidence": 64.0,
-        "price": 383.9,
-        "buy_range": "372 - 396",
+        "price": 387.5,
+        "buy_range": "375 - 400",
         "hist_target": null,
         "expected_range": "—",
         "holding": "2 months (2M)",
-        "valid_until": "2026-08-05",
-        "reason": "Low-risk Industrials holding (low vol) • below 200-dma (-8.7%) • sector strength 47/100 • regime cautious (partial deplo..."
+        "valid_until": "2026-08-06",
+        "reason": "Low-risk Industrials holding (low vol) • below 200-dma (-7.8%) • sector strength 53/100 • regime cautious (partial deplo..."
       },
       {
         "ticker": "BRITANNIA",
@@ -3784,30 +3778,29 @@
         "strength": "WATCH",
         "score": 52.0,
         "confidence": 66.0,
-        "price": 5560.5,
-        "buy_range": "5415 - 5706",
+        "price": 5517.5,
+        "buy_range": "5375 - 5660",
         "hist_target": null,
         "expected_range": "—",
         "holding": "2 months (2M)",
-        "valid_until": "2026-08-05",
-        "reason": "Low-risk FMCG holding (low vol) • below 200-dma (-2.7%) • sector strength 20/100 • regime cautious (partial deploy) • 3 ..."
+        "valid_until": "2026-08-06",
+        "reason": "Low-risk FMCG holding (low vol) • below 200-dma (-3.4%) • sector strength 20/100 • regime cautious (partial deploy) • 3 ..."
       },
       {
         "ticker": "COALINDIA",
         "sector": "Metal",
         "action": "BUY",
         "strength": "ACCUMULATE",
-        "score": 50.0,
-        "confidence": 66.0,
-        "price": 410.5,
+        "score": 49.0,
+        "confidence": 65.0,
+        "price": 410.0,
         "buy_range": "398 - 423",
         "hist_target": null,
         "expected_range": "—",
         "holding": "2 months (2M)",
-        "valid_until": "2026-08-05",
-        "reason": "Low-risk Metal holding (low vol) • below 200-dma (-3.5%) • sector strength 7/100 • regime cautious (partial deploy) • 3 ..."
+        "valid_until": "2026-08-06",
+        "reason": "Low-risk Metal holding (low vol) • below 200-dma (-3.7%) • sector strength 7/100 • regime cautious (partial deploy) • 3 ..."
       }
     ]
-  },
-  "percentile_engine": "aegis.recommendation.percentile_classifier.v1"
+  }
 }

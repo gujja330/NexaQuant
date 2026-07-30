@@ -84,6 +84,69 @@ def _reports_dir(market: str) -> Path:
     return _ROOT / "reports"
 
 
+def _stamp_canonical(pub: dict, market: str, root: Path) -> None:
+    """Read Research Platform SSoT and stamp canonical status onto ceo_summary
+    + every rotation_intelligence block. Silent no-op if delivery_platform.json
+    missing (never breaks the daily pipeline)."""
+    dp_path = root / "reports" / "research" / "delivery_platform.json"
+    if not dp_path.exists():
+        return
+    try:
+        dp = json.loads(dp_path.read_text(encoding="utf-8"))
+    except (ValueError, OSError):
+        return
+    program = dp.get("program") or {}
+    status = dp.get("status") or {}
+    canonical = program.get("canonical") or "UNDECIDED"
+    canonical_reason = program.get("canonical_reason") or ""
+    day_of_program = program.get("day_of_program") or 0
+    window_target = program.get("window_days_target") or 90
+    window_min = program.get("window_days_minimum") or 60
+    leader = status.get("leader") or "TIE"
+    leader_edge_pct = status.get("leader_edge_pct") or 0.0
+    confidence = status.get("confidence") or "insufficient"
+
+    # Every rotation in the daily payload today is a Runner 2 v3 proposal
+    # (v3 is the sole source of recommendations_v3.json). When a canonical
+    # winner is declared post-90-day evaluation, this attribution updates.
+    proposed_by = "RUNNER_2"
+
+    canonical_block = {
+        "canonical":            canonical,
+        "canonical_reason":     canonical_reason,
+        "leader":               leader,
+        "leader_edge_pct":      leader_edge_pct,
+        "day_of_program":       day_of_program,
+        "window_days_minimum":  window_min,
+        "window_days_target":   window_target,
+        "confidence":           confidence,
+        "proposed_by":          proposed_by,
+        "governance":           "Article IX (Research Lifecycle) + Article X (Evidence-First Promotion)",
+        "source_ssot":          "reports/research/delivery_platform.json",
+    }
+
+    # Stamp top-level for consumers reading pub["canonical"] directly
+    pub["canonical"] = canonical_block
+    # Stamp inside ceo_summary for consumers reading ceo_summary alone
+    ceo = pub.get("ceo_summary") or {}
+    ceo["canonical_engine"]  = canonical
+    ceo["canonical_status"]  = canonical
+    ceo["canonical_leader"]  = leader
+    ceo["canonical_edge_pct"] = leader_edge_pct
+    ceo["proposed_by"]       = proposed_by
+    ceo["evaluation_day"]    = f"{day_of_program} of {window_target}"
+    pub["ceo_summary"] = ceo
+    # Stamp every rotation_intelligence with proposer + canonical marker
+    for r in pub.get("recommendations") or []:
+        rot = r.get("rotation_intelligence")
+        if not isinstance(rot, dict):
+            continue
+        rot["proposed_by"]      = proposed_by
+        rot["canonical_status"] = canonical
+        rot["canonical_leader"] = leader
+        rot["evaluation_day"]   = f"{day_of_program} of {window_target}"
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--market", required=True, choices=["india", "usa"])
@@ -144,6 +207,15 @@ def main() -> int:
             pub["ceo_summary"] = ceo_summary
             pub["recommendations"] = recs
             pub["investor_actionable_engine"] = "aegis.recommendation.investor_actionable.v1"
+
+            # Article IX/X · stamp canonical status on ceo_summary + every
+            # rotation_intelligence block · reads from the Research Platform
+            # SSoT (delivery_platform.json). This makes it explicit in every
+            # downstream consumer (Telegram, dashboards, APIs) that every
+            # rotation shown is a PROPOSAL from Runner 2 v3 while canonical
+            # designation is UNDECIDED pending 60/90-day evaluation.
+            _stamp_canonical(pub, args.market, _ROOT)
+
             out.write_text(json.dumps(pub, indent=2, default=str, ensure_ascii=False),
                             encoding="utf-8")
             summ = summarize_batch(recs)

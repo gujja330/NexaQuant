@@ -283,6 +283,13 @@ def _ceo_call(cs: Mapping) -> list[str]:
     actionable = cs.get("actionable_count") or 0
     rotations = cs.get("rotations_count") or 0
     lines.append(f"   🌐 Market: {regime}   ·   ⚡ Actionable: {actionable}   ·   🔄 Rotations: {rotations}")
+    # Article IX/X · canonical + proposed_by attribution (from Research Platform SSoT)
+    proposed_by = cs.get("proposed_by")
+    canonical = cs.get("canonical_status") or cs.get("canonical_engine")
+    eval_day = cs.get("evaluation_day")
+    if proposed_by and canonical:
+        eval_str = f"  ·  📅 Day {eval_day}" if eval_day else ""
+        lines.append(f"   🏛 Proposed by: *{proposed_by}*  ·  Canonical: *{canonical}*{eval_str}")
     # Discipline warnings surface right below the CEO call.
     warnings = cs.get("discipline_warnings") or []
     for w in warnings[:3]:
@@ -322,8 +329,19 @@ def _rotation_calls(recs: Sequence[Mapping], market: str, max_rows: int = 4,
     dest_order = sorted(by_dest.items(),
                           key=lambda kv: -max(x["alpha"] for x in kv[1]))
 
+    # Canonical attribution · pull from any rotation_intelligence (all identical
+    # since stamped in one pass by ssot _stamp_canonical)
+    first_ri = next((r.get("rotation_intelligence") for r in recs
+                        if r.get("rotation_intelligence", {}).get("should_rotate")), {}) or {}
+    proposed_by = first_ri.get("proposed_by")
+    canonical_status = first_ri.get("canonical_status")
+    eval_day = first_ri.get("evaluation_day")
+
     lines = ["", f"🔄 *ROTATION SIGNALS ({len(rots)} rotations · {len(by_dest)} destinations)*",
              "   _Sell weaker positions, buy stronger ones — expected alpha gain_"]
+    if proposed_by and canonical_status:
+        eval_str = f"  ·  📅 Day {eval_day}" if eval_day else ""
+        lines.append(f"   🏛 Proposed by *{proposed_by}*  ·  Canonical: *{canonical_status}*{eval_str}")
 
     # Portfolio-cap awareness (Ticket 14 · Portfolio Intelligence article)
     lines.append(f"   ⚖️ Allocation cap: {per_ticker_cap_pct}% per ticker (Portfolio Engine)")
