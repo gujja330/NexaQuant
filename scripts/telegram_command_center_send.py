@@ -175,35 +175,16 @@ def _send_one_market(market: str, token: str, chat_id: str) -> tuple[bool, dict]
         print(f"[research_platform:{market}] render/send failed · {type(e).__name__}: {e}")
         research_ok = False
 
-    # v3.1: Intraday Platform follow-up (MSG 3 · India-only for now)
-    # USA intraday not yet enabled · skip the "not enabled" placeholder message.
-    intraday_ok = True
-    if market == "india":
-        try:
-            intraday_msg = render_intraday_platform_message(market)
-            if intraday_msg:
-                intraday_ok, intraday_detail = _send_markdown(token, chat_id, intraday_msg)
-                print(f"[intraday_platform:{market}] chars={len(intraday_msg)} · sent={intraday_ok}")
-                if not intraday_ok:
-                    print(f"  detail: {intraday_detail[:180]}")
-                _append_delivery_ledger({
-                    "ts_utc":  datetime.now(timezone.utc).isoformat(),
-                    "engine":  "aegis.intraday.telegram.v1",
-                    "market":  market,
-                    "kind":    "intraday_platform",
-                    "ok":      intraday_ok,
-                    "chars":   len(intraday_msg),
-                    "detail_head":  intraday_detail[:200] if not intraday_ok else "",
-                })
-        except Exception as e:
-            print(f"[intraday_platform:{market}] render/send failed · {type(e).__name__}: {e}")
-            intraday_ok = False
+    # Intraday MSG 3 REMOVED per operator directive 2026-07-30.
+    # The shadow-of-delivery approach was rejected: reusing swing picks
+    # as an intraday measurement corpus doesn't reflect any real
+    # tradable strategy. See docs/AEGIS_INTRADAY_ARCHITECTURE.md for
+    # the real intraday engine specification (ticket R004 · not built yet).
 
-    return (ok and research_ok and intraday_ok), {
+    return (ok and research_ok), {
         "market":        market,
         "ok":            ok,
         "research_ok":   research_ok,
-        "intraday_ok":   intraday_ok,
         **meta,
     }
 

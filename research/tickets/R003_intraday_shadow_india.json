@@ -1,20 +1,20 @@
 {
   "ticket_id": "R003_intraday_shadow_india",
-  "title": "Intraday Shadow · India",
+  "title": "Intraday Shadow · India (REJECTED)",
   "hypothesis": "Intraday flipping of the same picks would produce a materially different equity curve vs swing.",
   "owner": "AEGIS",
   "market_scope": "india",
   "mode": "intraday",
-  "lifecycle_state": "LIVE_60D",
+  "lifecycle_state": "REJECTED",
   "opened_at": "2026-07-30T03:37:37.259526+00:00",
-  "updated_at": "2026-07-30T03:37:37.259526+00:00",
+  "updated_at": "2026-07-30T05:15:00.000000+00:00",
   "live_experiment_start": "",
   "days_live": 0,
   "canonical_candidate": false,
   "evidence": {
-    "runner1_intraday": "reports/research/runner1_intraday/positions.json",
-    "runner2_intraday": "reports/research/runner2_intraday/positions.json",
-    "correlation": "reports/research/intraday_delivery_correlation.json"
+    "archived_at": "archive/intraday_shadow_2026-07-30/",
+    "correlation_finding": "pearson intraday↔swing = +0.004 (essentially independent) · sector-scoped ORC pockets in PSU Bank + Financial Services",
+    "superseded_by": "docs/AEGIS_INTRADAY_ARCHITECTURE.md · ticket R004"
   },
   "decisions": [
     {
@@ -23,12 +23,20 @@
       "to_state": "LIVE_60D",
       "note": "DEFERRED as a product per CEO · evidence collection continues",
       "evidence_ref": "correlation pearson=0.004 corpus-wide · sector-scoped pockets exist"
+    },
+    {
+      "at": "2026-07-30T05:15:00.000000+00:00",
+      "from_state": "LIVE_60D",
+      "to_state": "REJECTED",
+      "note": "Shadow-of-delivery approach REJECTED per operator: 'runner 1 daily stocks into intraday is useless. i dont agree this setup. we need real platform else no use.' Approach rejected because swing picks are selected for multi-day expected return, not for intraday tradability. Reusing them measures a scenario nobody would trade. Metric contamination · operational irrelevance · false confidence. Superseded by docs/AEGIS_INTRADAY_ARCHITECTURE.md (real intraday engine spec · ticket R004).",
+      "evidence_ref": "docs/AEGIS_INTRADAY_ARCHITECTURE.md §15"
     }
   ],
   "tags": [
     "intraday",
     "shadow",
     "india",
-    "deferred"
+    "rejected",
+    "superseded"
   ]
 }

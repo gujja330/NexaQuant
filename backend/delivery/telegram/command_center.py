@@ -1584,7 +1584,8 @@ def render_command_center_message(payload: Mapping, market: str,
         ("exits",            _actionable_exits(recs, market)),
         ("r1_orphans",       _runner1_orphans(payload, market)),
         ("r2_exclusive",     _runner2_exclusive(payload, market)),
-        ("intraday_hint",    _intraday_hint(payload, market)),
+        # Intraday hint removed 2026-07-30 · shadow approach rejected.
+        # See docs/AEGIS_INTRADAY_ARCHITECTURE.md for real intraday spec.
         ("attribution",      _attribution_top(payload)),
         ("risk_pulse",       _risk_pulse(cs, recs, market)),
         # Full Research Platform detail sent as a dedicated follow-up message

@@ -287,17 +287,15 @@ def main() -> int:
             # Delivery paper portfolios (both runners)
             ingest_runner1_picks_for_date(_ROOT, asof=asof_str_rp)
             ingest_runner2_picks_for_date(_ROOT, asof=asof_str_rp)
-            # Intraday shadow (both runners · same-day OHLC proxy)
-            ingest_runner1_intraday_picks_for_date(_ROOT, as_of=asof_str_rp)
-            ingest_runner2_intraday_picks_for_date(_ROOT, as_of=asof_str_rp)
+            # Intraday ingest REMOVED 2026-07-30 · shadow-of-delivery approach
+            # rejected. Real intraday engine spec in
+            # docs/AEGIS_INTRADAY_ARCHITECTURE.md (ticket R004 · not built).
             # Disagreement store + forward-outcome marking + verdict rollup
             dis = log_daily_disagreements(_ROOT, as_of=asof_str_rp)
             mark_forward_outcomes(_ROOT)
             compute_disagreement_verdict(_ROOT)
             # Explainability
             compute_daily_explainability(_ROOT, as_of=asof_str_rp)
-            # Correlation lab (multi-dim)
-            run_intraday_delivery_correlation(_ROOT)
             # Historical per-year (both markets refreshed from India run)
             run_reduced_backtest(_ROOT)
             run_historical_per_year(_ROOT, "india")
