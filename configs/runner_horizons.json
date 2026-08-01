@@ -1,0 +1,19 @@
+{
+  "_note": "R006 · Runner 1 = STATIC (CSV-defined 2 months) · Runner 2 = DYNAMIC (per-position horizon from engine)",
+  "_rationale_2026-08-01": "Operator: 'runner 1 is static i guess, runner 2 should be complete dynamic'. Each Runner 2 position's horizon is set by the engine per rec (position_plan.time_horizon_days) and LOCKED at OPEN · never mutated.",
+  "runners": {
+    "runner1": {
+      "horizon_source":       "static_csv",
+      "static_horizon_days":  60,
+      "policy":               "SEALED · legacy defensive · 2-month holds via aegis_today.csv 'Recommended Holding'",
+      "sealed":               true
+    },
+    "runner2": {
+      "horizon_source":       "dynamic_per_rec",
+      "static_horizon_days":  null,
+      "policy":               "DYNAMIC · engine chooses horizon per-position via position_plan.time_horizon_days · locked at OPEN · never mutated for that position's lifetime",
+      "sealed":               false,
+      "fallback_horizon_days": 17
+    }
+  }
+}
