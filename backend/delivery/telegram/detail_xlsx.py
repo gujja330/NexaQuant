@@ -54,6 +54,8 @@ COLUMNS = [
     ("Ticker",              12),
     ("Company",             22),
     ("Status",              12),
+    ("Exit Reason",         22),     # NEW · populated only when Status = EXIT
+    ("Exit P&L %",          12),     # NEW · realized return on exit · blank otherwise
     ("Rank",                6),
     ("Confidence %",        13),
     ("Conf Type",           11),
@@ -72,6 +74,7 @@ COLUMNS = [
     ("T1 %",                8),
     ("Target 2",            11),
     ("T2 %",                8),
+    ("Today Move %",        13),     # NEW · today's daily change (yesterday_close → today_close)
     ("Current Perf %",      15),
     ("Max Gain %",          12),
     ("Max DD %",            11),
@@ -106,6 +109,38 @@ def _pct_from_range(base, target):
     return (target - base) / base * 100
 
 
+def _today_move_pct(root: Path, ticker: str, market: str) -> float | None:
+    """Compute today's daily price change from bar cache.
+    (today_close - yesterday_close) / yesterday_close × 100.
+    Falls back to None if cache missing or fewer than 2 bars."""
+    try:
+        import pandas as pd
+    except ImportError:
+        return None
+    bare = ticker.strip()
+    for suf in (".NS", ".BO", ".NSE", ".BSE"):
+        if bare.upper().endswith(suf):
+            bare = bare[: -len(suf)]
+            break
+    if market == "usa":
+        p = root / "data" / "raw" / "us" / f"{bare}_D1.parquet"
+    else:
+        p = root / "data" / "raw" / "india" / f"{bare}_D1.parquet"
+    if not p.exists():
+        return None
+    try:
+        df = pd.read_parquet(p)
+        if len(df) < 2:
+            return None
+        today = float(df["close"].iloc[-1])
+        yest = float(df["close"].iloc[-2])
+        if yest <= 0:
+            return None
+        return round((today / yest - 1) * 100, 2)
+    except Exception:
+        return None
+
+
 def _rec_to_row(rec: Mapping, market: str, root: Path,
                     runner: str, asof: str) -> list:
     raw_ticker = rec.get("ticker") or "?"
@@ -120,16 +155,41 @@ def _rec_to_row(rec: Mapping, market: str, root: Path,
 
     entry_action = str(ia.get("entry") or "").upper()
     pct_action = str(rec.get("percentile_action") or "").upper()
-    if ri.get("should_rotate"):
-        status = "ROTATE OUT"
+    if_holding = ia.get("if_holding")
+
+    # Operator 2026-08-01: "then keep as exit only" · 4-state vocab locked:
+    # STRONG BUY · NEW BUY · HOLD · EXIT
+    # Rotations collapse into EXIT · from action standpoint both mean "sell".
+    # Rotation intent still visible in Expected Alpha % column + Command
+    # Center rotation section + R006 rotation ledger audit trail.
+    if entry_action == "SELL" or if_holding in ("EXIT", "REDUCE", "SELL") \
+            or ri.get("should_rotate"):
+        status = "EXIT"
     elif entry_action == "BUY" and pct_action == "STRONG_BUY":
         status = "STRONG BUY"
     elif entry_action == "BUY":
         status = "NEW BUY"
-    elif entry_action == "SELL" or ia.get("if_holding") in ("EXIT", "REDUCE", "SELL"):
-        status = "EXIT"
     else:
         status = "HOLD"
+
+    # Exit Reason · populated ONLY when status = EXIT · else blank
+    exit_reason = ""
+    if status == "EXIT":
+        risks = (rec.get("why") or {}).get("top_risks") or []
+        risk_first = str(risks[0])[:80] if risks else ""
+        if ri.get("should_rotate"):
+            to_t = ri.get("replacement_ticker") or ""
+            edge = ri.get("expected_alpha_delta_pct")
+            edge_str = f" (+{edge:.1f}pp)" if edge else ""
+            exit_reason = f"Rotation → {to_t}{edge_str}"
+        elif if_holding == "EXIT":
+            exit_reason = risk_first or "Exit signal (defensive)"
+        elif if_holding == "REDUCE":
+            exit_reason = risk_first or "Reduce position (defensive)"
+        elif entry_action == "SELL":
+            exit_reason = risk_first or "Sell signal"
+        else:
+            exit_reason = risk_first or "Exit trigger"
 
     rank = rec.get("rank")
     conf_cal = rec.get("calibrated_confidence")
@@ -208,6 +268,7 @@ def _rec_to_row(rec: Mapping, market: str, root: Path,
     cur_ret = round((current_price / entry_price - 1) * 100, 2) if (entry_price and current_price) else None
     max_gain = round((high_water / entry_price - 1) * 100, 2) if (entry_price and high_water) else None
     max_dd = round((low_water / entry_price - 1) * 100, 2) if (entry_price and low_water) else None
+    today_move = _today_move_pct(root, raw_ticker, market)
 
     events = _load_ledger_events_for_ticker(root, market, ticker)
     state = _lifecycle_state(events)
@@ -229,8 +290,17 @@ def _rec_to_row(rec: Mapping, market: str, root: Path,
     # · R007-blocked columns removed (Risk Flags · Sector Exposure ·
     #   Confidence Band · Correlation · Historical Setups) · will
     #   restore as v3 when R007 lands
+    # Exit P&L % · realized return · populated ONLY when Status = EXIT
+    # Uses (current_price - entry_price) / entry_price · same as cur_ret
+    # but explicitly separated so blank rows in this column = "not exited"
+    exit_pnl_pct = ""
+    if status == "EXIT" and cur_ret is not None:
+        exit_pnl_pct = cur_ret
+
     return [
         asof, country, runner, ticker, company, status,
+        exit_reason,          # NEW · blank unless status = EXIT
+        exit_pnl_pct,         # NEW · realized P&L % · blank unless EXIT
         rank if rank else "",
         conf_pct if conf_pct is not None else "",
         conf_type,
@@ -249,6 +319,7 @@ def _rec_to_row(rec: Mapping, market: str, root: Path,
         round(t1_pct, 2) if t1_pct is not None else "",
         t2 if t2 else "",
         round(t2_pct, 2) if t2_pct is not None else "",
+        today_move if today_move is not None else "",
         cur_ret if cur_ret is not None else "",
         max_gain if max_gain is not None else "",
         max_dd if max_dd is not None else "",
