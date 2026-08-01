@@ -862,11 +862,23 @@ def _daily_change_summary(recs: Sequence[Mapping], market: str, max_rows: int = 
 
     # Compact one-line-per-change format · saves ~30 chars per change vs
     # the older multi-line block format. Still preserves all key deltas.
+    #
+    # Fix 2026-08-01: STRONG_BUY was rendering as STRONGBUY (underscore
+    # eaten by Markdown italics). Replace _ with space in action labels.
+    def _sanitize_action(ac):
+        if not ac: return ""
+        return str(ac).replace("_", " ").replace("STRONG BUY", "STRONG_BUY").replace(
+            "STRONG BUY", "STRONG BUY")
+
     for c in changes[:max_rows]:
         t = _short_ticker(c["ticker"])
         parts = []
         if c["action_change"]:
-            parts.append(f"{c['action_change']}")
+            # Ensure underscores don't get eaten by Markdown italics.
+            # Actions like STRONG_BUY → HOLD or BUY → HOLD render as
+            # italic-broken text. Replace _ with space so display is clean.
+            ac_clean = str(c["action_change"]).replace("_", " ")
+            parts.append(ac_clean)
         if c["rank_change"]:
             arrow = "↑" if c["rank_change"] < 0 else "↓"
             parts.append(f"rank {arrow}{abs(int(c['rank_change']))}")

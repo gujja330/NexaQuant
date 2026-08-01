@@ -169,6 +169,43 @@ def mark_to_market(root: Path, market: str, asof: str | None = None,
     }
 
 
+def validate_payload_asof_matches_today(root: Path, market: str,
+                                            today: str | None = None) -> dict:
+    """Guard 6 · verify recommendations.json's asof matches today.
+
+    Post-mortem 2026-08-01: local send served 2026-07-30 payload while
+    today was 2026-08-01. Root cause: local recs.json restored from
+    git yesterday · safety guard blocked pipeline rerun · but no guard
+    checked payload freshness before sending.
+
+    This guard closes that gap.
+    """
+    from datetime import date as _date
+    today = today or _date.today().isoformat()
+    reports = _reports_root(root, market)
+    p = reports / "recommendations.json"
+    if not p.exists():
+        return {"market": market, "verdict": "NO_PAYLOAD"}
+    try:
+        d = json.loads(p.read_text(encoding="utf-8"))
+    except Exception:
+        return {"market": market, "verdict": "UNREADABLE"}
+    asof = d.get("asof") or ""
+    try:
+        asof_dt = _date.fromisoformat(asof)
+        today_dt = _date.fromisoformat(today)
+        days_stale = (today_dt - asof_dt).days
+    except (ValueError, TypeError):
+        return {"market": market, "verdict": "INVALID_ASOF", "asof": asof, "today": today}
+    return {
+        "market":       market,
+        "verdict":      "OK" if days_stale == 0 else "STALE_PAYLOAD",
+        "asof":         asof,
+        "today":        today,
+        "days_stale":   days_stale,
+    }
+
+
 def validate_position_freshness(root: Path, market: str,
                                     asof: str | None = None,
                                     max_stale_days: int = 1) -> dict:

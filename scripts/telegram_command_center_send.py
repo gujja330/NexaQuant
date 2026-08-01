@@ -49,6 +49,7 @@ from backend.delivery.telegram.command_center import (  # noqa: E402
 from backend.portfolio.position_store.mark_to_market import (  # noqa: E402
     mark_to_market as _mark_to_market,
     validate_position_freshness as _validate_freshness,
+    validate_payload_asof_matches_today as _validate_payload_asof,
 )
 
 
@@ -135,6 +136,27 @@ def _append_delivery_ledger(record: dict) -> None:
 
 def _send_one_market(market: str, token: str, chat_id: str) -> tuple[bool, dict]:
     reports_dir = _market_reports(market)
+
+    # ── GUARD 6 · payload asof-freshness (post-mortem 2026-08-01) ──
+    # Refuse to send if recommendations.json's asof is NOT today.
+    # This closes the "restored-from-git stale payload got sent" gap.
+    try:
+        vpa = _validate_payload_asof(_ROOT, market)
+        if vpa["verdict"] == "STALE_PAYLOAD":
+            print(f"[payload_asof:{market}] REFUSED · asof={vpa['asof']} "
+                    f"today={vpa['today']} ({vpa['days_stale']}d stale)")
+            print(f"  · Fix: run daily pipeline "
+                    f"'python -m backend.recommendation.ssot.run --market {market}' "
+                    f"(may need --force if snapshot exists)")
+            print(f"  · Or override with SEND_FORCE_STALE=1 env var (destructive).")
+            if not os.environ.get("SEND_FORCE_STALE"):
+                return False, {"market": market, "refused": "stale_payload_asof", **vpa}
+        elif vpa["verdict"] == "OK":
+            print(f"[payload_asof:{market}] OK · asof={vpa['asof']} (today)")
+        else:
+            print(f"[payload_asof:{market}] {vpa['verdict']} · continuing anyway")
+    except Exception as e:
+        print(f"[payload_asof:{market}] check failed · {type(e).__name__}: {e} · continuing")
 
     # ── PRECAUTION 1 · mark-to-market before render (post-mortem 2026-07-31) ──
     # Ensures every active position has today's actual close price · so

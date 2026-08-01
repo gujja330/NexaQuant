@@ -185,3 +185,70 @@ deliberate · logged · and shows the operator exactly what's being
 overridden.
 
 **Signed 2026-08-01. Guards 4+5 non-negotiable going forward.**
+
+---
+
+# Addendum · 2026-08-01 · Guard 6 (stale-date incident)
+
+## The incident this addendum exists to prevent
+
+Same day (2026-08-01), Telegram messages went out showing "📅 2026-07-30 (Thu)"
+even though real-world date was Friday 2026-08-01. Root cause: local
+`reports/recommendations.json` was restored from git yesterday
+(commit 4750e5e) with `asof: 2026-07-30`. Safety Guard 1 correctly refused
+the pipeline rerun. But no guard checked payload freshness at send time,
+so the sender happily served stale-date data.
+
+Nobody noticed until the operator asked: *"why dates showing as still
+thursday 30th, what ur guard rail is doing?"*
+
+## Guard 6 · Payload asof-freshness check
+
+New function: `backend/portfolio/position_store/mark_to_market.py`
+· `validate_payload_asof_matches_today(root, market, today)`
+
+Sender `scripts/telegram_command_center_send.py` now runs this BEFORE
+every send. If `payload.asof != today`:
+
+```
+[payload_asof:india] REFUSED · asof=2026-07-30 today=2026-08-01 (2d stale)
+  · Fix: run daily pipeline 'python -m backend.recommendation.ssot.run
+    --market india' (may need --force if snapshot exists)
+  · Or override with SEND_FORCE_STALE=1 env var (destructive).
+```
+
+Override: `SEND_FORCE_STALE=1` env var (same variable that overrides
+Guard 5 · single deliberate acknowledgement covers both).
+
+## Why this guard couldn't be built earlier
+
+Guards 4+5 were designed around the position-store staleness (Max
+Gain/DD stuck at 0.00%). Payload-level asof staleness is a separate
+class of bug that only becomes obvious when the local repo is out of
+sync with the server-side scheduled pipeline. The 2026-08-01 incident
+was the first time both conditions coincided:
+
+1. Safety Guard 1 refused the pipeline rerun (correct · protects data)
+2. `stamp_only.py` doesn't advance asof (correct · non-destructive)
+3. Sender had no asof-freshness check ⟵ GAP
+
+Guard 6 closes the gap.
+
+## Updated decision matrix (v3)
+
+| Change type | Use | Destructive? |
+|---|---|---|
+| Refresh canonical stamp | `stamp_only.py` | No |
+| Re-price positions (Max Gain/DD) | `mark_to_market.py` | No |
+| Advance the payload's asof (fresh picks for today) | `ssot/run.py --market X --force` | **YES** · overwrites today's snapshot |
+| Send Telegram | `telegram_command_center_send.py` (auto-runs Guards 4+5+6) | No unless payload stale |
+
+## The three failure modes now blocked
+
+| Failure mode | Blocked by |
+|---|---|
+| Same-day pipeline rerun destroying morning picks | Guard 1 |
+| Position store's Max Gain/DD stuck at 0.00% | Guards 4+5 |
+| Stale-date payload served to operator | **Guard 6 (NEW)** |
+
+**Signed 2026-08-01. Guard 6 non-negotiable going forward.**
