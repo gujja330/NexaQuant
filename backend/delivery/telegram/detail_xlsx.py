@@ -344,8 +344,11 @@ def _collect_rows_for_market(root: Path, market: str, asof: str) -> list[list]:
         rows.append(_rec_to_row(r, market, root, runner="R2", asof=asof))
     if market == "india":
         rv = payload.get("runner1_validation") or {}
-        for o in (rv.get("runner1_orphans") or []):
+        for i, o in enumerate(rv.get("runner1_orphans") or [], start=1):
             r1_rec = _r1_orphan_to_rec_shape(o, market)
+            # R1 orphans have no explicit rank in payload · derive from list
+            # order (already sorted by strength/score in ranking-CSV upstream)
+            r1_rec.setdefault("rank", i)
             rows.append(_rec_to_row(r1_rec, market, root, runner="R1", asof=asof))
     return rows
 

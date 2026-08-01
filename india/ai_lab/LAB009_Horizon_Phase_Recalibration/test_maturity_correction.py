@@ -35,10 +35,13 @@ def _build_all_registries():
 def test_1_common_end_uses_min_mature():
     _, _, regs = _build_all_registries()
     _, ce = compute_common_window({(h, p): r for (cid, h, p), r in regs.items()})
-    # Independently compute min of max(mature_date) across configs
+    # Independently compute min of max(mature_date) across configs · this
+    # is the algebraic invariant of the LAB009 maturity-boundary correction.
+    # (The date itself DRIFTS forward as daily bars append — the earlier
+    # hardcoded 2026-03-27 snapshot was a data-time artifact that broke CI
+    # once new bars extended the mature horizon of the fastest config.)
     expected = min(pd.to_datetime(r["mature_date"]).max().normalize() for r in regs.values())
     assert ce == expected, f"common_end mismatch: got {ce}, expected {expected}"
-    assert ce.date().isoformat() == "2026-03-27", f"expected 2026-03-27, got {ce.date()}"
     print(f"  TEST 1 PASS: common_end = {ce.date()} = min(max(mature_date)) across configs")
 
 
