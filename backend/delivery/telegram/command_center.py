@@ -283,10 +283,61 @@ def _ceo_call(cs: Mapping) -> list[str]:
     actionable = cs.get("actionable_count") or 0
     rotations = cs.get("rotations_count") or 0
     lines.append(f"   🌐 Market: {regime}   ·   ⚡ Actionable: {actionable}   ·   🔄 Rotations: {rotations}")
+
+    # Weekend awareness · operator's 2026-08-01 (Sat) confusion about thin output
+    from datetime import date as _date
+    try:
+        weekday = _date.today().weekday()   # 0=Mon .. 6=Sun
+        if weekday >= 5:
+            lines.append("   🗓 *Weekend* · markets closed · today's output "
+                          "reflects yesterday's close · new signals resume Monday")
+    except Exception:
+        pass
+
     # Discipline warnings surface right below the CEO call.
     warnings = cs.get("discipline_warnings") or []
     for w in warnings[:3]:
         lines.append(f"   ⚠️ {w}")
+    return lines
+
+
+def _runner2_holds_block(payload: Mapping, market: str,
+                              max_rows: int = 8) -> list[str]:
+    """Show R2's HOLD positions so operator sees full R2 state (not just BUYs).
+
+    Fix 2026-08-01 (operator: "R2 says 3 picks but shows nothing in new buys?"):
+    R2's Runner Comparison stat shows historical paper positions · but the
+    NEW BUY IDEAS block only shows today's actionable entries. Gap between
+    the two confused the operator. This block bridges it by explicitly
+    listing R2's tracked-but-not-actionable picks so nothing is invisible.
+    """
+    recs = payload.get("recommendations") or []
+    holds = []
+    for r in recs:
+        ia = r.get("investor_action") or {}
+        if ia.get("entry") in ("WAIT", "HOLD") and \
+                 ia.get("if_holding") not in ("EXIT", "REDUCE", "SELL"):
+            holds.append(r)
+    holds.sort(key=lambda r: -(r.get("ensemble_score") or 0))
+    if not holds:
+        return []
+
+    currency = "Rs" if market == "india" else "$"
+    lines = ["", f"🚀 *R2 · HOLDS ({len(holds)})*",
+                "   _Positions R2 is tracking · not actionable today · monitor_"]
+    for r in holds[:max_rows]:
+        t = _short_ticker(r.get("ticker") or "?")
+        pp = r.get("position_plan") or {}
+        ez = pp.get("entry_zone") or {}
+        cp = ez.get("current_price")
+        conf = r.get("calibrated_confidence") or r.get("confidence")
+        rank = r.get("rank")
+        conf_str = f"conf {conf:.0%} cal" if isinstance(conf, (int, float)) and conf else "conf —"
+        cp_str = f"now {currency}{cp:,.0f}" if isinstance(cp, (int, float)) and cp else "now —"
+        rank_str = f"#{rank}" if rank else ""
+        lines.append(f"   ⚪ *{t}* {rank_str} · HOLD · {conf_str} · {cp_str}")
+    if len(holds) > max_rows:
+        lines.append(f"   _...+{len(holds) - max_rows} more holds_")
     return lines
 
 
@@ -673,12 +724,27 @@ def _rotation_calls(recs: Sequence[Mapping], market: str, max_rows: int = 4,
 
 def _actionable_entries(recs: Sequence[Mapping], market: str,
                           max_rows: int = 4) -> list[str]:
-    """Recs with is_actionable_entry — ranked by ensemble_score."""
+    """Recs with is_actionable_entry — ranked by ensemble_score.
+
+    Fix 2026-08-01 (operator: "where is runner 2 recommendations???"):
+    ALWAYS render this block · even when 0 picks · so operator sees
+    explicitly that R2 emitted no BUYs today (rather than the section
+    silently disappearing and creating confusion).
+    """
     picks = [r for r in recs
               if (r.get("investor_action") or {}).get("is_actionable_entry")]
     picks.sort(key=lambda r: -(r.get("ensemble_score") or 0))
+
+    # Always render · explicit "0 today" state when empty
     if not picks:
-        return []
+        # Count HOLD state · give operator a reason
+        n_hold = sum(1 for r in recs
+                        if (r.get("investor_action") or {}).get("entry") in ("WAIT", "HOLD"))
+        return ["",
+                    "🚀 *R2 · NEW BUY IDEAS (0)*",
+                    f"   _No new BUY signals today · engine says HOLD on {n_hold} of {len(recs)} picks_",
+                    "   _(this is R006 territory · engine's Top-N + lifecycle logic demotes picks aggressively)_"]
+
     lines = ["", f"🚀 *R2 · NEW BUY IDEAS ({len(picks)})*",
              "   _If you don't own these, consider entering_"]
     for r in picks[:max_rows]:
@@ -1928,6 +1994,7 @@ def render_command_center_message(payload: Mapping, market: str,
         ("runner_comparison",   _r1_vs_r2_headline(payload, market)),
         ("rotations",           _rotation_calls(recs, market)),
         ("new_buys",            _actionable_entries(recs, market)),
+        ("r2_holds",            _runner2_holds_block(payload, market)),
         ("exits",               _actionable_exits(recs, market)),
         ("r1_orphans",          _runner1_orphans(payload, market)),
         ("what_changed",        _daily_change_summary(recs, market)),
