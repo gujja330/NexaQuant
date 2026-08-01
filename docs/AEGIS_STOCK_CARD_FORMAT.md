@@ -91,6 +91,41 @@ DD-MMM-YYYY HH:MM IST
 
 ---
 
+## Confidence % and Model Score · both 0-100 · both mandatory
+
+Operator asked 2026-08-01: *"confidence is out of 100? what is model score?
+these all are mandatory right from screenshot"*. Answer:
+
+**Confidence %** · scale **0–100** · answers *"how likely is this to work?"*
+- `Calibrated` (default) · post-calibration probability from Runner 2 v3's
+  calibration layer · scaled against historical hit rate. A stock with
+  Calibrated 55% means: historically, signals this strong turn into
+  successful trades 55% of the time in this regime.
+- `Raw` · pre-calibration raw model output. Used when the calibrated
+  variant isn't available (older payloads). Same 0–100 scale but NOT
+  probability-calibrated.
+- The `Conf Type` column labels which flavor · never mix without label.
+
+**Model Score** · scale **0–100** · answers *"how strong is the signal?"*
+- Ensemble output from Runner 2's 11 models: Momentum · Trend · Value ·
+  Growth · Quality · Mean Reversion · News · Macro · Sector · Event-Driven
+  · AI-Hybrid.
+- Weighted sum per adaptive-weights config · higher = stronger BUY signal.
+- Pre-calibration · raw magnitude · NOT a probability.
+
+**Why they diverge (intentional)**:
+- A stock can have Model Score 85 (very strong signal) but Confidence 45%
+  (only 45% of signals this strong historically played out in this regime).
+- Or Model Score 55 (mid signal) with Confidence 70% (high hit-rate on
+  weaker but reliable signals for this ticker family).
+- The two together = signal magnitude × signal reliability = what the
+  operator actually needs to size a position.
+
+**Both are mandatory** · every stock row in the XLSX shows both fields ·
+never empty · never faked. Verified 2026-08-01: 41/41 rows populated.
+
+---
+
 ## Field-by-field source of truth
 
 | Field | Source · payload path | Missing behavior |

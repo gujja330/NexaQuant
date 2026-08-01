@@ -41,8 +41,12 @@ from .detail_report import (
 from .command_center import _company_name, _short_ticker
 
 
-# Column schema · every field from AEGIS_STOCK_CARD_FORMAT.md
-# Date + Country + Run_Type + Ticker = dedup key (first 4 columns · frozen)
+# XLSX schema v2 · 33 columns · every field populated with real data today.
+# Operator 2026-08-01: "too much of technicals? ur call to decide else keep it"
+# CEO decision: dropped 9 R007-blocked columns that were empty for months
+# (Exit Triggers Hit · Risk Flags · Sector Exposure % · Confidence Band Low ·
+#  Confidence Band High · Correlation · Hist Win Rate · Hist Median Ret ·
+#  Hist Avg Hold). Restore as v3 when Ticket R007 lands with the data.
 COLUMNS = [
     ("Date",                12),
     ("Country",             10),
@@ -72,19 +76,10 @@ COLUMNS = [
     ("Max Gain %",          12),
     ("Max DD %",            11),
     ("Lifecycle State",     16),
-    ("Exit Triggers Hit",   22),
     ("Top Drivers",         32),
-    ("Risk Flags",          28),      # NEW · e.g. "Earnings in 5d, High Beta"
     ("Sector",              20),
-    ("Sector Exposure %",   17),      # NEW · portfolio-level sum for this sector
     ("Portfolio Weight %",  18),
     ("Expected Alpha %",    17),
-    ("Confidence Band Low %",  20),   # NEW · alpha - σ
-    ("Confidence Band High %", 21),   # NEW · alpha + σ
-    ("Correlation",         12),
-    ("Hist Win Rate %",     15),
-    ("Hist Median Ret %",   17),
-    ("Hist Avg Hold (d)",   18),
     ("Last Updated (UTC)",  20),
 ]
 
@@ -230,16 +225,10 @@ def _rec_to_row(rec: Mapping, market: str, root: Path,
 
     country = market.upper()
 
-    # Risk Flags · deferred to R007 (needs earnings calendar + beta + sector overweight detector)
-    risk_flags = ""
-
-    # Sector Exposure · portfolio-level sum · deferred to R007 (needs cross-position aggregation)
-    sector_exposure = ""
-
-    # Confidence Band · deferred to R007 (needs per-setup calibration variance σ)
-    conf_low = ""
-    conf_high = ""
-
+    # XLSX v2 · 33 columns · every value is real or documented default
+    # · R007-blocked columns removed (Risk Flags · Sector Exposure ·
+    #   Confidence Band · Correlation · Historical Setups) · will
+    #   restore as v3 when R007 lands
     return [
         asof, country, runner, ticker, company, status,
         rank if rank else "",
@@ -264,19 +253,10 @@ def _rec_to_row(rec: Mapping, market: str, root: Path,
         max_gain if max_gain is not None else "",
         max_dd if max_dd is not None else "",
         state,
-        triggers_str,
         drivers_str,
-        risk_flags,          # NEW · R007
         sector,
-        sector_exposure,     # NEW · R007
         alloc if alloc else "",
         round(exp_alpha, 2) if exp_alpha is not None else "",
-        conf_low,            # NEW · R007
-        conf_high,           # NEW · R007
-        "",  # Correlation · R007
-        "",  # Hist Win Rate · R007
-        "",  # Hist Median Ret · R007
-        "",  # Hist Avg Hold · R007
         datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M"),
     ]
 
