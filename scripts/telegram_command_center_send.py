@@ -46,6 +46,10 @@ from backend.delivery.telegram.command_center import (  # noqa: E402
     render_intraday_platform_message,
     ENGINE_ID, SCHEMA_FINGERPRINT,
 )
+from backend.portfolio.position_store.mark_to_market import (  # noqa: E402
+    mark_to_market as _mark_to_market,
+    validate_position_freshness as _validate_freshness,
+)
 
 
 def _load_env() -> None:
@@ -131,6 +135,37 @@ def _append_delivery_ledger(record: dict) -> None:
 
 def _send_one_market(market: str, token: str, chat_id: str) -> tuple[bool, dict]:
     reports_dir = _market_reports(market)
+
+    # ── PRECAUTION 1 · mark-to-market before render (post-mortem 2026-07-31) ──
+    # Ensures every active position has today's actual close price · so
+    # Max Gain / Max DD reflect reality (not stale 0.00% from entry-price)
+    try:
+        mtm = _mark_to_market(_ROOT, market)
+        print(f"[mtm:{market}] repriced={mtm['n_repriced']}/{mtm['n_positions']} "
+                f"missing={mtm['n_missing_price']}")
+    except Exception as e:
+        print(f"[mtm:{market}] failed · {type(e).__name__}: {e} · continuing anyway")
+
+    # ── PRECAUTION 2 · freshness check · REFUSE to send if positions stale ──
+    # Prevents the "0.00% Max Gain everywhere" incident from ever recurring
+    try:
+        v = _validate_freshness(_ROOT, market, max_stale_days=2)
+        if v["verdict"] == "STALE" and v["n_stale"] > 0:
+            print(f"[freshness:{market}] REFUSED · {v['n_stale']} stale positions "
+                    f"(last_seen > 2 days behind asof)")
+            for s in v["stale_tickers"][:5]:
+                print(f"  · {s['ticker']}: last_seen={s['last_seen']} "
+                        f"({s['days_behind']}d behind)")
+            print(f"  · Fix: run 'python scripts/mark_to_market.py --market {market}' "
+                    f"or wait for tomorrow's daily pipeline.")
+            print(f"  · Or override with SEND_FORCE_STALE=1 env var (destructive).")
+            if not os.environ.get("SEND_FORCE_STALE"):
+                return False, {"market": market, "refused": "stale_positions", **v}
+        else:
+            print(f"[freshness:{market}] OK · {v['n_active']} active positions all fresh")
+    except Exception as e:
+        print(f"[freshness:{market}] check failed · {type(e).__name__}: {e} · continuing")
+
     msg, meta = load_and_render(reports_dir, market)
     if meta.get("n_recs") == 0:
         print(f"[command_center:{market}] no recs · skipping")

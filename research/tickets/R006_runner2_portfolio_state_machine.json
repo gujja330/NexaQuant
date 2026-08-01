@@ -1,0 +1,136 @@
+{
+  "ticket_id": "R006_runner2_portfolio_state_machine",
+  "title": "Runner 2 · Portfolio State Machine v2 (rebuild from screener → stateful portfolio manager)",
+  "hypothesis": "Runner 2 currently behaves as a Top-N daily screener (score → sort → print top 3). Rebuilding it as a stateful portfolio manager with persistent positions, explicit lifecycle events, rotation hysteresis, and single-horizon discipline will eliminate the 10 architectural inconsistencies observed on 2026-07-31 (LUPIN vanished without exit event · 11 sources → 1 destination churn · mixed 17d + 90d horizons · day 2 of 90 for a stock recommended today).",
+  "owner": "AEGIS",
+  "market_scope": "both",
+  "mode": "delivery",
+  "lifecycle_state": "OPEN",
+  "opened_at": "2026-07-31T00:00:00.000000+00:00",
+  "updated_at": "2026-07-31T00:00:00.000000+00:00",
+  "canonical_candidate": true,
+  "evidence": {
+    "operator_paste_2026-07-31": "https://github.com/praveen330/NexaQuant chat log 2026-07-31 · full 10-issue diagnosis",
+    "format_spec":                "docs/AEGIS_TELEGRAM_FORMAT.md",
+    "pipeline_safety":            "docs/PIPELINE_SAFETY.md",
+    "predecessor_ticket":         "R002_runner2_ensemble_v3.json (score → sort · needs to be extended, not replaced)"
+  },
+  "decisions": [
+    {
+      "at": "2026-07-31T00:00:00.000000+00:00",
+      "from_state": null,
+      "to_state": "OPEN",
+      "note": "Opened 2026-07-31 after operator identified 10 architectural issues from live Telegram outputs. This ticket spans BOTH markets (India + USA) because Runner 2 is the same engine on both. Full specification below in `issues_addressed` and `redesign_plan` fields."
+    }
+  ],
+  "issues_addressed": {
+    "1_rotation_engine_unstable": {
+      "observed": "Day 1: rotate BATAINDIA → LUPIN · Day 2: rotate BIOCON → TCS · 11 different stocks all rotating to a single destination",
+      "root_cause": "Daily rescoring without persistence · pure Top-N replacement · no hysteresis",
+      "fix": "Rotation requires meaningful alpha edge threshold (e.g. new candidate must beat current holding by >= 5pp expected alpha AND persist for 3 consecutive days before rotation triggers)"
+    },
+    "2_holding_period_broken": {
+      "observed": "Yesterday LUPIN hold 17d · Today LUPIN vanished · TCS appeared with hold 90d",
+      "root_cause": "No portfolio memory · every day starts fresh · positions silently dropped",
+      "fix": "Once a position is opened at horizon N days, that horizon is LOCKED for the position's lifetime · never mixed with other horizons in same runner"
+    },
+    "3_entry_lifecycle_broken": {
+      "observed": "TCS shows 'day 2 of 90' today but yesterday TCS wasn't recommended at all",
+      "root_cause": "days_recommended derived from ANY prior appearance in position_store · not from actual portfolio entry event",
+      "fix": "days_recommended = (today - portfolio.entered_on) where entered_on is the first BUY event in the portfolio ledger · not just any position_store touch"
+    },
+    "4_positions_vanish_silently": {
+      "observed": "Yesterday LUPIN · HEROMOTOCO · CHAMBLFERT recommended · today gone · no exit event · no stop · no target hit · no expiry · no reason",
+      "root_cause": "Runner 2 has no exit lifecycle · dropped picks disappear from recs.json",
+      "fix": "Every position MUST end with exactly one terminal event: EXIT · STOP · TARGET · HORIZON_EXPIRED · MANUAL_ROTATION. Rendered explicitly in Telegram Exits block."
+    },
+    "5_runner2_is_top_n_screener": {
+      "observed": "Behavior = universe → score → sort → top 3 → print",
+      "correct_behavior": "universe → score → CHECK EXISTING PORTFOLIO → decide HOLD/ROTATE/ADD/EXIT per position → only THEN add new capital",
+      "fix": "Insert portfolio state machine between score-engine and output · see redesign_plan.pipeline_shape"
+    },
+    "6_rotation_source_inconsistent": {
+      "observed": "Yesterday BATA/AMBER/JSW → LUPIN · Today BIOCON/FORTIS/GRASIM → TCS · Where did yesterday's rotations go? Executed? Ignored? Expired?",
+      "fix": "Rotation ledger: reports/research/rotation_ledger.jsonl · every proposed rotation logged with outcome (EXECUTED · REJECTED_BY_HYSTERESIS · CANCELLED · EXPIRED)"
+    },
+    "7_canonical_portfolio_not_respected": {
+      "observed": "Runner 1 says 11 active picks · but no Runner 1 EXITS shown · so CEO cannot know keep vs sell vs replace",
+      "fix": "Every runner (R1 and R2) must emit full state distribution: BUY · HOLD · REDUCE · SELL · ROTATE per position · not just actionable subset"
+    },
+    "8_mixed_holding_horizons": {
+      "observed": "Same portfolio shows 17-day picks AND 90-day picks in same day",
+      "risk": "Contradictory signals · unclear whether runner is swing or position",
+      "fix": "Single investment horizon per runner · Runner 2 config declares its horizon (e.g. 17d or 90d) · never mixed"
+    },
+    "9_rotation_destination_explosion": {
+      "observed": "11 rotations → 1 destination (all → TCS)",
+      "root_cause": "Ranking engine picks single highest score every day · no diversification",
+      "fix": "Portfolio optimizer with: top-20 candidates → sector constraints → correlation filter → diversification target → max N rotations per day (e.g. 2)"
+    },
+    "10_portfolio_memory_missing": {
+      "observed": "Engine behaves as if every day starts from zero · re-recommends same tickers · doesn't check existing holdings",
+      "fix": "Load current portfolio state at start of every daily run · every recommendation must consider what's already held"
+    }
+  },
+  "redesign_plan": {
+    "pipeline_shape": [
+      "Universe (S&P 500 + MidCap 400 / NSE 200)",
+      "Score Engine (existing 11-model ensemble)",
+      "Load Current Portfolio (new · from position ledger)",
+      "Portfolio State Machine (new): HOLD | ADD | ROTATE | EXIT | PARTIAL_EXIT | REBALANCE",
+      "Portfolio Optimizer (new): sector caps · correlation · diversification · max-N-rotations",
+      "Risk Manager (existing)",
+      "Telegram (existing renderer)"
+    ],
+    "position_lifecycle_states": [
+      "NEW      · first appearance in portfolio ledger",
+      "ACTIVE   · currently held · within horizon · not yet hit stop/target",
+      "HOLD     · still valid · continue holding · explicit HOLD event (not silent removal)",
+      "EXITED   · terminal · with recorded reason (EXIT | STOP | TARGET | HORIZON_EXPIRED | MANUAL_ROTATION)"
+    ],
+    "rotation_hysteresis": {
+      "min_alpha_edge_pp": 5.0,
+      "min_persistent_days": 3,
+      "max_rotations_per_day": 2,
+      "rationale": "Prevent daily churn · require meaningful and stable edge before replacing an existing position"
+    },
+    "portfolio_ledger": {
+      "path": "reports/research/portfolio_ledger.jsonl",
+      "append_only": true,
+      "event_types": ["OPEN", "HOLD", "ROTATE", "EXIT_STOP", "EXIT_TARGET", "EXIT_HORIZON", "EXIT_MANUAL"],
+      "fields_per_event": ["ts_utc", "asof", "ticker", "event", "price", "reason", "linked_from_ticker"]
+    },
+    "horizon_lock": {
+      "runner1_horizon_days": 60,
+      "runner2_horizon_days": 90,
+      "rule": "Each runner has ONE horizon · position takes on its runner's horizon at open · never mutates"
+    },
+    "portfolio_state_at_open_of_daily_run": {
+      "read": "reports/research/portfolio_state_{market}.json",
+      "shape": "{ticker: {opened_on, entry_price, current_state, horizon_days, allocated_pct, target_price, stop_price, high_water}}"
+    }
+  },
+  "acceptance_criteria": [
+    "No position vanishes without an explicit exit event visible in Telegram",
+    "Rotation churn drops to <= 2 per day per market",
+    "Every recommendation shows accurate 'day X of Y' matching portfolio ledger (not last-seen-in-recs)",
+    "Runner 2 shows full BUY/HOLD/REDUCE/SELL distribution · not just actionables",
+    "Single horizon per runner · no mixed 17d + 90d in same output",
+    "Max Gain / Max DD populate from position store's high/low updated daily (not entry-price defaults)",
+    "Rotation ledger appended · every proposed rotation traceable to outcome",
+    "Backtest 30 days of paper trading shows portfolio drift < 3x rotation churn threshold"
+  ],
+  "explicitly_out_of_scope": [
+    "Runner 3 · not building a third engine on top of a broken Runner 2",
+    "Changes to Runner 1 · adaptive_rec_v2 stays SEALED · out of Article III polish",
+    "Changes to intraday · R004 tracked separately"
+  ],
+  "tags": [
+    "runner2",
+    "portfolio_state_machine",
+    "rebuild",
+    "10_issue_incident",
+    "operator_flagged_2026-07-31",
+    "canonical_candidate"
+  ]
+}

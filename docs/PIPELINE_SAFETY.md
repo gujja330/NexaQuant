@@ -108,3 +108,80 @@ same day as this doc).
 ---
 
 **Signed 2026-07-30. Non-negotiable going forward.**
+
+---
+
+# Addendum · 2026-08-01 · Guards 4 + 5 (Max Gain/DD staleness incident)
+
+## The incident this addendum exists to prevent
+
+On 2026-07-31 the operator's Telegram showed Max Gain +0.00% and Max DD
++0.00% for LUPIN, HEROMOTOCO, CHAMBLFERT (India) and TRV (USA). Root
+cause: `position_store`'s `high_water_price` and `low_water_price` were
+never re-priced after the position opened. Upsert has an idempotent
+early-return when `last_seen_date == asof`, and the daily pipeline was
+passing the entry price (from `position_plan`) rather than today's
+actual close.
+
+Net effect: Max Gain / Max DD stayed at 0.00% for every active position
+· misleading operator into thinking the engine had zero P&L attribution.
+
+## Guard 4 · Non-destructive daily mark-to-market
+
+New module: `backend/portfolio/position_store/mark_to_market.py`
+
+- `mark_to_market(root, market, asof)` — updates last_seen_price /
+  high_water / low_water from today's daily bar close (yfinance
+  fallback for USA · no local cache required)
+- Never touches `first_seen_*` fields (position identity preserved)
+- Bypasses the same-day idempotency early-return in `upsert_position`
+- Records an MTM history event with delta from prior mark
+- Idempotent: re-running with same price is a no-op
+
+Standalone runner: `scripts/mark_to_market.py --market {india|usa|both}`
+
+Verified 2026-08-01: India repriced 15/25 · USA repriced 15/18 ·
+HEROMOTOCO Max Gain +1.81% · CHAMBLFERT +4.87% · TRV +1.46% · HON +8.01% ·
+GS Max DD −4.40% (all real numbers now).
+
+## Guard 5 · Pre-send freshness gate
+
+Sender `scripts/telegram_command_center_send.py` now auto-runs BEFORE
+every send:
+
+1. `mark_to_market()` — refresh all prices from bar cache
+2. `validate_position_freshness(max_stale_days=2)` — check every active
+   position has `last_seen_date` within 2 days of asof
+3. If verdict is STALE → **REFUSE to send** with clear diagnostic:
+   ```
+   [freshness:india] REFUSED · 3 stale positions
+     · LUPIN: last_seen=2026-07-25 (5d behind)
+     · Fix: run 'python scripts/mark_to_market.py --market india'
+     · Or override with SEND_FORCE_STALE=1 env var (destructive).
+   ```
+
+Override: `SEND_FORCE_STALE=1` env var (deliberate acknowledgement · logged as destructive).
+
+## Updated decision matrix
+
+| Change type | Use | Destructive? |
+|---|---|---|
+| Refresh canonical stamp | `stamp_only.py` | No |
+| Re-price positions (daily) | `mark_to_market.py` | No |
+| Refresh both display + prices | `mark_to_market.py` then `stamp_only.py` | No |
+| Add / remove a Telegram section | edit `command_center.py` | No (code change) |
+| First run of the day | `ssot/run.py --market india` | No (snapshot doesn't exist yet) |
+| Second run same day | `ssot/run.py --market india --force` | **YES** |
+
+## Consequence
+
+**The 2026-07-31 "everything at 0.00%" bug can no longer ship.** Guard
+5 refuses to send if any position is stale. If MTM (Guard 4) can't fetch
+a price (bar cache missing · yfinance rate-limited), the freshness gate
+still catches it and refuses.
+
+Override path exists (`SEND_FORCE_STALE=1`) for edge cases · but it's
+deliberate · logged · and shows the operator exactly what's being
+overridden.
+
+**Signed 2026-08-01. Guards 4+5 non-negotiable going forward.**

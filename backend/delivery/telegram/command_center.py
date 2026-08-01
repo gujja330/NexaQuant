@@ -275,27 +275,49 @@ def _performance_summary(payload: Mapping, market: str) -> list[str]:
 
 
 def _ceo_call(cs: Mapping) -> list[str]:
-    """Top block — the 30-second recommendation."""
-    lines = ["🎯 *CEO CALL TODAY*"]
+    """Top block · 30-second recommendation · per format spec §3 (CEO ACTION)."""
+    lines = ["🎯 *CEO ACTION TODAY*"]
     action = cs.get("recommended_action") or "no signal"
     lines.append(f"   {action}")
     regime = cs.get("market_regime") or "unknown"
     actionable = cs.get("actionable_count") or 0
     rotations = cs.get("rotations_count") or 0
     lines.append(f"   🌐 Market: {regime}   ·   ⚡ Actionable: {actionable}   ·   🔄 Rotations: {rotations}")
-    # Article IX/X · canonical + proposed_by attribution (from Research Platform SSoT)
-    proposed_by = cs.get("proposed_by")
-    canonical = cs.get("canonical_status") or cs.get("canonical_engine")
-    eval_day = cs.get("evaluation_day")
-    if proposed_by and canonical:
-        eval_str = f"  ·  📅 Day {eval_day}" if eval_day else ""
-        lines.append(f"   🏛 Proposed by: *{proposed_by}*  ·  Canonical: *{canonical}*{eval_str}")
-        lines.append(f"   _60d = first-decision checkpoint · 90d = final production decision_")
     # Discipline warnings surface right below the CEO call.
     warnings = cs.get("discipline_warnings") or []
     for w in warnings[:3]:
         lines.append(f"   ⚠️ {w}")
     return lines
+
+
+def _runner_experiment_block(payload: Mapping, market: str) -> list[str]:
+    """Format spec §8 · Runner Experiment · dedicated block · appears once.
+
+    Reads reports/research/delivery_platform.json (Research Platform SSoT).
+    Renders Day X of 90 · minimum 60 · target 90 · canonical status ·
+    proposed-by attribution.
+    """
+    try:
+        dp_path = Path("reports/research/delivery_platform.json")
+        if not dp_path.exists():
+            return []
+        dp = json.loads(dp_path.read_text(encoding="utf-8"))
+    except Exception:
+        return []
+    program = dp.get("program") or {}
+    status = dp.get("status") or {}
+    day = program.get("day_of_program") or 0
+    minimum = program.get("window_days_minimum") or 60
+    target = program.get("window_days_target") or 90
+    canonical = program.get("canonical") or "UNDECIDED"
+    proposed_by = "RUNNER_2"        # only R2 produces recs today
+    return [
+        "",
+        "🧪 *RUNNER EXPERIMENT*",
+        f"   Day {day} / {target}  ·  Minimum {minimum}d  ·  Target {target}d",
+        f"   Canonical: *{canonical}*  ·  Proposed by *{proposed_by}*",
+        "   _60d = first decision · 90d = final production decision_",
+    ]
 
 
 def _r1_vs_r2_headline(payload: Mapping, market: str) -> list[str]:
@@ -328,9 +350,12 @@ def _r1_vs_r2_headline(payload: Mapping, market: str) -> list[str]:
             return []
         return [
             "",
-            f"🥊 *R1 vs R2 · USA (Day {day} · min {minimum}d · target {target}d)*",
-            f"   {R1_EMOJI} R1: n/a (Runner 1 does not cover USA)",
-            f"   {R2_EMOJI} R2: {r2.get('n_positions', 0)} picks · Ret {r2.get('total_return_pct', 0):+.2f}% · Win {(r2.get('win_rate') or 0)*100:.0f}%",
+            "🥊 *RUNNER COMPARISON · USA*",
+            f"   {R1_EMOJI} R1  Baseline / Validation Strategy",
+            f"      n/a  ·  Runner 1 does not cover USA",
+            f"   {R2_EMOJI} R2  Adaptive Strategy",
+            f"      {r2.get('n_positions', 0)} picks  ·  Return {r2.get('total_return_pct', 0):+.2f}%"
+            f"  ·  Win {(r2.get('win_rate') or 0)*100:.0f}%",
         ]
 
     ind = live.get("india") or {}
@@ -338,15 +363,33 @@ def _r1_vs_r2_headline(payload: Mapping, market: str) -> list[str]:
     r2 = ind.get("runner2") or {}
     if not (r1.get("n_positions") or r2.get("n_positions")):
         return []
-    leader = ind.get("leader") or "TIE"
-    edge = ind.get("leader_edge_pct") or 0.0
-    return [
+
+    # Format spec §6 · fix TIE + Edge contradiction · a tie has no edge.
+    # Show delta separately from leader claim · leader stays UNDECIDED
+    # until day ≥ 60 AND edge above threshold.
+    r1_ret = float(r1.get("total_return_pct") or 0)
+    r2_ret = float(r2.get("total_return_pct") or 0)
+    delta_pp = r2_ret - r1_ret
+    leader_raw = ind.get("leader") or "TIE"
+    # UNDECIDED until Day 60 minimum
+    leader_display = "UNDECIDED" if day < minimum else leader_raw
+
+    lines = [
         "",
-        f"🥊 *R1 vs R2 · INDIA (Day {day} · min {minimum}d · target {target}d)*",
-        f"   🥇 Leader: *{leader}*  ·  Edge {edge:+.2f}pp",
-        f"   {R1_EMOJI} R1: {r1.get('n_positions', 0)} picks · Ret *{r1.get('total_return_pct', 0):+.2f}%* · Win {(r1.get('win_rate') or 0)*100:.0f}% · Sharpe {_fmt(r1.get('sharpe_ratio'))}",
-        f"   {R2_EMOJI} R2: {r2.get('n_positions', 0)} picks · Ret *{r2.get('total_return_pct', 0):+.2f}%* · Win {(r2.get('win_rate') or 0)*100:.0f}% · Sharpe {_fmt(r2.get('sharpe_ratio'))}",
+        "🥊 *RUNNER COMPARISON · INDIA*",
+        f"   Leader: *{leader_display}*",
+        f"   Performance Delta (R2 vs R1): *{delta_pp:+.2f}pp*",
+        "",
+        f"   {R1_EMOJI} R1  Baseline / Validation Strategy",
+        f"      {r1.get('n_positions', 0)} picks  ·  Return {r1_ret:+.2f}%"
+        f"  ·  Win {(r1.get('win_rate') or 0)*100:.0f}%"
+        f"  ·  Sharpe {_fmt(r1.get('sharpe_ratio'))}",
+        f"   {R2_EMOJI} R2  Adaptive Strategy",
+        f"      {r2.get('n_positions', 0)} picks  ·  Return {r2_ret:+.2f}%"
+        f"  ·  Win {(r2.get('win_rate') or 0)*100:.0f}%"
+        f"  ·  Sharpe {_fmt(r2.get('sharpe_ratio'))}",
     ]
+    return lines
 
 
 def _runner_attribution_table(payload: Mapping, market: str,
@@ -595,14 +638,13 @@ def _rotation_calls(recs: Sequence[Mapping], market: str, max_rows: int = 4,
     canonical_status = first_ri.get("canonical_status")
     eval_day = first_ri.get("evaluation_day")
 
-    lines = ["", f"🔄 *ROTATION SIGNALS ({len(rots)} rotations · {len(by_dest)} destinations)*",
-             "   _Sell weaker positions, buy stronger ones — expected alpha gain_"]
-    if proposed_by and canonical_status:
-        eval_str = f"  ·  📅 Day {eval_day}" if eval_day else ""
-        lines.append(f"   🏛 Proposed by *{proposed_by}*  ·  Canonical: *{canonical_status}*{eval_str}")
-
+    # Format spec §7 · "N Exits · N Replacement" wording (was "N rotations · N destinations")
+    _dest_word = "Replacement" if len(by_dest) == 1 else "Replacements"
+    _exit_word = "Exit"  if len(rots)    == 1 else "Exits"
+    lines = ["", f"🔄 *{len(rots)} {_exit_word}  ·  {len(by_dest)} {_dest_word}*",
+             "   _Sell weaker positions · buy stronger ones (expected alpha gain)_"]
     # Portfolio-cap awareness (Ticket 14 · Portfolio Intelligence article)
-    lines.append(f"   ⚖️ Allocation cap: {per_ticker_cap_pct}% per ticker (Portfolio Engine)")
+    lines.append(f"   ⚖️ Cap: {per_ticker_cap_pct}% per ticker (Portfolio Engine)")
 
     for dest, sources in dest_order[:max_rows]:
         dest_name = _ticker_with_name(dest, market)
@@ -637,7 +679,7 @@ def _actionable_entries(recs: Sequence[Mapping], market: str,
     picks.sort(key=lambda r: -(r.get("ensemble_score") or 0))
     if not picks:
         return []
-    lines = ["", f"🟢 *NEW BUY IDEAS ({len(picks)})*",
+    lines = ["", f"🚀 *R2 · NEW BUY IDEAS ({len(picks)})*",
              "   _If you don't own these, consider entering_"]
     for r in picks[:max_rows]:
         t = _ticker_with_name(r.get("ticker") or "?", market)
@@ -1866,20 +1908,19 @@ def render_command_center_message(payload: Mapping, market: str,
     #   · Old rich per-stock format · not the compact card
     # Priority order · CRITICAL sections FIRST · lower-value dropped by budget
     # · Operator hard-locked format: R1 DEFENSIVE must always show with hold days
+    # Format spec §3 · section order · Runner Experiment right after CEO Action
     sections = [
-        ("header",           _header(market, asof)),
-        ("ceo_call",         _ceo_call(cs)),
-        ("r1_vs_r2",         _r1_vs_r2_headline(payload, market)),
-        ("rotations",        _rotation_calls(recs, market)),
-        ("new_buys",         _actionable_entries(recs, market)),
-        ("exits",            _actionable_exits(recs, market)),           # what to sell
-        ("r1_orphans",       _runner1_orphans(payload, market)),          # R1 defensive picks
-        ("what_changed",     _daily_change_summary(recs, market)),
-        ("risk_pulse",       _risk_pulse(cs, recs, market)),
-        # perf_summary + attribution + research_tail dropped from primary
-        # section list · they're historical/decorative · never critical
-        # for daily action · restore only if operator asks
-        ("footer",            _integrity_footer(payload, market)),
+        ("header",              _header(market, asof)),
+        ("ceo_call",            _ceo_call(cs)),
+        ("runner_experiment",   _runner_experiment_block(payload, market)),
+        ("runner_comparison",   _r1_vs_r2_headline(payload, market)),
+        ("rotations",           _rotation_calls(recs, market)),
+        ("new_buys",            _actionable_entries(recs, market)),
+        ("exits",               _actionable_exits(recs, market)),
+        ("r1_orphans",          _runner1_orphans(payload, market)),
+        ("what_changed",        _daily_change_summary(recs, market)),
+        ("risk_pulse",          _risk_pulse(cs, recs, market)),
+        ("footer",              _integrity_footer(payload, market)),
     ]
 
     # Reserve footer size upfront so we NEVER blow past budget on final render.
