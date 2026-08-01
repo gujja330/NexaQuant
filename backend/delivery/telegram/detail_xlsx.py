@@ -170,11 +170,40 @@ def _rec_to_row(rec: Mapping, market: str, root: Path,
         if current_price is None:
             current_price = ps.get("last_seen_price")
 
+    # Fallback: if position store has no entry yet (rec just appeared today),
+    # use current_price as entry so downstream columns have a reference · this
+    # matches R006 lifecycle intent (position OPENS at today's price when new).
+    if entry_price is None and current_price:
+        entry_price = current_price
+        if not first_seen:
+            first_seen = asof
+
     stop = ez.get("stop_loss")
     t1 = ez.get("target_1")
     t2 = ez.get("target_2")
+
+    # Bug fix 2026-08-01: engine only populates stop/T1/T2 for actionable BUYs.
+    # For HOLD picks (and R1 defensives), derive standard defaults so operator
+    # gets SAME field coverage per stock (5% stop, 8% T1, 15% T2 · heuristics
+    # documented in AEGIS_STOCK_CARD_FORMAT.md). Never fabricates per-stock.
+    ref_price = entry_price or current_price
+    if ref_price:
+        if stop is None:
+            stop = round(ref_price * 0.95, 2)         # -5% default stop
+        if t1 is None:
+            t1 = round(ref_price * 1.08, 2)           # +8% default T1
+        if t2 is None:
+            t2 = round(ref_price * 1.15, 2)           # +15% default T2
     if t2 is None and t1 is not None and current_price:
         t2 = current_price + (t1 - current_price) * 1.5
+
+    # Buy Zone default (±1% of ref_price) when engine doesn't emit for HOLDs
+    buy_low = ez.get("ideal_buy_low")
+    buy_high = ez.get("ideal_buy_high")
+    if buy_low is None and ref_price:
+        buy_low = round(ref_price * 0.99, 2)
+    if buy_high is None and ref_price:
+        buy_high = round(ref_price * 1.01, 2)
 
     base_for_pct = entry_price or current_price
     risk_pct = _pct_from_range(base_for_pct, stop)
@@ -223,8 +252,8 @@ def _rec_to_row(rec: Mapping, market: str, root: Path,
         first_seen if first_seen else "",
         current_price if current_price else "",
         entry_price if entry_price else "",
-        ez.get("ideal_buy_low") if ez.get("ideal_buy_low") else "",
-        ez.get("ideal_buy_high") if ez.get("ideal_buy_high") else "",
+        buy_low if buy_low else "",
+        buy_high if buy_high else "",
         stop if stop else "",
         round(risk_pct, 2) if risk_pct is not None else "",
         t1 if t1 else "",
