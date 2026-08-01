@@ -46,6 +46,9 @@ from backend.delivery.telegram.command_center import (  # noqa: E402
     render_intraday_platform_message,
     ENGINE_ID, SCHEMA_FINGERPRINT,
 )
+from backend.delivery.telegram.detail_report import (  # noqa: E402
+    render_daily_detail_report,
+)
 from backend.portfolio.position_store.mark_to_market import (  # noqa: E402
     mark_to_market as _mark_to_market,
     validate_position_freshness as _validate_freshness,
@@ -77,6 +80,47 @@ def _load_env() -> None:
     m = re.search(r"\d{6,}:[A-Za-z0-9_-]{20,}", os.environ.get("TELEGRAM_BOT_TOKEN", ""))
     if m:
         os.environ["TELEGRAM_BOT_TOKEN"] = m.group(0)
+
+
+def _send_document(token: str, chat_id: str, file_path: Path,
+                       caption: str = "") -> tuple[bool, str]:
+    """Upload a file to Telegram via sendDocument · used for detail reports."""
+    if not file_path.exists():
+        return False, f"file missing: {file_path}"
+    url = f"https://api.telegram.org/bot{token}/sendDocument"
+    boundary = "----AEGISFormBoundary" + os.urandom(8).hex()
+    body = []
+    def _p(field, value):
+        body.append(f"--{boundary}\r\n"
+                       f'Content-Disposition: form-data; name="{field}"\r\n\r\n'
+                       f"{value}\r\n")
+    _p("chat_id", chat_id)
+    if caption:
+        _p("caption", caption[:1024])
+        _p("parse_mode", "Markdown")
+    file_bytes = file_path.read_bytes()
+    body.append(f"--{boundary}\r\n"
+                   f'Content-Disposition: form-data; name="document"; '
+                   f'filename="{file_path.name}"\r\n'
+                   f"Content-Type: text/markdown\r\n\r\n")
+    # Build multipart payload as bytes
+    prefix = "".join(body).encode("utf-8")
+    suffix = f"\r\n--{boundary}--\r\n".encode("utf-8")
+    payload = prefix + file_bytes + suffix
+    req = urllib.request.Request(url, data=payload, method="POST")
+    req.add_header("Content-Type", f"multipart/form-data; boundary={boundary}")
+    try:
+        with urllib.request.urlopen(req, timeout=60) as r:
+            resp = r.read().decode("utf-8", errors="replace")
+        return True, resp[:120]
+    except urllib.error.HTTPError as e:
+        try:
+            err = e.read().decode("utf-8", errors="replace")
+        except Exception:
+            err = str(e)
+        return False, f"HTTP {e.code}: {err[:200]}"
+    except Exception as e:
+        return False, f"{type(e).__name__}: {e}"
 
 
 def _send_markdown(token: str, chat_id: str, text: str) -> tuple[bool, str]:
@@ -210,20 +254,44 @@ def _send_one_market(market: str, token: str, chat_id: str) -> tuple[bool, dict]
 
     # Research Platform second message DISABLED 2026-07-30 per operator:
     # "ensure single message for india and single message for usa."
-    # Compact R1-vs-R2 headline + historical + disagreements now folded
-    # into the Command Center message via _r1_vs_r2_headline + _research_tail.
     research_ok = True
 
-    # Intraday MSG 3 REMOVED per operator directive 2026-07-30.
-    # The shadow-of-delivery approach was rejected: reusing swing picks
-    # as an intraday measurement corpus doesn't reflect any real
-    # tradable strategy. See docs/AEGIS_INTRADAY_ARCHITECTURE.md for
-    # the real intraday engine specification (ticket R004 · not built yet).
+    # ── DETAIL REPORT · attach full per-stock cards as .md document ──
+    # Operator 2026-08-01: "everystock to show in below format ·
+    # dont neglect format" · locked in docs/AEGIS_STOCK_CARD_FORMAT.md.
+    # Detail can't fit in single Telegram message (~8000 chars > 4096 cap)
+    # so it ships as a .md file attachment with the compact summary.
+    detail_ok = True
+    try:
+        asof = meta.get("asof") or ""
+        detail_path = render_daily_detail_report(_ROOT, market, asof)
+        if detail_path and detail_path.exists():
+            caption = (f"📎 *AEGIS Detail · {market.upper()} · {asof}*\n"
+                          f"Full card for every stock (locked format · see "
+                          f"`docs/AEGIS_STOCK_CARD_FORMAT.md`)")
+            detail_ok, detail_msg = _send_document(token, chat_id,
+                                                          detail_path, caption=caption)
+            print(f"[detail_report:{market}] file={detail_path.name} · sent={detail_ok}")
+            if not detail_ok:
+                print(f"  detail: {detail_msg[:180]}")
+            _append_delivery_ledger({
+                "ts_utc":  datetime.now(timezone.utc).isoformat(),
+                "engine":  "aegis.delivery.telegram.detail_report.v1",
+                "market":  market,
+                "kind":    "detail_document",
+                "file":    str(detail_path.relative_to(_ROOT)),
+                "ok":      detail_ok,
+                "detail_head": detail_msg[:200] if not detail_ok else "",
+            })
+    except Exception as e:
+        print(f"[detail_report:{market}] render/send failed · {type(e).__name__}: {e}")
+        detail_ok = False
 
-    return (ok and research_ok), {
+    return (ok and research_ok and detail_ok), {
         "market":        market,
         "ok":            ok,
         "research_ok":   research_ok,
+        "detail_ok":     detail_ok,
         **meta,
     }
 
