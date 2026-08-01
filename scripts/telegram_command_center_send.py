@@ -46,8 +46,9 @@ from backend.delivery.telegram.command_center import (  # noqa: E402
     render_intraday_platform_message,
     ENGINE_ID, SCHEMA_FINGERPRINT,
 )
-from backend.delivery.telegram.detail_report import (  # noqa: E402
-    render_daily_detail_report,
+from backend.delivery.telegram.detail_xlsx import (  # noqa: E402
+    build_unified_history,
+    maybe_sync_google_sheet,
 )
 from backend.portfolio.position_store.mark_to_market import (  # noqa: E402
     mark_to_market as _mark_to_market,
@@ -97,7 +98,8 @@ def _send_document(token: str, chat_id: str, file_path: Path,
     _p("chat_id", chat_id)
     if caption:
         _p("caption", caption[:1024])
-        _p("parse_mode", "Markdown")
+        # No parse_mode · plain text · avoids Markdown-parse errors from
+        # underscores in field names (Run_Type) or dashes in tickers.
     file_bytes = file_path.read_bytes()
     body.append(f"--{boundary}\r\n"
                    f'Content-Disposition: form-data; name="document"; '
@@ -256,42 +258,14 @@ def _send_one_market(market: str, token: str, chat_id: str) -> tuple[bool, dict]
     # "ensure single message for india and single message for usa."
     research_ok = True
 
-    # ── DETAIL REPORT · attach full per-stock cards as .md document ──
-    # Operator 2026-08-01: "everystock to show in below format ·
-    # dont neglect format" · locked in docs/AEGIS_STOCK_CARD_FORMAT.md.
-    # Detail can't fit in single Telegram message (~8000 chars > 4096 cap)
-    # so it ships as a .md file attachment with the compact summary.
-    detail_ok = True
-    try:
-        asof = meta.get("asof") or ""
-        detail_path = render_daily_detail_report(_ROOT, market, asof)
-        if detail_path and detail_path.exists():
-            caption = (f"📎 *AEGIS Detail · {market.upper()} · {asof}*\n"
-                          f"Full card for every stock (locked format · see "
-                          f"`docs/AEGIS_STOCK_CARD_FORMAT.md`)")
-            detail_ok, detail_msg = _send_document(token, chat_id,
-                                                          detail_path, caption=caption)
-            print(f"[detail_report:{market}] file={detail_path.name} · sent={detail_ok}")
-            if not detail_ok:
-                print(f"  detail: {detail_msg[:180]}")
-            _append_delivery_ledger({
-                "ts_utc":  datetime.now(timezone.utc).isoformat(),
-                "engine":  "aegis.delivery.telegram.detail_report.v1",
-                "market":  market,
-                "kind":    "detail_document",
-                "file":    str(detail_path.relative_to(_ROOT)),
-                "ok":      detail_ok,
-                "detail_head": detail_msg[:200] if not detail_ok else "",
-            })
-    except Exception as e:
-        print(f"[detail_report:{market}] render/send failed · {type(e).__name__}: {e}")
-        detail_ok = False
+    # Detail MD per-market REMOVED 2026-08-01 · replaced by ONE unified
+    # XLSX file attached once at end of main() with Date + Country + Run_Type
+    # columns · appended daily to reports/telegram/aegis_history.xlsx.
 
-    return (ok and research_ok and detail_ok), {
+    return (ok and research_ok), {
         "market":        market,
         "ok":            ok,
         "research_ok":   research_ok,
-        "detail_ok":     detail_ok,
         **meta,
     }
 
@@ -327,10 +301,45 @@ def main() -> int:
         ok, _ = _send_one_market(m, token, chat_id)
         all_ok = all_ok and ok
 
-    # Terminal marker for retry-wrapper compatibility (in case we ever
-    # wrap this too): "sent (N messages)."
-    print(f"sent ({len(markets)} messages).")
-    return 0 if all_ok else 1
+    # ── UNIFIED XLSX · one file across all markets · attached ONCE ──
+    # Operator directive 2026-08-01: "better send me that xlsx into telegram
+    # daily thats it. simple format of xlsx" · "runner 1, runner 2 u can mix
+    # into a column called Run_type" · "add country too" · "everyday we
+    # can update same sheet".
+    xlsx_ok = True
+    try:
+        from datetime import date as _date
+        asof = _date.today().isoformat()
+        xlsx_path = build_unified_history(_ROOT, asof, markets=markets)
+        # Caption is plain-text (no Markdown parse_mode) · underscore in
+        # Run\_Type would trip Telegram's Markdown parser otherwise.
+        caption = (f"📊 AEGIS Daily · {asof}\n"
+                      f"One row per stock · columns: Date · Country · Run Type · Ticker + "
+                      f"37 more fields · daily appended · sortable in Excel")
+        xlsx_ok, xlsx_msg = _send_document(token, chat_id, xlsx_path,
+                                                  caption=caption)
+        print(f"[xlsx:{','.join(markets)}] file={xlsx_path.name} · sent={xlsx_ok}")
+        if not xlsx_ok:
+            print(f"  detail: {xlsx_msg[:180]}")
+        # Optional · Google Sheets mirror (silent no-op if creds absent)
+        gs_ok, gs_msg = maybe_sync_google_sheet(xlsx_path)
+        if gs_ok:
+            print(f"[gsheets] {gs_msg}")
+        _append_delivery_ledger({
+            "ts_utc":  datetime.now(timezone.utc).isoformat(),
+            "engine":  "aegis.delivery.telegram.xlsx.v1",
+            "kind":    "unified_xlsx",
+            "file":    str(xlsx_path.relative_to(_ROOT)),
+            "ok":      xlsx_ok,
+            "gsheets": gs_ok,
+        })
+    except Exception as e:
+        print(f"[xlsx] render/send failed · {type(e).__name__}: {e}")
+        xlsx_ok = False
+
+    # Terminal marker for retry-wrapper compatibility
+    print(f"sent ({len(markets)} messages + 1 xlsx).")
+    return 0 if (all_ok and xlsx_ok) else 1
 
 
 if __name__ == "__main__":
