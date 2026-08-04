@@ -92,7 +92,7 @@ HEADER_FILL = PatternFill(start_color="1F4E78", end_color="1F4E78", fill_type="s
 HEADER_FONT = Font(bold=True, color="FFFFFF", size=11)
 STATUS_FILLS = {
     "STRONG BUY":  PatternFill(start_color="70AD47", end_color="70AD47", fill_type="solid"),
-    "NEW BUY":     PatternFill(start_color="C6EFCE", end_color="C6EFCE", fill_type="solid"),
+    "BUY":     PatternFill(start_color="C6EFCE", end_color="C6EFCE", fill_type="solid"),
     "BUY":         PatternFill(start_color="C6EFCE", end_color="C6EFCE", fill_type="solid"),
     "HOLD":        PatternFill(start_color="FFF2CC", end_color="FFF2CC", fill_type="solid"),
     "EXIT":        PatternFill(start_color="F8CBAD", end_color="F8CBAD", fill_type="solid"),
@@ -158,17 +158,24 @@ def _rec_to_row(rec: Mapping, market: str, root: Path,
     if_holding = ia.get("if_holding")
 
     # Operator 2026-08-01: "then keep as exit only" · 4-state vocab locked:
-    # STRONG BUY · NEW BUY · HOLD · EXIT
+    # STRONG BUY · BUY · HOLD · EXIT
     # Rotations collapse into EXIT · from action standpoint both mean "sell".
     # Rotation intent still visible in Expected Alpha % column + Command
     # Center rotation section + R006 rotation ledger audit trail.
+    #
+    # Operator 2026-08-04: "strong buy to new buy is confusing man" — old
+    # label "NEW BUY" wrongly implied "newly added today" but actually meant
+    # "actionable BUY that isn't top-percentile STRONG_BUY". Renamed to plain
+    # "BUY" so STRONG BUY → BUY reads correctly as conviction downgrade ·
+    # not a lifecycle contradiction. HCLTECH was the example (rank 2 STRONG
+    # BUY Aug 3 → rank 3 BUY Aug 4 · same actionable position · lower conviction).
     if entry_action == "SELL" or if_holding in ("EXIT", "REDUCE", "SELL") \
             or ri.get("should_rotate"):
         status = "EXIT"
     elif entry_action == "BUY" and pct_action == "STRONG_BUY":
         status = "STRONG BUY"
     elif entry_action == "BUY":
-        status = "NEW BUY"
+        status = "BUY"
     else:
         status = "HOLD"
 

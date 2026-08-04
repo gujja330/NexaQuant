@@ -88,5 +88,10 @@ jobs:
           git config user.name  "aegis-bot"
           git config user.email "aegis-bot@users.noreply.github.com"
           git add usa/reports/*.json usa/reports/*.md usa/reports/*.html usa/reports/*.jsonl 2>/dev/null || true
+          # Unified daily XLSX (see aegis-daily.yml commit-back fix) · same
+          # file appended by both markets · India workflow commits first · USA
+          # commits after adding its rows. Without this, USA rows never reach
+          # main and next-day CI loses them (same bug as India Aug-3 gap).
+          git add reports/telegram/aegis_history.xlsx reports/telegram/aegis_daily_*.xlsx 2>/dev/null || true
           git diff --cached --quiet || git commit -m "AEGIS USA daily: refresh reports [skip ci]"
           git push || true

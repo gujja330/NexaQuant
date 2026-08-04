@@ -275,6 +275,13 @@ def main() -> int:
     ap.add_argument("--market", choices=["india", "usa", "both"], default="both")
     ap.add_argument("--dry-run", action="store_true",
                        help="Render + print message but do not send")
+    # Operator directive 2026-08-04: "i should get on xlsx output plz, no
+    # need of messages again". XLSX-only mode suppresses the compact per-
+    # market Command Center message · daily delivery is the XLSX attachment
+    # (+ optional caption) alone. Default ON to match new operator preference.
+    ap.add_argument("--with-message", action="store_true",
+                       help="Also send the compact Command Center message "
+                            "(default: OFF · XLSX attachment only)")
     args = ap.parse_args()
 
     _load_env()
@@ -284,11 +291,15 @@ def main() -> int:
     markets = ["india", "usa"] if args.market == "both" else [args.market]
 
     if args.dry_run:
-        for m in markets:
-            msg, meta = load_and_render(_market_reports(m), m)
-            print(f"===== DRY RUN · {m} · {meta['message_chars']} chars =====")
-            print(msg)
-            print()
+        if args.with_message:
+            for m in markets:
+                msg, meta = load_and_render(_market_reports(m), m)
+                print(f"===== DRY RUN · {m} · {meta['message_chars']} chars =====")
+                print(msg)
+                print()
+        else:
+            print(f"===== DRY RUN · XLSX-only mode · markets={markets} =====")
+            print("(compact message suppressed · pass --with-message to render)")
         return 0
 
     if not token or not chat_id:
@@ -297,9 +308,13 @@ def main() -> int:
         return 2   # non-fatal · matches optional-step convention
 
     all_ok = True
-    for m in markets:
-        ok, _ = _send_one_market(m, token, chat_id)
-        all_ok = all_ok and ok
+    if args.with_message:
+        for m in markets:
+            ok, _ = _send_one_market(m, token, chat_id)
+            all_ok = all_ok and ok
+    else:
+        print(f"[command_center] XLSX-only mode · compact message skipped · "
+              f"markets={markets} (pass --with-message to re-enable)")
 
     # ── UNIFIED XLSX · one file across all markets · attached ONCE ──
     # Operator directive 2026-08-01: "better send me that xlsx into telegram
