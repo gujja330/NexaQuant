@@ -57,6 +57,9 @@ COLUMNS = [
     ("Exit Reason",         22),     # NEW · populated only when Status = EXIT
     ("Exit P&L %",          12),     # NEW · realized return on exit · blank otherwise
     ("Rank",                6),
+    ("Prior Rank",          10),     # NEW · rank at asof-1 (from rank_history)
+    ("Rank Δ",              8),      # NEW · today - prior · positive = worse
+    ("Alert",               34),     # NEW · profit-protection signals (severity·trigger·note)
     ("Confidence %",        13),
     ("Conf Type",           11),
     ("Model Score",         12),
@@ -304,11 +307,34 @@ def _rec_to_row(rec: Mapping, market: str, root: Path,
     if status == "EXIT" and cur_ret is not None:
         exit_pnl_pct = cur_ret
 
+    # ── Prior Rank + Rank Δ (v5 · 2026-08-04) ──
+    # Reads yesterday's rank from rank_history.jsonl so operator can judge
+    # day-over-day at a glance ("TCS was #1 Aug 3 · now #9 Aug 4 · Δ +8")
+    # instead of comparing two XLSX files manually.
+    prior_rank = ""
+    rank_delta = ""
+    if rank:
+        try:
+            from backend.portfolio.rank_history import get_prior_rank as _gpr
+            _pr, _ = _gpr(root, market, "runner2" if runner == "R2" else "runner1",
+                              ticker, asof)
+            if _pr is not None:
+                prior_rank = _pr
+                rank_delta = int(rank) - int(_pr)
+        except Exception:
+            pass
+
+    # Alert · profit-protection signals for this ticker (severity · trigger · note)
+    alert = _load_alert(root, market, ticker)
+
     return [
         asof, country, runner, ticker, company, status,
         exit_reason,          # NEW · blank unless status = EXIT
         exit_pnl_pct,         # NEW · realized P&L % · blank unless EXIT
         rank if rank else "",
+        prior_rank,           # NEW v5 · rank at asof-1
+        rank_delta,           # NEW v5 · today - prior · +ve = worse rank
+        alert,                # NEW v5 · profit-protection signals
         conf_pct if conf_pct is not None else "",
         conf_type,
         model_score if model_score is not None else "",
@@ -360,6 +386,31 @@ def _collect_rows_for_market(root: Path, market: str, asof: str) -> list[list]:
     return rows
 
 
+def _load_alert(root: Path, market: str, ticker: str) -> str:
+    """Read profit_protection_{market}.json · return short string per ticker.
+    Format: 'CRITICAL · TRIGGER · reason' · blank if no signals for ticker."""
+    p = root / "reports" / "research" / f"profit_protection_{market}.json"
+    if not p.exists():
+        return ""
+    try:
+        d = json.loads(p.read_text(encoding="utf-8"))
+        sigs = [s for s in (d.get("signals") or []) if s.get("ticker") == ticker]
+        if not sigs:
+            return ""
+        # Highest severity first · concatenate up to 2
+        order = {"critical": 0, "warning": 1, "info": 2}
+        sigs.sort(key=lambda s: order.get(s.get("severity", "info"), 3))
+        parts = []
+        for s in sigs[:2]:
+            sev = str(s.get("severity", "info")).upper()
+            trig = s.get("trigger", "")
+            reason = (s.get("reason") or "")[:40]
+            parts.append(f"{sev}·{trig}·{reason}")
+        return " || ".join(parts)
+    except Exception:
+        return ""
+
+
 def _write_new_workbook(path: Path, rows: list[list]) -> None:
     wb = Workbook()
     ws = wb.active
@@ -390,12 +441,52 @@ def _write_new_workbook(path: Path, rows: list[list]) -> None:
 
 def _append_to_workbook(path: Path, rows: list[list]) -> None:
     """Load existing WB · dedup by (Date, Country, Run_Type, Ticker) ·
-    replace matching rows with today's · append new ones."""
+    replace matching rows with today's · append new ones.
+
+    Schema-migration safe: if the file was written under an older COLUMNS
+    spec and the current spec has NEW columns, we rewrite the header row
+    and pad existing rows with blank cells for the new columns before
+    doing the append. Avoids the 2026-08-04 bug where 3 new columns
+    (Prior Rank · Rank Δ · Alert) landed as un-headered data.
+    """
     wb = load_workbook(path)
     ws = wb["AEGIS Daily"] if "AEGIS Daily" in wb.sheetnames else wb.active
 
-    # Build header index
     headers = [ws.cell(row=1, column=c).value for c in range(1, ws.max_column + 1)]
+    current_names = [n for (n, _w) in COLUMNS]
+
+    # ── Schema migration · realign old rows to new column positions ──
+    # 2026-08-04: added Prior Rank / Rank Δ / Alert between Rank (col 9) and
+    # Confidence % (was col 10 · now col 13). Old rows have data at col 10-12
+    # (conf/conf_type/model_score) which now belongs at col 13-15 · without
+    # migration those values would appear under the wrong column names.
+    if headers != current_names:
+        # Snapshot old rows keyed by old-header name so we can re-emit them
+        # under the new schema · unknown-in-old-headers columns fill blank.
+        old_data: list[dict] = []
+        for r_idx in range(2, ws.max_row + 1):
+            row_map = {headers[c-1]: ws.cell(row=r_idx, column=c).value
+                            for c in range(1, len(headers) + 1) if c - 1 < len(headers)}
+            old_data.append(row_map)
+        # Reset sheet · rewrite header + data under new schema
+        ws.delete_rows(1, ws.max_row)
+        for col_idx, (name, width) in enumerate(COLUMNS, start=1):
+            cell = ws.cell(row=1, column=col_idx, value=name)
+            cell.fill = HEADER_FILL
+            cell.font = HEADER_FONT
+            cell.alignment = CENTER
+            ws.column_dimensions[get_column_letter(col_idx)].width = width
+        for r_idx, row_map in enumerate(old_data, start=2):
+            for c_idx, (name, _w) in enumerate(COLUMNS, start=1):
+                val = row_map.get(name, "")
+                if val is not None:
+                    cell = ws.cell(row=r_idx, column=c_idx, value=val)
+                    cell.alignment = LEFT if c_idx <= 6 else RIGHT
+            status = row_map.get("Status")
+            if status in STATUS_FILLS:
+                ws.cell(row=r_idx, column=6).fill = STATUS_FILLS[status]
+        headers = current_names
+
     key_indices = [headers.index(k) for k in DEDUP_KEY_COLS if k in headers]
 
     # Existing rows into map keyed by dedup tuple
@@ -452,6 +543,44 @@ def build_unified_history(root: Path, asof: str,
     _write_new_workbook(snapshot, all_rows)
 
     return path
+
+
+def build_and_stamp_all(root: Path, asof: str,
+                             markets: list[str] | None = None) -> Path:
+    """End-to-end refresh (v5 · 2026-08-04):
+       1. stamp regime history + rank history for each market
+       2. run profit-protection eval (writes profit_protection_{market}.json)
+       3. build unified XLSX (which reads the outputs of steps 1-2)
+
+    Safe to call multiple times · all steps are idempotent per (asof, market).
+    Preferred entrypoint for scripts/rebuild_xlsx_local.py + telegram sender.
+    """
+    if markets is None:
+        markets = ["india", "usa"]
+    from backend.portfolio import rank_history as _rh
+    from backend.portfolio import market_regime_stability as _mrs
+    from backend.portfolio import profit_protection as _pp
+    for m in markets:
+        # Stamp regime history
+        try:
+            _mrs.stamp_today(root, asof, m)
+        except Exception as e:
+            print(f"[build_and_stamp:{m}] regime stamp skipped · {type(e).__name__}: {e}")
+        # Stamp today's ranks + run profit-protection
+        recs_path = (root / "usa" / "reports" / "recommendations.json"
+                        if m == "usa" else root / "reports" / "recommendations.json")
+        if not recs_path.exists():
+            continue
+        try:
+            recs = json.loads(recs_path.read_text(encoding="utf-8")).get("recommendations", [])
+            n_stamped = _rh.stamp_today(root, asof, m, "runner2", recs)
+            print(f"[build_and_stamp:{m}] rank_history stamped n={n_stamped}")
+            signals = _pp.evaluate_all_active(root, m, "runner2", asof, recs)
+            _pp.emit_signals(root, m, "runner2", asof, signals)
+            print(f"[build_and_stamp:{m}] profit_protection signals={len(signals)}")
+        except Exception as e:
+            print(f"[build_and_stamp:{m}] pp/rank skipped · {type(e).__name__}: {e}")
+    return build_unified_history(root, asof, markets=markets)
 
 
 def maybe_sync_google_sheet(xlsx_path: Path) -> tuple[bool, str]:

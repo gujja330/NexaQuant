@@ -47,7 +47,7 @@ from backend.delivery.telegram.command_center import (  # noqa: E402
     ENGINE_ID, SCHEMA_FINGERPRINT,
 )
 from backend.delivery.telegram.detail_xlsx import (  # noqa: E402
-    build_unified_history,
+    build_unified_history, build_and_stamp_all,
     maybe_sync_google_sheet,
 )
 from backend.portfolio.position_store.mark_to_market import (  # noqa: E402
@@ -325,7 +325,8 @@ def main() -> int:
     try:
         from datetime import date as _date
         asof = _date.today().isoformat()
-        xlsx_path = build_unified_history(_ROOT, asof, markets=markets)
+        # v5 · stamp regime + rank + profit-protection · then build XLSX
+        xlsx_path = build_and_stamp_all(_ROOT, asof, markets=markets)
         # Caption is plain-text (no Markdown parse_mode) · underscore in
         # Run\_Type would trip Telegram's Markdown parser otherwise.
         caption = (f"📊 AEGIS Daily · {asof}\n"

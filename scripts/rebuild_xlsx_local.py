@@ -34,7 +34,9 @@ from pathlib import Path
 _ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_ROOT))
 
-from backend.delivery.telegram.detail_xlsx import build_unified_history  # noqa: E402
+from backend.delivery.telegram.detail_xlsx import (  # noqa: E402
+    build_unified_history, build_and_stamp_all,
+)
 
 
 def main() -> int:
@@ -50,7 +52,10 @@ def main() -> int:
     markets = ["india", "usa"] if args.market == "both" else [args.market]
     print(f"[rebuild_xlsx] asof={args.asof} · markets={markets}")
 
-    xlsx_path = build_unified_history(_ROOT, args.asof, markets=markets)
+    # v5 · uses stamp-first flow · writes rank_history + regime_history +
+    # profit_protection_{market}.json before building the XLSX (so Prior
+    # Rank, Rank Δ, and Alert columns populate correctly).
+    xlsx_path = build_and_stamp_all(_ROOT, args.asof, markets=markets)
     print(f"[rebuild_xlsx] wrote {xlsx_path}")
     print(f"[rebuild_xlsx] size: {xlsx_path.stat().st_size:,} bytes")
 
