@@ -22,7 +22,12 @@ permissions:
 jobs:
   usa-pipeline:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # 2026-08-04: bumped 20 → 75 min. Universe grew to ~918 tickers
+    # (S&P 500 + MidCap 400 per v3.0 Article 2) and orchestrator has 45
+    # steps. 20 min was cancelling before recommendations.json got written,
+    # producing "not appending since 2026-07-29" gap. Local wall-clock ~40
+    # min · giving 75 min headroom for yfinance retries + macro fetch spikes.
+    timeout-minutes: 75
     steps:
       - uses: actions/checkout@v4
 
