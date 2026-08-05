@@ -61,6 +61,9 @@ COLUMNS = [
     ("Rank Δ",              8),      # NEW · today - prior · positive = worse
     ("Health",              8),      # Sprint A · composite 0-100
     ("Band",                14),     # Sprint A · STRONG_BUY/HOLD/WATCH/REVIEW/EXIT_CANDIDATE
+    ("Adj Conf",            10),     # CIL · adjusted confidence after context layer
+    ("Ctx Drag",            10),     # CIL · signed drag/boost pts vs base confidence
+    ("Ctx Reason",          50),     # CIL · top context drivers
     ("Story",               60),     # Sprint C · compact narrative "Rank ↑ 5→1 · Conf +7% · momentum ↑ · 34d left · HOLD"
     ("Alert",               34),     # NEW · profit-protection signals (severity·trigger·note)
     ("Confidence %",        13),
@@ -343,6 +346,19 @@ def _rec_to_row(rec: Mapping, market: str, root: Path,
     except Exception:
         pass
 
+    # CIL · Adjusted Confidence · Drag · Reason
+    adj_conf = ""
+    ctx_drag = ""
+    ctx_reason = ""
+    try:
+        cil = _load_cil_adjustment(root, market, ticker)
+        if cil:
+            adj_conf = cil.get("adjusted")
+            ctx_drag = cil.get("drag_pts")
+            ctx_reason = cil.get("story") or ""
+    except Exception:
+        pass
+
     # Sprint C · Story column · compact narrative
     story = _build_story(rank, prior_rank, rank_delta, conf_pct, ev,
                                 health_band, prior_band, days_left, status,
@@ -357,6 +373,9 @@ def _rec_to_row(rec: Mapping, market: str, root: Path,
         rank_delta,           # NEW v5 · today - prior · +ve = worse rank
         health_score,         # Sprint A · composite 0-100
         health_band,          # Sprint A · band
+        adj_conf,             # CIL · adjusted confidence
+        ctx_drag,             # CIL · signed drag pts
+        ctx_reason,           # CIL · top drivers
         story,                # Sprint C · compact narrative
         alert,                # NEW v5 · profit-protection signals
         conf_pct if conf_pct is not None else "",
@@ -408,6 +427,23 @@ def _collect_rows_for_market(root: Path, market: str, asof: str) -> list[list]:
             r1_rec.setdefault("rank", i)
             rows.append(_rec_to_row(r1_rec, market, root, runner="R1", asof=asof))
     return rows
+
+
+def _load_cil_adjustment(root: Path, market: str, ticker: str) -> dict | None:
+    """CIL · load per-ticker adjustment from most-recent CIL run."""
+    p = root / "reports" / "context" / f"cil_run_{market}.json"
+    if not p.exists(): return None
+    try:
+        d = json.loads(p.read_text(encoding="utf-8"))
+        short = ticker.replace(".NS", "").replace(".BO", "")
+        for a in d.get("adjustments") or []:
+            t = a.get("ticker") or ""
+            if t == ticker or t == short \
+                or t.replace(".NS", "").replace(".BO", "") == short:
+                return a
+    except Exception:
+        return None
+    return None
 
 
 def _build_story(rank, prior_rank, rank_delta, conf_pct, ev: dict,
@@ -676,6 +712,27 @@ def build_and_stamp_all(root: Path, asof: str,
             _hs.emit(root, m, hs_payload)
             print(f"[build_and_stamp:{m}] health_scores n={hs_payload.get('n')} "
                     f"band_changes={hs_payload.get('band_changes')}")
+            # Context Intelligence Layer · run composer with 4 adapters
+            try:
+                from backend.context import composer as _cil
+                from backend.context.adapters import DEFAULT_ADAPTERS
+                adjustments = [_cil.compose(root, m, asof, r, DEFAULT_ADAPTERS)
+                                    for r in recs]
+                _cil.emit_run(root, m, asof, adjustments)
+                drags = [a.total_drag_pts for a in adjustments]
+                n_drag_neg = sum(1 for d in drags if d < -1)
+                n_drag_pos = sum(1 for d in drags if d > 1)
+                print(f"[build_and_stamp:{m}] CIL n={len(adjustments)} "
+                        f"negative-drag={n_drag_neg} positive-boost={n_drag_pos}")
+            except Exception as e:
+                print(f"[build_and_stamp:{m}] CIL failed · {type(e).__name__}: {e}")
+            # Economic Calendar · daily ingest (data-only · Phase 2 prep)
+            try:
+                from backend.context.economic_calendar import ingest as _ec
+                summary = _ec.ingest_daily(root, asof)
+                print(f"[build_and_stamp:{m}] economic_calendar appended={summary['total_appended']}")
+            except Exception as e:
+                print(f"[build_and_stamp:{m}] economic_calendar failed · {type(e).__name__}: {e}")
         except Exception as e:
             print(f"[build_and_stamp:{m}] pp/rank skipped · {type(e).__name__}: {e}")
     return build_unified_history(root, asof, markets=markets)

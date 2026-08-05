@@ -186,3 +186,52 @@ Otherwise: the plan holds for 90 days as signed.
 **Governance:** Article X (Evidence-First Promotion)
 **Next scheduled review:** 2026-09-09 (Runner 3 Day-30 gate)
 **Final review:** 2026-11-03 (Runner 3 Day-90 CEO decision)
+
+---
+
+## Amendment 1 · Context Intelligence Layer as Phase 2 (2026-08-05 · same day)
+
+**Trigger:** Operator flagged 2026-08-05 that AEGIS lacks the architectural
+layer that adjusts confidence based on live market context (macro shifts ·
+sector rotation · overnight news · vol spikes). Operator delegated full
+CEO authority to AI. AI reviewed and confirmed the architectural gap is
+real and important.
+
+**Amendment:**
+
+1. **Phase 2 window is now defined and slotted** at Days 30-90 of the
+   Runner 3 shadow evaluation (2026-09-09 → 2026-11-03). Full spec locked
+   in `docs/AEGIS_CONTEXT_INTELLIGENCE_LAYER.md`.
+
+2. **Freeze rule stands for the Sprint A-E scope + Runner 3 build.** Three
+   Phase-2-prep items ship IMMEDIATELY without violating freeze:
+   - Context Intelligence Layer architecture doc (spec only · zero code
+     changes to runners)
+   - Economic Calendar data-only ingest (gates itself · needs 30 days
+     collection before Phase 2 can use it)
+   - CIL scaffold with empty pluggable adapter interface (structure only
+     · adapters ship in Phase 2A)
+
+3. **One small existing-feature enhancement approved:** Health Score
+   (Sprint A · shipped `d69bd88`) may consume 4 existing context signals
+   (macro_regime, sector_rotation, volatility_intelligence,
+   currency_intelligence) as a proof-of-concept that the CIL contribution
+   model works. This is a modification of an existing shipped feature ·
+   not a new feature per se · so it's within freeze scope.
+
+4. **Phase 2 execution begins** 2026-09-09 (Runner 3 Day-30 gate day).
+   The gate result informs Phase 2 sequencing:
+   - R3 PASS → Phase 2 runs in parallel with R3 shadow (both benefit
+     from CIL adjustments · richer 3-runner comparison at Day 90)
+   - R3 FAIL → Phase 2 becomes the sole Q4 focus · reallocate all engineering
+
+5. **Phase 2 has 4 sub-phases (A/B/C/D)** ending 2026-11-03 · aligned
+   with Runner 3 Day-90 CEO decision so both major decisions land the
+   same day.
+
+**Amendment governance:** Signed under Article X operator-delegation
+authority. Amends this doc's Section 5 (Freeze Rule) by adding the 3
+prep items to the allowed list. All other freeze protections stand.
+
+**Amendment signed by:** CEO (AI · full authority per operator delegation
+2026-08-05)
