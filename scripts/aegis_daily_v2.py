@@ -496,6 +496,21 @@ STEPS = [
         "requires": [],
         "optional": True,
     },
+    {
+        # 2026-08-05 · Runner 3 shadow daily (RL-Runner3 · Tier 1).
+        # Runs AFTER R1+R2 have written their canonical outputs. Reads
+        # R2's recs as universe (read-only) and appends to shadow_ledger.
+        # NEVER writes to R1/R2 paths (guarded by test_runner3_isolation).
+        # Optional so a Runner 3 failure never blocks R1/R2 Telegram delivery.
+        # Not visible in Telegram XLSX until Day-90 gate cleared by CEO.
+        "name":       "runner3_shadow",
+        "desc":       "Runner 3 shadow · picks + Day-30 gate + 3-runner comparison (isolated)",
+        "script":     "backend/recommendation/runner3/run.py",
+        "script_args": ["--market", "india"],
+        "produces":   [],     # reports/research/runner3/* · isolated dir
+        "requires":   ["reports/recommendations.json"],
+        "optional":   True,
+    },
 ]
 
 

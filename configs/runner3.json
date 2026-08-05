@@ -1,0 +1,63 @@
+{
+  "engine_id": "aegis.recommendation.runner3.v0.1",
+  "status": "TIER_1_SHADOW",
+  "shadow_only": true,
+  "telegram_visible": false,
+  "day30_gate_pass_criteria": {
+    "sharpe_within_of_r2": 0.2,
+    "min_positions_required": 20,
+    "brier_max_absolute": 0.20,
+    "top_feature_edge_min_pp": 3.0,
+    "must_pass_of_three": 2
+  },
+  "features": {
+    "reuse_feature_store_technical": true,
+    "fii_dii_flows": true,
+    "earnings_calendar": true,
+    "options_pcr": true,
+    "insider_holdings": false,
+    "macro_calendar": false,
+    "sentiment_news": false,
+    "esg": false
+  },
+  "model": {
+    "family": "xgboost",
+    "fallback": "lightgbm",
+    "n_estimators": 200,
+    "max_depth": 4,
+    "learning_rate": 0.05,
+    "min_child_weight": 3,
+    "subsample": 0.8,
+    "colsample_bytree": 0.8,
+    "random_state": 42
+  },
+  "calibration": {
+    "method": "isotonic",
+    "fallback": "platt",
+    "refit_frequency_days": 30
+  },
+  "portfolio": {
+    "target_positions": 10,
+    "max_allocation_pct": 5.0,
+    "sector_cap_pct": 30.0,
+    "min_confidence_pct": 55.0
+  },
+  "risk": {
+    "default_stop_pct": 5.0,
+    "default_target_1_pct": 8.0,
+    "default_target_2_pct": 15.0,
+    "default_horizon_days": 21
+  },
+  "isolation_paths": {
+    "output_dir": "reports/research/runner3/",
+    "shadow_ledger": "reports/research/runner3/shadow_ledger.jsonl",
+    "must_not_write": [
+      "reports/recommendations.json",
+      "data/aegis_today.csv",
+      "reports/telegram/aegis_history.xlsx",
+      "reports/research/portfolio_ledger.jsonl",
+      "reports/dynamic_holding.json",
+      "configs/adaptive_ensemble_weights.json"
+    ]
+  }
+}

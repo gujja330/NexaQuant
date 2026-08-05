@@ -1,0 +1,88 @@
+{
+  "id": "RL-Runner3",
+  "opened_utc": "2026-08-05T00:00:00Z",
+  "opened_by": "CEO",
+  "status": "OPEN",
+  "phase": "TIER_1_EXECUTION",
+  "title": "Runner 3 · Institutional-flow-augmented swing engine (shadow-only)",
+  "evidence_triggers": [
+    {
+      "name": "Rotation Quality below institutional floor",
+      "threshold": 1.75,
+      "observed": 1.73,
+      "source": "reports/ai_scorecard.json",
+      "observed_asof": "2026-07-30"
+    },
+    {
+      "name": "Runner 1 / Runner 2 daily consensus drift",
+      "threshold_pct": 60,
+      "observed_pct": 6.7,
+      "source": "reports/research/disagreements/verdict.json",
+      "observed_asof": "2026-07-30"
+    },
+    {
+      "name": "Ensemble feature attribution edge inefficiency",
+      "detail": "Trend -6.30pp · Growth -2.32pp · News -2.09pp (July rollup)",
+      "source": "reports/research/monthly/feature_attribution_india_2026-07.json"
+    }
+  ],
+  "hypothesis": "A third runner incorporating institutional flow data (FII/DII, insider activity, options PCR) and explicit Platt/Isotonic calibration will improve Rotation Quality and reduce unexplained divergence from Runner 1 without degrading Sharpe.",
+  "scope": {
+    "tier_1_shipped_this_sprint": [
+      "reuse existing ~25 technical features (feature store)",
+      "FII/DII flow adapter (free NSE data)",
+      "earnings calendar adapter (free exchange data)",
+      "options PCR adapter (free NSE F&O)",
+      "XGBoost model + LightGBM fallback",
+      "Platt/Isotonic calibration layer"
+    ],
+    "tier_2_gated_on_day_30_pass": [
+      "insider/institutional holdings (SEBI/SEC filings)",
+      "macro calendar (RBI/Fed)",
+      "walk-forward + regime-specific backtests"
+    ],
+    "tier_3_deferred": [
+      "RavenPack / paid sentiment",
+      "ESG ratings",
+      "tick/orderbook data",
+      "LSTM / Transformer models"
+    ]
+  },
+  "isolation_constraints": [
+    "Runner 1 (adaptive_rec_v2) SEALED — no touches",
+    "Runner 2 (v3 canonical) — no touches",
+    "Runner 3 writes only to reports/research/runner3/",
+    "Runner 3 never writes reports/recommendations.json or data/aegis_today.csv",
+    "Runner 3 does not appear in Telegram until Day-90 gate cleared",
+    "Runner 3 orchestrator step marked optional=True"
+  ],
+  "success_metrics_pre_registered": {
+    "sharpe_vs_r2": "within ±0.2",
+    "calibration_brier_vs_r2": "better OR absolute < 0.20",
+    "rotation_directional_accuracy_day_90": ">= 60%",
+    "feature_attribution_edge_top_model": ">= +3pp",
+    "max_drawdown_vs_r2": "<= r2 max DD",
+    "consensus_with_r1_daily": ">= 40%",
+    "min_positions_day_30_gate": 20,
+    "min_positions_day_90_gate": 60
+  },
+  "gates": {
+    "day_30": {
+      "criteria": "pass any 2 of 3: (1) Sharpe within 0.2 of R2, (2) Brier better than R2, (3) top model edge > +3pp",
+      "fail_action": "STAND DOWN · archive R3 · no Tier 2 spend",
+      "pass_action": "continue shadow · unlock Tier 2 engineering"
+    },
+    "day_90": {
+      "criteria": "CEO decision citing 90-day Sharpe, Brier, rotation accuracy, feature edge, R1 consensus",
+      "options": [
+        "A. Promote R3 to canonical (retire R2 to shadow)",
+        "B. Keep all 3 runners live",
+        "C. Retire R3 · R2 stays canonical",
+        "D. Merge best-of-R2-and-R3 into new v4"
+      ]
+    },
+    "standing_kill_switch": "if 12 months pass without Gate 2 clearing · auto-revert to DEFERRED"
+  },
+  "plan_document": "docs/AEGIS_RUNNER3_EXECUTION_PLAN.md",
+  "governance": ["Article IX (Research Lifecycle)", "Article X (Evidence-First Promotion)"]
+}
