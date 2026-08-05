@@ -41,12 +41,17 @@ sys.path.insert(0, str(_ROOT))
 
 from backend.research.monthly_rollups import (  # noqa: E402
     confidence_calibration, rotation_accuracy, feature_attribution,
+    sector_performance, regime_performance, model_winrate,
 )
 
 REPORTS = [
     ("confidence_calibration", confidence_calibration),
     ("rotation_accuracy",      rotation_accuracy),
     ("feature_attribution",    feature_attribution),
+    # Sprint E · 3 new slices (2026-08-05)
+    ("sector_performance",     sector_performance),
+    ("regime_performance",     regime_performance),
+    ("model_winrate",          model_winrate),
 ]
 
 
