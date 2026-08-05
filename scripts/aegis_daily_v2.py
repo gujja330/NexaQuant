@@ -572,30 +572,50 @@ def _run_step(step: dict, dry_run: bool = False) -> dict:
 
     ts_start = _iso_utc()
     t0 = time.perf_counter()
-    r = subprocess.run(
-        _cmd,
-        cwd=str(_ROOT),
-        capture_output=True, text=True,
-        timeout=600,
-    )
-    elapsed = time.perf_counter() - t0
-
-    # Echo the child's stdout so operators see everything in the CI log
-    for line in (r.stdout or "").splitlines():
-        print(f"    | {line}")
-    if r.stderr:
-        for line in r.stderr.splitlines():
-            print(f"  ERR: {line}")
-
-    produced = _check_produced(step, before_mtimes)
-    all_refreshed = all(v["refreshed"] for v in produced.values()) if produced else True
-
-    if r.returncode == 0 and all_refreshed:
-        verdict = "SUCCESS"
-    elif r.returncode == 0 and not all_refreshed:
-        verdict = "SUCCESS_NO_REFRESH"
-    else:
-        verdict = "FAILURE"
+    # 2026-08-05 · same bug as usa_daily.py · subprocess.TimeoutExpired was
+    # unhandled and killed the parent even for optional steps. Now caught +
+    # per-step timeout via step["timeout_s"] (default 600s).
+    step_timeout = int(step.get("timeout_s") or 600)
+    try:
+        r = subprocess.run(
+            _cmd,
+            cwd=str(_ROOT),
+            capture_output=True, text=True,
+            timeout=step_timeout,
+        )
+        elapsed = time.perf_counter() - t0
+        # Echo the child's stdout so operators see everything in the CI log
+        for line in (r.stdout or "").splitlines():
+            print(f"    | {line}")
+        if r.stderr:
+            for line in r.stderr.splitlines():
+                print(f"  ERR: {line}")
+        produced = _check_produced(step, before_mtimes)
+        all_refreshed = all(v["refreshed"] for v in produced.values()) if produced else True
+        if r.returncode == 0 and all_refreshed:
+            verdict = "SUCCESS"
+        elif r.returncode == 0 and not all_refreshed:
+            verdict = "SUCCESS_NO_REFRESH"
+        else:
+            verdict = "FAILURE"
+        rc = r.returncode
+    except subprocess.TimeoutExpired as e:
+        elapsed = time.perf_counter() - t0
+        stdout_lines: list[str] = []
+        if e.stdout:
+            partial = e.stdout.decode(errors="replace") if isinstance(e.stdout, bytes) else str(e.stdout)
+            stdout_lines = partial.splitlines()
+            for line in stdout_lines[:80]:
+                print(f"    | {line}")
+        print(f"  [{step['name']}] TIMEOUT after {step_timeout}s · "
+                 f"verdict=TIMEOUT (optional={step.get('optional', False)})")
+        verdict = "TIMEOUT"
+        rc = 124
+        produced = {}
+        # Manufacture a minimal `r`-shape so the return-dict below stays valid
+        class _R: pass
+        r = _R(); r.returncode = 124
+        r.stdout = "\n".join(stdout_lines); r.stderr = f"TIMEOUT after {step_timeout}s"
 
     return {
         "name":            step["name"],
@@ -603,7 +623,7 @@ def _run_step(step: dict, dry_run: bool = False) -> dict:
         "verdict":         verdict,
         "ts_start":        ts_start,
         "elapsed_s":       round(elapsed, 2),
-        "returncode":      r.returncode,
+        "returncode":      rc,
         "produced":        produced,
         "stdout_tail":     (r.stdout or "").splitlines()[-8:],
         "stderr_tail":     (r.stderr or "").splitlines()[-4:],
@@ -659,7 +679,7 @@ def main() -> int:
         verdict = result["verdict"]
         print(f"    verdict={verdict}  elapsed={result.get('elapsed_s', 0)}s")
 
-        if verdict == "FAILURE" and not args.cont:
+        if verdict in ("FAILURE", "TIMEOUT") and not args.cont:
             print(f"    fail-fast: aborting remaining steps. Use --continue to override.")
             break
         if verdict == "MISSING_INPUTS":

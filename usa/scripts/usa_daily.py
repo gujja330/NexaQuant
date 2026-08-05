@@ -74,6 +74,7 @@ STEPS = [
                        "usa/reports/news_sentiment_summary.json"],
         "requires": ["usa/reports/universe.json"],
         "optional": True,
+        "timeout_s": 900,    # 2026-08-05 · Google News RSS per-ticker fetch slow on 918-ticker universe
     },
     {
         "name":     "ingest_earnings",
@@ -83,6 +84,7 @@ STEPS = [
                        "usa/reports/earnings_summary.json"],
         "requires": ["usa/reports/universe.json"],
         "optional": True,
+        "timeout_s": 1200,   # 2026-08-05 · yfinance earnings-endpoint slow · was hitting 600s default
     },
     {
         "name":     "ingest_insider",
@@ -461,25 +463,44 @@ def _run_step(step: dict) -> dict:
     # Wave Y: optional script_args passthrough.
     _cmd = [sys.executable, step["script"]] + list(step.get("script_args", []))
 
+    # 2026-08-05 · timeout was crashing the whole orchestrator when a single
+    # step hung (subprocess.TimeoutExpired was unhandled · killed the parent
+    # even for `optional: True` steps · earnings-ingest hit this 3 days
+    # running). Two fixes:
+    #   1. per-step timeout override via step["timeout_s"] (default 600s)
+    #   2. TimeoutExpired caught + treated as FAILED verdict → the existing
+    #      `optional: True` check then skips + pipeline continues
+    step_timeout = int(step.get("timeout_s") or 600)
+
     t0 = time.time()
-    r = subprocess.run(
-        _cmd,
-        cwd=str(_ROOT), capture_output=True, text=True, timeout=600,
-    )
-    elapsed = time.time() - t0
-
-    # Stream stdout live to operator
-    if r.stdout:
-        print(r.stdout.rstrip())
-    if r.returncode != 0 and r.stderr:
-        print(r.stderr[:1200])
-
-    verdict = "SUCCESS" if r.returncode == 0 else "FAILED"
+    try:
+        r = subprocess.run(
+            _cmd,
+            cwd=str(_ROOT), capture_output=True, text=True, timeout=step_timeout,
+        )
+        elapsed = time.time() - t0
+        # Stream stdout live to operator
+        if r.stdout:
+            print(r.stdout.rstrip())
+        if r.returncode != 0 and r.stderr:
+            print(r.stderr[:1200])
+        verdict = "SUCCESS" if r.returncode == 0 else "FAILED"
+        rc = r.returncode
+    except subprocess.TimeoutExpired as e:
+        elapsed = time.time() - t0
+        # Print whatever partial output was captured before timeout
+        if e.stdout:
+            partial = e.stdout.decode(errors="replace") if isinstance(e.stdout, bytes) else str(e.stdout)
+            print(partial[:2000])
+        print(f"  [{step['name']}] TIMEOUT after {step_timeout}s · "
+                 f"treating as FAILED (optional={step.get('optional', False)})")
+        verdict = "FAILED"
+        rc = 124        # conventional shell timeout exit code
     return {
         "name":       step["name"],
         "verdict":    verdict,
         "elapsed_s":  round(elapsed, 2),
-        "returncode": r.returncode,
+        "returncode": rc,
     }
 
 
