@@ -483,6 +483,19 @@ STEPS = [
         "requires_env": ["TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID"],
         "optional": True,   # gracefully skip if env is missing
     },
+    {
+        # 2026-08-05 · Monthly rollups (Phase 9 · ChatGPT Module C partial).
+        # Runs daily · idempotent per (report, market, month) · always refreshes
+        # the CURRENT month's rollup (last-day-of-month = final version) ·
+        # emits insufficient_data: true gracefully when sample too small.
+        # Optional so a failure here never blocks Telegram delivery.
+        "name":     "monthly_rollups",
+        "desc":     "Confidence Calibration · Rotation Accuracy · Feature Attribution rollups",
+        "script":   "scripts/monthly_rollups.py",
+        "produces": [],       # reports/research/monthly/* · idempotent
+        "requires": [],
+        "optional": True,
+    },
 ]
 
 
