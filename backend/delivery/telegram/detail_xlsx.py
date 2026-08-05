@@ -61,6 +61,7 @@ COLUMNS = [
     ("Rank Δ",              8),      # NEW · today - prior · positive = worse
     ("Health",              8),      # Sprint A · composite 0-100
     ("Band",                14),     # Sprint A · STRONG_BUY/HOLD/WATCH/REVIEW/EXIT_CANDIDATE
+    ("Story",               60),     # Sprint C · compact narrative "Rank ↑ 5→1 · Conf +7% · momentum ↑ · 34d left · HOLD"
     ("Alert",               34),     # NEW · profit-protection signals (severity·trigger·note)
     ("Confidence %",        13),
     ("Conf Type",           11),
@@ -332,13 +333,20 @@ def _rec_to_row(rec: Mapping, market: str, root: Path,
     # Sprint A · Health Score (composite 0-100 + band)
     health_score = ""
     health_band = ""
+    prior_band = None
     try:
         hs = _load_health_card(root, market, ticker)
         if hs:
             health_score = hs.get("overall") or ""
             health_band = (hs.get("band") or "").replace("_", " ")
+            prior_band = hs.get("prior_band")
     except Exception:
         pass
+
+    # Sprint C · Story column · compact narrative
+    story = _build_story(rank, prior_rank, rank_delta, conf_pct, ev,
+                                health_band, prior_band, days_left, status,
+                                if_holding, ri)
 
     return [
         asof, country, runner, ticker, company, status,
@@ -349,6 +357,7 @@ def _rec_to_row(rec: Mapping, market: str, root: Path,
         rank_delta,           # NEW v5 · today - prior · +ve = worse rank
         health_score,         # Sprint A · composite 0-100
         health_band,          # Sprint A · band
+        story,                # Sprint C · compact narrative
         alert,                # NEW v5 · profit-protection signals
         conf_pct if conf_pct is not None else "",
         conf_type,
@@ -401,15 +410,68 @@ def _collect_rows_for_market(root: Path, market: str, asof: str) -> list[list]:
     return rows
 
 
+def _build_story(rank, prior_rank, rank_delta, conf_pct, ev: dict,
+                     health_band: str, prior_band: str | None,
+                     days_left, status: str, if_holding, ri: dict) -> str:
+    """Sprint C · compose one-line narrative like:
+       'Rank ↑ 5→1 · Conf 42% · momentum ↑ · sector leader · 34d left · HOLD'
+    Skips segments where data is missing · never fabricates."""
+    parts = []
+    # Rank movement
+    if isinstance(rank_delta, int) and prior_rank not in (None, ""):
+        arrow = "↑" if rank_delta < 0 else ("↓" if rank_delta > 0 else "→")
+        parts.append(f"Rank {arrow} {prior_rank}→{rank}")
+    elif rank:
+        parts.append(f"Rank #{rank}")
+    # Confidence
+    if conf_pct is not None and conf_pct != "":
+        parts.append(f"Conf {conf_pct:.0f}%")
+    # Momentum
+    mom = (ev or {}).get("momentum_direction") if isinstance(ev, dict) else None
+    if mom:
+        arrow = {"UP": "↑", "STABLE": "→", "DOWN": "↓"}.get(str(mom).upper(), "")
+        if arrow:
+            parts.append(f"momentum {arrow}")
+    # Band drift
+    if health_band:
+        pretty_band = health_band.replace("_", " ")
+        if prior_band and prior_band != health_band.replace(" ", "_"):
+            prev_pretty = prior_band.replace("_", " ")
+            parts.append(f"band {prev_pretty}→{pretty_band}")
+        else:
+            parts.append(f"band {pretty_band}")
+    # Days remaining
+    if isinstance(days_left, int) and days_left > 0:
+        parts.append(f"{days_left}d left")
+    # Action bit at the end
+    if status == "EXIT":
+        if ri and ri.get("should_rotate"):
+            parts.append(f"→ EXIT (rotate to {ri.get('replacement_ticker') or '?'})")
+        else:
+            parts.append("→ EXIT")
+    elif status == "STRONG BUY":
+        parts.append("→ STRONG BUY")
+    elif status == "BUY":
+        parts.append("→ BUY")
+    elif status == "HOLD":
+        parts.append("→ HOLD")
+    return " · ".join(parts)
+
+
 def _load_health_card(root: Path, market: str, ticker: str) -> dict | None:
-    """Sprint A · look up ticker's Health card from most-recent scoring run."""
+    """Sprint A · look up ticker's Health card from most-recent scoring run.
+    Matches on ticker OR short-ticker (health card stores raw ticker like
+    TCS.NS · XLSX row uses short TCS · check both)."""
     p = root / "reports" / "research" / f"health_scores_{market}.json"
     if not p.exists():
         return None
     try:
         d = json.loads(p.read_text(encoding="utf-8"))
+        short = ticker.replace(".NS", "").replace(".BO", "")
         for c in d.get("cards") or []:
-            if c.get("ticker") == ticker:
+            t = c.get("ticker") or ""
+            if t == ticker or t == short \
+                or t.replace(".NS", "").replace(".BO", "") == short:
                 return c
     except Exception:
         return None
