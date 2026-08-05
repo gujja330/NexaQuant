@@ -59,6 +59,8 @@ COLUMNS = [
     ("Rank",                6),
     ("Prior Rank",          10),     # NEW · rank at asof-1 (from rank_history)
     ("Rank Δ",              8),      # NEW · today - prior · positive = worse
+    ("Health",              8),      # Sprint A · composite 0-100
+    ("Band",                14),     # Sprint A · STRONG_BUY/HOLD/WATCH/REVIEW/EXIT_CANDIDATE
     ("Alert",               34),     # NEW · profit-protection signals (severity·trigger·note)
     ("Confidence %",        13),
     ("Conf Type",           11),
@@ -327,6 +329,17 @@ def _rec_to_row(rec: Mapping, market: str, root: Path,
     # Alert · profit-protection signals for this ticker (severity · trigger · note)
     alert = _load_alert(root, market, ticker)
 
+    # Sprint A · Health Score (composite 0-100 + band)
+    health_score = ""
+    health_band = ""
+    try:
+        hs = _load_health_card(root, market, ticker)
+        if hs:
+            health_score = hs.get("overall") or ""
+            health_band = (hs.get("band") or "").replace("_", " ")
+    except Exception:
+        pass
+
     return [
         asof, country, runner, ticker, company, status,
         exit_reason,          # NEW · blank unless status = EXIT
@@ -334,6 +347,8 @@ def _rec_to_row(rec: Mapping, market: str, root: Path,
         rank if rank else "",
         prior_rank,           # NEW v5 · rank at asof-1
         rank_delta,           # NEW v5 · today - prior · +ve = worse rank
+        health_score,         # Sprint A · composite 0-100
+        health_band,          # Sprint A · band
         alert,                # NEW v5 · profit-protection signals
         conf_pct if conf_pct is not None else "",
         conf_type,
@@ -384,6 +399,21 @@ def _collect_rows_for_market(root: Path, market: str, asof: str) -> list[list]:
             r1_rec.setdefault("rank", i)
             rows.append(_rec_to_row(r1_rec, market, root, runner="R1", asof=asof))
     return rows
+
+
+def _load_health_card(root: Path, market: str, ticker: str) -> dict | None:
+    """Sprint A · look up ticker's Health card from most-recent scoring run."""
+    p = root / "reports" / "research" / f"health_scores_{market}.json"
+    if not p.exists():
+        return None
+    try:
+        d = json.loads(p.read_text(encoding="utf-8"))
+        for c in d.get("cards") or []:
+            if c.get("ticker") == ticker:
+                return c
+    except Exception:
+        return None
+    return None
 
 
 def _load_alert(root: Path, market: str, ticker: str) -> str:
@@ -560,6 +590,7 @@ def build_and_stamp_all(root: Path, asof: str,
     from backend.portfolio import rank_history as _rh
     from backend.portfolio import market_regime_stability as _mrs
     from backend.portfolio import profit_protection as _pp
+    from backend.portfolio import health_score as _hs
     for m in markets:
         # Stamp regime history
         try:
@@ -578,6 +609,11 @@ def build_and_stamp_all(root: Path, asof: str,
             signals = _pp.evaluate_all_active(root, m, "runner2", asof, recs)
             _pp.emit_signals(root, m, "runner2", asof, signals)
             print(f"[build_and_stamp:{m}] profit_protection signals={len(signals)}")
+            # Sprint A · Health Scores (composite 0-100 per rec)
+            hs_payload = _hs.score_all(root, m, recs, asof)
+            _hs.emit(root, m, hs_payload)
+            print(f"[build_and_stamp:{m}] health_scores n={hs_payload.get('n')} "
+                    f"band_changes={hs_payload.get('band_changes')}")
         except Exception as e:
             print(f"[build_and_stamp:{m}] pp/rank skipped · {type(e).__name__}: {e}")
     return build_unified_history(root, asof, markets=markets)
