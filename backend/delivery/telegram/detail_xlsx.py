@@ -733,6 +733,37 @@ def build_and_stamp_all(root: Path, asof: str,
                 print(f"[build_and_stamp:{m}] economic_calendar appended={summary['total_appended']}")
             except Exception as e:
                 print(f"[build_and_stamp:{m}] economic_calendar failed · {type(e).__name__}: {e}")
+            # Guard 7-supporting engines · MANDATORY daily refresh per operator
+            # directive 2026-08-05 · "every report should flow and run daily"
+            for eng_name, eng_fn in [
+                ("global_overnight",
+                 lambda: __import__("backend.context.global_overnight.ingest",
+                                          fromlist=["ingest_daily"]).ingest_daily(root, asof)),
+                ("market_breadth",
+                 lambda: (lambda mod: (mod.emit(root, mod.compute_breadth(root, m, asof))
+                                            if mod.compute_breadth(root, m, asof).get("available") else None))(
+                     __import__("backend.context.market_breadth.compute",
+                                     fromlist=["compute_breadth", "emit"]))),
+                ("fii_dii",
+                 lambda: __import__("backend.context.fii_dii.ingest",
+                                          fromlist=["ingest_daily"]).ingest_daily(root, asof)
+                                 if m == "india" else None),
+                ("correlation",
+                 lambda: (lambda mod: (mod.emit(root, mod.compute_correlation(root, m, asof))
+                                            if mod.compute_correlation(root, m, asof).get("available") else None))(
+                     __import__("backend.context.correlation.compute",
+                                     fromlist=["compute_correlation", "emit"]))),
+                ("sector_news",
+                 lambda: (lambda mod: (mod.emit(root, mod.compute_sector_news(root, m, asof))
+                                            if mod.compute_sector_news(root, m, asof).get("available") else None))(
+                     __import__("backend.context.sector_news.classify",
+                                     fromlist=["compute_sector_news", "emit"]))),
+            ]:
+                try:
+                    eng_fn()
+                    print(f"[build_and_stamp:{m}] {eng_name} OK")
+                except Exception as e:
+                    print(f"[build_and_stamp:{m}] {eng_name} FAILED · {type(e).__name__}: {e}")
         except Exception as e:
             print(f"[build_and_stamp:{m}] pp/rank skipped · {type(e).__name__}: {e}")
     return build_unified_history(root, asof, markets=markets)

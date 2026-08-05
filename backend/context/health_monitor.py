@@ -35,31 +35,32 @@ from pathlib import Path
 # min_bytes: file must be at least this big (skeleton files fail)
 
 ENGINES = [
-    # Existing engines (Waves 4-5)
+    # Existing engines (Waves 4-5) · ALL now CRITICAL per operator directive
+    # "every report is a guard for our engines · ensure every engine works properly"
     ("reports/macro_regime.json",           "CRITICAL",  5, 400),
     ("reports/sector_rotation.json",        "CRITICAL",  5, 800),
-    ("reports/volatility_intelligence.json", "IMPORTANT", 5, 400),
-    ("reports/bond_intelligence.json",       "IMPORTANT", 5, 400),
-    ("reports/currency_intelligence.json",   "IMPORTANT", 5, 400),
-    ("reports/commodity_intelligence.json",  "IMPORTANT", 5, 400),
-    ("reports/market_intelligence.json",     "IMPORTANT", 5, 800),
-    ("reports/ai_market_narrative.json",     "OPTIONAL",  5, 400),
-    ("reports/macro_history.parquet",        "OPTIONAL",  10, 1000),
-    ("reports/factor_library.parquet",       "OPTIONAL",  10, 1000),
+    ("reports/volatility_intelligence.json", "CRITICAL",  5, 400),
+    ("reports/bond_intelligence.json",       "CRITICAL",  5, 400),
+    ("reports/currency_intelligence.json",   "CRITICAL",  5, 400),
+    ("reports/commodity_intelligence.json",  "CRITICAL",  5, 400),
+    ("reports/market_intelligence.json",     "CRITICAL",  5, 800),
+    ("reports/ai_market_narrative.json",     "CRITICAL",  5, 400),
+    ("reports/macro_history.parquet",        "IMPORTANT", 10, 1000),
+    ("reports/factor_library.parquet",       "IMPORTANT", 10, 1000),
     # CIL layer engines (shipped 2026-08-05)
     ("reports/context/global_overnight.json", "CRITICAL",  1, 400),
     ("reports/context/market_breadth.json",   "CRITICAL",  1, 400),
-    ("reports/context/economic_calendar.jsonl", "IMPORTANT", 5, 400),
+    ("reports/context/economic_calendar.jsonl", "CRITICAL",  5, 400),
     ("reports/context/cil_run_india.json",    "CRITICAL",  1, 400),
-    # R006 · Portfolio state
-    ("reports/research/portfolio_snapshot_india.json", "IMPORTANT", 2, 200),
+    # R006 · Portfolio state (fires from R2 pipeline via ssot/run.py)
+    ("reports/research/portfolio_snapshot_india.json", "IMPORTANT", 3, 200),
     ("reports/research/rank_history.jsonl",    "CRITICAL",  1, 100),
     # Sprint outputs
     ("reports/research/health_scores_india.json", "CRITICAL", 1, 400),
-    # Known-missing (flag but don't block until we build them)
-    ("reports/fii_dii_flow.json",              "IMPORTANT", 5, 200),
-    ("reports/correlation_matrix.json",        "OPTIONAL",  5, 200),
-    ("reports/ai_news_narrative.json",         "OPTIONAL",  5, 200),
+    # Newly-built context engines
+    ("reports/fii_dii_flow.json",              "CRITICAL",  2, 200),
+    ("reports/correlation_matrix.json",        "IMPORTANT", 5, 400),
+    ("reports/ai_news_narrative.json",         "IMPORTANT", 3, 300),
 ]
 
 
