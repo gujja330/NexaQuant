@@ -22,10 +22,12 @@ TOTAL_ADJ_CAP_PTS = 20.0     # max ±20 pts on any single recommendation
 
 DEFAULT_WEIGHTS = {
     "macro":              0.15,
+    "macro_event":        0.10,   # Fed/RBI/CPI pre-event penalty (uses macro bucket)
     "sector":             0.15,
+    "overnight":          0.15,   # NEW · global overnight sector routing
     "breadth":            0.10,
     "news":               0.10,
-    "earnings":           0.10,
+    "earnings":           0.10,   # per-ticker earnings pre-event
     "vol_risk":           0.10,
     "currency":           0.05,
     "bond":               0.05,

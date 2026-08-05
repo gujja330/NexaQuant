@@ -327,6 +327,23 @@ def main() -> int:
         asof = _date.today().isoformat()
         # v5 · stamp regime + rank + profit-protection · then build XLSX
         xlsx_path = build_and_stamp_all(_ROOT, asof, markets=markets)
+        # Guard 7 · Context Health Monitor · every report is a guard
+        # (operator directive 2026-08-05)
+        try:
+            from backend.context.health_monitor import (
+                run_health_check as _hc, emit as _hc_emit, render_summary as _hc_render)
+            health = _hc(_ROOT)
+            _hc_emit(_ROOT, health)
+            print(f"[guard7:health] {_hc_render(health)}")
+            if health.get("overall_verdict") == "RED" \
+               and os.environ.get("SEND_FORCE_STALE") != "1":
+                print(f"[guard7:health] BLOCKING send · {health['n_critical_fails']} "
+                      f"critical engines failed. Override with SEND_FORCE_STALE=1")
+                for r in health.get("critical_fails", [])[:5]:
+                    print(f"    ✗ {r['path']}: {r['verdict']} · {r['reason']}")
+                return 2
+        except Exception as e:
+            print(f"[guard7:health] check failed · {type(e).__name__}: {e} · proceeding")
         # Caption is plain-text (no Markdown parse_mode) · underscore in
         # Run\_Type would trip Telegram's Markdown parser otherwise.
         caption = (f"📊 AEGIS Daily · {asof}\n"
