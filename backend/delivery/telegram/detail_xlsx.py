@@ -59,9 +59,10 @@ COLUMNS = [
     ("Rank",                6),
     ("Prior Rank",          10),     # NEW · rank at asof-1 (from rank_history)
     ("Rank Δ",              8),      # NEW · today - prior · positive = worse
+    ("Health",              8),      # Sprint A · composite 0-100 (RESTORED per operator)
     ("Band",                10),     # Sprint J · STRONG/HOLD/EXIT (3-state · killed WEAK)
-    ("New Opp",             10),     # Sprint J · 🟢 if ticker is a fresh buy today · blank else
     ("Risk Meter",          8),      # Sprint H · 🟢🟡🔴 derived from Band + Ctx Drag
+    ("Sector Exposure %",   12),     # Sprint H · sector concentration (RESTORED per operator)
     ("Adj Conf",            10),     # CIL · adjusted confidence after context layer
     ("Ctx Drag",            10),     # CIL · signed drag/boost pts vs base confidence
     ("Ctx Reason",          50),     # CIL · top context drivers
@@ -421,8 +422,8 @@ def _rec_to_row(rec: Mapping, market: str, root: Path,
     entry_signal, buy_zone_delta = _entry_signal(current_price, buy_high,
                                                                 entry_price, health_band, status)
 
-    # Sprint J · New Opportunity flag · reads fresh_opportunities.json
-    new_opp = _new_opp_flag(root, market, ticker)
+    # Sprint H · Sector Exposure (RESTORED)
+    sector_exposure_pct = _sector_exposure_pct(root, market, sector)
 
     # Sprint H-nice · Risk Meter (🟢🟡🔴)
     risk_meter = _risk_meter(health_band, ctx_drag)
@@ -451,9 +452,10 @@ def _rec_to_row(rec: Mapping, market: str, root: Path,
         rank if rank else "",
         prior_rank,           # NEW v5 · rank at asof-1
         rank_delta,           # NEW v5 · today - prior · +ve = worse rank
+        health_score,         # Sprint A · composite 0-100 (RESTORED)
         health_band,          # Sprint J · band (STRONG/HOLD/EXIT · 3-state)
-        new_opp,              # Sprint J · 🟢 New Opportunity today · blank else
         risk_meter,           # Sprint H · 🟢🟡🔴
+        sector_exposure_pct,  # Sprint H · sector concentration (RESTORED)
         adj_conf,             # CIL · adjusted confidence
         ctx_drag,             # CIL · signed drag pts
         ctx_reason,           # CIL · top drivers
@@ -501,13 +503,17 @@ def _collect_rows_for_market(root: Path, market: str, asof: str) -> list[list]:
     payload = json.loads(recs_path.read_text(encoding="utf-8"))
     rows = []
     for r in payload.get("recommendations") or []:
-        rows.append(_rec_to_row(r, market, root, runner="R2", asof=asof))
+        # Sprint J-final · R2_NEW on first-seen day · R2 thereafter
+        _rt = _runner_tag(root, market, "runner2", r.get("ticker") or "", asof, "R2")
+        rows.append(_rec_to_row(r, market, root, runner=_rt, asof=asof))
     if market == "india":
         rv = payload.get("runner1_validation") or {}
         for i, o in enumerate(rv.get("runner1_orphans") or [], start=1):
             r1_rec = _r1_orphan_to_rec_shape(o, market)
             r1_rec.setdefault("rank", i)
-            rows.append(_rec_to_row(r1_rec, market, root, runner="R1", asof=asof))
+            # Sprint J-final · _NEW suffix on first-seen day (auto-decays next day)
+            _rt = _runner_tag(root, market, "runner1", r1_rec.get("ticker") or "", asof, "R1")
+            rows.append(_rec_to_row(r1_rec, market, root, runner=_rt, asof=asof))
     elif market == "usa":
         # Sprint H · USA R1 (defensive derivative · shipped 2026-08-06)
         # Per operator: "Personally, I would absolutely keep Runner 1 for USA too"
@@ -518,10 +524,44 @@ def _collect_rows_for_market(root: Path, market: str, asof: str) -> list[list]:
                 for i, o in enumerate(usa_r1.get("runner1_orphans") or [], start=1):
                     r1_rec = _r1_orphan_to_rec_shape(o, market)
                     r1_rec.setdefault("rank", i)
-                    rows.append(_rec_to_row(r1_rec, market, root, runner="R1", asof=asof))
+                    _rt = _runner_tag(root, market, "runner1", r1_rec.get("ticker") or "", asof, "R1")
+                    rows.append(_rec_to_row(r1_rec, market, root, runner=_rt, asof=asof))
         except Exception as e:
             print(f"[collect_rows:usa] USA R1 render skipped · {type(e).__name__}: {e}")
     return rows
+
+
+def _runner_tag(root: Path, market: str, runner_key: str,
+                    ticker: str, asof: str, base_tag: str) -> str:
+    """Sprint J-final · return R1_NEW / R2_NEW if ticker has NO prior
+    rank_history entry in this (market, runner) · else return base_tag (R1/R2).
+
+    Auto-decay: tomorrow's rank_history will include today's stamp · so
+    the same ticker becomes R1 or R2 automatically. No manual work.
+
+    Operator directive 2026-08-06: "Run_Type = R1_NEW / R2_NEW on first
+    day · next day auto-becomes R1/R2 · client filters Run_Type contains
+    NEW to see today's fresh opportunities. No extra sheet · no extra column."
+    """
+    if not ticker: return base_tag
+    p = root / "reports" / "research" / "rank_history.jsonl"
+    if not p.exists(): return base_tag
+    try:
+        short_ticker = ticker.replace(".NS", "").replace(".BO", "")
+        for line in p.read_text(encoding="utf-8").splitlines():
+            if not line.strip(): continue
+            try: d = json.loads(line)
+            except json.JSONDecodeError: continue
+            if d.get("market") != market: continue
+            if d.get("runner") != runner_key: continue
+            t = (d.get("ticker") or "").replace(".NS", "").replace(".BO", "")
+            if t != short_ticker: continue
+            # Found a prior entry (asof < today) · ticker is not new
+            if (d.get("asof") or "") < asof:
+                return base_tag
+        return f"{base_tag}_NEW"
+    except Exception:
+        return base_tag
 
 
 def _new_opp_flag(root: Path, market: str, ticker: str) -> str:
@@ -821,12 +861,8 @@ def _write_new_workbook(path: Path, rows: list[list]) -> None:
     # Auto-filter
     last_col = get_column_letter(len(COLUMNS))
     ws.auto_filter.ref = f"A1:{last_col}{len(rows) + 1}"
-    # Sprint J-fix · prepend Fresh Buys sheet (root passed via closure)
-    try:
-        _root_hint = path.parents[2]      # reports/telegram/*.xlsx → root
-        _add_fresh_buys_sheet(wb, _root_hint)
-    except Exception:
-        pass
+    # Sprint J-fix REVERTED · single-sheet format ONLY (operator directive
+    # 2026-08-06 · "very unprofessional · always maintain same sheet")
     wb.save(path)
 
 
@@ -903,12 +939,10 @@ def _append_to_workbook(path: Path, rows: list[list]) -> None:
     # Refresh auto-filter to cover new range
     last_col = get_column_letter(len(COLUMNS))
     ws.auto_filter.ref = f"A1:{last_col}{ws.max_row}"
-    # Sprint J-fix · refresh Fresh Buys sheet on every append
-    try:
-        _root_hint = path.parents[2]
-        _add_fresh_buys_sheet(wb, _root_hint)
-    except Exception:
-        pass
+    # Sprint J-fix REVERTED · single-sheet format ONLY
+    # Kill any pre-existing "Fresh Buys" sheet from earlier bad commit
+    if "Fresh Buys" in wb.sheetnames:
+        del wb["Fresh Buys"]
     wb.save(path)
 
 

@@ -362,16 +362,9 @@ def main() -> int:
             caption = _CAPTION_APPEND_GUIDE(caption, _dow)
         xlsx_ok, xlsx_msg = _send_document(token, chat_id, xlsx_path,
                                                   caption=caption)
-        # Sprint J-fix · also attach Fresh Opportunities MD per market · when non-empty
-        for _fm in markets:
-            _fresh_p = _ROOT / "reports" / "telegram" / f"fresh_opportunities_{_fm}_{asof}.md"
-            if _fresh_p.exists() and _fresh_p.stat().st_size > 200:
-                _c = f"🎯 Fresh Buy Opportunities · {_fm.upper()} · {asof}"
-                try:
-                    _fok, _fmsg = _send_document(token, chat_id, _fresh_p, caption=_c)
-                    print(f"[fresh_opportunities:{_fm}] file={_fresh_p.name} · sent={_fok}")
-                except Exception as _e:
-                    print(f"[fresh_opportunities:{_fm}] send failed · {type(_e).__name__}: {_e}")
+        # Sprint J-final REVERTED · single-file delivery ONLY (operator directive:
+        # "one sheet · one history · no separate Fresh Buys"). Fresh opportunities
+        # are visible via Run_Type=R1_NEW/R2_NEW filter in the same sheet.
         print(f"[xlsx:{','.join(markets)}] file={xlsx_path.name} · sent={xlsx_ok}")
         if not xlsx_ok:
             print(f"  detail: {xlsx_msg[:180]}")
