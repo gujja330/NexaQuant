@@ -21,18 +21,23 @@ from .adapter_base import ContextContribution
 TOTAL_ADJ_CAP_PTS = 20.0     # max ±20 pts on any single recommendation
 
 DEFAULT_WEIGHTS = {
-    "macro":              0.15,
-    "macro_event":        0.10,   # Fed/RBI/CPI pre-event penalty (uses macro bucket)
-    "sector":             0.15,
-    "overnight":          0.15,   # NEW · global overnight sector routing
-    "breadth":            0.10,
-    "news":               0.10,
-    "earnings":           0.10,   # per-ticker earnings pre-event
-    "vol_risk":           0.10,
-    "currency":           0.05,
-    "bond":               0.05,
-    "institutional_flow": 0.10,
-    "portfolio":          0.10,
+    "macro":                        0.12,
+    "macro_event":                  0.08,   # Fed/RBI/CPI pre-event penalty
+    "sector":                       0.12,
+    "overnight":                    0.12,   # global overnight sector routing
+    "breadth":                      0.08,
+    "news":                         0.06,
+    "news_sustained":               0.06,   # Sprint G-F rolling sector news
+    "earnings":                     0.08,   # per-ticker earnings pre-event
+    "vol_risk":                     0.06,
+    "vol_risk_xasset":              0.06,   # Sprint G-B cross-asset risk-on/off
+    "currency":                     0.03,
+    "bond":                         0.05,   # Sprint G-A FRED yield regime
+    "institutional_flow":           0.05,
+    "institutional_flow_turnover":  0.05,   # Sprint G-D NSE turnover surges
+    "insider":                      0.05,   # Sprint G-C EDGAR Form 4
+    "portfolio":                    0.03,
+    "portfolio_corr":               0.05,   # Sprint G-E correlation to universe
 }
 
 

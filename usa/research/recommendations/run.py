@@ -158,8 +158,12 @@ def main() -> int:
         rec["dimensions"] = dims
 
         recs.append(rec)
+        # 2026-08-06 · defensive None-formatting fix · score/confidence can
+        # be None for tickers with insufficient data · crashed USA pipeline
+        _score_str = f"{score:>5}" if score is not None else "  —  "
+        _conf_str = f"{confidence:.2f}" if confidence is not None else " — "
         print(f"  [{i:>2}/{len(tickers)}] {symbol:<8} {sector:<24} "
-              f"score={score:>5}  {action:<11}  conf={confidence:.2f}")
+              f"score={_score_str}  {action:<11}  conf={_conf_str}")
 
     # ── Pass 2: sector / industry rollups
     from collections import defaultdict

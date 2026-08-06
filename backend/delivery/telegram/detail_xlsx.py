@@ -64,6 +64,9 @@ COLUMNS = [
     ("Adj Conf",            10),     # CIL · adjusted confidence after context layer
     ("Ctx Drag",            10),     # CIL · signed drag/boost pts vs base confidence
     ("Ctx Reason",          50),     # CIL · top context drivers
+    ("Insider 90d",         12),     # Sprint G · SEC Form 4 count (USA)
+    ("Corr to Uni",         12),     # Sprint G · avg correlation to universe
+    ("Turnover σ",          12),     # Sprint G · today turnover vs 20d mean
     ("Story",               60),     # Sprint C · compact narrative "Rank ↑ 5→1 · Conf +7% · momentum ↑ · 34d left · HOLD"
     ("Alert",               34),     # NEW · profit-protection signals (severity·trigger·note)
     ("Confidence %",        13),
@@ -359,6 +362,60 @@ def _rec_to_row(rec: Mapping, market: str, root: Path,
     except Exception:
         pass
 
+    # Sprint G · Insider · Correlation · Turnover columns
+    insider_90d = ""
+    corr_to_uni = ""
+    turnover_sigma = ""
+    try:
+        if market == "usa":
+            p_ed = root / "reports" / "edgar" / "insider_recent.json"
+            if p_ed.exists():
+                _d = json.loads(p_ed.read_text(encoding="utf-8"))
+                per = (_d.get("per_ticker") or {}).get(ticker.upper()) or {}
+                if per.get("available"):
+                    insider_90d = per.get("n_form4_last_90d") or 0
+    except Exception:
+        pass
+    try:
+        p_c = root / "reports" / "correlation_matrix.json"
+        if p_c.exists():
+            _d = json.loads(p_c.read_text(encoding="utf-8"))
+            short = ticker.replace(".NS", "").replace(".BO", "").upper()
+            for r in (_d.get("portfolio_concentration_risk") or []):
+                if r.get("ticker") == short:
+                    corr_to_uni = r.get("avg_corr_to_others")
+                    break
+    except Exception:
+        pass
+    try:
+        if market == "india":
+            from pathlib import Path as _P
+            bhav = sorted((root / "reports" / "nse_bhavcopy").glob("*.parquet"))
+            if len(bhav) >= 5:
+                import pandas as _pd
+                short = ticker.replace(".NS", "").replace(".BO", "").upper()
+                vals = []
+                for pq in bhav[-20:]:
+                    try:
+                        df = _pd.read_parquet(pq)
+                        if "SYMBOL" not in df.columns or "TURNOVER_LACS" not in df.columns: continue
+                        row = df[df["SYMBOL"].str.strip().str.upper() == short]
+                        if row.empty: continue
+                        if "SERIES" in row.columns:
+                            eq = row[row["SERIES"].str.strip() == "EQ"]
+                            if not eq.empty: row = eq
+                        vals.append(float(row["TURNOVER_LACS"].iloc[0]))
+                    except Exception:
+                        continue
+                if len(vals) >= 5:
+                    today = vals[-1]; prior = vals[:-1]
+                    m = sum(prior) / len(prior)
+                    v = sum((x - m) ** 2 for x in prior) / len(prior)
+                    s = v ** 0.5
+                    turnover_sigma = round((today - m) / s, 2) if s > 0 else 0
+    except Exception:
+        pass
+
     # Sprint C · Story column · compact narrative
     story = _build_story(rank, prior_rank, rank_delta, conf_pct, ev,
                                 health_band, prior_band, days_left, status,
@@ -376,6 +433,9 @@ def _rec_to_row(rec: Mapping, market: str, root: Path,
         adj_conf,             # CIL · adjusted confidence
         ctx_drag,             # CIL · signed drag pts
         ctx_reason,           # CIL · top drivers
+        insider_90d,          # Sprint G · SEC Form 4 count (USA)
+        corr_to_uni,          # Sprint G · avg correlation to universe
+        turnover_sigma,       # Sprint G · NSE turnover σ (India)
         story,                # Sprint C · compact narrative
         alert,                # NEW v5 · profit-protection signals
         conf_pct if conf_pct is not None else "",

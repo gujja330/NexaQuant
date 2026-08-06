@@ -10,14 +10,28 @@ from .overnight_adapter import OvernightAdapter
 from .breadth_adapter import BreadthAdapter
 from .earnings_adapter import EarningsAdapter
 from .macro_event_adapter import MacroEventAdapter
+# Sprint G · consumes Sprint F ingests
+from .bond_adapter import BondAdapter
+from .risk_off_adapter import RiskOffAdapter
+from .insider_adapter import InsiderAdapter
+from .turnover_adapter import TurnoverAdapter
+from .correlation_adapter import CorrelationAdapter
+from .sustained_news_adapter import SustainedNewsAdapter
 
 DEFAULT_ADAPTERS = [
     MacroAdapter(),
     SectorAdapter(),
     VolAdapter(),
     NewsAdapter(),
-    OvernightAdapter(),           # NEW · answers IT-down question
-    BreadthAdapter(),             # NEW · sector A/D from existing bars
-    EarningsAdapter(),            # NEW · ticker earnings pre-event penalty
-    MacroEventAdapter(),          # NEW · Fed/RBI/CPI pre-event penalty
+    OvernightAdapter(),
+    BreadthAdapter(),
+    EarningsAdapter(),
+    MacroEventAdapter(),
+    # Sprint G (6 new)
+    BondAdapter(),                # G-A · reads FRED yield curve
+    RiskOffAdapter(),             # G-B · reads FRED VIX+crude+USD composite
+    InsiderAdapter(),             # G-C · reads EDGAR Form 4
+    TurnoverAdapter(),            # G-D · reads NSE bhavcopy
+    CorrelationAdapter(),         # G-E · reads correlation_matrix
+    SustainedNewsAdapter(),       # G-F · rolling sector news
 ]

@@ -159,6 +159,71 @@ def options_pcr_signal(root: Path, market: str, ticker: str, asof: str) -> dict:
 # Aggregate feature vector for one ticker
 # ──────────────────────────────────────────────────────────────────────
 
+def _cil_context_features(root: Path, market: str, ticker: str) -> dict:
+    """Sprint G · read shipped CIL layer outputs to enrich R3 features."""
+    fv = {}
+    # Global overnight sector drag
+    try:
+        p = root / "reports" / "context" / "global_overnight.json"
+        if p.exists():
+            import json as _j
+            d = _j.loads(p.read_text(encoding="utf-8"))
+            drag = (d.get("sector_drag") or {})
+            # For a given ticker · we'd need its sector · caller passes it
+            fv["overnight_market_avg_drag"] = round(
+                sum(drag.values()) / len(drag) if drag else 0.0, 3)
+    except Exception:
+        pass
+    # Market breadth · overall AD
+    try:
+        p = root / "reports" / "context" / "market_breadth.json"
+        if p.exists():
+            import json as _j
+            d = _j.loads(p.read_text(encoding="utf-8"))
+            fv["market_breadth_ad_pct"] = d.get("overall_ad_ratio_pct") or 50
+            fv["market_breadth_above_50dma_pct"] = d.get("overall_above_50dma_pct") or 50
+    except Exception:
+        pass
+    # Correlation to universe (for this ticker)
+    try:
+        p = root / "reports" / "correlation_matrix.json"
+        if p.exists():
+            import json as _j
+            d = _j.loads(p.read_text(encoding="utf-8"))
+            short = ticker.replace(".NS", "").replace(".BO", "").upper()
+            for r in (d.get("portfolio_concentration_risk") or []):
+                if r.get("ticker") == short:
+                    fv["ticker_avg_corr_to_universe"] = r.get("avg_corr_to_others") or 0
+                    break
+    except Exception:
+        pass
+    # FRED macro snapshot (market-wide features)
+    try:
+        p = root / "reports" / "fred" / "fred_snapshot.json"
+        if p.exists():
+            import json as _j
+            d = _j.loads(p.read_text(encoding="utf-8"))
+            series = d.get("series") or {}
+            fv["fred_10y_yield"] = (series.get("DGS10") or {}).get("latest_value") or 4.0
+            fv["fred_vix_percentile"] = (series.get("VIXCLS") or {}).get("percentile_2y") or 50
+            fv["fred_10y2y_spread"] = (series.get("T10Y2Y") or {}).get("latest_value") or 0.5
+            fv["fred_cpi_pctile"] = (series.get("CPIAUCSL") or {}).get("percentile_2y") or 50
+    except Exception:
+        pass
+    # EDGAR insider Form 4 count (USA only)
+    if market == "usa":
+        try:
+            p = root / "reports" / "edgar" / "insider_recent.json"
+            if p.exists():
+                import json as _j
+                d = _j.loads(p.read_text(encoding="utf-8"))
+                per = (d.get("per_ticker") or {}).get(ticker.upper()) or {}
+                fv["insider_form4_90d"] = per.get("n_form4_last_90d") or 0
+        except Exception:
+            pass
+    return fv
+
+
 def build_feature_vector(root: Path, market: str, ticker: str, asof: str,
                               tech_features: Mapping | None = None) -> dict:
     """Return the full feature dict for one (ticker, asof) · Tier 1 features
@@ -184,4 +249,6 @@ def build_feature_vector(root: Path, market: str, ticker: str, asof: str,
         "pcr_score":               pcr.get("pcr_score") or 0.0,
         "pcr_available":           int(bool(pcr.get("available"))),
     })
+    # Sprint G · CIL context features (5 new context signals)
+    fv.update(_cil_context_features(root, market, ticker))
     return fv
