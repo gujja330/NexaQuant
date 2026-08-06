@@ -313,11 +313,34 @@ def _rec_to_row(rec: Mapping, market: str, root: Path,
         if current_price is None:
             current_price = ps.get("last_seen_price")
 
-    # Fallback: if position store has no entry yet (rec just appeared today),
-    # use current_price as entry so downstream columns have a reference · this
-    # matches R006 lifecycle intent (position OPENS at today's price when new).
+    # P0 FIX 2026-08-06 · never fall back to current_price for Entry
+    # (operator: "AEGIS is recreating the recommendation every day · Entry
+    # Price = Current Price = destroys P&L calculation"). Instead lookup
+    # bar close on first_seen_date OR asof (day-0 case) which is the true
+    # historical entry price · then it stays FROZEN across future snapshots.
     if entry_price is None and current_price:
-        entry_price = current_price
+        # Try to get bar close on first_seen_date · use asof if no first_seen
+        target_date = first_seen or asof
+        try:
+            import pandas as _pd
+            short_t = ticker.replace(".NS", "").replace(".BO", "")
+            dir_p = (root / "usa/data/raw/us" if market == "usa"
+                          else root / "data/raw/india")
+            bp = dir_p / f"{short_t}_D1.parquet"
+            if bp.exists():
+                df = _pd.read_parquet(bp)
+                col = "close" if "close" in df.columns else "Close"
+                df.index = _pd.to_datetime(df.index).strftime("%Y-%m-%d")
+                if target_date in df.index:
+                    entry_price = float(df.loc[target_date, col])
+                else:
+                    earlier = [d for d in df.index if d <= target_date]
+                    if earlier: entry_price = float(df.loc[earlier[-1], col])
+        except Exception:
+            pass
+        # Absolute last resort: today's price (day-0 · new position case only)
+        if entry_price is None:
+            entry_price = current_price
         if not first_seen:
             first_seen = asof
 
