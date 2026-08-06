@@ -327,6 +327,14 @@ def main() -> int:
         asof = _date.today().isoformat()
         # v5 · stamp regime + rank + profit-protection · then build XLSX
         xlsx_path = build_and_stamp_all(_ROOT, asof, markets=markets)
+        # Sprint H · attach operator guide to Monday caption (weekly refresher)
+        try:
+            from backend.delivery.telegram.operator_guide import append_to_caption as _guide
+            from datetime import date as _dt
+            _dow = _dt.today().isoweekday()   # 1=Mon .. 7=Sun
+            _CAPTION_APPEND_GUIDE = _guide
+        except Exception:
+            _CAPTION_APPEND_GUIDE = None
         # Guard 7 · Context Health Monitor · every report is a guard
         # (operator directive 2026-08-05)
         try:
@@ -348,7 +356,10 @@ def main() -> int:
         # Run\_Type would trip Telegram's Markdown parser otherwise.
         caption = (f"📊 AEGIS Daily · {asof}\n"
                       f"One row per stock · columns: Date · Country · Run Type · Ticker + "
-                      f"37 more fields · daily appended · sortable in Excel")
+                      f"45+ more fields · daily appended · sortable in Excel")
+        # Sprint H · Monday XLSX carries the operator guide as reminder
+        if _CAPTION_APPEND_GUIDE is not None:
+            caption = _CAPTION_APPEND_GUIDE(caption, _dow)
         xlsx_ok, xlsx_msg = _send_document(token, chat_id, xlsx_path,
                                                   caption=caption)
         print(f"[xlsx:{','.join(markets)}] file={xlsx_path.name} · sent={xlsx_ok}")

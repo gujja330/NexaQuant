@@ -349,7 +349,14 @@ def _render_card(rec: Mapping, market: str, root: Path,
 
 
 def _r1_orphan_to_rec_shape(o: Mapping, market: str) -> dict:
-    """Adapt a Runner 1 orphan dict into a rec-shaped dict for _render_card."""
+    """Adapt a Runner 1 orphan dict into a rec-shaped dict for _render_card.
+
+    Sprint H fix 2026-08-06: enriched to give R1 orphans the SAME rich
+    field coverage as R2 recs so XLSX columns render properly. Per operator
+    feedback: 'Every stock should look exactly like Runner 2 · not Strong
+    Buy 77 · 2 Months'.
+    """
+    import re
     strength = str(o.get("strength") or "").upper()
     status = {
         "STRONG BUY": "STRONG BUY",
@@ -360,28 +367,72 @@ def _r1_orphan_to_rec_shape(o: Mapping, market: str) -> dict:
     }.get(strength, strength)
     price = o.get("price")
     hist_target = o.get("hist_target")
+
+    # Parse buy_range "1415 - 1495" → (low, high)
+    buy_low = buy_high = None
+    buy_range = str(o.get("buy_range") or "")
+    m = re.match(r"([\d.]+)\s*[-–]\s*([\d.]+)", buy_range)
+    if m:
+        try: buy_low, buy_high = float(m.group(1)), float(m.group(2))
+        except ValueError: pass
+    if buy_low is None and isinstance(price, (int, float)):
+        buy_low, buy_high = price * 0.99, price * 1.01
+
     stop = price * 0.95 if isinstance(price, (int, float)) and price else None
     t1 = (hist_target if isinstance(hist_target, (int, float)) and hist_target
               else (price * 1.08 if isinstance(price, (int, float)) else None))
-    t2 = price * 1.15 if isinstance(price, (int, float)) else None
+    t2 = (t1 * 1.07 if t1 else (price * 1.15 if isinstance(price, (int, float)) else None))
+
+    # Parse holding "2 months (2M)" → 60 days
+    horizon_days = 60
+    holding = str(o.get("holding") or "")
+    m = re.match(r"(\d+)\s*(month|week|day)", holding.lower())
+    if m:
+        n = int(m.group(1))
+        horizon_days = {"month": 30, "week": 7, "day": 1}.get(m.group(2), 30) * n
+
+    # Parse reason string into top-drivers list (split on · or ,)
+    reason = str(o.get("reason") or "")
+    drivers = []
+    for part in re.split(r"[·|,\n]+", reason):
+        p = part.strip()
+        if p and len(p) < 50: drivers.append(p)
+    top_drivers = drivers[:3] if drivers else []
+
     return {
         "ticker":  o.get("ticker") or "?",
         "sector":  o.get("sector") or "—",
         "confidence": (o.get("confidence") or 0) / 100 if o.get("confidence") else None,
+        "calibrated_confidence": (o.get("confidence") or 0) / 100 if o.get("confidence") else None,
         "ensemble_score": o.get("score"),
-        "investor_action": {"entry": "BUY" if status in ("STRONG BUY", "BUY") else "HOLD"},
+        "investor_action": {"entry": "BUY" if status in ("STRONG BUY", "BUY") else "HOLD",
+                                    "is_actionable_entry": status in ("STRONG BUY", "BUY")},
         "position_plan": {
             "entry_zone": {
                 "current_price": price,
+                "ideal_buy_low":  buy_low,
+                "ideal_buy_high": buy_high,
                 "stop_loss":     stop,
                 "target_1":      t1,
                 "target_2":      t2,
             },
-            "time_horizon_days": 60,
+            "time_horizon_days": horizon_days,
+            "suggested_allocation_pct": 5.0,   # R1 default from adaptive_rec_v2
         },
-        "evolution": {"first_seen_date": None},
+        "evolution": {"first_seen_date": None,
+                          "days_recommended": 0,     # populated from position_store via detail_xlsx
+                          "momentum_direction": "STABLE"},
         "rotation_intelligence": {},
         "percentile_action": strength.replace(" ", "_"),
+        # Sprint H enrichment for R2-parity rendering
+        "attribution": {"top_features": top_drivers,
+                             "top_models": []},
+        "why": {"top_reasons": drivers[:5] if drivers else [],
+                    "top_risks": []},
+        "bull_case": reason[:200] if reason else "",
+        "bear_case": "",
+        # R1 has a valid_until field · surface as info
+        "r1_valid_until": o.get("valid_until"),
     }
 
 
