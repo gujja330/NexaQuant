@@ -352,6 +352,24 @@ def main() -> int:
                 return 2
         except Exception as e:
             print(f"[guard7:health] check failed · {type(e).__name__}: {e} · proceeding")
+        # Guard 8 · Price Integrity · verifies data pull is CORRECT before send
+        # (operator directive 2026-08-06 · "pipeline should be very strong in
+        # pulling right data with guard")
+        try:
+            from backend.context.price_integrity_guard import (
+                check_all as _pig, emit as _pig_emit, render_summary as _pig_render)
+            pig = _pig(_ROOT, asof)
+            _pig_emit(_ROOT, pig)
+            print(f"[guard8:price] {_pig_render(pig)}")
+            if pig.get("verdict") == "RED" \
+               and os.environ.get("PRICE_GUARD_OVERRIDE") != "1":
+                print(f"[guard8:price] BLOCKING send · {pig['n_critical']} CRITICAL "
+                      f"price mismatches. Override with PRICE_GUARD_OVERRIDE=1")
+                for r in pig.get("critical_issues", [])[:5]:
+                    print(f"    ✗ {r['market']} {r['ticker']} · {r['check']}: {r['detail']}")
+                return 2
+        except Exception as e:
+            print(f"[guard8:price] check failed · {type(e).__name__}: {e} · proceeding")
         # Caption is plain-text (no Markdown parse_mode) · underscore in
         # Run\_Type would trip Telegram's Markdown parser otherwise.
         caption = (f"📊 AEGIS Daily · {asof}\n"
