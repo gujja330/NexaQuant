@@ -168,10 +168,13 @@ def check_all(root: Path, asof: str) -> dict:
                                                   "CRITICAL",
                                                   f"first_seen_price={entry} vs "
                                                   f"parquet close {bar_close} on {fs}"))
+            # Flat OHLC on first_seen · informational (some low-liquidity
+            # tickers legitimately have flat bars · not actionable · downgrade
+            # per operator 2026-08-06)
             ohlc = _bar_ohlc_on(root, market, tk, fs)
             if ohlc and ohlc["open"] == ohlc["high"] == ohlc["low"] == ohlc["close"]:
                 issues.append(PriceIssue(market, tk, "flat_ohlc_first_seen",
-                                                  "WARNING",
+                                                  "INFO",
                                                   f"OHLC all equal ({ohlc['close']}) on {fs} · likely partial-bar"))
 
     # Check 2+3+5 · every rec today has parquet + valid close + recent bars

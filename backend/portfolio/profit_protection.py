@@ -60,6 +60,23 @@ DEFAULT_CONFIG = {
         "min_gain_pct":                20.0,
         "action":                      "TAKE_PROFIT",
     },
+    "stop_loss_hit": {
+        # 2026-08-06 operator P0: "USA stocks in negative P&L · why holding?"
+        # Institutional discipline · exit at fixed loss threshold.
+        "min_loss_pct":                -5.0,     # -5% = exit
+        "action":                      "EXIT_STOP",
+    },
+    "deep_loss": {
+        # Aggressive exit for catastrophic losses (never hold past -8%)
+        "min_loss_pct":                -8.0,
+        "action":                      "EXIT_DEEP_LOSS",
+    },
+    "time_underperform": {
+        # Held long enough · never profitable · time to rotate capital
+        "min_days_held":               21,
+        "max_gain_pct":                0.0,      # still ≤ 0% return
+        "action":                      "TIME_EXIT_LOSER",
+    },
     "rank_collapse": {
         "min_rank_drop":       5,        # rank fell by 5+ places
         "min_prior_rank":      3,        # only when ticker was top-3 yesterday
@@ -86,7 +103,8 @@ DEFAULT_CONFIG = {
 
 TRIGGER_NAMES = ("RAPID_APPRECIATION", "RANK_COLLAPSE", "BETTER_REPLACEMENT",
                      "SECTOR_LEADERSHIP", "RISK_ESCALATION", "MARKET_REGIME_BUFFER",
-                     "TAKE_PROFIT_EARLY", "HARD_GAIN_CAP")
+                     "TAKE_PROFIT_EARLY", "HARD_GAIN_CAP",
+                     "STOP_LOSS_HIT", "DEEP_LOSS", "TIME_EXIT_LOSER")
 
 
 @dataclass
@@ -194,6 +212,71 @@ def check_hard_gain_cap(pos: Mapping, current_price: float,
                  f"TAKE PROFIT · never give back a 20% gain",
         severity="critical",
         metadata={"gain_pct": round(gain_pct, 2)},
+    )
+
+
+def check_stop_loss(pos: Mapping, current_price: float,
+                        cfg: dict) -> ProfitProtectionSignal | None:
+    """2026-08-06 operator P0 · exit when position drops beyond stop threshold.
+    Institutional discipline · never watch a losing trade compound losses."""
+    entry = pos.get("entry_price") or 0
+    if not entry or not current_price: return None
+    gain_pct = (current_price - entry) / entry * 100.0
+    if gain_pct > cfg["min_loss_pct"]:      # loss NOT deep enough
+        return None
+    return ProfitProtectionSignal(
+        ticker=pos.get("ticker", ""),
+        trigger="STOP_LOSS_HIT",
+        action=cfg["action"],
+        reason=f"{gain_pct:+.1f}% ≤ stop {cfg['min_loss_pct']:.0f}% · "
+                 f"EXIT to cap loss · redeploy capital",
+        severity="warning",
+        metadata={"loss_pct": round(gain_pct, 2)},
+    )
+
+
+def check_deep_loss(pos: Mapping, current_price: float,
+                        cfg: dict) -> ProfitProtectionSignal | None:
+    """Aggressive stop · beyond -8% = immediate exit · never bag-hold."""
+    entry = pos.get("entry_price") or 0
+    if not entry or not current_price: return None
+    gain_pct = (current_price - entry) / entry * 100.0
+    if gain_pct > cfg["min_loss_pct"]:
+        return None
+    return ProfitProtectionSignal(
+        ticker=pos.get("ticker", ""),
+        trigger="DEEP_LOSS",
+        action=cfg["action"],
+        reason=f"{gain_pct:+.1f}% ≤ deep-loss {cfg['min_loss_pct']:.0f}% · "
+                 f"EXIT URGENT · thesis broken · never bag-hold",
+        severity="critical",
+        metadata={"loss_pct": round(gain_pct, 2)},
+    )
+
+
+def check_time_underperform(pos: Mapping, current_price: float,
+                                    asof: str, cfg: dict) -> ProfitProtectionSignal | None:
+    """Position held N+ days and never profitable · rotate capital."""
+    entry = pos.get("entry_price") or 0
+    opened_on = pos.get("opened_on") or ""
+    if not entry or not opened_on or not current_price: return None
+    gain_pct = (current_price - entry) / entry * 100.0
+    if gain_pct > cfg["max_gain_pct"]:      # position IS profitable · keep
+        return None
+    try:
+        days_held = (date.fromisoformat(asof) - date.fromisoformat(opened_on)).days
+    except (ValueError, TypeError):
+        return None
+    if days_held < cfg["min_days_held"]:
+        return None
+    return ProfitProtectionSignal(
+        ticker=pos.get("ticker", ""),
+        trigger="TIME_EXIT_LOSER",
+        action=cfg["action"],
+        reason=f"held {days_held}d · gain {gain_pct:+.1f}% ≤ 0% · "
+                 f"EXIT · redeploy capital to opportunities with edge",
+        severity="warning",
+        metadata={"days_held": days_held, "gain_pct": round(gain_pct, 2)},
     )
 
 
@@ -342,6 +425,14 @@ def evaluate_position_pp(root: Path, market: str, runner: str,
                                           today_risk, entry_risk,
                                           cfg["risk_escalation"])
         if s5: signals.append(s5)
+
+    # 2026-08-06 · new negative-side triggers (operator P0)
+    s6 = check_stop_loss(pos, current_price, cfg.get("stop_loss_hit") or {})
+    if s6: signals.append(s6)
+    s7 = check_deep_loss(pos, current_price, cfg.get("deep_loss") or {})
+    if s7: signals.append(s7)
+    s8 = check_time_underperform(pos, current_price, asof, cfg.get("time_underperform") or {})
+    if s8: signals.append(s8)
 
     return signals
 
