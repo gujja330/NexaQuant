@@ -66,6 +66,12 @@ from backend.research import (  # noqa: E402
     build_research_platform,
 )
 from backend.research.disagreement_store import mark_forward_outcomes  # noqa: E402
+# R006 · Portfolio State Machine · rebuilds R2 from Top-N-screener → stateful
+# portfolio manager. Zero coupling to R1 (SEALED) or delivery engine.
+from backend.portfolio.portfolio_manager import (  # noqa: E402
+    run_daily_cycle as _r006_run_daily_cycle,
+    emit_snapshot as _r006_emit_snapshot,
+)
 # NOTE: Intraday HOURLY (real yfinance bars) runs as a SEPARATE parallel job
 # via scripts/intraday_hourly_run.py · NEVER clubbed with the main daily
 # pipeline (external fetch + rate-limit risk would block advisory delivery).
@@ -423,6 +429,31 @@ def main() -> int:
                 f"confidence={status.get('confidence')}")
     except Exception as exc:
         print(f"[research_platform:{args.market}] failed · {type(exc).__name__}: {exc}")
+
+    # ── R006 · Portfolio State Machine (stateful R2 cycle) ──
+    # Post-mortem 2026-07-31: R2 behaved as Top-N daily screener · this hook
+    # runs the R006 state machine AFTER enrichment · producing:
+    #   · portfolio_ledger.jsonl events (OPEN/HOLD/EXIT/ROTATE)
+    #   · rotation_ledger.jsonl audit trail
+    #   · portfolio_snapshot_{market}.json (Telegram-consumable)
+    # Zero coupling to Runner 1 (SEALED) or delivery enricher · additive only.
+    try:
+        r006_recs = pub.get("recommendations") or []
+        if r006_recs:
+            snap_r006 = _r006_run_daily_cycle(_ROOT, market=args.market,
+                                                     runner="runner2",
+                                                     asof=asof_str_rp,
+                                                     recs=r006_recs)
+            _r006_emit_snapshot(_ROOT, snap_r006)
+            print(f"[r006:{args.market}] cycle done · "
+                    f"opens={len(snap_r006.opens_today)} "
+                    f"holds={len(snap_r006.holds_today)} "
+                    f"exits={len(snap_r006.exits_today)} "
+                    f"rotations={len(snap_r006.rotations_today)} "
+                    f"rejected={len(snap_r006.rejected_proposals)} "
+                    f"horizon_check={snap_r006.horizon_check.get('verdict')}")
+    except Exception as exc:
+        print(f"[r006:{args.market}] failed · {type(exc).__name__}: {exc}")
 
     return 0
 

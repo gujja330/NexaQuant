@@ -48,12 +48,14 @@ from .command_center import _company_name, _short_ticker
 #  Confidence Band High · Correlation · Hist Win Rate · Hist Median Ret ·
 #  Hist Avg Hold). Restore as v3 when Ticket R007 lands with the data.
 COLUMNS = [
+    ("Position ID",         26),      # Sprint K prep · {TKR}_{MKT}_{YYYYMMDD} stable lifecycle identity
     ("Date",                12),
     ("Country",             10),
-    ("Run_Type",            10),      # "R1" | "R2"
+    ("Run_Type",            10),      # "R1" | "R2" | "R1_NEW" | "R2_NEW"
     ("Ticker",              12),
     ("Company",             22),
     ("Status",              12),
+    ("Position Stage",      14),      # Sprint K · NEW · ACTIVE · MATURE · WATCH · EXIT (derived from days_held + band)
     ("Exit Reason",         22),     # NEW · populated only when Status = EXIT
     ("Exit P&L %",          12),     # NEW · realized return on exit · blank otherwise
     ("Rank",                6),
@@ -74,7 +76,8 @@ COLUMNS = [
     ("Confidence %",        13),
     ("Conf Type",           11),
     ("Model Score",         12),
-    ("Day",                 6),
+    ("Day",                 6),        # Calendar days held
+    ("Trading Days",        13),       # Sprint K · trading days held (excludes weekends)
     ("Horizon (d)",         12),
     ("Days Left",           10),
     ("Recommended",         14),
@@ -88,7 +91,8 @@ COLUMNS = [
     ("T1 %",                8),
     ("Target 2",            11),
     ("T2 %",                8),
-    ("Today Move %",        13),     # NEW · today's daily change (yesterday_close → today_close)
+    ("Prev Close",          11),      # Sprint K · yesterday's close price (fixes Today Move gap)
+    ("Today Move %",        13),      # NEW · today's daily change (yesterday_close → today_close)
     ("Current Perf %",      15),
     ("Max Gain %",          12),
     ("Max DD %",            11),
@@ -121,6 +125,69 @@ def _pct_from_range(base, target):
     if not (base and target and base > 0):
         return None
     return (target - base) / base * 100
+
+
+def _prev_close(root: Path, ticker: str, market: str) -> float | None:
+    """Sprint K · yesterday's close price · pairs with Today Move %."""
+    try:
+        import pandas as pd
+    except ImportError:
+        return None
+    bare = ticker.strip()
+    for suf in (".NS", ".BO", ".NSE", ".BSE"):
+        if bare.upper().endswith(suf):
+            bare = bare[: -len(suf)]; break
+    p = (root / "data" / "raw" / ("us" if market == "usa" else "india")) / f"{bare}_D1.parquet"
+    if not p.exists(): return None
+    try:
+        df = pd.read_parquet(p)
+        if len(df) < 2: return None
+        return round(float(df["close"].iloc[-2]), 2)
+    except Exception:
+        return None
+
+
+def _trading_days_between(start_iso: str, end_iso: str) -> int | None:
+    """Sprint K · count only Mon-Fri between two ISO dates (weekend-adjusted).
+    Ignores exchange holidays for now · MoSPI/NSE calendar in Sprint L."""
+    from datetime import date, timedelta
+    try:
+        d0 = date.fromisoformat(start_iso[:10])
+        d1 = date.fromisoformat(end_iso[:10])
+    except (ValueError, TypeError):
+        return None
+    if d1 < d0: return 0
+    days = 0
+    cur = d0
+    while cur < d1:
+        if cur.weekday() < 5: days += 1
+        cur += timedelta(days=1)
+    return days
+
+
+def _position_id(ticker: str, market: str, first_seen: str) -> str:
+    """Sprint K · stable Position ID = {TKR}_{MKT}_{YYYYMMDD}.
+    Uses first_seen_date · never today's date · so ID persists across the
+    entire lifecycle (Issue #21)."""
+    if not ticker or not first_seen: return ""
+    bare = ticker.replace(".NS", "").replace(".BO", "").upper()
+    mkt = (market or "").upper()[:3]
+    ds = first_seen[:10].replace("-", "")
+    return f"{bare}_{mkt}_{ds}"
+
+
+def _position_stage(days_held: int, health_band: str, status: str) -> str:
+    """Sprint K · lifecycle stage derived from age + band + status.
+    NEW (day 0) · ACTIVE (1-5) · MATURE (6-20) · WATCH (band=EXIT candidate) · EXIT.
+    Answers Issue #15: 'everything still says NEW after 8 days · impossible'."""
+    if status == "EXIT" or (health_band or "").upper() == "EXIT":
+        return "EXIT"
+    if not isinstance(days_held, int):
+        return "NEW"
+    if days_held == 0: return "NEW"
+    if days_held <= 5: return "ACTIVE"
+    if days_held <= 20: return "MATURE"
+    return "WATCH"     # >20 days · long-holding · monitor closely
 
 
 def _today_move_pct(root: Path, ticker: str, market: str) -> float | None:
@@ -445,8 +512,22 @@ def _rec_to_row(rec: Mapping, market: str, root: Path,
             rank_str = f" #{_repl_rank}" if _repl_rank else ""
             exit_reason = f"→ {_repl}{rank_str} · +{_edge:.1f}pp alpha"
 
+    # Sprint K quick-wins · derived fields
+    pos_id = _position_id(ticker, market, first_seen or asof)
+    pos_stage = _position_stage(days_rec if isinstance(days_rec, int) else 0,
+                                             health_band, status)
+    trading_days = _trading_days_between(first_seen or asof, asof) \
+                            if first_seen else 0
+    prev_close_val = _prev_close(root, ticker, market)
+    # Auto-compute Current Perf % from immutable Entry (Issue #8)
+    if isinstance(entry_price, (int, float)) and isinstance(current_price, (int, float)) \
+       and entry_price > 0:
+        cur_ret = round((current_price - entry_price) / entry_price * 100, 2)
+
     return [
+        pos_id,               # Sprint K · {TKR}_{MKT}_{YYYYMMDD} stable lifecycle ID
         asof, country, runner, ticker, company, status,
+        pos_stage,            # Sprint K · NEW/ACTIVE/MATURE/WATCH/EXIT
         exit_reason,          # NEW · blank unless status = EXIT
         exit_pnl_pct,         # NEW · realized P&L % · blank unless EXIT
         rank if rank else "",
@@ -468,11 +549,12 @@ def _rec_to_row(rec: Mapping, market: str, root: Path,
         conf_type,
         model_score if model_score is not None else "",
         days_rec if days_rec else "",
+        trading_days if trading_days is not None else "",  # Sprint K · trading days held
         horizon if horizon else "",
         days_left if days_left is not None else "",
         first_seen if first_seen else "",
         current_price if current_price else "",
-        entry_price if entry_price else "",
+        entry_price if entry_price else "",     # Sprint K · immutable from position_store
         buy_low if buy_low else "",
         buy_high if buy_high else "",
         stop if stop else "",
@@ -481,6 +563,7 @@ def _rec_to_row(rec: Mapping, market: str, root: Path,
         round(t1_pct, 2) if t1_pct is not None else "",
         t2 if t2 else "",
         round(t2_pct, 2) if t2_pct is not None else "",
+        prev_close_val if prev_close_val is not None else "",  # Sprint K · pairs with Today Move
         today_move if today_move is not None else "",
         cur_ret if cur_ret is not None else "",
         max_gain if max_gain is not None else "",
@@ -1047,16 +1130,26 @@ def build_and_stamp_all(root: Path, asof: str,
                 print(f"[build_and_stamp:{m}] economic_calendar appended={summary['total_appended']}")
             except Exception as e:
                 print(f"[build_and_stamp:{m}] economic_calendar failed · {type(e).__name__}: {e}")
-            # Sprint J-3 · Fresh Opportunities · daily unified filter
+            # Sprint J-3 · Fresh Opportunities · daily unified filter · used
+            # internally for New Opp signal · MD file skipped (single-file
+            # delivery per operator directive)
             try:
                 from backend.portfolio import fresh_opportunities as _fo
-                fresh_path = _fo.daily_run(root, m, asof)
-                if fresh_path:
-                    print(f"[build_and_stamp:{m}] fresh_opportunities → {fresh_path.name}")
-                else:
-                    print(f"[build_and_stamp:{m}] fresh_opportunities · 0 fresh buys today · silent")
+                # Use scan() + json emit only · skip render_md (avoids Windows
+                # cp1252 encoding issue with arrow chars)
+                fresh = _fo.scan(root, m, asof)
+                jp = root / "reports" / "research" / f"fresh_opportunities_{m}.json"
+                jp.parent.mkdir(parents=True, exist_ok=True)
+                import json as _json
+                from dataclasses import asdict as _asdict
+                jp.write_text(_json.dumps({
+                    "engine":  "aegis.portfolio.fresh_opportunities.v1",
+                    "market":  m, "asof": asof, "n_fresh": len(fresh),
+                    "fresh_buys": [_asdict(f) for f in fresh],
+                }, indent=2, default=str, ensure_ascii=False), encoding="utf-8")
+                print(f"[build_and_stamp:{m}] fresh_opportunities scan · n={len(fresh)}")
             except Exception as e:
-                print(f"[build_and_stamp:{m}] fresh_opportunities failed · {type(e).__name__}: {e}")
+                print(f"[build_and_stamp:{m}] fresh_opportunities skipped · {type(e).__name__}: {e}")
             # Guard 7-supporting engines · MANDATORY daily refresh per operator
             # directive 2026-08-05 · "every report should flow and run daily"
             for eng_name, eng_fn in [
