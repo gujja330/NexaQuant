@@ -577,18 +577,89 @@ def _rec_to_row(rec: Mapping, market: str, root: Path,
     ]
 
 
+def _archived_tickers_for(root: Path, market: str, runner_key: str,
+                                 current_tickers: set, asof: str) -> list[dict]:
+    """P0-1 · every ticker that was EVER in this (market, runner) but is
+    NOT in today's recs comes back as an ARCHIVED row. Operator directive
+    2026-08-06: 'Recommendations must never disappear.'
+
+    Returns list of fake rec-shaped dicts for _rec_to_row · with status
+    ARCHIVED · rank preserved from last-seen · price from position_store
+    or last rank_history entry."""
+    p = root / "reports" / "research" / "rank_history.jsonl"
+    if not p.exists(): return []
+
+    # Build map: ticker → most-recent rank_history entry for this market/runner
+    last_seen = {}
+    for line in p.read_text(encoding="utf-8").splitlines():
+        if not line.strip(): continue
+        try: d = json.loads(line)
+        except json.JSONDecodeError: continue
+        if d.get("market") != market or d.get("runner") != runner_key: continue
+        t = (d.get("ticker") or "").replace(".NS", "").replace(".BO", "")
+        if not t: continue
+        prev = last_seen.get(t)
+        if prev is None or (d.get("asof") or "") > (prev.get("asof") or ""):
+            last_seen[t] = d
+
+    # Filter to tickers NOT in today's live recs
+    archived_recs = []
+    for t, last in last_seen.items():
+        if t.upper() in current_tickers: continue
+        # Skip if last-seen was today (still active · not archived)
+        if (last.get("asof") or "").startswith(asof): continue
+        # Load position_store for entry/current price · fallback to last rank_history price
+        pos = _load_position(root, market, t) or {}
+        entry = pos.get("first_seen_price") or last.get("current_price")
+        current = pos.get("last_seen_price") or last.get("current_price") or entry
+        first_seen = pos.get("first_seen_date") or last.get("asof")
+        # Build minimal rec-shaped dict · Status = ARCHIVED
+        archived_recs.append({
+            "ticker": t,
+            "sector": last.get("sector") or "",
+            "rank": last.get("rank") or 99,
+            "calibrated_confidence": last.get("confidence"),
+            "ensemble_score": last.get("model_score"),
+            "investor_action": {"entry": "ARCHIVED",
+                                        "is_actionable_entry": False,
+                                        "if_holding": "ARCHIVED"},
+            "position_plan": {
+                "entry_zone": {
+                    "current_price": current,
+                    "stop_loss": entry * 0.95 if entry else None,
+                    "target_1": entry * 1.08 if entry else None,
+                    "target_2": entry * 1.15 if entry else None,
+                },
+                "time_horizon_days": last.get("horizon_days") or 60,
+            },
+            "evolution": {"first_seen_date": first_seen,
+                              "days_recommended": 0,
+                              "momentum_direction": "STABLE"},
+            "rotation_intelligence": {},
+            "percentile_action": "ARCHIVED",
+            "_archived": True,     # marker for row builder
+            "_last_active_asof": last.get("asof"),
+        })
+    return archived_recs
+
+
 def _collect_rows_for_market(root: Path, market: str, asof: str) -> list[list]:
-    """Return all rows (R2 + R1 if India) for one market on this asof."""
+    """Return all rows (R2 + R1 if India · plus ARCHIVED never-disappear) for
+    one market on this asof. Per operator P0-1: 'Recommendations must never
+    disappear · every recommendation becomes a persistent Position object.'"""
     recs_path = (root / "usa" / "reports" / "recommendations.json"
                     if market == "usa" else root / "reports" / "recommendations.json")
     if not recs_path.exists():
         return []
     payload = json.loads(recs_path.read_text(encoding="utf-8"))
     rows = []
+    # Track today's active tickers to derive archived list
+    active_r2 = set()
+    active_r1 = set()
     for r in payload.get("recommendations") or []:
-        # Sprint J-final · R2_NEW on first-seen day · R2 thereafter
         _rt = _runner_tag(root, market, "runner2", r.get("ticker") or "", asof, "R2")
         rows.append(_rec_to_row(r, market, root, runner=_rt, asof=asof))
+        active_r2.add((r.get("ticker") or "").replace(".NS", "").replace(".BO", "").upper())
     if market == "india":
         rv = payload.get("runner1_validation") or {}
         for i, o in enumerate(rv.get("runner1_orphans") or [], start=1):
@@ -598,8 +669,6 @@ def _collect_rows_for_market(root: Path, market: str, asof: str) -> list[list]:
             _rt = _runner_tag(root, market, "runner1", r1_rec.get("ticker") or "", asof, "R1")
             rows.append(_rec_to_row(r1_rec, market, root, runner=_rt, asof=asof))
     elif market == "usa":
-        # Sprint H · USA R1 (defensive derivative · shipped 2026-08-06)
-        # Per operator: "Personally, I would absolutely keep Runner 1 for USA too"
         try:
             usa_r1_path = root / "usa" / "reports" / "runner1_orphans.json"
             if usa_r1_path.exists():
@@ -609,8 +678,22 @@ def _collect_rows_for_market(root: Path, market: str, asof: str) -> list[list]:
                     r1_rec.setdefault("rank", i)
                     _rt = _runner_tag(root, market, "runner1", r1_rec.get("ticker") or "", asof, "R1")
                     rows.append(_rec_to_row(r1_rec, market, root, runner=_rt, asof=asof))
+                    active_r1.add((r1_rec.get("ticker") or "").replace(".NS", "").replace(".BO", "").upper())
         except Exception as e:
             print(f"[collect_rows:usa] USA R1 render skipped · {type(e).__name__}: {e}")
+
+    # P0-1 · Archived tickers · never disappear (operator directive 2026-08-06)
+    # Any ticker previously seen in this (market, runner) but NOT in today's
+    # active list appears as ARCHIVED row with Status=ARCHIVED · last-known
+    # price · Position Stage=EXIT. Sorted after live rows so top-N visibility
+    # for new money isn't disturbed.
+    try:
+        for arch in _archived_tickers_for(root, market, "runner2", active_r2, asof):
+            rows.append(_rec_to_row(arch, market, root, runner="R2_ARCH", asof=asof))
+        for arch in _archived_tickers_for(root, market, "runner1", active_r1, asof):
+            rows.append(_rec_to_row(arch, market, root, runner="R1_ARCH", asof=asof))
+    except Exception as e:
+        print(f"[collect_rows:{market}] archived render skipped · {type(e).__name__}: {e}")
     return rows
 
 
