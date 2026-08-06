@@ -482,10 +482,21 @@ def _collect_rows_for_market(root: Path, market: str, asof: str) -> list[list]:
         rv = payload.get("runner1_validation") or {}
         for i, o in enumerate(rv.get("runner1_orphans") or [], start=1):
             r1_rec = _r1_orphan_to_rec_shape(o, market)
-            # R1 orphans have no explicit rank in payload · derive from list
-            # order (already sorted by strength/score in ranking-CSV upstream)
             r1_rec.setdefault("rank", i)
             rows.append(_rec_to_row(r1_rec, market, root, runner="R1", asof=asof))
+    elif market == "usa":
+        # Sprint H · USA R1 (defensive derivative · shipped 2026-08-06)
+        # Per operator: "Personally, I would absolutely keep Runner 1 for USA too"
+        try:
+            usa_r1_path = root / "usa" / "reports" / "runner1_orphans.json"
+            if usa_r1_path.exists():
+                usa_r1 = json.loads(usa_r1_path.read_text(encoding="utf-8"))
+                for i, o in enumerate(usa_r1.get("runner1_orphans") or [], start=1):
+                    r1_rec = _r1_orphan_to_rec_shape(o, market)
+                    r1_rec.setdefault("rank", i)
+                    rows.append(_rec_to_row(r1_rec, market, root, runner="R1", asof=asof))
+        except Exception as e:
+            print(f"[collect_rows:usa] USA R1 render skipped · {type(e).__name__}: {e}")
     return rows
 
 
@@ -760,6 +771,17 @@ def build_and_stamp_all(root: Path, asof: str,
                         if m == "usa" else root / "reports" / "recommendations.json")
         if not recs_path.exists():
             continue
+        # Sprint H · USA R1 defensive derivative (before rank_history so R1 gets stamped too)
+        if m == "usa":
+            try:
+                from backend.recommendation.usa_runner1 import derive as _usa_r1
+                r1_payload = _usa_r1.derive(root, asof)
+                if r1_payload.get("available"):
+                    _usa_r1.emit(root, r1_payload)
+                    print(f"[build_and_stamp:{m}] usa_runner1 emitted "
+                            f"{r1_payload.get('n_r1_orphans', 0)} defensive orphans")
+            except Exception as e:
+                print(f"[build_and_stamp:{m}] usa_runner1 skipped · {type(e).__name__}: {e}")
         try:
             recs = json.loads(recs_path.read_text(encoding="utf-8")).get("recommendations", [])
             n_stamped = _rh.stamp_today(root, asof, m, "runner2", recs)
