@@ -64,13 +64,12 @@ COLUMNS = [
     ("Health",              8),      # Sprint A · composite 0-100 (RESTORED per operator)
     ("Band",                10),     # Sprint J · STRONG/HOLD/EXIT (3-state · killed WEAK)
     ("Risk Meter",          8),      # Sprint H · 🟢🟡🔴 derived from Band + Ctx Drag
-    ("Sector Exposure %",   12),     # Sprint H · sector concentration (RESTORED per operator)
     ("Adj Conf",            10),     # CIL · adjusted confidence after context layer
     ("Ctx Drag",            10),     # CIL · signed drag/boost pts vs base confidence
     ("Ctx Reason",          50),     # CIL · top context drivers
-    ("Insider 90d",         12),     # Sprint G · SEC Form 4 count (USA)
-    ("Corr to Uni",         12),     # Sprint G · avg correlation to universe
-    ("Turnover σ",          12),     # Sprint G · today turnover vs 20d mean
+    # DROPPED 2026-08-06 per CEO PDF §4 analysis (all <40% populated · noise):
+    # Sector Exposure % · Insider 90d · Corr to Uni · Turnover σ
+    # Alert KEPT · carries new stop-loss/deep-loss signals from same-day ship
     ("Story",               60),     # Sprint C · compact narrative "Rank ↑ 5→1 · Conf +7% · momentum ↑ · 34d left · HOLD"
     ("Alert",               34),     # NEW · profit-protection signals (severity·trigger·note)
     ("Confidence %",        13),
@@ -560,15 +559,12 @@ def _rec_to_row(rec: Mapping, market: str, root: Path,
         health_score,         # Sprint A · composite 0-100 (RESTORED)
         health_band,          # Sprint J · band (STRONG/HOLD/EXIT · 3-state)
         risk_meter,           # Sprint H · 🟢🟡🔴
-        sector_exposure_pct,  # Sprint H · sector concentration (RESTORED)
         adj_conf,             # CIL · adjusted confidence
         ctx_drag,             # CIL · signed drag pts
         ctx_reason,           # CIL · top drivers
-        insider_90d,          # Sprint G · SEC Form 4 count (USA)
-        corr_to_uni,          # Sprint G · avg correlation to universe
-        turnover_sigma,       # Sprint G · NSE turnover σ (India)
+        # DROPPED 2026-08-06: sector_exposure_pct · insider_90d · corr_to_uni · turnover_sigma
         story,                # Sprint C · compact narrative
-        alert,                # NEW v5 · profit-protection signals
+        alert,                # profit-protection signals (kept for stop-loss visibility)
         conf_pct if conf_pct is not None else "",
         conf_type,
         model_score if model_score is not None else "",
@@ -1242,8 +1238,6 @@ def build_and_stamp_all(root: Path, asof: str,
             # delivery per operator directive)
             try:
                 from backend.portfolio import fresh_opportunities as _fo
-                # Use scan() + json emit only · skip render_md (avoids Windows
-                # cp1252 encoding issue with arrow chars)
                 fresh = _fo.scan(root, m, asof)
                 jp = root / "reports" / "research" / f"fresh_opportunities_{m}.json"
                 jp.parent.mkdir(parents=True, exist_ok=True)
@@ -1290,7 +1284,19 @@ def build_and_stamp_all(root: Path, asof: str,
                     print(f"[build_and_stamp:{m}] {eng_name} FAILED · {type(e).__name__}: {e}")
         except Exception as e:
             print(f"[build_and_stamp:{m}] pp/rank skipped · {type(e).__name__}: {e}")
-    return build_unified_history(root, asof, markets=markets)
+    # Build XLSX first · then rotation tracker scans it for today's rotation exits
+    xlsx_path = build_unified_history(root, asof, markets=markets)
+    # 2026-08-06 · Rotation Outcome Tracker · after XLSX built · scans exits ·
+    # closes matured >=20d outcomes · emits weekly rollup
+    try:
+        from backend.portfolio import rotation_outcome_tracker as _rot
+        rr = _rot.daily_cycle(root, asof)
+        print(f"[rotation_outcomes] logged={rr['n_new_rotations_logged']} · "
+              f"closed={rr['n_outcomes_closed']} · "
+              f"win_rate={rr['rollup'].get('rotation_win_rate_pct')}%")
+    except Exception as e:
+        print(f"[rotation_outcomes] skipped · {type(e).__name__}: {e}")
+    return xlsx_path
 
 
 def maybe_sync_google_sheet(xlsx_path: Path) -> tuple[bool, str]:
