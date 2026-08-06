@@ -59,10 +59,9 @@ COLUMNS = [
     ("Rank",                6),
     ("Prior Rank",          10),     # NEW · rank at asof-1 (from rank_history)
     ("Rank Δ",              8),      # NEW · today - prior · positive = worse
-    ("Health",              8),      # Sprint A · composite 0-100
-    ("Band",                14),     # Sprint A · STRONG_BUY/HOLD/WATCH/REVIEW/EXIT_CANDIDATE
-    ("Risk Meter",          8),      # Sprint H-nice · 🟢🟡🔴 derived from Band + Ctx Drag
-    ("Sector Exposure %",   12),     # Sprint H-nice · this ticker's sector % in R2 top-15
+    ("Band",                10),     # Sprint J · STRONG/HOLD/EXIT (3-state · killed WEAK)
+    ("New Opp",             10),     # Sprint J · 🟢 if ticker is a fresh buy today · blank else
+    ("Risk Meter",          8),      # Sprint H · 🟢🟡🔴 derived from Band + Ctx Drag
     ("Adj Conf",            10),     # CIL · adjusted confidence after context layer
     ("Ctx Drag",            10),     # CIL · signed drag/boost pts vs base confidence
     ("Ctx Reason",          50),     # CIL · top context drivers
@@ -418,16 +417,23 @@ def _rec_to_row(rec: Mapping, market: str, root: Path,
     except Exception:
         pass
 
-    # Sprint C · Story column · compact narrative
-    story = _build_story(rank, prior_rank, rank_delta, conf_pct, ev,
-                                health_band, prior_band, days_left, status,
-                                if_holding, ri)
+    # Sprint J · Entry Signal (computed first · used by Story prefix)
+    entry_signal, buy_zone_delta = _entry_signal(current_price, buy_high,
+                                                                entry_price, health_band, status)
+
+    # Sprint J · New Opportunity flag · reads fresh_opportunities.json
+    new_opp = _new_opp_flag(root, market, ticker)
 
     # Sprint H-nice · Risk Meter (🟢🟡🔴)
     risk_meter = _risk_meter(health_band, ctx_drag)
 
-    # Sprint H-nice · Sector Exposure (concentration awareness)
-    sector_exposure_pct = _sector_exposure_pct(root, market, sector)
+    # Sprint C · Story column · compact narrative · Sprint J prefix with entry signal
+    story = _build_story(rank, prior_rank, rank_delta, conf_pct, ev,
+                                health_band, prior_band, days_left, status,
+                                if_holding, ri)
+    if entry_signal:
+        _delta_suffix = f" (Δ{buy_zone_delta:+.1f}%)" if isinstance(buy_zone_delta, (int, float)) else ""
+        story = f"{entry_signal}{_delta_suffix} · {story}"
 
     # Enrich Exit Reason with rotation detail if applicable
     if status == "EXIT" and ri and ri.get("should_rotate"):
@@ -445,10 +451,9 @@ def _rec_to_row(rec: Mapping, market: str, root: Path,
         rank if rank else "",
         prior_rank,           # NEW v5 · rank at asof-1
         rank_delta,           # NEW v5 · today - prior · +ve = worse rank
-        health_score,         # Sprint A · composite 0-100
-        health_band,          # Sprint A · band
-        risk_meter,           # Sprint H-nice · 🟢🟡🔴
-        sector_exposure_pct,  # Sprint H-nice · sector concentration
+        health_band,          # Sprint J · band (STRONG/HOLD/EXIT · 3-state)
+        new_opp,              # Sprint J · 🟢 New Opportunity today · blank else
+        risk_meter,           # Sprint H · 🟢🟡🔴
         adj_conf,             # CIL · adjusted confidence
         ctx_drag,             # CIL · signed drag pts
         ctx_reason,           # CIL · top drivers
@@ -517,6 +522,68 @@ def _collect_rows_for_market(root: Path, market: str, asof: str) -> list[list]:
         except Exception as e:
             print(f"[collect_rows:usa] USA R1 render skipped · {type(e).__name__}: {e}")
     return rows
+
+
+def _new_opp_flag(root: Path, market: str, ticker: str) -> str:
+    """Sprint J · read fresh_opportunities.json · return 🟢 if this ticker
+    is a fresh opportunity today · blank otherwise. One-column at-a-glance
+    for new money."""
+    p = root / "reports" / "research" / f"fresh_opportunities_{market}.json"
+    if not p.exists():
+        return ""
+    try:
+        d = json.loads(p.read_text(encoding="utf-8"))
+        short = ticker.replace(".NS", "").replace(".BO", "").upper()
+        for f in d.get("fresh_buys") or []:
+            if (f.get("ticker") or "").upper() == short:
+                return "🟢 NEW"
+    except Exception:
+        return ""
+    return ""
+
+
+def _entry_signal(current_price, buy_zone_high, entry_price, health_band, status) -> tuple:
+    """Sprint J · 3-state Entry Signal for new money.
+
+    Returns (signal_str, buy_zone_delta_pct)
+
+    Rules (in order · first match wins):
+        · Status is EXIT / band WEAK or EXIT   → 🔴 AVOID (thesis broken)
+        · price ≤ 1% above buy_zone_high        → 🟢 BUY (fresh entry available)
+        · price ≤ 8% above entry                → 🟡 WAIT (moved but not chased hard)
+        · price > 8% above entry                → ⚪ HOLDER ONLY (aged rec)
+        · missing data                          → "" (silent)
+
+    Buy zone delta % = (current - buy_zone_high) / buy_zone_high × 100
+    Negative = below buy zone (accumulable) · positive = above.
+    """
+    if not isinstance(current_price, (int, float)) or not current_price:
+        return "", ""
+    # Check thesis first · exit / weak → avoid
+    band_norm = (health_band or "").upper().replace(" ", "").replace("_", "")
+    if status == "EXIT" or band_norm in ("EXIT", "WEAK", "EXITCANDIDATE", "REVIEW"):
+        return "🔴 AVOID", ""
+
+    # Compute buy zone delta if we have buy_zone_high
+    delta_pct = None
+    if isinstance(buy_zone_high, (int, float)) and buy_zone_high:
+        delta_pct = round((current_price - buy_zone_high) / buy_zone_high * 100, 2)
+
+    # Compute distance from entry (for HOLDER ONLY check)
+    entry_pct = None
+    if isinstance(entry_price, (int, float)) and entry_price:
+        entry_pct = (current_price - entry_price) / entry_price * 100
+
+    # BUY: within 1% above buy zone high (or below it entirely)
+    if delta_pct is not None and delta_pct <= 1.0:
+        return "🟢 BUY", delta_pct
+    # HOLDER ONLY: too far from entry
+    if entry_pct is not None and entry_pct > 8.0:
+        return "⚪ HOLDER ONLY", delta_pct if delta_pct is not None else ""
+    # WAIT: moved past buy zone but not gone too far
+    if delta_pct is not None:
+        return "🟡 WAIT", delta_pct
+    return "", ""
 
 
 def _risk_meter(health_band: str, ctx_drag) -> str:
@@ -887,6 +954,16 @@ def build_and_stamp_all(root: Path, asof: str,
                 print(f"[build_and_stamp:{m}] economic_calendar appended={summary['total_appended']}")
             except Exception as e:
                 print(f"[build_and_stamp:{m}] economic_calendar failed · {type(e).__name__}: {e}")
+            # Sprint J-3 · Fresh Opportunities · daily unified filter
+            try:
+                from backend.portfolio import fresh_opportunities as _fo
+                fresh_path = _fo.daily_run(root, m, asof)
+                if fresh_path:
+                    print(f"[build_and_stamp:{m}] fresh_opportunities → {fresh_path.name}")
+                else:
+                    print(f"[build_and_stamp:{m}] fresh_opportunities · 0 fresh buys today · silent")
+            except Exception as e:
+                print(f"[build_and_stamp:{m}] fresh_opportunities failed · {type(e).__name__}: {e}")
             # Guard 7-supporting engines · MANDATORY daily refresh per operator
             # directive 2026-08-05 · "every report should flow and run daily"
             for eng_name, eng_fn in [

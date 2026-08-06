@@ -38,11 +38,27 @@ from .market_regime_stability import buffer_state as _regime_buffer_state
 
 
 # ── Default thresholds · overridable via configs/profit_protection.json ──
+# Sprint J tightening 2026-08-06 per operator directive: "when a stock has
+# reached good decent returns in shorter days · why don't we exit and plan
+# for others?" Rapid appreciation now TAKE_PROFIT (aggressive exit) instead
+# of TRAIL. Added dedicated TAKE_PROFIT trigger for early-target hits.
 DEFAULT_CONFIG = {
     "rapid_appreciation": {
-        "min_gain_pct":        15.0,     # +15% or more
+        "min_gain_pct":        12.0,     # tightened 15 → 12 · quicker take
         "max_days_held":       10,       # in 10 days or less
-        "action":              "TRAIL",  # lock 50% · trail remaining
+        "action":              "TAKE_PROFIT",  # tightened TRAIL → TAKE_PROFIT
+    },
+    "take_profit_early": {
+        # Rotate when position gained N% AND used < half its planned horizon.
+        # Answers operator's "if we reached good returns quickly · exit and rotate"
+        "min_gain_pct":                8.0,   # +8% is decent quick win
+        "max_horizon_pct_elapsed":     0.50,  # < 50% of planned days
+        "action":                      "TAKE_PROFIT",
+    },
+    "hard_gain_cap": {
+        # Never let a big gain evaporate · +20% ever = lock it
+        "min_gain_pct":                20.0,
+        "action":                      "TAKE_PROFIT",
     },
     "rank_collapse": {
         "min_rank_drop":       5,        # rank fell by 5+ places
@@ -69,7 +85,8 @@ DEFAULT_CONFIG = {
 
 
 TRIGGER_NAMES = ("RAPID_APPRECIATION", "RANK_COLLAPSE", "BETTER_REPLACEMENT",
-                     "SECTOR_LEADERSHIP", "RISK_ESCALATION", "MARKET_REGIME_BUFFER")
+                     "SECTOR_LEADERSHIP", "RISK_ESCALATION", "MARKET_REGIME_BUFFER",
+                     "TAKE_PROFIT_EARLY", "HARD_GAIN_CAP")
 
 
 @dataclass
@@ -98,7 +115,7 @@ def load_config(root: Path) -> dict:
 
 def check_rapid_appreciation(pos: Mapping, current_price: float,
                                     asof: str, cfg: dict) -> ProfitProtectionSignal | None:
-    """Trigger #1 · position up N% in <M days."""
+    """Trigger #1 · position up N% in <M days · TAKE PROFIT + rotate."""
     entry = pos.get("entry_price") or 0
     opened_on = pos.get("opened_on") or ""
     if not entry or not opened_on or not current_price:
@@ -118,9 +135,65 @@ def check_rapid_appreciation(pos: Mapping, current_price: float,
         action=cfg["action"],
         reason=f"+{gain_pct:.1f}% in {days_held}d "
                  f"(≥{cfg['min_gain_pct']:.0f}% in ≤{cfg['max_days_held']}d) · "
-                 f"lock 50% · trail remaining",
+                 f"TAKE PROFIT · rotate to next opportunity",
         severity="warning",
         metadata={"gain_pct": round(gain_pct, 2), "days_held": days_held},
+    )
+
+
+def check_take_profit_early(pos: Mapping, current_price: float,
+                                    asof: str, planned_horizon_days: int,
+                                    cfg: dict) -> ProfitProtectionSignal | None:
+    """Sprint J-2 · TAKE_PROFIT_EARLY · position gained N% in less than half horizon.
+
+    Operator directive 2026-08-06: "when stock has reached good decent returns
+    in shorter days · exit and plan for others."
+    """
+    entry = pos.get("entry_price") or 0
+    opened_on = pos.get("opened_on") or ""
+    if not entry or not opened_on or not current_price or planned_horizon_days <= 0:
+        return None
+    gain_pct = (current_price - entry) / entry * 100.0
+    if gain_pct < cfg["min_gain_pct"]:
+        return None
+    try:
+        days_held = (date.fromisoformat(asof) - date.fromisoformat(opened_on)).days
+    except (ValueError, TypeError):
+        return None
+    horizon_elapsed = days_held / planned_horizon_days if planned_horizon_days else 1
+    if horizon_elapsed >= cfg["max_horizon_pct_elapsed"]:
+        return None
+    return ProfitProtectionSignal(
+        ticker=pos.get("ticker", ""),
+        trigger="TAKE_PROFIT_EARLY",
+        action=cfg["action"],
+        reason=f"+{gain_pct:.1f}% gained in {days_held}d "
+                 f"({horizon_elapsed:.0%} of {planned_horizon_days}d horizon) · "
+                 f"TAKE PROFIT early · rotate capital",
+        severity="warning",
+        metadata={"gain_pct": round(gain_pct, 2), "days_held": days_held,
+                      "horizon_elapsed_pct": round(horizon_elapsed * 100, 1)},
+    )
+
+
+def check_hard_gain_cap(pos: Mapping, current_price: float,
+                              cfg: dict) -> ProfitProtectionSignal | None:
+    """Sprint J-2 · HARD_GAIN_CAP · never let a big gain evaporate.
+    +20% ever = lock it and rotate."""
+    entry = pos.get("entry_price") or 0
+    if not entry or not current_price:
+        return None
+    gain_pct = (current_price - entry) / entry * 100.0
+    if gain_pct < cfg["min_gain_pct"]:
+        return None
+    return ProfitProtectionSignal(
+        ticker=pos.get("ticker", ""),
+        trigger="HARD_GAIN_CAP",
+        action=cfg["action"],
+        reason=f"+{gain_pct:.1f}% ≥ hard cap {cfg['min_gain_pct']:.0f}% · "
+                 f"TAKE PROFIT · never give back a 20% gain",
+        severity="critical",
+        metadata={"gain_pct": round(gain_pct, 2)},
     )
 
 

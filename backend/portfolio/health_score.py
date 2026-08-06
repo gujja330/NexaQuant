@@ -170,21 +170,20 @@ def _factor_liquidity(rec: Mapping) -> float:
 
 
 def _band(overall: float, cfg_bands: dict | None = None) -> str:
-    """Sprint H-simplify · operator feedback 2026-08-06: "HOLD/WATCH/REVIEW
-    is very confusing · make it simple". Collapsed from 5 bands to 4 with
-    clear action verbs.
+    """Sprint J-simplify · 2026-08-06 · operator directive: "strong / hold /
+    exit that's it makes sense · why weak again · weak means we lose profits
+    · instead exit right." Collapsed from 4 bands to 3.
 
-    Old (5 bands · confusing):
-        STRONG_BUY (90-100) · HOLD (75-90) · WATCH (60-75) · REVIEW (45-60) · EXIT_CANDIDATE (<45)
-    New (4 bands · clear):
-        STRONG (85-100)    ·  Buy or add · position is very healthy
-        HOLD   (65-85)     ·  Position healthy · no action needed
-        WEAK   (45-65)     ·  Weakening · consider reducing
-        EXIT   (<45)        ·  Thesis breaking · exit or hard trail
+    Killed WEAK (was 45-65 · now folded into EXIT · aggressive profit-lock).
+
+    Old (4 bands): STRONG · HOLD · WEAK · EXIT
+    New (3 bands · plain action):
+        STRONG (80-100)    ·  Buy or add · very healthy
+        HOLD   (55-80)     ·  Position healthy · no action
+        EXIT   (<55)       ·  Thesis softening · get out and rotate
     """
-    if overall >= 85: return "STRONG"
-    if overall >= 65: return "HOLD"
-    if overall >= 45: return "WEAK"
+    if overall >= 80: return "STRONG"
+    if overall >= 55: return "HOLD"
     return "EXIT"
 
 
