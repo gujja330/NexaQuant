@@ -749,6 +749,53 @@ def _load_alert(root: Path, market: str, ticker: str) -> str:
         return ""
 
 
+def _add_fresh_buys_sheet(wb, root: Path) -> None:
+    """Sprint J-fix · add a prominent 'Fresh Buys Today' sheet as first tab
+    so operator sees new opportunities immediately on opening Excel."""
+    if "Fresh Buys" in wb.sheetnames:
+        del wb["Fresh Buys"]
+    ws = wb.create_sheet("Fresh Buys", 0)   # index 0 = first tab
+    hdr = ["Market", "Rank", "Ticker", "Sector", "Entry", "Buy Zone Δ %",
+              "Base Conf %", "Adj Conf %", "Band", "Why Fresh"]
+    for c, name in enumerate(hdr, start=1):
+        cell = ws.cell(row=1, column=c, value=name)
+        cell.fill = HEADER_FILL; cell.font = HEADER_FONT; cell.alignment = CENTER
+    widths = [8, 5, 12, 22, 10, 12, 12, 12, 10, 40]
+    for c, w in enumerate(widths, start=1):
+        ws.column_dimensions[get_column_letter(c)].width = w
+    ws.freeze_panes = "A2"
+
+    row_idx = 2
+    for m in ("india", "usa"):
+        jp = root / "reports" / "research" / f"fresh_opportunities_{m}.json"
+        if not jp.exists(): continue
+        try:
+            d = json.loads(jp.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        for f in d.get("fresh_buys") or []:
+            reasons = " · ".join(f.get("reasons") or [])
+            ws.cell(row=row_idx, column=1, value=m.upper())
+            ws.cell(row=row_idx, column=2, value=f.get("rank"))
+            ws.cell(row=row_idx, column=3, value=f.get("ticker"))
+            ws.cell(row=row_idx, column=4, value=f.get("sector") or "—")
+            ws.cell(row=row_idx, column=5, value=f.get("entry_price"))
+            ws.cell(row=row_idx, column=6, value=f.get("buy_zone_delta_pct"))
+            ws.cell(row=row_idx, column=7, value=f.get("confidence_pct"))
+            ws.cell(row=row_idx, column=8, value=f.get("adjusted_confidence"))
+            ws.cell(row=row_idx, column=9, value=f.get("health_band"))
+            ws.cell(row=row_idx, column=10, value=reasons)
+            for c in range(1, 11):
+                ws.cell(row=row_idx, column=c).alignment = CENTER
+            row_idx += 1
+    if row_idx == 2:
+        # No fresh buys today · note it
+        ws.cell(row=2, column=1,
+                    value="No fresh opportunities today · Guard 7 filters produced 0 candidates · watchlist only")
+        ws.cell(row=2, column=1).alignment = LEFT
+        ws.merge_cells(start_row=2, start_column=1, end_row=2, end_column=10)
+
+
 def _write_new_workbook(path: Path, rows: list[list]) -> None:
     wb = Workbook()
     ws = wb.active
@@ -774,6 +821,12 @@ def _write_new_workbook(path: Path, rows: list[list]) -> None:
     # Auto-filter
     last_col = get_column_letter(len(COLUMNS))
     ws.auto_filter.ref = f"A1:{last_col}{len(rows) + 1}"
+    # Sprint J-fix · prepend Fresh Buys sheet (root passed via closure)
+    try:
+        _root_hint = path.parents[2]      # reports/telegram/*.xlsx → root
+        _add_fresh_buys_sheet(wb, _root_hint)
+    except Exception:
+        pass
     wb.save(path)
 
 
@@ -850,6 +903,12 @@ def _append_to_workbook(path: Path, rows: list[list]) -> None:
     # Refresh auto-filter to cover new range
     last_col = get_column_letter(len(COLUMNS))
     ws.auto_filter.ref = f"A1:{last_col}{ws.max_row}"
+    # Sprint J-fix · refresh Fresh Buys sheet on every append
+    try:
+        _root_hint = path.parents[2]
+        _add_fresh_buys_sheet(wb, _root_hint)
+    except Exception:
+        pass
     wb.save(path)
 
 
