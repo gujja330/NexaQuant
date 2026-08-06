@@ -57,7 +57,12 @@ def _fmt_date(iso: str | None, fmt: str = "%d-%b-%Y") -> str:
 
 
 def _load_position(root: Path, market: str, ticker: str) -> dict | None:
-    """Load a single position record from position_store."""
+    """Load a single position record from position_store.
+
+    P0 FIX 2026-08-06 · fuzzy-match on short ticker vs full-suffix ticker.
+    Rec payloads use 'TCS' but position_store keys are 'TCS.NS' · exact
+    match was failing · falling back to current_price for Entry · breaking
+    the frozen-entry contract on live daily rows."""
     if market == "usa":
         p = root / "usa" / "reports" / "position_store" / market / "positions.json"
     else:
@@ -66,7 +71,17 @@ def _load_position(root: Path, market: str, ticker: str) -> dict | None:
         return None
     try:
         d = json.loads(p.read_text(encoding="utf-8"))
-        return (d.get("positions") or {}).get(ticker)
+        positions = d.get("positions") or {}
+        # Try exact match first
+        if ticker in positions:
+            return positions[ticker]
+        # Fuzzy: strip .NS / .BO from both sides · match by short ticker
+        short = ticker.replace(".NS", "").replace(".BO", "").upper()
+        for k, v in positions.items():
+            ks = k.replace(".NS", "").replace(".BO", "").upper()
+            if ks == short:
+                return v
+        return None
     except Exception:
         return None
 
