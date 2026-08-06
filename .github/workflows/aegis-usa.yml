@@ -53,6 +53,28 @@ jobs:
       - name: Run USA ops check
         run: python usa/scripts/usa_ops_check.py
 
+      - name: Generate USA Runner 1 defensive orphans (Sprint H · release-blocker)
+        # Belt-and-suspenders: build_and_stamp_all in the sender also runs
+        # this, but we invoke it EXPLICITLY here so USA R1 is guaranteed
+        # generated even if the sender step fails · operator directive
+        # 2026-08-06 · "verify this happens on every scheduled run rather
+        # than being a one-off"
+        if: always()
+        run: |
+          python -c "
+          import sys
+          sys.path.insert(0, '.')
+          from pathlib import Path
+          from datetime import date
+          from backend.recommendation.usa_runner1 import derive as _r
+          p = _r.derive(Path('.'), date.today().isoformat())
+          if p.get('available'):
+              _r.emit(Path('.'), p)
+              print(f'[usa_runner1] emitted {p[\"n_r1_orphans\"]} defensive orphans')
+          else:
+              print(f'[usa_runner1] skipped · {p.get(\"reason\")}')
+          "
+
       - name: Telegram Command Center (USA · cycle 6 · single crisp message)
         # Consumes usa/reports/recommendations.json enriched by cycles 3-4.
         # First USA-side Telegram delivery · matches India parity.

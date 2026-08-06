@@ -170,11 +170,22 @@ def _factor_liquidity(rec: Mapping) -> float:
 
 
 def _band(overall: float, cfg_bands: dict | None = None) -> str:
-    if overall >= 90: return "STRONG_BUY"
-    if overall >= 75: return "HOLD"
-    if overall >= 60: return "WATCH"
-    if overall >= 45: return "REVIEW"
-    return "EXIT_CANDIDATE"
+    """Sprint H-simplify · operator feedback 2026-08-06: "HOLD/WATCH/REVIEW
+    is very confusing · make it simple". Collapsed from 5 bands to 4 with
+    clear action verbs.
+
+    Old (5 bands · confusing):
+        STRONG_BUY (90-100) · HOLD (75-90) · WATCH (60-75) · REVIEW (45-60) · EXIT_CANDIDATE (<45)
+    New (4 bands · clear):
+        STRONG (85-100)    ·  Buy or add · position is very healthy
+        HOLD   (65-85)     ·  Position healthy · no action needed
+        WEAK   (45-65)     ·  Weakening · consider reducing
+        EXIT   (<45)        ·  Thesis breaking · exit or hard trail
+    """
+    if overall >= 85: return "STRONG"
+    if overall >= 65: return "HOLD"
+    if overall >= 45: return "WEAK"
+    return "EXIT"
 
 
 def _load_prior_card(root: Path, market: str, ticker: str) -> HealthCard | None:

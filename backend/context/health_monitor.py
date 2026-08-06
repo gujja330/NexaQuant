@@ -61,6 +61,8 @@ ENGINES = [
     ("reports/fii_dii_flow.json",              "CRITICAL",  2, 200),
     ("reports/correlation_matrix.json",        "IMPORTANT", 5, 400),
     ("reports/ai_news_narrative.json",         "IMPORTANT", 3, 300),
+    # Sprint H · USA Runner 1 defensive derivative (operator lock blocker)
+    ("usa/reports/runner1_orphans.json",       "CRITICAL",  1, 400),
 ]
 
 

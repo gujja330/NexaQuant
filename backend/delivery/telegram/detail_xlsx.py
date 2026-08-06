@@ -61,6 +61,8 @@ COLUMNS = [
     ("Rank Δ",              8),      # NEW · today - prior · positive = worse
     ("Health",              8),      # Sprint A · composite 0-100
     ("Band",                14),     # Sprint A · STRONG_BUY/HOLD/WATCH/REVIEW/EXIT_CANDIDATE
+    ("Risk Meter",          8),      # Sprint H-nice · 🟢🟡🔴 derived from Band + Ctx Drag
+    ("Sector Exposure %",   12),     # Sprint H-nice · this ticker's sector % in R2 top-15
     ("Adj Conf",            10),     # CIL · adjusted confidence after context layer
     ("Ctx Drag",            10),     # CIL · signed drag/boost pts vs base confidence
     ("Ctx Reason",          50),     # CIL · top context drivers
@@ -421,6 +423,21 @@ def _rec_to_row(rec: Mapping, market: str, root: Path,
                                 health_band, prior_band, days_left, status,
                                 if_holding, ri)
 
+    # Sprint H-nice · Risk Meter (🟢🟡🔴)
+    risk_meter = _risk_meter(health_band, ctx_drag)
+
+    # Sprint H-nice · Sector Exposure (concentration awareness)
+    sector_exposure_pct = _sector_exposure_pct(root, market, sector)
+
+    # Enrich Exit Reason with rotation detail if applicable
+    if status == "EXIT" and ri and ri.get("should_rotate"):
+        _repl = ri.get("replacement_ticker") or ""
+        _edge = ri.get("expected_alpha_delta_pct")
+        _repl_rank = ri.get("replacement_rank")
+        if _repl and _edge is not None:
+            rank_str = f" #{_repl_rank}" if _repl_rank else ""
+            exit_reason = f"→ {_repl}{rank_str} · +{_edge:.1f}pp alpha"
+
     return [
         asof, country, runner, ticker, company, status,
         exit_reason,          # NEW · blank unless status = EXIT
@@ -430,6 +447,8 @@ def _rec_to_row(rec: Mapping, market: str, root: Path,
         rank_delta,           # NEW v5 · today - prior · +ve = worse rank
         health_score,         # Sprint A · composite 0-100
         health_band,          # Sprint A · band
+        risk_meter,           # Sprint H-nice · 🟢🟡🔴
+        sector_exposure_pct,  # Sprint H-nice · sector concentration
         adj_conf,             # CIL · adjusted confidence
         ctx_drag,             # CIL · signed drag pts
         ctx_reason,           # CIL · top drivers
@@ -498,6 +517,59 @@ def _collect_rows_for_market(root: Path, market: str, asof: str) -> list[list]:
         except Exception as e:
             print(f"[collect_rows:usa] USA R1 render skipped · {type(e).__name__}: {e}")
     return rows
+
+
+def _risk_meter(health_band: str, ctx_drag) -> str:
+    """Sprint H-simplify · 4-band vocabulary mapped to 🟢🟡🔴.
+
+    Bands (new · 4-state · unambiguous):
+        STRONG → 🟢   Buy or add · very healthy
+        HOLD   → 🟢   Position healthy · no action
+        WEAK   → 🟡   Weakening · consider reducing
+        EXIT   → 🔴   Thesis breaking · exit
+
+    Escalation: large context drag can push STRONG/HOLD → 🟡 warning.
+    """
+    if not health_band:
+        return ""
+    band = health_band.upper().replace(" ", "").replace("_", "")
+    if band == "STRONG":  base = "🟢"
+    elif band == "HOLD":  base = "🟢"
+    elif band == "WEAK":  base = "🟡"
+    elif band == "EXIT":  base = "🔴"
+    # Backward compat with old 5-band vocab
+    elif band in ("STRONGBUY", "STRONG BUY"): base = "🟢"
+    elif band == "WATCH": base = "🟡"
+    elif band == "REVIEW": base = "🟡"
+    elif band == "EXITCANDIDATE": base = "🔴"
+    else: base = ""
+    # Escalate on large negative context drag
+    try:
+        d = float(ctx_drag or 0)
+        if d <= -10 and base != "🔴": base = "🔴"
+        elif d <= -5 and base == "🟢": base = "🟡"
+    except (TypeError, ValueError):
+        pass
+    return base
+
+
+def _sector_exposure_pct(root: Path, market: str, sector: str) -> str:
+    """Sprint H-nice · % of R2 top-15 in this ticker's sector today."""
+    if not sector:
+        return ""
+    p = (root / "usa" / "reports" / "recommendations.json"
+             if market == "usa" else root / "reports" / "recommendations.json")
+    if not p.exists():
+        return ""
+    try:
+        d = json.loads(p.read_text(encoding="utf-8"))
+        recs = d.get("recommendations") or []
+        if not recs: return ""
+        same_sector = sum(1 for r in recs if (r.get("sector") or "") == sector)
+        pct = round(same_sector / len(recs) * 100, 1)
+        return pct
+    except Exception:
+        return ""
 
 
 def _load_cil_adjustment(root: Path, market: str, ticker: str) -> dict | None:

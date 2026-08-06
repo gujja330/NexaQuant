@@ -12,6 +12,13 @@ from __future__ import annotations
 
 OPERATOR_GUIDE_TEXT = """📖 HOW TO USE AEGIS DAILY REPORT
 
+🎯 Health Band vocabulary (4 states · simple)
+   🟢 STRONG   85-100  · Buy or add · very healthy
+   🟢 HOLD     65-85   · Position healthy · no action
+   🟡 WEAK     45-65   · Weakening · consider reducing
+   🔴 EXIT     <45     · Thesis breaking · exit
+
+
 🛡 Runner 1 · Core portfolio (defensive)
    · Reviews weekly · low turnover · hold 1-3 months
    · Use as your STABLE base · 10-15 stocks
