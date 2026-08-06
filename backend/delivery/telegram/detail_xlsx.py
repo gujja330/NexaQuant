@@ -137,7 +137,8 @@ def _prev_close(root: Path, ticker: str, market: str) -> float | None:
     for suf in (".NS", ".BO", ".NSE", ".BSE"):
         if bare.upper().endswith(suf):
             bare = bare[: -len(suf)]; break
-    p = (root / "data" / "raw" / ("us" if market == "usa" else "india")) / f"{bare}_D1.parquet"
+    p = ((root / "usa" / "data" / "raw" / "us") if market == "usa"
+              else (root / "data" / "raw" / "india")) / f"{bare}_D1.parquet"
     if not p.exists(): return None
     try:
         df = pd.read_parquet(p)
@@ -204,7 +205,7 @@ def _today_move_pct(root: Path, ticker: str, market: str) -> float | None:
             bare = bare[: -len(suf)]
             break
     if market == "usa":
-        p = root / "data" / "raw" / "us" / f"{bare}_D1.parquet"
+        p = root / "usa" / "data" / "raw" / "us" / f"{bare}_D1.parquet"
     else:
         p = root / "data" / "raw" / "india" / f"{bare}_D1.parquet"
     if not p.exists():

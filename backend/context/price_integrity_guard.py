@@ -91,10 +91,51 @@ def _latest_bar_date(root: Path, market: str, ticker: str) -> str | None:
         return None
 
 
+def _market_bar_freshness(root: Path, market: str, asof: str) -> tuple[str, int, int]:
+    """Return (latest_bar_date, age_days_max, n_stale_tickers) for a market."""
+    import pandas as pd
+    d = root / ("usa/data/raw/us" if market == "usa" else "data/raw/india")
+    if not d.exists(): return ("missing", 999, 0)
+    latest_dates = []
+    n_stale = 0
+    for p in list(d.glob("*_D1.parquet"))[:30]:      # sample 30 tickers
+        try:
+            df = pd.read_parquet(p)
+            df.index = pd.to_datetime(df.index).strftime("%Y-%m-%d")
+            if not len(df): continue
+            latest_dates.append(df.index[-1])
+        except Exception:
+            continue
+    if not latest_dates: return ("no_data", 999, 0)
+    max_latest = max(latest_dates)
+    try:
+        age = (date.fromisoformat(asof) - date.fromisoformat(max_latest)).days
+    except (ValueError, TypeError):
+        age = 999
+    n_stale = sum(1 for d_ in latest_dates if d_ != max_latest)
+    return (max_latest, age, n_stale)
+
+
 def check_all(root: Path, asof: str) -> dict:
     issues: list[PriceIssue] = []
     n_positions_checked = 0
     n_recs_checked = 0
+    market_bar_freshness = {}
+
+    # Bar-freshness per market · CRITICAL if >5 days stale
+    for market in ("india", "usa"):
+        latest, age, n_stale = _market_bar_freshness(root, market, asof)
+        market_bar_freshness[market] = {
+            "latest_bar_date": latest, "age_days": age, "n_stale": n_stale,
+        }
+        if age > 5:
+            issues.append(PriceIssue(market, "*", "bar_data_stale",
+                                              "CRITICAL",
+                                              f"latest bar {latest} is {age}d old · pipeline data source failing"))
+        elif age > 3:
+            issues.append(PriceIssue(market, "*", "bar_data_lag",
+                                              "WARNING",
+                                              f"latest bar {latest} is {age}d old (weekend allowance)"))
 
     # Check 1+4 · position_store first_seen_price matches parquet + no flat OHLC on first_seen
     for market in ("india", "usa"):
@@ -181,6 +222,7 @@ def check_all(root: Path, asof: str) -> dict:
         "asof":              asof,
         "generated_utc":     datetime.now(timezone.utc).isoformat(),
         "verdict":           verdict,
+        "market_bar_freshness": market_bar_freshness,
         "n_positions_checked": n_positions_checked,
         "n_recs_checked":    n_recs_checked,
         "n_critical":        len(critical),
