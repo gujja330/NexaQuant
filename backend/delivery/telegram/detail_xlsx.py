@@ -110,15 +110,16 @@ DEDUP_KEY_COLS = ["Date", "Country", "Run_Type", "Ticker"]
 HEADER_FILL = PatternFill(start_color="1F4E78", end_color="1F4E78", fill_type="solid")
 HEADER_FONT = Font(bold=True, color="FFFFFF", size=11)
 STATUS_FILLS = {
-    "STRONG BUY":  PatternFill(start_color="70AD47", end_color="70AD47", fill_type="solid"),
-    "BUY":         PatternFill(start_color="C6EFCE", end_color="C6EFCE", fill_type="solid"),
-    "HOLD":        PatternFill(start_color="FFF2CC", end_color="FFF2CC", fill_type="solid"),
-    "EXIT":        PatternFill(start_color="F8CBAD", end_color="F8CBAD", fill_type="solid"),
-    "ROTATE OUT":  PatternFill(start_color="FFD966", end_color="FFD966", fill_type="solid"),
-    # 2026-08-07 · ARCHIVED = held but no longer in top-N ranks · muted gray
-    # so operator visually distinguishes "engine still endorses" (BUY/HOLD)
-    # from "engine dropped from ranks · re-evaluate" (ARCHIVED)
-    "ARCHIVED":    PatternFill(start_color="D9D9D9", end_color="D9D9D9", fill_type="solid"),
+    "STRONG BUY":       PatternFill(start_color="70AD47", end_color="70AD47", fill_type="solid"),
+    "BUY":              PatternFill(start_color="C6EFCE", end_color="C6EFCE", fill_type="solid"),
+    "HOLD":             PatternFill(start_color="FFF2CC", end_color="FFF2CC", fill_type="solid"),
+    "EXIT":             PatternFill(start_color="F8CBAD", end_color="F8CBAD", fill_type="solid"),
+    "ROTATE OUT":       PatternFill(start_color="FFD966", end_color="FFD966", fill_type="solid"),
+    # 2026-08-07 · same-day rotations (Recommended==Date) never actually held ·
+    # muted gray to distinguish from real closed trades. Excluded from real
+    # P&L stats (use `=SUMIFS(ExitPnL, Status, "EXIT")` for closed-trade P&L).
+    "ROTATED_SAMEDAY":  PatternFill(start_color="E7E6E6", end_color="E7E6E6", fill_type="solid"),
+    "ARCHIVED":         PatternFill(start_color="D9D9D9", end_color="D9D9D9", fill_type="solid"),
 }
 CENTER = Alignment(horizontal="center", vertical="center")
 LEFT   = Alignment(horizontal="left", vertical="center", wrap_text=True)
@@ -710,10 +711,20 @@ def _load_exited_set(root: Path, market: str) -> set:
 def _collect_rows_for_market(root: Path, market: str, asof: str) -> list[list]:
     """Return all rows (R2 + R1 if India) for one market on this asof.
 
-    2026-08-07 · once a ticker EXITs (on ANY prior date) it does NOT
-    reappear. No zombie live rows · no duplicate EXIT rows. Only fresh
-    top-N tickers (STRONG BUY/BUY) and currently-held (HOLD) positions
-    appear. EXIT emitted once on the day it happens, then vanishes."""
+    2026-08-07 · Guard: skip weekend asofs (Sat/Sun). Prior manual
+    rebuilds with --asof=2026-08-01 (Saturday) emitted 41 phantom rows
+    where Entry Price = Exit Price = Friday's close → Exit P&L = 0.
+    Weekend cron already excluded (`1-5` schedule) · this guards manual runs.
+
+    Once a ticker EXITs (on ANY prior date) it does NOT reappear.
+    No zombie live rows · no duplicate EXIT rows."""
+    try:
+        from datetime import date as _dt
+        if _dt.fromisoformat(asof[:10]).weekday() >= 5:
+            print(f"[collect_rows:{market}] SKIPPED · {asof} is a weekend (no trading data)")
+            return []
+    except (ValueError, TypeError):
+        pass
     recs_path = (root / "usa" / "reports" / "recommendations.json"
                     if market == "usa" else root / "reports" / "recommendations.json")
     if not recs_path.exists():
