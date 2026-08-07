@@ -61,17 +61,18 @@ COLUMNS = [
     ("Rank",                6),
     ("Prior Rank",          10),     # NEW · rank at asof-1 (from rank_history)
     ("Rank Δ",              8),      # NEW · today - prior · positive = worse
-    ("Health",              8),      # Sprint A · composite 0-100 (RESTORED per operator)
-    ("Band",                10),     # Sprint J · STRONG/HOLD/EXIT (3-state · killed WEAK)
-    ("Risk Meter",          8),      # Sprint H · 🟢🟡🔴 derived from Band + Ctx Drag
-    ("Adj Conf",            10),     # CIL · adjusted confidence after context layer
-    ("Ctx Drag",            10),     # CIL · signed drag/boost pts vs base confidence
+    ("Health",              8),      # Sprint A · composite 0-100
+    ("Band",                10),     # STRONG/HOLD/EXIT (3-state)
+    ("Risk Meter",          8),      # 🟢🟡🔴 from Band + Ctx Drag
+    ("Adj Conf",            10),     # CIL · adjusted confidence
+    ("Ctx Drag",            10),     # CIL · signed drag pts
     ("Ctx Reason",          50),     # CIL · top context drivers
-    # DROPPED 2026-08-06 per CEO PDF §4 analysis (all <40% populated · noise):
-    # Sector Exposure % · Insider 90d · Corr to Uni · Turnover σ
-    # Alert KEPT · carries new stop-loss/deep-loss signals from same-day ship
-    ("Story",               60),     # Sprint C · compact narrative "Rank ↑ 5→1 · Conf +7% · momentum ↑ · 34d left · HOLD"
-    ("Alert",               34),     # NEW · profit-protection signals (severity·trigger·note)
+    # DROPPED 2026-08-07 per external audit PDF · confirmed empirically:
+    #   Sector Exposure % · Insider 90d · Corr to Uni · Turnover σ (all <40% populated)
+    #   Alert (0/224 populated · profit_protection wiring gap · fixed via alerts feed)
+    #   Lifecycle State (224/224 populated but all constant "NEW" · redundant with Position Stage)
+    ("Story",               60),     # compact narrative
+    ("Alerts",              44),     # RENAMED from Alert · now sourced from position_store + profit_protection combined
     ("Confidence %",        13),
     ("Conf Type",           11),
     ("Model Score",         12),
@@ -95,7 +96,7 @@ COLUMNS = [
     ("Current Perf %",      15),
     ("Max Gain %",          12),
     ("Max DD %",            11),
-    ("Lifecycle State",     16),
+    # DROPPED Lifecycle State (redundant with Position Stage · was constant "NEW")
     ("Top Drivers",         32),
     ("Sector",              20),
     ("Portfolio Weight %",  18),
@@ -425,8 +426,12 @@ def _rec_to_row(rec: Mapping, market: str, root: Path,
         except Exception:
             pass
 
-    # Alert · profit-protection signals for this ticker (severity · trigger · note)
-    alert = _load_alert(root, market, ticker)
+    # Alerts · profit-protection signals + position_store-derived stop-loss checks
+    # 2026-08-07 · external audit found Alert column 0/224 populated because
+    # profit_protection.py only evaluates R006-tracked positions and R006 ledger
+    # isn't fully wired. Fallback: also check position_store directly for
+    # stop-loss / deep-loss / rapid-gain triggers so operator sees them.
+    alert = _load_alert_with_fallback(root, market, ticker, cur_ret, entry_price)
 
     # Sprint A · Health Score (composite 0-100 + band)
     health_score = ""
@@ -588,7 +593,7 @@ def _rec_to_row(rec: Mapping, market: str, root: Path,
         cur_ret if cur_ret is not None else "",
         max_gain if max_gain is not None else "",
         max_dd if max_dd is not None else "",
-        state,
+        # Lifecycle State column DROPPED · redundant with Position Stage
         drivers_str,
         sector,
         alloc if alloc else "",
@@ -948,6 +953,30 @@ def _load_health_card(root: Path, market: str, ticker: str) -> dict | None:
     except Exception:
         return None
     return None
+
+
+def _load_alert_with_fallback(root: Path, market: str, ticker: str,
+                                       cur_ret, entry_price) -> str:
+    """2026-08-07 · combines profit_protection.json output (when R006 fires)
+    WITH position_store-derived stop-loss/take-profit checks (fallback when
+    R006 ledger is empty · which is most rows currently).
+
+    Emits severity · trigger · reason  · concatenated with || separator."""
+    parts = []
+    # Native profit_protection signals (if any)
+    native = _load_alert(root, market, ticker)
+    if native: parts.append(native)
+    # Position_store-derived signals · fires when R006 doesn't
+    if isinstance(cur_ret, (int, float)) and isinstance(entry_price, (int, float)) and entry_price:
+        if cur_ret <= -8.0:
+            parts.append(f"CRITICAL·DEEP_LOSS·{cur_ret:+.1f}% ≤ -8% · EXIT URGENT")
+        elif cur_ret <= -5.0:
+            parts.append(f"WARNING·STOP_LOSS_HIT·{cur_ret:+.1f}% ≤ -5% · exit")
+        elif cur_ret >= 20.0:
+            parts.append(f"CRITICAL·HARD_GAIN_CAP·{cur_ret:+.1f}% ≥ +20% · lock profit")
+        elif cur_ret >= 12.0:
+            parts.append(f"WARNING·RAPID_APPRECIATION·{cur_ret:+.1f}% ≥ +12% · take profit")
+    return " || ".join(parts) if parts else ""
 
 
 def _load_alert(root: Path, market: str, ticker: str) -> str:

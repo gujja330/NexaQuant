@@ -87,12 +87,16 @@ def backfill(xlsx_path: Path) -> dict:
     c_date = _find_col(h, "Date")
     c_country = _find_col(h, "Country")
     c_ticker = _find_col(h, "Ticker")
+    c_run = _find_col(h, "Run_Type")
+    c_status = _find_col(h, "Status")
     c_entry = _find_col(h, "Entry Price")
     c_curr = _find_col(h, "Current Price")
     c_perf = _find_col(h, "Current Perf %")
     c_recommended = _find_col(h, "Recommended")
     c_maxg = _find_col(h, "Max Gain %")
     c_maxd = _find_col(h, "Max DD %")
+    c_exit_pnl = _find_col(h, "Exit P&L %")
+    c_pos_id = _find_col(h, "Position ID")
 
     if not all([c_date, c_country, c_ticker, c_entry, c_curr, c_perf]):
         return {"error": "required columns missing"}
@@ -157,15 +161,27 @@ def backfill(xlsx_path: Path) -> dict:
             max_dd = round((lowest - entry) / entry * 100, 2)
 
         # Overwrite the row
+        perf = round((curr - entry) / entry * 100, 2)
         ws.cell(row=r, column=c_entry, value=round(entry, 2))
         ws.cell(row=r, column=c_curr, value=round(curr, 2))
-        ws.cell(row=r, column=c_perf, value=round((curr - entry) / entry * 100, 2))
+        ws.cell(row=r, column=c_perf, value=perf)
         if c_recommended:
             ws.cell(row=r, column=c_recommended, value=first_seen)
         if c_maxg and max_gain is not None:
             ws.cell(row=r, column=c_maxg, value=max_gain)
         if c_maxd and max_dd is not None:
             ws.cell(row=r, column=c_maxd, value=max_dd)
+        # 2026-08-07 · fix Exit P&L% (was 0 for all rotation exits)
+        if c_exit_pnl and c_status:
+            status_val = ws.cell(row=r, column=c_status).value
+            if status_val == "EXIT":
+                ws.cell(row=r, column=c_exit_pnl, value=perf)
+        # 2026-08-07 · populate Position ID for EVERY row (was 71/224)
+        if c_pos_id:
+            short = tk.replace(".NS", "").replace(".BO", "").upper()
+            mkt_short = ctry.upper()[:3] if ctry else "IND"
+            fs_short = first_seen[:10].replace("-", "")
+            ws.cell(row=r, column=c_pos_id, value=f"{short}_{mkt_short}_{fs_short}")
         n_rewritten += 1
 
     wb.save(xlsx_path)
