@@ -51,11 +51,12 @@ COLUMNS = [
     ("Position ID",         26),      # Sprint K prep · {TKR}_{MKT}_{YYYYMMDD} stable lifecycle identity
     ("Date",                12),
     ("Country",             10),
-    ("Run_Type",            10),      # "R1" | "R2" | "R1_NEW" | "R2_NEW"
+    ("Run_Type",            10),      # "R1" | "R2" only · 2026-08-07 · operator locked
     ("Ticker",              12),
     ("Company",             22),
     ("Status",              12),
-    ("Position Stage",      14),      # Sprint K · NEW · ACTIVE · MATURE · WATCH · EXIT (derived from days_held + band)
+    # Position Stage column DROPPED 2026-08-07 · redundant with Status (operator directive
+    # "status / position stage is confusing"). Status is the single source of decision truth.
     ("Exit Reason",         22),     # NEW · populated only when Status = EXIT
     ("Exit P&L %",          12),     # NEW · realized return on exit · blank otherwise
     ("Rank",                6),
@@ -562,10 +563,12 @@ def _rec_to_row(rec: Mapping, market: str, root: Path,
        and entry_price > 0:
         cur_ret = round((current_price - entry_price) / entry_price * 100, 2)
 
+    # 2026-08-07 · operator: strip _NEW suffix · Run_Type only R1 or R2
+    runner_clean = runner.replace("_NEW", "") if runner else runner
     return [
         pos_id,               # Sprint K · {TKR}_{MKT}_{YYYYMMDD} stable lifecycle ID
-        asof, country, runner, ticker, company, status,
-        pos_stage,            # Sprint K · NEW/ACTIVE/MATURE/WATCH/EXIT
+        asof, country, runner_clean, ticker, company, status,
+        # Position Stage column DROPPED · redundant with Status
         exit_reason,          # NEW · blank unless status = EXIT
         exit_pnl_pct,         # NEW · realized P&L % · blank unless EXIT
         rank if rank else "",
@@ -780,35 +783,10 @@ def _collect_rows_for_market(root: Path, market: str, asof: str) -> list[list]:
 
 def _runner_tag(root: Path, market: str, runner_key: str,
                     ticker: str, asof: str, base_tag: str) -> str:
-    """Sprint J-final · return R1_NEW / R2_NEW if ticker has NO prior
-    rank_history entry in this (market, runner) · else return base_tag (R1/R2).
-
-    Auto-decay: tomorrow's rank_history will include today's stamp · so
-    the same ticker becomes R1 or R2 automatically. No manual work.
-
-    Operator directive 2026-08-06: "Run_Type = R1_NEW / R2_NEW on first
-    day · next day auto-becomes R1/R2 · client filters Run_Type contains
-    NEW to see today's fresh opportunities. No extra sheet · no extra column."
-    """
-    if not ticker: return base_tag
-    p = root / "reports" / "research" / "rank_history.jsonl"
-    if not p.exists(): return base_tag
-    try:
-        short_ticker = ticker.replace(".NS", "").replace(".BO", "")
-        for line in p.read_text(encoding="utf-8").splitlines():
-            if not line.strip(): continue
-            try: d = json.loads(line)
-            except json.JSONDecodeError: continue
-            if d.get("market") != market: continue
-            if d.get("runner") != runner_key: continue
-            t = (d.get("ticker") or "").replace(".NS", "").replace(".BO", "")
-            if t != short_ticker: continue
-            # Found a prior entry (asof < today) · ticker is not new
-            if (d.get("asof") or "") < asof:
-                return base_tag
-        return f"{base_tag}_NEW"
-    except Exception:
-        return base_tag
+    """2026-08-07 · operator directive: Run_Type only R1 or R2 · no _NEW suffix.
+    Freshness is conveyed by Status color (STRONG BUY / BUY are visually
+    distinct from HOLD) · dedicated NEW label removed to reduce noise."""
+    return base_tag
 
 
 def _new_opp_flag(root: Path, market: str, ticker: str) -> str:
