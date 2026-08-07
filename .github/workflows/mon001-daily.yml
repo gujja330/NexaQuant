@@ -50,7 +50,8 @@ jobs:
           #   scikit-learn — HRP kernel (arjuna_v2.py) imported by any test
           #                    subprocess spawned by test_regression.py
           # (ENG003 fix + 2026-07-15 CI-failure follow-up.)
-          pip install pyyaml pandas numpy pyarrow scipy scikit-learn
+          # openpyxl 2026-08-06 · required by rotation_outcome_tracker + detail_xlsx
+          pip install pyyaml pandas numpy pyarrow scipy scikit-learn openpyxl
 
       - name: Guard — MON001 already ran today (manual dispatch bypasses)
         id: guard

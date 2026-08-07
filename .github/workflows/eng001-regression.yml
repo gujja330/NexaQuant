@@ -51,7 +51,9 @@ jobs:
           #                    imports lab_metrics -> validation)
           #   scikit-learn — india.arjuna_v2 uses sklearn.covariance for HRP
           #                    weights (LAB009 tests transitively import)
-          pip install pyyaml pandas numpy pyarrow scipy scikit-learn
+          # openpyxl 2026-08-06 · required by rotation_outcome_tracker + detail_xlsx
+          # (transitively imported by test_telegram_reliability)
+          pip install pyyaml pandas numpy pyarrow scipy scikit-learn openpyxl
 
       - name: Validate workflow discipline (no || echo masks, no continue-on-error abuse)
         run: python nexaquant/tests/test_ci_discipline.py

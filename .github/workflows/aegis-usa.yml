@@ -38,7 +38,9 @@ jobs:
       - name: Install deps
         run: |
           python -m pip install --upgrade pip
-          pip install pandas numpy pyarrow pyyaml yfinance scikit-learn
+          # openpyxl 2026-08-06 · required by rotation_outcome_tracker.detect_rotations_today
+          # (reads XLSX via build_and_stamp_all → telegram_command_center_send)
+          pip install pandas numpy pyarrow pyyaml yfinance scikit-learn openpyxl scipy
 
       - name: Run USA daily orchestrator
         # CEO cycle 4: pass Telegram secrets so usa/scripts/telegram_send.py
