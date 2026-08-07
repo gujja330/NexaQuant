@@ -1069,10 +1069,12 @@ def _write_new_workbook(path: Path, rows: list[list]) -> None:
         for c_idx, val in enumerate(row, start=1):
             cell = ws.cell(row=r_idx, column=c_idx, value=val)
             cell.alignment = LEFT if c_idx <= 6 else RIGHT
-        # Row color by Status
+        # 2026-08-07 · row-level color spread across ALL columns (operator directive)
         status = row[5]
         if status in STATUS_FILLS:
-            ws.cell(row=r_idx, column=6).fill = STATUS_FILLS[status]
+            fill = STATUS_FILLS[status]
+            for c in range(1, len(row) + 1):
+                ws.cell(row=r_idx, column=c).fill = fill
     # Auto-filter
     last_col = get_column_letter(len(COLUMNS))
     ws.auto_filter.ref = f"A1:{last_col}{len(rows) + 1}"
@@ -1126,7 +1128,9 @@ def _append_to_workbook(path: Path, rows: list[list]) -> None:
                     cell.alignment = LEFT if c_idx <= 6 else RIGHT
             status = row_map.get("Status")
             if status in STATUS_FILLS:
-                ws.cell(row=r_idx, column=6).fill = STATUS_FILLS[status]
+                fill = STATUS_FILLS[status]
+                for c in range(1, len(COLUMNS) + 1):
+                    ws.cell(row=r_idx, column=c).fill = fill
         headers = current_names
 
     key_indices = [headers.index(k) for k in DEDUP_KEY_COLS if k in headers]
@@ -1146,10 +1150,12 @@ def _append_to_workbook(path: Path, rows: list[list]) -> None:
         for c_idx, val in enumerate(row, start=1):
             cell = ws.cell(row=target_row, column=c_idx, value=val)
             cell.alignment = LEFT if c_idx <= 6 else RIGHT
-        # Row color
+        # 2026-08-07 · row-level color spread across ALL columns (operator directive)
         status = row[5]
         if status in STATUS_FILLS:
-            ws.cell(row=target_row, column=6).fill = STATUS_FILLS[status]
+            fill = STATUS_FILLS[status]
+            for c in range(1, len(row) + 1):
+                ws.cell(row=target_row, column=c).fill = fill
 
     # Refresh auto-filter to cover new range
     last_col = get_column_letter(len(COLUMNS))
