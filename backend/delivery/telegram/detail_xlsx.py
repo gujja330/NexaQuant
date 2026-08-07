@@ -678,10 +678,39 @@ def _archived_tickers_for(root: Path, market: str, runner_key: str,
     return archived_recs
 
 
+def _load_exited_set(root: Path, market: str) -> set:
+    """2026-08-07 · operator directive: once a ticker EXITs, don't emit again.
+    Reads historical XLSX and returns {(runner, ticker)} that have been
+    EXITed on any prior date. Used to suppress zombie/repeat rows."""
+    xlsx = root / "reports" / "telegram" / "aegis_history.xlsx"
+    if not xlsx.exists(): return set()
+    try:
+        from openpyxl import load_workbook
+        wb = load_workbook(xlsx, read_only=True)
+        ws = wb["AEGIS Daily"] if "AEGIS Daily" in wb.sheetnames else wb.active
+        h = [c.value for c in ws[1]]
+        i_ctry, i_rt, i_tk, i_st = (h.index(x)+1 for x in ["Country","Run_Type","Ticker","Status"])
+        exited = set()
+        mkt_up = market.upper()
+        for r in range(2, ws.max_row + 1):
+            if str(ws.cell(r, i_ctry).value or "").upper() != mkt_up: continue
+            if ws.cell(r, i_st).value == "EXIT":
+                rt = str(ws.cell(r, i_rt).value or "").replace("_NEW","")
+                tk = str(ws.cell(r, i_tk).value or "").replace(".NS","").replace(".BO","").upper()
+                if rt and tk: exited.add((rt, tk))
+        wb.close()
+        return exited
+    except Exception:
+        return set()
+
+
 def _collect_rows_for_market(root: Path, market: str, asof: str) -> list[list]:
-    """Return all rows (R2 + R1 if India · plus ARCHIVED never-disappear) for
-    one market on this asof. Per operator P0-1: 'Recommendations must never
-    disappear · every recommendation becomes a persistent Position object.'"""
+    """Return all rows (R2 + R1 if India) for one market on this asof.
+
+    2026-08-07 · once a ticker EXITs (on ANY prior date) it does NOT
+    reappear. No zombie live rows · no duplicate EXIT rows. Only fresh
+    top-N tickers (STRONG BUY/BUY) and currently-held (HOLD) positions
+    appear. EXIT emitted once on the day it happens, then vanishes."""
     recs_path = (root / "usa" / "reports" / "recommendations.json"
                     if market == "usa" else root / "reports" / "recommendations.json")
     if not recs_path.exists():
@@ -691,17 +720,25 @@ def _collect_rows_for_market(root: Path, market: str, asof: str) -> list[list]:
     # Track today's active tickers to derive archived list
     active_r2 = set()
     active_r1 = set()
+    # Load set of tickers that have ALREADY exited on prior dates
+    exited = _load_exited_set(root, market)
+    def _key(rt, tkr):
+        return (rt.replace("_NEW",""), (tkr or "").replace(".NS","").replace(".BO","").upper())
     for r in payload.get("recommendations") or []:
-        _rt = _runner_tag(root, market, "runner2", r.get("ticker") or "", asof, "R2")
+        tk = r.get("ticker") or ""
+        _rt = _runner_tag(root, market, "runner2", tk, asof, "R2")
+        # Skip if this ticker previously exited (operator: no repeats)
+        if _key(_rt, tk) in exited: continue
         rows.append(_rec_to_row(r, market, root, runner=_rt, asof=asof))
-        active_r2.add((r.get("ticker") or "").replace(".NS", "").replace(".BO", "").upper())
+        active_r2.add(tk.replace(".NS", "").replace(".BO", "").upper())
     if market == "india":
         rv = payload.get("runner1_validation") or {}
         for i, o in enumerate(rv.get("runner1_orphans") or [], start=1):
             r1_rec = _r1_orphan_to_rec_shape(o, market)
             r1_rec.setdefault("rank", i)
-            # Sprint J-final · _NEW suffix on first-seen day (auto-decays next day)
-            _rt = _runner_tag(root, market, "runner1", r1_rec.get("ticker") or "", asof, "R1")
+            tk = r1_rec.get("ticker") or ""
+            _rt = _runner_tag(root, market, "runner1", tk, asof, "R1")
+            if _key(_rt, tk) in exited: continue
             rows.append(_rec_to_row(r1_rec, market, root, runner=_rt, asof=asof))
     elif market == "usa":
         try:
@@ -711,9 +748,11 @@ def _collect_rows_for_market(root: Path, market: str, asof: str) -> list[list]:
                 for i, o in enumerate(usa_r1.get("runner1_orphans") or [], start=1):
                     r1_rec = _r1_orphan_to_rec_shape(o, market)
                     r1_rec.setdefault("rank", i)
-                    _rt = _runner_tag(root, market, "runner1", r1_rec.get("ticker") or "", asof, "R1")
+                    tk = r1_rec.get("ticker") or ""
+                    _rt = _runner_tag(root, market, "runner1", tk, asof, "R1")
+                    if _key(_rt, tk) in exited: continue
                     rows.append(_rec_to_row(r1_rec, market, root, runner=_rt, asof=asof))
-                    active_r1.add((r1_rec.get("ticker") or "").replace(".NS", "").replace(".BO", "").upper())
+                    active_r1.add(tk.replace(".NS", "").replace(".BO", "").upper())
         except Exception as e:
             print(f"[collect_rows:usa] USA R1 render skipped · {type(e).__name__}: {e}")
 
@@ -727,8 +766,12 @@ def _collect_rows_for_market(root: Path, market: str, asof: str) -> list[list]:
     # nuance isn't lost. No more R1_ARCH/R2_ARCH labels.
     try:
         for arch in _archived_tickers_for(root, market, "runner2", active_r2, asof):
+            tk = arch.get("ticker") or ""
+            if _key("R2", tk) in exited: continue
             rows.append(_rec_to_row(arch, market, root, runner="R2", asof=asof))
         for arch in _archived_tickers_for(root, market, "runner1", active_r1, asof):
+            tk = arch.get("ticker") or ""
+            if _key("R1", tk) in exited: continue
             rows.append(_rec_to_row(arch, market, root, runner="R1", asof=asof))
     except Exception as e:
         print(f"[collect_rows:{market}] archived render skipped · {type(e).__name__}: {e}")
