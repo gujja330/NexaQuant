@@ -110,11 +110,14 @@ HEADER_FILL = PatternFill(start_color="1F4E78", end_color="1F4E78", fill_type="s
 HEADER_FONT = Font(bold=True, color="FFFFFF", size=11)
 STATUS_FILLS = {
     "STRONG BUY":  PatternFill(start_color="70AD47", end_color="70AD47", fill_type="solid"),
-    "BUY":     PatternFill(start_color="C6EFCE", end_color="C6EFCE", fill_type="solid"),
     "BUY":         PatternFill(start_color="C6EFCE", end_color="C6EFCE", fill_type="solid"),
     "HOLD":        PatternFill(start_color="FFF2CC", end_color="FFF2CC", fill_type="solid"),
     "EXIT":        PatternFill(start_color="F8CBAD", end_color="F8CBAD", fill_type="solid"),
     "ROTATE OUT":  PatternFill(start_color="FFD966", end_color="FFD966", fill_type="solid"),
+    # 2026-08-07 · ARCHIVED = held but no longer in top-N ranks · muted gray
+    # so operator visually distinguishes "engine still endorses" (BUY/HOLD)
+    # from "engine dropped from ranks · re-evaluate" (ARCHIVED)
+    "ARCHIVED":    PatternFill(start_color="D9D9D9", end_color="D9D9D9", fill_type="solid"),
 }
 CENTER = Alignment(horizontal="center", vertical="center")
 LEFT   = Alignment(horizontal="left", vertical="center", wrap_text=True)
@@ -251,6 +254,11 @@ def _rec_to_row(rec: Mapping, market: str, root: Path,
     # "BUY" so STRONG BUY → BUY reads correctly as conviction downgrade ·
     # not a lifecycle contradiction. HCLTECH was the example (rank 2 STRONG
     # BUY Aug 3 → rank 3 BUY Aug 4 · same actionable position · lower conviction).
+    # 2026-08-07 · _ARCH dropped per operator directive · archived positions
+    # emit under R1/R2 with REAL decision status:
+    #   · Explicit sell/rotate signal  → EXIT
+    #   · profit-protection alert on dead-loss / stop-loss threshold → EXIT
+    #   · Otherwise (dropped from ranks but no exit trigger) → HOLD
     if entry_action == "SELL" or if_holding in ("EXIT", "REDUCE", "SELL") \
             or ri.get("should_rotate"):
         status = "EXIT"
@@ -259,6 +267,8 @@ def _rec_to_row(rec: Mapping, market: str, root: Path,
     elif entry_action == "BUY":
         status = "BUY"
     else:
+        # Archived-but-no-exit-trigger → HOLD. Position Stage column will
+        # say "ARCHIVED · dropped from top-N" for the ARCH-origin ones.
         status = "HOLD"
 
     # Exit Reason · populated ONLY when status = EXIT · else blank
@@ -707,16 +717,19 @@ def _collect_rows_for_market(root: Path, market: str, asof: str) -> list[list]:
         except Exception as e:
             print(f"[collect_rows:usa] USA R1 render skipped · {type(e).__name__}: {e}")
 
-    # P0-1 · Archived tickers · never disappear (operator directive 2026-08-06)
-    # Any ticker previously seen in this (market, runner) but NOT in today's
-    # active list appears as ARCHIVED row with Status=ARCHIVED · last-known
-    # price · Position Stage=EXIT. Sorted after live rows so top-N visibility
-    # for new money isn't disturbed.
+    # 2026-08-07 · Operator directive: drop _ARCH suffix entirely.
+    # Standardize on 4 Run_Types only: R1 · R2 · R1_NEW · R2_NEW.
+    # Archived positions (previously ranked · not in today's top-N) emit
+    # under plain R1 / R2 with Status derived from real signal:
+    #   · profit_protection alert present (STOP_LOSS/DEEP_LOSS/etc)  → EXIT
+    #   · dropped from ranks with no exit trigger                    → HOLD
+    # Position Stage column records "ARCHIVED · dropped from top-N" so the
+    # nuance isn't lost. No more R1_ARCH/R2_ARCH labels.
     try:
         for arch in _archived_tickers_for(root, market, "runner2", active_r2, asof):
-            rows.append(_rec_to_row(arch, market, root, runner="R2_ARCH", asof=asof))
+            rows.append(_rec_to_row(arch, market, root, runner="R2", asof=asof))
         for arch in _archived_tickers_for(root, market, "runner1", active_r1, asof):
-            rows.append(_rec_to_row(arch, market, root, runner="R1_ARCH", asof=asof))
+            rows.append(_rec_to_row(arch, market, root, runner="R1", asof=asof))
     except Exception as e:
         print(f"[collect_rows:{market}] archived render skipped · {type(e).__name__}: {e}")
     return rows
@@ -1070,7 +1083,10 @@ def _write_new_workbook(path: Path, rows: list[list]) -> None:
             cell = ws.cell(row=r_idx, column=c_idx, value=val)
             cell.alignment = LEFT if c_idx <= 6 else RIGHT
         # 2026-08-07 · row-level color spread across ALL columns (operator directive)
-        status = row[5]
+        # Status is column INDEX 6 (0-indexed) = col 7 (1-indexed) · after
+        # Position ID (col 1), Date (2), Country (3), Run_Type (4), Ticker (5),
+        # Company (6), Status (7). Earlier code hardcoded col 6 = Company by mistake.
+        status = row[6]
         if status in STATUS_FILLS:
             fill = STATUS_FILLS[status]
             for c in range(1, len(row) + 1):
@@ -1151,7 +1167,8 @@ def _append_to_workbook(path: Path, rows: list[list]) -> None:
             cell = ws.cell(row=target_row, column=c_idx, value=val)
             cell.alignment = LEFT if c_idx <= 6 else RIGHT
         # 2026-08-07 · row-level color spread across ALL columns (operator directive)
-        status = row[5]
+        # row[6] = Status · row[5] = Company (was wrong · caused single-cell fill on Company)
+        status = row[6]
         if status in STATUS_FILLS:
             fill = STATUS_FILLS[status]
             for c in range(1, len(row) + 1):
