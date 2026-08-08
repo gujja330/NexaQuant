@@ -1,0 +1,77 @@
+version: 1.0
+last_amended: 2026-08-08
+
+# DECISION · single human-facing synthesis field
+# Deterministic mapping from (Action, Inv Quality, Status) → single Decision
+# Controlled vocabulary · no LLM freedom · no invented phrases
+#
+# Rule: DECISION never overrides Action · it packages it for scan-time
+# comprehension. If Portfolio Engine says EXIT · DECISION says EXIT.
+
+# Ordered rules · first match wins
+# Each rule: match condition + decision output + color category
+rules:
+
+  # ═══ CLOSED · ⚪ ═══
+  - match: {action: "CLOSED"}
+    decision: "⚪ CLOSED"
+    color: gray
+  - match: {action: "IGNORE"}
+    decision: "⚪ IGNORED"
+    color: gray
+
+  # ═══ NEGATIVE · 🔴 ═══
+  - match: {action: "EXIT"}
+    decision: "🔴 EXIT NOW"
+    color: red
+  - match: {action: "REVIEW"}
+    decision: "🟠 REVIEW"
+    color: amber
+
+  # ═══ PROTECT · 🟠 ═══
+  - match: {action: "TIGHTEN STOP"}
+    decision: "🟠 PROTECT"
+    color: amber
+
+  # ═══ AVOID · ⚫ ═══
+  - match: {action: "SKIP"}
+    decision: "⚫ SKIP"
+    color: black
+
+  # ═══ POSITIVE · 🟢 ═══
+  - match: {action: "BUY BIG"}
+    decision: "🟢 BUY BIG"
+    color: green_dark
+  - match: {action: "ADD"}
+    decision: "🟢 ADD"
+    color: green
+  - match: {action: "BUY", inv_quality_in: ["🏆 QUALITY", "✓ OK"]}
+    decision: "🟢 BUY"
+    color: green
+  - match: {action: "BUY", inv_quality_in: ["⚠ MARGINAL"]}
+    decision: "🟡 BUY CAUTIOUSLY"
+    color: yellow
+  - match: {action: "BUY"}
+    decision: "🟡 BUY CAUTIOUSLY"
+    color: yellow
+  - match: {action: "HOLD", inv_quality_in: ["🏆 QUALITY", "✓ OK"]}
+    decision: "🟢 HOLD"
+    color: green
+  - match: {action: "HOLD"}
+    decision: "🟡 HOLD"
+    color: yellow
+
+  # ═══ FALLBACK ═══
+  - match: {}
+    decision: "— UNKNOWN"
+    color: gray
+
+# Color codes for decision cell (independent from row color)
+colors:
+  green_dark:  "70AD47"
+  green:       "C6EFCE"
+  yellow:      "FFF2CC"
+  amber:       "FFCC66"
+  red:         "F8CBAD"
+  black:       "808080"
+  gray:        "E7E6E6"

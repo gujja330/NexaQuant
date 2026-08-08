@@ -533,8 +533,7 @@ def main() -> int:
                     if repaired_perf is not None and c_idx == c_perf:
                         val = repaired_perf
                     ws2.cell(r_idx, c_idx, val)
-                # Cap Size / Opp Age / Investability / Inv Verdict (4 appended columns)
-                # Loading _inv_map here is deferred until first row · save yfinance calls
+                # 9 appended columns · positions counted from END
                 if not hasattr(_split_and_send, "_inv_loaded"):
                     _split_and_send._inv_map_for_sheet2 = {}
                     try:
@@ -549,14 +548,54 @@ def main() -> int:
                         pass
                     _split_and_send._inv_loaded = True
                 _inv_s2 = _split_and_send._inv_map_for_sheet2.get(tk, {})
-                # Positions of the 4 new columns from the END
-                ws2.cell(r_idx, len(new_h) - 3, _cap_size(tk, mkt_key))
+                inv_v_score = _inv_s2.get("score")
+                inv_v_verdict = _inv_s2.get("verdict", "")
+
+                # Classify Priority + derive decision fields for History too
+                _row_status = row[c_st-1].value
+                _row_entry = row[c_entry-1].value if c_entry else None
+                _row_current = row[c_current-1].value if c_current else None
+                _pnl_pct_hist = None
+                if isinstance(_row_entry, (int, float)) and _row_entry > 0 \
+                        and isinstance(_row_current, (int, float)):
+                    _pnl_pct_hist = (_row_current - _row_entry) / _row_entry * 100
+
+                def _hist_classify(st, iv, pnl):
+                    q_high = iv in ("🏆 QUALITY", "✓ OK")
+                    q_mid = iv == "⚠ MARGINAL"
+                    q_low = iv == "✗ AVOID"
+                    pnl_neg = isinstance(pnl, (int, float)) and pnl < 0
+                    if st == "ROTATED_SAMEDAY": return "J"
+                    if st == "EXIT": return "H" if q_high else "I"
+                    if st == "STRONG BUY" and iv == "🏆 QUALITY": return "A"
+                    if st in ("BUY", "STRONG BUY") and q_high: return "B"
+                    if st in ("BUY", "STRONG BUY") and q_low: return "F"
+                    if st == "HOLD" and q_high and pnl_neg: return "C"
+                    if st == "HOLD" and q_high: return "D"
+                    if q_mid: return "E"
+                    if q_low and pnl_neg: return "G"
+                    if q_low: return "F"
+                    return "E"
+
+                hist_bucket = _hist_classify(_row_status, inv_v_verdict, _pnl_pct_hist)
+                _matrix_h = PRIORITY_MATRIX.get(hist_bucket,
+                                                                ("—", "—", "—", "—", "F2F2F2"))
+                h_urg, h_rea, h_act, h_rev, _ = _matrix_h
+                h_decision, _ = _resolve_decision(h_act, inv_v_verdict, _row_status)
+
+                # Write 9 appended columns (positions from END)
+                ws2.cell(r_idx, len(new_h) - 8, _cap_size(tk, mkt_key))
                 row_dt = str(row[c_date-1].value or "")[:10]
                 entry_dt = str(row[c_recommended-1].value or "")[:10] if c_recommended else ""
                 opp_age = "🆕 NEW" if (row_dt and row_dt == entry_dt) else "OLD"
-                ws2.cell(r_idx, len(new_h) - 2, opp_age)
-                ws2.cell(r_idx, len(new_h) - 1, _inv_s2.get("score"))
-                ws2.cell(r_idx, len(new_h), _inv_s2.get("verdict", ""))
+                ws2.cell(r_idx, len(new_h) - 7, opp_age)
+                ws2.cell(r_idx, len(new_h) - 6, inv_v_score)
+                ws2.cell(r_idx, len(new_h) - 5, inv_v_verdict)
+                ws2.cell(r_idx, len(new_h) - 4, h_decision)
+                ws2.cell(r_idx, len(new_h) - 3, h_urg)
+                ws2.cell(r_idx, len(new_h) - 2, h_rea)
+                ws2.cell(r_idx, len(new_h) - 1, h_act)
+                ws2.cell(r_idx, len(new_h), h_rev)
                 if status in _STATUS_FILLS_LOCAL:
                     fill = _STATUS_FILLS_LOCAL[status]
                     for c in range(1, len(new_h)+1):
@@ -635,18 +674,17 @@ def main() -> int:
                     if r_off == 5 and c_off <= 3:   # combined row highlighted
                         cell.fill = _PF(start_color="FFE699", end_color="FFE699", fill_type="solid")
 
-            # 2026-08-08 · Priority split into orthogonal fields per CEO review:
-            # "current Priority mixes portfolio state + opportunity + diagnosis
-            # + execution into one column · split into Priority · Reason ·
-            # Action · much easier for AI to learn later."
-            #
-            # NEW: Urgency | Reason | Action | Review columns (orthogonal)
-            # PLUS: kept "Priority" as the bucket letter (A-J) for backward compat
+            # 2026-08-08 · DECISION column added as first human-facing field
+            # after Ticker (CEO directive · "one column · one clear decision")
+            # DECISION is DERIVED deterministically from Action × InvQuality via
+            # configs/decision_vocabulary.yaml · never invents text · controlled vocab
             pos_hdr = [
-                # IDENTITY (7)
-                "Ticker", "Runner", "Sector", "Cap", "Entry Date", "Exit Date", "Days",
-                # DECISION (7) · 4 orthogonal fields · Status/InvQuality/Investability inputs
-                "🎯 Urgency", "Reason", "Action", "Review",
+                # IDENTITY (2)
+                "Ticker", "🎯 DECISION",
+                # META (6)
+                "Runner", "Sector", "Cap", "Entry Date", "Exit Date", "Days",
+                # SUPPORTING DECISION FIELDS (7)
+                "Urgency", "Reason", "Action", "Review",
                 "Status", "Inv Quality", "Investability",
                 # PRICE + P&L (4)
                 "Entry", "Current", "Exit Price", "P&L %",
@@ -655,7 +693,8 @@ def main() -> int:
                 # CONTEXT (3)
                 "Action Note", "Alerts", "Exit Reason",
             ]
-            widths_pos = [12, 8, 22, 20, 12, 12, 8,
+            widths_pos = [12, 24,
+                              8, 22, 20, 12, 12, 8,
                               12, 20, 16, 14, 12, 14, 12,
                               12, 12, 12, 10,
                               12, 12, 12,
@@ -678,6 +717,34 @@ def main() -> int:
                 print(f"[config:priority_matrix] load failed · {_e}")
             PRIORITY_FILLS = {k: _PF(start_color=v[4], end_color=v[4], fill_type="solid")
                                      for k, v in PRIORITY_MATRIX.items()}
+
+            # DECISION vocabulary · controlled · deterministic mapping
+            DECISION_RULES = []
+            DECISION_COLORS = {}
+            try:
+                import yaml as _yaml
+                _dv_path = _ROOT / "configs" / "decision_vocabulary.yaml"
+                if _dv_path.exists():
+                    _dv = _yaml.safe_load(_dv_path.read_text(encoding="utf-8")) or {}
+                    DECISION_RULES = _dv.get("rules") or []
+                    DECISION_COLORS = _dv.get("colors") or {}
+            except Exception as _e:
+                print(f"[config:decision_vocabulary] load failed · {_e}")
+
+            def _resolve_decision(action, inv_quality, status):
+                """Deterministic Action × InvQuality → DECISION (controlled vocab)."""
+                a = str(action or "").strip()
+                iq = str(inv_quality or "").strip()
+                for rule in DECISION_RULES:
+                    m = rule.get("match") or {}
+                    if not m:
+                        return rule.get("decision", "—"), rule.get("color", "gray")
+                    if "action" in m and m["action"] != a:
+                        continue
+                    if "inv_quality_in" in m and iq not in m["inv_quality_in"]:
+                        continue
+                    return rule.get("decision", "—"), rule.get("color", "gray")
+                return "— UNKNOWN", "gray"
 
             # Load Investability scores (advisory · from reports/investability_{market}.json)
             _inv_map = {}
@@ -814,35 +881,47 @@ def main() -> int:
 
                 final_action = _final_action(status, inv_verdict)
 
+                # DECISION · single human-facing synthesis (col 2)
+                decision_text, decision_color_key = _resolve_decision(
+                    action, inv_verdict, status)
+
                 vals = [
-                    # IDENTITY (1-7)
-                    tk, runner_val, _sector_for(tk, mkt_key), _cap_size(tk, mkt_key),
+                    # IDENTITY (1-2)
+                    tk, decision_text,
+                    # META (3-8)
+                    runner_val, _sector_for(tk, mkt_key), _cap_size(tk, mkt_key),
                     rec_dt, exit_date, days,
-                    # DECISION (8-14) · Urgency + Reason + Action + Review + inputs
+                    # DECISION SUPPORT (9-15) · Urgency + Reason + Action + Review + inputs
                     urgency, reason, action, review,
                     status, inv_verdict, inv_score,
-                    # PRICE + P&L (15-18)
+                    # PRICE + P&L (16-19)
                     entry_v, curr, exit_price, pnl_decimal,
-                    # RISK/TARGET (19-21)
+                    # RISK/TARGET (20-22)
                     stop_v, t1_v, t2_v,
-                    # CONTEXT (22-24)
+                    # CONTEXT (23-25)
                     _ACTIONS.get(status, ""), alerts or "", exit_reason,
                 ]
                 for c, v in enumerate(vals, start=1):
                     cell = portfolio_ws.cell(i, c, v)
-                    text_cols = {1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 22, 23, 24}
+                    text_cols = {1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14, 23, 24, 25}
                     cell.alignment = _Align(
                         horizontal="left" if c in text_cols else "right",
                         vertical="center", wrap_text=True)
                     # Number formats
-                    if c == 7 and isinstance(days, int):        # Days
+                    if c == 8 and isinstance(days, int):        # Days
                         cell.number_format = "0"
-                    elif c == 14 and isinstance(inv_score, (int, float)):  # Investability
+                    elif c == 15 and isinstance(inv_score, (int, float)):  # Investability
                         cell.number_format = "0.0"
-                    elif c in (15, 16, 17, 19, 20, 21):         # Entry/Curr/Exit/Stop/T1/T2
+                    elif c in (16, 17, 18, 20, 21, 22):         # Entry/Curr/Exit/Stop/T1/T2
                         cell.number_format = "#,##0.00"
-                    elif c == 18 and pnl_decimal is not None:   # P&L %
+                    elif c == 19 and pnl_decimal is not None:   # P&L %
                         cell.number_format = "+0.00%;-0.00%;0.00%"
+
+                # DECISION cell gets its own color (col 2) · overrides row fill
+                _dec_hex = DECISION_COLORS.get(decision_color_key, "E7E6E6")
+                portfolio_ws.cell(i, 2).fill = _PF(
+                    start_color=_dec_hex, end_color=_dec_hex, fill_type="solid")
+                portfolio_ws.cell(i, 2).font = _Font(bold=True, size=11)
 
                 # ROW COLOR now follows PRIORITY (not Status) · CEO call:
                 # "color code to change based on inv verdict now"
