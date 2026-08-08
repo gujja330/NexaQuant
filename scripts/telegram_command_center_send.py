@@ -481,6 +481,52 @@ def main() -> int:
             c_t2 = h.index("Target 2") + 1 if "Target 2" in h else None
             c_alerts = h.index("Alerts") + 1 if "Alerts" in h else None
             c_sector_existing = h.index("Sector") + 1 if "Sector" in h else None
+
+            # Load PRIORITY_MATRIX + DECISION vocab BEFORE row iteration
+            # so History-sheet row loop can resolve decisions
+            PRIORITY_MATRIX = {}
+            try:
+                import yaml as _yaml
+                _pm_path = _ROOT / "configs" / "priority_matrix.yaml"
+                if _pm_path.exists():
+                    _pm = _yaml.safe_load(_pm_path.read_text(encoding="utf-8")) or {}
+                    for bucket, d in (_pm.get("buckets") or {}).items():
+                        PRIORITY_MATRIX[bucket] = (
+                            d.get("urgency", ""), d.get("reason", ""),
+                            d.get("action", ""), d.get("review", ""),
+                            d.get("color", "F2F2F2"),
+                        )
+            except Exception as _e:
+                print(f"[config:priority_matrix] load failed · {_e}")
+            PRIORITY_FILLS = {k: _PF(start_color=v[4], end_color=v[4], fill_type="solid")
+                                     for k, v in PRIORITY_MATRIX.items()}
+
+            DECISION_RULES = []
+            DECISION_COLORS = {}
+            try:
+                import yaml as _yaml
+                _dv_path = _ROOT / "configs" / "decision_vocabulary.yaml"
+                if _dv_path.exists():
+                    _dv = _yaml.safe_load(_dv_path.read_text(encoding="utf-8")) or {}
+                    DECISION_RULES = _dv.get("rules") or []
+                    DECISION_COLORS = _dv.get("colors") or {}
+            except Exception as _e:
+                print(f"[config:decision_vocabulary] load failed · {_e}")
+
+            def _resolve_decision(action, inv_quality, status):
+                a = str(action or "").strip()
+                iq = str(inv_quality or "").strip()
+                for rule in DECISION_RULES:
+                    m = rule.get("match") or {}
+                    if not m:
+                        return rule.get("decision", "—"), rule.get("color", "gray")
+                    if "action" in m and m["action"] != a:
+                        continue
+                    if "inv_quality_in" in m and iq not in m["inv_quality_in"]:
+                        continue
+                    return rule.get("decision", "—"), rule.get("color", "gray")
+                return "— UNKNOWN", "gray"
+
             # Filter rows by market
             keep_rows = [row for row in src_ws.iter_rows(min_row=2, values_only=False)
                                     if str(row[c_ctry-1].value or "").upper() == mkt_key.upper()]
@@ -494,7 +540,11 @@ def main() -> int:
             # Opp Age: NEW = row_date == Recommended date · OLD = held from prior day
             # (operator: "if I open sheet on monday, I might see new buy options
             # to invest if I missed old opportunities")
-            new_h = list(h) + ["Cap Size", "Opp Age", "Investability", "Inv Verdict"]
+            new_h = list(h) + [
+                "Cap Size", "Opp Age",
+                "Investability", "Inv Verdict",
+                "🎯 DECISION", "Urgency", "Reason", "Action", "Review",
+            ]
             for c, name in enumerate(new_h, start=1):
                 cell = ws2.cell(1, c, name)
                 cell.fill = HEADER_FILL if 'HEADER_FILL' in globals() else _PF(
@@ -700,51 +750,7 @@ def main() -> int:
                               12, 12, 12,
                               40, 40, 30]
 
-            # 2026-08-08 · Config-driven priority matrix (was hardcoded dict)
-            PRIORITY_MATRIX = {}
-            try:
-                import yaml as _yaml
-                _pm_path = _ROOT / "configs" / "priority_matrix.yaml"
-                if _pm_path.exists():
-                    _pm = _yaml.safe_load(_pm_path.read_text(encoding="utf-8")) or {}
-                    for bucket, d in (_pm.get("buckets") or {}).items():
-                        PRIORITY_MATRIX[bucket] = (
-                            d.get("urgency", ""), d.get("reason", ""),
-                            d.get("action", ""), d.get("review", ""),
-                            d.get("color", "F2F2F2"),
-                        )
-            except Exception as _e:
-                print(f"[config:priority_matrix] load failed · {_e}")
-            PRIORITY_FILLS = {k: _PF(start_color=v[4], end_color=v[4], fill_type="solid")
-                                     for k, v in PRIORITY_MATRIX.items()}
-
-            # DECISION vocabulary · controlled · deterministic mapping
-            DECISION_RULES = []
-            DECISION_COLORS = {}
-            try:
-                import yaml as _yaml
-                _dv_path = _ROOT / "configs" / "decision_vocabulary.yaml"
-                if _dv_path.exists():
-                    _dv = _yaml.safe_load(_dv_path.read_text(encoding="utf-8")) or {}
-                    DECISION_RULES = _dv.get("rules") or []
-                    DECISION_COLORS = _dv.get("colors") or {}
-            except Exception as _e:
-                print(f"[config:decision_vocabulary] load failed · {_e}")
-
-            def _resolve_decision(action, inv_quality, status):
-                """Deterministic Action × InvQuality → DECISION (controlled vocab)."""
-                a = str(action or "").strip()
-                iq = str(inv_quality or "").strip()
-                for rule in DECISION_RULES:
-                    m = rule.get("match") or {}
-                    if not m:
-                        return rule.get("decision", "—"), rule.get("color", "gray")
-                    if "action" in m and m["action"] != a:
-                        continue
-                    if "inv_quality_in" in m and iq not in m["inv_quality_in"]:
-                        continue
-                    return rule.get("decision", "—"), rule.get("color", "gray")
-                return "— UNKNOWN", "gray"
+            # PRIORITY_MATRIX + DECISION vocab already loaded at top of _split_and_send
 
             # Load Investability scores (advisory · from reports/investability_{market}.json)
             _inv_map = {}
