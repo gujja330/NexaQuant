@@ -62,9 +62,12 @@ COLUMNS = [
     ("Rank",                6),
     ("Prior Rank",          10),     # NEW · rank at asof-1 (from rank_history)
     ("Rank Δ",              8),      # NEW · today - prior · positive = worse
-    ("Health",              8),      # Sprint A · composite 0-100
-    ("Band",                10),     # STRONG/HOLD/EXIT (3-state)
-    ("Risk Meter",          8),      # 🟢🟡🔴 from Band + Ctx Drag
+    ("Health",              8),      # Sprint A · composite 0-100 (single source of truth)
+    # 2026-08-08 · Band DROPPED · redundant with Health (was derived FROM
+    # Health) AND caused operator confusion when Status=EXIT (rotation-motivated)
+    # but Band=HOLD (health-motivated) · operator: "status/band columns are
+    # confusing, status says exit and why band says different?"
+    ("Risk Meter",          8),      # 🟢🟡🔴 · visual glance of Health
     ("Adj Conf",            10),     # CIL · adjusted confidence
     ("Ctx Drag",            10),     # CIL · signed drag pts
     ("Ctx Reason",          50),     # CIL · top context drivers
@@ -575,9 +578,9 @@ def _rec_to_row(rec: Mapping, market: str, root: Path,
         rank if rank else "",
         prior_rank,           # NEW v5 · rank at asof-1
         rank_delta,           # NEW v5 · today - prior · +ve = worse rank
-        health_score,         # Sprint A · composite 0-100 (RESTORED)
-        health_band,          # Sprint J · band (STRONG/HOLD/EXIT · 3-state)
-        risk_meter,           # Sprint H · 🟢🟡🔴
+        health_score,         # Sprint A · composite 0-100 (single source of truth)
+        # Band value dropped 2026-08-08 · redundant with Health · caused Status/Band mismatch confusion
+        risk_meter,           # Sprint H · 🟢🟡🔴 · visual glance of Health
         adj_conf,             # CIL · adjusted confidence
         ctx_drag,             # CIL · signed drag pts
         ctx_reason,           # CIL · top drivers

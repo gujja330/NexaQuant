@@ -370,6 +370,21 @@ def main() -> int:
                 return 2
         except Exception as e:
             print(f"[guard8:price] check failed · {type(e).__name__}: {e} · proceeding")
+        # 2026-08-08 · Guard 9 · Pipeline heartbeat (operator directive after
+        # silent Aug-3 pipeline miss: "pages you if a trading day passes with
+        # no pipeline execution"). Emit gap alert prepended to caption so
+        # operator sees it BEFORE the XLSX arrives.
+        heartbeat_banner = ""
+        try:
+            from backend.context.pipeline_heartbeat import (
+                check as _hb_check, render as _hb_render)
+            for _m in markets:
+                _hb = _hb_check(_ROOT, _m, asof)
+                print(f"[guard9:heartbeat:{_m}] {_hb_render(_hb)}")
+                if _hb["status"] in ("CRITICAL", "WARNING"):
+                    heartbeat_banner += _hb["message"] + "\n"
+        except Exception as e:
+            print(f"[guard9:heartbeat] check failed · {type(e).__name__}: {e} · proceeding")
         # 2026-08-08 · Caption clarified · operator confused why XLSX dated
         # 2026-08-07 arrived at 03:22 IST on 2026-08-08 (cron 20:30 UTC Fri
         # = 02:00 IST Sat · US Fri close = last trading data). Now shows
@@ -380,7 +395,10 @@ def main() -> int:
         _mkt_label = ("US session" if "usa" in markets
                                 else "NSE session" if "india" in markets
                                 else "session")
-        caption = (f"📊 AEGIS Daily · {_mkt_label} {asof} (last trading day)\n"
+        # Heartbeat banner (if any gap) prepended so operator sees it FIRST
+        _hb_prefix = f"{heartbeat_banner}\n" if heartbeat_banner else ""
+        caption = (f"{_hb_prefix}"
+                       f"📊 AEGIS Daily · {_mkt_label} {asof} (last trading day)\n"
                        f"delivered {_delivered_ist}\n"
                        f"One row per stock · columns: Date · Country · Run Type · Ticker + "
                        f"45+ more fields · daily appended · sortable in Excel")
@@ -395,6 +413,14 @@ def main() -> int:
         print(f"[xlsx:{','.join(markets)}] file={xlsx_path.name} · sent={xlsx_ok}")
         if not xlsx_ok:
             print(f"  detail: {xlsx_msg[:180]}")
+        # Record successful heartbeat (only if send actually worked)
+        if xlsx_ok:
+            try:
+                from backend.context.pipeline_heartbeat import record_run as _hb_record
+                for _m in markets:
+                    _hb_record(_ROOT, _m, asof)
+            except Exception as e:
+                print(f"[heartbeat] record failed · {type(e).__name__}: {e}")
         # Optional · Google Sheets mirror (silent no-op if creds absent)
         gs_ok, gs_msg = maybe_sync_google_sheet(xlsx_path)
         if gs_ok:
