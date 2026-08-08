@@ -95,12 +95,34 @@ def main() -> int:
         except Exception as e:
             backend = {"checked": False, "reason": f"unparseable: {e}"}
 
+    # 2026-08-08 · PROPER GUARD (operator directive: "everyday same drama · cant
+    # u build a proper guard"). Old logic: any single dataset FAIL → CRITICAL
+    # → whole pipeline aborts. Way too brittle · 84/85 pass with 1 stale
+    # optional dataset was blocking the pipeline daily.
+    #
+    # New rollup:
+    #   CRITICAL only if:
+    #     · required artifacts > 3 missing, OR any invalid, OR
+    #     · backend fail-rate ≥ 20% (system-wide degradation), OR
+    #     · backend confidence < 0.70 (multiple weak signals compound)
+    #   DEGRADED (pipeline continues, alert emitted) if:
+    #     · schema failures, OR
+    #     · backend WARNING, OR
+    #     · backend FAIL with <20% failure and confidence ≥ 0.70
+    #   HEALTHY otherwise
     if missing or invalid:
         verdict = "CRITICAL" if len(missing) > 3 or invalid else "DEGRADED"
+    elif backend.get("checked") and backend.get("verdict") == "FAIL":
+        _n_total = max(backend.get("n_datasets", 1), 1)
+        _n_fail = backend.get("counts", {}).get("FAIL", 0)
+        _fail_pct = _n_fail / _n_total
+        _conf = backend.get("confidence", 0)
+        if _fail_pct >= 0.20 or _conf < 0.70:
+            verdict = "CRITICAL"
+        else:
+            verdict = "DEGRADED"    # single/few dataset · pipeline continues
     elif schema_failures:
         verdict = "DEGRADED"
-    elif backend.get("checked") and backend.get("verdict") == "FAIL":
-        verdict = "CRITICAL"
     elif backend.get("checked") and backend.get("verdict") == "WARNING":
         verdict = "DEGRADED"
     else:

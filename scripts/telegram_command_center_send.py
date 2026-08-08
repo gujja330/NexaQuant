@@ -30,7 +30,7 @@ import sys
 import urllib.error
 import urllib.parse
 import urllib.request
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 try:
@@ -370,11 +370,20 @@ def main() -> int:
                 return 2
         except Exception as e:
             print(f"[guard8:price] check failed · {type(e).__name__}: {e} · proceeding")
-        # Caption is plain-text (no Markdown parse_mode) · underscore in
-        # Run\_Type would trip Telegram's Markdown parser otherwise.
-        caption = (f"📊 AEGIS Daily · {asof}\n"
-                      f"One row per stock · columns: Date · Country · Run Type · Ticker + "
-                      f"45+ more fields · daily appended · sortable in Excel")
+        # 2026-08-08 · Caption clarified · operator confused why XLSX dated
+        # 2026-08-07 arrived at 03:22 IST on 2026-08-08 (cron 20:30 UTC Fri
+        # = 02:00 IST Sat · US Fri close = last trading data). Now shows
+        # both the trading-day the data reflects AND the IST delivery time
+        # so there's no ambiguity.
+        _now_ist = datetime.now(timezone(timedelta(hours=5, minutes=30)))
+        _delivered_ist = _now_ist.strftime("%Y-%m-%d %H:%M IST")
+        _mkt_label = ("US session" if "usa" in markets
+                                else "NSE session" if "india" in markets
+                                else "session")
+        caption = (f"📊 AEGIS Daily · {_mkt_label} {asof} (last trading day)\n"
+                       f"delivered {_delivered_ist}\n"
+                       f"One row per stock · columns: Date · Country · Run Type · Ticker + "
+                       f"45+ more fields · daily appended · sortable in Excel")
         # Sprint H · Monday XLSX carries the operator guide as reminder
         if _CAPTION_APPEND_GUIDE is not None:
             caption = _CAPTION_APPEND_GUIDE(caption, _dow)
