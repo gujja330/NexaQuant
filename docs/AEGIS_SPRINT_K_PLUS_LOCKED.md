@@ -1,8 +1,10 @@
 # AEGIS · Sprint K+ · Locked Production Spec
 
-**v1.1 amended 2026-08-08**: added Part 25 (Dual-Snapshot Attribution)
-per operator directive · winner + loser analysis · loss classifier ·
-weekly rollup · fed into Part 22 self-learning closed loop.
+**v1.2 amended 2026-08-08**: added Part 25 (Dual-Snapshot Attribution) +
+Part 26 (Institutional Investability Engine · 9 sub-engines · replaces
+blocklist thinking) + Part 27 (Emerging Compounder research module ·
+smallcap discovery). Sprint K now 27 parts · execution window extends
+to 2026-11-28.
 
 **Signed into force:** 2026-08-06
 **Author:** CEO (operator · locked · binding)
@@ -463,6 +465,215 @@ because:
 The framing "winners AND losers" makes the design symmetric · one snapshot
 schema serves both.
 
+---
+
+## Part 26 · Institutional Investability Engine
+
+Added 2026-08-08 · operator directive after IEX/JSWENERGY exclusion
+discussion: "engine should read parameters · not hardcode blocklist ·
+should be powerful enough to blocklist or pull best of best from
+small caps."
+
+### 26.1 · Core insight
+
+**Every stock gets TWO independent scores.** Neither alone is sufficient.
+
+- **Opportunity Score** (Runner 2 output) · "how attractive right now?"
+- **Investability Score** (new · this part) · "should we own this at all?"
+
+Final decision: `Opportunity × Investability` composite. A stock must
+clear BOTH gates to be recommended.
+
+**Why this beats blocklist:**
+- No hardcoded ticker lists to maintain
+- IEX becomes buyable IF regulatory clarity improves
+- JSWENERGY becomes buyable IF debt improves
+- Small-cap gems become buyable IF investability score is high
+- **No human intervention needed** · engine self-corrects
+
+**Why this beats simple weighted-exclusion:**
+- Symmetric · works for both "avoid" and "discover"
+- Universe-expandable (Nifty 200 → 500 → Midcap 150 → Smallcap 250)
+- Institutional pattern (Bridgewater / Two Sigma structure their pipelines the same way)
+
+### 26.2 · Nine sub-engines with weights
+
+| # | Sub-engine | Weight | Data source | Signals |
+|---|---|---|---|---|
+| 1 | **Fundamental** | 25% | yfinance + Screener API | ROE · ROCE · Revenue CAGR · EPS CAGR · Margin · FCF · Debt · Interest cov · WC · Capital allocation |
+| 2 | **Technical** | 20% | Parquet + TA | RS · Trend · Volume profile · ATR · ADX · Breakout · Vol contraction · AVWAP · MTF trend · Momentum persistence |
+| 3 | **Governance** | 15% | SEBI + BSE announcements + company reports | Auditor changes · Promoter pledge · Board quality · Independent directors · SEBI notices · Litigation · Insider buy/sell · ESG |
+| 4 | **Ownership** | 10% | Shareholding pattern | FII trend · MF trend · PMS · Insurance · Promoter buying · Concentration |
+| 5 | **Sector** | 10% | Existing sector_report + rotation | Sector momentum · Breadth · Rotation · Relative perf · Earnings revisions |
+| 6 | **Macro** | 5% | Existing macro engine | RBI · Fed · Inflation · GDP · Bond yields · Crude · Dollar · Currency |
+| 7 | **Liquidity** | 5% | NSE bhavcopy | Delivery % · Volume · Turnover · Spread · Impact cost |
+| 8 | **News/Event** | 5% | News feed | Impact classification (Positive/Neutral/Negative/Very Negative) |
+| 9 | **Earnings** | 5% | Earnings calendar + estimates | Earnings date · Surprise % · Guidance · Revision trend · Estimate revisions |
+
+### 26.3 · Pipeline position (CRITICAL)
+
+The Investability Engine sits **BEFORE** Runner 1 and Runner 2.
+
+```
+Universe (Nifty 200 · later 500 · later smallcap)
+    ↓
+Investability Engine
+    ↓  (filter: Investability ≥ 60)
+Runner 1  |  Runner 2
+    ↓
+Context Engine
+    ↓
+Portfolio Engine
+    ↓
+Recommendation Continuity
+```
+
+**Not** an after-filter. The engines only see stocks that pass institutional
+investability. This is the reverse of blocklist thinking.
+
+### 26.4 · Universe expansion strategy
+
+Current: Nifty 200. Target progression:
+
+```
+Sprint K (this):           Nifty 200 + Nifty Next 50   =  250 stocks
+Sprint K + 3 months:       + Nifty Midcap 150           =  400 stocks
+Sprint K + 6 months:       + Nifty Smallcap 250         =  650 stocks
+Sprint L (2027):           + BSE 500 · SME watch        = ~800 stocks
+```
+
+Investability filter is what makes universe expansion safe · without it,
+adding smallcaps floods the ranker with noise. With it, we discover
+tomorrow's midcaps.
+
+### 26.5 · Decision matrix
+
+| Investability | Opportunity | Decision |
+|---|---|---|
+| ≥ 80 | ≥ 70 | STRONG BUY |
+| ≥ 70 | ≥ 60 | BUY |
+| ≥ 60 | ≥ 50 | HOLD (existing positions) |
+| < 60 | any | REJECT (never recommend) |
+| any | < 40 | REJECT (Opportunity insufficient) |
+
+Composite score: `Final = 0.6 × Opportunity + 0.4 × Investability`
+
+Ranking: sorted by Final · top-15 becomes recommendations.
+
+### 26.6 · Delivery
+
+**Portfolio sheet gains 2 columns:**
+- **Investability** (0-100 · number)
+- **Why Investable** (top 3 sub-engine drivers · 40 chars)
+
+Example:
+```
+HINDZINC · Opp 91 · Inv 84 · "Fund91 · Gov97 · Liq88"  → STRONG BUY
+IEX      · Opp 92 · Inv 42 · "Fund74 · Gov39 · Reg23" → REJECT
+Unknown SmallCap · Opp 88 · Inv 89 · "Fund94 · Gov92 · Own85" → BUY
+```
+
+### 26.7 · Deliverables (8 modules)
+
+1. `backend/investability/__init__.py`
+2. `backend/investability/fundamental.py` · ROE/D-E/growth signals
+3. `backend/investability/technical.py` · RS/ADX/vol-contraction
+4. `backend/investability/governance.py` · pledge/auditor/SEBI
+5. `backend/investability/ownership.py` · FII/MF/promoter trends
+6. `backend/investability/liquidity.py` · delivery/volume/turnover
+7. `backend/investability/scorer.py` · weighted aggregator → 0-100
+8. Ranking hook · pre-Runner-1/Runner-2 filter
+
+### 26.8 · Data sources needed (net-new)
+
+- Screener.in API (or manual CSV export) · deep fundamentals
+- BSE/NSE shareholding-pattern quarterly parquet
+- SEBI announcements RSS · governance flags
+- Earnings estimate revisions · Refinitiv-lite alternative
+
+### 26.9 · Execution window
+
+**2026-11-11 to 2026-11-17** · after telemetry/attribution (Parts 21-22, 25)
+so Investability can consume attribution data for feature validation ·
+before Part 23 regression suite.
+
+### 26.10 · Acceptance criteria
+
+- Every ticker in universe has non-null Investability score
+- IEX (real-world test case) scores < 60 · REJECT
+- JSWENERGY scores < 60 · REJECT (unless leverage improves)
+- Adding new small-cap to universe · engine auto-scores · no manual list
+- Portfolio sheet shows Investability + Why-Investable columns
+- Regression test: same input → same score (deterministic)
+- Universe expansion Nifty 200 → 250 (add Next 50) verified working
+
+---
+
+## Part 27 · Emerging Compounder Engine (research module)
+
+Added 2026-08-08 · operator directive: "we should also pull such stocks
+and analyze to make profits [from small cap]."
+
+### 27.1 · Different objective
+
+**Not** a recommendation engine · a **research watchlist generator**.
+
+Part 26 (Investability) says "is this stock good enough to recommend TODAY?"
+
+Part 27 (Emerging Compounder) says "is this stock likely to be a 3-5x
+compounder over 3 years?"
+
+Different question · different data · different output.
+
+### 27.2 · Compounder signals (weight-composed)
+
+- Revenue CAGR ≥ 20% (3-yr and 5-yr)
+- EPS CAGR ≥ 25% (3-yr)
+- ROCE ≥ 20% consistent
+- Debt-to-Equity < 0.5
+- FCF positive 3 of 5 years
+- Reinvestment rate high · low dividend payout
+- Promoter holding ≥ 50% and stable/increasing
+- Institutional ownership INCREASING (FII/MF quarter-over-quarter)
+- Technical structure: base-building over 12+ months · not extended
+- Sector: not sunset industry (regulatory/technology risk)
+
+### 27.3 · Output
+
+Weekly watchlist: `reports/research/emerging_compounders_{market}.json`
+
+Top 20 candidates · each with:
+- 3-year expected return band (rough estimate)
+- Key risks
+- Trigger conditions to promote to main universe
+- Quarterly earnings watch dates
+
+**Not** for immediate trading · for research + waitlist. Operator manually
+reviews weekly · promotes candidates to main universe when triggers hit.
+
+### 27.4 · Why kept separate from Part 26
+
+- Different time horizon (3 years vs quarterly)
+- Different data weight (growth vs current quality)
+- Different consumer (research vs trading)
+- Mixing would corrupt both scores
+
+Kept as standalone research module · outputs a watchlist · never
+auto-recommends. Human-in-loop by design.
+
+### 27.5 · Execution window
+
+**2026-11-18 to 2026-11-22** · after Investability Engine so we can use
+its scoring as a filter on the compounder candidate pool.
+
+### 27.6 · Deliverables
+
+- `backend/research/emerging_compounder.py` · signal engine
+- `reports/research/emerging_compounders_india.json` · weekly watchlist
+- `reports/research/emerging_compounders_usa.json` · weekly watchlist
+- Manual review process: operator flags approved candidates · gets added to
+  universe expansion for next Sprint K review
+
 **Deliverables.**
 
 1. **Entry attribution snapshot** (`backend/recommendation/attribution_snapshot.py`)
@@ -528,7 +739,9 @@ Parts 21-22 telemetry/self-learning · attribution IS the telemetry).
 | 2026-10-26 to 2026-10-30 | Part 16-17 · Rotation + Runner Comparison | lifecycle-based comparison · not snapshot |
 | 2026-10-31 to 2026-11-05 | Parts 18-20 · Excel/Data Quality validation | backward-compat regression |
 | 2026-11-04 to 2026-11-10 | Parts 21-22 + **Part 25** · Telemetry + Self-Learning + **Attribution snapshots** | daily telemetry · calibration feedback · entry+loss attribution · loss classifier · weekly rollup |
-| 2026-11-11 to 2026-11-15 | Part 23 · Full regression suite | all tests green |
+| 2026-11-11 to 2026-11-17 | **Part 26** · Institutional Investability Engine | 9 sub-engines · Investability score · pre-Runner filter · universe expansion Nifty 200→250 |
+| 2026-11-18 to 2026-11-22 | **Part 27** · Emerging Compounder Engine (research) | Weekly compounder watchlist · 3-year horizon · separate from recommendation flow |
+| 2026-11-23 to 2026-11-28 | Part 23 · Full regression suite | all tests green |
 | 2026-11-16 to 2026-11-30 | Part 24 · Production Acceptance sign-off | 16-checkbox sign-off |
 
 **Post-2026-11-30**: FEATURE FREEZE. Move to 90-day paper-trading /
