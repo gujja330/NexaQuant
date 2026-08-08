@@ -527,6 +527,52 @@ def main() -> int:
                     return rule.get("decision", "—"), rule.get("color", "gray")
                 return "— UNKNOWN", "gray"
 
+            # Execution Decision Layer config (2026-08-09)
+            EXEC_CFG = {}
+            try:
+                import yaml as _yaml
+                _ex_path = _ROOT / "configs" / "execution_windows.yaml"
+                if _ex_path.exists():
+                    EXEC_CFG = _yaml.safe_load(_ex_path.read_text(encoding="utf-8")) or {}
+            except Exception as _e:
+                print(f"[config:execution_windows] load failed · {_e}")
+
+            def _next_review_date(review_str, from_date_iso):
+                offsets = (EXEC_CFG.get("review_offsets") or {})
+                key = str(review_str or "").strip().upper()
+                offset = offsets.get(key)
+                if offset is None or offset == "null": return ""
+                if offset == 0: return from_date_iso
+                try:
+                    from datetime import date as _dtc, timedelta as _tdc
+                    d = _dtc.fromisoformat(from_date_iso[:10])
+                    added = 0
+                    while added < offset:
+                        d += _tdc(days=1)
+                        if d.weekday() < 5: added += 1
+                    return d.isoformat()
+                except Exception:
+                    return ""
+
+            def _execution_window(action):
+                a = str(action or "").strip()
+                for rule in (EXEC_CFG.get("execution_windows") or []):
+                    m = rule.get("match") or {}
+                    if not m: return rule.get("window", "—")
+                    if "action" in m and m["action"] != a: continue
+                    return rule.get("window", "—")
+                return "—"
+
+            def _price_trigger(action, stop_v, t1_v, curr_v):
+                triggers = (EXEC_CFG.get("price_triggers") or {})
+                cfg = triggers.get(str(action or "").strip())
+                if not cfg: return ""
+                source = cfg.get("source")
+                label = cfg.get("label", "")
+                price = {"stop": stop_v, "target_1": t1_v, "current": curr_v}.get(source)
+                if not isinstance(price, (int, float)) or price <= 0: return ""
+                return f"{label} {price:.2f}"
+
             # Filter rows by market
             keep_rows = [row for row in src_ws.iter_rows(min_row=2, values_only=False)
                                     if str(row[c_ctry-1].value or "").upper() == mkt_key.upper()]
@@ -764,60 +810,7 @@ def main() -> int:
                               12, 12, 12,
                               40, 40, 30]
 
-            # PRIORITY_MATRIX + DECISION vocab already loaded at top of _split_and_send
-
-            # Execution Decision Layer config (2026-08-09 · Sprint K Part 25 extension)
-            EXEC_CFG = {}
-            try:
-                import yaml as _yaml
-                _ex_path = _ROOT / "configs" / "execution_windows.yaml"
-                if _ex_path.exists():
-                    EXEC_CFG = _yaml.safe_load(_ex_path.read_text(encoding="utf-8")) or {}
-            except Exception as _e:
-                print(f"[config:execution_windows] load failed · {_e}")
-
-            def _next_review_date(review_str: str, from_date_iso: str) -> str:
-                """Convert 'IMMEDIATE'/'TOMORROW'/'5 DAYS'/'30 DAYS' → actual date.
-                Skips weekends when adding trading days."""
-                offsets = (EXEC_CFG.get("review_offsets") or {})
-                key = str(review_str or "").strip().upper()
-                offset = offsets.get(key)
-                if offset is None or offset == "null":
-                    return ""
-                if offset == 0:
-                    return from_date_iso
-                try:
-                    from datetime import date as _dtc, timedelta as _tdc
-                    d = _dtc.fromisoformat(from_date_iso[:10])
-                    added = 0
-                    while added < offset:
-                        d += _tdc(days=1)
-                        if d.weekday() < 5:
-                            added += 1
-                    return d.isoformat()
-                except Exception:
-                    return ""
-
-            def _execution_window(action: str) -> str:
-                a = str(action or "").strip()
-                for rule in (EXEC_CFG.get("execution_windows") or []):
-                    m = rule.get("match") or {}
-                    if not m:
-                        return rule.get("window", "—")
-                    if "action" in m and m["action"] != a:
-                        continue
-                    return rule.get("window", "—")
-                return "—"
-
-            def _price_trigger(action: str, stop_v, t1_v, curr_v) -> str:
-                triggers = (EXEC_CFG.get("price_triggers") or {})
-                cfg = triggers.get(str(action or "").strip())
-                if not cfg: return ""
-                source = cfg.get("source")
-                label = cfg.get("label", "")
-                price = {"stop": stop_v, "target_1": t1_v, "current": curr_v}.get(source)
-                if not isinstance(price, (int, float)) or price <= 0: return ""
-                return f"{label} {price:.2f}"
+            # PRIORITY_MATRIX + DECISION vocab + EXEC layer already loaded at top of _split_and_send
 
             # Load Investability scores (advisory · from reports/investability_{market}.json)
             _inv_map = {}
