@@ -437,6 +437,33 @@ def main() -> int:
             bucket = _sector_cache.get(market.lower(), {})
             return bucket.get(short) or bucket.get(str(ticker).upper()) or "—"
 
+        # Action explanations for the Action column (operator: "actions needed
+        # short explanation · enter buy zone means to buy on that days?")
+        _ACTIONS = {
+            "STRONG BUY":      "Enter today · top pick · high conviction",
+            "BUY":             "Enter or add · in buy zone",
+            "HOLD":            "Hold · no action needed today",
+            "EXIT":            "Sell/rotate today · closed position",
+            "ROTATED_SAMEDAY": "Not held · same-day rotation artifact",
+        }
+
+        def _parquet_close(ticker: str, market: str, target_date: str) -> float | None:
+            """Latest parquet close on or before target_date · source of truth."""
+            import pandas as _pd
+            short = str(ticker or "").replace(".NS", "").replace(".BO", "").upper()
+            base = "usa/data/raw/us" if market.upper() == "USA" else "data/raw/india"
+            p = _ROOT / base / f"{short}_D1.parquet"
+            if not p.exists(): return None
+            try:
+                d = _pd.read_parquet(p)
+                col = "close" if "close" in d.columns else "Close"
+                d.index = _pd.to_datetime(d.index).strftime("%Y-%m-%d")
+                if target_date in d.index: return float(d.loc[target_date, col])
+                earlier = [dt for dt in d.index if dt <= target_date]
+                return float(d.loc[earlier[-1], col]) if earlier else None
+            except Exception:
+                return None
+
         def _split_and_send(mkt_label: str, mkt_key: str, caption_body: str):
             src_wb = _lwb(xlsx_path)
             src_ws = src_wb["AEGIS Daily"] if "AEGIS Daily" in src_wb.sheetnames else src_wb.active
@@ -444,6 +471,14 @@ def main() -> int:
             c_ctry = h.index("Country") + 1
             c_st = h.index("Status") + 1
             c_tk = h.index("Ticker") + 1
+            c_date = h.index("Date") + 1
+            c_recommended = h.index("Recommended") + 1 if "Recommended" in h else None
+            c_entry = h.index("Entry Price") + 1 if "Entry Price" in h else None
+            c_current = h.index("Current Price") + 1 if "Current Price" in h else None
+            c_perf = h.index("Current Perf %") + 1 if "Current Perf %" in h else None
+            c_exit_pnl = h.index("Exit P&L %") + 1 if "Exit P&L %" in h else None
+            c_conf = h.index("Confidence %") + 1 if "Confidence %" in h else None
+            c_alerts = h.index("Alerts") + 1 if "Alerts" in h else None
             c_sector_existing = h.index("Sector") + 1 if "Sector" in h else None
             # Filter rows by market
             keep_rows = [row for row in src_ws.iter_rows(min_row=2, values_only=False)
@@ -454,8 +489,11 @@ def main() -> int:
             wb2 = _WB()
             ws2 = wb2.active
             ws2.title = f"AEGIS {mkt_key.upper()}"
-            # Header + new Cap Size column
-            new_h = list(h) + ["Cap Size"]
+            # Header + new columns (Cap Size + Opp Age)
+            # Opp Age: NEW = row_date == Recommended date · OLD = held from prior day
+            # (operator: "if I open sheet on monday, I might see new buy options
+            # to invest if I missed old opportunities")
+            new_h = list(h) + ["Cap Size", "Opp Age"]
             for c, name in enumerate(new_h, start=1):
                 cell = ws2.cell(1, c, name)
                 cell.fill = HEADER_FILL if 'HEADER_FILL' in globals() else _PF(
@@ -468,23 +506,188 @@ def main() -> int:
             # New Cap Size column width
             from openpyxl.utils import get_column_letter as _gcl
             ws2.column_dimensions[_gcl(len(new_h))].width = 18
-            # Data rows · backfill Sector column from cache if empty
+            # Data rows · backfill Sector + repair stale Current Price
+            latest_date = max((str(r[c_date-1].value or "")[:10] for r in keep_rows), default="")
             for r_idx, row in enumerate(keep_rows, start=2):
                 tk = row[c_tk-1].value
+                status = row[c_st-1].value
+                # STALE-PRICE FIX · for OPEN positions (not EXIT) · re-read
+                # Current Price from parquet (operator P&L audit found frozen
+                # last_seen_price making Perf=0 for all HOLDs)
+                repaired_current = None
+                repaired_perf = None
+                if status != "EXIT" and c_current and c_entry:
+                    entry_v = row[c_entry-1].value
+                    row_date = str(row[c_date-1].value or "")[:10]
+                    live = _parquet_close(tk, mkt_key, row_date)
+                    if live and isinstance(entry_v, (int, float)) and entry_v > 0:
+                        repaired_current = round(live, 2)
+                        repaired_perf = round((live - entry_v) / entry_v * 100, 2)
                 for c_idx, cell in enumerate(row, start=1):
                     val = cell.value
-                    # Fill missing Sector from cache (mandatory · operator directive)
                     if c_sector_existing and c_idx == c_sector_existing and not val:
                         val = _sector_for(tk, mkt_key)
+                    if repaired_current is not None and c_idx == c_current:
+                        val = repaired_current
+                    if repaired_perf is not None and c_idx == c_perf:
+                        val = repaired_perf
                     ws2.cell(r_idx, c_idx, val)
-                # Append Cap Size (new column at end)
-                ws2.cell(r_idx, len(new_h), _cap_size(tk, mkt_key))
-                st = row[c_st-1].value
-                if st in _STATUS_FILLS_LOCAL:
-                    fill = _STATUS_FILLS_LOCAL[st]
+                # Cap Size (second-to-last new column)
+                ws2.cell(r_idx, len(new_h) - 1, _cap_size(tk, mkt_key))
+                # Opp Age (last new column) · NEW if row date == entry date
+                row_dt = str(row[c_date-1].value or "")[:10]
+                entry_dt = str(row[c_recommended-1].value or "")[:10] if c_recommended else ""
+                opp_age = "🆕 NEW" if (row_dt and row_dt == entry_dt) else "OLD"
+                ws2.cell(r_idx, len(new_h), opp_age)
+                if status in _STATUS_FILLS_LOCAL:
+                    fill = _STATUS_FILLS_LOCAL[status]
                     for c in range(1, len(new_h)+1):
                         ws2.cell(r_idx, c).fill = fill
             ws2.freeze_panes = "D2"
+
+            # ═══════════════════════════════════════════════════════════════
+            # SHEET 1 · PORTFOLIO GLANCE · operator directive: current XLSX is
+            # a transaction log · unusable for P&L glance. Add a top sheet
+            # with aggregates + one row per CURRENT position.
+            # ═══════════════════════════════════════════════════════════════
+            portfolio_ws = wb2.create_sheet("Portfolio", 0)
+            # Build one row per unique (Ticker, Run_Type) using LATEST date state
+            c_run = 4    # Run_Type is column 4 in the source
+            latest_by_ticker = {}
+            for r in keep_rows:
+                key = (r[c_tk-1].value, str(r[c_run-1].value or ""))
+                dt = str(r[c_date-1].value or "")[:10]
+                if key not in latest_by_ticker or dt > latest_by_ticker[key][0]:
+                    latest_by_ticker[key] = (dt, r)
+            positions = [(dt, r) for (dt, r) in latest_by_ticker.values()]
+
+            # Aggregate: sum realized (EXIT rows) + unrealized (open rows) using repaired numbers
+            realized_sum = 0.0; n_realized = 0
+            unrealized_sum = 0.0; n_unrealized = 0
+            n_win = 0; n_loss = 0; n_flat = 0
+            best_pos = ("", 0.0); worst_pos = ("", 0.0)
+            for dt, r in positions:
+                status = r[c_st-1].value
+                pnl = None
+                if status == "EXIT" and c_exit_pnl:
+                    v = r[c_exit_pnl-1].value
+                    if isinstance(v, (int, float)):
+                        pnl = v; realized_sum += v; n_realized += 1
+                elif status != "ROTATED_SAMEDAY" and status != "EXIT":
+                    entry_v = r[c_entry-1].value if c_entry else None
+                    tk = r[c_tk-1].value
+                    live = _parquet_close(tk, mkt_key, dt)
+                    if live and isinstance(entry_v, (int, float)) and entry_v > 0:
+                        pnl = round((live - entry_v) / entry_v * 100, 2)
+                        unrealized_sum += pnl; n_unrealized += 1
+                if pnl is not None:
+                    if pnl > 0.01: n_win += 1
+                    elif pnl < -0.01: n_loss += 1
+                    else: n_flat += 1
+                    if pnl > best_pos[1]: best_pos = (r[c_tk-1].value, pnl)
+                    if pnl < worst_pos[1]: worst_pos = (r[c_tk-1].value, pnl)
+            combined = realized_sum + unrealized_sum
+            n_total = n_realized + n_unrealized
+            win_rate = round(n_win / max(1, n_total) * 100, 1)
+
+            # Portfolio header + KPI banner
+            portfolio_ws.merge_cells("A1:L1")
+            portfolio_ws["A1"] = f"AEGIS {mkt_key} PORTFOLIO · as of {latest_date or 'today'}"
+            portfolio_ws["A1"].font = _Font(bold=True, size=14, color="FFFFFF")
+            portfolio_ws["A1"].fill = HEADER_FILL if 'HEADER_FILL' in globals() else _PF(
+                start_color="1F4E78", end_color="1F4E78", fill_type="solid")
+            portfolio_ws["A1"].alignment = _Align(horizontal="center", vertical="center")
+            portfolio_ws.row_dimensions[1].height = 28
+
+            kpi_rows = [
+                ["Realized P&L (closed)", f"{realized_sum:+.2f}%", f"{n_realized} closed",
+                 "Best position", f"{best_pos[0]} {best_pos[1]:+.2f}%"],
+                ["Unrealized P&L (open)", f"{unrealized_sum:+.2f}%", f"{n_unrealized} open",
+                 "Worst position", f"{worst_pos[0]} {worst_pos[1]:+.2f}%"],
+                ["COMBINED PORTFOLIO",    f"{combined:+.2f}%",      f"{n_total} positions",
+                 "Win rate", f"{win_rate}% ({n_win}W / {n_loss}L / {n_flat} flat)"],
+            ]
+            for r_off, kpi_row in enumerate(kpi_rows, start=3):
+                for c_off, val in enumerate(kpi_row, start=1):
+                    cell = portfolio_ws.cell(r_off, c_off, val)
+                    cell.font = _Font(bold=(c_off in (1, 4)), size=11)
+                    if r_off == 5 and c_off <= 3:   # combined row highlighted
+                        cell.fill = _PF(start_color="FFE699", end_color="FFE699", fill_type="solid")
+
+            # Positions header (row 7)
+            pos_hdr = ["Ticker", "Sector", "Cap", "Status", "Action",
+                          "Entry Date", "Entry", "Current", "P&L %",
+                          "Days", "Alerts", "Exit Reason"]
+            widths_pos = [12, 22, 20, 12, 40, 12, 12, 12, 10, 8, 40, 30]
+            for c, name in enumerate(pos_hdr, start=1):
+                cell = portfolio_ws.cell(7, c, name)
+                cell.font = _Font(bold=True, color="FFFFFF", size=11)
+                cell.fill = HEADER_FILL if 'HEADER_FILL' in globals() else _PF(
+                    start_color="1F4E78", end_color="1F4E78", fill_type="solid")
+                cell.alignment = _Align(horizontal="center", vertical="center")
+                portfolio_ws.column_dimensions[chr(64+c)].width = widths_pos[c-1]
+
+            # Sort positions: EXIT first, then by P&L descending
+            def _sort_key(item):
+                dt, r = item
+                status = r[c_st-1].value
+                pnl = 0
+                if status == "EXIT" and c_exit_pnl:
+                    v = r[c_exit_pnl-1].value
+                    if isinstance(v, (int, float)): pnl = v
+                else:
+                    entry_v = r[c_entry-1].value if c_entry else None
+                    tk = r[c_tk-1].value
+                    live = _parquet_close(tk, mkt_key, dt)
+                    if live and isinstance(entry_v, (int, float)) and entry_v > 0:
+                        pnl = round((live - entry_v) / entry_v * 100, 2)
+                # EXIT rows first (group=0), then non-EXIT by descending P&L
+                group = 0 if status == "EXIT" else 1
+                return (group, -pnl)
+
+            positions_sorted = sorted(positions, key=_sort_key)
+            for i, (dt, r) in enumerate(positions_sorted, start=8):
+                tk = r[c_tk-1].value
+                status = r[c_st-1].value
+                entry_v = r[c_entry-1].value if c_entry else None
+                rec_dt = str(r[c_recommended-1].value or "")[:10] if c_recommended else ""
+                # Compute P&L
+                if status == "EXIT":
+                    pnl = r[c_exit_pnl-1].value if c_exit_pnl else None
+                    curr = r[c_current-1].value if c_current else None
+                else:
+                    live = _parquet_close(tk, mkt_key, dt)
+                    curr = round(live, 2) if live else (r[c_current-1].value if c_current else None)
+                    pnl = round((live - entry_v) / entry_v * 100, 2) \
+                            if live and isinstance(entry_v, (int, float)) and entry_v > 0 else None
+                # Days held
+                try:
+                    from datetime import date as _dtc
+                    d1 = _dtc.fromisoformat(rec_dt); d2 = _dtc.fromisoformat(dt)
+                    days = max(0, (d2 - d1).days)
+                except Exception:
+                    days = ""
+                alerts = r[c_alerts-1].value if c_alerts else ""
+                exit_reason = ""
+                # Row values
+                vals = [tk, _sector_for(tk, mkt_key), _cap_size(tk, mkt_key),
+                            status, _ACTIONS.get(status, ""),
+                            rec_dt, entry_v, curr,
+                            f"{pnl:+.2f}%" if isinstance(pnl, (int, float)) else "",
+                            days, alerts or "", exit_reason]
+                for c, v in enumerate(vals, start=1):
+                    cell = portfolio_ws.cell(i, c, v)
+                    cell.alignment = _Align(horizontal="left" if c in (1,2,3,4,5,6,11) else "right",
+                                                     vertical="center", wrap_text=True)
+                if status in _STATUS_FILLS_LOCAL:
+                    fill = _STATUS_FILLS_LOCAL[status]
+                    for c in range(1, len(pos_hdr)+1):
+                        portfolio_ws.cell(i, c).fill = fill
+            portfolio_ws.freeze_panes = "A8"
+
+            # Rename Sheet 2 · make Portfolio come first
+            ws2.title = f"AEGIS {mkt_key} History"
+
             wb2.save(out_path)
             src_wb.close()
             # Skip send if market has 0 rows (e.g., USA freshly wiped for S&P 500 reset)
@@ -504,6 +707,7 @@ def main() -> int:
 
         # Import Font at module scope (used in split_and_send)
         from openpyxl.styles import Font as _Font
+        from openpyxl.styles import Alignment as _Align
 
         # Build market-specific captions with correct timezones
         india_caption = (
