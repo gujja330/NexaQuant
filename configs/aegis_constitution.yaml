@@ -1,0 +1,66 @@
+version: 1.0
+last_amended: 2026-08-08
+
+# AEGIS Constitutional Governance Rules
+# Config-driven per no-hardcoding invariant.
+
+# ═══════════════════════════════════════════════════════════════════════
+# The 5-Objective Rule (locked 2026-08-08 · operator directive)
+# ═══════════════════════════════════════════════════════════════════════
+# Every new feature MUST satisfy at least ONE of these objectives.
+# If a proposed feature doesn't materially improve one of these,
+# it does not ship. No exceptions · no "nice to have" features.
+five_objectives:
+  - id:            increase_returns
+    description:   "Increase portfolio total return"
+    measurement:   "Sum realized + unrealized P&L vs baseline"
+  - id:            reduce_drawdowns
+    description:   "Reduce portfolio max drawdown"
+    measurement:   "Max DD across all positions vs baseline"
+  - id:            improve_consistency
+    description:   "Improve recommendation consistency (fewer whipsaws)"
+    measurement:   "% recs held ≥ 5 days without exit reversal"
+  - id:            improve_explainability
+    description:   "Improve explainability of decisions"
+    measurement:   "Attribution coverage per rec · Sprint K Part 25"
+  - id:            improve_self_learning
+    description:   "Improve self-learning capability"
+    measurement:   "Weight updates promoted · Sprint L Part L1"
+
+# Feature-proposal gate
+# Every feature PR must declare which objective(s) it advances
+# and quantify expected improvement.
+feature_proposal_template:
+  required_fields:
+    - objective_id     # one or more from five_objectives above
+    - expected_impact  # quantified · e.g. "+2% returns · -1% max DD"
+    - measurement_plan # how we'll verify the impact
+    - constitutional_compliance  # confirms no R1/R2 sealed-file touches
+
+# ═══════════════════════════════════════════════════════════════════════
+# What is locked (do not modify · 2026-08-08)
+# ═══════════════════════════════════════════════════════════════════════
+locked:
+  - portfolio_layout           # 24 cols · Urgency/Reason/Action/Review split
+  - telegram_layout            # dual timezone captions · India+USA separate files
+  - history_schema             # 51-col History sheet · both markets
+  - runner_architecture        # R1 sealed · R2 canonical · Runner 3 forbidden
+  - investability_architecture # 11 sub-engines · advisory until Nov 13
+  - recommendation_lifecycle   # Position Store · attribution · continuity
+  - config_first_philosophy    # no hardcoded values in new code
+
+# ═══════════════════════════════════════════════════════════════════════
+# What can evolve (behind the scenes · no presentation changes)
+# ═══════════════════════════════════════════════════════════════════════
+allowed_to_evolve:
+  - prediction_calibration     # threshold tuning via config
+  - weight_optimization        # Sprint L Distillation
+  - attribution_snapshots      # Sprint K Part 25
+  - distillation_engine        # Sprint L Part L1
+  - recommendation_continuity  # Sprint K Parts 5-7
+  - context_engine             # Sprint K Part 10
+  - economic_calendar          # Sprint K Part 11
+  - sector_context             # Sprint K Part 13
+  - market_regime              # Existing · deeper integration
+  - news_impact                # Sprint K Part 12 · Wave 2 replacement
+  - portfolio_risk             # Sprint L Part L2 Capital Preservation
