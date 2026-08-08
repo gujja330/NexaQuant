@@ -86,10 +86,15 @@ def _fetch_info(ticker: str, market: str) -> dict:
 
 
 def _verdict(score: float) -> str:
-    if score >= THRESHOLD_STRONG_BUY: return "STRONG BUY"
-    if score >= THRESHOLD_BUY:        return "BUY"
-    if score >= THRESHOLD_HOLD:       return "HOLD"
-    return "REJECT"
+    """2026-08-08 · Renamed to non-overlapping vocabulary (operator directive:
+    "status vs inv verdict confusing · which one to follow"). Was
+    STRONG BUY/BUY/HOLD/REJECT which collided with Runner's Status column.
+    New: QUALITY (top-tier · own with conviction) · OK (investable) ·
+    MARGINAL (watch · reduce if weakens) · AVOID (do not own)."""
+    if score >= THRESHOLD_STRONG_BUY: return "🏆 QUALITY"
+    if score >= THRESHOLD_BUY:        return "✓ OK"
+    if score >= THRESHOLD_HOLD:       return "⚠ MARGINAL"
+    return "✗ AVOID"
 
 
 def _top_drivers(debug: dict, n: int = 3) -> list:

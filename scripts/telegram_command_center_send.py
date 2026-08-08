@@ -637,16 +637,41 @@ def main() -> int:
                     if r_off == 5 and c_off <= 3:   # combined row highlighted
                         cell.fill = _PF(start_color="FFE699", end_color="FFE699", fill_type="solid")
 
-            # Positions header (row 7) · Portfolio-as-primary-invest-page format
-            # Operator lock 2026-08-08: removed Confidence · added Exit Date +
-            # Stop Loss + Target 1 + Target 2 · added Investability + Inv Verdict
-            # (advisory only · does NOT gate ranking · Wave 1.5 · 6 sub-engines)
-            pos_hdr = ["Ticker", "Runner", "Sector", "Cap", "Status", "Action",
-                          "Entry Date", "Exit Date", "Entry", "Current", "Exit Price",
-                          "Stop Loss", "Target 1", "Target 2", "P&L %",
-                          "Investability", "Inv Verdict",
-                          "Days", "Alerts", "Exit Reason"]
-            widths_pos = [12, 8, 22, 20, 12, 40, 12, 12, 12, 12, 12, 12, 12, 12, 10, 12, 14, 8, 40, 30]
+            # 2026-08-08 · Column order + Priority classification (10 buckets)
+            # Priority is the SYNTHESIZED decision · row color follows Priority
+            # (not Status or Inv Verdict alone).
+            pos_hdr = [
+                # IDENTITY (7)
+                "Ticker", "Runner", "Sector", "Cap", "Entry Date", "Exit Date", "Days",
+                # DECISION (5) · Priority is the SINGLE answer to "what do I do?"
+                "🎯 Priority", "Status", "Inv Quality", "Investability", "Final Action",
+                # PRICE + P&L (4)
+                "Entry", "Current", "Exit Price", "P&L %",
+                # RISK/TARGET (3)
+                "Stop Loss", "Target 1", "Target 2",
+                # CONTEXT (3)
+                "Action Note", "Alerts", "Exit Reason",
+            ]
+            widths_pos = [12, 8, 22, 20, 12, 12, 8,
+                              28, 12, 14, 12, 30,
+                              12, 12, 12, 10,
+                              12, 12, 12,
+                              40, 40, 30]
+
+            # Priority classifier · composite of Status × Inv Verdict × P&L direction
+            # 10 buckets · each has a distinct fill color for at-a-glance scanning
+            PRIORITY_FILLS = {
+                "A · CONVICTION BUY":     _PF(start_color="70AD47", end_color="70AD47", fill_type="solid"),  # dark green
+                "B · CONFIRMED BUY":      _PF(start_color="C6EFCE", end_color="C6EFCE", fill_type="solid"),  # light green
+                "C · QUALITY DIP · ADD":  _PF(start_color="B4D7EE", end_color="B4D7EE", fill_type="solid"),  # light blue · opportunity
+                "D · COMPOUNDER":         _PF(start_color="A9D08E", end_color="A9D08E", fill_type="solid"),  # medium green
+                "E · WATCH":              _PF(start_color="FFF2CC", end_color="FFF2CC", fill_type="solid"),  # yellow
+                "F · SIGNAL WARNING":     _PF(start_color="FFCC66", end_color="FFCC66", fill_type="solid"),  # amber
+                "G · STRUCTURAL FAILURE": _PF(start_color="F8CBAD", end_color="F8CBAD", fill_type="solid"),  # salmon · exit
+                "H · PREMATURE EXIT?":    _PF(start_color="D6DCE4", end_color="D6DCE4", fill_type="solid"),  # cool gray · review
+                "I · CLOSED · CLEAN":     _PF(start_color="E7E6E6", end_color="E7E6E6", fill_type="solid"),  # gray · done
+                "J · ARTIFACT":           _PF(start_color="F2F2F2", end_color="F2F2F2", fill_type="solid"),  # very light gray
+            }
 
             # Load Investability scores (advisory · from reports/investability_{market}.json)
             _inv_map = {}
@@ -720,29 +745,112 @@ def main() -> int:
                 t2_v   = r[c_t2 - 1].value   if (c_t2   and status != "EXIT") else None
                 if status == "EXIT" and h and "Exit Reason" in h:
                     exit_reason = r[h.index("Exit Reason")].value or ""
-                # Investability lookup (advisory · from Wave 1.5 · 6 sub-engines)
+                # Investability lookup (Wave 2 · 11 sub-engines)
                 _inv = _inv_map.get(tk, {})
                 inv_score = _inv.get("score")
                 inv_verdict = _inv.get("verdict", "")
-                vals = [tk, runner_val, _sector_for(tk, mkt_key), _cap_size(tk, mkt_key),
-                            status, _ACTIONS.get(status, ""),
-                            rec_dt, exit_date, entry_v, curr, exit_price,
-                            stop_v, t1_v, t2_v, pnl_decimal,
-                            inv_score, inv_verdict,
-                            days, alerts or "", exit_reason]
+
+                def _classify_priority(st, iv, pnl):
+                    """10-bucket Priority classifier · single source of decision truth.
+                    Row color follows THIS · not Status or Inv Verdict alone."""
+                    q_high = iv in ("🏆 QUALITY", "✓ OK")
+                    q_mid = iv == "⚠ MARGINAL"
+                    q_low = iv == "✗ AVOID"
+                    pnl_neg = isinstance(pnl, (int, float)) and pnl < 0
+                    if st == "ROTATED_SAMEDAY":
+                        return "J · ARTIFACT"
+                    if st == "EXIT":
+                        if q_high: return "H · PREMATURE EXIT?"
+                        return "I · CLOSED · CLEAN"
+                    if st == "STRONG BUY" and iv == "🏆 QUALITY":
+                        return "A · CONVICTION BUY"
+                    if st in ("BUY", "STRONG BUY") and q_high:
+                        return "B · CONFIRMED BUY"
+                    if st in ("BUY", "STRONG BUY") and q_low:
+                        return "F · SIGNAL WARNING"
+                    if st == "HOLD" and q_high and pnl_neg:
+                        return "C · QUALITY DIP · ADD"
+                    if st == "HOLD" and q_high:
+                        return "D · COMPOUNDER"
+                    if q_mid:
+                        return "E · WATCH"
+                    if q_low and pnl_neg:
+                        return "G · STRUCTURAL FAILURE"
+                    if q_low:
+                        return "F · SIGNAL WARNING"
+                    return "E · WATCH"
+
+                # Compute P&L for classification
+                _pnl_for_class = None
+                if isinstance(pnl_decimal, (int, float)):
+                    _pnl_for_class = pnl_decimal * 100
+
+                priority_tag = _classify_priority(status, inv_verdict, _pnl_for_class)
+
+                # Final Action · human-readable follow-through (kept for context)
+                def _final_action(st, iv):
+                    q_high = iv in ("🏆 QUALITY", "✓ OK")
+                    q_low = iv == "✗ AVOID"
+                    if st == "STRONG BUY":
+                        if iv == "🏆 QUALITY": return "🟢🟢 STRONG BUY · high conviction"
+                        if iv == "✓ OK":       return "🟢 BUY · engine + quality aligned"
+                        if iv == "⚠ MARGINAL": return "🟡 BUY SMALL · quality borderline"
+                        if q_low:               return "🔴 SKIP · engine buys but quality FAILS"
+                    if st == "BUY":
+                        if q_high:              return "🟢 BUY · in buy zone · quality confirmed"
+                        if iv == "⚠ MARGINAL": return "🟡 BUY SMALL · watch quality"
+                        if q_low:               return "🔴 SKIP · buy signal but quality WEAK"
+                    if st == "HOLD":
+                        if iv == "🏆 QUALITY": return "🟢 HOLD · patient · both endorse"
+                        if iv == "✓ OK":       return "🟢 HOLD · quality intact"
+                        if iv == "⚠ MARGINAL": return "🟡 HOLD · tighten stop · watching"
+                        if q_low:               return "🔴 REDUCE / EXIT · quality degraded"
+                    if st == "EXIT":
+                        if q_high: return "⚪ EXITED · quality was good · review if premature"
+                        return "⚪ EXITED · position closed"
+                    if st == "ROTATED_SAMEDAY":
+                        return "⚪ Rotation artifact · not held"
+                    return "—"
+
+                final_action = _final_action(status, inv_verdict)
+
+                vals = [
+                    # IDENTITY (1-7)
+                    tk, runner_val, _sector_for(tk, mkt_key), _cap_size(tk, mkt_key),
+                    rec_dt, exit_date, days,
+                    # DECISION (8-12) · Priority is col 8 (the single-answer col)
+                    priority_tag, status, inv_verdict, inv_score, final_action,
+                    # PRICE + P&L (13-16)
+                    entry_v, curr, exit_price, pnl_decimal,
+                    # RISK/TARGET (17-19)
+                    stop_v, t1_v, t2_v,
+                    # CONTEXT (20-22)
+                    _ACTIONS.get(status, ""), alerts or "", exit_reason,
+                ]
                 for c, v in enumerate(vals, start=1):
                     cell = portfolio_ws.cell(i, c, v)
-                    cell.alignment = _Align(horizontal="left" if c in (1,2,3,4,5,6,7,8,17,19) else "right",
-                                                     vertical="center", wrap_text=True)
-                    # Number formats · Excel treats as native number for SUM/AVG
-                    if c in (9, 10, 11, 12, 13, 14):           # Entry/Curr/Exit/Stop/T1/T2
-                        cell.number_format = "#,##0.00"
-                    elif c == 15 and pnl_decimal is not None:  # P&L %
-                        cell.number_format = "+0.00%;-0.00%;0.00%"
-                    elif c == 16 and isinstance(inv_score, (int, float)):  # Investability
-                        cell.number_format = "0.0"
-                    elif c == 18 and isinstance(days, int):    # Days
+                    text_cols = {1, 2, 3, 4, 5, 6, 8, 9, 10, 12, 20, 21, 22}
+                    cell.alignment = _Align(
+                        horizontal="left" if c in text_cols else "right",
+                        vertical="center", wrap_text=True)
+                    # Number formats
+                    if c == 7 and isinstance(days, int):        # Days
                         cell.number_format = "0"
+                    elif c == 11 and isinstance(inv_score, (int, float)):  # Investability
+                        cell.number_format = "0.0"
+                    elif c in (13, 14, 15, 17, 18, 19):         # Entry/Curr/Exit/Stop/T1/T2
+                        cell.number_format = "#,##0.00"
+                    elif c == 16 and pnl_decimal is not None:   # P&L %
+                        cell.number_format = "+0.00%;-0.00%;0.00%"
+
+                # ROW COLOR now follows PRIORITY (not Status) · CEO call:
+                # "color code to change based on inv verdict now"
+                # Priority IS the composite of Status × Inv Verdict → colors reflect
+                # the synthesized decision, not either signal alone.
+                if priority_tag in PRIORITY_FILLS:
+                    fill = PRIORITY_FILLS[priority_tag]
+                    for c in range(1, len(pos_hdr) + 1):
+                        portfolio_ws.cell(i, c).fill = fill
                 if status in _STATUS_FILLS_LOCAL:
                     fill = _STATUS_FILLS_LOCAL[status]
                     for c in range(1, len(pos_hdr)+1):
