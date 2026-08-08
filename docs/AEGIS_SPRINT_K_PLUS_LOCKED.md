@@ -64,25 +64,107 @@ Nine improvements queued for Sprint K Part 25 execution (Nov 4-10):
 Execution deferred to Sprint K Part 25 (Nov 4-10) · attribution snapshot
 module already scoped · these become sub-fields of the snapshot schema.
 
-**Observation criteria for lock window (2026-08-11 to 2026-08-15):**
+**Observation criteria · 4-stage validation (revised 2026-08-08 per CEO
+review · "5 trading days is not enough · some recs have 60-90 day horizons"):**
 
-Track these 7 tickers as live A/B test of Priority classifier:
+### Stage 1 · Sanity check (Aug 11-15 · 5 trading days)
 
-Priority C (Quality Dip · ADD) · expected to recover:
-  SUNPHARMA · IEX · LUPIN · FORTIS · BIOCON
+Not a decision milestone · noise-check only. Look for:
+- Any Priority tag clearly WRONG for a specific ticker (log for review)
+- Any bucket producing obviously bad decisions (systematic misclassification)
+- Pipeline health: no missed days · guards green · sends successful
 
-Priority G (Structural Failure · EXIT) · expected to keep falling:
-  POWERGRID · VOLTAS · LICI · TATAPOWER
+**No threshold changes this window** regardless of what data shows.
 
-At Aug 15 review:
-- Priority C recovery rate → calibrate threshold up/down
-- Priority G continued-weakness rate → validate exit signal
-- Any misclassification → log for Part 25 training corpus
-- Correlation: Investability score vs 5-day P&L outcome
+### Stage 2 · First statistical review (~Sep 8 · 30 trading days)
 
-If Priority C recovers > 60% AND Priority G falls > 70% → thresholds
-correct · promote Investability to hard-gate on Nov 13 as scheduled.
-Otherwise · recalibrate before hard-gate promotion.
+Minimum sample for meaningful statistics. Track EVERY recommendation ·
+not just the 9-ticker A/B test.
+
+Metrics computed for every Priority bucket:
+- N recommendations issued
+- N closed (Status became EXIT)
+- Win rate (% with P&L > 0)
+- Average return
+- Median return
+- Max drawdown per position
+- Time to recovery (Priority C specifically)
+- False-positive rate (Priority G that recovered · Priority A that failed)
+
+### Stage 3 · Production decision (~Oct 6 · 60 trading days)
+
+Sample size sufficient for institutional confidence (n≥50 closed).
+Investability hard-gate promotion decision · multi-metric (not just bucket
+success):
+
+Promote to hard-gate ONLY IF ALL 5 conditions met:
+1. Portfolio total return IMPROVED vs pre-Investability baseline
+2. Portfolio max drawdown REDUCED vs baseline
+3. Rotation quality maintained (Rotation Outcome Tracker win rate ≥ 55%)
+4. Opportunity discovery not reduced excessively (fresh_buys count ≥ 80% of baseline)
+5. Priority C recovery rate > 55% AND Priority G continued-weakness rate > 65%
+
+**Any single failing condition = defer promotion · investigate.**
+
+### Stage 4 · Constitutional lock (~Nov 4 · 90 trading days)
+
+Full statistical validity. Sprint K Part 25 (Attribution) begins on this
+date and consumes the accumulated data. Constitutional lock means:
+- Investability Engine promoted to hard-gate (if all Stage 3 conditions met)
+- Priority classifier thresholds calibrated from real outcomes (not intuition)
+- Attribution snapshots retroactively populated for all Stage 2-3 recs
+
+---
+
+**Zero-feature discipline (Aug 11 → Nov 3):**
+
+Per CEO directive: "I would not write another feature for the next week."
+Extended to entire pre-Sprint-K window. Only allowed changes:
+- Bug fixes (must be reproducible + regression-tested)
+- Data pipeline maintenance (parquet · reports · daily runs)
+- Documentation updates (Sprint K plan refinements)
+- Observation logs · scorecards (not features · just tracking existing data)
+
+NO CHANGES ALLOWED:
+- No new columns in Portfolio or History sheets
+- No new sub-engines in Investability
+- No threshold changes (Investability · Priority · Runner)
+- No universe expansion
+- No caption reformatting
+- No new alerts / guards / notifications
+
+If operator identifies something worth adding · queue as v1.6 amendment ·
+implement in Sprint K Part 25 window (Nov 4-10) with real data grounding.
+
+---
+
+**Daily observation scorecard (passive · uses existing data · not a feature):**
+
+Nightly script `scripts/daily_scorecard.py` (to be added Aug 11 morning
+as maintenance code · not new feature) reads:
+- aegis_history_india.xlsx
+- aegis_history_usa.xlsx
+- investability_india.json
+- investability_usa.json
+
+Emits `reports/research/daily_scorecard_{date}.json`:
+```json
+{
+  "asof": "2026-08-11",
+  "priority_distribution": {"A": 2, "B": 5, "C": 4, ...},
+  "day_over_day_p&l": +0.34,
+  "misclassification_flags": [],   // populated at Sep 8 review
+  "cumulative_since_lock": {
+    "n_priority_C_issued": 4,
+    "n_priority_C_recovered": null,   // determined at exit
+    "n_priority_G_issued": 4,
+    "n_priority_G_kept_falling": null
+  }
+}
+```
+
+Zero cost to build (reuses existing data readers). Feeds Sprint K Part 25
+Attribution as training corpus.
 
 **Signed into force:** 2026-08-06
 **Author:** CEO (operator · locked · binding)
