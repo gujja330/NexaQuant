@@ -1,26 +1,31 @@
 {
   "engine": "investability.v1.wave1",
   "market": "usa",
-  "generated_utc": "2026-08-08T10:44:30+00:00",
+  "generated_utc": "2026-08-08T10:58:06+00:00",
   "n_scored": 30,
   "verdict_counts": {
-    "REJECT": 5,
-    "HOLD": 7,
-    "BUY": 13,
-    "STRONG BUY": 5
+    "REJECT": 4,
+    "HOLD": 9,
+    "BUY": 14,
+    "STRONG BUY": 3
   },
   "results": [
     {
       "ticker": "A",
       "market": "usa",
-      "asof": "2026-08-08T10:44:15+00:00",
-      "score": 87.6,
+      "asof": "2026-08-08T10:57:52+00:00",
+      "score": 81.6,
       "verdict": "STRONG BUY",
       "sub_scores": {
         "fundamental": 100.0,
         "technical": 100.0,
         "governance": 63.6,
+        "ownership": 72.2,
+        "sector": 50.0,
+        "macro": 80.0,
         "liquidity": 100.0,
+        "news": 50.0,
+        "earnings": 100.0,
         "valuation": 52.2,
         "risk": 100.0
       },
@@ -206,6 +211,100 @@
           },
           "note": "Wave 1 lite \u00b7 Wave 2 adds SEBI + pledge + auditor + RPT"
         },
+        "ownership": {
+          "engine": "ownership.v1_lite",
+          "score": 72.2,
+          "hits": 6.5,
+          "total": 9.0,
+          "signals": {
+            "institutional_ownership_healthy": {
+              "value": 0.93617994,
+              "ok": true,
+              "weight": 2.0
+            },
+            "institutional_ownership_moderate": {
+              "value": 0.93617994,
+              "ok": true,
+              "weight": 1.5
+            },
+            "insider_holding_present": {
+              "value": 0.0019400001,
+              "ok": false,
+              "weight": 1.5
+            },
+            "insider_holding_strong": {
+              "value": 0.0019400001,
+              "ok": false,
+              "weight": 1.0
+            },
+            "institutional_breadth": {
+              "value": 0.93617994,
+              "ok": true,
+              "weight": 1.0
+            },
+            "float_availability": {
+              "value": 0.9965899997487536,
+              "ok": true,
+              "weight": 1.0
+            },
+            "no_heavy_shorting": {
+              "value": 3.3,
+              "ok": true,
+              "weight": 1.0
+            }
+          },
+          "note": "Wave 1.5 \u00b7 Wave 2 adds FII/MF QoQ trends from BSE shareholding pattern"
+        },
+        "sector": {
+          "engine": "sector.v1",
+          "score": 50.0,
+          "signals": {
+            "sector_classified": {
+              "ok": false,
+              "weight": 0.5,
+              "extra": {
+                "sector": ""
+              }
+            }
+          },
+          "note": "insufficient sector data \u00b7 neutral"
+        },
+        "macro": {
+          "engine": "macro.v1",
+          "score": 80.0,
+          "hits": 4.0,
+          "total": 5.0,
+          "signals": {
+            "regime_not_bearish": {
+              "ok": true,
+              "weight": 2.0,
+              "extra": {
+                "regime": ""
+              }
+            },
+            "regime_bullish": {
+              "ok": false,
+              "weight": 1.0,
+              "extra": {
+                "regime": ""
+              }
+            },
+            "cb_not_hawkish": {
+              "ok": true,
+              "weight": 1.0,
+              "extra": {
+                "stance": ""
+              }
+            },
+            "yields_not_rising": {
+              "ok": true,
+              "weight": 1.0,
+              "extra": {
+                "direction": ""
+              }
+            }
+          }
+        },
         "liquidity": {
           "engine": "liquidity.v1",
           "score": 100.0,
@@ -243,6 +342,65 @@
               }
             }
           }
+        },
+        "news": {
+          "engine": "news.v1",
+          "score": 50.0,
+          "n_ticker_mentions": 0,
+          "n_total_news": 0,
+          "signals": {
+            "ticker_mentions": [],
+            "sector_backdrop_impact": 0
+          }
+        },
+        "earnings": {
+          "engine": "earnings.v1",
+          "score": 100.0,
+          "hits": 12.0,
+          "total": 12.0,
+          "signals": {
+            "earnings_growth_positive": {
+              "value": 0.6,
+              "ok": true,
+              "weight": 2.0
+            },
+            "earnings_growth_strong": {
+              "value": 0.6,
+              "ok": true,
+              "weight": 1.5
+            },
+            "quarterly_earnings_growth": {
+              "value": 0.577,
+              "ok": true,
+              "weight": 1.5
+            },
+            "revenue_growth": {
+              "value": 0.1,
+              "ok": true,
+              "weight": 1.5
+            },
+            "trailing_eps_positive": {
+              "value": 5.14,
+              "ok": true,
+              "weight": 2.0
+            },
+            "forward_eps_higher": {
+              "value": 6.6108,
+              "ok": true,
+              "weight": 1.5
+            },
+            "payout_sustainable": {
+              "value": 0.202,
+              "ok": true,
+              "weight": 1.0
+            },
+            "earnings_not_imminent": {
+              "value": 18,
+              "ok": true,
+              "weight": 1.0
+            }
+          },
+          "note": "Wave 1.5 \u00b7 Wave 2 adds analyst estimate revisions + guidance change detection"
         },
         "valuation": {
           "engine": "valuation.v1",
@@ -347,14 +505,19 @@
     {
       "ticker": "AAPL",
       "market": "usa",
-      "asof": "2026-08-08T10:44:15+00:00",
-      "score": 89.0,
+      "asof": "2026-08-08T10:57:53+00:00",
+      "score": 82.6,
       "verdict": "STRONG BUY",
       "sub_scores": {
         "fundamental": 100.0,
         "technical": 100.0,
         "governance": 81.8,
+        "ownership": 72.2,
+        "sector": 50.0,
+        "macro": 80.0,
         "liquidity": 100.0,
+        "news": 50.0,
+        "earnings": 100.0,
         "valuation": 34.8,
         "risk": 100.0
       },
@@ -540,6 +703,100 @@
           },
           "note": "Wave 1 lite \u00b7 Wave 2 adds SEBI + pledge + auditor + RPT"
         },
+        "ownership": {
+          "engine": "ownership.v1_lite",
+          "score": 72.2,
+          "hits": 6.5,
+          "total": 9.0,
+          "signals": {
+            "institutional_ownership_healthy": {
+              "value": 0.66289,
+              "ok": true,
+              "weight": 2.0
+            },
+            "institutional_ownership_moderate": {
+              "value": 0.66289,
+              "ok": true,
+              "weight": 1.5
+            },
+            "insider_holding_present": {
+              "value": 0.01647,
+              "ok": false,
+              "weight": 1.5
+            },
+            "insider_holding_strong": {
+              "value": 0.01647,
+              "ok": false,
+              "weight": 1.0
+            },
+            "institutional_breadth": {
+              "value": 0.66289,
+              "ok": true,
+              "weight": 1.0
+            },
+            "float_availability": {
+              "value": 0.9974700000274082,
+              "ok": true,
+              "weight": 1.0
+            },
+            "no_heavy_shorting": {
+              "value": 2.28,
+              "ok": true,
+              "weight": 1.0
+            }
+          },
+          "note": "Wave 1.5 \u00b7 Wave 2 adds FII/MF QoQ trends from BSE shareholding pattern"
+        },
+        "sector": {
+          "engine": "sector.v1",
+          "score": 50.0,
+          "signals": {
+            "sector_classified": {
+              "ok": false,
+              "weight": 0.5,
+              "extra": {
+                "sector": ""
+              }
+            }
+          },
+          "note": "insufficient sector data \u00b7 neutral"
+        },
+        "macro": {
+          "engine": "macro.v1",
+          "score": 80.0,
+          "hits": 4.0,
+          "total": 5.0,
+          "signals": {
+            "regime_not_bearish": {
+              "ok": true,
+              "weight": 2.0,
+              "extra": {
+                "regime": ""
+              }
+            },
+            "regime_bullish": {
+              "ok": false,
+              "weight": 1.0,
+              "extra": {
+                "regime": ""
+              }
+            },
+            "cb_not_hawkish": {
+              "ok": true,
+              "weight": 1.0,
+              "extra": {
+                "stance": ""
+              }
+            },
+            "yields_not_rising": {
+              "ok": true,
+              "weight": 1.0,
+              "extra": {
+                "direction": ""
+              }
+            }
+          }
+        },
         "liquidity": {
           "engine": "liquidity.v1",
           "score": 100.0,
@@ -577,6 +834,65 @@
               }
             }
           }
+        },
+        "news": {
+          "engine": "news.v1",
+          "score": 50.0,
+          "n_ticker_mentions": 0,
+          "n_total_news": 0,
+          "signals": {
+            "ticker_mentions": [],
+            "sector_backdrop_impact": 0
+          }
+        },
+        "earnings": {
+          "engine": "earnings.v1",
+          "score": 100.0,
+          "hits": 12.0,
+          "total": 12.0,
+          "signals": {
+            "earnings_growth_positive": {
+              "value": 0.287,
+              "ok": true,
+              "weight": 2.0
+            },
+            "earnings_growth_strong": {
+              "value": 0.287,
+              "ok": true,
+              "weight": 1.5
+            },
+            "quarterly_earnings_growth": {
+              "value": 0.271,
+              "ok": true,
+              "weight": 1.5
+            },
+            "revenue_growth": {
+              "value": 0.164,
+              "ok": true,
+              "weight": 1.5
+            },
+            "trailing_eps_positive": {
+              "value": 8.71,
+              "ok": true,
+              "weight": 2.0
+            },
+            "forward_eps_higher": {
+              "value": 9.51307,
+              "ok": true,
+              "weight": 1.5
+            },
+            "payout_sustainable": {
+              "value": 0.1204,
+              "ok": true,
+              "weight": 1.0
+            },
+            "earnings_not_imminent": {
+              "value": -9,
+              "ok": true,
+              "weight": 1.0
+            }
+          },
+          "note": "Wave 1.5 \u00b7 Wave 2 adds analyst estimate revisions + guidance change detection"
         },
         "valuation": {
           "engine": "valuation.v1",
@@ -681,14 +997,19 @@
     {
       "ticker": "ABBV",
       "market": "usa",
-      "asof": "2026-08-08T10:44:16+00:00",
-      "score": 72.4,
+      "asof": "2026-08-08T10:57:53+00:00",
+      "score": 70.7,
       "verdict": "BUY",
       "sub_scores": {
         "fundamental": 66.7,
         "technical": 100.0,
         "governance": 50.0,
+        "ownership": 72.2,
+        "sector": 50.0,
+        "macro": 80.0,
         "liquidity": 100.0,
+        "news": 50.0,
+        "earnings": 91.7,
         "valuation": 34.8,
         "risk": 100.0
       },
@@ -700,14 +1021,14 @@
           "contrib": 2.0
         },
         {
-          "engine": "liquidity",
-          "signal": "avg_volume_sufficient",
+          "engine": "ownership",
+          "signal": "institutional_ownership_healthy",
           "ok": true,
           "contrib": 2.0
         },
         {
-          "engine": "valuation",
-          "signal": "peg_reasonable",
+          "engine": "macro",
+          "signal": "regime_not_bearish",
           "ok": true,
           "contrib": 2.0
         }
@@ -874,6 +1195,100 @@
           },
           "note": "Wave 1 lite \u00b7 Wave 2 adds SEBI + pledge + auditor + RPT"
         },
+        "ownership": {
+          "engine": "ownership.v1_lite",
+          "score": 72.2,
+          "hits": 6.5,
+          "total": 9.0,
+          "signals": {
+            "institutional_ownership_healthy": {
+              "value": 0.7714,
+              "ok": true,
+              "weight": 2.0
+            },
+            "institutional_ownership_moderate": {
+              "value": 0.7714,
+              "ok": true,
+              "weight": 1.5
+            },
+            "insider_holding_present": {
+              "value": 0.0010899999,
+              "ok": false,
+              "weight": 1.5
+            },
+            "insider_holding_strong": {
+              "value": 0.0010899999,
+              "ok": false,
+              "weight": 1.0
+            },
+            "institutional_breadth": {
+              "value": 0.7714,
+              "ok": true,
+              "weight": 1.0
+            },
+            "float_availability": {
+              "value": 0.9969300000367548,
+              "ok": true,
+              "weight": 1.0
+            },
+            "no_heavy_shorting": {
+              "value": 2.42,
+              "ok": true,
+              "weight": 1.0
+            }
+          },
+          "note": "Wave 1.5 \u00b7 Wave 2 adds FII/MF QoQ trends from BSE shareholding pattern"
+        },
+        "sector": {
+          "engine": "sector.v1",
+          "score": 50.0,
+          "signals": {
+            "sector_classified": {
+              "ok": false,
+              "weight": 0.5,
+              "extra": {
+                "sector": ""
+              }
+            }
+          },
+          "note": "insufficient sector data \u00b7 neutral"
+        },
+        "macro": {
+          "engine": "macro.v1",
+          "score": 80.0,
+          "hits": 4.0,
+          "total": 5.0,
+          "signals": {
+            "regime_not_bearish": {
+              "ok": true,
+              "weight": 2.0,
+              "extra": {
+                "regime": ""
+              }
+            },
+            "regime_bullish": {
+              "ok": false,
+              "weight": 1.0,
+              "extra": {
+                "regime": ""
+              }
+            },
+            "cb_not_hawkish": {
+              "ok": true,
+              "weight": 1.0,
+              "extra": {
+                "stance": ""
+              }
+            },
+            "yields_not_rising": {
+              "ok": true,
+              "weight": 1.0,
+              "extra": {
+                "direction": ""
+              }
+            }
+          }
+        },
         "liquidity": {
           "engine": "liquidity.v1",
           "score": 100.0,
@@ -911,6 +1326,65 @@
               }
             }
           }
+        },
+        "news": {
+          "engine": "news.v1",
+          "score": 50.0,
+          "n_ticker_mentions": 0,
+          "n_total_news": 0,
+          "signals": {
+            "ticker_mentions": [],
+            "sector_backdrop_impact": 0
+          }
+        },
+        "earnings": {
+          "engine": "earnings.v1",
+          "score": 91.7,
+          "hits": 11.0,
+          "total": 12.0,
+          "signals": {
+            "earnings_growth_positive": {
+              "value": 2.904,
+              "ok": true,
+              "weight": 2.0
+            },
+            "earnings_growth_strong": {
+              "value": 2.904,
+              "ok": true,
+              "weight": 1.5
+            },
+            "quarterly_earnings_growth": {
+              "value": 2.852,
+              "ok": true,
+              "weight": 1.5
+            },
+            "revenue_growth": {
+              "value": 0.102,
+              "ok": true,
+              "weight": 1.5
+            },
+            "trailing_eps_positive": {
+              "value": 3.54,
+              "ok": true,
+              "weight": 2.0
+            },
+            "forward_eps_higher": {
+              "value": 16.33438,
+              "ok": true,
+              "weight": 1.5
+            },
+            "payout_sustainable": {
+              "value": 1.9039999,
+              "ok": false,
+              "weight": 1.0
+            },
+            "earnings_not_imminent": {
+              "value": -8,
+              "ok": true,
+              "weight": 1.0
+            }
+          },
+          "note": "Wave 1.5 \u00b7 Wave 2 adds analyst estimate revisions + guidance change detection"
         },
         "valuation": {
           "engine": "valuation.v1",
@@ -1015,14 +1489,19 @@
     {
       "ticker": "ABNB",
       "market": "usa",
-      "asof": "2026-08-08T10:44:16+00:00",
-      "score": 73.6,
+      "asof": "2026-08-08T10:57:54+00:00",
+      "score": 71.0,
       "verdict": "BUY",
       "sub_scores": {
         "fundamental": 73.1,
         "technical": 100.0,
         "governance": 36.4,
+        "ownership": 72.2,
+        "sector": 50.0,
+        "macro": 80.0,
         "liquidity": 100.0,
+        "news": 50.0,
+        "earnings": 79.2,
         "valuation": 50.0,
         "risk": 100.0
       },
@@ -1208,6 +1687,100 @@
           },
           "note": "Wave 1 lite \u00b7 Wave 2 adds SEBI + pledge + auditor + RPT"
         },
+        "ownership": {
+          "engine": "ownership.v1_lite",
+          "score": 72.2,
+          "hits": 6.5,
+          "total": 9.0,
+          "signals": {
+            "institutional_ownership_healthy": {
+              "value": 0.88345003,
+              "ok": true,
+              "weight": 2.0
+            },
+            "institutional_ownership_moderate": {
+              "value": 0.88345003,
+              "ok": true,
+              "weight": 1.5
+            },
+            "insider_holding_present": {
+              "value": 0.01118,
+              "ok": false,
+              "weight": 1.5
+            },
+            "insider_holding_strong": {
+              "value": 0.01118,
+              "ok": false,
+              "weight": 1.0
+            },
+            "institutional_breadth": {
+              "value": 0.88345003,
+              "ok": true,
+              "weight": 1.0
+            },
+            "float_availability": {
+              "value": 0.9666021575843395,
+              "ok": true,
+              "weight": 1.0
+            },
+            "no_heavy_shorting": {
+              "value": 3.66,
+              "ok": true,
+              "weight": 1.0
+            }
+          },
+          "note": "Wave 1.5 \u00b7 Wave 2 adds FII/MF QoQ trends from BSE shareholding pattern"
+        },
+        "sector": {
+          "engine": "sector.v1",
+          "score": 50.0,
+          "signals": {
+            "sector_classified": {
+              "ok": false,
+              "weight": 0.5,
+              "extra": {
+                "sector": ""
+              }
+            }
+          },
+          "note": "insufficient sector data \u00b7 neutral"
+        },
+        "macro": {
+          "engine": "macro.v1",
+          "score": 80.0,
+          "hits": 4.0,
+          "total": 5.0,
+          "signals": {
+            "regime_not_bearish": {
+              "ok": true,
+              "weight": 2.0,
+              "extra": {
+                "regime": ""
+              }
+            },
+            "regime_bullish": {
+              "ok": false,
+              "weight": 1.0,
+              "extra": {
+                "regime": ""
+              }
+            },
+            "cb_not_hawkish": {
+              "ok": true,
+              "weight": 1.0,
+              "extra": {
+                "stance": ""
+              }
+            },
+            "yields_not_rising": {
+              "ok": true,
+              "weight": 1.0,
+              "extra": {
+                "direction": ""
+              }
+            }
+          }
+        },
         "liquidity": {
           "engine": "liquidity.v1",
           "score": 100.0,
@@ -1245,6 +1818,65 @@
               }
             }
           }
+        },
+        "news": {
+          "engine": "news.v1",
+          "score": 50.0,
+          "n_ticker_mentions": 0,
+          "n_total_news": 0,
+          "signals": {
+            "ticker_mentions": [],
+            "sector_backdrop_impact": 0
+          }
+        },
+        "earnings": {
+          "engine": "earnings.v1",
+          "score": 79.2,
+          "hits": 9.5,
+          "total": 12.0,
+          "signals": {
+            "earnings_growth_positive": {
+              "value": 0.06,
+              "ok": true,
+              "weight": 2.0
+            },
+            "earnings_growth_strong": {
+              "value": 0.06,
+              "ok": false,
+              "weight": 1.5
+            },
+            "quarterly_earnings_growth": {
+              "value": 0.039,
+              "ok": true,
+              "weight": 1.5
+            },
+            "revenue_growth": {
+              "value": 0.179,
+              "ok": true,
+              "weight": 1.5
+            },
+            "trailing_eps_positive": {
+              "value": 5.15,
+              "ok": true,
+              "weight": 2.0
+            },
+            "forward_eps_higher": {
+              "value": 6.09579,
+              "ok": true,
+              "weight": 1.5
+            },
+            "payout_sustainable": {
+              "value": 0.0,
+              "ok": true,
+              "weight": 1.0
+            },
+            "earnings_not_imminent": {
+              "value": -2,
+              "ok": false,
+              "weight": 1.0
+            }
+          },
+          "note": "Wave 1.5 \u00b7 Wave 2 adds analyst estimate revisions + guidance change detection"
         },
         "valuation": {
           "engine": "valuation.v1",
@@ -1349,14 +1981,19 @@
     {
       "ticker": "ABT",
       "market": "usa",
-      "asof": "2026-08-08T10:44:17+00:00",
-      "score": 67.0,
+      "asof": "2026-08-08T10:57:54+00:00",
+      "score": 64.9,
       "verdict": "HOLD",
       "sub_scores": {
         "fundamental": 65.4,
         "technical": 63.2,
         "governance": 59.1,
+        "ownership": 72.2,
+        "sector": 50.0,
+        "macro": 80.0,
         "liquidity": 100.0,
+        "news": 50.0,
+        "earnings": 50.0,
         "valuation": 56.5,
         "risk": 88.2
       },
@@ -1542,6 +2179,100 @@
           },
           "note": "Wave 1 lite \u00b7 Wave 2 adds SEBI + pledge + auditor + RPT"
         },
+        "ownership": {
+          "engine": "ownership.v1_lite",
+          "score": 72.2,
+          "hits": 6.5,
+          "total": 9.0,
+          "signals": {
+            "institutional_ownership_healthy": {
+              "value": 0.83338,
+              "ok": true,
+              "weight": 2.0
+            },
+            "institutional_ownership_moderate": {
+              "value": 0.83338,
+              "ok": true,
+              "weight": 1.5
+            },
+            "insider_holding_present": {
+              "value": 0.00495,
+              "ok": false,
+              "weight": 1.5
+            },
+            "insider_holding_strong": {
+              "value": 0.00495,
+              "ok": false,
+              "weight": 1.0
+            },
+            "institutional_breadth": {
+              "value": 0.83338,
+              "ok": true,
+              "weight": 1.0
+            },
+            "float_availability": {
+              "value": 0.9938299999631989,
+              "ok": true,
+              "weight": 1.0
+            },
+            "no_heavy_shorting": {
+              "value": 1.83,
+              "ok": true,
+              "weight": 1.0
+            }
+          },
+          "note": "Wave 1.5 \u00b7 Wave 2 adds FII/MF QoQ trends from BSE shareholding pattern"
+        },
+        "sector": {
+          "engine": "sector.v1",
+          "score": 50.0,
+          "signals": {
+            "sector_classified": {
+              "ok": false,
+              "weight": 0.5,
+              "extra": {
+                "sector": ""
+              }
+            }
+          },
+          "note": "insufficient sector data \u00b7 neutral"
+        },
+        "macro": {
+          "engine": "macro.v1",
+          "score": 80.0,
+          "hits": 4.0,
+          "total": 5.0,
+          "signals": {
+            "regime_not_bearish": {
+              "ok": true,
+              "weight": 2.0,
+              "extra": {
+                "regime": ""
+              }
+            },
+            "regime_bullish": {
+              "ok": false,
+              "weight": 1.0,
+              "extra": {
+                "regime": ""
+              }
+            },
+            "cb_not_hawkish": {
+              "ok": true,
+              "weight": 1.0,
+              "extra": {
+                "stance": ""
+              }
+            },
+            "yields_not_rising": {
+              "ok": true,
+              "weight": 1.0,
+              "extra": {
+                "direction": ""
+              }
+            }
+          }
+        },
         "liquidity": {
           "engine": "liquidity.v1",
           "score": 100.0,
@@ -1579,6 +2310,65 @@
               }
             }
           }
+        },
+        "news": {
+          "engine": "news.v1",
+          "score": 50.0,
+          "n_ticker_mentions": 0,
+          "n_total_news": 0,
+          "signals": {
+            "ticker_mentions": [],
+            "sector_backdrop_impact": 0
+          }
+        },
+        "earnings": {
+          "engine": "earnings.v1",
+          "score": 50.0,
+          "hits": 6.0,
+          "total": 12.0,
+          "signals": {
+            "earnings_growth_positive": {
+              "value": -0.475,
+              "ok": false,
+              "weight": 2.0
+            },
+            "earnings_growth_strong": {
+              "value": -0.475,
+              "ok": false,
+              "weight": 1.5
+            },
+            "quarterly_earnings_growth": {
+              "value": -0.478,
+              "ok": false,
+              "weight": 1.5
+            },
+            "revenue_growth": {
+              "value": 0.13,
+              "ok": true,
+              "weight": 1.5
+            },
+            "trailing_eps_positive": {
+              "value": 3.08,
+              "ok": true,
+              "weight": 2.0
+            },
+            "forward_eps_higher": {
+              "value": 6.06259,
+              "ok": true,
+              "weight": 1.5
+            },
+            "payout_sustainable": {
+              "value": 0.7896,
+              "ok": false,
+              "weight": 1.0
+            },
+            "earnings_not_imminent": {
+              "value": -23,
+              "ok": true,
+              "weight": 1.0
+            }
+          },
+          "note": "Wave 1.5 \u00b7 Wave 2 adds analyst estimate revisions + guidance change detection"
         },
         "valuation": {
           "engine": "valuation.v1",
@@ -1683,14 +2473,19 @@
     {
       "ticker": "ACGL",
       "market": "usa",
-      "asof": "2026-08-08T10:44:18+00:00",
-      "score": 77.1,
+      "asof": "2026-08-08T10:57:55+00:00",
+      "score": 71.0,
       "verdict": "BUY",
       "sub_scores": {
         "fundamental": 73.1,
         "technical": 73.7,
         "governance": 68.2,
+        "ownership": 72.2,
+        "sector": 50.0,
+        "macro": 80.0,
         "liquidity": 81.8,
+        "news": 50.0,
+        "earnings": 33.3,
         "valuation": 86.4,
         "risk": 100.0
       },
@@ -1876,6 +2671,100 @@
           },
           "note": "Wave 1 lite \u00b7 Wave 2 adds SEBI + pledge + auditor + RPT"
         },
+        "ownership": {
+          "engine": "ownership.v1_lite",
+          "score": 72.2,
+          "hits": 6.5,
+          "total": 9.0,
+          "signals": {
+            "institutional_ownership_healthy": {
+              "value": 0.96734,
+              "ok": true,
+              "weight": 2.0
+            },
+            "institutional_ownership_moderate": {
+              "value": 0.96734,
+              "ok": true,
+              "weight": 1.5
+            },
+            "insider_holding_present": {
+              "value": 0.02683,
+              "ok": false,
+              "weight": 1.5
+            },
+            "insider_holding_strong": {
+              "value": 0.02683,
+              "ok": false,
+              "weight": 1.0
+            },
+            "institutional_breadth": {
+              "value": 0.96734,
+              "ok": true,
+              "weight": 1.0
+            },
+            "float_availability": {
+              "value": 0.959467542638784,
+              "ok": true,
+              "weight": 1.0
+            },
+            "no_heavy_shorting": {
+              "value": 4.34,
+              "ok": true,
+              "weight": 1.0
+            }
+          },
+          "note": "Wave 1.5 \u00b7 Wave 2 adds FII/MF QoQ trends from BSE shareholding pattern"
+        },
+        "sector": {
+          "engine": "sector.v1",
+          "score": 50.0,
+          "signals": {
+            "sector_classified": {
+              "ok": false,
+              "weight": 0.5,
+              "extra": {
+                "sector": ""
+              }
+            }
+          },
+          "note": "insufficient sector data \u00b7 neutral"
+        },
+        "macro": {
+          "engine": "macro.v1",
+          "score": 80.0,
+          "hits": 4.0,
+          "total": 5.0,
+          "signals": {
+            "regime_not_bearish": {
+              "ok": true,
+              "weight": 2.0,
+              "extra": {
+                "regime": ""
+              }
+            },
+            "regime_bullish": {
+              "ok": false,
+              "weight": 1.0,
+              "extra": {
+                "regime": ""
+              }
+            },
+            "cb_not_hawkish": {
+              "ok": true,
+              "weight": 1.0,
+              "extra": {
+                "stance": ""
+              }
+            },
+            "yields_not_rising": {
+              "ok": true,
+              "weight": 1.0,
+              "extra": {
+                "direction": ""
+              }
+            }
+          }
+        },
         "liquidity": {
           "engine": "liquidity.v1",
           "score": 81.8,
@@ -1913,6 +2802,65 @@
               }
             }
           }
+        },
+        "news": {
+          "engine": "news.v1",
+          "score": 50.0,
+          "n_ticker_mentions": 0,
+          "n_total_news": 0,
+          "signals": {
+            "ticker_mentions": [],
+            "sector_backdrop_impact": 0
+          }
+        },
+        "earnings": {
+          "engine": "earnings.v1",
+          "score": 33.3,
+          "hits": 4.0,
+          "total": 12.0,
+          "signals": {
+            "earnings_growth_positive": {
+              "value": -0.071,
+              "ok": false,
+              "weight": 2.0
+            },
+            "earnings_growth_strong": {
+              "value": -0.071,
+              "ok": false,
+              "weight": 1.5
+            },
+            "quarterly_earnings_growth": {
+              "value": -0.146,
+              "ok": false,
+              "weight": 1.5
+            },
+            "revenue_growth": {
+              "value": -0.105,
+              "ok": false,
+              "weight": 1.5
+            },
+            "trailing_eps_positive": {
+              "value": 12.78,
+              "ok": true,
+              "weight": 2.0
+            },
+            "forward_eps_higher": {
+              "value": 9.76363,
+              "ok": false,
+              "weight": 1.5
+            },
+            "payout_sustainable": {
+              "value": 0.0,
+              "ok": true,
+              "weight": 1.0
+            },
+            "earnings_not_imminent": {
+              "value": -11,
+              "ok": true,
+              "weight": 1.0
+            }
+          },
+          "note": "Wave 1.5 \u00b7 Wave 2 adds analyst estimate revisions + guidance change detection"
         },
         "valuation": {
           "engine": "valuation.v1",
@@ -2017,14 +2965,19 @@
     {
       "ticker": "ACN",
       "market": "usa",
-      "asof": "2026-08-08T10:44:18+00:00",
-      "score": 73.1,
+      "asof": "2026-08-08T10:57:55+00:00",
+      "score": 71.0,
       "verdict": "BUY",
       "sub_scores": {
         "fundamental": 84.6,
         "technical": 47.4,
         "governance": 81.8,
+        "ownership": 72.2,
+        "sector": 50.0,
+        "macro": 80.0,
         "liquidity": 100.0,
+        "news": 50.0,
+        "earnings": 87.5,
         "valuation": 100.0,
         "risk": 29.4
       },
@@ -2210,6 +3163,100 @@
           },
           "note": "Wave 1 lite \u00b7 Wave 2 adds SEBI + pledge + auditor + RPT"
         },
+        "ownership": {
+          "engine": "ownership.v1_lite",
+          "score": 72.2,
+          "hits": 6.5,
+          "total": 9.0,
+          "signals": {
+            "institutional_ownership_healthy": {
+              "value": 0.87154996,
+              "ok": true,
+              "weight": 2.0
+            },
+            "institutional_ownership_moderate": {
+              "value": 0.87154996,
+              "ok": true,
+              "weight": 1.5
+            },
+            "insider_holding_present": {
+              "value": 0.00035,
+              "ok": false,
+              "weight": 1.5
+            },
+            "insider_holding_strong": {
+              "value": 0.00035,
+              "ok": false,
+              "weight": 1.0
+            },
+            "institutional_breadth": {
+              "value": 0.87154996,
+              "ok": true,
+              "weight": 1.0
+            },
+            "float_availability": {
+              "value": 0.9976900004441434,
+              "ok": true,
+              "weight": 1.0
+            },
+            "no_heavy_shorting": {
+              "value": 2.55,
+              "ok": true,
+              "weight": 1.0
+            }
+          },
+          "note": "Wave 1.5 \u00b7 Wave 2 adds FII/MF QoQ trends from BSE shareholding pattern"
+        },
+        "sector": {
+          "engine": "sector.v1",
+          "score": 50.0,
+          "signals": {
+            "sector_classified": {
+              "ok": false,
+              "weight": 0.5,
+              "extra": {
+                "sector": ""
+              }
+            }
+          },
+          "note": "insufficient sector data \u00b7 neutral"
+        },
+        "macro": {
+          "engine": "macro.v1",
+          "score": 80.0,
+          "hits": 4.0,
+          "total": 5.0,
+          "signals": {
+            "regime_not_bearish": {
+              "ok": true,
+              "weight": 2.0,
+              "extra": {
+                "regime": ""
+              }
+            },
+            "regime_bullish": {
+              "ok": false,
+              "weight": 1.0,
+              "extra": {
+                "regime": ""
+              }
+            },
+            "cb_not_hawkish": {
+              "ok": true,
+              "weight": 1.0,
+              "extra": {
+                "stance": ""
+              }
+            },
+            "yields_not_rising": {
+              "ok": true,
+              "weight": 1.0,
+              "extra": {
+                "direction": ""
+              }
+            }
+          }
+        },
         "liquidity": {
           "engine": "liquidity.v1",
           "score": 100.0,
@@ -2247,6 +3294,65 @@
               }
             }
           }
+        },
+        "news": {
+          "engine": "news.v1",
+          "score": 50.0,
+          "n_ticker_mentions": 0,
+          "n_total_news": 0,
+          "signals": {
+            "ticker_mentions": [],
+            "sector_backdrop_impact": 0
+          }
+        },
+        "earnings": {
+          "engine": "earnings.v1",
+          "score": 87.5,
+          "hits": 10.5,
+          "total": 12.0,
+          "signals": {
+            "earnings_growth_positive": {
+              "value": 0.09,
+              "ok": true,
+              "weight": 2.0
+            },
+            "earnings_growth_strong": {
+              "value": 0.09,
+              "ok": false,
+              "weight": 1.5
+            },
+            "quarterly_earnings_growth": {
+              "value": 0.064,
+              "ok": true,
+              "weight": 1.5
+            },
+            "revenue_growth": {
+              "value": 0.056,
+              "ok": true,
+              "weight": 1.5
+            },
+            "trailing_eps_positive": {
+              "value": 12.86,
+              "ok": true,
+              "weight": 2.0
+            },
+            "forward_eps_higher": {
+              "value": 14.68338,
+              "ok": true,
+              "weight": 1.5
+            },
+            "payout_sustainable": {
+              "value": 0.5088,
+              "ok": true,
+              "weight": 1.0
+            },
+            "earnings_not_imminent": {
+              "value": 47,
+              "ok": true,
+              "weight": 1.0
+            }
+          },
+          "note": "Wave 1.5 \u00b7 Wave 2 adds analyst estimate revisions + guidance change detection"
         },
         "valuation": {
           "engine": "valuation.v1",
@@ -2351,14 +3457,19 @@
     {
       "ticker": "ADBE",
       "market": "usa",
-      "asof": "2026-08-08T10:44:19+00:00",
-      "score": 72.2,
+      "asof": "2026-08-08T10:57:56+00:00",
+      "score": 70.4,
       "verdict": "BUY",
       "sub_scores": {
         "fundamental": 92.3,
         "technical": 63.2,
         "governance": 54.5,
+        "ownership": 72.2,
+        "sector": 50.0,
+        "macro": 80.0,
         "liquidity": 100.0,
+        "news": 50.0,
+        "earnings": 87.5,
         "valuation": 86.4,
         "risk": 29.4
       },
@@ -2544,6 +3655,100 @@
           },
           "note": "Wave 1 lite \u00b7 Wave 2 adds SEBI + pledge + auditor + RPT"
         },
+        "ownership": {
+          "engine": "ownership.v1_lite",
+          "score": 72.2,
+          "hits": 6.5,
+          "total": 9.0,
+          "signals": {
+            "institutional_ownership_healthy": {
+              "value": 0.88786006,
+              "ok": true,
+              "weight": 2.0
+            },
+            "institutional_ownership_moderate": {
+              "value": 0.88786006,
+              "ok": true,
+              "weight": 1.5
+            },
+            "insider_holding_present": {
+              "value": 0.0022,
+              "ok": false,
+              "weight": 1.5
+            },
+            "insider_holding_strong": {
+              "value": 0.0022,
+              "ok": false,
+              "weight": 1.0
+            },
+            "institutional_breadth": {
+              "value": 0.88786006,
+              "ok": true,
+              "weight": 1.0
+            },
+            "float_availability": {
+              "value": 0.9958,
+              "ok": true,
+              "weight": 1.0
+            },
+            "no_heavy_shorting": {
+              "value": 2.83,
+              "ok": true,
+              "weight": 1.0
+            }
+          },
+          "note": "Wave 1.5 \u00b7 Wave 2 adds FII/MF QoQ trends from BSE shareholding pattern"
+        },
+        "sector": {
+          "engine": "sector.v1",
+          "score": 50.0,
+          "signals": {
+            "sector_classified": {
+              "ok": false,
+              "weight": 0.5,
+              "extra": {
+                "sector": ""
+              }
+            }
+          },
+          "note": "insufficient sector data \u00b7 neutral"
+        },
+        "macro": {
+          "engine": "macro.v1",
+          "score": 80.0,
+          "hits": 4.0,
+          "total": 5.0,
+          "signals": {
+            "regime_not_bearish": {
+              "ok": true,
+              "weight": 2.0,
+              "extra": {
+                "regime": ""
+              }
+            },
+            "regime_bullish": {
+              "ok": false,
+              "weight": 1.0,
+              "extra": {
+                "regime": ""
+              }
+            },
+            "cb_not_hawkish": {
+              "ok": true,
+              "weight": 1.0,
+              "extra": {
+                "stance": ""
+              }
+            },
+            "yields_not_rising": {
+              "ok": true,
+              "weight": 1.0,
+              "extra": {
+                "direction": ""
+              }
+            }
+          }
+        },
         "liquidity": {
           "engine": "liquidity.v1",
           "score": 100.0,
@@ -2581,6 +3786,65 @@
               }
             }
           }
+        },
+        "news": {
+          "engine": "news.v1",
+          "score": 50.0,
+          "n_ticker_mentions": 0,
+          "n_total_news": 0,
+          "signals": {
+            "ticker_mentions": [],
+            "sector_backdrop_impact": 0
+          }
+        },
+        "earnings": {
+          "engine": "earnings.v1",
+          "score": 87.5,
+          "hits": 10.5,
+          "total": 12.0,
+          "signals": {
+            "earnings_growth_positive": {
+              "value": 0.079,
+              "ok": true,
+              "weight": 2.0
+            },
+            "earnings_growth_strong": {
+              "value": 0.079,
+              "ok": false,
+              "weight": 1.5
+            },
+            "quarterly_earnings_growth": {
+              "value": 0.012,
+              "ok": true,
+              "weight": 1.5
+            },
+            "revenue_growth": {
+              "value": 0.127,
+              "ok": true,
+              "weight": 1.5
+            },
+            "trailing_eps_positive": {
+              "value": 17.82,
+              "ok": true,
+              "weight": 2.0
+            },
+            "forward_eps_higher": {
+              "value": 27.48687,
+              "ok": true,
+              "weight": 1.5
+            },
+            "payout_sustainable": {
+              "value": 0.0,
+              "ok": true,
+              "weight": 1.0
+            },
+            "earnings_not_imminent": {
+              "value": 33,
+              "ok": true,
+              "weight": 1.0
+            }
+          },
+          "note": "Wave 1.5 \u00b7 Wave 2 adds analyst estimate revisions + guidance change detection"
         },
         "valuation": {
           "engine": "valuation.v1",
@@ -2685,14 +3949,19 @@
     {
       "ticker": "ADI",
       "market": "usa",
-      "asof": "2026-08-08T10:44:19+00:00",
-      "score": 67.6,
+      "asof": "2026-08-08T10:57:56+00:00",
+      "score": 67.8,
       "verdict": "HOLD",
       "sub_scores": {
         "fundamental": 73.1,
         "technical": 68.4,
         "governance": 50.0,
+        "ownership": 72.2,
+        "sector": 50.0,
+        "macro": 80.0,
         "liquidity": 100.0,
+        "news": 50.0,
+        "earnings": 100.0,
         "valuation": 34.8,
         "risk": 100.0
       },
@@ -2878,6 +4147,100 @@
           },
           "note": "Wave 1 lite \u00b7 Wave 2 adds SEBI + pledge + auditor + RPT"
         },
+        "ownership": {
+          "engine": "ownership.v1_lite",
+          "score": 72.2,
+          "hits": 6.5,
+          "total": 9.0,
+          "signals": {
+            "institutional_ownership_healthy": {
+              "value": 0.94167,
+              "ok": true,
+              "weight": 2.0
+            },
+            "institutional_ownership_moderate": {
+              "value": 0.94167,
+              "ok": true,
+              "weight": 1.5
+            },
+            "insider_holding_present": {
+              "value": 0.0023999999,
+              "ok": false,
+              "weight": 1.5
+            },
+            "insider_holding_strong": {
+              "value": 0.0023999999,
+              "ok": false,
+              "weight": 1.0
+            },
+            "institutional_breadth": {
+              "value": 0.94167,
+              "ok": true,
+              "weight": 1.0
+            },
+            "float_availability": {
+              "value": 0.9962599990342589,
+              "ok": true,
+              "weight": 1.0
+            },
+            "no_heavy_shorting": {
+              "value": 1.99,
+              "ok": true,
+              "weight": 1.0
+            }
+          },
+          "note": "Wave 1.5 \u00b7 Wave 2 adds FII/MF QoQ trends from BSE shareholding pattern"
+        },
+        "sector": {
+          "engine": "sector.v1",
+          "score": 50.0,
+          "signals": {
+            "sector_classified": {
+              "ok": false,
+              "weight": 0.5,
+              "extra": {
+                "sector": ""
+              }
+            }
+          },
+          "note": "insufficient sector data \u00b7 neutral"
+        },
+        "macro": {
+          "engine": "macro.v1",
+          "score": 80.0,
+          "hits": 4.0,
+          "total": 5.0,
+          "signals": {
+            "regime_not_bearish": {
+              "ok": true,
+              "weight": 2.0,
+              "extra": {
+                "regime": ""
+              }
+            },
+            "regime_bullish": {
+              "ok": false,
+              "weight": 1.0,
+              "extra": {
+                "regime": ""
+              }
+            },
+            "cb_not_hawkish": {
+              "ok": true,
+              "weight": 1.0,
+              "extra": {
+                "stance": ""
+              }
+            },
+            "yields_not_rising": {
+              "ok": true,
+              "weight": 1.0,
+              "extra": {
+                "direction": ""
+              }
+            }
+          }
+        },
         "liquidity": {
           "engine": "liquidity.v1",
           "score": 100.0,
@@ -2915,6 +4278,65 @@
               }
             }
           }
+        },
+        "news": {
+          "engine": "news.v1",
+          "score": 50.0,
+          "n_ticker_mentions": 0,
+          "n_total_news": 0,
+          "signals": {
+            "ticker_mentions": [],
+            "sector_backdrop_impact": 0
+          }
+        },
+        "earnings": {
+          "engine": "earnings.v1",
+          "score": 100.0,
+          "hits": 12.0,
+          "total": 12.0,
+          "signals": {
+            "earnings_growth_positive": {
+              "value": 1.105,
+              "ok": true,
+              "weight": 2.0
+            },
+            "earnings_growth_strong": {
+              "value": 1.105,
+              "ok": true,
+              "weight": 1.5
+            },
+            "quarterly_earnings_growth": {
+              "value": 1.065,
+              "ok": true,
+              "weight": 1.5
+            },
+            "revenue_growth": {
+              "value": 0.372,
+              "ok": true,
+              "weight": 1.5
+            },
+            "trailing_eps_positive": {
+              "value": 6.94,
+              "ok": true,
+              "weight": 2.0
+            },
+            "forward_eps_higher": {
+              "value": 15.06237,
+              "ok": true,
+              "weight": 1.5
+            },
+            "payout_sustainable": {
+              "value": 0.6057,
+              "ok": true,
+              "weight": 1.0
+            },
+            "earnings_not_imminent": {
+              "value": 11,
+              "ok": true,
+              "weight": 1.0
+            }
+          },
+          "note": "Wave 1.5 \u00b7 Wave 2 adds analyst estimate revisions + guidance change detection"
         },
         "valuation": {
           "engine": "valuation.v1",
@@ -3019,14 +4441,19 @@
     {
       "ticker": "ADM",
       "market": "usa",
-      "asof": "2026-08-08T10:44:20+00:00",
-      "score": 66.4,
+      "asof": "2026-08-08T10:57:57+00:00",
+      "score": 66.6,
       "verdict": "HOLD",
       "sub_scores": {
         "fundamental": 42.3,
         "technical": 84.2,
         "governance": 45.5,
+        "ownership": 72.2,
+        "sector": 50.0,
+        "macro": 80.0,
         "liquidity": 100.0,
+        "news": 50.0,
+        "earnings": 91.7,
         "valuation": 87.0,
         "risk": 100.0
       },
@@ -3044,8 +4471,8 @@
           "contrib": 2.0
         },
         {
-          "engine": "liquidity",
-          "signal": "avg_volume_sufficient",
+          "engine": "ownership",
+          "signal": "institutional_ownership_healthy",
           "ok": true,
           "contrib": 2.0
         }
@@ -3212,6 +4639,100 @@
           },
           "note": "Wave 1 lite \u00b7 Wave 2 adds SEBI + pledge + auditor + RPT"
         },
+        "ownership": {
+          "engine": "ownership.v1_lite",
+          "score": 72.2,
+          "hits": 6.5,
+          "total": 9.0,
+          "signals": {
+            "institutional_ownership_healthy": {
+              "value": 0.88097,
+              "ok": true,
+              "weight": 2.0
+            },
+            "institutional_ownership_moderate": {
+              "value": 0.88097,
+              "ok": true,
+              "weight": 1.5
+            },
+            "insider_holding_present": {
+              "value": 0.0066000004,
+              "ok": false,
+              "weight": 1.5
+            },
+            "insider_holding_strong": {
+              "value": 0.0066000004,
+              "ok": false,
+              "weight": 1.0
+            },
+            "institutional_breadth": {
+              "value": 0.88097,
+              "ok": true,
+              "weight": 1.0
+            },
+            "float_availability": {
+              "value": 0.9916700006772144,
+              "ok": true,
+              "weight": 1.0
+            },
+            "no_heavy_shorting": {
+              "value": 4.72,
+              "ok": true,
+              "weight": 1.0
+            }
+          },
+          "note": "Wave 1.5 \u00b7 Wave 2 adds FII/MF QoQ trends from BSE shareholding pattern"
+        },
+        "sector": {
+          "engine": "sector.v1",
+          "score": 50.0,
+          "signals": {
+            "sector_classified": {
+              "ok": false,
+              "weight": 0.5,
+              "extra": {
+                "sector": ""
+              }
+            }
+          },
+          "note": "insufficient sector data \u00b7 neutral"
+        },
+        "macro": {
+          "engine": "macro.v1",
+          "score": 80.0,
+          "hits": 4.0,
+          "total": 5.0,
+          "signals": {
+            "regime_not_bearish": {
+              "ok": true,
+              "weight": 2.0,
+              "extra": {
+                "regime": ""
+              }
+            },
+            "regime_bullish": {
+              "ok": false,
+              "weight": 1.0,
+              "extra": {
+                "regime": ""
+              }
+            },
+            "cb_not_hawkish": {
+              "ok": true,
+              "weight": 1.0,
+              "extra": {
+                "stance": ""
+              }
+            },
+            "yields_not_rising": {
+              "ok": true,
+              "weight": 1.0,
+              "extra": {
+                "direction": ""
+              }
+            }
+          }
+        },
         "liquidity": {
           "engine": "liquidity.v1",
           "score": 100.0,
@@ -3249,6 +4770,65 @@
               }
             }
           }
+        },
+        "news": {
+          "engine": "news.v1",
+          "score": 50.0,
+          "n_ticker_mentions": 0,
+          "n_total_news": 0,
+          "signals": {
+            "ticker_mentions": [],
+            "sector_backdrop_impact": 0
+          }
+        },
+        "earnings": {
+          "engine": "earnings.v1",
+          "score": 91.7,
+          "hits": 11.0,
+          "total": 12.0,
+          "signals": {
+            "earnings_growth_positive": {
+              "value": 3.156,
+              "ok": true,
+              "weight": 2.0
+            },
+            "earnings_growth_strong": {
+              "value": 3.156,
+              "ok": true,
+              "weight": 1.5
+            },
+            "quarterly_earnings_growth": {
+              "value": 3.146,
+              "ok": true,
+              "weight": 1.5
+            },
+            "revenue_growth": {
+              "value": 0.072,
+              "ok": true,
+              "weight": 1.5
+            },
+            "trailing_eps_positive": {
+              "value": 3.62,
+              "ok": true,
+              "weight": 2.0
+            },
+            "forward_eps_higher": {
+              "value": 5.68314,
+              "ok": true,
+              "weight": 1.5
+            },
+            "payout_sustainable": {
+              "value": 0.5628,
+              "ok": true,
+              "weight": 1.0
+            },
+            "earnings_not_imminent": {
+              "value": -4,
+              "ok": false,
+              "weight": 1.0
+            }
+          },
+          "note": "Wave 1.5 \u00b7 Wave 2 adds analyst estimate revisions + guidance change detection"
         },
         "valuation": {
           "engine": "valuation.v1",
@@ -3353,14 +4933,19 @@
     {
       "ticker": "ADP",
       "market": "usa",
-      "asof": "2026-08-08T10:44:20+00:00",
-      "score": 80.6,
-      "verdict": "STRONG BUY",
+      "asof": "2026-08-08T10:57:57+00:00",
+      "score": 76.2,
+      "verdict": "BUY",
       "sub_scores": {
         "fundamental": 73.1,
         "technical": 100.0,
         "governance": 77.3,
+        "ownership": 72.2,
+        "sector": 50.0,
+        "macro": 80.0,
         "liquidity": 100.0,
+        "news": 50.0,
+        "earnings": 87.5,
         "valuation": 43.5,
         "risk": 100.0
       },
@@ -3546,6 +5131,100 @@
           },
           "note": "Wave 1 lite \u00b7 Wave 2 adds SEBI + pledge + auditor + RPT"
         },
+        "ownership": {
+          "engine": "ownership.v1_lite",
+          "score": 72.2,
+          "hits": 6.5,
+          "total": 9.0,
+          "signals": {
+            "institutional_ownership_healthy": {
+              "value": 0.91189003,
+              "ok": true,
+              "weight": 2.0
+            },
+            "institutional_ownership_moderate": {
+              "value": 0.91189003,
+              "ok": true,
+              "weight": 1.5
+            },
+            "insider_holding_present": {
+              "value": 0.00174,
+              "ok": false,
+              "weight": 1.5
+            },
+            "insider_holding_strong": {
+              "value": 0.00174,
+              "ok": false,
+              "weight": 1.0
+            },
+            "institutional_breadth": {
+              "value": 0.91189003,
+              "ok": true,
+              "weight": 1.0
+            },
+            "float_availability": {
+              "value": 0.9971199992009319,
+              "ok": true,
+              "weight": 1.0
+            },
+            "no_heavy_shorting": {
+              "value": 5.05,
+              "ok": true,
+              "weight": 1.0
+            }
+          },
+          "note": "Wave 1.5 \u00b7 Wave 2 adds FII/MF QoQ trends from BSE shareholding pattern"
+        },
+        "sector": {
+          "engine": "sector.v1",
+          "score": 50.0,
+          "signals": {
+            "sector_classified": {
+              "ok": false,
+              "weight": 0.5,
+              "extra": {
+                "sector": ""
+              }
+            }
+          },
+          "note": "insufficient sector data \u00b7 neutral"
+        },
+        "macro": {
+          "engine": "macro.v1",
+          "score": 80.0,
+          "hits": 4.0,
+          "total": 5.0,
+          "signals": {
+            "regime_not_bearish": {
+              "ok": true,
+              "weight": 2.0,
+              "extra": {
+                "regime": ""
+              }
+            },
+            "regime_bullish": {
+              "ok": false,
+              "weight": 1.0,
+              "extra": {
+                "regime": ""
+              }
+            },
+            "cb_not_hawkish": {
+              "ok": true,
+              "weight": 1.0,
+              "extra": {
+                "stance": ""
+              }
+            },
+            "yields_not_rising": {
+              "ok": true,
+              "weight": 1.0,
+              "extra": {
+                "direction": ""
+              }
+            }
+          }
+        },
         "liquidity": {
           "engine": "liquidity.v1",
           "score": 100.0,
@@ -3583,6 +5262,65 @@
               }
             }
           }
+        },
+        "news": {
+          "engine": "news.v1",
+          "score": 50.0,
+          "n_ticker_mentions": 0,
+          "n_total_news": 0,
+          "signals": {
+            "ticker_mentions": [],
+            "sector_backdrop_impact": 0
+          }
+        },
+        "earnings": {
+          "engine": "earnings.v1",
+          "score": 87.5,
+          "hits": 10.5,
+          "total": 12.0,
+          "signals": {
+            "earnings_growth_positive": {
+              "value": 0.098,
+              "ok": true,
+              "weight": 2.0
+            },
+            "earnings_growth_strong": {
+              "value": 0.098,
+              "ok": false,
+              "weight": 1.5
+            },
+            "quarterly_earnings_growth": {
+              "value": 0.075,
+              "ok": true,
+              "weight": 1.5
+            },
+            "revenue_growth": {
+              "value": 0.068,
+              "ok": true,
+              "weight": 1.5
+            },
+            "trailing_eps_positive": {
+              "value": 10.85,
+              "ok": true,
+              "weight": 2.0
+            },
+            "forward_eps_higher": {
+              "value": 13.39844,
+              "ok": true,
+              "weight": 1.5
+            },
+            "payout_sustainable": {
+              "value": 0.6069,
+              "ok": true,
+              "weight": 1.0
+            },
+            "earnings_not_imminent": {
+              "value": -10,
+              "ok": true,
+              "weight": 1.0
+            }
+          },
+          "note": "Wave 1.5 \u00b7 Wave 2 adds analyst estimate revisions + guidance change detection"
         },
         "valuation": {
           "engine": "valuation.v1",
@@ -3687,14 +5425,19 @@
     {
       "ticker": "ADSK",
       "market": "usa",
-      "asof": "2026-08-08T10:44:21+00:00",
-      "score": 74.0,
+      "asof": "2026-08-08T10:57:57+00:00",
+      "score": 72.2,
       "verdict": "BUY",
       "sub_scores": {
         "fundamental": 100.0,
         "technical": 47.4,
         "governance": 81.8,
+        "ownership": 72.2,
+        "sector": 50.0,
+        "macro": 80.0,
         "liquidity": 100.0,
+        "news": 50.0,
+        "earnings": 100.0,
         "valuation": 50.0,
         "risk": 47.1
       },
@@ -3880,6 +5623,100 @@
           },
           "note": "Wave 1 lite \u00b7 Wave 2 adds SEBI + pledge + auditor + RPT"
         },
+        "ownership": {
+          "engine": "ownership.v1_lite",
+          "score": 72.2,
+          "hits": 6.5,
+          "total": 9.0,
+          "signals": {
+            "institutional_ownership_healthy": {
+              "value": 0.99884003,
+              "ok": true,
+              "weight": 2.0
+            },
+            "institutional_ownership_moderate": {
+              "value": 0.99884003,
+              "ok": true,
+              "weight": 1.5
+            },
+            "insider_holding_present": {
+              "value": 0.00227,
+              "ok": false,
+              "weight": 1.5
+            },
+            "insider_holding_strong": {
+              "value": 0.00227,
+              "ok": false,
+              "weight": 1.0
+            },
+            "institutional_breadth": {
+              "value": 0.99884003,
+              "ok": true,
+              "weight": 1.0
+            },
+            "float_availability": {
+              "value": 0.994915107041645,
+              "ok": true,
+              "weight": 1.0
+            },
+            "no_heavy_shorting": {
+              "value": 2.87,
+              "ok": true,
+              "weight": 1.0
+            }
+          },
+          "note": "Wave 1.5 \u00b7 Wave 2 adds FII/MF QoQ trends from BSE shareholding pattern"
+        },
+        "sector": {
+          "engine": "sector.v1",
+          "score": 50.0,
+          "signals": {
+            "sector_classified": {
+              "ok": false,
+              "weight": 0.5,
+              "extra": {
+                "sector": ""
+              }
+            }
+          },
+          "note": "insufficient sector data \u00b7 neutral"
+        },
+        "macro": {
+          "engine": "macro.v1",
+          "score": 80.0,
+          "hits": 4.0,
+          "total": 5.0,
+          "signals": {
+            "regime_not_bearish": {
+              "ok": true,
+              "weight": 2.0,
+              "extra": {
+                "regime": ""
+              }
+            },
+            "regime_bullish": {
+              "ok": false,
+              "weight": 1.0,
+              "extra": {
+                "regime": ""
+              }
+            },
+            "cb_not_hawkish": {
+              "ok": true,
+              "weight": 1.0,
+              "extra": {
+                "stance": ""
+              }
+            },
+            "yields_not_rising": {
+              "ok": true,
+              "weight": 1.0,
+              "extra": {
+                "direction": ""
+              }
+            }
+          }
+        },
         "liquidity": {
           "engine": "liquidity.v1",
           "score": 100.0,
@@ -3917,6 +5754,65 @@
               }
             }
           }
+        },
+        "news": {
+          "engine": "news.v1",
+          "score": 50.0,
+          "n_ticker_mentions": 0,
+          "n_total_news": 0,
+          "signals": {
+            "ticker_mentions": [],
+            "sector_backdrop_impact": 0
+          }
+        },
+        "earnings": {
+          "engine": "earnings.v1",
+          "score": 100.0,
+          "hits": 12.0,
+          "total": 12.0,
+          "signals": {
+            "earnings_growth_positive": {
+              "value": 2.314,
+              "ok": true,
+              "weight": 2.0
+            },
+            "earnings_growth_strong": {
+              "value": 2.314,
+              "ok": true,
+              "weight": 1.5
+            },
+            "quarterly_earnings_growth": {
+              "value": 2.23,
+              "ok": true,
+              "weight": 1.5
+            },
+            "revenue_growth": {
+              "value": 0.184,
+              "ok": true,
+              "weight": 1.5
+            },
+            "trailing_eps_positive": {
+              "value": 7.05,
+              "ok": true,
+              "weight": 2.0
+            },
+            "forward_eps_higher": {
+              "value": 14.23992,
+              "ok": true,
+              "weight": 1.5
+            },
+            "payout_sustainable": {
+              "value": 0.0,
+              "ok": true,
+              "weight": 1.0
+            },
+            "earnings_not_imminent": {
+              "value": 19,
+              "ok": true,
+              "weight": 1.0
+            }
+          },
+          "note": "Wave 1.5 \u00b7 Wave 2 adds analyst estimate revisions + guidance change detection"
         },
         "valuation": {
           "engine": "valuation.v1",
@@ -4021,14 +5917,19 @@
     {
       "ticker": "ADT",
       "market": "usa",
-      "asof": "2026-08-08T10:44:21+00:00",
-      "score": 67.7,
+      "asof": "2026-08-08T10:57:58+00:00",
+      "score": 66.1,
       "verdict": "HOLD",
       "sub_scores": {
         "fundamental": 57.7,
         "technical": 57.9,
         "governance": 54.5,
+        "ownership": 72.2,
+        "sector": 50.0,
+        "macro": 80.0,
         "liquidity": 81.8,
+        "news": 50.0,
+        "earnings": 62.5,
         "valuation": 100.0,
         "risk": 100.0
       },
@@ -4214,6 +6115,100 @@
           },
           "note": "Wave 1 lite \u00b7 Wave 2 adds SEBI + pledge + auditor + RPT"
         },
+        "ownership": {
+          "engine": "ownership.v1_lite",
+          "score": 72.2,
+          "hits": 6.5,
+          "total": 9.0,
+          "signals": {
+            "institutional_ownership_healthy": {
+              "value": 1.05819,
+              "ok": true,
+              "weight": 2.0
+            },
+            "institutional_ownership_moderate": {
+              "value": 1.05819,
+              "ok": true,
+              "weight": 1.5
+            },
+            "insider_holding_present": {
+              "value": 0.01873,
+              "ok": false,
+              "weight": 1.5
+            },
+            "insider_holding_strong": {
+              "value": 0.01873,
+              "ok": false,
+              "weight": 1.0
+            },
+            "institutional_breadth": {
+              "value": 1.05819,
+              "ok": true,
+              "weight": 1.0
+            },
+            "float_availability": {
+              "value": 0.7679809440907963,
+              "ok": true,
+              "weight": 1.0
+            },
+            "no_heavy_shorting": {
+              "value": 4.12,
+              "ok": true,
+              "weight": 1.0
+            }
+          },
+          "note": "Wave 1.5 \u00b7 Wave 2 adds FII/MF QoQ trends from BSE shareholding pattern"
+        },
+        "sector": {
+          "engine": "sector.v1",
+          "score": 50.0,
+          "signals": {
+            "sector_classified": {
+              "ok": false,
+              "weight": 0.5,
+              "extra": {
+                "sector": ""
+              }
+            }
+          },
+          "note": "insufficient sector data \u00b7 neutral"
+        },
+        "macro": {
+          "engine": "macro.v1",
+          "score": 80.0,
+          "hits": 4.0,
+          "total": 5.0,
+          "signals": {
+            "regime_not_bearish": {
+              "ok": true,
+              "weight": 2.0,
+              "extra": {
+                "regime": ""
+              }
+            },
+            "regime_bullish": {
+              "ok": false,
+              "weight": 1.0,
+              "extra": {
+                "regime": ""
+              }
+            },
+            "cb_not_hawkish": {
+              "ok": true,
+              "weight": 1.0,
+              "extra": {
+                "stance": ""
+              }
+            },
+            "yields_not_rising": {
+              "ok": true,
+              "weight": 1.0,
+              "extra": {
+                "direction": ""
+              }
+            }
+          }
+        },
         "liquidity": {
           "engine": "liquidity.v1",
           "score": 81.8,
@@ -4251,6 +6246,65 @@
               }
             }
           }
+        },
+        "news": {
+          "engine": "news.v1",
+          "score": 50.0,
+          "n_ticker_mentions": 0,
+          "n_total_news": 0,
+          "signals": {
+            "ticker_mentions": [],
+            "sector_backdrop_impact": 0
+          }
+        },
+        "earnings": {
+          "engine": "earnings.v1",
+          "score": 62.5,
+          "hits": 7.5,
+          "total": 12.0,
+          "signals": {
+            "earnings_growth_positive": {
+              "value": 0.017,
+              "ok": true,
+              "weight": 2.0
+            },
+            "earnings_growth_strong": {
+              "value": 0.017,
+              "ok": false,
+              "weight": 1.5
+            },
+            "quarterly_earnings_growth": {
+              "value": -0.069,
+              "ok": false,
+              "weight": 1.5
+            },
+            "revenue_growth": {
+              "value": 0.02,
+              "ok": false,
+              "weight": 1.5
+            },
+            "trailing_eps_positive": {
+              "value": 0.72,
+              "ok": true,
+              "weight": 2.0
+            },
+            "forward_eps_higher": {
+              "value": 0.99228,
+              "ok": true,
+              "weight": 1.5
+            },
+            "payout_sustainable": {
+              "value": 0.3056,
+              "ok": true,
+              "weight": 1.0
+            },
+            "earnings_not_imminent": {
+              "value": -9,
+              "ok": true,
+              "weight": 1.0
+            }
+          },
+          "note": "Wave 1.5 \u00b7 Wave 2 adds analyst estimate revisions + guidance change detection"
         },
         "valuation": {
           "engine": "valuation.v1",
@@ -4355,14 +6409,19 @@
     {
       "ticker": "AEE",
       "market": "usa",
-      "asof": "2026-08-08T10:44:22+00:00",
-      "score": 58.7,
-      "verdict": "REJECT",
+      "asof": "2026-08-08T10:57:59+00:00",
+      "score": 60.4,
+      "verdict": "HOLD",
       "sub_scores": {
         "fundamental": 38.5,
         "technical": 68.4,
         "governance": 31.8,
+        "ownership": 72.2,
+        "sector": 50.0,
+        "macro": 80.0,
         "liquidity": 100.0,
+        "news": 50.0,
+        "earnings": 75.0,
         "valuation": 82.6,
         "risk": 100.0
       },
@@ -4380,8 +6439,8 @@
           "contrib": 2.0
         },
         {
-          "engine": "liquidity",
-          "signal": "avg_volume_sufficient",
+          "engine": "ownership",
+          "signal": "institutional_ownership_healthy",
           "ok": true,
           "contrib": 2.0
         }
@@ -4548,6 +6607,100 @@
           },
           "note": "Wave 1 lite \u00b7 Wave 2 adds SEBI + pledge + auditor + RPT"
         },
+        "ownership": {
+          "engine": "ownership.v1_lite",
+          "score": 72.2,
+          "hits": 6.5,
+          "total": 9.0,
+          "signals": {
+            "institutional_ownership_healthy": {
+              "value": 0.87681,
+              "ok": true,
+              "weight": 2.0
+            },
+            "institutional_ownership_moderate": {
+              "value": 0.87681,
+              "ok": true,
+              "weight": 1.5
+            },
+            "insider_holding_present": {
+              "value": 0.00308,
+              "ok": false,
+              "weight": 1.5
+            },
+            "insider_holding_strong": {
+              "value": 0.00308,
+              "ok": false,
+              "weight": 1.0
+            },
+            "institutional_breadth": {
+              "value": 0.87681,
+              "ok": true,
+              "weight": 1.0
+            },
+            "float_availability": {
+              "value": 0.9952199990600458,
+              "ok": true,
+              "weight": 1.0
+            },
+            "no_heavy_shorting": {
+              "value": 7.1,
+              "ok": true,
+              "weight": 1.0
+            }
+          },
+          "note": "Wave 1.5 \u00b7 Wave 2 adds FII/MF QoQ trends from BSE shareholding pattern"
+        },
+        "sector": {
+          "engine": "sector.v1",
+          "score": 50.0,
+          "signals": {
+            "sector_classified": {
+              "ok": false,
+              "weight": 0.5,
+              "extra": {
+                "sector": ""
+              }
+            }
+          },
+          "note": "insufficient sector data \u00b7 neutral"
+        },
+        "macro": {
+          "engine": "macro.v1",
+          "score": 80.0,
+          "hits": 4.0,
+          "total": 5.0,
+          "signals": {
+            "regime_not_bearish": {
+              "ok": true,
+              "weight": 2.0,
+              "extra": {
+                "regime": ""
+              }
+            },
+            "regime_bullish": {
+              "ok": false,
+              "weight": 1.0,
+              "extra": {
+                "regime": ""
+              }
+            },
+            "cb_not_hawkish": {
+              "ok": true,
+              "weight": 1.0,
+              "extra": {
+                "stance": ""
+              }
+            },
+            "yields_not_rising": {
+              "ok": true,
+              "weight": 1.0,
+              "extra": {
+                "direction": ""
+              }
+            }
+          }
+        },
         "liquidity": {
           "engine": "liquidity.v1",
           "score": 100.0,
@@ -4585,6 +6738,65 @@
               }
             }
           }
+        },
+        "news": {
+          "engine": "news.v1",
+          "score": 50.0,
+          "n_ticker_mentions": 0,
+          "n_total_news": 0,
+          "signals": {
+            "ticker_mentions": [],
+            "sector_backdrop_impact": 0
+          }
+        },
+        "earnings": {
+          "engine": "earnings.v1",
+          "score": 75.0,
+          "hits": 9.0,
+          "total": 12.0,
+          "signals": {
+            "earnings_growth_positive": {
+              "value": 0.119,
+              "ok": true,
+              "weight": 2.0
+            },
+            "earnings_growth_strong": {
+              "value": 0.119,
+              "ok": false,
+              "weight": 1.5
+            },
+            "quarterly_earnings_growth": {
+              "value": 0.142,
+              "ok": true,
+              "weight": 1.5
+            },
+            "revenue_growth": {
+              "value": -0.062,
+              "ok": false,
+              "weight": 1.5
+            },
+            "trailing_eps_positive": {
+              "value": 5.71,
+              "ok": true,
+              "weight": 2.0
+            },
+            "forward_eps_higher": {
+              "value": 5.81026,
+              "ok": true,
+              "weight": 1.5
+            },
+            "payout_sustainable": {
+              "value": 0.5141,
+              "ok": true,
+              "weight": 1.0
+            },
+            "earnings_not_imminent": {
+              "value": -9,
+              "ok": true,
+              "weight": 1.0
+            }
+          },
+          "note": "Wave 1.5 \u00b7 Wave 2 adds analyst estimate revisions + guidance change detection"
         },
         "valuation": {
           "engine": "valuation.v1",
@@ -4689,14 +6901,19 @@
     {
       "ticker": "AEP",
       "market": "usa",
-      "asof": "2026-08-08T10:44:22+00:00",
-      "score": 55.4,
+      "asof": "2026-08-08T10:57:59+00:00",
+      "score": 57.3,
       "verdict": "REJECT",
       "sub_scores": {
         "fundamental": 30.8,
         "technical": 68.4,
         "governance": 27.3,
+        "ownership": 72.2,
+        "sector": 50.0,
+        "macro": 80.0,
         "liquidity": 100.0,
+        "news": 50.0,
+        "earnings": 58.3,
         "valuation": 82.6,
         "risk": 100.0
       },
@@ -4714,8 +6931,8 @@
           "contrib": 2.0
         },
         {
-          "engine": "liquidity",
-          "signal": "avg_volume_sufficient",
+          "engine": "ownership",
+          "signal": "institutional_ownership_healthy",
           "ok": true,
           "contrib": 2.0
         }
@@ -4882,6 +7099,100 @@
           },
           "note": "Wave 1 lite \u00b7 Wave 2 adds SEBI + pledge + auditor + RPT"
         },
+        "ownership": {
+          "engine": "ownership.v1_lite",
+          "score": 72.2,
+          "hits": 6.5,
+          "total": 9.0,
+          "signals": {
+            "institutional_ownership_healthy": {
+              "value": 0.86955,
+              "ok": true,
+              "weight": 2.0
+            },
+            "institutional_ownership_moderate": {
+              "value": 0.86955,
+              "ok": true,
+              "weight": 1.5
+            },
+            "insider_holding_present": {
+              "value": 0.00027000002,
+              "ok": false,
+              "weight": 1.5
+            },
+            "insider_holding_strong": {
+              "value": 0.00027000002,
+              "ok": false,
+              "weight": 1.0
+            },
+            "institutional_breadth": {
+              "value": 0.86955,
+              "ok": true,
+              "weight": 1.0
+            },
+            "float_availability": {
+              "value": 0.9973099997738417,
+              "ok": true,
+              "weight": 1.0
+            },
+            "no_heavy_shorting": {
+              "value": 5.56,
+              "ok": true,
+              "weight": 1.0
+            }
+          },
+          "note": "Wave 1.5 \u00b7 Wave 2 adds FII/MF QoQ trends from BSE shareholding pattern"
+        },
+        "sector": {
+          "engine": "sector.v1",
+          "score": 50.0,
+          "signals": {
+            "sector_classified": {
+              "ok": false,
+              "weight": 0.5,
+              "extra": {
+                "sector": ""
+              }
+            }
+          },
+          "note": "insufficient sector data \u00b7 neutral"
+        },
+        "macro": {
+          "engine": "macro.v1",
+          "score": 80.0,
+          "hits": 4.0,
+          "total": 5.0,
+          "signals": {
+            "regime_not_bearish": {
+              "ok": true,
+              "weight": 2.0,
+              "extra": {
+                "regime": ""
+              }
+            },
+            "regime_bullish": {
+              "ok": false,
+              "weight": 1.0,
+              "extra": {
+                "regime": ""
+              }
+            },
+            "cb_not_hawkish": {
+              "ok": true,
+              "weight": 1.0,
+              "extra": {
+                "stance": ""
+              }
+            },
+            "yields_not_rising": {
+              "ok": true,
+              "weight": 1.0,
+              "extra": {
+                "direction": ""
+              }
+            }
+          }
+        },
         "liquidity": {
           "engine": "liquidity.v1",
           "score": 100.0,
@@ -4919,6 +7230,65 @@
               }
             }
           }
+        },
+        "news": {
+          "engine": "news.v1",
+          "score": 50.0,
+          "n_ticker_mentions": 0,
+          "n_total_news": 0,
+          "signals": {
+            "ticker_mentions": [],
+            "sector_backdrop_impact": 0
+          }
+        },
+        "earnings": {
+          "engine": "earnings.v1",
+          "score": 58.3,
+          "hits": 7.0,
+          "total": 12.0,
+          "signals": {
+            "earnings_growth_positive": {
+              "value": -0.432,
+              "ok": false,
+              "weight": 2.0
+            },
+            "earnings_growth_strong": {
+              "value": -0.432,
+              "ok": false,
+              "weight": 1.5
+            },
+            "quarterly_earnings_growth": {
+              "value": -0.418,
+              "ok": false,
+              "weight": 1.5
+            },
+            "revenue_growth": {
+              "value": 0.07,
+              "ok": true,
+              "weight": 1.5
+            },
+            "trailing_eps_positive": {
+              "value": 5.77,
+              "ok": true,
+              "weight": 2.0
+            },
+            "forward_eps_higher": {
+              "value": 6.85837,
+              "ok": true,
+              "weight": 1.5
+            },
+            "payout_sustainable": {
+              "value": 0.65510005,
+              "ok": true,
+              "weight": 1.0
+            },
+            "earnings_not_imminent": {
+              "value": -9,
+              "ok": true,
+              "weight": 1.0
+            }
+          },
+          "note": "Wave 1.5 \u00b7 Wave 2 adds analyst estimate revisions + guidance change detection"
         },
         "valuation": {
           "engine": "valuation.v1",
@@ -5023,14 +7393,19 @@
     {
       "ticker": "AES",
       "market": "usa",
-      "asof": "2026-08-08T10:44:23+00:00",
-      "score": 66.5,
+      "asof": "2026-08-08T10:57:59+00:00",
+      "score": 65.8,
       "verdict": "HOLD",
       "sub_scores": {
         "fundamental": 41.7,
         "technical": 89.5,
         "governance": 40.9,
+        "ownership": 72.2,
+        "sector": 50.0,
+        "macro": 80.0,
         "liquidity": 100.0,
+        "news": 50.0,
+        "earnings": 75.0,
         "valuation": 87.0,
         "risk": 100.0
       },
@@ -5048,8 +7423,8 @@
           "contrib": 2.0
         },
         {
-          "engine": "liquidity",
-          "signal": "avg_volume_sufficient",
+          "engine": "ownership",
+          "signal": "institutional_ownership_healthy",
           "ok": true,
           "contrib": 2.0
         }
@@ -5216,6 +7591,100 @@
           },
           "note": "Wave 1 lite \u00b7 Wave 2 adds SEBI + pledge + auditor + RPT"
         },
+        "ownership": {
+          "engine": "ownership.v1_lite",
+          "score": 72.2,
+          "hits": 6.5,
+          "total": 9.0,
+          "signals": {
+            "institutional_ownership_healthy": {
+              "value": 0.87541,
+              "ok": true,
+              "weight": 2.0
+            },
+            "institutional_ownership_moderate": {
+              "value": 0.87541,
+              "ok": true,
+              "weight": 1.5
+            },
+            "insider_holding_present": {
+              "value": 0.00575,
+              "ok": false,
+              "weight": 1.5
+            },
+            "insider_holding_strong": {
+              "value": 0.00575,
+              "ok": false,
+              "weight": 1.0
+            },
+            "institutional_breadth": {
+              "value": 0.87541,
+              "ok": true,
+              "weight": 1.0
+            },
+            "float_availability": {
+              "value": 0.9936699993382753,
+              "ok": true,
+              "weight": 1.0
+            },
+            "no_heavy_shorting": {
+              "value": 2.64,
+              "ok": true,
+              "weight": 1.0
+            }
+          },
+          "note": "Wave 1.5 \u00b7 Wave 2 adds FII/MF QoQ trends from BSE shareholding pattern"
+        },
+        "sector": {
+          "engine": "sector.v1",
+          "score": 50.0,
+          "signals": {
+            "sector_classified": {
+              "ok": false,
+              "weight": 0.5,
+              "extra": {
+                "sector": ""
+              }
+            }
+          },
+          "note": "insufficient sector data \u00b7 neutral"
+        },
+        "macro": {
+          "engine": "macro.v1",
+          "score": 80.0,
+          "hits": 4.0,
+          "total": 5.0,
+          "signals": {
+            "regime_not_bearish": {
+              "ok": true,
+              "weight": 2.0,
+              "extra": {
+                "regime": ""
+              }
+            },
+            "regime_bullish": {
+              "ok": false,
+              "weight": 1.0,
+              "extra": {
+                "regime": ""
+              }
+            },
+            "cb_not_hawkish": {
+              "ok": true,
+              "weight": 1.0,
+              "extra": {
+                "stance": ""
+              }
+            },
+            "yields_not_rising": {
+              "ok": true,
+              "weight": 1.0,
+              "extra": {
+                "direction": ""
+              }
+            }
+          }
+        },
         "liquidity": {
           "engine": "liquidity.v1",
           "score": 100.0,
@@ -5253,6 +7722,60 @@
               }
             }
           }
+        },
+        "news": {
+          "engine": "news.v1",
+          "score": 50.0,
+          "n_ticker_mentions": 0,
+          "n_total_news": 0,
+          "signals": {
+            "ticker_mentions": [],
+            "sector_backdrop_impact": 0
+          }
+        },
+        "earnings": {
+          "engine": "earnings.v1",
+          "score": 75.0,
+          "hits": 4.5,
+          "total": 6.0,
+          "signals": {
+            "earnings_growth_positive": {
+              "value": null,
+              "ok": null,
+              "weight": 2.0
+            },
+            "earnings_growth_strong": {
+              "value": null,
+              "ok": null,
+              "weight": 1.5
+            },
+            "quarterly_earnings_growth": {
+              "value": null,
+              "ok": null,
+              "weight": 1.5
+            },
+            "revenue_growth": {
+              "value": 0.199,
+              "ok": true,
+              "weight": 1.5
+            },
+            "trailing_eps_positive": {
+              "value": 2.67,
+              "ok": true,
+              "weight": 2.0
+            },
+            "forward_eps_higher": {
+              "value": 2.37772,
+              "ok": false,
+              "weight": 1.5
+            },
+            "payout_sustainable": {
+              "value": 0.2636,
+              "ok": true,
+              "weight": 1.0
+            }
+          },
+          "note": "Wave 1.5 \u00b7 Wave 2 adds analyst estimate revisions + guidance change detection"
         },
         "valuation": {
           "engine": "valuation.v1",
@@ -5357,14 +7880,19 @@
     {
       "ticker": "AFL",
       "market": "usa",
-      "asof": "2026-08-08T10:44:23+00:00",
-      "score": 79.9,
+      "asof": "2026-08-08T10:58:00+00:00",
+      "score": 76.6,
       "verdict": "BUY",
       "sub_scores": {
         "fundamental": 78.3,
         "technical": 89.5,
         "governance": 50.0,
+        "ownership": 88.9,
+        "sector": 50.0,
+        "macro": 80.0,
         "liquidity": 100.0,
+        "news": 50.0,
+        "earnings": 75.0,
         "valuation": 87.0,
         "risk": 100.0
       },
@@ -5550,6 +8078,100 @@
           },
           "note": "Wave 1 lite \u00b7 Wave 2 adds SEBI + pledge + auditor + RPT"
         },
+        "ownership": {
+          "engine": "ownership.v1_lite",
+          "score": 88.9,
+          "hits": 8.0,
+          "total": 9.0,
+          "signals": {
+            "institutional_ownership_healthy": {
+              "value": 0.59567,
+              "ok": true,
+              "weight": 2.0
+            },
+            "institutional_ownership_moderate": {
+              "value": 0.59567,
+              "ok": true,
+              "weight": 1.5
+            },
+            "insider_holding_present": {
+              "value": 0.1093,
+              "ok": true,
+              "weight": 1.5
+            },
+            "insider_holding_strong": {
+              "value": 0.1093,
+              "ok": false,
+              "weight": 1.0
+            },
+            "institutional_breadth": {
+              "value": 0.59567,
+              "ok": true,
+              "weight": 1.0
+            },
+            "float_availability": {
+              "value": 0.991120000318562,
+              "ok": true,
+              "weight": 1.0
+            },
+            "no_heavy_shorting": {
+              "value": 5.07,
+              "ok": true,
+              "weight": 1.0
+            }
+          },
+          "note": "Wave 1.5 \u00b7 Wave 2 adds FII/MF QoQ trends from BSE shareholding pattern"
+        },
+        "sector": {
+          "engine": "sector.v1",
+          "score": 50.0,
+          "signals": {
+            "sector_classified": {
+              "ok": false,
+              "weight": 0.5,
+              "extra": {
+                "sector": ""
+              }
+            }
+          },
+          "note": "insufficient sector data \u00b7 neutral"
+        },
+        "macro": {
+          "engine": "macro.v1",
+          "score": 80.0,
+          "hits": 4.0,
+          "total": 5.0,
+          "signals": {
+            "regime_not_bearish": {
+              "ok": true,
+              "weight": 2.0,
+              "extra": {
+                "regime": ""
+              }
+            },
+            "regime_bullish": {
+              "ok": false,
+              "weight": 1.0,
+              "extra": {
+                "regime": ""
+              }
+            },
+            "cb_not_hawkish": {
+              "ok": true,
+              "weight": 1.0,
+              "extra": {
+                "stance": ""
+              }
+            },
+            "yields_not_rising": {
+              "ok": true,
+              "weight": 1.0,
+              "extra": {
+                "direction": ""
+              }
+            }
+          }
+        },
         "liquidity": {
           "engine": "liquidity.v1",
           "score": 100.0,
@@ -5587,6 +8209,65 @@
               }
             }
           }
+        },
+        "news": {
+          "engine": "news.v1",
+          "score": 50.0,
+          "n_ticker_mentions": 0,
+          "n_total_news": 0,
+          "signals": {
+            "ticker_mentions": [],
+            "sector_backdrop_impact": 0
+          }
+        },
+        "earnings": {
+          "engine": "earnings.v1",
+          "score": 75.0,
+          "hits": 9.0,
+          "total": 12.0,
+          "signals": {
+            "earnings_growth_positive": {
+              "value": 0.468,
+              "ok": true,
+              "weight": 2.0
+            },
+            "earnings_growth_strong": {
+              "value": 0.468,
+              "ok": true,
+              "weight": 1.5
+            },
+            "quarterly_earnings_growth": {
+              "value": 0.377,
+              "ok": true,
+              "weight": 1.5
+            },
+            "revenue_growth": {
+              "value": -0.01,
+              "ok": false,
+              "weight": 1.5
+            },
+            "trailing_eps_positive": {
+              "value": 9.27,
+              "ok": true,
+              "weight": 2.0
+            },
+            "forward_eps_higher": {
+              "value": 7.55735,
+              "ok": false,
+              "weight": 1.5
+            },
+            "payout_sustainable": {
+              "value": 0.2567,
+              "ok": true,
+              "weight": 1.0
+            },
+            "earnings_not_imminent": {
+              "value": 88,
+              "ok": true,
+              "weight": 1.0
+            }
+          },
+          "note": "Wave 1.5 \u00b7 Wave 2 adds analyst estimate revisions + guidance change detection"
         },
         "valuation": {
           "engine": "valuation.v1",
@@ -5691,14 +8372,19 @@
     {
       "ticker": "AIG",
       "market": "usa",
-      "asof": "2026-08-08T10:44:24+00:00",
-      "score": 79.6,
+      "asof": "2026-08-08T10:58:00+00:00",
+      "score": 73.0,
       "verdict": "BUY",
       "sub_scores": {
         "fundamental": 52.2,
         "technical": 100.0,
         "governance": 72.7,
+        "ownership": 72.2,
+        "sector": 50.0,
+        "macro": 80.0,
         "liquidity": 100.0,
+        "news": 50.0,
+        "earnings": 37.5,
         "valuation": 100.0,
         "risk": 100.0
       },
@@ -5884,6 +8570,100 @@
           },
           "note": "Wave 1 lite \u00b7 Wave 2 adds SEBI + pledge + auditor + RPT"
         },
+        "ownership": {
+          "engine": "ownership.v1_lite",
+          "score": 72.2,
+          "hits": 6.5,
+          "total": 9.0,
+          "signals": {
+            "institutional_ownership_healthy": {
+              "value": 1.00982,
+              "ok": true,
+              "weight": 2.0
+            },
+            "institutional_ownership_moderate": {
+              "value": 1.00982,
+              "ok": true,
+              "weight": 1.5
+            },
+            "insider_holding_present": {
+              "value": 0.00577,
+              "ok": false,
+              "weight": 1.5
+            },
+            "insider_holding_strong": {
+              "value": 0.00577,
+              "ok": false,
+              "weight": 1.0
+            },
+            "institutional_breadth": {
+              "value": 1.00982,
+              "ok": true,
+              "weight": 1.0
+            },
+            "float_availability": {
+              "value": 0.99625,
+              "ok": true,
+              "weight": 1.0
+            },
+            "no_heavy_shorting": {
+              "value": 2.16,
+              "ok": true,
+              "weight": 1.0
+            }
+          },
+          "note": "Wave 1.5 \u00b7 Wave 2 adds FII/MF QoQ trends from BSE shareholding pattern"
+        },
+        "sector": {
+          "engine": "sector.v1",
+          "score": 50.0,
+          "signals": {
+            "sector_classified": {
+              "ok": false,
+              "weight": 0.5,
+              "extra": {
+                "sector": ""
+              }
+            }
+          },
+          "note": "insufficient sector data \u00b7 neutral"
+        },
+        "macro": {
+          "engine": "macro.v1",
+          "score": 80.0,
+          "hits": 4.0,
+          "total": 5.0,
+          "signals": {
+            "regime_not_bearish": {
+              "ok": true,
+              "weight": 2.0,
+              "extra": {
+                "regime": ""
+              }
+            },
+            "regime_bullish": {
+              "ok": false,
+              "weight": 1.0,
+              "extra": {
+                "regime": ""
+              }
+            },
+            "cb_not_hawkish": {
+              "ok": true,
+              "weight": 1.0,
+              "extra": {
+                "stance": ""
+              }
+            },
+            "yields_not_rising": {
+              "ok": true,
+              "weight": 1.0,
+              "extra": {
+                "direction": ""
+              }
+            }
+          }
+        },
         "liquidity": {
           "engine": "liquidity.v1",
           "score": 100.0,
@@ -5921,6 +8701,65 @@
               }
             }
           }
+        },
+        "news": {
+          "engine": "news.v1",
+          "score": 50.0,
+          "n_ticker_mentions": 0,
+          "n_total_news": 0,
+          "signals": {
+            "ticker_mentions": [],
+            "sector_backdrop_impact": 0
+          }
+        },
+        "earnings": {
+          "engine": "earnings.v1",
+          "score": 37.5,
+          "hits": 4.5,
+          "total": 12.0,
+          "signals": {
+            "earnings_growth_positive": {
+              "value": -0.101,
+              "ok": false,
+              "weight": 2.0
+            },
+            "earnings_growth_strong": {
+              "value": -0.101,
+              "ok": false,
+              "weight": 1.5
+            },
+            "quarterly_earnings_growth": {
+              "value": -0.171,
+              "ok": false,
+              "weight": 1.5
+            },
+            "revenue_growth": {
+              "value": 0.006,
+              "ok": false,
+              "weight": 1.5
+            },
+            "trailing_eps_positive": {
+              "value": 5.59,
+              "ok": true,
+              "weight": 2.0
+            },
+            "forward_eps_higher": {
+              "value": 8.82796,
+              "ok": true,
+              "weight": 1.5
+            },
+            "payout_sustainable": {
+              "value": 0.3377,
+              "ok": true,
+              "weight": 1.0
+            },
+            "earnings_not_imminent": {
+              "value": -2,
+              "ok": false,
+              "weight": 1.0
+            }
+          },
+          "note": "Wave 1.5 \u00b7 Wave 2 adds analyst estimate revisions + guidance change detection"
         },
         "valuation": {
           "engine": "valuation.v1",
@@ -6025,14 +8864,19 @@
     {
       "ticker": "AIZ",
       "market": "usa",
-      "asof": "2026-08-08T10:44:24+00:00",
-      "score": 80.5,
-      "verdict": "STRONG BUY",
+      "asof": "2026-08-08T10:58:01+00:00",
+      "score": 76.4,
+      "verdict": "BUY",
       "sub_scores": {
         "fundamental": 60.9,
         "technical": 100.0,
         "governance": 86.4,
+        "ownership": 72.2,
+        "sector": 50.0,
+        "macro": 80.0,
         "liquidity": 63.6,
+        "news": 50.0,
+        "earnings": 91.7,
         "valuation": 80.0,
         "risk": 100.0
       },
@@ -6218,6 +9062,100 @@
           },
           "note": "Wave 1 lite \u00b7 Wave 2 adds SEBI + pledge + auditor + RPT"
         },
+        "ownership": {
+          "engine": "ownership.v1_lite",
+          "score": 72.2,
+          "hits": 6.5,
+          "total": 9.0,
+          "signals": {
+            "institutional_ownership_healthy": {
+              "value": 1.00151,
+              "ok": true,
+              "weight": 2.0
+            },
+            "institutional_ownership_moderate": {
+              "value": 1.00151,
+              "ok": true,
+              "weight": 1.5
+            },
+            "insider_holding_present": {
+              "value": 0.00715,
+              "ok": false,
+              "weight": 1.5
+            },
+            "insider_holding_strong": {
+              "value": 0.00715,
+              "ok": false,
+              "weight": 1.0
+            },
+            "institutional_breadth": {
+              "value": 1.00151,
+              "ok": true,
+              "weight": 1.0
+            },
+            "float_availability": {
+              "value": 0.9964528662216736,
+              "ok": true,
+              "weight": 1.0
+            },
+            "no_heavy_shorting": {
+              "value": 3.85,
+              "ok": true,
+              "weight": 1.0
+            }
+          },
+          "note": "Wave 1.5 \u00b7 Wave 2 adds FII/MF QoQ trends from BSE shareholding pattern"
+        },
+        "sector": {
+          "engine": "sector.v1",
+          "score": 50.0,
+          "signals": {
+            "sector_classified": {
+              "ok": false,
+              "weight": 0.5,
+              "extra": {
+                "sector": ""
+              }
+            }
+          },
+          "note": "insufficient sector data \u00b7 neutral"
+        },
+        "macro": {
+          "engine": "macro.v1",
+          "score": 80.0,
+          "hits": 4.0,
+          "total": 5.0,
+          "signals": {
+            "regime_not_bearish": {
+              "ok": true,
+              "weight": 2.0,
+              "extra": {
+                "regime": ""
+              }
+            },
+            "regime_bullish": {
+              "ok": false,
+              "weight": 1.0,
+              "extra": {
+                "regime": ""
+              }
+            },
+            "cb_not_hawkish": {
+              "ok": true,
+              "weight": 1.0,
+              "extra": {
+                "stance": ""
+              }
+            },
+            "yields_not_rising": {
+              "ok": true,
+              "weight": 1.0,
+              "extra": {
+                "direction": ""
+              }
+            }
+          }
+        },
         "liquidity": {
           "engine": "liquidity.v1",
           "score": 63.6,
@@ -6255,6 +9193,65 @@
               }
             }
           }
+        },
+        "news": {
+          "engine": "news.v1",
+          "score": 50.0,
+          "n_ticker_mentions": 0,
+          "n_total_news": 0,
+          "signals": {
+            "ticker_mentions": [],
+            "sector_backdrop_impact": 0
+          }
+        },
+        "earnings": {
+          "engine": "earnings.v1",
+          "score": 91.7,
+          "hits": 11.0,
+          "total": 12.0,
+          "signals": {
+            "earnings_growth_positive": {
+              "value": 0.305,
+              "ok": true,
+              "weight": 2.0
+            },
+            "earnings_growth_strong": {
+              "value": 0.305,
+              "ok": true,
+              "weight": 1.5
+            },
+            "quarterly_earnings_growth": {
+              "value": 0.269,
+              "ok": true,
+              "weight": 1.5
+            },
+            "revenue_growth": {
+              "value": 0.094,
+              "ok": true,
+              "weight": 1.5
+            },
+            "trailing_eps_positive": {
+              "value": 20.41,
+              "ok": true,
+              "weight": 2.0
+            },
+            "forward_eps_higher": {
+              "value": 23.16022,
+              "ok": true,
+              "weight": 1.5
+            },
+            "payout_sustainable": {
+              "value": 0.16469999,
+              "ok": true,
+              "weight": 1.0
+            },
+            "earnings_not_imminent": {
+              "value": -4,
+              "ok": false,
+              "weight": 1.0
+            }
+          },
+          "note": "Wave 1.5 \u00b7 Wave 2 adds analyst estimate revisions + guidance change detection"
         },
         "valuation": {
           "engine": "valuation.v1",
@@ -6359,14 +9356,19 @@
     {
       "ticker": "AJG",
       "market": "usa",
-      "asof": "2026-08-08T10:44:25+00:00",
-      "score": 71.9,
-      "verdict": "BUY",
+      "asof": "2026-08-08T10:58:01+00:00",
+      "score": 68.7,
+      "verdict": "HOLD",
       "sub_scores": {
         "fundamental": 65.4,
         "technical": 84.2,
         "governance": 54.5,
+        "ownership": 72.2,
+        "sector": 50.0,
+        "macro": 80.0,
         "liquidity": 100.0,
+        "news": 50.0,
+        "earnings": 58.3,
         "valuation": 56.5,
         "risk": 100.0
       },
@@ -6552,6 +9554,100 @@
           },
           "note": "Wave 1 lite \u00b7 Wave 2 adds SEBI + pledge + auditor + RPT"
         },
+        "ownership": {
+          "engine": "ownership.v1_lite",
+          "score": 72.2,
+          "hits": 6.5,
+          "total": 9.0,
+          "signals": {
+            "institutional_ownership_healthy": {
+              "value": 0.95384,
+              "ok": true,
+              "weight": 2.0
+            },
+            "institutional_ownership_moderate": {
+              "value": 0.95384,
+              "ok": true,
+              "weight": 1.5
+            },
+            "insider_holding_present": {
+              "value": 0.0086,
+              "ok": false,
+              "weight": 1.5
+            },
+            "insider_holding_strong": {
+              "value": 0.0086,
+              "ok": false,
+              "weight": 1.0
+            },
+            "institutional_breadth": {
+              "value": 0.95384,
+              "ok": true,
+              "weight": 1.0
+            },
+            "float_availability": {
+              "value": 0.9887018385665969,
+              "ok": true,
+              "weight": 1.0
+            },
+            "no_heavy_shorting": {
+              "value": 4.15,
+              "ok": true,
+              "weight": 1.0
+            }
+          },
+          "note": "Wave 1.5 \u00b7 Wave 2 adds FII/MF QoQ trends from BSE shareholding pattern"
+        },
+        "sector": {
+          "engine": "sector.v1",
+          "score": 50.0,
+          "signals": {
+            "sector_classified": {
+              "ok": false,
+              "weight": 0.5,
+              "extra": {
+                "sector": ""
+              }
+            }
+          },
+          "note": "insufficient sector data \u00b7 neutral"
+        },
+        "macro": {
+          "engine": "macro.v1",
+          "score": 80.0,
+          "hits": 4.0,
+          "total": 5.0,
+          "signals": {
+            "regime_not_bearish": {
+              "ok": true,
+              "weight": 2.0,
+              "extra": {
+                "regime": ""
+              }
+            },
+            "regime_bullish": {
+              "ok": false,
+              "weight": 1.0,
+              "extra": {
+                "regime": ""
+              }
+            },
+            "cb_not_hawkish": {
+              "ok": true,
+              "weight": 1.0,
+              "extra": {
+                "stance": ""
+              }
+            },
+            "yields_not_rising": {
+              "ok": true,
+              "weight": 1.0,
+              "extra": {
+                "direction": ""
+              }
+            }
+          }
+        },
         "liquidity": {
           "engine": "liquidity.v1",
           "score": 100.0,
@@ -6589,6 +9685,65 @@
               }
             }
           }
+        },
+        "news": {
+          "engine": "news.v1",
+          "score": 50.0,
+          "n_ticker_mentions": 0,
+          "n_total_news": 0,
+          "signals": {
+            "ticker_mentions": [],
+            "sector_backdrop_impact": 0
+          }
+        },
+        "earnings": {
+          "engine": "earnings.v1",
+          "score": 58.3,
+          "hits": 7.0,
+          "total": 12.0,
+          "signals": {
+            "earnings_growth_positive": {
+              "value": -0.107,
+              "ok": false,
+              "weight": 2.0
+            },
+            "earnings_growth_strong": {
+              "value": -0.107,
+              "ok": false,
+              "weight": 1.5
+            },
+            "quarterly_earnings_growth": {
+              "value": -0.12,
+              "ok": false,
+              "weight": 1.5
+            },
+            "revenue_growth": {
+              "value": 0.309,
+              "ok": true,
+              "weight": 1.5
+            },
+            "trailing_eps_positive": {
+              "value": 5.95,
+              "ok": true,
+              "weight": 2.0
+            },
+            "forward_eps_higher": {
+              "value": 14.88514,
+              "ok": true,
+              "weight": 1.5
+            },
+            "payout_sustainable": {
+              "value": 0.44779998,
+              "ok": true,
+              "weight": 1.0
+            },
+            "earnings_not_imminent": {
+              "value": -9,
+              "ok": true,
+              "weight": 1.0
+            }
+          },
+          "note": "Wave 1.5 \u00b7 Wave 2 adds analyst estimate revisions + guidance change detection"
         },
         "valuation": {
           "engine": "valuation.v1",
@@ -6693,14 +9848,19 @@
     {
       "ticker": "AKAM",
       "market": "usa",
-      "asof": "2026-08-08T10:44:25+00:00",
-      "score": 50.5,
+      "asof": "2026-08-08T10:58:02+00:00",
+      "score": 53.6,
       "verdict": "REJECT",
       "sub_scores": {
         "fundamental": 19.2,
         "technical": 57.9,
         "governance": 81.8,
+        "ownership": 72.2,
+        "sector": 50.0,
+        "macro": 80.0,
         "liquidity": 81.8,
+        "news": 50.0,
+        "earnings": 50.0,
         "valuation": 54.5,
         "risk": 52.9
       },
@@ -6718,8 +9878,8 @@
           "contrib": 2.0
         },
         {
-          "engine": "liquidity",
-          "signal": "avg_volume_sufficient",
+          "engine": "ownership",
+          "signal": "institutional_ownership_healthy",
           "ok": true,
           "contrib": 2.0
         }
@@ -6886,6 +10046,100 @@
           },
           "note": "Wave 1 lite \u00b7 Wave 2 adds SEBI + pledge + auditor + RPT"
         },
+        "ownership": {
+          "engine": "ownership.v1_lite",
+          "score": 72.2,
+          "hits": 6.5,
+          "total": 9.0,
+          "signals": {
+            "institutional_ownership_healthy": {
+              "value": 1.1118699,
+              "ok": true,
+              "weight": 2.0
+            },
+            "institutional_ownership_moderate": {
+              "value": 1.1118699,
+              "ok": true,
+              "weight": 1.5
+            },
+            "insider_holding_present": {
+              "value": 0.02123,
+              "ok": false,
+              "weight": 1.5
+            },
+            "insider_holding_strong": {
+              "value": 0.02123,
+              "ok": false,
+              "weight": 1.0
+            },
+            "institutional_breadth": {
+              "value": 1.1118699,
+              "ok": true,
+              "weight": 1.0
+            },
+            "float_availability": {
+              "value": 0.97692,
+              "ok": true,
+              "weight": 1.0
+            },
+            "no_heavy_shorting": {
+              "value": 4.99,
+              "ok": true,
+              "weight": 1.0
+            }
+          },
+          "note": "Wave 1.5 \u00b7 Wave 2 adds FII/MF QoQ trends from BSE shareholding pattern"
+        },
+        "sector": {
+          "engine": "sector.v1",
+          "score": 50.0,
+          "signals": {
+            "sector_classified": {
+              "ok": false,
+              "weight": 0.5,
+              "extra": {
+                "sector": ""
+              }
+            }
+          },
+          "note": "insufficient sector data \u00b7 neutral"
+        },
+        "macro": {
+          "engine": "macro.v1",
+          "score": 80.0,
+          "hits": 4.0,
+          "total": 5.0,
+          "signals": {
+            "regime_not_bearish": {
+              "ok": true,
+              "weight": 2.0,
+              "extra": {
+                "regime": ""
+              }
+            },
+            "regime_bullish": {
+              "ok": false,
+              "weight": 1.0,
+              "extra": {
+                "regime": ""
+              }
+            },
+            "cb_not_hawkish": {
+              "ok": true,
+              "weight": 1.0,
+              "extra": {
+                "stance": ""
+              }
+            },
+            "yields_not_rising": {
+              "ok": true,
+              "weight": 1.0,
+              "extra": {
+                "direction": ""
+              }
+            }
+          }
+        },
         "liquidity": {
           "engine": "liquidity.v1",
           "score": 81.8,
@@ -6923,6 +10177,65 @@
               }
             }
           }
+        },
+        "news": {
+          "engine": "news.v1",
+          "score": 50.0,
+          "n_ticker_mentions": 0,
+          "n_total_news": 0,
+          "signals": {
+            "ticker_mentions": [],
+            "sector_backdrop_impact": 0
+          }
+        },
+        "earnings": {
+          "engine": "earnings.v1",
+          "score": 50.0,
+          "hits": 6.0,
+          "total": 12.0,
+          "signals": {
+            "earnings_growth_positive": {
+              "value": -0.268,
+              "ok": false,
+              "weight": 2.0
+            },
+            "earnings_growth_strong": {
+              "value": -0.268,
+              "ok": false,
+              "weight": 1.5
+            },
+            "quarterly_earnings_growth": {
+              "value": -0.234,
+              "ok": false,
+              "weight": 1.5
+            },
+            "revenue_growth": {
+              "value": 0.054,
+              "ok": true,
+              "weight": 1.5
+            },
+            "trailing_eps_positive": {
+              "value": 2.58,
+              "ok": true,
+              "weight": 2.0
+            },
+            "forward_eps_higher": {
+              "value": 7.17045,
+              "ok": true,
+              "weight": 1.5
+            },
+            "payout_sustainable": {
+              "value": 0.0,
+              "ok": true,
+              "weight": 1.0
+            },
+            "earnings_not_imminent": {
+              "value": -2,
+              "ok": false,
+              "weight": 1.0
+            }
+          },
+          "note": "Wave 1.5 \u00b7 Wave 2 adds analyst estimate revisions + guidance change detection"
         },
         "valuation": {
           "engine": "valuation.v1",
@@ -7027,14 +10340,19 @@
     {
       "ticker": "ALB",
       "market": "usa",
-      "asof": "2026-08-08T10:44:26+00:00",
-      "score": 46.6,
+      "asof": "2026-08-08T10:58:02+00:00",
+      "score": 52.2,
       "verdict": "REJECT",
       "sub_scores": {
         "fundamental": 45.8,
         "technical": 31.6,
         "governance": 40.9,
+        "ownership": 72.2,
+        "sector": 50.0,
+        "macro": 80.0,
         "liquidity": 100.0,
+        "news": 50.0,
+        "earnings": 76.5,
         "valuation": 69.6,
         "risk": 35.3
       },
@@ -7046,14 +10364,14 @@
           "contrib": 2.0
         },
         {
-          "engine": "liquidity",
-          "signal": "avg_volume_sufficient",
+          "engine": "ownership",
+          "signal": "institutional_ownership_healthy",
           "ok": true,
           "contrib": 2.0
         },
         {
-          "engine": "valuation",
-          "signal": "peg_reasonable",
+          "engine": "macro",
+          "signal": "regime_not_bearish",
           "ok": true,
           "contrib": 2.0
         }
@@ -7220,6 +10538,100 @@
           },
           "note": "Wave 1 lite \u00b7 Wave 2 adds SEBI + pledge + auditor + RPT"
         },
+        "ownership": {
+          "engine": "ownership.v1_lite",
+          "score": 72.2,
+          "hits": 6.5,
+          "total": 9.0,
+          "signals": {
+            "institutional_ownership_healthy": {
+              "value": 0.97461,
+              "ok": true,
+              "weight": 2.0
+            },
+            "institutional_ownership_moderate": {
+              "value": 0.97461,
+              "ok": true,
+              "weight": 1.5
+            },
+            "insider_holding_present": {
+              "value": 0.0019200001,
+              "ok": false,
+              "weight": 1.5
+            },
+            "insider_holding_strong": {
+              "value": 0.0019200001,
+              "ok": false,
+              "weight": 1.0
+            },
+            "institutional_breadth": {
+              "value": 0.97461,
+              "ok": true,
+              "weight": 1.0
+            },
+            "float_availability": {
+              "value": 0.9960000019321206,
+              "ok": true,
+              "weight": 1.0
+            },
+            "no_heavy_shorting": {
+              "value": 0.03,
+              "ok": true,
+              "weight": 1.0
+            }
+          },
+          "note": "Wave 1.5 \u00b7 Wave 2 adds FII/MF QoQ trends from BSE shareholding pattern"
+        },
+        "sector": {
+          "engine": "sector.v1",
+          "score": 50.0,
+          "signals": {
+            "sector_classified": {
+              "ok": false,
+              "weight": 0.5,
+              "extra": {
+                "sector": ""
+              }
+            }
+          },
+          "note": "insufficient sector data \u00b7 neutral"
+        },
+        "macro": {
+          "engine": "macro.v1",
+          "score": 80.0,
+          "hits": 4.0,
+          "total": 5.0,
+          "signals": {
+            "regime_not_bearish": {
+              "ok": true,
+              "weight": 2.0,
+              "extra": {
+                "regime": ""
+              }
+            },
+            "regime_bullish": {
+              "ok": false,
+              "weight": 1.0,
+              "extra": {
+                "regime": ""
+              }
+            },
+            "cb_not_hawkish": {
+              "ok": true,
+              "weight": 1.0,
+              "extra": {
+                "stance": ""
+              }
+            },
+            "yields_not_rising": {
+              "ok": true,
+              "weight": 1.0,
+              "extra": {
+                "direction": ""
+              }
+            }
+          }
+        },
         "liquidity": {
           "engine": "liquidity.v1",
           "score": 100.0,
@@ -7257,6 +10669,65 @@
               }
             }
           }
+        },
+        "news": {
+          "engine": "news.v1",
+          "score": 50.0,
+          "n_ticker_mentions": 0,
+          "n_total_news": 0,
+          "signals": {
+            "ticker_mentions": [],
+            "sector_backdrop_impact": 0
+          }
+        },
+        "earnings": {
+          "engine": "earnings.v1",
+          "score": 76.5,
+          "hits": 6.5,
+          "total": 8.5,
+          "signals": {
+            "earnings_growth_positive": {
+              "value": null,
+              "ok": null,
+              "weight": 2.0
+            },
+            "earnings_growth_strong": {
+              "value": null,
+              "ok": null,
+              "weight": 1.5
+            },
+            "quarterly_earnings_growth": {
+              "value": 19.962,
+              "ok": true,
+              "weight": 1.5
+            },
+            "revenue_growth": {
+              "value": 0.311,
+              "ok": true,
+              "weight": 1.5
+            },
+            "trailing_eps_positive": {
+              "value": 0.29,
+              "ok": true,
+              "weight": 2.0
+            },
+            "forward_eps_higher": {
+              "value": 11.91034,
+              "ok": true,
+              "weight": 1.5
+            },
+            "payout_sustainable": {
+              "value": 6.0,
+              "ok": false,
+              "weight": 1.0
+            },
+            "earnings_not_imminent": {
+              "value": -3,
+              "ok": false,
+              "weight": 1.0
+            }
+          },
+          "note": "Wave 1.5 \u00b7 Wave 2 adds analyst estimate revisions + guidance change detection"
         },
         "valuation": {
           "engine": "valuation.v1",
@@ -7361,14 +10832,19 @@
     {
       "ticker": "ALGN",
       "market": "usa",
-      "asof": "2026-08-08T10:44:26+00:00",
-      "score": 67.1,
+      "asof": "2026-08-08T10:58:03+00:00",
+      "score": 66.3,
       "verdict": "HOLD",
       "sub_scores": {
         "fundamental": 42.3,
         "technical": 84.2,
         "governance": 59.1,
+        "ownership": 88.9,
+        "sector": 50.0,
+        "macro": 80.0,
         "liquidity": 100.0,
+        "news": 50.0,
+        "earnings": 45.8,
         "valuation": 86.4,
         "risk": 82.4
       },
@@ -7386,8 +10862,8 @@
           "contrib": 2.0
         },
         {
-          "engine": "liquidity",
-          "signal": "avg_volume_sufficient",
+          "engine": "ownership",
+          "signal": "institutional_ownership_healthy",
           "ok": true,
           "contrib": 2.0
         }
@@ -7554,6 +11030,100 @@
           },
           "note": "Wave 1 lite \u00b7 Wave 2 adds SEBI + pledge + auditor + RPT"
         },
+        "ownership": {
+          "engine": "ownership.v1_lite",
+          "score": 88.9,
+          "hits": 8.0,
+          "total": 9.0,
+          "signals": {
+            "institutional_ownership_healthy": {
+              "value": 1.0131301,
+              "ok": true,
+              "weight": 2.0
+            },
+            "institutional_ownership_moderate": {
+              "value": 1.0131301,
+              "ok": true,
+              "weight": 1.5
+            },
+            "insider_holding_present": {
+              "value": 0.06871,
+              "ok": true,
+              "weight": 1.5
+            },
+            "insider_holding_strong": {
+              "value": 0.06871,
+              "ok": false,
+              "weight": 1.0
+            },
+            "institutional_breadth": {
+              "value": 1.0131301,
+              "ok": true,
+              "weight": 1.0
+            },
+            "float_availability": {
+              "value": 0.9362499938766764,
+              "ok": true,
+              "weight": 1.0
+            },
+            "no_heavy_shorting": {
+              "value": 4.52,
+              "ok": true,
+              "weight": 1.0
+            }
+          },
+          "note": "Wave 1.5 \u00b7 Wave 2 adds FII/MF QoQ trends from BSE shareholding pattern"
+        },
+        "sector": {
+          "engine": "sector.v1",
+          "score": 50.0,
+          "signals": {
+            "sector_classified": {
+              "ok": false,
+              "weight": 0.5,
+              "extra": {
+                "sector": ""
+              }
+            }
+          },
+          "note": "insufficient sector data \u00b7 neutral"
+        },
+        "macro": {
+          "engine": "macro.v1",
+          "score": 80.0,
+          "hits": 4.0,
+          "total": 5.0,
+          "signals": {
+            "regime_not_bearish": {
+              "ok": true,
+              "weight": 2.0,
+              "extra": {
+                "regime": ""
+              }
+            },
+            "regime_bullish": {
+              "ok": false,
+              "weight": 1.0,
+              "extra": {
+                "regime": ""
+              }
+            },
+            "cb_not_hawkish": {
+              "ok": true,
+              "weight": 1.0,
+              "extra": {
+                "stance": ""
+              }
+            },
+            "yields_not_rising": {
+              "ok": true,
+              "weight": 1.0,
+              "extra": {
+                "direction": ""
+              }
+            }
+          }
+        },
         "liquidity": {
           "engine": "liquidity.v1",
           "score": 100.0,
@@ -7591,6 +11161,65 @@
               }
             }
           }
+        },
+        "news": {
+          "engine": "news.v1",
+          "score": 50.0,
+          "n_ticker_mentions": 0,
+          "n_total_news": 0,
+          "signals": {
+            "ticker_mentions": [],
+            "sector_backdrop_impact": 0
+          }
+        },
+        "earnings": {
+          "engine": "earnings.v1",
+          "score": 45.8,
+          "hits": 5.5,
+          "total": 12.0,
+          "signals": {
+            "earnings_growth_positive": {
+              "value": -0.121,
+              "ok": false,
+              "weight": 2.0
+            },
+            "earnings_growth_strong": {
+              "value": -0.121,
+              "ok": false,
+              "weight": 1.5
+            },
+            "quarterly_earnings_growth": {
+              "value": -0.131,
+              "ok": false,
+              "weight": 1.5
+            },
+            "revenue_growth": {
+              "value": 0.043,
+              "ok": false,
+              "weight": 1.5
+            },
+            "trailing_eps_positive": {
+              "value": 5.91,
+              "ok": true,
+              "weight": 2.0
+            },
+            "forward_eps_higher": {
+              "value": 12.54855,
+              "ok": true,
+              "weight": 1.5
+            },
+            "payout_sustainable": {
+              "value": 0.0,
+              "ok": true,
+              "weight": 1.0
+            },
+            "earnings_not_imminent": {
+              "value": -10,
+              "ok": true,
+              "weight": 1.0
+            }
+          },
+          "note": "Wave 1.5 \u00b7 Wave 2 adds analyst estimate revisions + guidance change detection"
         },
         "valuation": {
           "engine": "valuation.v1",
@@ -7695,14 +11324,19 @@
     {
       "ticker": "ALL",
       "market": "usa",
-      "asof": "2026-08-08T10:44:27+00:00",
-      "score": 91.3,
+      "asof": "2026-08-08T10:58:03+00:00",
+      "score": 83.6,
       "verdict": "STRONG BUY",
       "sub_scores": {
         "fundamental": 100.0,
         "technical": 100.0,
         "governance": 72.7,
+        "ownership": 72.2,
+        "sector": 50.0,
+        "macro": 80.0,
         "liquidity": 100.0,
+        "news": 50.0,
+        "earnings": 87.5,
         "valuation": 69.6,
         "risk": 100.0
       },
@@ -7888,6 +11522,100 @@
           },
           "note": "Wave 1 lite \u00b7 Wave 2 adds SEBI + pledge + auditor + RPT"
         },
+        "ownership": {
+          "engine": "ownership.v1_lite",
+          "score": 72.2,
+          "hits": 6.5,
+          "total": 9.0,
+          "signals": {
+            "institutional_ownership_healthy": {
+              "value": 0.8843,
+              "ok": true,
+              "weight": 2.0
+            },
+            "institutional_ownership_moderate": {
+              "value": 0.8843,
+              "ok": true,
+              "weight": 1.5
+            },
+            "insider_holding_present": {
+              "value": 0.00509,
+              "ok": false,
+              "weight": 1.5
+            },
+            "insider_holding_strong": {
+              "value": 0.00509,
+              "ok": false,
+              "weight": 1.0
+            },
+            "institutional_breadth": {
+              "value": 0.8843,
+              "ok": true,
+              "weight": 1.0
+            },
+            "float_availability": {
+              "value": 0.9932199996084758,
+              "ok": true,
+              "weight": 1.0
+            },
+            "no_heavy_shorting": {
+              "value": 0.07,
+              "ok": true,
+              "weight": 1.0
+            }
+          },
+          "note": "Wave 1.5 \u00b7 Wave 2 adds FII/MF QoQ trends from BSE shareholding pattern"
+        },
+        "sector": {
+          "engine": "sector.v1",
+          "score": 50.0,
+          "signals": {
+            "sector_classified": {
+              "ok": false,
+              "weight": 0.5,
+              "extra": {
+                "sector": ""
+              }
+            }
+          },
+          "note": "insufficient sector data \u00b7 neutral"
+        },
+        "macro": {
+          "engine": "macro.v1",
+          "score": 80.0,
+          "hits": 4.0,
+          "total": 5.0,
+          "signals": {
+            "regime_not_bearish": {
+              "ok": true,
+              "weight": 2.0,
+              "extra": {
+                "regime": ""
+              }
+            },
+            "regime_bullish": {
+              "ok": false,
+              "weight": 1.0,
+              "extra": {
+                "regime": ""
+              }
+            },
+            "cb_not_hawkish": {
+              "ok": true,
+              "weight": 1.0,
+              "extra": {
+                "stance": ""
+              }
+            },
+            "yields_not_rising": {
+              "ok": true,
+              "weight": 1.0,
+              "extra": {
+                "direction": ""
+              }
+            }
+          }
+        },
         "liquidity": {
           "engine": "liquidity.v1",
           "score": 100.0,
@@ -7925,6 +11653,65 @@
               }
             }
           }
+        },
+        "news": {
+          "engine": "news.v1",
+          "score": 50.0,
+          "n_ticker_mentions": 0,
+          "n_total_news": 0,
+          "signals": {
+            "ticker_mentions": [],
+            "sector_backdrop_impact": 0
+          }
+        },
+        "earnings": {
+          "engine": "earnings.v1",
+          "score": 87.5,
+          "hits": 10.5,
+          "total": 12.0,
+          "signals": {
+            "earnings_growth_positive": {
+              "value": 0.612,
+              "ok": true,
+              "weight": 2.0
+            },
+            "earnings_growth_strong": {
+              "value": 0.612,
+              "ok": true,
+              "weight": 1.5
+            },
+            "quarterly_earnings_growth": {
+              "value": 0.551,
+              "ok": true,
+              "weight": 1.5
+            },
+            "revenue_growth": {
+              "value": 0.118,
+              "ok": true,
+              "weight": 1.5
+            },
+            "trailing_eps_positive": {
+              "value": 49.93,
+              "ok": true,
+              "weight": 2.0
+            },
+            "forward_eps_higher": {
+              "value": 27.0586,
+              "ok": false,
+              "weight": 1.5
+            },
+            "payout_sustainable": {
+              "value": 0.0833,
+              "ok": true,
+              "weight": 1.0
+            },
+            "earnings_not_imminent": {
+              "value": 88,
+              "ok": true,
+              "weight": 1.0
+            }
+          },
+          "note": "Wave 1.5 \u00b7 Wave 2 adds analyst estimate revisions + guidance change detection"
         },
         "valuation": {
           "engine": "valuation.v1",
@@ -8029,14 +11816,19 @@
     {
       "ticker": "ALLE",
       "market": "usa",
-      "asof": "2026-08-08T10:44:27+00:00",
-      "score": 77.2,
+      "asof": "2026-08-08T10:58:04+00:00",
+      "score": 74.5,
       "verdict": "BUY",
       "sub_scores": {
         "fundamental": 84.6,
         "technical": 68.4,
         "governance": 68.2,
+        "ownership": 72.2,
+        "sector": 50.0,
+        "macro": 80.0,
         "liquidity": 100.0,
+        "news": 50.0,
+        "earnings": 100.0,
         "valuation": 56.5,
         "risk": 100.0
       },
@@ -8222,6 +12014,100 @@
           },
           "note": "Wave 1 lite \u00b7 Wave 2 adds SEBI + pledge + auditor + RPT"
         },
+        "ownership": {
+          "engine": "ownership.v1_lite",
+          "score": 72.2,
+          "hits": 6.5,
+          "total": 9.0,
+          "signals": {
+            "institutional_ownership_healthy": {
+              "value": 1.03079,
+              "ok": true,
+              "weight": 2.0
+            },
+            "institutional_ownership_moderate": {
+              "value": 1.03079,
+              "ok": true,
+              "weight": 1.5
+            },
+            "insider_holding_present": {
+              "value": 0.00232,
+              "ok": false,
+              "weight": 1.5
+            },
+            "insider_holding_strong": {
+              "value": 0.00232,
+              "ok": false,
+              "weight": 1.0
+            },
+            "institutional_breadth": {
+              "value": 1.03079,
+              "ok": true,
+              "weight": 1.0
+            },
+            "float_availability": {
+              "value": 0.9896499968848775,
+              "ok": true,
+              "weight": 1.0
+            },
+            "no_heavy_shorting": {
+              "value": 3.77,
+              "ok": true,
+              "weight": 1.0
+            }
+          },
+          "note": "Wave 1.5 \u00b7 Wave 2 adds FII/MF QoQ trends from BSE shareholding pattern"
+        },
+        "sector": {
+          "engine": "sector.v1",
+          "score": 50.0,
+          "signals": {
+            "sector_classified": {
+              "ok": false,
+              "weight": 0.5,
+              "extra": {
+                "sector": ""
+              }
+            }
+          },
+          "note": "insufficient sector data \u00b7 neutral"
+        },
+        "macro": {
+          "engine": "macro.v1",
+          "score": 80.0,
+          "hits": 4.0,
+          "total": 5.0,
+          "signals": {
+            "regime_not_bearish": {
+              "ok": true,
+              "weight": 2.0,
+              "extra": {
+                "regime": ""
+              }
+            },
+            "regime_bullish": {
+              "ok": false,
+              "weight": 1.0,
+              "extra": {
+                "regime": ""
+              }
+            },
+            "cb_not_hawkish": {
+              "ok": true,
+              "weight": 1.0,
+              "extra": {
+                "stance": ""
+              }
+            },
+            "yields_not_rising": {
+              "ok": true,
+              "weight": 1.0,
+              "extra": {
+                "direction": ""
+              }
+            }
+          }
+        },
         "liquidity": {
           "engine": "liquidity.v1",
           "score": 100.0,
@@ -8259,6 +12145,65 @@
               }
             }
           }
+        },
+        "news": {
+          "engine": "news.v1",
+          "score": 50.0,
+          "n_ticker_mentions": 0,
+          "n_total_news": 0,
+          "signals": {
+            "ticker_mentions": [],
+            "sector_backdrop_impact": 0
+          }
+        },
+        "earnings": {
+          "engine": "earnings.v1",
+          "score": 100.0,
+          "hits": 12.0,
+          "total": 12.0,
+          "signals": {
+            "earnings_growth_positive": {
+              "value": 0.162,
+              "ok": true,
+              "weight": 2.0
+            },
+            "earnings_growth_strong": {
+              "value": 0.162,
+              "ok": true,
+              "weight": 1.5
+            },
+            "quarterly_earnings_growth": {
+              "value": 0.156,
+              "ok": true,
+              "weight": 1.5
+            },
+            "revenue_growth": {
+              "value": 0.127,
+              "ok": true,
+              "weight": 1.5
+            },
+            "trailing_eps_positive": {
+              "value": 7.64,
+              "ok": true,
+              "weight": 2.0
+            },
+            "forward_eps_higher": {
+              "value": 9.74974,
+              "ok": true,
+              "weight": 1.5
+            },
+            "payout_sustainable": {
+              "value": 0.2782,
+              "ok": true,
+              "weight": 1.0
+            },
+            "earnings_not_imminent": {
+              "value": -16,
+              "ok": true,
+              "weight": 1.0
+            }
+          },
+          "note": "Wave 1.5 \u00b7 Wave 2 adds analyst estimate revisions + guidance change detection"
         },
         "valuation": {
           "engine": "valuation.v1",
@@ -8363,14 +12308,19 @@
     {
       "ticker": "AMAT",
       "market": "usa",
-      "asof": "2026-08-08T10:44:28+00:00",
-      "score": 73.8,
+      "asof": "2026-08-08T10:58:04+00:00",
+      "score": 71.7,
       "verdict": "BUY",
       "sub_scores": {
         "fundamental": 100.0,
         "technical": 73.7,
         "governance": 72.7,
+        "ownership": 72.2,
+        "sector": 50.0,
+        "macro": 80.0,
         "liquidity": 100.0,
+        "news": 50.0,
+        "earnings": 91.7,
         "valuation": 34.8,
         "risk": 23.5
       },
@@ -8556,6 +12506,100 @@
           },
           "note": "Wave 1 lite \u00b7 Wave 2 adds SEBI + pledge + auditor + RPT"
         },
+        "ownership": {
+          "engine": "ownership.v1_lite",
+          "score": 72.2,
+          "hits": 6.5,
+          "total": 9.0,
+          "signals": {
+            "institutional_ownership_healthy": {
+              "value": 0.84766,
+              "ok": true,
+              "weight": 2.0
+            },
+            "institutional_ownership_moderate": {
+              "value": 0.84766,
+              "ok": true,
+              "weight": 1.5
+            },
+            "insider_holding_present": {
+              "value": 0.00321,
+              "ok": false,
+              "weight": 1.5
+            },
+            "insider_holding_strong": {
+              "value": 0.00321,
+              "ok": false,
+              "weight": 1.0
+            },
+            "institutional_breadth": {
+              "value": 0.84766,
+              "ok": true,
+              "weight": 1.0
+            },
+            "float_availability": {
+              "value": 0.9960900004676562,
+              "ok": true,
+              "weight": 1.0
+            },
+            "no_heavy_shorting": {
+              "value": 1.34,
+              "ok": true,
+              "weight": 1.0
+            }
+          },
+          "note": "Wave 1.5 \u00b7 Wave 2 adds FII/MF QoQ trends from BSE shareholding pattern"
+        },
+        "sector": {
+          "engine": "sector.v1",
+          "score": 50.0,
+          "signals": {
+            "sector_classified": {
+              "ok": false,
+              "weight": 0.5,
+              "extra": {
+                "sector": ""
+              }
+            }
+          },
+          "note": "insufficient sector data \u00b7 neutral"
+        },
+        "macro": {
+          "engine": "macro.v1",
+          "score": 80.0,
+          "hits": 4.0,
+          "total": 5.0,
+          "signals": {
+            "regime_not_bearish": {
+              "ok": true,
+              "weight": 2.0,
+              "extra": {
+                "regime": ""
+              }
+            },
+            "regime_bullish": {
+              "ok": false,
+              "weight": 1.0,
+              "extra": {
+                "regime": ""
+              }
+            },
+            "cb_not_hawkish": {
+              "ok": true,
+              "weight": 1.0,
+              "extra": {
+                "stance": ""
+              }
+            },
+            "yields_not_rising": {
+              "ok": true,
+              "weight": 1.0,
+              "extra": {
+                "direction": ""
+              }
+            }
+          }
+        },
         "liquidity": {
           "engine": "liquidity.v1",
           "score": 100.0,
@@ -8593,6 +12637,65 @@
               }
             }
           }
+        },
+        "news": {
+          "engine": "news.v1",
+          "score": 50.0,
+          "n_ticker_mentions": 0,
+          "n_total_news": 0,
+          "signals": {
+            "ticker_mentions": [],
+            "sector_backdrop_impact": 0
+          }
+        },
+        "earnings": {
+          "engine": "earnings.v1",
+          "score": 91.7,
+          "hits": 11.0,
+          "total": 12.0,
+          "signals": {
+            "earnings_growth_positive": {
+              "value": 0.335,
+              "ok": true,
+              "weight": 2.0
+            },
+            "earnings_growth_strong": {
+              "value": 0.335,
+              "ok": true,
+              "weight": 1.5
+            },
+            "quarterly_earnings_growth": {
+              "value": 0.313,
+              "ok": true,
+              "weight": 1.5
+            },
+            "revenue_growth": {
+              "value": 0.114,
+              "ok": true,
+              "weight": 1.5
+            },
+            "trailing_eps_positive": {
+              "value": 10.89,
+              "ok": true,
+              "weight": 2.0
+            },
+            "forward_eps_higher": {
+              "value": 17.05104,
+              "ok": true,
+              "weight": 1.5
+            },
+            "payout_sustainable": {
+              "value": 0.1731,
+              "ok": true,
+              "weight": 1.0
+            },
+            "earnings_not_imminent": {
+              "value": 5,
+              "ok": false,
+              "weight": 1.0
+            }
+          },
+          "note": "Wave 1.5 \u00b7 Wave 2 adds analyst estimate revisions + guidance change detection"
         },
         "valuation": {
           "engine": "valuation.v1",
@@ -8697,14 +12800,19 @@
     {
       "ticker": "AMCR",
       "market": "usa",
-      "asof": "2026-08-08T10:44:28+00:00",
-      "score": 61.8,
+      "asof": "2026-08-08T10:58:04+00:00",
+      "score": 60.5,
       "verdict": "HOLD",
       "sub_scores": {
         "fundamental": 26.9,
         "technical": 89.5,
         "governance": 40.9,
+        "ownership": 61.1,
+        "sector": 50.0,
+        "macro": 80.0,
         "liquidity": 100.0,
+        "news": 50.0,
+        "earnings": 54.2,
         "valuation": 87.0,
         "risk": 100.0
       },
@@ -8716,14 +12824,14 @@
           "contrib": 2.0
         },
         {
-          "engine": "liquidity",
-          "signal": "avg_volume_sufficient",
+          "engine": "ownership",
+          "signal": "institutional_ownership_healthy",
           "ok": true,
           "contrib": 2.0
         },
         {
-          "engine": "valuation",
-          "signal": "pe_investable_range",
+          "engine": "macro",
+          "signal": "regime_not_bearish",
           "ok": true,
           "contrib": 2.0
         }
@@ -8890,6 +12998,100 @@
           },
           "note": "Wave 1 lite \u00b7 Wave 2 adds SEBI + pledge + auditor + RPT"
         },
+        "ownership": {
+          "engine": "ownership.v1_lite",
+          "score": 61.1,
+          "hits": 5.5,
+          "total": 9.0,
+          "signals": {
+            "institutional_ownership_healthy": {
+              "value": 0.79767,
+              "ok": true,
+              "weight": 2.0
+            },
+            "institutional_ownership_moderate": {
+              "value": 0.79767,
+              "ok": true,
+              "weight": 1.5
+            },
+            "insider_holding_present": {
+              "value": 0.0025600002,
+              "ok": false,
+              "weight": 1.5
+            },
+            "insider_holding_strong": {
+              "value": 0.0025600002,
+              "ok": false,
+              "weight": 1.0
+            },
+            "institutional_breadth": {
+              "value": 0.79767,
+              "ok": true,
+              "weight": 1.0
+            },
+            "float_availability": {
+              "value": 0.9938299067954975,
+              "ok": true,
+              "weight": 1.0
+            },
+            "no_heavy_shorting": {
+              "value": 8.84,
+              "ok": false,
+              "weight": 1.0
+            }
+          },
+          "note": "Wave 1.5 \u00b7 Wave 2 adds FII/MF QoQ trends from BSE shareholding pattern"
+        },
+        "sector": {
+          "engine": "sector.v1",
+          "score": 50.0,
+          "signals": {
+            "sector_classified": {
+              "ok": false,
+              "weight": 0.5,
+              "extra": {
+                "sector": ""
+              }
+            }
+          },
+          "note": "insufficient sector data \u00b7 neutral"
+        },
+        "macro": {
+          "engine": "macro.v1",
+          "score": 80.0,
+          "hits": 4.0,
+          "total": 5.0,
+          "signals": {
+            "regime_not_bearish": {
+              "ok": true,
+              "weight": 2.0,
+              "extra": {
+                "regime": ""
+              }
+            },
+            "regime_bullish": {
+              "ok": false,
+              "weight": 1.0,
+              "extra": {
+                "regime": ""
+              }
+            },
+            "cb_not_hawkish": {
+              "ok": true,
+              "weight": 1.0,
+              "extra": {
+                "stance": ""
+              }
+            },
+            "yields_not_rising": {
+              "ok": true,
+              "weight": 1.0,
+              "extra": {
+                "direction": ""
+              }
+            }
+          }
+        },
         "liquidity": {
           "engine": "liquidity.v1",
           "score": 100.0,
@@ -8927,6 +13129,65 @@
               }
             }
           }
+        },
+        "news": {
+          "engine": "news.v1",
+          "score": 50.0,
+          "n_ticker_mentions": 0,
+          "n_total_news": 0,
+          "signals": {
+            "ticker_mentions": [],
+            "sector_backdrop_impact": 0
+          }
+        },
+        "earnings": {
+          "engine": "earnings.v1",
+          "score": 54.2,
+          "hits": 6.5,
+          "total": 12.0,
+          "signals": {
+            "earnings_growth_positive": {
+              "value": -0.117,
+              "ok": false,
+              "weight": 2.0
+            },
+            "earnings_growth_strong": {
+              "value": -0.117,
+              "ok": false,
+              "weight": 1.5
+            },
+            "quarterly_earnings_growth": {
+              "value": 0.418,
+              "ok": true,
+              "weight": 1.5
+            },
+            "revenue_growth": {
+              "value": 0.774,
+              "ok": true,
+              "weight": 1.5
+            },
+            "trailing_eps_positive": {
+              "value": 1.24,
+              "ok": true,
+              "weight": 2.0
+            },
+            "forward_eps_higher": {
+              "value": 4.27817,
+              "ok": true,
+              "weight": 1.5
+            },
+            "payout_sustainable": {
+              "value": 2.0683,
+              "ok": false,
+              "weight": 1.0
+            },
+            "earnings_not_imminent": {
+              "value": 4,
+              "ok": false,
+              "weight": 1.0
+            }
+          },
+          "note": "Wave 1.5 \u00b7 Wave 2 adds analyst estimate revisions + guidance change detection"
         },
         "valuation": {
           "engine": "valuation.v1",
@@ -9031,14 +13292,19 @@
     {
       "ticker": "AMD",
       "market": "usa",
-      "asof": "2026-08-08T10:44:29+00:00",
-      "score": 55.6,
+      "asof": "2026-08-08T10:58:05+00:00",
+      "score": 59.2,
       "verdict": "REJECT",
       "sub_scores": {
         "fundamental": 65.4,
         "technical": 52.6,
         "governance": 54.5,
+        "ownership": 72.2,
+        "sector": 50.0,
+        "macro": 80.0,
         "liquidity": 100.0,
+        "news": 50.0,
+        "earnings": 91.7,
         "valuation": 31.8,
         "risk": 35.3
       },
@@ -9224,6 +13490,100 @@
           },
           "note": "Wave 1 lite \u00b7 Wave 2 adds SEBI + pledge + auditor + RPT"
         },
+        "ownership": {
+          "engine": "ownership.v1_lite",
+          "score": 72.2,
+          "hits": 6.5,
+          "total": 9.0,
+          "signals": {
+            "institutional_ownership_healthy": {
+              "value": 0.72214997,
+              "ok": true,
+              "weight": 2.0
+            },
+            "institutional_ownership_moderate": {
+              "value": 0.72214997,
+              "ok": true,
+              "weight": 1.5
+            },
+            "insider_holding_present": {
+              "value": 0.004,
+              "ok": false,
+              "weight": 1.5
+            },
+            "insider_holding_strong": {
+              "value": 0.004,
+              "ok": false,
+              "weight": 1.0
+            },
+            "institutional_breadth": {
+              "value": 0.72214997,
+              "ok": true,
+              "weight": 1.0
+            },
+            "float_availability": {
+              "value": 0.993600000164658,
+              "ok": true,
+              "weight": 1.0
+            },
+            "no_heavy_shorting": {
+              "value": 1.36,
+              "ok": true,
+              "weight": 1.0
+            }
+          },
+          "note": "Wave 1.5 \u00b7 Wave 2 adds FII/MF QoQ trends from BSE shareholding pattern"
+        },
+        "sector": {
+          "engine": "sector.v1",
+          "score": 50.0,
+          "signals": {
+            "sector_classified": {
+              "ok": false,
+              "weight": 0.5,
+              "extra": {
+                "sector": ""
+              }
+            }
+          },
+          "note": "insufficient sector data \u00b7 neutral"
+        },
+        "macro": {
+          "engine": "macro.v1",
+          "score": 80.0,
+          "hits": 4.0,
+          "total": 5.0,
+          "signals": {
+            "regime_not_bearish": {
+              "ok": true,
+              "weight": 2.0,
+              "extra": {
+                "regime": ""
+              }
+            },
+            "regime_bullish": {
+              "ok": false,
+              "weight": 1.0,
+              "extra": {
+                "regime": ""
+              }
+            },
+            "cb_not_hawkish": {
+              "ok": true,
+              "weight": 1.0,
+              "extra": {
+                "stance": ""
+              }
+            },
+            "yields_not_rising": {
+              "ok": true,
+              "weight": 1.0,
+              "extra": {
+                "direction": ""
+              }
+            }
+          }
+        },
         "liquidity": {
           "engine": "liquidity.v1",
           "score": 100.0,
@@ -9261,6 +13621,65 @@
               }
             }
           }
+        },
+        "news": {
+          "engine": "news.v1",
+          "score": 50.0,
+          "n_ticker_mentions": 0,
+          "n_total_news": 0,
+          "signals": {
+            "ticker_mentions": [],
+            "sector_backdrop_impact": 0
+          }
+        },
+        "earnings": {
+          "engine": "earnings.v1",
+          "score": 91.7,
+          "hits": 11.0,
+          "total": 12.0,
+          "signals": {
+            "earnings_growth_positive": {
+              "value": 1.595,
+              "ok": true,
+              "weight": 2.0
+            },
+            "earnings_growth_strong": {
+              "value": 1.595,
+              "ok": true,
+              "weight": 1.5
+            },
+            "quarterly_earnings_growth": {
+              "value": 1.634,
+              "ok": true,
+              "weight": 1.5
+            },
+            "revenue_growth": {
+              "value": 0.501,
+              "ok": true,
+              "weight": 1.5
+            },
+            "trailing_eps_positive": {
+              "value": 3.87,
+              "ok": true,
+              "weight": 2.0
+            },
+            "forward_eps_higher": {
+              "value": 15.45987,
+              "ok": true,
+              "weight": 1.5
+            },
+            "payout_sustainable": {
+              "value": 0.0,
+              "ok": true,
+              "weight": 1.0
+            },
+            "earnings_not_imminent": {
+              "value": -4,
+              "ok": false,
+              "weight": 1.0
+            }
+          },
+          "note": "Wave 1.5 \u00b7 Wave 2 adds analyst estimate revisions + guidance change detection"
         },
         "valuation": {
           "engine": "valuation.v1",
@@ -9365,14 +13784,19 @@
     {
       "ticker": "AME",
       "market": "usa",
-      "asof": "2026-08-08T10:44:29+00:00",
-      "score": 75.5,
+      "asof": "2026-08-08T10:58:06+00:00",
+      "score": 72.3,
       "verdict": "BUY",
       "sub_scores": {
         "fundamental": 84.6,
         "technical": 84.2,
         "governance": 54.5,
+        "ownership": 72.2,
+        "sector": 50.0,
+        "macro": 80.0,
         "liquidity": 100.0,
+        "news": 50.0,
+        "earnings": 79.2,
         "valuation": 34.8,
         "risk": 100.0
       },
@@ -9558,6 +13982,100 @@
           },
           "note": "Wave 1 lite \u00b7 Wave 2 adds SEBI + pledge + auditor + RPT"
         },
+        "ownership": {
+          "engine": "ownership.v1_lite",
+          "score": 72.2,
+          "hits": 6.5,
+          "total": 9.0,
+          "signals": {
+            "institutional_ownership_healthy": {
+              "value": 0.93258005,
+              "ok": true,
+              "weight": 2.0
+            },
+            "institutional_ownership_moderate": {
+              "value": 0.93258005,
+              "ok": true,
+              "weight": 1.5
+            },
+            "insider_holding_present": {
+              "value": 0.00391,
+              "ok": false,
+              "weight": 1.5
+            },
+            "insider_holding_strong": {
+              "value": 0.00391,
+              "ok": false,
+              "weight": 1.0
+            },
+            "institutional_breadth": {
+              "value": 0.93258005,
+              "ok": true,
+              "weight": 1.0
+            },
+            "float_availability": {
+              "value": 0.9934399989559509,
+              "ok": true,
+              "weight": 1.0
+            },
+            "no_heavy_shorting": {
+              "value": 2.8,
+              "ok": true,
+              "weight": 1.0
+            }
+          },
+          "note": "Wave 1.5 \u00b7 Wave 2 adds FII/MF QoQ trends from BSE shareholding pattern"
+        },
+        "sector": {
+          "engine": "sector.v1",
+          "score": 50.0,
+          "signals": {
+            "sector_classified": {
+              "ok": false,
+              "weight": 0.5,
+              "extra": {
+                "sector": ""
+              }
+            }
+          },
+          "note": "insufficient sector data \u00b7 neutral"
+        },
+        "macro": {
+          "engine": "macro.v1",
+          "score": 80.0,
+          "hits": 4.0,
+          "total": 5.0,
+          "signals": {
+            "regime_not_bearish": {
+              "ok": true,
+              "weight": 2.0,
+              "extra": {
+                "regime": ""
+              }
+            },
+            "regime_bullish": {
+              "ok": false,
+              "weight": 1.0,
+              "extra": {
+                "regime": ""
+              }
+            },
+            "cb_not_hawkish": {
+              "ok": true,
+              "weight": 1.0,
+              "extra": {
+                "stance": ""
+              }
+            },
+            "yields_not_rising": {
+              "ok": true,
+              "weight": 1.0,
+              "extra": {
+                "direction": ""
+              }
+            }
+          }
+        },
         "liquidity": {
           "engine": "liquidity.v1",
           "score": 100.0,
@@ -9595,6 +14113,65 @@
               }
             }
           }
+        },
+        "news": {
+          "engine": "news.v1",
+          "score": 50.0,
+          "n_ticker_mentions": 0,
+          "n_total_news": 0,
+          "signals": {
+            "ticker_mentions": [],
+            "sector_backdrop_impact": 0
+          }
+        },
+        "earnings": {
+          "engine": "earnings.v1",
+          "score": 79.2,
+          "hits": 9.5,
+          "total": 12.0,
+          "signals": {
+            "earnings_growth_positive": {
+              "value": 0.142,
+              "ok": true,
+              "weight": 2.0
+            },
+            "earnings_growth_strong": {
+              "value": 0.142,
+              "ok": false,
+              "weight": 1.5
+            },
+            "quarterly_earnings_growth": {
+              "value": 0.135,
+              "ok": true,
+              "weight": 1.5
+            },
+            "revenue_growth": {
+              "value": 0.15,
+              "ok": true,
+              "weight": 1.5
+            },
+            "trailing_eps_positive": {
+              "value": 6.85,
+              "ok": true,
+              "weight": 2.0
+            },
+            "forward_eps_higher": {
+              "value": 8.98427,
+              "ok": true,
+              "weight": 1.5
+            },
+            "payout_sustainable": {
+              "value": 0.1901,
+              "ok": true,
+              "weight": 1.0
+            },
+            "earnings_not_imminent": {
+              "value": -4,
+              "ok": false,
+              "weight": 1.0
+            }
+          },
+          "note": "Wave 1.5 \u00b7 Wave 2 adds analyst estimate revisions + guidance change detection"
         },
         "valuation": {
           "engine": "valuation.v1",
@@ -9699,14 +14276,19 @@
     {
       "ticker": "AMGN",
       "market": "usa",
-      "asof": "2026-08-08T10:44:30+00:00",
-      "score": 78.2,
+      "asof": "2026-08-08T10:58:06+00:00",
+      "score": 74.8,
       "verdict": "BUY",
       "sub_scores": {
         "fundamental": 76.9,
         "technical": 100.0,
         "governance": 63.6,
+        "ownership": 72.2,
+        "sector": 50.0,
+        "macro": 80.0,
         "liquidity": 100.0,
+        "news": 50.0,
+        "earnings": 91.7,
         "valuation": 34.8,
         "risk": 100.0
       },
@@ -9892,6 +14474,100 @@
           },
           "note": "Wave 1 lite \u00b7 Wave 2 adds SEBI + pledge + auditor + RPT"
         },
+        "ownership": {
+          "engine": "ownership.v1_lite",
+          "score": 72.2,
+          "hits": 6.5,
+          "total": 9.0,
+          "signals": {
+            "institutional_ownership_healthy": {
+              "value": 0.85452,
+              "ok": true,
+              "weight": 2.0
+            },
+            "institutional_ownership_moderate": {
+              "value": 0.85452,
+              "ok": true,
+              "weight": 1.5
+            },
+            "insider_holding_present": {
+              "value": 0.0021600001,
+              "ok": false,
+              "weight": 1.5
+            },
+            "insider_holding_strong": {
+              "value": 0.0021600001,
+              "ok": false,
+              "weight": 1.0
+            },
+            "institutional_breadth": {
+              "value": 0.85452,
+              "ok": true,
+              "weight": 1.0
+            },
+            "float_availability": {
+              "value": 0.9957522162661737,
+              "ok": true,
+              "weight": 1.0
+            },
+            "no_heavy_shorting": {
+              "value": 4.66,
+              "ok": true,
+              "weight": 1.0
+            }
+          },
+          "note": "Wave 1.5 \u00b7 Wave 2 adds FII/MF QoQ trends from BSE shareholding pattern"
+        },
+        "sector": {
+          "engine": "sector.v1",
+          "score": 50.0,
+          "signals": {
+            "sector_classified": {
+              "ok": false,
+              "weight": 0.5,
+              "extra": {
+                "sector": ""
+              }
+            }
+          },
+          "note": "insufficient sector data \u00b7 neutral"
+        },
+        "macro": {
+          "engine": "macro.v1",
+          "score": 80.0,
+          "hits": 4.0,
+          "total": 5.0,
+          "signals": {
+            "regime_not_bearish": {
+              "ok": true,
+              "weight": 2.0,
+              "extra": {
+                "regime": ""
+              }
+            },
+            "regime_bullish": {
+              "ok": false,
+              "weight": 1.0,
+              "extra": {
+                "regime": ""
+              }
+            },
+            "cb_not_hawkish": {
+              "ok": true,
+              "weight": 1.0,
+              "extra": {
+                "stance": ""
+              }
+            },
+            "yields_not_rising": {
+              "ok": true,
+              "weight": 1.0,
+              "extra": {
+                "direction": ""
+              }
+            }
+          }
+        },
         "liquidity": {
           "engine": "liquidity.v1",
           "score": 100.0,
@@ -9929,6 +14605,65 @@
               }
             }
           }
+        },
+        "news": {
+          "engine": "news.v1",
+          "score": 50.0,
+          "n_ticker_mentions": 0,
+          "n_total_news": 0,
+          "signals": {
+            "ticker_mentions": [],
+            "sector_backdrop_impact": 0
+          }
+        },
+        "earnings": {
+          "engine": "earnings.v1",
+          "score": 91.7,
+          "hits": 11.0,
+          "total": 12.0,
+          "signals": {
+            "earnings_growth_positive": {
+              "value": 0.649,
+              "ok": true,
+              "weight": 2.0
+            },
+            "earnings_growth_strong": {
+              "value": 0.649,
+              "ok": true,
+              "weight": 1.5
+            },
+            "quarterly_earnings_growth": {
+              "value": 0.659,
+              "ok": true,
+              "weight": 1.5
+            },
+            "revenue_growth": {
+              "value": 0.095,
+              "ok": true,
+              "weight": 1.5
+            },
+            "trailing_eps_positive": {
+              "value": 16.11,
+              "ok": true,
+              "weight": 2.0
+            },
+            "forward_eps_higher": {
+              "value": 24.00825,
+              "ok": true,
+              "weight": 1.5
+            },
+            "payout_sustainable": {
+              "value": 0.6087,
+              "ok": true,
+              "weight": 1.0
+            },
+            "earnings_not_imminent": {
+              "value": -4,
+              "ok": false,
+              "weight": 1.0
+            }
+          },
+          "note": "Wave 1.5 \u00b7 Wave 2 adds analyst estimate revisions + guidance change detection"
         },
         "valuation": {
           "engine": "valuation.v1",

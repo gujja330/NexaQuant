@@ -32,7 +32,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from backend.investability import fundamental, technical, liquidity, governance
-from backend.investability import valuation, risk
+from backend.investability import valuation, risk, ownership, sector, macro, news, earnings
 
 
 THRESHOLD_REJECT      = 60
@@ -40,18 +40,23 @@ THRESHOLD_HOLD        = 60
 THRESHOLD_BUY         = 70
 THRESHOLD_STRONG_BUY  = 80
 
-# Wave 1.5 · 6 sub-engines active · fundamental + technical + governance +
-# liquidity + valuation + risk. Renormalized to 100%.
-# Weights match Sprint K v1.3 Part 26 spec (22/15/13/4/8/7 · but scaled to
-# what's shippable now · other 5 engines added in Wave 2 · Sprint K).
-WAVE1_WEIGHTS = {
-    "fundamental": 22 / 69,    # 31.9%
-    "technical":   15 / 69,    # 21.7%
-    "governance":  13 / 69,    # 18.8%
-    "liquidity":   4  / 69,    # 5.8%
-    "valuation":   8  / 69,    # 11.6% · fixes HDFCBANK-false-reject case
-    "risk":        7  / 69,    # 10.1% · captures gap + tail + drawdown
+# Wave 2 · ALL 11 sub-engines active per Sprint K v1.3 Part 26 spec.
+# Weights: 22 + 15 + 13 + 9 + 9 + 4 + 4 + 4 + 5 + 8 + 7 = 100
+FULL_WEIGHTS = {
+    "fundamental": 0.22,
+    "technical":   0.15,
+    "governance":  0.13,
+    "ownership":   0.09,
+    "sector":      0.09,
+    "macro":       0.04,
+    "liquidity":   0.04,
+    "news":        0.04,
+    "earnings":    0.05,
+    "valuation":   0.08,
+    "risk":        0.07,
 }
+# Backward-compat alias (used elsewhere in scorer)
+WAVE1_WEIGHTS = FULL_WEIGHTS
 
 
 @dataclass
@@ -114,18 +119,29 @@ def score_ticker(ticker: str, market: str, root: Path,
     if info is None:
         info = _fetch_info(ticker, market)
 
-    fund_score,  fund_dbg  = fundamental.score(info)
-    tech_score,  tech_dbg  = technical.score(ticker, market, root)
-    gov_score,   gov_dbg   = governance.score(info)
-    liq_score,   liq_dbg   = liquidity.score(ticker, market, root)
-    val_score,   val_dbg   = valuation.score(info, market)
-    risk_score,  risk_dbg  = risk.score(ticker, market, root, info=info)
+    # Full 11-engine scoring
+    fund_score,   fund_dbg    = fundamental.score(info)
+    tech_score,   tech_dbg    = technical.score(ticker, market, root)
+    gov_score,    gov_dbg     = governance.score(info)
+    own_score,    own_dbg     = ownership.score(info)
+    sect_score,   sect_dbg    = sector.score(ticker, market, root)
+    macro_score,  macro_dbg   = macro.score(ticker, market, root)
+    liq_score,    liq_dbg     = liquidity.score(ticker, market, root)
+    news_score,   news_dbg    = news.score(ticker, market, root)
+    earn_score,   earn_dbg    = earnings.score(info)
+    val_score,    val_dbg     = valuation.score(info, market)
+    risk_score,   risk_dbg    = risk.score(ticker, market, root, info=info)
 
     weighted = (
         WAVE1_WEIGHTS["fundamental"] * fund_score +
         WAVE1_WEIGHTS["technical"]   * tech_score +
         WAVE1_WEIGHTS["governance"]  * gov_score +
+        WAVE1_WEIGHTS["ownership"]   * own_score +
+        WAVE1_WEIGHTS["sector"]      * sect_score +
+        WAVE1_WEIGHTS["macro"]       * macro_score +
         WAVE1_WEIGHTS["liquidity"]   * liq_score +
+        WAVE1_WEIGHTS["news"]        * news_score +
+        WAVE1_WEIGHTS["earnings"]    * earn_score +
         WAVE1_WEIGHTS["valuation"]   * val_score +
         WAVE1_WEIGHTS["risk"]        * risk_score
     )
@@ -135,7 +151,12 @@ def score_ticker(ticker: str, market: str, root: Path,
         "fundamental": fund_dbg,
         "technical":   tech_dbg,
         "governance":  gov_dbg,
+        "ownership":   own_dbg,
+        "sector":      sect_dbg,
+        "macro":       macro_dbg,
         "liquidity":   liq_dbg,
+        "news":        news_dbg,
+        "earnings":    earn_dbg,
         "valuation":   val_dbg,
         "risk":        risk_dbg,
     }
@@ -146,9 +167,14 @@ def score_ticker(ticker: str, market: str, root: Path,
         asof=datetime.now(timezone.utc).isoformat(timespec="seconds"),
         score=final,
         verdict=_verdict(final),
-        sub_scores={"fundamental": fund_score, "technical": tech_score,
-                        "governance": gov_score,   "liquidity": liq_score,
-                        "valuation": val_score,    "risk": risk_score},
+        sub_scores={
+            "fundamental": fund_score, "technical": tech_score,
+            "governance":  gov_score,   "ownership": own_score,
+            "sector":      sect_score,  "macro":     macro_score,
+            "liquidity":   liq_score,   "news":      news_score,
+            "earnings":    earn_score,
+            "valuation":   val_score,   "risk":      risk_score,
+        },
         top_drivers=_top_drivers(debug),
         debug=debug,
     )
