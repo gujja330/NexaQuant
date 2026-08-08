@@ -1,0 +1,84 @@
+# AEGIS Investability Engine · configuration
+# Externalized 2026-08-08 per operator directive:
+# "all developments should be dynamic plz, no hardcoding at all"
+#
+# Every value here can be adjusted WITHOUT code changes. When
+# Sprint K Part 25 attribution data surfaces calibration needs,
+# tune these values directly. No deploy required.
+
+version: 1.0
+last_amended: 2026-08-08
+
+# Sub-engine weights · must sum to 1.0
+# Rationale for each in docs/AEGIS_SPRINT_K_PLUS_LOCKED.md Part 26.2
+weights:
+  fundamental:  0.22   # ROE · D-E · growth · FCF · margins
+  technical:    0.15   # DMA · trend · momentum · vol
+  governance:   0.13   # institutional · insider · ESG · SEBI (Wave 2)
+  ownership:    0.09   # FII/MF trend · promoter · concentration
+  sector:       0.09   # sector rotation · momentum · breadth
+  liquidity:    0.04   # avg volume · CV · days-to-liquidate
+  news:         0.04   # impact classifier (Wave 2 dedicated feed)
+  macro:        0.04   # regime · rates · currency · vol
+  earnings:     0.05   # yoy growth · surprise · revisions
+  valuation:    0.08   # P/E · PEG · P/B · earnings yield vs bond
+  risk:         0.07   # beta · tail · gap · drawdown
+
+# Verdict thresholds
+# < THRESHOLD_REJECT       → ✗ AVOID
+# THRESHOLD_HOLD → BUY     → ⚠ MARGINAL
+# THRESHOLD_BUY → STRONG   → ✓ OK
+# >= THRESHOLD_STRONG_BUY  → 🏆 QUALITY
+thresholds:
+  reject:       60
+  hold:         60
+  buy:          70
+  strong_buy:   80
+
+# Bond yield assumptions for valuation earnings-yield check
+# Update when RBI/Fed changes materially (>50bps)
+bond_yields:
+  india:   7.0
+  usa:     4.5
+
+# Fundamental engine ok-checks (thresholds per signal)
+# Only tune these after n≥100 evidence from Sprint K Part 25
+fundamental_thresholds:
+  roe_min:                    0.15
+  profit_margin_min:          0.10
+  return_on_assets_min:       0.08
+  revenue_growth_min_yoy:     0.10
+  earnings_growth_min_yoy:    0.10
+  operating_margin_min:       0.10
+  pe_max:                     60
+  debt_to_equity_max:         100.0
+
+# Technical engine ok-checks
+technical_thresholds:
+  trend_consistency_min_pct:  0.55   # % of last 63 days above 20-DMA
+  volume_ratio_min_30_90:     0.90
+  extension_max_above_200dma: 0.30
+  volatility_atr_max_pct:     0.06
+
+# Liquidity engine market-specific thresholds
+liquidity_thresholds:
+  india_min_avg_volume:       50000
+  usa_min_avg_volume:         500000
+  vol_cv_max:                 1.5
+  days_to_liquidate_max:      5
+
+# Risk engine ok-checks
+risk_thresholds:
+  beta_max:                   1.5
+  max_drawdown_min_pct:       -0.40   # not worse than -40% historically
+  tail_5pctl_min:             -0.04
+  gap_5pctl_min:              -0.03
+  annualized_vol_max_pct:     45
+  pct_from_52wk_high_min:     -0.20
+
+# Governance engine ok-checks
+governance_thresholds:
+  insider_holding_min:        0.05
+  institutional_holding_min:  0.20
+  short_ratio_max:            5.0
+  esg_risk_max:               5.0

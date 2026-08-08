@@ -35,28 +35,44 @@ from backend.investability import fundamental, technical, liquidity, governance
 from backend.investability import valuation, risk, ownership, sector, macro, news, earnings
 
 
-THRESHOLD_REJECT      = 60
-THRESHOLD_HOLD        = 60
-THRESHOLD_BUY         = 70
-THRESHOLD_STRONG_BUY  = 80
+# 2026-08-08 · Config-driven per operator directive: "all developments
+# should be dynamic · no hardcoding at all"
+# All values loaded from configs/investability.yaml · zero code changes
+# needed to tune thresholds or weights.
+def _load_config() -> dict:
+    try:
+        import yaml
+        from pathlib import Path
+        cfg_path = Path(__file__).resolve().parents[2] / "configs" / "investability.yaml"
+        if cfg_path.exists():
+            return yaml.safe_load(cfg_path.read_text(encoding="utf-8")) or {}
+    except Exception:
+        pass
+    return {}
 
-# Wave 2 · ALL 11 sub-engines active per Sprint K v1.3 Part 26 spec.
-# Weights: 22 + 15 + 13 + 9 + 9 + 4 + 4 + 4 + 5 + 8 + 7 = 100
+_CONFIG = _load_config()
+_THRESHOLDS = _CONFIG.get("thresholds", {})
+_WEIGHTS_CFG = _CONFIG.get("weights", {})
+
+THRESHOLD_REJECT      = _THRESHOLDS.get("reject",     60)
+THRESHOLD_HOLD        = _THRESHOLDS.get("hold",       60)
+THRESHOLD_BUY         = _THRESHOLDS.get("buy",        70)
+THRESHOLD_STRONG_BUY  = _THRESHOLDS.get("strong_buy", 80)
+
 FULL_WEIGHTS = {
-    "fundamental": 0.22,
-    "technical":   0.15,
-    "governance":  0.13,
-    "ownership":   0.09,
-    "sector":      0.09,
-    "macro":       0.04,
-    "liquidity":   0.04,
-    "news":        0.04,
-    "earnings":    0.05,
-    "valuation":   0.08,
-    "risk":        0.07,
+    "fundamental": _WEIGHTS_CFG.get("fundamental", 0.22),
+    "technical":   _WEIGHTS_CFG.get("technical",   0.15),
+    "governance":  _WEIGHTS_CFG.get("governance",  0.13),
+    "ownership":   _WEIGHTS_CFG.get("ownership",   0.09),
+    "sector":      _WEIGHTS_CFG.get("sector",      0.09),
+    "macro":       _WEIGHTS_CFG.get("macro",       0.04),
+    "liquidity":   _WEIGHTS_CFG.get("liquidity",   0.04),
+    "news":        _WEIGHTS_CFG.get("news",        0.04),
+    "earnings":    _WEIGHTS_CFG.get("earnings",    0.05),
+    "valuation":   _WEIGHTS_CFG.get("valuation",   0.08),
+    "risk":        _WEIGHTS_CFG.get("risk",        0.07),
 }
-# Backward-compat alias (used elsewhere in scorer)
-WAVE1_WEIGHTS = FULL_WEIGHTS
+WAVE1_WEIGHTS = FULL_WEIGHTS   # backward-compat alias
 
 
 @dataclass

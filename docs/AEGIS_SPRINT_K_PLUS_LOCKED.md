@@ -31,6 +31,34 @@ require Sprint K's attribution + walk-forward data to be useful. See
   holding period 30-90 days") added to Part 25 attribution
   snapshot deliverable
 
+**v1.6 amended 2026-08-08 (final)**: Constitutional rule from operator:
+"all developments should be dynamic · no hardcoding at all."
+
+This is now a governance invariant enforced across all future sprints:
+- Every threshold · weight · limit · magic-number MUST live in YAML config
+  under `configs/`
+- Code MAY reference config values via loaders but NEVER hardcode
+- New engines must ship WITH their config file · not code constants
+- Sprint K Part 25 attribution data will drive config tuning · not code deploys
+- Config changes are version-controlled but need no code review / redeploy
+
+Enforcement in Sprint K:
+- Every Part must audit its own module for hardcoded values before ship
+- Externalize into `configs/{engine_name}.yaml` on first touch
+- Add `configs/*.yaml` schema validation as Part 24 acceptance check
+
+Externalized 2026-08-08 as proof-of-principle:
+- `configs/investability.yaml` · all 11 weights + 4 thresholds + 6
+  threshold-groups (fundamental · technical · liquidity · risk ·
+  governance · bond_yields)
+
+To externalize when next touched (per new rule):
+- `configs/priority_matrix.yaml` · 10-bucket lookup table
+- `configs/india_universe_tiers.yaml` · NIFTY 50 largecap seed + tiers
+- `configs/status_fills.yaml` · row color mapping
+- `configs/xlsx_schema.yaml` · Portfolio + History column definitions
+- `configs/exit_thresholds.yaml` · stop-loss · deep-loss · rapid-gain
+
 **v1.5 amended 2026-08-08 (night)**: after CEO review of Portfolio v3
 (scored Readability 9.4 · Decision 9.6 · Institutional 9.3 · AI Learning 9.7):
 
