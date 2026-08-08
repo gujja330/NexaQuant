@@ -31,6 +31,59 @@ require Sprint K's attribution + walk-forward data to be useful. See
   holding period 30-90 days") added to Part 25 attribution
   snapshot deliverable
 
+**v1.5 amended 2026-08-08 (night)**: after CEO review of Portfolio v3
+(scored Readability 9.4 · Decision 9.6 · Institutional 9.3 · AI Learning 9.7):
+
+**PRESENTATION LOCKED** for observation window 2026-08-11 to 2026-08-15.
+No Portfolio format changes during this period. Focus is entirely on
+collecting outcomes for classifier calibration.
+
+Nine improvements queued for Sprint K Part 25 execution (Nov 4-10):
+
+1. **Urgency numeric score** (0-100 internal) with display
+   "🔴 HIGH (95)" · enables training on "urgency 95 → 91% correct exits"
+2. **Review dynamic** · replace "5 DAYS" with actual date "Next Review:
+   2026-08-13" OR trigger-based conditions (Price < Stop, sector improves,
+   Fed meeting, news changes)
+3. **Action + sizing** · replace "BUY" with "BUY 3% / Max 5%" · full
+   position sizing per rec
+4. **Reason narrative expansion** · multi-line explanation stored per
+   position (currently one-word tag like "Quality Dip")
+5. **Action Note → AI Narrative** · rename + expand to LLM-generated
+   contextual explanation (Sprint L Part L1 Distillation output)
+6. **Exit Reason in portfolio language** · "Rotation: HEROMOTOCO → GNFC ·
+   Higher expected alpha +10.6%" instead of developer syntax
+   "→ GNFC.NS +10.6pp alpha"
+7. **Confidence Change tracking** · yesterday-vs-today delta with reason
+   (e.g., "83 → 71 · sector weakness + Fed event")
+8. **Decision ID** · unique identifier (D-20260808-IND-00431) linking
+   every change · review · exit · re-entry · attribution
+9. **Outcome loop** · YES/NO did-this-decision-succeed feeding Sprint L
+   Distillation Engine
+
+Execution deferred to Sprint K Part 25 (Nov 4-10) · attribution snapshot
+module already scoped · these become sub-fields of the snapshot schema.
+
+**Observation criteria for lock window (2026-08-11 to 2026-08-15):**
+
+Track these 7 tickers as live A/B test of Priority classifier:
+
+Priority C (Quality Dip · ADD) · expected to recover:
+  SUNPHARMA · IEX · LUPIN · FORTIS · BIOCON
+
+Priority G (Structural Failure · EXIT) · expected to keep falling:
+  POWERGRID · VOLTAS · LICI · TATAPOWER
+
+At Aug 15 review:
+- Priority C recovery rate → calibrate threshold up/down
+- Priority G continued-weakness rate → validate exit signal
+- Any misclassification → log for Part 25 training corpus
+- Correlation: Investability score vs 5-day P&L outcome
+
+If Priority C recovers > 60% AND Priority G falls > 70% → thresholds
+correct · promote Investability to hard-gate on Nov 13 as scheduled.
+Otherwise · recalibrate before hard-gate promotion.
+
 **Signed into force:** 2026-08-06
 **Author:** CEO (operator · locked · binding)
 **Governance:** Constitutional · supersedes docs/AEGIS_SPRINT_K_PLAN.md
