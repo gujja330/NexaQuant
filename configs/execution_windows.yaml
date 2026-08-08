@@ -1,0 +1,71 @@
+version: 1.0
+last_amended: 2026-08-09
+
+# Execution Decision Layer · Sprint K Part 25 extension shipped early
+# Answers: "At what price · on which date · when during the session?"
+# All values externalized · no hardcoding.
+
+# ═══════════════════════════════════════════════════════════════════════
+# Next Review Date · Review string → trading-day offset
+# ═══════════════════════════════════════════════════════════════════════
+review_offsets:
+  IMMEDIATE:  0    # today
+  TOMORROW:   1    # today + 1 trading day
+  5 DAYS:     5
+  30 DAYS:    30
+  N/A:        null   # blank
+
+# ═══════════════════════════════════════════════════════════════════════
+# Execution Window · when during the session to execute
+# Rules matched by Action first · then Urgency
+# ═══════════════════════════════════════════════════════════════════════
+execution_windows:
+  # EXIT NOW · any liquid moment
+  - match: {action: "EXIT"}
+    window: "🔴 Immediate · any liquid moment"
+
+  # PROTECT · normal window · avoid opening spike
+  - match: {action: "TIGHTEN STOP"}
+    window: "🟡 Normal window · 10:00-14:30 IST"
+
+  # ADD / BUY · stability window
+  - match: {action: "ADD"}
+    window: "🟢 Normal window · 10:00-14:30 IST · staged entry"
+  - match: {action: "BUY BIG"}
+    window: "🟢 Normal window · 10:00-14:30 IST · staged entry"
+  - match: {action: "BUY"}
+    window: "🟢 Normal window · 10:00-14:30 IST"
+
+  # HOLD · no immediate action
+  - match: {action: "HOLD"}
+    window: "⚪ No immediate execution"
+
+  # REVIEW · investigate before acting
+  - match: {action: "REVIEW"}
+    window: "🟠 No execution · investigate + decide"
+
+  # SKIP · don't enter
+  - match: {action: "SKIP"}
+    window: "⚫ Do not enter"
+
+  # CLOSED · already done
+  - match: {action: "CLOSED"}
+    window: ""
+  - match: {action: "IGNORE"}
+    window: ""
+
+  # Fallback
+  - match: {}
+    window: "—"
+
+# ═══════════════════════════════════════════════════════════════════════
+# Price Trigger · reference price for the action
+# ═══════════════════════════════════════════════════════════════════════
+price_triggers:
+  EXIT:         {source: "stop",     label: "Stop @"}
+  TIGHTEN STOP: {source: "stop",     label: "Trailing Stop @"}
+  ADD:          {source: "target_1", label: "Target 1 @"}
+  BUY:          {source: "target_1", label: "Target 1 @"}
+  BUY BIG:      {source: "target_1", label: "Target 1 @"}
+  HOLD:         {source: "target_1", label: "Watching @"}
+  REVIEW:       {source: "current",  label: "Review @"}

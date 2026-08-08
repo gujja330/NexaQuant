@@ -544,6 +544,7 @@ def main() -> int:
                 "Cap Size", "Opp Age",
                 "Investability", "Inv Verdict",
                 "🎯 DECISION", "Urgency", "Reason", "Action", "Review",
+                "Price Trigger", "Next Review", "Execution Window",
             ]
             for c, name in enumerate(new_h, start=1):
                 cell = ws2.cell(1, c, name)
@@ -633,19 +634,30 @@ def main() -> int:
                 h_urg, h_rea, h_act, h_rev, _ = _matrix_h
                 h_decision, _ = _resolve_decision(h_act, inv_v_verdict, _row_status)
 
-                # Write 9 appended columns (positions from END)
-                ws2.cell(r_idx, len(new_h) - 8, _cap_size(tk, mkt_key))
+                # Write 12 appended columns (positions from END)
+                # Compute Execution Layer for History rows too
+                h_stop = row[c_stop-1].value if c_stop else None
+                h_t1 = row[c_t1-1].value if c_t1 else None
+                h_price_trig = _price_trigger(h_act, h_stop, h_t1, _row_current)
+                h_next_rev = _next_review_date(h_rev, str(row[c_date-1].value or "")[:10]) \
+                                     if h_act not in ("CLOSED", "IGNORE") else ""
+                h_exec_win = _execution_window(h_act)
+
+                ws2.cell(r_idx, len(new_h) - 11, _cap_size(tk, mkt_key))
                 row_dt = str(row[c_date-1].value or "")[:10]
                 entry_dt = str(row[c_recommended-1].value or "")[:10] if c_recommended else ""
                 opp_age = "🆕 NEW" if (row_dt and row_dt == entry_dt) else "OLD"
-                ws2.cell(r_idx, len(new_h) - 7, opp_age)
-                ws2.cell(r_idx, len(new_h) - 6, inv_v_score)
-                ws2.cell(r_idx, len(new_h) - 5, inv_v_verdict)
-                ws2.cell(r_idx, len(new_h) - 4, h_decision)
-                ws2.cell(r_idx, len(new_h) - 3, h_urg)
-                ws2.cell(r_idx, len(new_h) - 2, h_rea)
-                ws2.cell(r_idx, len(new_h) - 1, h_act)
-                ws2.cell(r_idx, len(new_h), h_rev)
+                ws2.cell(r_idx, len(new_h) - 10, opp_age)
+                ws2.cell(r_idx, len(new_h) - 9, inv_v_score)
+                ws2.cell(r_idx, len(new_h) - 8, inv_v_verdict)
+                ws2.cell(r_idx, len(new_h) - 7, h_decision)
+                ws2.cell(r_idx, len(new_h) - 6, h_urg)
+                ws2.cell(r_idx, len(new_h) - 5, h_rea)
+                ws2.cell(r_idx, len(new_h) - 4, h_act)
+                ws2.cell(r_idx, len(new_h) - 3, h_rev)
+                ws2.cell(r_idx, len(new_h) - 2, h_price_trig)
+                ws2.cell(r_idx, len(new_h) - 1, h_next_rev)
+                ws2.cell(r_idx, len(new_h), h_exec_win)
                 if status in _STATUS_FILLS_LOCAL:
                     fill = _STATUS_FILLS_LOCAL[status]
                     for c in range(1, len(new_h)+1):
@@ -724,13 +736,14 @@ def main() -> int:
                     if r_off == 5 and c_off <= 3:   # combined row highlighted
                         cell.fill = _PF(start_color="FFE699", end_color="FFE699", fill_type="solid")
 
-            # 2026-08-08 · DECISION column added as first human-facing field
-            # after Ticker (CEO directive · "one column · one clear decision")
-            # DECISION is DERIVED deterministically from Action × InvQuality via
-            # configs/decision_vocabulary.yaml · never invents text · controlled vocab
+            # 2026-08-09 · Execution Decision Layer shipped early (was Nov 4-10)
+            # DECISION + Price Trigger + Next Review + Execution Window = 4-field
+            # decision package · operator directive: "do development immediately"
             pos_hdr = [
                 # IDENTITY (2)
                 "Ticker", "🎯 DECISION",
+                # EXECUTION LAYER (3 new · after DECISION)
+                "Price Trigger", "Next Review", "Execution Window",
                 # META (6)
                 "Runner", "Sector", "Cap", "Entry Date", "Exit Date", "Days",
                 # SUPPORTING DECISION FIELDS (7)
@@ -744,6 +757,7 @@ def main() -> int:
                 "Action Note", "Alerts", "Exit Reason",
             ]
             widths_pos = [12, 24,
+                              22, 12, 30,
                               8, 22, 20, 12, 12, 8,
                               12, 20, 16, 14, 12, 14, 12,
                               12, 12, 12, 10,
@@ -751,6 +765,59 @@ def main() -> int:
                               40, 40, 30]
 
             # PRIORITY_MATRIX + DECISION vocab already loaded at top of _split_and_send
+
+            # Execution Decision Layer config (2026-08-09 · Sprint K Part 25 extension)
+            EXEC_CFG = {}
+            try:
+                import yaml as _yaml
+                _ex_path = _ROOT / "configs" / "execution_windows.yaml"
+                if _ex_path.exists():
+                    EXEC_CFG = _yaml.safe_load(_ex_path.read_text(encoding="utf-8")) or {}
+            except Exception as _e:
+                print(f"[config:execution_windows] load failed · {_e}")
+
+            def _next_review_date(review_str: str, from_date_iso: str) -> str:
+                """Convert 'IMMEDIATE'/'TOMORROW'/'5 DAYS'/'30 DAYS' → actual date.
+                Skips weekends when adding trading days."""
+                offsets = (EXEC_CFG.get("review_offsets") or {})
+                key = str(review_str or "").strip().upper()
+                offset = offsets.get(key)
+                if offset is None or offset == "null":
+                    return ""
+                if offset == 0:
+                    return from_date_iso
+                try:
+                    from datetime import date as _dtc, timedelta as _tdc
+                    d = _dtc.fromisoformat(from_date_iso[:10])
+                    added = 0
+                    while added < offset:
+                        d += _tdc(days=1)
+                        if d.weekday() < 5:
+                            added += 1
+                    return d.isoformat()
+                except Exception:
+                    return ""
+
+            def _execution_window(action: str) -> str:
+                a = str(action or "").strip()
+                for rule in (EXEC_CFG.get("execution_windows") or []):
+                    m = rule.get("match") or {}
+                    if not m:
+                        return rule.get("window", "—")
+                    if "action" in m and m["action"] != a:
+                        continue
+                    return rule.get("window", "—")
+                return "—"
+
+            def _price_trigger(action: str, stop_v, t1_v, curr_v) -> str:
+                triggers = (EXEC_CFG.get("price_triggers") or {})
+                cfg = triggers.get(str(action or "").strip())
+                if not cfg: return ""
+                source = cfg.get("source")
+                label = cfg.get("label", "")
+                price = {"stop": stop_v, "target_1": t1_v, "current": curr_v}.get(source)
+                if not isinstance(price, (int, float)) or price <= 0: return ""
+                return f"{label} {price:.2f}"
 
             # Load Investability scores (advisory · from reports/investability_{market}.json)
             _inv_map = {}
@@ -890,37 +957,43 @@ def main() -> int:
                 # DECISION · single human-facing synthesis (col 2)
                 decision_text, decision_color_key = _resolve_decision(
                     action, inv_verdict, status)
+                # Execution Decision Layer fields (Sprint K Part 25 extension)
+                price_trigger = _price_trigger(action, stop_v, t1_v, curr)
+                next_review = _next_review_date(review, dt) if action not in ("CLOSED","IGNORE") else ""
+                exec_window = _execution_window(action)
 
                 vals = [
                     # IDENTITY (1-2)
                     tk, decision_text,
-                    # META (3-8)
+                    # EXECUTION LAYER (3-5)
+                    price_trigger, next_review, exec_window,
+                    # META (6-11)
                     runner_val, _sector_for(tk, mkt_key), _cap_size(tk, mkt_key),
                     rec_dt, exit_date, days,
-                    # DECISION SUPPORT (9-15) · Urgency + Reason + Action + Review + inputs
+                    # DECISION SUPPORT (12-18)
                     urgency, reason, action, review,
                     status, inv_verdict, inv_score,
-                    # PRICE + P&L (16-19)
+                    # PRICE + P&L (19-22)
                     entry_v, curr, exit_price, pnl_decimal,
-                    # RISK/TARGET (20-22)
+                    # RISK/TARGET (23-25)
                     stop_v, t1_v, t2_v,
-                    # CONTEXT (23-25)
+                    # CONTEXT (26-28)
                     _ACTIONS.get(status, ""), alerts or "", exit_reason,
                 ]
                 for c, v in enumerate(vals, start=1):
                     cell = portfolio_ws.cell(i, c, v)
-                    text_cols = {1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14, 23, 24, 25}
+                    text_cols = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13, 14, 15, 16, 17, 26, 27, 28}
                     cell.alignment = _Align(
                         horizontal="left" if c in text_cols else "right",
                         vertical="center", wrap_text=True)
                     # Number formats
-                    if c == 8 and isinstance(days, int):        # Days
+                    if c == 11 and isinstance(days, int):       # Days
                         cell.number_format = "0"
-                    elif c == 15 and isinstance(inv_score, (int, float)):  # Investability
+                    elif c == 18 and isinstance(inv_score, (int, float)):  # Investability
                         cell.number_format = "0.0"
-                    elif c in (16, 17, 18, 20, 21, 22):         # Entry/Curr/Exit/Stop/T1/T2
+                    elif c in (19, 20, 21, 23, 24, 25):         # Entry/Curr/Exit/Stop/T1/T2
                         cell.number_format = "#,##0.00"
-                    elif c == 19 and pnl_decimal is not None:   # P&L %
+                    elif c == 22 and pnl_decimal is not None:   # P&L %
                         cell.number_format = "+0.00%;-0.00%;0.00%"
 
                 # DECISION cell gets its own color (col 2) · overrides row fill
