@@ -6,6 +6,14 @@ blocklist thinking) + Part 27 (Emerging Compounder research module ·
 smallcap discovery). Sprint K now 27 parts · execution window extends
 to 2026-11-28.
 
+**v1.3 amended 2026-08-08**: expanded Part 26 from 9 → 11 sub-engines
+(added Valuation + Risk per operator directive · "amazing company at
+PE=180 = wait" and "beta/correlation/tail/gap/drawdown risk"). Also
+created **Sprint L** post-Sprint-K roadmap for Distillation Engine +
+Capital Preservation Engine · both are learning/protection layers that
+require Sprint K's attribution + walk-forward data to be useful. See
+`docs/AEGIS_SPRINT_L_LEARNING_LAYER.md` for full Sprint L spec.
+
 **Signed into force:** 2026-08-06
 **Author:** CEO (operator · locked · binding)
 **Governance:** Constitutional · supersedes docs/AEGIS_SPRINT_K_PLAN.md
@@ -496,19 +504,34 @@ clear BOTH gates to be recommended.
 - Universe-expandable (Nifty 200 → 500 → Midcap 150 → Smallcap 250)
 - Institutional pattern (Bridgewater / Two Sigma structure their pipelines the same way)
 
-### 26.2 · Nine sub-engines with weights
+### 26.2 · Eleven sub-engines with weights (v1.3 · expanded 2026-08-08)
+
+Operator directive: current v1.2's 9 engines miss two critical dimensions:
+1. **Valuation** — separates "quality company at bad price" from "poor
+   quality". Current Wave 1 flagged HDFCBANK REJECT because tech was
+   weak · but HDFCBANK is quality-at-bad-price (Valuation < 15 P/E · would
+   flip to HOLD not REJECT with valuation lens).
+2. **Risk** — beta/correlation/tail/gap/drawdown risk. Distinct from
+   technical trend. A stock in uptrend can still have unacceptable gap
+   risk (earnings vol · sector concentration).
 
 | # | Sub-engine | Weight | Data source | Signals |
 |---|---|---|---|---|
-| 1 | **Fundamental** | 25% | yfinance + Screener API | ROE · ROCE · Revenue CAGR · EPS CAGR · Margin · FCF · Debt · Interest cov · WC · Capital allocation |
-| 2 | **Technical** | 20% | Parquet + TA | RS · Trend · Volume profile · ATR · ADX · Breakout · Vol contraction · AVWAP · MTF trend · Momentum persistence |
-| 3 | **Governance** | 15% | SEBI + BSE announcements + company reports | Auditor changes · Promoter pledge · Board quality · Independent directors · SEBI notices · Litigation · Insider buy/sell · ESG |
-| 4 | **Ownership** | 10% | Shareholding pattern | FII trend · MF trend · PMS · Insurance · Promoter buying · Concentration |
-| 5 | **Sector** | 10% | Existing sector_report + rotation | Sector momentum · Breadth · Rotation · Relative perf · Earnings revisions |
-| 6 | **Macro** | 5% | Existing macro engine | RBI · Fed · Inflation · GDP · Bond yields · Crude · Dollar · Currency |
-| 7 | **Liquidity** | 5% | NSE bhavcopy | Delivery % · Volume · Turnover · Spread · Impact cost |
-| 8 | **News/Event** | 5% | News feed | Impact classification (Positive/Neutral/Negative/Very Negative) |
+| 1 | **Fundamental** | 22% | yfinance + Screener API | ROE · ROCE · Revenue CAGR · EPS CAGR · Margin · FCF · Debt · Interest cov · WC · Capital allocation |
+| 2 | **Technical** | 15% | Parquet + TA | RS · Trend · Volume profile · ATR · ADX · Breakout · Vol contraction · AVWAP · MTF trend · Momentum persistence |
+| 3 | **Governance** | 13% | SEBI + BSE announcements + company reports | Auditor changes · Promoter pledge · Board quality · Independent directors · SEBI notices · Litigation · Insider buy/sell · ESG |
+| 4 | **Ownership** | 9% | Shareholding pattern | FII trend · MF trend · PMS · Insurance · Promoter buying · Concentration |
+| 5 | **Sector** | 9% | Existing sector_report + rotation | Sector momentum · Breadth · Rotation · Relative perf · Earnings revisions |
+| 6 | **Macro** | 4% | Existing macro engine | RBI · Fed · Inflation · GDP · Bond yields · Crude · Dollar · Currency |
+| 7 | **Liquidity** | 4% | NSE bhavcopy | Delivery % · Volume · Turnover · Spread · Impact cost |
+| 8 | **News/Event** | 4% | News feed | Impact classification (Positive/Neutral/Negative/Very Negative) |
 | 9 | **Earnings** | 5% | Earnings calendar + estimates | Earnings date · Surprise % · Guidance · Revision trend · Estimate revisions |
+| **10** | **Valuation** | **8%** | Fundamental + peer-relative | P/E vs 5yr avg · P/E vs sector · P/B · EV/EBITDA · PEG · earnings yield vs bond yield · dividend yield trend |
+| **11** | **Risk** | **7%** | Parquet + macro | Beta · sector correlation · tail-risk (95th percentile daily drawdown) · gap-risk (overnight moves) · max historical DD · vol regime |
+
+Total: 100%. Valuation and Risk are NEW in v1.3 · address the HDFCBANK
+false-REJECT case (Valuation lens flips it to HOLD) and add explicit
+tail/gap risk measurement.
 
 ### 26.3 · Pipeline position (CRITICAL)
 
