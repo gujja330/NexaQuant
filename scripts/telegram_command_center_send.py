@@ -478,6 +478,9 @@ def main() -> int:
             c_perf = h.index("Current Perf %") + 1 if "Current Perf %" in h else None
             c_exit_pnl = h.index("Exit P&L %") + 1 if "Exit P&L %" in h else None
             c_conf = h.index("Confidence %") + 1 if "Confidence %" in h else None
+            c_stop = h.index("Stop Loss") + 1 if "Stop Loss" in h else None
+            c_t1 = h.index("Target 1") + 1 if "Target 1" in h else None
+            c_t2 = h.index("Target 2") + 1 if "Target 2" in h else None
             c_alerts = h.index("Alerts") + 1 if "Alerts" in h else None
             c_sector_existing = h.index("Sector") + 1 if "Sector" in h else None
             # Filter rows by market
@@ -617,11 +620,14 @@ def main() -> int:
                     if r_off == 5 and c_off <= 3:   # combined row highlighted
                         cell.fill = _PF(start_color="FFE699", end_color="FFE699", fill_type="solid")
 
-            # Positions header (row 7) · added Runner (R1/R2) · Exit Price · Confidence
+            # Positions header (row 7) · Portfolio-as-primary-invest-page format
+            # Operator lock 2026-08-08: removed Confidence · added Exit Date +
+            # Stop Loss + Target 1 + Target 2 for actionable BUY/STRONG BUY rows
             pos_hdr = ["Ticker", "Runner", "Sector", "Cap", "Status", "Action",
-                          "Entry Date", "Entry", "Current", "Exit Price", "P&L %",
-                          "Confidence", "Days", "Alerts", "Exit Reason"]
-            widths_pos = [12, 8, 22, 20, 12, 40, 12, 12, 12, 12, 10, 12, 8, 40, 30]
+                          "Entry Date", "Exit Date", "Entry", "Current", "Exit Price",
+                          "Stop Loss", "Target 1", "Target 2", "P&L %",
+                          "Days", "Alerts", "Exit Reason"]
+            widths_pos = [12, 8, 22, 20, 12, 40, 12, 12, 12, 12, 12, 12, 12, 12, 10, 8, 40, 30]
             for c, name in enumerate(pos_hdr, start=1):
                 cell = portfolio_ws.cell(7, c, name)
                 cell.font = _Font(bold=True, color="FFFFFF", size=11)
@@ -673,33 +679,31 @@ def main() -> int:
                 alerts = r[c_alerts-1].value if c_alerts else ""
                 exit_reason = ""
                 # Row values · P&L stored as decimal (0.0384) so Excel SUM works
-                # and displayed as "+3.84%" via number_format (operator fix)
                 pnl_decimal = pnl / 100.0 if isinstance(pnl, (int, float)) else None
-                # Extract Runner + Confidence + Exit Price from source row
                 runner_val = r[c_run - 1].value if c_run else ""
-                conf_val = r[c_conf - 1].value if c_conf else None
-                conf_decimal = conf_val / 100.0 if isinstance(conf_val, (int, float)) else None
-                # Exit Price = Current on the EXIT-signal day (same as curr for EXIT rows)
+                # Exit Price / Exit Date only for EXIT rows · Stop/T1/T2 only for open
                 exit_price = curr if status == "EXIT" else None
-                # For EXIT rows, get Exit Reason from source
+                exit_date  = dt if status == "EXIT" else None
+                stop_v = r[c_stop - 1].value if (c_stop and status != "EXIT") else None
+                t1_v   = r[c_t1 - 1].value   if (c_t1   and status != "EXIT") else None
+                t2_v   = r[c_t2 - 1].value   if (c_t2   and status != "EXIT") else None
                 if status == "EXIT" and h and "Exit Reason" in h:
                     exit_reason = r[h.index("Exit Reason")].value or ""
                 vals = [tk, runner_val, _sector_for(tk, mkt_key), _cap_size(tk, mkt_key),
                             status, _ACTIONS.get(status, ""),
-                            rec_dt, entry_v, curr, exit_price, pnl_decimal,
-                            conf_decimal, days, alerts or "", exit_reason]
+                            rec_dt, exit_date, entry_v, curr, exit_price,
+                            stop_v, t1_v, t2_v, pnl_decimal,
+                            days, alerts or "", exit_reason]
                 for c, v in enumerate(vals, start=1):
                     cell = portfolio_ws.cell(i, c, v)
-                    cell.alignment = _Align(horizontal="left" if c in (1,2,3,4,5,6,7,14) else "right",
+                    cell.alignment = _Align(horizontal="left" if c in (1,2,3,4,5,6,7,8,17) else "right",
                                                      vertical="center", wrap_text=True)
                     # Number formats · Excel treats as native number for SUM/AVG
-                    if c in (8, 9, 10):                       # Entry, Current, Exit Price
+                    if c in (9, 10, 11, 12, 13, 14):          # Entry/Curr/Exit/Stop/T1/T2
                         cell.number_format = "#,##0.00"
-                    elif c == 11 and pnl_decimal is not None: # P&L %
+                    elif c == 15 and pnl_decimal is not None: # P&L %
                         cell.number_format = "+0.00%;-0.00%;0.00%"
-                    elif c == 12 and conf_decimal is not None:# Confidence
-                        cell.number_format = "0.00%"
-                    elif c == 13 and isinstance(days, int):   # Days
+                    elif c == 16 and isinstance(days, int):   # Days
                         cell.number_format = "0"
                 if status in _STATUS_FILLS_LOCAL:
                     fill = _STATUS_FILLS_LOCAL[status]
