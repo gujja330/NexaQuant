@@ -32,6 +32,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from backend.investability import fundamental, technical, liquidity, governance
+from backend.investability import valuation, risk
 
 
 THRESHOLD_REJECT      = 60
@@ -39,12 +40,17 @@ THRESHOLD_HOLD        = 60
 THRESHOLD_BUY         = 70
 THRESHOLD_STRONG_BUY  = 80
 
-# Wave 1 · renormalized (fundamental + technical + governance-lite + liquidity)
+# Wave 1.5 · 6 sub-engines active · fundamental + technical + governance +
+# liquidity + valuation + risk. Renormalized to 100%.
+# Weights match Sprint K v1.3 Part 26 spec (22/15/13/4/8/7 · but scaled to
+# what's shippable now · other 5 engines added in Wave 2 · Sprint K).
 WAVE1_WEIGHTS = {
-    "fundamental": 0.25 / 0.65,   # 38.5% normalized
-    "technical":   0.20 / 0.65,   # 30.8%
-    "governance":  0.15 / 0.65,   # 23.1%
-    "liquidity":   0.05 / 0.65,   # 7.7%
+    "fundamental": 22 / 69,    # 31.9%
+    "technical":   15 / 69,    # 21.7%
+    "governance":  13 / 69,    # 18.8%
+    "liquidity":   4  / 69,    # 5.8%
+    "valuation":   8  / 69,    # 11.6% · fixes HDFCBANK-false-reject case
+    "risk":        7  / 69,    # 10.1% · captures gap + tail + drawdown
 }
 
 
@@ -112,12 +118,16 @@ def score_ticker(ticker: str, market: str, root: Path,
     tech_score,  tech_dbg  = technical.score(ticker, market, root)
     gov_score,   gov_dbg   = governance.score(info)
     liq_score,   liq_dbg   = liquidity.score(ticker, market, root)
+    val_score,   val_dbg   = valuation.score(info, market)
+    risk_score,  risk_dbg  = risk.score(ticker, market, root, info=info)
 
     weighted = (
         WAVE1_WEIGHTS["fundamental"] * fund_score +
         WAVE1_WEIGHTS["technical"]   * tech_score +
         WAVE1_WEIGHTS["governance"]  * gov_score +
-        WAVE1_WEIGHTS["liquidity"]   * liq_score
+        WAVE1_WEIGHTS["liquidity"]   * liq_score +
+        WAVE1_WEIGHTS["valuation"]   * val_score +
+        WAVE1_WEIGHTS["risk"]        * risk_score
     )
     final = round(weighted, 1)
 
@@ -126,6 +136,8 @@ def score_ticker(ticker: str, market: str, root: Path,
         "technical":   tech_dbg,
         "governance":  gov_dbg,
         "liquidity":   liq_dbg,
+        "valuation":   val_dbg,
+        "risk":        risk_dbg,
     }
 
     return Investability(
@@ -135,7 +147,8 @@ def score_ticker(ticker: str, market: str, root: Path,
         score=final,
         verdict=_verdict(final),
         sub_scores={"fundamental": fund_score, "technical": tech_score,
-                        "governance": gov_score,   "liquidity": liq_score},
+                        "governance": gov_score,   "liquidity": liq_score,
+                        "valuation": val_score,    "risk": risk_score},
         top_drivers=_top_drivers(debug),
         debug=debug,
     )

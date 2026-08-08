@@ -496,7 +496,7 @@ def main() -> int:
             # Opp Age: NEW = row_date == Recommended date · OLD = held from prior day
             # (operator: "if I open sheet on monday, I might see new buy options
             # to invest if I missed old opportunities")
-            new_h = list(h) + ["Cap Size", "Opp Age"]
+            new_h = list(h) + ["Cap Size", "Opp Age", "Investability", "Inv Verdict"]
             for c, name in enumerate(new_h, start=1):
                 cell = ws2.cell(1, c, name)
                 cell.fill = HEADER_FILL if 'HEADER_FILL' in globals() else _PF(
@@ -535,13 +535,30 @@ def main() -> int:
                     if repaired_perf is not None and c_idx == c_perf:
                         val = repaired_perf
                     ws2.cell(r_idx, c_idx, val)
-                # Cap Size (second-to-last new column)
-                ws2.cell(r_idx, len(new_h) - 1, _cap_size(tk, mkt_key))
-                # Opp Age (last new column) · NEW if row date == entry date
+                # Cap Size / Opp Age / Investability / Inv Verdict (4 appended columns)
+                # Loading _inv_map here is deferred until first row · save yfinance calls
+                if not hasattr(_split_and_send, "_inv_loaded"):
+                    _split_and_send._inv_map_for_sheet2 = {}
+                    try:
+                        _inv_path = _ROOT / "reports" / f"investability_{mkt_key.lower()}.json"
+                        if _inv_path.exists():
+                            _inv_data = json.loads(_inv_path.read_text(encoding="utf-8"))
+                            for r in (_inv_data.get("results") or []):
+                                _split_and_send._inv_map_for_sheet2[r["ticker"]] = {
+                                    "score": r["score"], "verdict": r["verdict"]
+                                }
+                    except Exception:
+                        pass
+                    _split_and_send._inv_loaded = True
+                _inv_s2 = _split_and_send._inv_map_for_sheet2.get(tk, {})
+                # Positions of the 4 new columns from the END
+                ws2.cell(r_idx, len(new_h) - 3, _cap_size(tk, mkt_key))
                 row_dt = str(row[c_date-1].value or "")[:10]
                 entry_dt = str(row[c_recommended-1].value or "")[:10] if c_recommended else ""
                 opp_age = "🆕 NEW" if (row_dt and row_dt == entry_dt) else "OLD"
-                ws2.cell(r_idx, len(new_h), opp_age)
+                ws2.cell(r_idx, len(new_h) - 2, opp_age)
+                ws2.cell(r_idx, len(new_h) - 1, _inv_s2.get("score"))
+                ws2.cell(r_idx, len(new_h), _inv_s2.get("verdict", ""))
                 if status in _STATUS_FILLS_LOCAL:
                     fill = _STATUS_FILLS_LOCAL[status]
                     for c in range(1, len(new_h)+1):
@@ -622,12 +639,26 @@ def main() -> int:
 
             # Positions header (row 7) · Portfolio-as-primary-invest-page format
             # Operator lock 2026-08-08: removed Confidence · added Exit Date +
-            # Stop Loss + Target 1 + Target 2 for actionable BUY/STRONG BUY rows
+            # Stop Loss + Target 1 + Target 2 · added Investability + Inv Verdict
+            # (advisory only · does NOT gate ranking · Wave 1.5 · 6 sub-engines)
             pos_hdr = ["Ticker", "Runner", "Sector", "Cap", "Status", "Action",
                           "Entry Date", "Exit Date", "Entry", "Current", "Exit Price",
                           "Stop Loss", "Target 1", "Target 2", "P&L %",
+                          "Investability", "Inv Verdict",
                           "Days", "Alerts", "Exit Reason"]
-            widths_pos = [12, 8, 22, 20, 12, 40, 12, 12, 12, 12, 12, 12, 12, 12, 10, 8, 40, 30]
+            widths_pos = [12, 8, 22, 20, 12, 40, 12, 12, 12, 12, 12, 12, 12, 12, 10, 12, 14, 8, 40, 30]
+
+            # Load Investability scores (advisory · from reports/investability_{market}.json)
+            _inv_map = {}
+            try:
+                _inv_path = _ROOT / "reports" / f"investability_{mkt_key.lower()}.json"
+                if _inv_path.exists():
+                    import json as _json
+                    _inv_data = _json.loads(_inv_path.read_text(encoding="utf-8"))
+                    for r in (_inv_data.get("results") or []):
+                        _inv_map[r["ticker"]] = {"score": r["score"], "verdict": r["verdict"]}
+            except Exception as _e:
+                print(f"[investability] load failed: {_e}")
             for c, name in enumerate(pos_hdr, start=1):
                 cell = portfolio_ws.cell(7, c, name)
                 cell.font = _Font(bold=True, color="FFFFFF", size=11)
@@ -689,21 +720,28 @@ def main() -> int:
                 t2_v   = r[c_t2 - 1].value   if (c_t2   and status != "EXIT") else None
                 if status == "EXIT" and h and "Exit Reason" in h:
                     exit_reason = r[h.index("Exit Reason")].value or ""
+                # Investability lookup (advisory · from Wave 1.5 · 6 sub-engines)
+                _inv = _inv_map.get(tk, {})
+                inv_score = _inv.get("score")
+                inv_verdict = _inv.get("verdict", "")
                 vals = [tk, runner_val, _sector_for(tk, mkt_key), _cap_size(tk, mkt_key),
                             status, _ACTIONS.get(status, ""),
                             rec_dt, exit_date, entry_v, curr, exit_price,
                             stop_v, t1_v, t2_v, pnl_decimal,
+                            inv_score, inv_verdict,
                             days, alerts or "", exit_reason]
                 for c, v in enumerate(vals, start=1):
                     cell = portfolio_ws.cell(i, c, v)
-                    cell.alignment = _Align(horizontal="left" if c in (1,2,3,4,5,6,7,8,17) else "right",
+                    cell.alignment = _Align(horizontal="left" if c in (1,2,3,4,5,6,7,8,17,19) else "right",
                                                      vertical="center", wrap_text=True)
                     # Number formats · Excel treats as native number for SUM/AVG
-                    if c in (9, 10, 11, 12, 13, 14):          # Entry/Curr/Exit/Stop/T1/T2
+                    if c in (9, 10, 11, 12, 13, 14):           # Entry/Curr/Exit/Stop/T1/T2
                         cell.number_format = "#,##0.00"
-                    elif c == 15 and pnl_decimal is not None: # P&L %
+                    elif c == 15 and pnl_decimal is not None:  # P&L %
                         cell.number_format = "+0.00%;-0.00%;0.00%"
-                    elif c == 16 and isinstance(days, int):   # Days
+                    elif c == 16 and isinstance(inv_score, (int, float)):  # Investability
+                        cell.number_format = "0.0"
+                    elif c == 18 and isinstance(days, int):    # Days
                         cell.number_format = "0"
                 if status in _STATUS_FILLS_LOCAL:
                     fill = _STATUS_FILLS_LOCAL[status]
