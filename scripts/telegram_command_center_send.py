@@ -385,34 +385,143 @@ def main() -> int:
                     heartbeat_banner += _hb["message"] + "\n"
         except Exception as e:
             print(f"[guard9:heartbeat] check failed · {type(e).__name__}: {e} · proceeding")
-        # 2026-08-08 · Caption clarified · operator confused why XLSX dated
-        # 2026-08-07 arrived at 03:22 IST on 2026-08-08 (cron 20:30 UTC Fri
-        # = 02:00 IST Sat · US Fri close = last trading data). Now shows
-        # both the trading-day the data reflects AND the IST delivery time
-        # so there's no ambiguity.
+        # 2026-08-08 · Two-file delivery per operator directive: "send me both
+        # xlsx in different timezones · usa separate, india separate."
+        # Split unified aegis_history.xlsx into two market-specific files,
+        # each attached as its own Telegram message with market-specific
+        # timezone caption (India: IST · USA: CST + IST).
+        from openpyxl import load_workbook as _lwb
+        from openpyxl.styles import PatternFill as _PF
         _now_ist = datetime.now(timezone(timedelta(hours=5, minutes=30)))
+        _now_cst = datetime.now(timezone(timedelta(hours=-6)))
         _delivered_ist = _now_ist.strftime("%Y-%m-%d %H:%M IST")
-        _mkt_label = ("US session" if "usa" in markets
-                                else "NSE session" if "india" in markets
-                                else "session")
-        # Heartbeat banner (if any gap) prepended so operator sees it FIRST
-        _hb_prefix = f"{heartbeat_banner}\n" if heartbeat_banner else ""
-        caption = (f"{_hb_prefix}"
-                       f"📊 AEGIS Daily · {_mkt_label} {asof} (last trading day)\n"
-                       f"delivered {_delivered_ist}\n"
-                       f"One row per stock · columns: Date · Country · Run Type · Ticker + "
-                       f"45+ more fields · daily appended · sortable in Excel")
-        # Sprint H · Monday XLSX carries the operator guide as reminder
-        if _CAPTION_APPEND_GUIDE is not None:
-            caption = _CAPTION_APPEND_GUIDE(caption, _dow)
-        xlsx_ok, xlsx_msg = _send_document(token, chat_id, xlsx_path,
-                                                  caption=caption)
-        # Sprint J-final REVERTED · single-file delivery ONLY (operator directive:
-        # "one sheet · one history · no separate Fresh Buys"). Fresh opportunities
-        # are visible via Run_Type=R1_NEW/R2_NEW filter in the same sheet.
-        print(f"[xlsx:{','.join(markets)}] file={xlsx_path.name} · sent={xlsx_ok}")
-        if not xlsx_ok:
-            print(f"  detail: {xlsx_msg[:180]}")
+        _delivered_cst = _now_cst.strftime("%Y-%m-%d %H:%M CST")
+        _STATUS_FILLS_LOCAL = {
+            "STRONG BUY":       _PF(start_color="70AD47", end_color="70AD47", fill_type="solid"),
+            "BUY":              _PF(start_color="C6EFCE", end_color="C6EFCE", fill_type="solid"),
+            "HOLD":             _PF(start_color="FFF2CC", end_color="FFF2CC", fill_type="solid"),
+            "EXIT":             _PF(start_color="F8CBAD", end_color="F8CBAD", fill_type="solid"),
+            "ROTATED_SAMEDAY":  _PF(start_color="E7E6E6", end_color="E7E6E6", fill_type="solid"),
+        }
+
+        # NIFTY 50 largecap seed list · operator directive: "add column saying
+        # largecap or midcap while investing i can think which one to do"
+        _INDIA_LARGECAP = {
+            "RELIANCE","TCS","HDFCBANK","ICICIBANK","INFY","HDFC","HINDUNILVR",
+            "ITC","BHARTIARTL","LT","SBIN","KOTAKBANK","AXISBANK","MARUTI",
+            "ASIANPAINT","BAJFINANCE","TATAMOTORS","HCLTECH","WIPRO","SUNPHARMA",
+            "TITAN","NESTLEIND","POWERGRID","ONGC","NTPC","ULTRACEMCO","TATASTEEL",
+            "JSWSTEEL","TECHM","ADANIENT","ADANIPORTS","COALINDIA","GRASIM",
+            "INDUSINDBK","HDFCLIFE","BAJAJFINSV","DIVISLAB","DRREDDY","EICHERMOT",
+            "HEROMOTOCO","BRITANNIA","CIPLA","TATACONSUM","LTIM","TRENT",
+            "APOLLOHOSP","SHRIRAMFIN","HINDALCO","SBILIFE","BAJAJ-AUTO",
+        }
+
+        def _cap_size(ticker: str, market: str) -> str:
+            """Return LargeCap / MidCap tag for the ticker."""
+            short = str(ticker or "").replace(".NS", "").replace(".BO", "").upper()
+            if market.upper() == "USA":
+                return "LargeCap (S&P 500)"
+            # India: NIFTY 50 = LargeCap · anything else in NIFTY 200 = MidCap
+            return "LargeCap" if short in _INDIA_LARGECAP else "MidCap"
+
+        # Sector cache (operator directive: "sector in output xlsx mandatory")
+        # Populated from yfinance · persisted at reports/sector_cache.json
+        _sector_cache_path = _ROOT / "reports" / "sector_cache.json"
+        _sector_cache = json.loads(_sector_cache_path.read_text(encoding="utf-8")) \
+                                if _sector_cache_path.exists() else {"india": {}, "usa": {}}
+
+        def _sector_for(ticker: str, market: str) -> str:
+            """Look up sector · cached · fallback to '—'."""
+            short = str(ticker or "").replace(".NS", "").replace(".BO", "").upper()
+            bucket = _sector_cache.get(market.lower(), {})
+            return bucket.get(short) or bucket.get(str(ticker).upper()) or "—"
+
+        def _split_and_send(mkt_label: str, mkt_key: str, caption_body: str):
+            src_wb = _lwb(xlsx_path)
+            src_ws = src_wb["AEGIS Daily"] if "AEGIS Daily" in src_wb.sheetnames else src_wb.active
+            h = [c.value for c in src_ws[1]]
+            c_ctry = h.index("Country") + 1
+            c_st = h.index("Status") + 1
+            c_tk = h.index("Ticker") + 1
+            c_sector_existing = h.index("Sector") + 1 if "Sector" in h else None
+            # Filter rows by market
+            keep_rows = [row for row in src_ws.iter_rows(min_row=2, values_only=False)
+                                    if str(row[c_ctry-1].value or "").upper() == mkt_key.upper()]
+            # Write market-specific XLSX file · adds "Cap Size" column at end
+            from openpyxl import Workbook as _WB
+            out_path = xlsx_path.parent / f"aegis_history_{mkt_key.lower()}.xlsx"
+            wb2 = _WB()
+            ws2 = wb2.active
+            ws2.title = f"AEGIS {mkt_key.upper()}"
+            # Header + new Cap Size column
+            new_h = list(h) + ["Cap Size"]
+            for c, name in enumerate(new_h, start=1):
+                cell = ws2.cell(1, c, name)
+                cell.fill = HEADER_FILL if 'HEADER_FILL' in globals() else _PF(
+                    start_color="1F4E78", end_color="1F4E78", fill_type="solid")
+                cell.font = _Font(bold=True, color="FFFFFF", size=11)
+            # Column widths from source
+            for c_letter in [chr(64+i) for i in range(1, len(h)+1)]:
+                if c_letter in src_ws.column_dimensions:
+                    ws2.column_dimensions[c_letter].width = src_ws.column_dimensions[c_letter].width
+            # New Cap Size column width
+            from openpyxl.utils import get_column_letter as _gcl
+            ws2.column_dimensions[_gcl(len(new_h))].width = 18
+            # Data rows · backfill Sector column from cache if empty
+            for r_idx, row in enumerate(keep_rows, start=2):
+                tk = row[c_tk-1].value
+                for c_idx, cell in enumerate(row, start=1):
+                    val = cell.value
+                    # Fill missing Sector from cache (mandatory · operator directive)
+                    if c_sector_existing and c_idx == c_sector_existing and not val:
+                        val = _sector_for(tk, mkt_key)
+                    ws2.cell(r_idx, c_idx, val)
+                # Append Cap Size (new column at end)
+                ws2.cell(r_idx, len(new_h), _cap_size(tk, mkt_key))
+                st = row[c_st-1].value
+                if st in _STATUS_FILLS_LOCAL:
+                    fill = _STATUS_FILLS_LOCAL[st]
+                    for c in range(1, len(new_h)+1):
+                        ws2.cell(r_idx, c).fill = fill
+            ws2.freeze_panes = "D2"
+            wb2.save(out_path)
+            src_wb.close()
+            # Skip send if market has 0 rows (e.g., USA freshly wiped for S&P 500 reset)
+            if len(keep_rows) == 0:
+                print(f"[xlsx:{mkt_key}] SKIPPED · 0 rows for market (fresh start · awaiting next pipeline run)")
+                return True
+            # Send
+            _hb_prefix_local = f"{heartbeat_banner}\n" if heartbeat_banner else ""
+            full_caption = f"{_hb_prefix_local}{caption_body}"
+            if _CAPTION_APPEND_GUIDE is not None:
+                full_caption = _CAPTION_APPEND_GUIDE(full_caption, _dow)
+            ok, msg = _send_document(token, chat_id, out_path, caption=full_caption)
+            print(f"[xlsx:{mkt_key}] file={out_path.name} · rows={len(keep_rows)} · sent={ok}")
+            if not ok:
+                print(f"  detail: {msg[:180]}")
+            return ok
+
+        # Import Font at module scope (used in split_and_send)
+        from openpyxl.styles import Font as _Font
+
+        # Build market-specific captions with correct timezones
+        india_caption = (
+            f"📊 AEGIS India · NSE session {asof} (last trading day)\n"
+            f"delivered {_delivered_ist}\n"
+            f"India rows only · one row per stock · sortable in Excel"
+        )
+        usa_caption = (
+            f"📊 AEGIS USA · S&P 500 · US session {asof} (last trading day)\n"
+            f"delivered {_delivered_cst}  |  {_delivered_ist}\n"
+            f"USA rows only · S&P 500 universe (516 tickers) · sortable in Excel"
+        )
+
+        xlsx_ok = True
+        if "india" in markets:
+            xlsx_ok &= _split_and_send("India", "INDIA", india_caption)
+        if "usa" in markets:
+            xlsx_ok &= _split_and_send("USA",   "USA",   usa_caption)
         # Record successful heartbeat (only if send actually worked)
         if xlsx_ok:
             try:
