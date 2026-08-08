@@ -1,0 +1,15 @@
+version: 1.0
+# Position exit thresholds · used by profit_protection engine + Alerts column
+# All values externalized 2026-08-08 per no-hardcode rule
+# Change these = change exit behavior · no code deploy needed
+
+stop_loss:
+  warning_pct: -5.0     # emits WARNING · STOP_LOSS_HIT
+  critical_pct: -8.0    # emits CRITICAL · DEEP_LOSS · EXIT URGENT
+
+profit_lock:
+  warning_pct: 12.0     # emits WARNING · RAPID_APPRECIATION · take profit
+  critical_pct: 20.0    # emits CRITICAL · HARD_GAIN_CAP · lock profit
+
+time_exit:
+  underperform_days: 21  # position held ≥ 21 trading days with < 0% return

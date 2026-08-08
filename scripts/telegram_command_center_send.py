@@ -404,18 +404,16 @@ def main() -> int:
             "ROTATED_SAMEDAY":  _PF(start_color="E7E6E6", end_color="E7E6E6", fill_type="solid"),
         }
 
-        # NIFTY 50 largecap seed list · operator directive: "add column saying
-        # largecap or midcap while investing i can think which one to do"
-        _INDIA_LARGECAP = {
-            "RELIANCE","TCS","HDFCBANK","ICICIBANK","INFY","HDFC","HINDUNILVR",
-            "ITC","BHARTIARTL","LT","SBIN","KOTAKBANK","AXISBANK","MARUTI",
-            "ASIANPAINT","BAJFINANCE","TATAMOTORS","HCLTECH","WIPRO","SUNPHARMA",
-            "TITAN","NESTLEIND","POWERGRID","ONGC","NTPC","ULTRACEMCO","TATASTEEL",
-            "JSWSTEEL","TECHM","ADANIENT","ADANIPORTS","COALINDIA","GRASIM",
-            "INDUSINDBK","HDFCLIFE","BAJAJFINSV","DIVISLAB","DRREDDY","EICHERMOT",
-            "HEROMOTOCO","BRITANNIA","CIPLA","TATACONSUM","LTIM","TRENT",
-            "APOLLOHOSP","SHRIRAMFIN","HINDALCO","SBILIFE","BAJAJ-AUTO",
-        }
+        # 2026-08-08 · Config-driven largecap seed (was hardcoded)
+        _INDIA_LARGECAP = set()
+        try:
+            import yaml as _yaml
+            _tiers_path = _ROOT / "configs" / "india_universe_tiers.yaml"
+            if _tiers_path.exists():
+                _tiers = _yaml.safe_load(_tiers_path.read_text(encoding="utf-8")) or {}
+                _INDIA_LARGECAP = set(_tiers.get("largecap_tickers") or [])
+        except Exception as _e:
+            print(f"[config:india_universe_tiers] load failed · {_e}")
 
         def _cap_size(ticker: str, market: str) -> str:
             """Return LargeCap / MidCap tag for the ticker."""
@@ -663,20 +661,21 @@ def main() -> int:
                               12, 12, 12,
                               40, 40, 30]
 
-            # Priority bucket → (Urgency, Reason, Action, Review, Color) matrix
-            # Split into orthogonal fields for AI learning (Sprint K Part 25 · CEO directive)
-            PRIORITY_MATRIX = {
-                "A": ("🔴 HIGH",   "Conviction Buy",       "BUY BIG",       "30 DAYS",     "70AD47"),
-                "B": ("🟠 HIGH",   "Confirmed Buy",        "BUY",           "30 DAYS",     "C6EFCE"),
-                "C": ("🟠 HIGH",   "Quality Dip",          "ADD",           "5 DAYS",      "B4D7EE"),
-                "D": ("🟢 LOW",    "Compounder",           "HOLD",          "30 DAYS",     "A9D08E"),
-                "E": ("🟡 MEDIUM", "Watch",                "TIGHTEN STOP",  "TOMORROW",    "FFF2CC"),
-                "F": ("🟠 HIGH",   "Signal Warning",       "SKIP",          "30 DAYS",     "FFCC66"),
-                "G": ("🔴 HIGH",   "Structural Failure",   "EXIT",          "IMMEDIATE",   "F8CBAD"),
-                "H": ("🟡 MEDIUM", "Premature Exit?",      "REVIEW",        "5 DAYS",      "D6DCE4"),
-                "I": ("⚪ CLOSED", "Clean Exit",           "CLOSED",        "N/A",         "E7E6E6"),
-                "J": ("⚪ CLOSED", "Artifact",             "IGNORE",        "N/A",         "F2F2F2"),
-            }
+            # 2026-08-08 · Config-driven priority matrix (was hardcoded dict)
+            PRIORITY_MATRIX = {}
+            try:
+                import yaml as _yaml
+                _pm_path = _ROOT / "configs" / "priority_matrix.yaml"
+                if _pm_path.exists():
+                    _pm = _yaml.safe_load(_pm_path.read_text(encoding="utf-8")) or {}
+                    for bucket, d in (_pm.get("buckets") or {}).items():
+                        PRIORITY_MATRIX[bucket] = (
+                            d.get("urgency", ""), d.get("reason", ""),
+                            d.get("action", ""), d.get("review", ""),
+                            d.get("color", "F2F2F2"),
+                        )
+            except Exception as _e:
+                print(f"[config:priority_matrix] load failed · {_e}")
             PRIORITY_FILLS = {k: _PF(start_color=v[4], end_color=v[4], fill_type="solid")
                                      for k, v in PRIORITY_MATRIX.items()}
 

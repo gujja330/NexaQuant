@@ -1016,15 +1016,40 @@ def _load_alert_with_fallback(root: Path, market: str, ticker: str,
     if native: parts.append(native)
     # Position_store-derived signals · fires when R006 doesn't
     if isinstance(cur_ret, (int, float)) and isinstance(entry_price, (int, float)) and entry_price:
-        if cur_ret <= -8.0:
-            parts.append(f"CRITICAL·DEEP_LOSS·{cur_ret:+.1f}% ≤ -8% · EXIT URGENT")
-        elif cur_ret <= -5.0:
-            parts.append(f"WARNING·STOP_LOSS_HIT·{cur_ret:+.1f}% ≤ -5% · exit")
-        elif cur_ret >= 20.0:
-            parts.append(f"CRITICAL·HARD_GAIN_CAP·{cur_ret:+.1f}% ≥ +20% · lock profit")
-        elif cur_ret >= 12.0:
-            parts.append(f"WARNING·RAPID_APPRECIATION·{cur_ret:+.1f}% ≥ +12% · take profit")
+        # 2026-08-08 · Config-driven exit thresholds (was hardcoded)
+        _t = _exit_thresholds()
+        _sl_c = _t["stop_loss_critical"]
+        _sl_w = _t["stop_loss_warning"]
+        _pl_c = _t["profit_lock_critical"]
+        _pl_w = _t["profit_lock_warning"]
+        if cur_ret <= _sl_c:
+            parts.append(f"CRITICAL·DEEP_LOSS·{cur_ret:+.1f}% ≤ {_sl_c}% · EXIT URGENT")
+        elif cur_ret <= _sl_w:
+            parts.append(f"WARNING·STOP_LOSS_HIT·{cur_ret:+.1f}% ≤ {_sl_w}% · exit")
+        elif cur_ret >= _pl_c:
+            parts.append(f"CRITICAL·HARD_GAIN_CAP·{cur_ret:+.1f}% ≥ +{_pl_c}% · lock profit")
+        elif cur_ret >= _pl_w:
+            parts.append(f"WARNING·RAPID_APPRECIATION·{cur_ret:+.1f}% ≥ +{_pl_w}% · take profit")
     return " || ".join(parts) if parts else ""
+
+
+def _exit_thresholds() -> dict:
+    """Load exit thresholds from configs/exit_thresholds.yaml · fallback to defaults."""
+    try:
+        import yaml
+        cfg = Path(__file__).resolve().parents[3] / "configs" / "exit_thresholds.yaml"
+        if cfg.exists():
+            d = yaml.safe_load(cfg.read_text(encoding="utf-8")) or {}
+            return {
+                "stop_loss_warning":     d.get("stop_loss", {}).get("warning_pct", -5.0),
+                "stop_loss_critical":    d.get("stop_loss", {}).get("critical_pct", -8.0),
+                "profit_lock_warning":   d.get("profit_lock", {}).get("warning_pct", 12.0),
+                "profit_lock_critical":  d.get("profit_lock", {}).get("critical_pct", 20.0),
+            }
+    except Exception:
+        pass
+    return {"stop_loss_warning": -5.0, "stop_loss_critical": -8.0,
+                "profit_lock_warning": 12.0, "profit_lock_critical": 20.0}
 
 
 def _load_alert(root: Path, market: str, ticker: str) -> str:
