@@ -637,14 +637,19 @@ def main() -> int:
                     if r_off == 5 and c_off <= 3:   # combined row highlighted
                         cell.fill = _PF(start_color="FFE699", end_color="FFE699", fill_type="solid")
 
-            # 2026-08-08 · Column order + Priority classification (10 buckets)
-            # Priority is the SYNTHESIZED decision · row color follows Priority
-            # (not Status or Inv Verdict alone).
+            # 2026-08-08 · Priority split into orthogonal fields per CEO review:
+            # "current Priority mixes portfolio state + opportunity + diagnosis
+            # + execution into one column · split into Priority · Reason ·
+            # Action · much easier for AI to learn later."
+            #
+            # NEW: Urgency | Reason | Action | Review columns (orthogonal)
+            # PLUS: kept "Priority" as the bucket letter (A-J) for backward compat
             pos_hdr = [
                 # IDENTITY (7)
                 "Ticker", "Runner", "Sector", "Cap", "Entry Date", "Exit Date", "Days",
-                # DECISION (5) · Priority is the SINGLE answer to "what do I do?"
-                "🎯 Priority", "Status", "Inv Quality", "Investability", "Final Action",
+                # DECISION (7) · 4 orthogonal fields · Status/InvQuality/Investability inputs
+                "🎯 Urgency", "Reason", "Action", "Review",
+                "Status", "Inv Quality", "Investability",
                 # PRICE + P&L (4)
                 "Entry", "Current", "Exit Price", "P&L %",
                 # RISK/TARGET (3)
@@ -653,25 +658,27 @@ def main() -> int:
                 "Action Note", "Alerts", "Exit Reason",
             ]
             widths_pos = [12, 8, 22, 20, 12, 12, 8,
-                              28, 12, 14, 12, 30,
+                              12, 20, 16, 14, 12, 14, 12,
                               12, 12, 12, 10,
                               12, 12, 12,
                               40, 40, 30]
 
-            # Priority classifier · composite of Status × Inv Verdict × P&L direction
-            # 10 buckets · each has a distinct fill color for at-a-glance scanning
-            PRIORITY_FILLS = {
-                "A · CONVICTION BUY":     _PF(start_color="70AD47", end_color="70AD47", fill_type="solid"),  # dark green
-                "B · CONFIRMED BUY":      _PF(start_color="C6EFCE", end_color="C6EFCE", fill_type="solid"),  # light green
-                "C · QUALITY DIP · ADD":  _PF(start_color="B4D7EE", end_color="B4D7EE", fill_type="solid"),  # light blue · opportunity
-                "D · COMPOUNDER":         _PF(start_color="A9D08E", end_color="A9D08E", fill_type="solid"),  # medium green
-                "E · WATCH":              _PF(start_color="FFF2CC", end_color="FFF2CC", fill_type="solid"),  # yellow
-                "F · SIGNAL WARNING":     _PF(start_color="FFCC66", end_color="FFCC66", fill_type="solid"),  # amber
-                "G · STRUCTURAL FAILURE": _PF(start_color="F8CBAD", end_color="F8CBAD", fill_type="solid"),  # salmon · exit
-                "H · PREMATURE EXIT?":    _PF(start_color="D6DCE4", end_color="D6DCE4", fill_type="solid"),  # cool gray · review
-                "I · CLOSED · CLEAN":     _PF(start_color="E7E6E6", end_color="E7E6E6", fill_type="solid"),  # gray · done
-                "J · ARTIFACT":           _PF(start_color="F2F2F2", end_color="F2F2F2", fill_type="solid"),  # very light gray
+            # Priority bucket → (Urgency, Reason, Action, Review, Color) matrix
+            # Split into orthogonal fields for AI learning (Sprint K Part 25 · CEO directive)
+            PRIORITY_MATRIX = {
+                "A": ("🔴 HIGH",   "Conviction Buy",       "BUY BIG",       "30 DAYS",     "70AD47"),
+                "B": ("🟠 HIGH",   "Confirmed Buy",        "BUY",           "30 DAYS",     "C6EFCE"),
+                "C": ("🟠 HIGH",   "Quality Dip",          "ADD",           "5 DAYS",      "B4D7EE"),
+                "D": ("🟢 LOW",    "Compounder",           "HOLD",          "30 DAYS",     "A9D08E"),
+                "E": ("🟡 MEDIUM", "Watch",                "TIGHTEN STOP",  "TOMORROW",    "FFF2CC"),
+                "F": ("🟠 HIGH",   "Signal Warning",       "SKIP",          "30 DAYS",     "FFCC66"),
+                "G": ("🔴 HIGH",   "Structural Failure",   "EXIT",          "IMMEDIATE",   "F8CBAD"),
+                "H": ("🟡 MEDIUM", "Premature Exit?",      "REVIEW",        "5 DAYS",      "D6DCE4"),
+                "I": ("⚪ CLOSED", "Clean Exit",           "CLOSED",        "N/A",         "E7E6E6"),
+                "J": ("⚪ CLOSED", "Artifact",             "IGNORE",        "N/A",         "F2F2F2"),
             }
+            PRIORITY_FILLS = {k: _PF(start_color=v[4], end_color=v[4], fill_type="solid")
+                                     for k, v in PRIORITY_MATRIX.items()}
 
             # Load Investability scores (advisory · from reports/investability_{market}.json)
             _inv_map = {}
@@ -751,41 +758,35 @@ def main() -> int:
                 inv_verdict = _inv.get("verdict", "")
 
                 def _classify_priority(st, iv, pnl):
-                    """10-bucket Priority classifier · single source of decision truth.
-                    Row color follows THIS · not Status or Inv Verdict alone."""
+                    """Returns bucket letter A-J. Look up PRIORITY_MATRIX for
+                    orthogonal fields (Urgency, Reason, Action, Review, Color)."""
                     q_high = iv in ("🏆 QUALITY", "✓ OK")
                     q_mid = iv == "⚠ MARGINAL"
                     q_low = iv == "✗ AVOID"
                     pnl_neg = isinstance(pnl, (int, float)) and pnl < 0
-                    if st == "ROTATED_SAMEDAY":
-                        return "J · ARTIFACT"
+                    if st == "ROTATED_SAMEDAY": return "J"
                     if st == "EXIT":
-                        if q_high: return "H · PREMATURE EXIT?"
-                        return "I · CLOSED · CLEAN"
-                    if st == "STRONG BUY" and iv == "🏆 QUALITY":
-                        return "A · CONVICTION BUY"
-                    if st in ("BUY", "STRONG BUY") and q_high:
-                        return "B · CONFIRMED BUY"
-                    if st in ("BUY", "STRONG BUY") and q_low:
-                        return "F · SIGNAL WARNING"
-                    if st == "HOLD" and q_high and pnl_neg:
-                        return "C · QUALITY DIP · ADD"
-                    if st == "HOLD" and q_high:
-                        return "D · COMPOUNDER"
-                    if q_mid:
-                        return "E · WATCH"
-                    if q_low and pnl_neg:
-                        return "G · STRUCTURAL FAILURE"
-                    if q_low:
-                        return "F · SIGNAL WARNING"
-                    return "E · WATCH"
+                        return "H" if q_high else "I"
+                    if st == "STRONG BUY" and iv == "🏆 QUALITY": return "A"
+                    if st in ("BUY", "STRONG BUY") and q_high:    return "B"
+                    if st in ("BUY", "STRONG BUY") and q_low:     return "F"
+                    if st == "HOLD" and q_high and pnl_neg:       return "C"
+                    if st == "HOLD" and q_high:                   return "D"
+                    if q_mid:                                      return "E"
+                    if q_low and pnl_neg:                         return "G"
+                    if q_low:                                      return "F"
+                    return "E"
 
                 # Compute P&L for classification
                 _pnl_for_class = None
                 if isinstance(pnl_decimal, (int, float)):
                     _pnl_for_class = pnl_decimal * 100
 
-                priority_tag = _classify_priority(status, inv_verdict, _pnl_for_class)
+                priority_bucket = _classify_priority(status, inv_verdict, _pnl_for_class)
+                _matrix = PRIORITY_MATRIX.get(priority_bucket,
+                                                            ("—", "—", "—", "—", "F2F2F2"))
+                priority_tag = priority_bucket   # for color lookup below
+                urgency, reason, action, review, _color = _matrix
 
                 # Final Action · human-readable follow-through (kept for context)
                 def _final_action(st, iv):
@@ -818,29 +819,30 @@ def main() -> int:
                     # IDENTITY (1-7)
                     tk, runner_val, _sector_for(tk, mkt_key), _cap_size(tk, mkt_key),
                     rec_dt, exit_date, days,
-                    # DECISION (8-12) · Priority is col 8 (the single-answer col)
-                    priority_tag, status, inv_verdict, inv_score, final_action,
-                    # PRICE + P&L (13-16)
+                    # DECISION (8-14) · Urgency + Reason + Action + Review + inputs
+                    urgency, reason, action, review,
+                    status, inv_verdict, inv_score,
+                    # PRICE + P&L (15-18)
                     entry_v, curr, exit_price, pnl_decimal,
-                    # RISK/TARGET (17-19)
+                    # RISK/TARGET (19-21)
                     stop_v, t1_v, t2_v,
-                    # CONTEXT (20-22)
+                    # CONTEXT (22-24)
                     _ACTIONS.get(status, ""), alerts or "", exit_reason,
                 ]
                 for c, v in enumerate(vals, start=1):
                     cell = portfolio_ws.cell(i, c, v)
-                    text_cols = {1, 2, 3, 4, 5, 6, 8, 9, 10, 12, 20, 21, 22}
+                    text_cols = {1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 22, 23, 24}
                     cell.alignment = _Align(
                         horizontal="left" if c in text_cols else "right",
                         vertical="center", wrap_text=True)
                     # Number formats
                     if c == 7 and isinstance(days, int):        # Days
                         cell.number_format = "0"
-                    elif c == 11 and isinstance(inv_score, (int, float)):  # Investability
+                    elif c == 14 and isinstance(inv_score, (int, float)):  # Investability
                         cell.number_format = "0.0"
-                    elif c in (13, 14, 15, 17, 18, 19):         # Entry/Curr/Exit/Stop/T1/T2
+                    elif c in (15, 16, 17, 19, 20, 21):         # Entry/Curr/Exit/Stop/T1/T2
                         cell.number_format = "#,##0.00"
-                    elif c == 16 and pnl_decimal is not None:   # P&L %
+                    elif c == 18 and pnl_decimal is not None:   # P&L %
                         cell.number_format = "+0.00%;-0.00%;0.00%"
 
                 # ROW COLOR now follows PRIORITY (not Status) · CEO call:

@@ -14,6 +14,23 @@ Capital Preservation Engine · both are learning/protection layers that
 require Sprint K's attribution + walk-forward data to be useful. See
 `docs/AEGIS_SPRINT_L_LEARNING_LAYER.md` for full Sprint L spec.
 
+**v1.4 amended 2026-08-08 (evening)**: after CEO review of Portfolio v2:
+
+- Priority column split into 4 orthogonal fields (Urgency · Reason ·
+  Action · Review) · rationale: "current Priority mixes portfolio state
+  + opportunity + diagnosis + execution · split for AI learning"
+- Priority aging added to Part 25 scope (Day 1 Quality Dip → Day 8 Watch
+  → Day 18 EXIT) · Priority should not stay frozen · decay based on
+  outcome trajectory
+- Priority Confidence deferred (needs classifier-boundary distance calc ·
+  Sprint K Part 25 sub-item)
+- Priority accuracy dashboard added to Part 25 (measure win rate per
+  bucket after n≥50 · calibrate thresholds)
+- "Reason narrative" (human-readable per-position explanation like
+  "high-quality business · temporary technical weakness · expected
+  holding period 30-90 days") added to Part 25 attribution
+  snapshot deliverable
+
 **Signed into force:** 2026-08-06
 **Author:** CEO (operator · locked · binding)
 **Governance:** Constitutional · supersedes docs/AEGIS_SPRINT_K_PLAN.md
