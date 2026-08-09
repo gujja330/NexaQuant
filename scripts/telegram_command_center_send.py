@@ -598,7 +598,9 @@ def main() -> int:
                     start_color="1F4E78", end_color="1F4E78", fill_type="solid")
                 cell.font = _Font(bold=True, color="FFFFFF", size=11)
             # Column widths from source
-            for c_letter in [chr(64+i) for i in range(1, len(h)+1)]:
+            from openpyxl.utils import get_column_letter as _gcl_src
+            for i in range(1, len(h)+1):
+                c_letter = _gcl_src(i)
                 if c_letter in src_ws.column_dimensions:
                     ws2.column_dimensions[c_letter].width = src_ws.column_dimensions[c_letter].width
             # New Cap Size column width
