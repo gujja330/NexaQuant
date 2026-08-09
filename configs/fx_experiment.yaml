@@ -1,0 +1,54 @@
+version: 1.0
+last_amended: 2026-08-09
+
+# AEGIS-X1 · FX Intraday Research (parallel to EQUITIES · zero touch)
+# Config-driven per Constitutional no-hardcoding rule.
+
+# Pairs to test (yfinance symbols)
+pairs:
+  - {symbol: "GC=F",     name: "Gold Futures", asset_class: "commodity", pip_size: 0.1}
+  - {symbol: "SI=F",     name: "Silver Futures", asset_class: "commodity", pip_size: 0.01}
+  - {symbol: "EURUSD=X", name: "Euro/USD",     asset_class: "fx_major",  pip_size: 0.0001}
+  - {symbol: "GBPUSD=X", name: "Pound/USD",    asset_class: "fx_major",  pip_size: 0.0001}
+  - {symbol: "USDJPY=X", name: "USD/Yen",      asset_class: "fx_major",  pip_size: 0.01}
+  - {symbol: "AUDUSD=X", name: "Aussie/USD",   asset_class: "fx_major",  pip_size: 0.0001}
+  - {symbol: "BTC-USD",  name: "Bitcoin/USD",  asset_class: "crypto",    pip_size: 1.0}
+  - {symbol: "ETH-USD",  name: "Ethereum/USD", asset_class: "crypto",    pip_size: 0.01}
+
+# Data windows (yfinance limits)
+data:
+  intraday_interval:   "1h"     # 730 days available
+  daily_interval:      "1d"     # for higher-TF trend
+  intraday_lookback_days: 60    # 60 days · ~1500 bars per pair
+  daily_lookback_days:    365   # 1 year of daily for trend context
+
+# Multi-timeframe alignment rules
+timeframes:
+  strategic:  ["1d", "4h"]      # X1-R1 · trend + regime
+  tactical:   ["1h", "15m"]     # X1-R2 · entry/exit timing
+
+# Strategy parameters (all configurable · no hardcoding)
+strategy:
+  sma_fast:              20
+  sma_slow:              50
+  rsi_period:            14
+  rsi_pullback_low:      40      # LONG entry · pullback zone
+  rsi_pullback_high:     60
+  atr_period:            14
+  stop_atr_multiple:     1.5     # stop = entry - 1.5 * ATR
+  target_atr_multiple:   3.0     # target = entry + 3.0 * ATR (2R)
+  min_confluence:        2        # need 2/3 timeframes aligned for signal
+
+# Execution parameters (paper only)
+execution:
+  starting_capital:      100000    # USD notional
+  position_size_pct:     2.0       # 2% risk per trade
+  max_concurrent:        3          # max open positions per pair
+  commission_bps:        1.5        # 1.5 bps per side (realistic)
+  slippage_bps:          0.5        # 0.5 bps slippage assumption
+
+# Governance
+guardrails:
+  never_send_signals:    true      # research only · no live delivery
+  never_touch_equities:  true      # parallel vertical · zero shared code paths
+  paper_only:            true      # no capital deployment · ever · until Phase 4
