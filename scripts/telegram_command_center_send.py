@@ -831,7 +831,7 @@ def main() -> int:
                 cell.fill = HEADER_FILL if 'HEADER_FILL' in globals() else _PF(
                     start_color="1F4E78", end_color="1F4E78", fill_type="solid")
                 cell.alignment = _Align(horizontal="center", vertical="center")
-                portfolio_ws.column_dimensions[chr(64+c)].width = widths_pos[c-1]
+                portfolio_ws.column_dimensions[_gcl_src(c)].width = widths_pos[c-1]
 
             # Sort positions: EXIT first, then by P&L descending
             def _sort_key(item):
