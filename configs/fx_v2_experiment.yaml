@@ -1,0 +1,107 @@
+version: 2.0
+last_amended: 2026-08-09
+
+# AEGIS-X1 V2 · Full-stack FX/Crypto Research
+# Operator directive · "do complete setup use everything and test"
+# NO MVP shortcuts · regime-adaptive · macro overlay · cost-inclusive
+
+# ═══════════════════════════════════════════════════════════════════════
+# Pairs (yfinance symbols · retail-grade but free)
+# ═══════════════════════════════════════════════════════════════════════
+pairs:
+  - {symbol: "GC=F",     name: "Gold Futures",   class: "commodity", spread_pips: 0.3, pip_size: 0.10}
+  - {symbol: "SI=F",     name: "Silver Futures", class: "commodity", spread_pips: 0.5, pip_size: 0.01}
+  - {symbol: "EURUSD=X", name: "Euro/USD",       class: "fx_major",  spread_pips: 0.5, pip_size: 0.0001}
+  - {symbol: "GBPUSD=X", name: "Pound/USD",      class: "fx_major",  spread_pips: 0.8, pip_size: 0.0001}
+  - {symbol: "USDJPY=X", name: "USD/Yen",        class: "fx_major",  spread_pips: 0.6, pip_size: 0.01}
+  - {symbol: "AUDUSD=X", name: "Aussie/USD",     class: "fx_major",  spread_pips: 0.8, pip_size: 0.0001}
+  - {symbol: "BTC-USD",  name: "Bitcoin/USD",    class: "crypto",    spread_pips: 5.0, pip_size: 1.0}
+  - {symbol: "ETH-USD",  name: "Ethereum/USD",   class: "crypto",    spread_pips: 2.0, pip_size: 0.01}
+
+# ═══════════════════════════════════════════════════════════════════════
+# Cross-market context (fetched once · same for all pairs at any bar)
+# ═══════════════════════════════════════════════════════════════════════
+cross_market:
+  dxy:            "DX-Y.NYB"     # US Dollar Index
+  us_10y:         "^TNX"         # 10-year Treasury yield
+  vix:            "^VIX"         # Equity vol
+  sp500:          "^GSPC"        # Risk asset benchmark
+
+# ═══════════════════════════════════════════════════════════════════════
+# Data windows
+# ═══════════════════════════════════════════════════════════════════════
+data:
+  primary_interval:    "1h"     # entry TF · 730-day yfinance limit
+  primary_lookback_days: 180    # 6 months of hourly bars
+  daily_lookback_days:   730    # 2 years of daily for regime context
+  min_bars_required:     500
+
+# ═══════════════════════════════════════════════════════════════════════
+# Regime classifier · 4-state
+# ═══════════════════════════════════════════════════════════════════════
+regime:
+  adx_period:            14
+  adx_trending_threshold: 25    # ADX > 25 = trending
+  adx_ranging_threshold:  20    # ADX < 20 = ranging
+  atr_period:            14
+  vol_high_percentile:   80     # ATR > 80th percentile = high vol
+  # 4 regimes:
+  #   TRENDING_UP    · ADX > 25 · price above 50-SMA · momentum up
+  #   TRENDING_DOWN  · ADX > 25 · price below 50-SMA · momentum down
+  #   RANGING        · ADX < 20 · price near SMA · low directional bias
+  #   HIGH_VOL       · ATR percentile > 80 · dangerous · NO TRADE
+
+# ═══════════════════════════════════════════════════════════════════════
+# Cross-market context thresholds
+# ═══════════════════════════════════════════════════════════════════════
+context:
+  vix_calm_max:          20     # VIX < 20 = calm · risk-on OK
+  vix_stress_min:        30     # VIX > 30 = stress · risk-off
+  yield_spike_pct:       5.0    # 10Y yield up >5% in 5 days = spike
+  dxy_strong_pct:        1.5    # DXY up >1.5% in 5 days = strong
+  # Risk-on : VIX<20 · yields not spiking · DXY not strong
+  # Risk-off: VIX>30 OR yield spike OR DXY strong
+
+# ═══════════════════════════════════════════════════════════════════════
+# Strategy · regime-adaptive
+# ═══════════════════════════════════════════════════════════════════════
+strategy:
+  # Common
+  sma_fast:              20
+  sma_slow:              50
+  rsi_period:            14
+  # Trend-following params (used in TRENDING regimes)
+  trend_rsi_pullback:    [40, 60]
+  trend_stop_atr:        1.5
+  trend_target_atr:      3.0    # 2R payoff
+  # Mean-reversion params (used in RANGING regime)
+  mr_rsi_oversold:       30
+  mr_rsi_overbought:     70
+  mr_stop_atr:           1.0
+  mr_target_atr:         1.5    # 1.5R payoff (smaller · reversion is faster)
+  # Global
+  min_higher_tf_confluence: 2   # need 2/3 higher TFs aligned for trend entry
+
+# ═══════════════════════════════════════════════════════════════════════
+# Cost model (realistic · net-of-cost expectancy)
+# ═══════════════════════════════════════════════════════════════════════
+costs:
+  # Spread cost per side (from pairs.spread_pips × pip_size)
+  # Commission (round-trip bps · applied to entry + exit)
+  commission_bps:
+    fx_major:     0.5
+    commodity:    2.0
+    crypto:       10.0
+  # Slippage (bps · beyond spread · realistic for retail)
+  slippage_bps:
+    fx_major:     0.3
+    commodity:    1.0
+    crypto:       3.0
+
+# ═══════════════════════════════════════════════════════════════════════
+# Governance (unchanged from V1)
+# ═══════════════════════════════════════════════════════════════════════
+guardrails:
+  never_send_signals:    true
+  never_touch_equities:  true
+  paper_only:            true

@@ -1,0 +1,1490 @@
+{
+  "engine": "aegis_x1_v2_fx_full_stack.v2",
+  "run_utc": "2026-08-09T04:25:04+00:00",
+  "config_version": 2.0,
+  "components": {
+    "regime_classifier": "4-state (TRENDING_UP · TRENDING_DOWN · RANGING · HIGH_VOL)",
+    "cross_market": [
+      "DXY",
+      "US_10Y",
+      "VIX",
+      "SP500"
+    ],
+    "cost_model": "spread + commission + slippage per asset class",
+    "regime_adaptive": "trend-follow (TRENDING) · mean-revert (RANGING) · no trade (HIGH_VOL)",
+    "walk_forward": "higher-TF lookup strictly before entry bar"
+  },
+  "aggregate": {
+    "n_pairs": 8,
+    "n_trades_total": 664,
+    "n_wins_total": 232,
+    "portfolio_win_rate_pct": 34.9,
+    "portfolio_gross_pct": -7.32,
+    "portfolio_net_pct": -83.14,
+    "portfolio_cost_drag": 75.82,
+    "portfolio_avg_net": -0.125
+  },
+  "per_pair": [
+    {
+      "symbol": "GC=F",
+      "name": "Gold Futures",
+      "class": "commodity",
+      "n_trades": 59,
+      "n_wins": 15,
+      "n_losses": 44,
+      "win_rate_pct": 25.4,
+      "gross_total_pct": -12.04,
+      "net_total_pct": -15.62,
+      "cost_drag_pct": 3.58,
+      "avg_net_per_trade": -0.265,
+      "sharpe_annualized": -4.99,
+      "max_drawdown_pct": -22.08,
+      "by_regime": {
+        "TRENDING_UP": {
+          "n": 25,
+          "win_rate_pct": 16.0,
+          "gross_total": -9.21,
+          "net_total": -10.72,
+          "avg_net": -0.429
+        },
+        "TRENDING_DOWN": {
+          "n": 15,
+          "win_rate_pct": 20.0,
+          "gross_total": -3.79,
+          "net_total": -4.7,
+          "avg_net": -0.313
+        },
+        "RANGING": {
+          "n": 19,
+          "win_rate_pct": 42.1,
+          "gross_total": 0.95,
+          "net_total": -0.2,
+          "avg_net": -0.011
+        }
+      },
+      "by_strategy": {
+        "trend_follow": {
+          "n": 40,
+          "win_rate_pct": 17.5,
+          "net_total": -15.42,
+          "avg_net": -0.385
+        },
+        "mean_revert": {
+          "n": 19,
+          "win_rate_pct": 42.1,
+          "net_total": -0.2,
+          "avg_net": -0.011
+        }
+      },
+      "expectancy_net_pct": -0.265,
+      "meta": {
+        "n_bars_1h": 2846,
+        "n_bars_1d": 502,
+        "n_bars_4h": 768
+      },
+      "sample_trades": [
+        {
+          "symbol": "GC=F",
+          "strategy": "trend_follow",
+          "regime_at_entry": "TRENDING_DOWN",
+          "risk_state": "neutral",
+          "entry_time": "2026-03-16 05:00:00",
+          "entry_price": 5021.10009765625,
+          "exit_time": "2026-03-18 11:00:00",
+          "exit_price": 4933.178606305803,
+          "direction": "SHORT",
+          "outcome": "WIN",
+          "gross_pnl_pct": 1.751,
+          "net_pnl_pct": 1.69,
+          "r_multiple": 2.0
+        },
+        {
+          "symbol": "GC=F",
+          "strategy": "trend_follow",
+          "regime_at_entry": "TRENDING_DOWN",
+          "risk_state": "neutral",
+          "entry_time": "2026-03-19 03:00:00",
+          "entry_price": 4852.7001953125,
+          "exit_time": "2026-03-19 06:00:00",
+          "exit_price": 4764.843157087053,
+          "direction": "SHORT",
+          "outcome": "WIN",
+          "gross_pnl_pct": 1.81,
+          "net_pnl_pct": 1.75,
+          "r_multiple": 2.0
+        },
+        {
+          "symbol": "GC=F",
+          "strategy": "trend_follow",
+          "regime_at_entry": "TRENDING_UP",
+          "risk_state": "neutral",
+          "entry_time": "2026-03-25 13:00:00",
+          "entry_price": 4543.2998046875,
+          "exit_time": "2026-03-25 19:00:00",
+          "exit_price": 4498.224888392857,
+          "direction": "LONG",
+          "outcome": "LOSS",
+          "gross_pnl_pct": -0.992,
+          "net_pnl_pct": -1.053,
+          "r_multiple": -1.0
+        }
+      ],
+      "last_5_trades": [
+        {
+          "symbol": "GC=F",
+          "strategy": "trend_follow",
+          "regime_at_entry": "TRENDING_DOWN",
+          "risk_state": "neutral",
+          "entry_time": "2026-07-28 15:00:00",
+          "entry_price": 4046.5,
+          "exit_time": "2026-07-29 07:00:00",
+          "exit_price": 4068.0356881277903,
+          "direction": "SHORT",
+          "outcome": "LOSS",
+          "gross_pnl_pct": -0.532,
+          "net_pnl_pct": -0.593,
+          "r_multiple": -1.0
+        },
+        {
+          "symbol": "GC=F",
+          "strategy": "trend_follow",
+          "regime_at_entry": "TRENDING_UP",
+          "risk_state": "on",
+          "entry_time": "2026-07-31 01:00:00",
+          "entry_price": 4142.5,
+          "exit_time": "2026-07-31 08:00:00",
+          "exit_price": 4113.860735212053,
+          "direction": "LONG",
+          "outcome": "LOSS",
+          "gross_pnl_pct": -0.691,
+          "net_pnl_pct": -0.752,
+          "r_multiple": -1.0
+        },
+        {
+          "symbol": "GC=F",
+          "strategy": "mean_revert",
+          "regime_at_entry": "RANGING",
+          "risk_state": "on",
+          "entry_time": "2026-08-03 13:00:00",
+          "entry_price": 4087.199951171875,
+          "exit_time": "2026-08-03 19:00:00",
+          "exit_price": 4111.189226422991,
+          "direction": "LONG",
+          "outcome": "WIN",
+          "gross_pnl_pct": 0.587,
+          "net_pnl_pct": 0.526,
+          "r_multiple": 1.5
+        },
+        {
+          "symbol": "GC=F",
+          "strategy": "trend_follow",
+          "regime_at_entry": "TRENDING_UP",
+          "risk_state": "on",
+          "entry_time": "2026-08-04 18:00:00",
+          "entry_price": 4136.7998046875,
+          "exit_time": "2026-08-05 02:00:00",
+          "exit_price": 4188.678187779018,
+          "direction": "LONG",
+          "outcome": "WIN",
+          "gross_pnl_pct": 1.254,
+          "net_pnl_pct": 1.193,
+          "r_multiple": 2.0
+        },
+        {
+          "symbol": "GC=F",
+          "strategy": "trend_follow",
+          "regime_at_entry": "TRENDING_UP",
+          "risk_state": "on",
+          "entry_time": "2026-08-06 22:00:00",
+          "entry_price": 4298.2998046875,
+          "exit_time": "2026-08-07 06:00:00",
+          "exit_price": 4356.906947544643,
+          "direction": "LONG",
+          "outcome": "WIN",
+          "gross_pnl_pct": 1.363,
+          "net_pnl_pct": 1.303,
+          "r_multiple": 2.0
+        }
+      ]
+    },
+    {
+      "symbol": "SI=F",
+      "name": "Silver Futures",
+      "class": "commodity",
+      "n_trades": 61,
+      "n_wins": 19,
+      "n_losses": 42,
+      "win_rate_pct": 31.1,
+      "gross_total_pct": -1.48,
+      "net_total_pct": -5.58,
+      "cost_drag_pct": 4.1,
+      "avg_net_per_trade": -0.092,
+      "sharpe_annualized": -0.66,
+      "max_drawdown_pct": -22.81,
+      "by_regime": {
+        "TRENDING_UP": {
+          "n": 23,
+          "win_rate_pct": 21.7,
+          "gross_total": -11.28,
+          "net_total": -12.82,
+          "avg_net": -0.557
+        },
+        "TRENDING_DOWN": {
+          "n": 26,
+          "win_rate_pct": 38.5,
+          "gross_total": 9.74,
+          "net_total": 7.98,
+          "avg_net": 0.307
+        },
+        "RANGING": {
+          "n": 12,
+          "win_rate_pct": 33.3,
+          "gross_total": 0.06,
+          "net_total": -0.74,
+          "avg_net": -0.062
+        }
+      },
+      "by_strategy": {
+        "trend_follow": {
+          "n": 49,
+          "win_rate_pct": 30.6,
+          "net_total": -4.84,
+          "avg_net": -0.099
+        },
+        "mean_revert": {
+          "n": 12,
+          "win_rate_pct": 33.3,
+          "net_total": -0.74,
+          "avg_net": -0.062
+        }
+      },
+      "expectancy_net_pct": -0.092,
+      "meta": {
+        "n_bars_1h": 2846,
+        "n_bars_1d": 502,
+        "n_bars_4h": 768
+      },
+      "sample_trades": [
+        {
+          "symbol": "SI=F",
+          "strategy": "trend_follow",
+          "regime_at_entry": "TRENDING_DOWN",
+          "risk_state": "neutral",
+          "entry_time": "2026-03-13 10:00:00",
+          "entry_price": 83.375,
+          "exit_time": "2026-03-13 16:00:00",
+          "exit_price": 80.08571297781808,
+          "direction": "SHORT",
+          "outcome": "WIN",
+          "gross_pnl_pct": 3.945,
+          "net_pnl_pct": 3.879,
+          "r_multiple": 2.0
+        },
+        {
+          "symbol": "SI=F",
+          "strategy": "trend_follow",
+          "regime_at_entry": "TRENDING_DOWN",
+          "risk_state": "neutral",
+          "entry_time": "2026-03-16 00:00:00",
+          "entry_price": 81.58999633789062,
+          "exit_time": "2026-03-16 09:00:00",
+          "exit_price": 77.97499084472656,
+          "direction": "SHORT",
+          "outcome": "WIN",
+          "gross_pnl_pct": 4.431,
+          "net_pnl_pct": 4.365,
+          "r_multiple": 2.0
+        },
+        {
+          "symbol": "SI=F",
+          "strategy": "trend_follow",
+          "regime_at_entry": "TRENDING_DOWN",
+          "risk_state": "neutral",
+          "entry_time": "2026-03-16 10:00:00",
+          "entry_price": 79.0199966430664,
+          "exit_time": "2026-03-16 13:00:00",
+          "exit_price": 81.0985666002546,
+          "direction": "SHORT",
+          "outcome": "LOSS",
+          "gross_pnl_pct": -2.63,
+          "net_pnl_pct": -2.697,
+          "r_multiple": -1.0
+        }
+      ],
+      "last_5_trades": [
+        {
+          "symbol": "SI=F",
+          "strategy": "trend_follow",
+          "regime_at_entry": "TRENDING_DOWN",
+          "risk_state": "neutral",
+          "entry_time": "2026-07-28 15:00:00",
+          "entry_price": 57.65999984741211,
+          "exit_time": "2026-07-29 06:00:00",
+          "exit_price": 58.28732081821987,
+          "direction": "SHORT",
+          "outcome": "LOSS",
+          "gross_pnl_pct": -1.088,
+          "net_pnl_pct": -1.157,
+          "r_multiple": -1.0
+        },
+        {
+          "symbol": "SI=F",
+          "strategy": "trend_follow",
+          "regime_at_entry": "TRENDING_DOWN",
+          "risk_state": "neutral",
+          "entry_time": "2026-07-29 10:00:00",
+          "entry_price": 57.630001068115234,
+          "exit_time": "2026-07-29 16:00:00",
+          "exit_price": 58.181251117161345,
+          "direction": "SHORT",
+          "outcome": "LOSS",
+          "gross_pnl_pct": -0.957,
+          "net_pnl_pct": -1.025,
+          "r_multiple": -1.0
+        },
+        {
+          "symbol": "SI=F",
+          "strategy": "mean_revert",
+          "regime_at_entry": "RANGING",
+          "risk_state": "on",
+          "entry_time": "2026-08-03 12:00:00",
+          "entry_price": 57.64500045776367,
+          "exit_time": "2026-08-03 14:00:00",
+          "exit_price": 57.24464334760393,
+          "direction": "LONG",
+          "outcome": "LOSS",
+          "gross_pnl_pct": -0.695,
+          "net_pnl_pct": -0.763,
+          "r_multiple": -1.0
+        },
+        {
+          "symbol": "SI=F",
+          "strategy": "trend_follow",
+          "regime_at_entry": "TRENDING_UP",
+          "risk_state": "on",
+          "entry_time": "2026-08-05 20:00:00",
+          "entry_price": 62.255001068115234,
+          "exit_time": "2026-08-06 13:00:00",
+          "exit_price": 61.47232246398926,
+          "direction": "LONG",
+          "outcome": "LOSS",
+          "gross_pnl_pct": -1.257,
+          "net_pnl_pct": -1.325,
+          "r_multiple": -1.0
+        },
+        {
+          "symbol": "SI=F",
+          "strategy": "trend_follow",
+          "regime_at_entry": "TRENDING_UP",
+          "risk_state": "on",
+          "entry_time": "2026-08-06 13:00:00",
+          "entry_price": 61.86000061035156,
+          "exit_time": "2026-08-07 06:00:00",
+          "exit_price": 63.37178475516183,
+          "direction": "LONG",
+          "outcome": "WIN",
+          "gross_pnl_pct": 2.444,
+          "net_pnl_pct": 2.376,
+          "r_multiple": 2.0
+        }
+      ]
+    },
+    {
+      "symbol": "EURUSD=X",
+      "name": "Euro/USD",
+      "class": "fx_major",
+      "n_trades": 79,
+      "n_wins": 30,
+      "n_losses": 49,
+      "win_rate_pct": 38.0,
+      "gross_total_pct": 0.71,
+      "net_total_pct": -0.9,
+      "cost_drag_pct": 1.61,
+      "avg_net_per_trade": -0.011,
+      "sharpe_annualized": -0.96,
+      "max_drawdown_pct": -2.17,
+      "by_regime": {
+        "TRENDING_UP": {
+          "n": 39,
+          "win_rate_pct": 28.2,
+          "gross_total": -0.54,
+          "net_total": -1.33,
+          "avg_net": -0.034
+        },
+        "TRENDING_DOWN": {
+          "n": 25,
+          "win_rate_pct": 44.0,
+          "gross_total": 0.89,
+          "net_total": 0.38,
+          "avg_net": 0.015
+        },
+        "RANGING": {
+          "n": 15,
+          "win_rate_pct": 53.3,
+          "gross_total": 0.36,
+          "net_total": 0.06,
+          "avg_net": 0.004
+        }
+      },
+      "by_strategy": {
+        "trend_follow": {
+          "n": 64,
+          "win_rate_pct": 34.4,
+          "net_total": -0.96,
+          "avg_net": -0.015
+        },
+        "mean_revert": {
+          "n": 15,
+          "win_rate_pct": 53.3,
+          "net_total": 0.06,
+          "avg_net": 0.004
+        }
+      },
+      "expectancy_net_pct": -0.011,
+      "meta": {
+        "n_bars_1h": 3060,
+        "n_bars_1d": 516,
+        "n_bars_4h": 791
+      },
+      "sample_trades": [
+        {
+          "symbol": "EURUSD=X",
+          "strategy": "mean_revert",
+          "regime_at_entry": "RANGING",
+          "risk_state": "neutral",
+          "entry_time": "2026-03-11 15:00:00",
+          "entry_price": 1.1570056676864624,
+          "exit_time": "2026-03-11 22:00:00",
+          "exit_price": 1.1555039371762956,
+          "direction": "LONG",
+          "outcome": "LOSS",
+          "gross_pnl_pct": -0.13,
+          "net_pnl_pct": -0.15,
+          "r_multiple": -1.0
+        },
+        {
+          "symbol": "EURUSD=X",
+          "strategy": "trend_follow",
+          "regime_at_entry": "TRENDING_DOWN",
+          "risk_state": "neutral",
+          "entry_time": "2026-03-12 09:00:00",
+          "entry_price": 1.156336784362793,
+          "exit_time": "2026-03-12 13:00:00",
+          "exit_price": 1.1526757223265511,
+          "direction": "SHORT",
+          "outcome": "WIN",
+          "gross_pnl_pct": 0.317,
+          "net_pnl_pct": 0.296,
+          "r_multiple": 2.0
+        },
+        {
+          "symbol": "EURUSD=X",
+          "strategy": "trend_follow",
+          "regime_at_entry": "TRENDING_DOWN",
+          "risk_state": "neutral",
+          "entry_time": "2026-03-12 13:00:00",
+          "entry_price": 1.1530035734176636,
+          "exit_time": "2026-03-13 06:00:00",
+          "exit_price": 1.148831077984401,
+          "direction": "SHORT",
+          "outcome": "WIN",
+          "gross_pnl_pct": 0.362,
+          "net_pnl_pct": 0.342,
+          "r_multiple": 2.0
+        }
+      ],
+      "last_5_trades": [
+        {
+          "symbol": "EURUSD=X",
+          "strategy": "trend_follow",
+          "regime_at_entry": "TRENDING_DOWN",
+          "risk_state": "neutral",
+          "entry_time": "2026-07-29 12:00:00",
+          "entry_price": 1.138044834136963,
+          "exit_time": "2026-07-29 14:00:00",
+          "exit_price": 1.139074342591422,
+          "direction": "SHORT",
+          "outcome": "LOSS",
+          "gross_pnl_pct": -0.09,
+          "net_pnl_pct": -0.111,
+          "r_multiple": -1.0
+        },
+        {
+          "symbol": "EURUSD=X",
+          "strategy": "trend_follow",
+          "regime_at_entry": "TRENDING_UP",
+          "risk_state": "on",
+          "entry_time": "2026-07-31 04:00:00",
+          "entry_price": 1.151145339012146,
+          "exit_time": "2026-07-31 11:00:00",
+          "exit_price": 1.1498078618730818,
+          "direction": "LONG",
+          "outcome": "LOSS",
+          "gross_pnl_pct": -0.116,
+          "net_pnl_pct": -0.137,
+          "r_multiple": -1.0
+        },
+        {
+          "symbol": "EURUSD=X",
+          "strategy": "trend_follow",
+          "regime_at_entry": "TRENDING_UP",
+          "risk_state": "on",
+          "entry_time": "2026-08-03 11:00:00",
+          "entry_price": 1.1535356044769287,
+          "exit_time": "2026-08-03 14:00:00",
+          "exit_price": 1.152024154152189,
+          "direction": "LONG",
+          "outcome": "LOSS",
+          "gross_pnl_pct": -0.131,
+          "net_pnl_pct": -0.151,
+          "r_multiple": -1.0
+        },
+        {
+          "symbol": "EURUSD=X",
+          "strategy": "trend_follow",
+          "regime_at_entry": "TRENDING_UP",
+          "risk_state": "on",
+          "entry_time": "2026-08-05 08:00:00",
+          "entry_price": 1.1539349555969238,
+          "exit_time": "2026-08-05 17:00:00",
+          "exit_price": 1.1559605598449707,
+          "direction": "LONG",
+          "outcome": "WIN",
+          "gross_pnl_pct": 0.176,
+          "net_pnl_pct": 0.155,
+          "r_multiple": 2.0
+        },
+        {
+          "symbol": "EURUSD=X",
+          "strategy": "trend_follow",
+          "regime_at_entry": "TRENDING_UP",
+          "risk_state": "on",
+          "entry_time": "2026-08-05 19:00:00",
+          "entry_price": 1.155401587486267,
+          "exit_time": "2026-08-06 14:00:00",
+          "exit_price": 1.153872549533844,
+          "direction": "LONG",
+          "outcome": "LOSS",
+          "gross_pnl_pct": -0.132,
+          "net_pnl_pct": -0.153,
+          "r_multiple": -1.0
+        }
+      ]
+    },
+    {
+      "symbol": "GBPUSD=X",
+      "name": "Pound/USD",
+      "class": "fx_major",
+      "n_trades": 89,
+      "n_wins": 27,
+      "n_losses": 62,
+      "win_rate_pct": 30.3,
+      "gross_total_pct": -2.0,
+      "net_total_pct": -3.96,
+      "cost_drag_pct": 1.96,
+      "avg_net_per_trade": -0.044,
+      "sharpe_annualized": -3.7,
+      "max_drawdown_pct": -4.75,
+      "by_regime": {
+        "TRENDING_UP": {
+          "n": 48,
+          "win_rate_pct": 25.0,
+          "gross_total": -1.53,
+          "net_total": -2.58,
+          "avg_net": -0.054
+        },
+        "TRENDING_DOWN": {
+          "n": 28,
+          "win_rate_pct": 32.1,
+          "gross_total": -0.43,
+          "net_total": -1.05,
+          "avg_net": -0.038
+        },
+        "RANGING": {
+          "n": 13,
+          "win_rate_pct": 46.2,
+          "gross_total": -0.04,
+          "net_total": -0.33,
+          "avg_net": -0.025
+        }
+      },
+      "by_strategy": {
+        "trend_follow": {
+          "n": 76,
+          "win_rate_pct": 27.6,
+          "net_total": -3.63,
+          "avg_net": -0.048
+        },
+        "mean_revert": {
+          "n": 13,
+          "win_rate_pct": 46.2,
+          "net_total": -0.33,
+          "avg_net": -0.025
+        }
+      },
+      "expectancy_net_pct": -0.044,
+      "meta": {
+        "n_bars_1h": 3060,
+        "n_bars_1d": 516,
+        "n_bars_4h": 791
+      },
+      "sample_trades": [
+        {
+          "symbol": "GBPUSD=X",
+          "strategy": "trend_follow",
+          "regime_at_entry": "TRENDING_DOWN",
+          "risk_state": "neutral",
+          "entry_time": "2026-03-12 07:00:00",
+          "entry_price": 1.3392976522445679,
+          "exit_time": "2026-03-12 15:00:00",
+          "exit_price": 1.3348647526332311,
+          "direction": "SHORT",
+          "outcome": "WIN",
+          "gross_pnl_pct": 0.331,
+          "net_pnl_pct": 0.309,
+          "r_multiple": 2.0
+        },
+        {
+          "symbol": "GBPUSD=X",
+          "strategy": "trend_follow",
+          "regime_at_entry": "TRENDING_DOWN",
+          "risk_state": "neutral",
+          "entry_time": "2026-03-12 16:00:00",
+          "entry_price": 1.3348461389541626,
+          "exit_time": "2026-03-13 07:00:00",
+          "exit_price": 1.3293448771749223,
+          "direction": "SHORT",
+          "outcome": "WIN",
+          "gross_pnl_pct": 0.412,
+          "net_pnl_pct": 0.39,
+          "r_multiple": 2.0
+        },
+        {
+          "symbol": "GBPUSD=X",
+          "strategy": "trend_follow",
+          "regime_at_entry": "TRENDING_DOWN",
+          "risk_state": "neutral",
+          "entry_time": "2026-03-16 00:00:00",
+          "entry_price": 1.3263742923736572,
+          "exit_time": "2026-03-16 13:00:00",
+          "exit_price": 1.3294276297092438,
+          "direction": "SHORT",
+          "outcome": "LOSS",
+          "gross_pnl_pct": -0.23,
+          "net_pnl_pct": -0.252,
+          "r_multiple": -1.0
+        }
+      ],
+      "last_5_trades": [
+        {
+          "symbol": "GBPUSD=X",
+          "strategy": "trend_follow",
+          "regime_at_entry": "TRENDING_UP",
+          "risk_state": "on",
+          "entry_time": "2026-07-31 06:00:00",
+          "entry_price": 1.3452974557876587,
+          "exit_time": "2026-07-31 08:00:00",
+          "exit_price": 1.34385147690773,
+          "direction": "LONG",
+          "outcome": "LOSS",
+          "gross_pnl_pct": -0.107,
+          "net_pnl_pct": -0.129,
+          "r_multiple": -1.0
+        },
+        {
+          "symbol": "GBPUSD=X",
+          "strategy": "trend_follow",
+          "regime_at_entry": "TRENDING_UP",
+          "risk_state": "on",
+          "entry_time": "2026-08-03 06:00:00",
+          "entry_price": 1.3461486101150513,
+          "exit_time": "2026-08-03 14:00:00",
+          "exit_price": 1.3444062982286726,
+          "direction": "LONG",
+          "outcome": "LOSS",
+          "gross_pnl_pct": -0.129,
+          "net_pnl_pct": -0.151,
+          "r_multiple": -1.0
+        },
+        {
+          "symbol": "GBPUSD=X",
+          "strategy": "trend_follow",
+          "regime_at_entry": "TRENDING_UP",
+          "risk_state": "on",
+          "entry_time": "2026-08-04 22:00:00",
+          "entry_price": 1.345152735710144,
+          "exit_time": "2026-08-05 11:00:00",
+          "exit_price": 1.3478925483567374,
+          "direction": "LONG",
+          "outcome": "WIN",
+          "gross_pnl_pct": 0.204,
+          "net_pnl_pct": 0.182,
+          "r_multiple": 2.0
+        },
+        {
+          "symbol": "GBPUSD=X",
+          "strategy": "mean_revert",
+          "regime_at_entry": "RANGING",
+          "risk_state": "on",
+          "entry_time": "2026-08-05 11:00:00",
+          "entry_price": 1.3479450941085815,
+          "exit_time": "2026-08-05 13:00:00",
+          "exit_price": 1.3466174517359053,
+          "direction": "SHORT",
+          "outcome": "WIN",
+          "gross_pnl_pct": 0.098,
+          "net_pnl_pct": 0.077,
+          "r_multiple": 1.5
+        },
+        {
+          "symbol": "GBPUSD=X",
+          "strategy": "trend_follow",
+          "regime_at_entry": "TRENDING_UP",
+          "risk_state": "on",
+          "entry_time": "2026-08-05 16:00:00",
+          "entry_price": 1.3459855318069458,
+          "exit_time": "2026-08-07 09:00:00",
+          "exit_price": 1.3441103611673628,
+          "direction": "LONG",
+          "outcome": "LOSS",
+          "gross_pnl_pct": -0.139,
+          "net_pnl_pct": -0.161,
+          "r_multiple": -1.0
+        }
+      ]
+    },
+    {
+      "symbol": "USDJPY=X",
+      "name": "USD/Yen",
+      "class": "fx_major",
+      "n_trades": 63,
+      "n_wins": 24,
+      "n_losses": 39,
+      "win_rate_pct": 38.1,
+      "gross_total_pct": -0.22,
+      "net_total_pct": -1.46,
+      "cost_drag_pct": 1.25,
+      "avg_net_per_trade": -0.023,
+      "sharpe_annualized": -1.96,
+      "max_drawdown_pct": -1.46,
+      "by_regime": {
+        "TRENDING_UP": {
+          "n": 46,
+          "win_rate_pct": 32.6,
+          "gross_total": -0.32,
+          "net_total": -1.23,
+          "avg_net": -0.027
+        },
+        "TRENDING_DOWN": {
+          "n": 2,
+          "win_rate_pct": 0.0,
+          "gross_total": -0.48,
+          "net_total": -0.52,
+          "avg_net": -0.26
+        },
+        "RANGING": {
+          "n": 15,
+          "win_rate_pct": 60.0,
+          "gross_total": 0.58,
+          "net_total": 0.29,
+          "avg_net": 0.019
+        }
+      },
+      "by_strategy": {
+        "trend_follow": {
+          "n": 48,
+          "win_rate_pct": 31.2,
+          "net_total": -1.75,
+          "avg_net": -0.036
+        },
+        "mean_revert": {
+          "n": 15,
+          "win_rate_pct": 60.0,
+          "net_total": 0.29,
+          "avg_net": 0.019
+        }
+      },
+      "expectancy_net_pct": -0.023,
+      "meta": {
+        "n_bars_1h": 3043,
+        "n_bars_1d": 516,
+        "n_bars_4h": 791
+      },
+      "sample_trades": [
+        {
+          "symbol": "USDJPY=X",
+          "strategy": "mean_revert",
+          "regime_at_entry": "RANGING",
+          "risk_state": "neutral",
+          "entry_time": "2026-03-11 18:00:00",
+          "entry_price": 158.91900634765625,
+          "exit_time": "2026-03-12 00:00:00",
+          "exit_price": 159.14507947649275,
+          "direction": "SHORT",
+          "outcome": "LOSS",
+          "gross_pnl_pct": -0.142,
+          "net_pnl_pct": -0.162,
+          "r_multiple": -1.0
+        },
+        {
+          "symbol": "USDJPY=X",
+          "strategy": "mean_revert",
+          "regime_at_entry": "RANGING",
+          "risk_state": "neutral",
+          "entry_time": "2026-03-12 00:00:00",
+          "entry_price": 158.97500610351562,
+          "exit_time": "2026-03-12 08:00:00",
+          "exit_price": 158.68175452096122,
+          "direction": "SHORT",
+          "outcome": "WIN",
+          "gross_pnl_pct": 0.184,
+          "net_pnl_pct": 0.165,
+          "r_multiple": 1.5
+        },
+        {
+          "symbol": "USDJPY=X",
+          "strategy": "trend_follow",
+          "regime_at_entry": "TRENDING_UP",
+          "risk_state": "neutral",
+          "entry_time": "2026-03-12 08:00:00",
+          "entry_price": 158.8780059814453,
+          "exit_time": "2026-03-12 11:00:00",
+          "exit_price": 158.59557887486048,
+          "direction": "LONG",
+          "outcome": "LOSS",
+          "gross_pnl_pct": -0.178,
+          "net_pnl_pct": -0.198,
+          "r_multiple": -1.0
+        }
+      ],
+      "last_5_trades": [
+        {
+          "symbol": "USDJPY=X",
+          "strategy": "trend_follow",
+          "regime_at_entry": "TRENDING_UP",
+          "risk_state": "on",
+          "entry_time": "2026-07-22 07:00:00",
+          "entry_price": 162.93600463867188,
+          "exit_time": "2026-07-23 07:00:00",
+          "exit_price": 163.31699807303292,
+          "direction": "LONG",
+          "outcome": "WIN",
+          "gross_pnl_pct": 0.234,
+          "net_pnl_pct": 0.214,
+          "r_multiple": 2.0
+        },
+        {
+          "symbol": "USDJPY=X",
+          "strategy": "trend_follow",
+          "regime_at_entry": "TRENDING_UP",
+          "risk_state": "neutral",
+          "entry_time": "2026-07-24 02:00:00",
+          "entry_price": 163.77000427246094,
+          "exit_time": "2026-07-27 00:00:00",
+          "exit_price": 163.56975718906946,
+          "direction": "LONG",
+          "outcome": "LOSS",
+          "gross_pnl_pct": -0.122,
+          "net_pnl_pct": -0.142,
+          "r_multiple": -1.0
+        },
+        {
+          "symbol": "USDJPY=X",
+          "strategy": "mean_revert",
+          "regime_at_entry": "RANGING",
+          "risk_state": "neutral",
+          "entry_time": "2026-07-28 11:00:00",
+          "entry_price": 163.927001953125,
+          "exit_time": "2026-07-28 15:00:00",
+          "exit_price": 163.8074242728097,
+          "direction": "SHORT",
+          "outcome": "WIN",
+          "gross_pnl_pct": 0.073,
+          "net_pnl_pct": 0.053,
+          "r_multiple": 1.5
+        },
+        {
+          "symbol": "USDJPY=X",
+          "strategy": "trend_follow",
+          "regime_at_entry": "TRENDING_UP",
+          "risk_state": "neutral",
+          "entry_time": "2026-07-29 12:00:00",
+          "entry_price": 163.8000030517578,
+          "exit_time": "2026-07-29 18:00:00",
+          "exit_price": 163.57521983555384,
+          "direction": "LONG",
+          "outcome": "LOSS",
+          "gross_pnl_pct": -0.137,
+          "net_pnl_pct": -0.157,
+          "r_multiple": -1.0
+        },
+        {
+          "symbol": "USDJPY=X",
+          "strategy": "trend_follow",
+          "regime_at_entry": "TRENDING_UP",
+          "risk_state": "on",
+          "entry_time": "2026-08-07 04:00:00",
+          "entry_price": 158.37100219726562,
+          "exit_time": "2026-08-07 12:00:00",
+          "exit_price": 158.13850566319056,
+          "direction": "LONG",
+          "outcome": "LOSS",
+          "gross_pnl_pct": -0.147,
+          "net_pnl_pct": -0.167,
+          "r_multiple": -1.0
+        }
+      ]
+    },
+    {
+      "symbol": "AUDUSD=X",
+      "name": "Aussie/USD",
+      "class": "fx_major",
+      "n_trades": 82,
+      "n_wins": 29,
+      "n_losses": 53,
+      "win_rate_pct": 35.4,
+      "gross_total_pct": 0.43,
+      "net_total_pct": -1.82,
+      "cost_drag_pct": 2.24,
+      "avg_net_per_trade": -0.022,
+      "sharpe_annualized": -1.3,
+      "max_drawdown_pct": -3.67,
+      "by_regime": {
+        "TRENDING_UP": {
+          "n": 50,
+          "win_rate_pct": 30.0,
+          "gross_total": -1.21,
+          "net_total": -2.58,
+          "avg_net": -0.052
+        },
+        "TRENDING_DOWN": {
+          "n": 21,
+          "win_rate_pct": 38.1,
+          "gross_total": 1.16,
+          "net_total": 0.58,
+          "avg_net": 0.028
+        },
+        "RANGING": {
+          "n": 11,
+          "win_rate_pct": 54.5,
+          "gross_total": 0.48,
+          "net_total": 0.18,
+          "avg_net": 0.016
+        }
+      },
+      "by_strategy": {
+        "trend_follow": {
+          "n": 71,
+          "win_rate_pct": 32.4,
+          "net_total": -1.99,
+          "avg_net": -0.028
+        },
+        "mean_revert": {
+          "n": 11,
+          "win_rate_pct": 54.5,
+          "net_total": 0.18,
+          "avg_net": 0.016
+        }
+      },
+      "expectancy_net_pct": -0.022,
+      "meta": {
+        "n_bars_1h": 3063,
+        "n_bars_1d": 516,
+        "n_bars_4h": 791
+      },
+      "sample_trades": [
+        {
+          "symbol": "AUDUSD=X",
+          "strategy": "trend_follow",
+          "regime_at_entry": "TRENDING_UP",
+          "risk_state": "neutral",
+          "entry_time": "2026-03-11 16:00:00",
+          "entry_price": 0.7155634760856628,
+          "exit_time": "2026-03-11 23:00:00",
+          "exit_price": 0.7130985132285527,
+          "direction": "LONG",
+          "outcome": "LOSS",
+          "gross_pnl_pct": -0.344,
+          "net_pnl_pct": -0.372,
+          "r_multiple": -1.0
+        },
+        {
+          "symbol": "AUDUSD=X",
+          "strategy": "trend_follow",
+          "regime_at_entry": "TRENDING_UP",
+          "risk_state": "neutral",
+          "entry_time": "2026-03-12 00:00:00",
+          "entry_price": 0.714796245098114,
+          "exit_time": "2026-03-12 05:00:00",
+          "exit_price": 0.7125913990395409,
+          "direction": "LONG",
+          "outcome": "LOSS",
+          "gross_pnl_pct": -0.308,
+          "net_pnl_pct": -0.336,
+          "r_multiple": -1.0
+        },
+        {
+          "symbol": "AUDUSD=X",
+          "strategy": "trend_follow",
+          "regime_at_entry": "TRENDING_UP",
+          "risk_state": "neutral",
+          "entry_time": "2026-03-17 00:00:00",
+          "entry_price": 0.7062445878982544,
+          "exit_time": "2026-03-17 12:00:00",
+          "exit_price": 0.709607720375061,
+          "direction": "LONG",
+          "outcome": "WIN",
+          "gross_pnl_pct": 0.476,
+          "net_pnl_pct": 0.449,
+          "r_multiple": 2.0
+        }
+      ],
+      "last_5_trades": [
+        {
+          "symbol": "AUDUSD=X",
+          "strategy": "trend_follow",
+          "regime_at_entry": "TRENDING_DOWN",
+          "risk_state": "neutral",
+          "entry_time": "2026-07-24 17:00:00",
+          "entry_price": 0.6988608837127686,
+          "exit_time": "2026-07-27 00:00:00",
+          "exit_price": 0.6999436276299613,
+          "direction": "SHORT",
+          "outcome": "LOSS",
+          "gross_pnl_pct": -0.155,
+          "net_pnl_pct": -0.182,
+          "r_multiple": -1.0
+        },
+        {
+          "symbol": "AUDUSD=X",
+          "strategy": "trend_follow",
+          "regime_at_entry": "TRENDING_DOWN",
+          "risk_state": "neutral",
+          "entry_time": "2026-07-28 18:00:00",
+          "entry_price": 0.69773930311203,
+          "exit_time": "2026-07-29 01:00:00",
+          "exit_price": 0.6954777538776398,
+          "direction": "SHORT",
+          "outcome": "WIN",
+          "gross_pnl_pct": 0.324,
+          "net_pnl_pct": 0.297,
+          "r_multiple": 2.0
+        },
+        {
+          "symbol": "AUDUSD=X",
+          "strategy": "trend_follow",
+          "regime_at_entry": "TRENDING_DOWN",
+          "risk_state": "neutral",
+          "entry_time": "2026-07-29 17:00:00",
+          "entry_price": 0.6937218308448792,
+          "exit_time": "2026-07-29 19:00:00",
+          "exit_price": 0.6949099408728736,
+          "direction": "SHORT",
+          "outcome": "LOSS",
+          "gross_pnl_pct": -0.171,
+          "net_pnl_pct": -0.199,
+          "r_multiple": -1.0
+        },
+        {
+          "symbol": "AUDUSD=X",
+          "strategy": "trend_follow",
+          "regime_at_entry": "TRENDING_UP",
+          "risk_state": "on",
+          "entry_time": "2026-08-05 08:00:00",
+          "entry_price": 0.7045726776123047,
+          "exit_time": "2026-08-05 14:00:00",
+          "exit_price": 0.7062231813158307,
+          "direction": "LONG",
+          "outcome": "WIN",
+          "gross_pnl_pct": 0.234,
+          "net_pnl_pct": 0.207,
+          "r_multiple": 2.0
+        },
+        {
+          "symbol": "AUDUSD=X",
+          "strategy": "trend_follow",
+          "regime_at_entry": "TRENDING_UP",
+          "risk_state": "on",
+          "entry_time": "2026-08-05 15:00:00",
+          "entry_price": 0.705268383026123,
+          "exit_time": "2026-08-06 06:00:00",
+          "exit_price": 0.7042134638343539,
+          "direction": "LONG",
+          "outcome": "LOSS",
+          "gross_pnl_pct": -0.15,
+          "net_pnl_pct": -0.177,
+          "r_multiple": -1.0
+        }
+      ]
+    },
+    {
+      "symbol": "BTC-USD",
+      "name": "Bitcoin/USD",
+      "class": "crypto",
+      "n_trades": 123,
+      "n_wins": 43,
+      "n_losses": 80,
+      "win_rate_pct": 35.0,
+      "gross_total_pct": -5.4,
+      "net_total_pct": -38.29,
+      "cost_drag_pct": 32.88,
+      "avg_net_per_trade": -0.311,
+      "sharpe_annualized": -4.39,
+      "max_drawdown_pct": -45.88,
+      "by_regime": {
+        "TRENDING_UP": {
+          "n": 68,
+          "win_rate_pct": 29.4,
+          "gross_total": -8.01,
+          "net_total": -26.17,
+          "avg_net": -0.385
+        },
+        "TRENDING_DOWN": {
+          "n": 34,
+          "win_rate_pct": 32.4,
+          "gross_total": -2.63,
+          "net_total": -11.73,
+          "avg_net": -0.345
+        },
+        "RANGING": {
+          "n": 21,
+          "win_rate_pct": 57.1,
+          "gross_total": 5.24,
+          "net_total": -0.38,
+          "avg_net": -0.018
+        }
+      },
+      "by_strategy": {
+        "trend_follow": {
+          "n": 102,
+          "win_rate_pct": 30.4,
+          "net_total": -37.91,
+          "avg_net": -0.372
+        },
+        "mean_revert": {
+          "n": 21,
+          "win_rate_pct": 57.1,
+          "net_total": -0.38,
+          "avg_net": -0.018
+        }
+      },
+      "expectancy_net_pct": -0.311,
+      "meta": {
+        "n_bars_1h": 4319,
+        "n_bars_1d": 729,
+        "n_bars_4h": 1080
+      },
+      "sample_trades": [
+        {
+          "symbol": "BTC-USD",
+          "strategy": "trend_follow",
+          "regime_at_entry": "TRENDING_DOWN",
+          "risk_state": "neutral",
+          "entry_time": "2026-03-06 07:00:00",
+          "entry_price": 71077.15625,
+          "exit_time": "2026-03-06 12:00:00",
+          "exit_price": 69739.92633928571,
+          "direction": "SHORT",
+          "outcome": "WIN",
+          "gross_pnl_pct": 1.881,
+          "net_pnl_pct": 1.614,
+          "r_multiple": 2.0
+        },
+        {
+          "symbol": "BTC-USD",
+          "strategy": "trend_follow",
+          "regime_at_entry": "TRENDING_DOWN",
+          "risk_state": "neutral",
+          "entry_time": "2026-03-07 04:00:00",
+          "entry_price": 68076.1484375,
+          "exit_time": "2026-03-08 04:00:00",
+          "exit_price": 66888.41629464286,
+          "direction": "SHORT",
+          "outcome": "WIN",
+          "gross_pnl_pct": 1.745,
+          "net_pnl_pct": 1.477,
+          "r_multiple": 2.0
+        },
+        {
+          "symbol": "BTC-USD",
+          "strategy": "trend_follow",
+          "regime_at_entry": "TRENDING_DOWN",
+          "risk_state": "neutral",
+          "entry_time": "2026-03-08 07:00:00",
+          "entry_price": 67277.71875,
+          "exit_time": "2026-03-08 09:00:00",
+          "exit_price": 67758.77092633929,
+          "direction": "SHORT",
+          "outcome": "LOSS",
+          "gross_pnl_pct": -0.715,
+          "net_pnl_pct": -0.982,
+          "r_multiple": -1.0
+        }
+      ],
+      "last_5_trades": [
+        {
+          "symbol": "BTC-USD",
+          "strategy": "trend_follow",
+          "regime_at_entry": "TRENDING_UP",
+          "risk_state": "on",
+          "entry_time": "2026-07-31 01:00:00",
+          "entry_price": 64493.6796875,
+          "exit_time": "2026-07-31 07:00:00",
+          "exit_price": 64016.88853236607,
+          "direction": "LONG",
+          "outcome": "LOSS",
+          "gross_pnl_pct": -0.739,
+          "net_pnl_pct": -1.007,
+          "r_multiple": -1.0
+        },
+        {
+          "symbol": "BTC-USD",
+          "strategy": "mean_revert",
+          "regime_at_entry": "RANGING",
+          "risk_state": "on",
+          "entry_time": "2026-08-03 07:00:00",
+          "entry_price": 62530.71875,
+          "exit_time": "2026-08-03 13:00:00",
+          "exit_price": 62903.50181361607,
+          "direction": "LONG",
+          "outcome": "WIN",
+          "gross_pnl_pct": 0.596,
+          "net_pnl_pct": 0.328,
+          "r_multiple": 1.5
+        },
+        {
+          "symbol": "BTC-USD",
+          "strategy": "trend_follow",
+          "regime_at_entry": "TRENDING_UP",
+          "risk_state": "on",
+          "entry_time": "2026-08-04 03:00:00",
+          "entry_price": 63729.05078125,
+          "exit_time": "2026-08-05 15:00:00",
+          "exit_price": 64687.38588169643,
+          "direction": "LONG",
+          "outcome": "WIN",
+          "gross_pnl_pct": 1.504,
+          "net_pnl_pct": 1.236,
+          "r_multiple": 2.0
+        },
+        {
+          "symbol": "BTC-USD",
+          "strategy": "mean_revert",
+          "regime_at_entry": "RANGING",
+          "risk_state": "on",
+          "entry_time": "2026-08-05 17:00:00",
+          "entry_price": 64695.3515625,
+          "exit_time": "2026-08-06 13:00:00",
+          "exit_price": 64276.18694196428,
+          "direction": "SHORT",
+          "outcome": "WIN",
+          "gross_pnl_pct": 0.648,
+          "net_pnl_pct": 0.38,
+          "r_multiple": 1.5
+        },
+        {
+          "symbol": "BTC-USD",
+          "strategy": "mean_revert",
+          "regime_at_entry": "RANGING",
+          "risk_state": "on",
+          "entry_time": "2026-08-07 04:00:00",
+          "entry_price": 64191.671875,
+          "exit_time": "2026-08-07 08:00:00",
+          "exit_price": 64482.272181919645,
+          "direction": "LONG",
+          "outcome": "WIN",
+          "gross_pnl_pct": 0.453,
+          "net_pnl_pct": 0.185,
+          "r_multiple": 1.5
+        }
+      ]
+    },
+    {
+      "symbol": "ETH-USD",
+      "name": "Ethereum/USD",
+      "class": "crypto",
+      "n_trades": 108,
+      "n_wins": 45,
+      "n_losses": 63,
+      "win_rate_pct": 41.7,
+      "gross_total_pct": 12.68,
+      "net_total_pct": -15.51,
+      "cost_drag_pct": 28.19,
+      "avg_net_per_trade": -0.144,
+      "sharpe_annualized": -1.54,
+      "max_drawdown_pct": -20.04,
+      "by_regime": {
+        "TRENDING_UP": {
+          "n": 60,
+          "win_rate_pct": 40.0,
+          "gross_total": 5.01,
+          "net_total": -10.65,
+          "avg_net": -0.178
+        },
+        "TRENDING_DOWN": {
+          "n": 30,
+          "win_rate_pct": 40.0,
+          "gross_total": 5.46,
+          "net_total": -2.38,
+          "avg_net": -0.079
+        },
+        "RANGING": {
+          "n": 18,
+          "win_rate_pct": 50.0,
+          "gross_total": 2.21,
+          "net_total": -2.49,
+          "avg_net": -0.138
+        }
+      },
+      "by_strategy": {
+        "trend_follow": {
+          "n": 90,
+          "win_rate_pct": 40.0,
+          "net_total": -13.03,
+          "avg_net": -0.145
+        },
+        "mean_revert": {
+          "n": 18,
+          "win_rate_pct": 50.0,
+          "net_total": -2.49,
+          "avg_net": -0.138
+        }
+      },
+      "expectancy_net_pct": -0.144,
+      "meta": {
+        "n_bars_1h": 4319,
+        "n_bars_1d": 729,
+        "n_bars_4h": 1080
+      },
+      "sample_trades": [
+        {
+          "symbol": "ETH-USD",
+          "strategy": "mean_revert",
+          "regime_at_entry": "RANGING",
+          "risk_state": "off",
+          "entry_time": "2026-03-06 00:00:00",
+          "entry_price": 2073.574462890625,
+          "exit_time": "2026-03-06 09:00:00",
+          "exit_price": 2051.304949079241,
+          "direction": "LONG",
+          "outcome": "LOSS",
+          "gross_pnl_pct": -1.074,
+          "net_pnl_pct": -1.335,
+          "r_multiple": -1.0
+        },
+        {
+          "symbol": "ETH-USD",
+          "strategy": "trend_follow",
+          "regime_at_entry": "TRENDING_DOWN",
+          "risk_state": "neutral",
+          "entry_time": "2026-03-07 04:00:00",
+          "entry_price": 1976.168701171875,
+          "exit_time": "2026-03-08 04:00:00",
+          "exit_price": 1934.9510062081474,
+          "direction": "SHORT",
+          "outcome": "WIN",
+          "gross_pnl_pct": 2.086,
+          "net_pnl_pct": 1.825,
+          "r_multiple": 2.0
+        },
+        {
+          "symbol": "ETH-USD",
+          "strategy": "trend_follow",
+          "regime_at_entry": "TRENDING_DOWN",
+          "risk_state": "neutral",
+          "entry_time": "2026-03-08 07:00:00",
+          "entry_price": 1954.8134765625,
+          "exit_time": "2026-03-08 10:00:00",
+          "exit_price": 1973.1613507952009,
+          "direction": "SHORT",
+          "outcome": "LOSS",
+          "gross_pnl_pct": -0.939,
+          "net_pnl_pct": -1.2,
+          "r_multiple": -1.0
+        }
+      ],
+      "last_5_trades": [
+        {
+          "symbol": "ETH-USD",
+          "strategy": "mean_revert",
+          "regime_at_entry": "RANGING",
+          "risk_state": "on",
+          "entry_time": "2026-08-01 18:00:00",
+          "entry_price": 1835.300048828125,
+          "exit_time": "2026-08-01 22:00:00",
+          "exit_price": 1846.3078918457031,
+          "direction": "LONG",
+          "outcome": "WIN",
+          "gross_pnl_pct": 0.6,
+          "net_pnl_pct": 0.339,
+          "r_multiple": 1.5
+        },
+        {
+          "symbol": "ETH-USD",
+          "strategy": "trend_follow",
+          "regime_at_entry": "TRENDING_UP",
+          "risk_state": "on",
+          "entry_time": "2026-08-03 14:00:00",
+          "entry_price": 1871.800048828125,
+          "exit_time": "2026-08-03 22:00:00",
+          "exit_price": 1852.945063999721,
+          "direction": "LONG",
+          "outcome": "LOSS",
+          "gross_pnl_pct": -1.007,
+          "net_pnl_pct": -1.268,
+          "r_multiple": -1.0
+        },
+        {
+          "symbol": "ETH-USD",
+          "strategy": "mean_revert",
+          "regime_at_entry": "RANGING",
+          "risk_state": "on",
+          "entry_time": "2026-08-05 17:00:00",
+          "entry_price": 1914.5,
+          "exit_time": "2026-08-06 02:00:00",
+          "exit_price": 1896.3692626953125,
+          "direction": "SHORT",
+          "outcome": "WIN",
+          "gross_pnl_pct": 0.947,
+          "net_pnl_pct": 0.686,
+          "r_multiple": 1.5
+        },
+        {
+          "symbol": "ETH-USD",
+          "strategy": "trend_follow",
+          "regime_at_entry": "TRENDING_UP",
+          "risk_state": "on",
+          "entry_time": "2026-08-06 07:00:00",
+          "entry_price": 1907.1199951171875,
+          "exit_time": "2026-08-06 13:00:00",
+          "exit_price": 1893.8985639299665,
+          "direction": "LONG",
+          "outcome": "LOSS",
+          "gross_pnl_pct": -0.693,
+          "net_pnl_pct": -0.954,
+          "r_multiple": -1.0
+        },
+        {
+          "symbol": "ETH-USD",
+          "strategy": "trend_follow",
+          "regime_at_entry": "TRENDING_UP",
+          "risk_state": "on",
+          "entry_time": "2026-08-07 08:00:00",
+          "entry_price": 1909.3599853515625,
+          "exit_time": "2026-08-07 12:00:00",
+          "exit_price": 1929.8457205636162,
+          "direction": "LONG",
+          "outcome": "WIN",
+          "gross_pnl_pct": 1.073,
+          "net_pnl_pct": 0.812,
+          "r_multiple": 2.0
+        }
+      ]
+    }
+  ],
+  "guardrails": {
+    "never_send_signals": true,
+    "never_touch_equities": true,
+    "paper_only": true
+  }
+}
