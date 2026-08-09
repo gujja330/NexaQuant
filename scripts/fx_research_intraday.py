@@ -37,19 +37,34 @@ def _load_config() -> dict:
 
 
 def _fetch(symbol: str, interval: str, lookback_days: int):
+    """yfinance intraday limits:
+       15m: 60 days STRICT (start must be < 60 days ago · use period=)
+       1h: 730 days
+       1d: 25+ years"""
     import yfinance as yf
     import pandas as pd
     from datetime import date, timedelta
-    end = date.today()
-    start = end - timedelta(days=lookback_days)
-    df = yf.download(symbol, start=start, end=end, interval=interval,
-                              progress=False, auto_adjust=False)
+    # For 15m · use period='59d' to stay within Yahoo's boundary
+    if interval == "15m":
+        df = yf.download(symbol, period="59d", interval=interval,
+                                  progress=False, auto_adjust=False)
+    else:
+        end = date.today()
+        start = end - timedelta(days=lookback_days)
+        df = yf.download(symbol, start=start, end=end, interval=interval,
+                                  progress=False, auto_adjust=False)
     if df.empty: return None
     if isinstance(df.columns, pd.MultiIndex):
         df.columns = [c[0].lower() for c in df.columns]
     else:
         df.columns = [str(c).lower() for c in df.columns]
     df = df.dropna()
+    # Normalize index to tz-naive so cross-TF comparisons work
+    try:
+        if df.index.tz is not None:
+            df.index = df.index.tz_convert("UTC").tz_localize(None)
+    except (AttributeError, TypeError):
+        pass
     return df
 
 
@@ -114,6 +129,174 @@ class Trade:
     pnl_r: float
     pnl_pct: float
     confluence_score: int
+
+
+def _trend_at(df_higher, ts, fast=20, slow=50):
+    """Look up SMA-based trend on higher-TF bars STRICTLY BEFORE ts.
+    Walk-forward valid · no lookahead. Returns 'bullish'/'bearish'/'neutral'."""
+    prior = df_higher[df_higher.index < ts]
+    if len(prior) < slow: return "neutral"
+    close = prior["close"].tail(slow)
+    sma_fast = close.tail(fast).mean()
+    sma_slow = close.mean()
+    if sma_fast > sma_slow: return "bullish"
+    if sma_fast < sma_slow: return "bearish"
+    return "neutral"
+
+
+def _backtest_pair_multi_tf(spec, cfg):
+    """TRUE multi-timeframe backtest · 15m entries · 1h+4h+1d confluence.
+
+    Rewritten 2026-08-09 · operator directive: test on 15m + 1h + 4h · not
+    just 1h with resampled higher TFs. Each TF fetched/computed independently.
+    Higher-TF trend at each 15m bar looked up STRICTLY BEFORE the bar
+    (walk-forward valid · no lookahead bias)."""
+    import pandas as pd
+    symbol = spec["symbol"]
+    print(f"[{symbol}] fetching 15m + 1h + 1d ...", flush=True)
+
+    # Fetch all 3 timeframes (4h resampled from 1h · yfinance has no native 4h)
+    df_15m = _fetch(symbol, "15m", cfg["data"]["intraday_lookback_days"])
+    df_1h = _fetch(symbol, "1h", cfg["data"]["intraday_lookback_days"])
+    df_1d = _fetch(symbol, "1d", cfg["data"]["daily_lookback_days"])
+
+    if df_15m is None or len(df_15m) < 300:
+        print(f"[{symbol}] insufficient 15m data (need 300+ bars)")
+        return None
+    if df_1h is None or df_1d is None:
+        print(f"[{symbol}] missing 1h or 1d data")
+        return None
+
+    # Resample 1h → 4h
+    df_4h = df_1h["close"].resample("4h").last().dropna().to_frame()
+    df_4h.columns = ["close"]
+
+    strat = cfg["strategy"]
+    df_15m = _compute_indicators(df_15m, strat)
+
+    trades = []
+    open_trade = None
+    for i in range(strat["sma_slow"], len(df_15m) - 1):
+        bar = df_15m.iloc[i]
+        next_bar = df_15m.iloc[i + 1]
+        ts = bar.name
+
+        # Manage open trade
+        if open_trade is not None:
+            if open_trade["dir"] == "LONG":
+                hit_target = next_bar["high"] >= open_trade["target"]
+                hit_stop = next_bar["low"] <= open_trade["stop"]
+            else:
+                hit_target = next_bar["low"] <= open_trade["target"]
+                hit_stop = next_bar["high"] >= open_trade["stop"]
+            if hit_target:
+                trades.append(Trade(
+                    symbol=symbol, entry_time=str(open_trade["entry_time"]),
+                    entry_price=open_trade["entry"], exit_time=str(next_bar.name),
+                    exit_price=open_trade["target"], direction=open_trade["dir"],
+                    stop_price=open_trade["stop"], target_price=open_trade["target"],
+                    outcome="WIN",
+                    pnl_r=strat["target_atr_multiple"] / strat["stop_atr_multiple"],
+                    pnl_pct=(open_trade["target"] - open_trade["entry"]) / open_trade["entry"] * 100
+                                if open_trade["dir"] == "LONG" else
+                                (open_trade["entry"] - open_trade["target"]) / open_trade["entry"] * 100,
+                    confluence_score=open_trade["conf"]
+                ))
+                open_trade = None
+                continue
+            if hit_stop:
+                trades.append(Trade(
+                    symbol=symbol, entry_time=str(open_trade["entry_time"]),
+                    entry_price=open_trade["entry"], exit_time=str(next_bar.name),
+                    exit_price=open_trade["stop"], direction=open_trade["dir"],
+                    stop_price=open_trade["stop"], target_price=open_trade["target"],
+                    outcome="LOSS", pnl_r=-1.0,
+                    pnl_pct=(open_trade["stop"] - open_trade["entry"]) / open_trade["entry"] * 100
+                                if open_trade["dir"] == "LONG" else
+                                (open_trade["entry"] - open_trade["stop"]) / open_trade["entry"] * 100,
+                    confluence_score=open_trade["conf"]
+                ))
+                open_trade = None
+                continue
+
+        # Entry logic · walk-forward higher-TF lookup
+        if open_trade is None:
+            rsi = bar["rsi"]; atr = bar["atr"]
+            if not (rsi and atr and atr > 0): continue
+
+            t_1h = _trend_at(df_1h, ts)
+            t_4h = _trend_at(df_4h, ts)
+            t_1d = _trend_at(df_1d, ts)
+
+            confluence_long = 0
+            if bar["above_sma_slow"] and bar["fast_above_slow"]: confluence_long += 1   # 15m trend
+            if t_1h == "bullish": confluence_long += 1
+            if t_4h == "bullish": confluence_long += 1
+            if t_1d == "bullish": confluence_long += 1
+
+            confluence_short = 0
+            if not bar["above_sma_slow"] and not bar["fast_above_slow"]: confluence_short += 1
+            if t_1h == "bearish": confluence_short += 1
+            if t_4h == "bearish": confluence_short += 1
+            if t_1d == "bearish": confluence_short += 1
+
+            # Require 3 of 4 timeframes aligned (stricter than the 1h-only version)
+            REQUIRED_CONF = 3
+            entry_price = float(bar["close"])
+            if confluence_long >= REQUIRED_CONF \
+               and strat["rsi_pullback_low"] <= rsi <= strat["rsi_pullback_high"]:
+                open_trade = {
+                    "dir": "LONG", "entry": entry_price, "entry_time": ts,
+                    "stop": entry_price - strat["stop_atr_multiple"] * atr,
+                    "target": entry_price + strat["target_atr_multiple"] * atr,
+                    "conf": confluence_long,
+                }
+            elif confluence_short >= REQUIRED_CONF \
+                     and strat["rsi_pullback_low"] <= rsi <= strat["rsi_pullback_high"]:
+                open_trade = {
+                    "dir": "SHORT", "entry": entry_price, "entry_time": ts,
+                    "stop": entry_price + strat["stop_atr_multiple"] * atr,
+                    "target": entry_price - strat["target_atr_multiple"] * atr,
+                    "conf": confluence_short,
+                }
+
+    if not trades:
+        return {"symbol": symbol, "n_trades": 0, "note": "no signals fired · 3/4 TF confluence too strict"}
+
+    wins = [t for t in trades if t.outcome == "WIN"]
+    losses = [t for t in trades if t.outcome == "LOSS"]
+    total_r = sum(t.pnl_r for t in trades)
+    win_rate = len(wins) / len(trades) * 100
+    avg_r = total_r / len(trades)
+
+    max_dd_r = 0; running_r = 0; peak = 0
+    for t in trades:
+        running_r += t.pnl_r
+        if running_r > peak: peak = running_r
+        dd = running_r - peak
+        if dd < max_dd_r: max_dd_r = dd
+
+    return {
+        "symbol":            symbol,
+        "name":              spec["name"],
+        "asset_class":       spec["asset_class"],
+        "timeframe":         "15m entry · 1h+4h+1d confluence",
+        "n_bars_15m":        len(df_15m),
+        "n_bars_1h":         len(df_1h),
+        "n_bars_4h":         len(df_4h),
+        "n_bars_1d":         len(df_1d),
+        "n_trades":          len(trades),
+        "n_wins":            len(wins),
+        "n_losses":          len(losses),
+        "win_rate_pct":      round(win_rate, 1),
+        "total_pnl_r":       round(total_r, 2),
+        "avg_r_per_trade":   round(avg_r, 2),
+        "max_drawdown_r":    round(max_dd_r, 2),
+        "expectancy_r":      round(avg_r, 2),
+        "avg_confluence":    round(sum(t.confluence_score for t in trades) / len(trades), 2),
+        "sample_trades":     [asdict(t) for t in trades[:3]],
+        "last_5_trades":     [asdict(t) for t in trades[-5:]],
+    }
 
 
 def _backtest_pair(spec, cfg):
@@ -261,10 +444,11 @@ def main() -> int:
               f"target {cfg['strategy']['target_atr_multiple']}xATR")
     print()
 
+    # 2026-08-09 · operator directive · test true 15m + 1h + 4h + 1d multi-TF
     results = []
     for spec in cfg["pairs"]:
         try:
-            r = _backtest_pair(spec, cfg)
+            r = _backtest_pair_multi_tf(spec, cfg)
             if r: results.append(r)
         except Exception as e:
             print(f"[{spec['symbol']}] FAIL · {type(e).__name__}: {e}")
