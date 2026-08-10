@@ -2,47 +2,48 @@
   "engine": "ai_macro_narrative",
   "version": "v1.0",
   "market": "usa",
-  "run_utc": "2026-07-30T04:11:07+00:00",
-  "asof": "2026-07-30",
+  "run_utc": "2026-08-10T21:37:56+00:00",
+  "asof": "2026-08-10",
   "output": {
     "agent": "macro_analyst",
     "version": "v1.0",
     "market": "usa",
-    "asof": "2026-07-30",
-    "headline": "regime=unknown \u00b7 vol=normal \u00b7 active_impacts=2 \u00b7 macro_score=-0.10",
-    "narrative": "regime=unknown \u00b7 vol=normal \u00b7 active_impacts=2 \u00b7 macro_score=-0.10.\n\nAEGIS Macro & Intermarket Intelligence audit. Combines commodity moves, currency pressures, yield curve, VIX regime, and sector rotation into a single macro regime call. Emits an impact matrix + knowledge graph that downstream engines (Recommendation, Risk, Portfolio, Learning, AI Auditor) will consume from Sprint 8 onward.\n\nDoes NOT approve or promote \u2014 every commodity impact, sector rotation call, and regime label is DESCRIPTIVE and requires operator interpretation. AI never trades on macro alone.",
+    "asof": "2026-08-10",
+    "headline": "regime=unknown \u00b7 vol=normal \u00b7 active_impacts=2 \u00b7 macro_score=-0.20",
+    "narrative": "regime=unknown \u00b7 vol=normal \u00b7 active_impacts=2 \u00b7 macro_score=-0.20.\n\nAEGIS Macro & Intermarket Intelligence audit. Combines commodity moves, currency pressures, yield curve, VIX regime, and sector rotation into a single macro regime call. Emits an impact matrix + knowledge graph that downstream engines (Recommendation, Risk, Portfolio, Learning, AI Auditor) will consume from Sprint 8 onward.\n\nDoes NOT approve or promote \u2014 every commodity impact, sector rotation call, and regime label is DESCRIPTIVE and requires operator interpretation. AI never trades on macro alone.",
     "findings": [
       {
         "type": "macro_regime",
         "primary": "unknown",
-        "secondary": "inflationary",
+        "secondary": null,
         "confidence": 0.9,
-        "macro_score": -0.1,
+        "macro_score": -0.2,
         "evidence": {
           "vol_regime": "normal",
-          "oil_1w_pct": 11.669,
-          "gold_1w_pct": 1.072,
-          "usd_1w_pct": 0.882,
+          "oil_1w_pct": 4.87,
+          "gold_1w_pct": 10.286,
+          "gold_flight_to_safety": true,
+          "usd_1w_pct": -0.106,
           "yield_curve_inversion": false,
-          "ten_year_1m_bps": 22.64636
+          "ten_year_1m_bps": 34.91357
         }
       },
       {
         "type": "volatility",
         "symbol": "^VIX",
-        "level": 18.58,
+        "level": 15.46,
         "regime": "normal",
-        "chg_1m_pct": -4.424
+        "chg_1m_pct": -12.408
       },
       {
         "type": "central_bank_state",
         "bank": "Fed",
-        "rate_cycle": "tightening",
-        "yield_curve_slope": 25.3,
+        "rate_cycle": "neutral",
+        "yield_curve_slope": 29.4,
         "inversion": false,
-        "liquidity_score": -0.7,
+        "liquidity_score": 0.0,
         "notes": [
-          "Fed: cycle=tightening \u00b7 short_1m=19.112515bps"
+          "Fed: cycle=neutral \u00b7 short_1m=3.8406939999999996bps"
         ]
       },
       {
@@ -64,57 +65,47 @@
       },
       {
         "type": "commodity_impact",
-        "commodity": "WTI Crude",
+        "commodity": "Gold",
         "direction": "up",
         "positive_sectors": [
-          "Energy",
-          "Oil Producers",
-          "Oil Services"
+          "Gold Miners",
+          "Precious Metals"
         ],
-        "negative_sectors": [
-          "Airlines",
-          "Transportation",
-          "Consumer Discretionary",
-          "Paints",
-          "FMCG",
-          "Auto",
-          "Logistics",
-          "Chemicals"
-        ],
-        "confidence": 0.92,
-        "rationale": "Rising oil raises transportation + input costs; erodes margins for downstream consumers; boosts upstream producers. Historically the single most reliable commodity \u2192 sector relationship."
+        "negative_sectors": [],
+        "confidence": 0.75,
+        "rationale": "Gold rally often coincides with risk-off equity sentiment; gold miners benefit directly. Historically inverse-correlated with USD."
       },
       {
         "type": "sector_rotation",
         "leaders": [
           {
+            "sector": "Energy",
+            "return_pct": 12.32
+          },
+          {
             "sector": "Financials",
-            "return_pct": 7.01
+            "return_pct": 7.61
           },
           {
-            "sector": "Healthcare",
-            "return_pct": 5.5
-          },
-          {
-            "sector": "Utilities",
-            "return_pct": 5.09
+            "sector": "Materials",
+            "return_pct": 4.97
           }
         ],
         "laggards": [
           {
-            "sector": "Consumer Discretionary",
-            "return_pct": -5.92
+            "sector": "Utilities",
+            "return_pct": -6.28
           },
           {
-            "sector": "Communication Services",
-            "return_pct": -5.19
+            "sector": "Real Estate",
+            "return_pct": -1.16
           },
           {
             "sector": "Technology",
-            "return_pct": -4.0
+            "return_pct": 0.49
           }
         ],
-        "rotation_strength": 0.41
+        "rotation_strength": 0.411
       },
       {
         "type": "knowledge_graph_summary",
@@ -125,7 +116,7 @@
         ],
         "top_factors": [
           "Brent Crude",
-          "WTI Crude",
+          "Gold",
           "10Y Treasury Yield"
         ]
       },
@@ -142,7 +133,7 @@
       "primary_regime": "unknown",
       "vol_regime": "normal",
       "n_active_impacts": 2,
-      "macro_score": -0.1
+      "macro_score": -0.2
     },
     "citations": [
       "backend/macro_intel/engine.py",
