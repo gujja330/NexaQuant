@@ -1,76 +1,74 @@
-version: 1.0
-last_amended: 2026-08-08
-
-# DECISION · single human-facing synthesis field
-# Deterministic mapping from (Action, Inv Quality, Status) → single Decision
-# Controlled vocabulary · no LLM freedom · no invented phrases
+version: 3.0
+last_amended: 2026-08-10
+# LOCKED · 6-value operator-facing decision vocabulary.
+# Operator directive: "based on decision only i will plan on stocks."
+# CEO review: "12 values too many · reduce to 6."
 #
-# Rule: DECISION never overrides Action · it packages it for scan-time
-# comprehension. If Portfolio Engine says EXIT · DECISION says EXIT.
+# Internal engine keeps all sophistication (Priority buckets · Investability
+# scores · Runner Status · etc). Only the operator-facing DECISION is
+# constrained to these 6 verbs.
+#
+# CLOSED and IGNORED are NOT decisions · they're Lifecycle states.
+# BUY BIG and BUY CAUTIOUSLY are NOT decisions · size is a separate field.
+# REVIEW is NOT a decision · portfolio-challenging-exit is HOLD with
+# Lifecycle=REVIEWING internally.
 
-# Ordered rules · first match wins
-# Each rule: match condition + decision output + color category
+# Rule matcher · first match wins · matches on Action from Priority matrix
 rules:
-
-  # ═══ CLOSED · ⚪ ═══
-  - match: {action: "CLOSED"}
-    decision: "⚪ CLOSED"
-    color: gray
-  - match: {action: "IGNORE"}
-    decision: "⚪ IGNORED"
-    color: gray
 
   # ═══ NEGATIVE · 🔴 ═══
   - match: {action: "EXIT"}
-    decision: "🔴 EXIT NOW"
+    decision: "🔴 EXIT"
     color: red
-  - match: {action: "REVIEW"}
-    decision: "🟠 REVIEW"
-    color: amber
 
   # ═══ PROTECT · 🟠 ═══
+  # PROTECT = held with degraded risk / tighter stop
   - match: {action: "TIGHTEN STOP"}
     decision: "🟠 PROTECT"
     color: amber
 
-  # ═══ AVOID · ⚫ ═══
-  - match: {action: "SKIP"}
-    decision: "⚫ SKIP"
-    color: black
+  # REVIEW (Priority H · Premature Exit challenged) → operator sees HOLD
+  # Portfolio-challenging-exit is internal state · surface as HOLD to operator
+  - match: {action: "REVIEW"}
+    decision: "🟢 HOLD"
+    color: green
 
   # ═══ POSITIVE · 🟢 ═══
   - match: {action: "BUY BIG"}
-    decision: "🟢 BUY BIG"
+    decision: "🟢 BUY"       # BUY BIG collapsed · size determines intensity
     color: green_dark
   - match: {action: "ADD"}
     decision: "🟢 ADD"
     color: green
-  - match: {action: "BUY", inv_quality_in: ["🏆 QUALITY", "✓ OK"]}
-    decision: "🟢 BUY"
-    color: green
-  - match: {action: "BUY", inv_quality_in: ["⚠ MARGINAL"]}
-    decision: "🟡 BUY CAUTIOUSLY"
-    color: yellow
   - match: {action: "BUY"}
-    decision: "🟡 BUY CAUTIOUSLY"
-    color: yellow
-  - match: {action: "HOLD", inv_quality_in: ["🏆 QUALITY", "✓ OK"]}
-    decision: "🟢 HOLD"
+    decision: "🟢 BUY"       # BUY CAUTIOUSLY collapsed
     color: green
   - match: {action: "HOLD"}
-    decision: "🟡 HOLD"
-    color: yellow
+    decision: "🟢 HOLD"
+    color: green
+
+  # ═══ SKIP · ⚫ ═══
+  - match: {action: "SKIP"}
+    decision: "⚫ SKIP"
+    color: black
+
+  # ═══ LIFECYCLE STATES (blank decision · Lifecycle column carries state) ═══
+  - match: {action: "CLOSED"}
+    decision: "—"
+    color: gray
+  - match: {action: "IGNORE"}
+    decision: "—"
+    color: gray
 
   # ═══ FALLBACK ═══
   - match: {}
-    decision: "— UNKNOWN"
+    decision: "—"
     color: gray
 
-# Color codes for decision cell (independent from row color)
+# Color codes for decision cell
 colors:
   green_dark:  "70AD47"
   green:       "C6EFCE"
-  yellow:      "FFF2CC"
   amber:       "FFCC66"
   red:         "F8CBAD"
   black:       "808080"
