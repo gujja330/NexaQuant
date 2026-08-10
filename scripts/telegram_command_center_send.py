@@ -1003,14 +1003,14 @@ def main() -> int:
                 # DECISION · single human-facing synthesis (col 2)
                 decision_text, decision_color_key = _resolve_decision(
                     action, inv_verdict, status)
-                # Execution Decision Layer fields (Sprint K Part 25 extension)
-                price_trigger = _price_trigger(action, stop_v, t1_v, curr)
-                # 2026-08-10 CEO fix #4: Next Review anchored to Recommended date
-                # (not row date) so it stays STABLE and doesn't slide forward daily
+                # 2026-08-10 CEO v6 · closed positions get BLANK actionable fields
+                # (operator: "You don't want CLOSED · Next Review 15-Aug ·
+                # Decision HOLD · nonsense")
+                is_terminal = action in ("CLOSED", "IGNORE")
+                price_trigger = "" if is_terminal else _price_trigger(action, stop_v, t1_v, curr)
                 next_review_anchor = rec_dt if rec_dt else dt
-                next_review = _next_review_date(review, next_review_anchor) \
-                                        if action not in ("CLOSED","IGNORE") else ""
-                exec_window = _execution_window(action)
+                next_review = "" if is_terminal else _next_review_date(review, next_review_anchor)
+                exec_window = "" if is_terminal else _execution_window(action)
 
                 # 2026-08-10 CEO fix v6 · added REVIEWING state (explicit)
                 # 4 lifecycle states operator can act on unambiguously:
