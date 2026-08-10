@@ -1012,13 +1012,18 @@ def main() -> int:
                                         if action not in ("CLOSED","IGNORE") else ""
                 exec_window = _execution_window(action)
 
-                # 2026-08-10 CEO fix #1: Lifecycle separated from Runner Status
-                # NEW · ACTIVE · CLOSED · based on Priority bucket (not raw Status)
-                if priority_bucket == "I":       # Clean Exit · both Runner + Portfolio agree
-                    lifecycle = "🔒 CLOSED"
-                elif priority_bucket == "H":     # Premature Exit? · Portfolio challenging Runner
-                    lifecycle = "🟢 ACTIVE"     # NOT closed · position still open
-                elif priority_bucket == "J":     # Rotation artifact
+                # 2026-08-10 CEO fix v6 · added REVIEWING state (explicit)
+                # 4 lifecycle states operator can act on unambiguously:
+                #   🆕 NEW        · first day of recommendation
+                #   🟢 ACTIVE     · held · both Runner + Portfolio agree to hold/protect
+                #   🟡 REVIEWING  · Runner=EXIT · Portfolio challenging (Priority H)
+                #   ⚪ CLOSED     · Runner=EXIT · Portfolio agrees close (Priority I)
+                #   ⚪ ARTIFACT   · same-day rotation (never held)
+                if priority_bucket == "I":
+                    lifecycle = "⚪ CLOSED"
+                elif priority_bucket == "H":
+                    lifecycle = "🟡 REVIEWING"   # NEW · portfolio disputing exit
+                elif priority_bucket == "J":
                     lifecycle = "⚪ ARTIFACT"
                 elif rec_dt and dt and rec_dt == dt:
                     lifecycle = "🆕 NEW"
@@ -1092,10 +1097,10 @@ def main() -> int:
                 print(f"[xlsx:{mkt_key}] SKIPPED · 0 rows for market (fresh start · awaiting next pipeline run)")
                 return True
             # Send
-            _hb_prefix_local = f"{heartbeat_banner}\n" if heartbeat_banner else ""
-            full_caption = f"{_hb_prefix_local}{caption_body}"
-            if _CAPTION_APPEND_GUIDE is not None:
-                full_caption = _CAPTION_APPEND_GUIDE(full_caption, _dow)
+            # 2026-08-10 · operator: "simple note with date · why note so big"
+            # Suppress heartbeat banner + Monday operator guide from Telegram
+            # caption (kept in stdout logs · zero UI clutter for operator)
+            full_caption = caption_body
             ok, msg = _send_document(token, chat_id, out_path, caption=full_caption)
             print(f"[xlsx:{mkt_key}] file={out_path.name} · rows={len(keep_rows)} · sent={ok}")
             if not ok:
@@ -1106,17 +1111,10 @@ def main() -> int:
         from openpyxl.styles import Font as _Font
         from openpyxl.styles import Alignment as _Align
 
-        # Build market-specific captions with correct timezones
-        india_caption = (
-            f"📊 AEGIS India · NSE session {asof} (last trading day)\n"
-            f"delivered {_delivered_ist}\n"
-            f"India rows only · one row per stock · sortable in Excel"
-        )
-        usa_caption = (
-            f"📊 AEGIS USA · S&P 500 · US session {asof} (last trading day)\n"
-            f"delivered {_delivered_cst}  |  {_delivered_ist}\n"
-            f"USA rows only · S&P 500 universe (516 tickers) · sortable in Excel"
-        )
+        # 2026-08-10 · operator directive · "why note is so big · simple note
+        # with date in note like yesterday" · stripped captions to bare date
+        india_caption = f"📊 AEGIS India · {asof}"
+        usa_caption   = f"📊 AEGIS USA · {asof}"
 
         xlsx_ok = True
         if "india" in markets:
