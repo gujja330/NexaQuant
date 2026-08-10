@@ -462,6 +462,24 @@ def main() -> int:
             except Exception:
                 return None
 
+        def _parquet_prev_close(ticker: str, market: str, target_date: str) -> float | None:
+            """Trading day close STRICTLY BEFORE target_date · fixes Today Move
+            lag bug where Prev Close was stamped when row was written and
+            never re-derived for the observation date. CEO audit fix 2026-08-10."""
+            import pandas as _pd
+            short = str(ticker or "").replace(".NS", "").replace(".BO", "").upper()
+            base = "usa/data/raw/us" if market.upper() == "USA" else "data/raw/india"
+            p = _ROOT / base / f"{short}_D1.parquet"
+            if not p.exists(): return None
+            try:
+                d = _pd.read_parquet(p)
+                col = "close" if "close" in d.columns else "Close"
+                d.index = _pd.to_datetime(d.index).strftime("%Y-%m-%d")
+                strictly_before = [dt for dt in d.index if dt < target_date]
+                return float(d.loc[strictly_before[-1], col]) if strictly_before else None
+            except Exception:
+                return None
+
         def _split_and_send(mkt_label: str, mkt_key: str, caption_body: str):
             src_wb = _lwb(xlsx_path)
             src_ws = src_wb["AEGIS Daily"] if "AEGIS Daily" in src_wb.sheetnames else src_wb.active
@@ -481,6 +499,8 @@ def main() -> int:
             c_t2 = h.index("Target 2") + 1 if "Target 2" in h else None
             c_alerts = h.index("Alerts") + 1 if "Alerts" in h else None
             c_sector_existing = h.index("Sector") + 1 if "Sector" in h else None
+            c_prev_close = h.index("Prev Close") + 1 if "Prev Close" in h else None
+            c_today_move = h.index("Today Move %") + 1 if "Today Move %" in h else None
 
             # Load PRIORITY_MATRIX + DECISION vocab BEFORE row iteration
             # so History-sheet row loop can resolve decisions
@@ -611,18 +631,28 @@ def main() -> int:
             for r_idx, row in enumerate(keep_rows, start=2):
                 tk = row[c_tk-1].value
                 status = row[c_st-1].value
-                # STALE-PRICE FIX · for OPEN positions (not EXIT) · re-read
-                # Current Price from parquet (operator P&L audit found frozen
-                # last_seen_price making Perf=0 for all HOLDs)
-                repaired_current = None
+                # CEO audit fix 2026-08-10 · unconditional Current/Prev/Perf/TodayMove
+                # recompute from PARQUET at row's Date · applies to ALL statuses
+                # (was previously skipped for EXIT rows · leaving stale carry-forward)
+                row_dt_str = str(row[c_date-1].value or "")[:10]
+                entry_v = row[c_entry-1].value if c_entry else None
+                # Current price at row's date
+                live_curr = _parquet_close(tk, mkt_key, row_dt_str) if row_dt_str else None
+                repaired_current = round(live_curr, 2) if live_curr else None
+                # Perf = (Current - Entry) / Entry · always recomputed
                 repaired_perf = None
-                if status != "EXIT" and c_current and c_entry:
-                    entry_v = row[c_entry-1].value
-                    row_date = str(row[c_date-1].value or "")[:10]
-                    live = _parquet_close(tk, mkt_key, row_date)
-                    if live and isinstance(entry_v, (int, float)) and entry_v > 0:
-                        repaired_current = round(live, 2)
-                        repaired_perf = round((live - entry_v) / entry_v * 100, 2)
+                if repaired_current and isinstance(entry_v, (int, float)) and entry_v > 0:
+                    repaired_perf = round((repaired_current - entry_v) / entry_v * 100, 2)
+                # Prev Close = strictly-before close of row's date
+                live_prev = _parquet_prev_close(tk, mkt_key, row_dt_str) if row_dt_str else None
+                repaired_prev_close = round(live_prev, 2) if live_prev else None
+                # Today Move = (Current - Prev) / Prev · always recomputed
+                repaired_today_move = None
+                if repaired_current is not None and repaired_prev_close is not None \
+                        and repaired_prev_close > 0:
+                    repaired_today_move = round(
+                        (repaired_current - repaired_prev_close) / repaired_prev_close * 100, 2)
+
                 for c_idx, cell in enumerate(row, start=1):
                     val = cell.value
                     if c_sector_existing and c_idx == c_sector_existing and not val:
@@ -631,6 +661,10 @@ def main() -> int:
                         val = repaired_current
                     if repaired_perf is not None and c_idx == c_perf:
                         val = repaired_perf
+                    if repaired_prev_close is not None and c_prev_close and c_idx == c_prev_close:
+                        val = round(repaired_prev_close, 2)
+                    if repaired_today_move is not None and c_today_move and c_idx == c_today_move:
+                        val = repaired_today_move
                     ws2.cell(r_idx, c_idx, val)
                 # 9 appended columns · positions counted from END
                 if not hasattr(_split_and_send, "_inv_loaded"):
@@ -1089,6 +1123,25 @@ def main() -> int:
             xlsx_ok &= _split_and_send("India", "INDIA", india_caption)
         if "usa" in markets:
             xlsx_ok &= _split_and_send("USA",   "USA",   usa_caption)
+        # Guard 10 · Data Integrity audit (CEO 17-point checklist · 2026-08-10)
+        # Runs AFTER the XLSX is written · audits Prev Close · Today Move · PnL
+        # math · Recommended immutability · Entry Price immutability · Opp Age
+        try:
+            from backend.context.data_integrity_guard import (
+                audit as _di_audit, emit as _di_emit, render_summary as _di_render)
+            _di_paths = [
+                _ROOT / "reports" / "telegram" / f"aegis_history_{m}.xlsx" for m in markets
+            ]
+            _di_result = _di_audit(_ROOT, _di_paths)
+            _di_emit(_ROOT, _di_result)
+            print(f"[guard10:integrity] {_di_render(_di_result)}")
+            if _di_result.get("verdict") == "RED":
+                print(f"[guard10:integrity] 🔴 {_di_result['n_issues']} integrity issues detected · investigation needed")
+                for i in _di_result.get("issues", [])[:5]:
+                    print(f"    ✗ {i.get('type')}: {i.get('ticker')} {i.get('date','')}")
+        except Exception as _e:
+            print(f"[guard10:integrity] check failed · {type(_e).__name__}: {_e}")
+
         # Record successful heartbeat (only if send actually worked)
         if xlsx_ok:
             try:
