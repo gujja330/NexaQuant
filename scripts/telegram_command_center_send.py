@@ -784,16 +784,19 @@ def main() -> int:
                     if r_off == 5 and c_off <= 3:   # combined row highlighted
                         cell.fill = _PF(start_color="FFE699", end_color="FFE699", fill_type="solid")
 
-            # 2026-08-09 · Execution Decision Layer shipped early (was Nov 4-10)
-            # DECISION + Price Trigger + Next Review + Execution Window = 4-field
-            # decision package · operator directive: "do development immediately"
+            # 2026-08-10 · CEO review fixes (semantic separation):
+            #   1. Lifecycle column · NEW/ACTIVE/CLOSED (separate from Runner Status)
+            #      Rule: EXITED only when Runner=EXIT AND Portfolio agrees (Priority I)
+            #      If Priority=H (Premature Exit?) · Lifecycle=ACTIVE (portfolio challenging)
+            #   2. R1/R2 Consensus column · AGREE/SPLIT/R1-only/R2-only
+            #   3. Next Review = Recommended Date + horizon (stable · not sliding)
             pos_hdr = [
-                # IDENTITY (2)
-                "Ticker", "🎯 DECISION",
-                # EXECUTION LAYER (3 new · after DECISION)
+                # IDENTITY (3) · Lifecycle sits with identity now
+                "Ticker", "🎯 DECISION", "Lifecycle",
+                # EXECUTION LAYER (3)
                 "Price Trigger", "Next Review", "Execution Window",
-                # META (6)
-                "Runner", "Sector", "Cap", "Entry Date", "Exit Date", "Days",
+                # META (7)
+                "Runner", "R1/R2 Consensus", "Sector", "Cap", "Entry Date", "Exit Date", "Days",
                 # SUPPORTING DECISION FIELDS (7)
                 "Urgency", "Reason", "Action", "Review",
                 "Status", "Inv Quality", "Investability",
@@ -804,13 +807,27 @@ def main() -> int:
                 # CONTEXT (3)
                 "Action Note", "Alerts", "Exit Reason",
             ]
-            widths_pos = [12, 24,
+            widths_pos = [12, 24, 12,
                               22, 12, 30,
-                              8, 22, 20, 12, 12, 8,
+                              8, 14, 22, 20, 12, 12, 8,
                               12, 20, 16, 14, 12, 14, 12,
                               12, 12, 12, 10,
                               12, 12, 12,
                               40, 40, 30]
+
+            # R1/R2 consensus map · build from all keep_rows (before ticker loop)
+            # (populated after keep_rows filter · so put function here · use later)
+            _by_ticker_runners = {}
+            for _r in keep_rows:
+                _tk = _r[c_tk-1].value
+                _rn = _r[3].value if len(_r) > 3 else None
+                if _tk and _rn:
+                    _by_ticker_runners.setdefault(_tk, set()).add(str(_rn))
+            def _consensus(tk, this_runner):
+                runners = _by_ticker_runners.get(tk, set())
+                if len(runners) == 1:
+                    return f"🔹 {this_runner} ONLY"
+                return "✅ AGREE"  # both present · could compare actions later
 
             # PRIORITY_MATRIX + DECISION vocab + EXEC layer already loaded at top of _split_and_send
 
@@ -954,41 +971,61 @@ def main() -> int:
                     action, inv_verdict, status)
                 # Execution Decision Layer fields (Sprint K Part 25 extension)
                 price_trigger = _price_trigger(action, stop_v, t1_v, curr)
-                next_review = _next_review_date(review, dt) if action not in ("CLOSED","IGNORE") else ""
+                # 2026-08-10 CEO fix #4: Next Review anchored to Recommended date
+                # (not row date) so it stays STABLE and doesn't slide forward daily
+                next_review_anchor = rec_dt if rec_dt else dt
+                next_review = _next_review_date(review, next_review_anchor) \
+                                        if action not in ("CLOSED","IGNORE") else ""
                 exec_window = _execution_window(action)
 
+                # 2026-08-10 CEO fix #1: Lifecycle separated from Runner Status
+                # NEW · ACTIVE · CLOSED · based on Priority bucket (not raw Status)
+                if priority_bucket == "I":       # Clean Exit · both Runner + Portfolio agree
+                    lifecycle = "🔒 CLOSED"
+                elif priority_bucket == "H":     # Premature Exit? · Portfolio challenging Runner
+                    lifecycle = "🟢 ACTIVE"     # NOT closed · position still open
+                elif priority_bucket == "J":     # Rotation artifact
+                    lifecycle = "⚪ ARTIFACT"
+                elif rec_dt and dt and rec_dt == dt:
+                    lifecycle = "🆕 NEW"
+                else:
+                    lifecycle = "🟢 ACTIVE"
+
+                # 2026-08-10 CEO fix #3: R1/R2 Consensus column
+                consensus = _consensus(tk, runner_val)
+
                 vals = [
-                    # IDENTITY (1-2)
-                    tk, decision_text,
-                    # EXECUTION LAYER (3-5)
+                    # IDENTITY (1-3)
+                    tk, decision_text, lifecycle,
+                    # EXECUTION LAYER (4-6)
                     price_trigger, next_review, exec_window,
-                    # META (6-11)
-                    runner_val, _sector_for(tk, mkt_key), _cap_size(tk, mkt_key),
+                    # META (7-13)
+                    runner_val, consensus, _sector_for(tk, mkt_key), _cap_size(tk, mkt_key),
                     rec_dt, exit_date, days,
-                    # DECISION SUPPORT (12-18)
+                    # DECISION SUPPORT (14-20)
                     urgency, reason, action, review,
                     status, inv_verdict, inv_score,
-                    # PRICE + P&L (19-22)
+                    # PRICE + P&L (21-24)
                     entry_v, curr, exit_price, pnl_decimal,
-                    # RISK/TARGET (23-25)
+                    # RISK/TARGET (25-27)
                     stop_v, t1_v, t2_v,
-                    # CONTEXT (26-28)
+                    # CONTEXT (28-30)
                     _ACTIONS.get(status, ""), alerts or "", exit_reason,
                 ]
                 for c, v in enumerate(vals, start=1):
                     cell = portfolio_ws.cell(i, c, v)
-                    text_cols = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13, 14, 15, 16, 17, 26, 27, 28}
+                    text_cols = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 15, 16, 17, 18, 19, 28, 29, 30}
                     cell.alignment = _Align(
                         horizontal="left" if c in text_cols else "right",
                         vertical="center", wrap_text=True)
                     # Number formats
-                    if c == 11 and isinstance(days, int):       # Days
+                    if c == 13 and isinstance(days, int):       # Days
                         cell.number_format = "0"
-                    elif c == 18 and isinstance(inv_score, (int, float)):  # Investability
+                    elif c == 20 and isinstance(inv_score, (int, float)):  # Investability
                         cell.number_format = "0.0"
-                    elif c in (19, 20, 21, 23, 24, 25):         # Entry/Curr/Exit/Stop/T1/T2
+                    elif c in (21, 22, 23, 25, 26, 27):         # Entry/Curr/Exit/Stop/T1/T2
                         cell.number_format = "#,##0.00"
-                    elif c == 22 and pnl_decimal is not None:   # P&L %
+                    elif c == 24 and pnl_decimal is not None:   # P&L %
                         cell.number_format = "+0.00%;-0.00%;0.00%"
 
                 # DECISION cell gets its own color (col 2) · overrides row fill

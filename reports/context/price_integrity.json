@@ -1,25 +1,166 @@
 {
   "engine": "aegis.context.price_integrity_guard.v1",
-  "asof": "2026-08-06",
-  "generated_utc": "2026-08-06T15:53:44.563816+00:00",
-  "verdict": "GREEN",
+  "asof": "2026-08-09",
+  "generated_utc": "2026-08-09T03:53:13.383581+00:00",
+  "verdict": "YELLOW",
   "market_bar_freshness": {
     "india": {
       "latest_bar_date": "2026-08-06",
-      "age_days": 0,
+      "age_days": 3,
       "n_stale": 0
     },
     "usa": {
       "latest_bar_date": "2026-08-05",
-      "age_days": 1,
+      "age_days": 4,
       "n_stale": 0
     }
   },
   "n_positions_checked": 43,
   "n_recs_checked": 30,
   "n_critical": 0,
-  "n_warning": 0,
+  "n_warning": 23,
   "critical_issues": [],
-  "warning_issues": [],
-  "recommendation": "All price data verified · safe to send"
+  "warning_issues": [
+    {
+      "market": "usa",
+      "ticker": "*",
+      "check": "bar_data_lag",
+      "severity": "WARNING",
+      "detail": "latest bar 2026-08-05 is 4d old (weekend allowance)"
+    },
+    {
+      "market": "india",
+      "ticker": "BEL.NS",
+      "check": "entry_bar_missing",
+      "severity": "WARNING",
+      "detail": "no parquet close on 2026-08-01 · Entry 388.7 unverifiable (bar gap)"
+    },
+    {
+      "market": "india",
+      "ticker": "BRITANNIA.NS",
+      "check": "entry_bar_missing",
+      "severity": "WARNING",
+      "detail": "no parquet close on 2026-08-01 · Entry 5406.0 unverifiable (bar gap)"
+    },
+    {
+      "market": "india",
+      "ticker": "POWERGRID.NS",
+      "check": "entry_bar_missing",
+      "severity": "WARNING",
+      "detail": "no parquet close on 2026-08-01 · Entry 285.9 unverifiable (bar gap)"
+    },
+    {
+      "market": "india",
+      "ticker": "KOTAKBANK.NS",
+      "check": "entry_bar_missing",
+      "severity": "WARNING",
+      "detail": "no parquet close on 2026-08-01 · Entry 389.3 unverifiable (bar gap)"
+    },
+    {
+      "market": "india",
+      "ticker": "SUNPHARMA.NS",
+      "check": "entry_bar_missing",
+      "severity": "WARNING",
+      "detail": "no parquet close on 2026-08-01 · Entry 2014.8 unverifiable (bar gap)"
+    },
+    {
+      "market": "india",
+      "ticker": "ICICIBANK.NS",
+      "check": "entry_bar_missing",
+      "severity": "WARNING",
+      "detail": "no parquet close on 2026-08-01 · Entry 1438.5 unverifiable (bar gap)"
+    },
+    {
+      "market": "india",
+      "ticker": "PIDILITIND.NS",
+      "check": "entry_bar_missing",
+      "severity": "WARNING",
+      "detail": "no parquet close on 2026-08-01 · Entry 1625.5 unverifiable (bar gap)"
+    },
+    {
+      "market": "usa",
+      "ticker": "TRV",
+      "check": "stale_parquet",
+      "severity": "WARNING",
+      "detail": "latest bar 2026-08-05 is 4d old"
+    },
+    {
+      "market": "usa",
+      "ticker": "V",
+      "check": "stale_parquet",
+      "severity": "WARNING",
+      "detail": "latest bar 2026-08-05 is 4d old"
+    },
+    {
+      "market": "usa",
+      "ticker": "NVDA",
+      "check": "stale_parquet",
+      "severity": "WARNING",
+      "detail": "latest bar 2026-08-05 is 4d old"
+    },
+    {
+      "market": "usa",
+      "ticker": "JPM",
+      "check": "stale_parquet",
+      "severity": "WARNING",
+      "detail": "latest bar 2026-08-05 is 4d old"
+    },
+    {
+      "market": "usa",
+      "ticker": "HON",
+      "check": "stale_parquet",
+      "severity": "WARNING",
+      "detail": "latest bar 2026-08-05 is 4d old"
+    },
+    {
+      "market": "usa",
+      "ticker": "GS",
+      "check": "stale_parquet",
+      "severity": "WARNING",
+      "detail": "latest bar 2026-08-05 is 4d old"
+    },
+    {
+      "market": "usa",
+      "ticker": "AAPL",
+      "check": "stale_parquet",
+      "severity": "WARNING",
+      "detail": "latest bar 2026-08-05 is 4d old"
+    },
+    {
+      "market": "usa",
+      "ticker": "MSFT",
+      "check": "stale_parquet",
+      "severity": "WARNING",
+      "detail": "latest bar 2026-08-05 is 4d old"
+    },
+    {
+      "market": "usa",
+      "ticker": "KO",
+      "check": "stale_parquet",
+      "severity": "WARNING",
+      "detail": "latest bar 2026-08-05 is 4d old"
+    },
+    {
+      "market": "usa",
+      "ticker": "MMM",
+      "check": "stale_parquet",
+      "severity": "WARNING",
+      "detail": "latest bar 2026-08-05 is 4d old"
+    },
+    {
+      "market": "usa",
+      "ticker": "INTC",
+      "check": "stale_parquet",
+      "severity": "WARNING",
+      "detail": "latest bar 2026-08-05 is 4d old"
+    },
+    {
+      "market": "usa",
+      "ticker": "BA",
+      "check": "stale_parquet",
+      "severity": "WARNING",
+      "detail": "latest bar 2026-08-05 is 4d old"
+    }
+  ],
+  "recommendation": "Non-critical mismatches · notify in caption · allow send"
 }
