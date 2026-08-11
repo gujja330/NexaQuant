@@ -126,16 +126,17 @@ jobs:
       # Non-blocking · never feeds back into runners automatically
       # ═══════════════════════════════════════════════════════════════════════
       - name: Research P0 · rebuild canonical Outcome Dataset (USA context)
+        # ENG003 discipline: no `|| echo` mask. `continue-on-error: true` gives
+        # non-blocking behavior; a real failure surfaces as a red step visibly.
         if: always()
         continue-on-error: true
-        run: |
-          python scripts/build_outcome_dataset.py || echo "[research:p0] BUILD FAILED · non-blocking"
+        run: python scripts/build_outcome_dataset.py
 
       - name: Research P1 · rebuild Attribution Analysis (USA context)
+        # ENG003 discipline: no `|| echo` mask. See P0 step rationale above.
         if: always()
         continue-on-error: true
-        run: |
-          python scripts/run_attribution.py || echo "[research:p1] ATTRIBUTION FAILED · non-blocking"
+        run: python scripts/run_attribution.py
 
       - name: Commit research post-processing outputs (USA)
         if: always()

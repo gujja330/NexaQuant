@@ -247,16 +247,17 @@ jobs:
       # NEVER feeds research findings back into R1/R2 automatically.
       # ═══════════════════════════════════════════════════════════════════════
       - name: Research P0 · rebuild canonical Outcome Dataset
+        # ENG003 discipline: no `|| echo` mask. `continue-on-error: true` gives
+        # non-blocking behavior; a real failure surfaces as a red step visibly.
         if: always() && steps.engine.outcome == 'success'
         continue-on-error: true
-        run: |
-          python scripts/build_outcome_dataset.py || echo "[research:p0] BUILD FAILED · non-blocking · investigate"
+        run: python scripts/build_outcome_dataset.py
 
       - name: Research P1 · rebuild Attribution Analysis
+        # ENG003 discipline: no `|| echo` mask. See P0 step rationale above.
         if: always() && steps.engine.outcome == 'success'
         continue-on-error: true
-        run: |
-          python scripts/run_attribution.py || echo "[research:p1] ATTRIBUTION FAILED · non-blocking · investigate"
+        run: python scripts/run_attribution.py
 
       - name: Research staleness guard
         if: always() && steps.engine.outcome == 'success'
