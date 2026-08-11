@@ -58,6 +58,50 @@ def test_percentile_top_gets_best_action():
     assert wa in ("STRONG_SELL", "SELL")
 
 
+def test_percentile_handles_none_ensemble_score_uses_score_fallback():
+    """2026-08-11 regression · USA legacy recommendations.json shape:
+    every rec has ensemble_score=None but `score` populated 0..100.
+    Pre-fix: crashed with TypeError('float() argument ... NoneType').
+    Post-fix: `_num_or` treats None as missing and walks to `score`."""
+    # 3 recs, legacy shape · ensemble_score=None, score set
+    recs = [
+        {"ticker": "HIGH", "ensemble_score": None, "score": 95.0, "confidence": 0.5},
+        {"ticker": "MID",  "ensemble_score": None, "score": 50.0, "confidence": 0.5},
+        {"ticker": "LOW",  "ensemble_score": None, "score":  5.0, "confidence": 0.5},
+    ]
+    rep = classify_by_percentile(recs, strong_buy_pct=0.5, strong_sell_pct=0.5)
+    assert rep.n_recs == 3
+    high = next(d for d in rep.decisions if d["ticker"] == "HIGH")
+    low  = next(d for d in rep.decisions if d["ticker"] == "LOW")
+    # HIGH must rank above LOW · confirms `score` was actually consumed
+    assert high["ensemble_score"] == 95.0
+    assert low["ensemble_score"]  == 5.0
+    assert high["action"] in ("STRONG_BUY", "BUY")
+    assert low["action"]  in ("STRONG_SELL", "SELL")
+
+
+def test_percentile_handles_both_keys_missing_defaults_to_zero():
+    """Both ensemble_score AND score absent → default 0.0, no crash, all HOLD-ish."""
+    recs = [{"ticker": f"T{i}", "confidence": 0.5} for i in range(5)]
+    rep = classify_by_percentile(recs)
+    assert rep.n_recs == 5
+    # All identical scores → ranking is ambiguous but no exception
+    assert sum(rep.action_distribution.values()) == 5
+
+
+def test_percentile_handles_nan_score_treats_as_missing():
+    """NaN score → falls through to fallback key."""
+    recs = [
+        {"ticker": "A", "ensemble_score": float("nan"), "score": 80.0, "confidence": 0.5},
+        {"ticker": "B", "ensemble_score": float("nan"), "score": 20.0, "confidence": 0.5},
+    ]
+    rep = classify_by_percentile(recs, strong_buy_pct=0.5, strong_sell_pct=0.5)
+    a = next(d for d in rep.decisions if d["ticker"] == "A")
+    b = next(d for d in rep.decisions if d["ticker"] == "B")
+    assert a["ensemble_score"] == 80.0
+    assert b["ensemble_score"] == 20.0
+
+
 def test_percentile_fingerprint():
     rep = classify_by_percentile([{"ticker":"X","ensemble_score":0.0,"calibrated_confidence":0.5}])
     assert rep.schema_fingerprint == PC_FP

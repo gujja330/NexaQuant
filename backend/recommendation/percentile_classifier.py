@@ -35,6 +35,20 @@ DEFAULT_SELL_PCT       = 0.20   # bottom 20%
 MIN_CONFIDENCE_FOR_ACTION = 0.001   # very permissive · substrate-tolerant
 
 
+def _num_or(rec: Mapping, primary: str, fallback: str, *, default: float) -> float:
+    """Return the first numeric value among `rec[primary]`, `rec[fallback]`,
+    else `default`. Treats None (from JSON null) as missing — this is the
+    fix for the 2026-08-11 crash where `dict.get(k, default)` returned None
+    because the key was present but its value was JSON null."""
+    for k in (primary, fallback):
+        v = rec.get(k)
+        if isinstance(v, (int, float)):
+            # NaN check without importing math — NaN != NaN
+            if v == v:
+                return float(v)
+    return float(default)
+
+
 @dataclass(frozen=True)
 class PercentileDecision:
     ticker: str
@@ -87,10 +101,18 @@ def classify_by_percentile(recs: Sequence[Mapping],
         return rep
 
     n = len(recs)
-    # Extract scores + tickers preserving order
+    # Extract scores + tickers preserving order.
+    #
+    # NOTE (2026-08-11 · CEO P0 pipeline hygiene): the fallback used to be
+    #   float(r.get("ensemble_score", r.get("score", 0.0)))
+    # which crashes when a rec has ensemble_score explicitly set to None
+    # (dict.get returns the key's real value when present, not the default).
+    # This exact shape lives in usa/reports/recommendations.json today: all
+    # 507 legacy rows have ensemble_score=None but score=<0..100 numeric>.
+    # `_num_or` treats None as "missing" and walks the fallback chain.
     scored = [(r.get("ticker", ""),
-                float(r.get("ensemble_score", r.get("score", 0.0))),
-                float(r.get("calibrated_confidence", r.get("confidence", 0.0))))
+                _num_or(r, "ensemble_score", "score", default=0.0),
+                _num_or(r, "calibrated_confidence", "confidence", default=0.0))
                for r in recs]
     # Rank by score ascending (worst → best)
     ranked = sorted(scored, key=lambda x: x[1])

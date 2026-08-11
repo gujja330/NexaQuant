@@ -203,6 +203,18 @@ def main() -> int:
     for r in recs:
         action_counts[r["recommendation"]] += 1
 
+    # ─────────────────────────────────────────────────────────────
+    # 2026-08-11 CEO P0 pipeline hygiene · make universe semantics
+    # explicit. This file (usa/reports/recommendations.json) is a
+    # WHOLE-UNIVERSE SCAN of every S&P ticker with a technical score.
+    # It is NOT the actionable selected set. The canonical selected
+    # set is emitted by Sprint 3 Recommendation Intelligence v3 into
+    # usa/reports/recommendations_v3.json (currently 15 tickers).
+    #
+    # Downstream code (P0 outcome dataset, attribution, portfolio
+    # construction, delivery) MUST read `universe_role` and behave
+    # accordingly. See docs/AEGIS_UNIVERSE_ROLES.md.
+    # ─────────────────────────────────────────────────────────────
     out = {
         "engine":                  "usa_adaptive_recommendations",
         "version":                 "v1.0",
@@ -210,6 +222,14 @@ def main() -> int:
         "currency":                "USD",
         "currency_symbol":         "$",
         "run_utc":                 datetime.now(timezone.utc).isoformat(timespec="seconds") + "Z",
+        "universe_role":           "universe_scan",
+        "actionable_selection_file": "recommendations_v3.json",
+        "universe_role_note":      (
+            "Whole-universe technical scan. NOT the actionable selected "
+            "set. Selected set = recommendations_v3.json (Sprint 3 "
+            "Recommendation Intelligence). P0 outcome dataset ingests "
+            "position_store + rank_history only — never this file."
+        ),
         "n_companies_evaluated":   len(recs),
         "n_currently_held":        0,
         "n_in_target_portfolios":  0,

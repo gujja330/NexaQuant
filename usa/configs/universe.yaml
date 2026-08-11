@@ -58,7 +58,13 @@ universes:
     description: "S&P 500 · US large-cap · Wikipedia canonical (refresh weekly)"
     exchange_mix: [NYSE, NASDAQ]
     tickers_from_json: "configs/universes/sp500.json"
-    default_sector: "Large-Cap"
+    # 2026-08-11 CEO P0 pipeline hygiene · was "Large-Cap" which is a
+    # cap-size label, not a GICS sector · downstream then wrote "Large-Cap"
+    # into the sector column of the feature store and portfolio engines
+    # reported n_sectors=0. Real sectors come from markets/usa/sectors.csv
+    # (GICS via yfinance) synced into reports/sector_cache.json[usa]. This
+    # "Unknown" is the ONLY safe fallback when a ticker is not in that map.
+    default_sector: "Unknown"
     default_exchange: "NYSE"
 
   sp400_midcap:

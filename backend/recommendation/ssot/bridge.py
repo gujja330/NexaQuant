@@ -220,6 +220,9 @@ def publish_ssot(v3_path: Path,
         quality_counts[r.get("signal_quality", "WEAK")] = quality_counts.get(r.get("signal_quality", "WEAK"), 0) + 1
         action_counts[r.get("recommendation")] = action_counts.get(r.get("recommendation"), 0) + 1
 
+    # 2026-08-11 CEO P0 pipeline hygiene · declare universe role so
+    # downstream cannot conflate this India selected set with the USA
+    # 507-row universe scan that lives at usa/reports/recommendations.json.
     payload = {
         "engine":              ENGINE_ID,
         "version":             "1.0.0",
@@ -229,6 +232,13 @@ def publish_ssot(v3_path: Path,
         "asof":                asof.isoformat() if isinstance(asof, date) else (asof or date.today().isoformat()),
         "run_utc":             run_utc or datetime.now(timezone.utc).isoformat(),
         "source":              str(v3_path.name),
+        "universe_role":       "selected_candidates",
+        "universe_role_note":  (
+            "Canonical selected recommendation set (Sprint 3 v3 SSoT). "
+            "Actionable. Consumed by delivery + portfolio construction. "
+            "Distinct from USA's usa/reports/recommendations.json which "
+            "is a universe_scan (~507 tickers, technical scoring only)."
+        ),
         "n":                   len(legacy_recs),
         # Schema-compat alias · ops_check (scripts/aegis_ops_check.py +
         # usa/scripts/usa_ops_check.py) and both markets' backend_validation

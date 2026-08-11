@@ -51,13 +51,68 @@ def _as_dict(obj):
     return _stringify(obj)
 
 
-def _ticker_sector_map(sized_positions: list[dict]) -> dict[str, str]:
+def _hydrate_usa_sector_cache(root: Path) -> dict[str, str]:
+    """Populate reports/sector_cache.json[usa] from markets/usa/sectors.csv.
+
+    2026-08-11 CEO P0 pipeline hygiene · portfolio engine reported n_sectors=0
+    because rec-payload sector was empty AND sector_cache.json[usa] was {}.
+    Real GICS sectors live in markets/usa/sectors.csv (227 tickers, populated
+    by `python -m core.usa_sectors --build`). This function syncs them into
+    the JSON cache that every downstream consumer already reads. Idempotent,
+    fail-open · returns the loaded USA map."""
+    cache_path = root / "reports" / "sector_cache.json"
+    csv_path   = root / "markets" / "usa" / "sectors.csv"
+
+    try:
+        cache = json.loads(cache_path.read_text(encoding="utf-8")) if cache_path.exists() else {}
+    except Exception:
+        cache = {}
+    if not isinstance(cache, dict):
+        cache = {}
+    usa_bucket = cache.get("usa") or {}
+
+    if csv_path.exists():
+        try:
+            import csv as _csv
+            with csv_path.open(encoding="utf-8", newline="") as fh:
+                reader = _csv.DictReader(fh)
+                for row in reader:
+                    sym = str(row.get("symbol") or "").upper()
+                    sec = str(row.get("sector") or "").strip()
+                    if sym and sec and sec.lower() != "unknown":
+                        usa_bucket.setdefault(sym, sec)
+            cache["usa"] = usa_bucket
+            cache_path.parent.mkdir(parents=True, exist_ok=True)
+            cache_path.write_text(json.dumps(cache, indent=2, ensure_ascii=False),
+                                       encoding="utf-8")
+        except Exception:
+            pass   # fail-open · cache stays as-is
+    return usa_bucket
+
+
+def _ticker_sector_map(sized_positions: list[dict],
+                              root: Path | None = None) -> dict[str, str]:
+    """Return {ticker: sector}. Sources in priority order:
+      1. sized_positions' inline sector field (rec-payload provenance)
+      2. reports/sector_cache.json[usa] (yfinance-derived · SSoT)
+      3. markets/usa/sectors.csv (hydrated into #2 on first call)
+    """
     m: dict[str, str] = {}
+    # 1. Inline sector from recs
     for p in sized_positions:
-        t = str(p.get("ticker") or "")
-        s = str(p.get("sector") or "")
-        if t and s:
+        t = str(p.get("ticker") or "").upper()
+        s = str(p.get("sector") or "").strip()
+        if t and s and s.lower() not in ("unknown", "large-cap", "large cap", "—", "-"):
             m[t] = s
+    # 2 + 3. Fallback to sector_cache (hydrate from CSV if empty)
+    if root is not None:
+        usa_bucket = _hydrate_usa_sector_cache(root)
+        for p in sized_positions:
+            t = str(p.get("ticker") or "").upper()
+            if t and t not in m:
+                sec = usa_bucket.get(t)
+                if sec:
+                    m[t] = sec
     return m
 
 
@@ -111,14 +166,28 @@ def main() -> int:
         model_stamp=model_stamp,
     )
 
-    ts_map = _ticker_sector_map(positions_in)
+    ts_map = _ticker_sector_map(positions_in, root=_ROOT)
     asof = date.fromisoformat(sized_doc.get("asof")) if sized_doc.get("asof") else date.today()
     snap, diff = engine.run(positions_in, ticker_sector=ts_map, asof=asof)
+
+    # 2026-08-11 CEO P0 · report sector metadata coverage honestly.
+    # If n_sectors=0 it can mean EITHER a real single-sector concentration
+    # OR missing metadata · print the coverage ratio so the operator can
+    # tell them apart without opening a debugger.
+    tickers_needing_sector = [str(p.get("ticker") or "").upper()
+                                     for p in positions_in]
+    resolved = sum(1 for t in tickers_needing_sector if ts_map.get(t))
+    coverage_pct = (100.0 * resolved / len(tickers_needing_sector)) if tickers_needing_sector else 0.0
 
     print(f"  portfolio: {snap.n_positions} positions · "
           f"total_wgt={snap.total_weight:.4f} · cash={snap.cash_pct * 100:.2f}%")
     print(f"    HHI={snap.hhi:.4f} · effN={snap.effective_n:.2f} · top5={snap.top_5_pct * 100:.2f}%")
     print(f"    n_sectors={snap.n_sectors} · per_sector={snap.per_sector_pct}")
+    if coverage_pct < 100.0:
+        missing = [t for t in tickers_needing_sector if not ts_map.get(t)]
+        print(f"    sector_metadata_coverage={resolved}/{len(tickers_needing_sector)} "
+              f"({coverage_pct:.0f}%) · missing={missing} · "
+              f"fix: python scripts/refresh_usa_sector_cache.py")
     print(f"  diff:  OPEN={diff.n_open} CLOSE={diff.n_close} INC={diff.n_increase} "
           f"DEC={diff.n_decrease} HOLD={diff.n_hold} · turnover={diff.turnover_pct * 100:.2f}%"
           f" · prior={diff.prior_asof}")
