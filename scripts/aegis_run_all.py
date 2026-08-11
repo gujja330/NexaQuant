@@ -8,20 +8,35 @@ in production (aegis-daily.yml + aegis-usa.yml):
     stage 3  SSoT enrichment              (backend.recommendation.ssot.run · both)
     stage 4  Rebuild unified XLSX          (reports/telegram/aegis_history.xlsx)
     stage 5  Preview Telegram message      (dry-run render · shown in terminal)
-    stage 6  Send to Telegram              (compact message + XLSX attachment)
+    stage 6  Send to Telegram              (one message per market · India + USA)
+    stage 7  Research P0 · rebuild canonical Outcome Dataset
+    stage 8  Research P1 · rebuild Attribution Analysis
 
 Every stage is optional via flags — useful for iteration/debugging.
 
 USAGE
 ─────
-Full flow (default · does everything):
+Full flow (default · does everything · both markets):
     python scripts/aegis_run_all.py
 
-Only rebuild XLSX + send (data already fresh):
+India only:
+    python scripts/aegis_run_all.py --market india
+
+Fast iteration (data already fresh · just rebuild XLSX + send):
     python scripts/aegis_run_all.py --skip-refresh --skip-regen
 
 Dry-run everything (no Telegram send):
     python scripts/aegis_run_all.py --dry-run
+
+Force send even when guards flag stale data (emergency use):
+    python scripts/aegis_run_all.py --force-stale
+
+Skip research post-processing (send only · no P0/P1 refresh):
+    python scripts/aegis_run_all.py --skip-research
+
+REQUIRED SECRETS (place in .env.telegram · loaded automatically):
+    TELEGRAM_BOT_TOKEN=<bot token>
+    TELEGRAM_CHAT_ID=<chat id>
 
 Single market:
     python scripts/aegis_run_all.py --market india
@@ -102,6 +117,7 @@ def main() -> int:
     ap.add_argument("--skip-refresh", action="store_true", help="skip stage 1")
     ap.add_argument("--skip-regen", action="store_true", help="skip stages 2+3")
     ap.add_argument("--skip-xlsx", action="store_true", help="skip stage 4")
+    ap.add_argument("--skip-research", action="store_true", help="skip stages 7+8 (P0+P1 refresh)")
     ap.add_argument("--dry-run", action="store_true",
                        help="preview message · do not send to Telegram")
     ap.add_argument("--preview-only", action="store_true",
@@ -134,7 +150,9 @@ def main() -> int:
     stages.append("preview")
     if not args.dry_run:
         stages.append("send")
-    total = len(stages)
+    if not args.skip_research:
+        stages.append("research")
+    total = len(stages) + (1 if "research" in stages else 0)   # research is 2 stages
 
     print(f"\n▶ AEGIS end-to-end · asof={args.asof} · markets={markets}")
     print(f"  stages: {' → '.join(stages)}")
@@ -200,14 +218,30 @@ def main() -> int:
                             "--market", args.market, "--dry-run"])
         results.append(("preview", ok, dt))
 
-    # ── Stage 6 · Send to Telegram ──
+    # ── Stage 6 · Send to Telegram (one message per market) ──
     if "send" in stages:
         stage_num += 1
         _banner(stage_num, total, "Send to Telegram (compact msg + XLSX attachment)")
         env_extra = {"SEND_FORCE_STALE": "1"} if args.force_stale else None
-        ok, dt = _run([_PYTHON, "scripts/telegram_command_center_send.py",
-                            "--market", args.market], env_extra=env_extra)
-        results.append(("send", ok, dt))
+        if args.force_stale:
+            env_extra["PRICE_GUARD_OVERRIDE"] = "1"
+        for m in markets:
+            ok, dt = _run([_PYTHON, "scripts/telegram_command_center_send.py",
+                                "--market", m], env_extra=env_extra)
+            results.append((f"send:{m}", ok, dt))
+
+    # ── Stage 7 · Research P0 · rebuild canonical Outcome Dataset ──
+    if "research" in stages:
+        stage_num += 1
+        _banner(stage_num, total, "Research P0 · rebuild Outcome Dataset (canonical)")
+        ok, dt = _run([_PYTHON, "scripts/build_outcome_dataset.py"])
+        results.append(("research:p0", ok, dt))
+
+        # ── Stage 8 · Research P1 · rebuild Attribution Analysis ──
+        stage_num += 1
+        _banner(stage_num, total, "Research P1 · rebuild Attribution Analysis")
+        ok, dt = _run([_PYTHON, "scripts/run_attribution.py"])
+        results.append(("research:p1", ok, dt))
 
     # ── Summary ──
     print(f"\n{'═' * 60}")
