@@ -119,3 +119,31 @@ jobs:
           git add reports/telegram/aegis_history.xlsx reports/telegram/aegis_daily_*.xlsx 2>/dev/null || true
           git diff --cached --quiet || git commit -m "AEGIS USA daily: refresh reports [skip ci]"
           git push || true
+
+      # ═══════════════════════════════════════════════════════════════════════
+      # Research post-processing (2026-08-11 · CEO final wiring)
+      # After USA production run · rebuild P0 outcome dataset + P1 attribution
+      # Non-blocking · never feeds back into runners automatically
+      # ═══════════════════════════════════════════════════════════════════════
+      - name: Research P0 · rebuild canonical Outcome Dataset (USA context)
+        if: always()
+        continue-on-error: true
+        run: |
+          python scripts/build_outcome_dataset.py || echo "[research:p0] BUILD FAILED · non-blocking"
+
+      - name: Research P1 · rebuild Attribution Analysis (USA context)
+        if: always()
+        continue-on-error: true
+        run: |
+          python scripts/run_attribution.py || echo "[research:p1] ATTRIBUTION FAILED · non-blocking"
+
+      - name: Commit research post-processing outputs (USA)
+        if: always()
+        continue-on-error: true
+        run: |
+          git config user.name  "aegis-bot"
+          git config user.email "aegis-bot@users.noreply.github.com"
+          git add reports/research/outcome_dataset.parquet reports/research/outcome_dataset_summary.json 2>/dev/null || true
+          git add reports/research/attribution_analysis.json reports/research/attribution_report.md 2>/dev/null || true
+          git diff --cached --quiet || git commit -m "AEGIS research USA: refresh P0 + P1 [skip ci]"
+          git push || true
