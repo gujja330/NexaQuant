@@ -174,11 +174,13 @@ jobs:
       # Only sender that runs is the Command Center. If ever needed, either
       # legacy sender can be re-enabled by uncommenting its step block.
       - name: Telegram Command Center (India · SINGLE SENDER · cycle 6)
+        id: send
         # Consumes reports/recommendations.json enriched by cycles 3-4
         # (ceo_summary + rotation_intelligence + evolution + investor_action
         # + position_plan.time_horizon_days from dynamic_holding.json +
         # ai_scorecard + attribution_summary from v2.4).
         # This is the ONLY Telegram delivery path — no more two-pipeline drift.
+        # 2026-08-10 · added id=send so mark-published can gate on outcome.
         if: steps.guard.outputs.run == 'true' && steps.freshcheck.outputs.verified == 'true'
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
@@ -197,16 +199,22 @@ jobs:
           retention-days: 30
 
       - name: Mark published + commit report/data
-        # CEO cycle 5 · defense-in-depth: commit fresh artifacts even when
-        # Telegram delivery fails. Prior condition let a spurious Telegram
-        # failure (e.g. the 2026-07-29 HTML-parse retry misclassification)
-        # skip this step and leave data/aegis_today.csv frozen in git for
-        # DAYS. Fresh data is worth committing regardless of notification
-        # delivery status. Engine + freshcheck are still required — those
-        # guarantee the data itself is valid.
+        # 2026-08-10 BUGFIX: previously mark-published fired regardless of
+        # Telegram send outcome. When Guard 8 blocked (exit 2) · mark still
+        # set for today · subsequent backup retries no-op'd via the guard
+        # check at line 61 · operator never received notification.
+        #
+        # FIX: only write data/.published when Telegram send actually succeeded
+        # (steps.send.outcome == 'success'). Data commit still happens on
+        # engine success (independent path · below).
         if: always() && steps.engine.outcome == 'success' && steps.guard.outputs.run == 'true' && steps.freshcheck.outputs.verified == 'true'
         run: |
-          echo "${{ steps.guard.outputs.ist }}" > data/.published
+          if [ "${{ steps.send.outcome }}" = "success" ]; then
+            echo "${{ steps.guard.outputs.ist }}" > data/.published
+            echo "[mark_published] send succeeded · mark set for retry-suppression"
+          else
+            echo "[mark_published] send failed/skipped · mark NOT set · next backup will retry"
+          fi
           git config user.name  "aegis-bot"
           git config user.email "aegis-bot@users.noreply.github.com"
           git add reports/AEGIS_*.xlsx data/aegis_*.csv data/raw/india/*_D1.parquet data/.published docs/ || true

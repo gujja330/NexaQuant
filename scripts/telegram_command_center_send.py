@@ -693,13 +693,15 @@ def main() -> int:
                         and isinstance(_row_current, (int, float)):
                     _pnl_pct_hist = (_row_current - _row_entry) / _row_entry * 100
 
-                def _hist_classify(st, iv, pnl):
+                def _hist_classify(st, iv, pnl, is_same_day=False):
                     q_high = iv in ("🏆 QUALITY", "✓ OK")
                     q_mid = iv == "⚠ MARGINAL"
                     q_low = iv == "✗ AVOID"
                     pnl_neg = isinstance(pnl, (int, float)) and pnl < 0
                     if st == "ROTATED_SAMEDAY": return "J"
-                    if st == "EXIT": return "H" if q_high else "I"
+                    if st == "EXIT":
+                        if is_same_day: return "J"
+                        return "H" if q_high else "I"
                     if st == "STRONG BUY" and iv == "🏆 QUALITY": return "A"
                     if st in ("BUY", "STRONG BUY") and q_high: return "B"
                     if st in ("BUY", "STRONG BUY") and q_low: return "F"
@@ -710,7 +712,12 @@ def main() -> int:
                     if q_low: return "F"
                     return "E"
 
-                hist_bucket = _hist_classify(_row_status, inv_v_verdict, _pnl_pct_hist)
+                # Same-day detection for History rows too
+                _hist_exit_date_col = h.index("Exit Date")+1 if "Exit Date" in h else None
+                _hist_ed = str(row[_hist_exit_date_col-1].value or "")[:10] if _hist_exit_date_col else ""
+                _hist_same_day = bool(_hist_ed and entry_dt and _hist_ed == entry_dt[:10])
+                hist_bucket = _hist_classify(_row_status, inv_v_verdict, _pnl_pct_hist,
+                                                                 is_same_day=_hist_same_day)
                 _matrix_h = PRIORITY_MATRIX.get(hist_bucket,
                                                                 ("—", "—", "—", "—", "F2F2F2"))
                 h_urg, h_rea, h_act, h_rev, _ = _matrix_h
@@ -942,15 +949,17 @@ def main() -> int:
                 inv_score = _inv.get("score")
                 inv_verdict = _inv.get("verdict", "")
 
-                def _classify_priority(st, iv, pnl):
-                    """Returns bucket letter A-J. Look up PRIORITY_MATRIX for
-                    orthogonal fields (Urgency, Reason, Action, Review, Color)."""
+                def _classify_priority(st, iv, pnl, is_same_day=False):
+                    """Returns bucket letter A-J.
+                    2026-08-10: same-day EXIT (Entry Date == Exit Date) reclassified
+                    as J (ARTIFACT) instead of I (CLOSED) · not a real trade."""
                     q_high = iv in ("🏆 QUALITY", "✓ OK")
                     q_mid = iv == "⚠ MARGINAL"
                     q_low = iv == "✗ AVOID"
                     pnl_neg = isinstance(pnl, (int, float)) and pnl < 0
                     if st == "ROTATED_SAMEDAY": return "J"
                     if st == "EXIT":
+                        if is_same_day: return "J"    # same-day rotation · not real trade
                         return "H" if q_high else "I"
                     if st == "STRONG BUY" and iv == "🏆 QUALITY": return "A"
                     if st in ("BUY", "STRONG BUY") and q_high:    return "B"
@@ -967,7 +976,10 @@ def main() -> int:
                 if isinstance(pnl_decimal, (int, float)):
                     _pnl_for_class = pnl_decimal * 100
 
-                priority_bucket = _classify_priority(status, inv_verdict, _pnl_for_class)
+                # Same-day detection · Entry Date == Exit Date == today = rotation artifact
+                _is_same_day = bool(exit_date and rec_dt and str(exit_date)[:10] == rec_dt[:10])
+                priority_bucket = _classify_priority(status, inv_verdict, _pnl_for_class,
+                                                                        is_same_day=_is_same_day)
                 _matrix = PRIORITY_MATRIX.get(priority_bucket,
                                                             ("—", "—", "—", "—", "F2F2F2"))
                 priority_tag = priority_bucket   # for color lookup below
