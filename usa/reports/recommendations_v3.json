@@ -2,36 +2,36 @@
   "engine": "aegis.recommendation.v3",
   "version": "1.0.0",
   "market": "usa",
-  "run_utc": "2026-08-10T21:38:19+00:00",
-  "asof": "2026-08-10",
+  "run_utc": "2026-08-11T21:49:51+00:00",
+  "asof": "2026-08-11",
   "currency": "USD",
   "regime": "neutral",
   "n_tickers": 15,
   "distribution": {
     "STRONG_BUY": 0,
-    "BUY": 8,
-    "HOLD": 7,
+    "BUY": 0,
+    "HOLD": 15,
     "SELL": 0,
     "STRONG_SELL": 0
   },
-  "n_disagreement_collapsed": 0,
+  "n_disagreement_collapsed": 5,
   "recommendations": [
     {
       "market": "usa",
       "ticker": "PLTR",
-      "asof": "2026-08-10",
+      "asof": "2026-08-11",
       "action": "HOLD",
-      "ensemble_score": 0.3289,
-      "raw_confidence": 0.6943,
-      "calibrated_confidence": 0.5113,
-      "regime_adjusted_confidence": 0.4857,
-      "model_agreement": 0.6364,
-      "disagreement_flag": false,
+      "ensemble_score": 0.3177,
+      "raw_confidence": 0.6045,
+      "calibrated_confidence": 0.4192,
+      "regime_adjusted_confidence": 0.3982,
+      "model_agreement": 0.5455,
+      "disagreement_flag": true,
       "n_models_scoring": 11,
       "top_models": [
         {
           "model_id": "aegis.value.v1",
-          "score": -0.8858
+          "score": -0.8933
         },
         {
           "model_id": "aegis.quality.v1",
@@ -52,12 +52,12 @@
         "fund_earnings_growth",
         "fund_market_cap_log"
       ],
-      "bull_case": "1-month momentum +34.75%; 3-month momentum +34.74%; strong fundamental quality (84.210); high ROE (+38.10%); positive news sentiment (0.375).",
-      "bear_case": "stretched valuation (P/E 149.769); high leverage (D/E 2.139); net insider selling ($-154,842,927, 90d); deep 60d drawdown (-33.23%).",
+      "bull_case": "1-month momentum +30.83%; 3-month momentum +30.82%; strong fundamental quality (84.210); high ROE (+38.10%).",
+      "bear_case": "overbought RSI (79.193); stretched valuation (P/E 149.521); high leverage (D/E 2.139); net insider selling ($-160,292,471, 90d); deep 60d drawdown (-33.23%).",
       "key_risks": [],
       "suggested_holding_period_days": 60,
       "entry_zone": {
-        "current": 175.23,
+        "current": 174.94,
         "note": "hold \u2014 no entry"
       },
       "exit_conditions": [
@@ -80,28 +80,90 @@
     },
     {
       "market": "usa",
-      "ticker": "IT",
-      "asof": "2026-08-10",
+      "ticker": "MSFT",
+      "asof": "2026-08-11",
       "action": "HOLD",
-      "ensemble_score": 0.3162,
-      "raw_confidence": 0.6593,
-      "calibrated_confidence": 0.4982,
-      "regime_adjusted_confidence": 0.4733,
-      "model_agreement": 0.7273,
-      "disagreement_flag": false,
+      "ensemble_score": 0.3005,
+      "raw_confidence": 0.6045,
+      "calibrated_confidence": 0.4432,
+      "regime_adjusted_confidence": 0.421,
+      "model_agreement": 0.5455,
+      "disagreement_flag": true,
       "n_models_scoring": 11,
       "top_models": [
         {
           "model_id": "aegis.trend.v1",
-          "score": 0.6852
+          "score": 0.6911
         },
+        {
+          "model_id": "aegis.quality.v1",
+          "score": 0.6711
+        },
+        {
+          "model_id": "aegis.mean_reversion.v1",
+          "score": 0.5029
+        }
+      ],
+      "top_features": [
+        "adx_14",
+        "atr_14_pct",
+        "ca_days_since_last_dividend",
+        "ca_last_dividend_amount",
+        "distance_from_52w_high_pct",
+        "distance_from_52w_low_pct",
+        "earn_days_to_next",
+        "fund_debt_to_equity"
+      ],
+      "bull_case": "1-month momentum +30.88%; 3-month momentum +23.32%; high ROE (+34.04%).",
+      "bear_case": "overbought RSI (87.372); high leverage (D/E 29.118); net insider selling ($-17,775,635, 90d); deep 60d drawdown (-23.38%).",
+      "key_risks": [],
+      "suggested_holding_period_days": 60,
+      "entry_zone": {
+        "current": 503.81,
+        "note": "hold \u2014 no entry"
+      },
+      "exit_conditions": [
+        "no active exit trigger \u2014 HOLD position"
+      ],
+      "model_stamp": {
+        "model_id": "aegis.recommendation.v3",
+        "version": "1.0.0",
+        "engine": "recommendation_intelligence",
+        "market": "usa",
+        "feature_set_version": "b65ceb49a83a",
+        "schema_version": "b65ceb49a83a",
+        "calibration_version": "",
+        "approval_status": "experimental",
+        "approved_by": "",
+        "approved_on": ""
+      },
+      "feature_set_version": "b65ceb49a83a",
+      "schema_fingerprint": "b65ceb49a83a"
+    },
+    {
+      "market": "usa",
+      "ticker": "UBER",
+      "asof": "2026-08-11",
+      "action": "HOLD",
+      "ensemble_score": 0.2727,
+      "raw_confidence": 0.6045,
+      "calibrated_confidence": 0.4439,
+      "regime_adjusted_confidence": 0.4217,
+      "model_agreement": 0.6364,
+      "disagreement_flag": false,
+      "n_models_scoring": 11,
+      "top_models": [
         {
           "model_id": "aegis.growth.v1",
-          "score": 0.585
+          "score": 0.6697
         },
         {
-          "model_id": "aegis.news.v1",
-          "score": 0.4816
+          "model_id": "aegis.quality.v1",
+          "score": 0.5686
+        },
+        {
+          "model_id": "aegis.ai_hybrid.v1",
+          "score": 0.4246
         }
       ],
       "top_features": [
@@ -110,16 +172,140 @@
         "distance_from_52w_high_pct",
         "distance_from_52w_low_pct",
         "earn_days_to_next",
+        "fund_debt_to_equity",
         "fund_earnings_growth",
-        "fund_market_cap_log",
-        "fund_price_to_book"
+        "fund_market_cap_log"
       ],
-      "bull_case": "1-month momentum +36.70%; 3-month momentum +33.72%; high ROE (+1.14%); positive news sentiment (0.500).",
-      "bear_case": "overbought RSI (80.360); deep 60d drawdown (-29.99%).",
+      "bull_case": "1-month momentum +8.96%; high ROE (+37.16%); positive news sentiment (0.250).",
+      "bear_case": "high leverage (D/E 51.872).",
       "key_risks": [],
       "suggested_holding_period_days": 60,
       "entry_zone": {
-        "current": 193.17,
+        "current": 78.54,
+        "note": "hold \u2014 no entry"
+      },
+      "exit_conditions": [
+        "no active exit trigger \u2014 HOLD position"
+      ],
+      "model_stamp": {
+        "model_id": "aegis.recommendation.v3",
+        "version": "1.0.0",
+        "engine": "recommendation_intelligence",
+        "market": "usa",
+        "feature_set_version": "b65ceb49a83a",
+        "schema_version": "b65ceb49a83a",
+        "calibration_version": "",
+        "approval_status": "experimental",
+        "approved_by": "",
+        "approved_on": ""
+      },
+      "feature_set_version": "b65ceb49a83a",
+      "schema_fingerprint": "b65ceb49a83a"
+    },
+    {
+      "market": "usa",
+      "ticker": "HAS",
+      "asof": "2026-08-11",
+      "action": "HOLD",
+      "ensemble_score": 0.2675,
+      "raw_confidence": 0.5765,
+      "calibrated_confidence": 0.4112,
+      "regime_adjusted_confidence": 0.3906,
+      "model_agreement": 0.5455,
+      "disagreement_flag": true,
+      "n_models_scoring": 11,
+      "top_models": [
+        {
+          "model_id": "aegis.trend.v1",
+          "score": 0.7858
+        },
+        {
+          "model_id": "aegis.momentum.v1",
+          "score": 0.4279
+        },
+        {
+          "model_id": "aegis.mean_reversion.v1",
+          "score": 0.4065
+        }
+      ],
+      "top_features": [
+        "adx_14",
+        "atr_14_pct",
+        "ca_days_since_last_dividend",
+        "ca_last_dividend_amount",
+        "distance_from_52w_high_pct",
+        "distance_from_52w_low_pct",
+        "earn_days_to_next",
+        "fund_debt_to_equity"
+      ],
+      "bull_case": "1-month momentum +23.74%; high ROE (+1.60%).",
+      "bear_case": "high leverage (D/E 531.042); deep 60d drawdown (-21.30%).",
+      "key_risks": [],
+      "suggested_holding_period_days": 60,
+      "entry_zone": {
+        "current": 97.04,
+        "note": "hold \u2014 no entry"
+      },
+      "exit_conditions": [
+        "no active exit trigger \u2014 HOLD position"
+      ],
+      "model_stamp": {
+        "model_id": "aegis.recommendation.v3",
+        "version": "1.0.0",
+        "engine": "recommendation_intelligence",
+        "market": "usa",
+        "feature_set_version": "b65ceb49a83a",
+        "schema_version": "b65ceb49a83a",
+        "calibration_version": "",
+        "approval_status": "experimental",
+        "approved_by": "",
+        "approved_on": ""
+      },
+      "feature_set_version": "b65ceb49a83a",
+      "schema_fingerprint": "b65ceb49a83a"
+    },
+    {
+      "market": "usa",
+      "ticker": "HON",
+      "asof": "2026-08-11",
+      "action": "HOLD",
+      "ensemble_score": 0.2649,
+      "raw_confidence": 0.6045,
+      "calibrated_confidence": 0.4671,
+      "regime_adjusted_confidence": 0.4437,
+      "model_agreement": 0.5455,
+      "disagreement_flag": true,
+      "n_models_scoring": 11,
+      "top_models": [
+        {
+          "model_id": "aegis.mean_reversion.v1",
+          "score": 0.8582
+        },
+        {
+          "model_id": "aegis.growth.v1",
+          "score": 0.8297
+        },
+        {
+          "model_id": "aegis.value.v1",
+          "score": 0.5829
+        }
+      ],
+      "top_features": [
+        "adx_14",
+        "atr_14_pct",
+        "ca_days_since_last_dividend",
+        "ca_days_since_last_split",
+        "ca_last_dividend_amount",
+        "ca_last_split_ratio",
+        "distance_from_52w_high_pct",
+        "distance_from_52w_low_pct"
+      ],
+      "bull_case": "high ROE (+46.58%); positive news sentiment (0.250).",
+      "bear_case": "high leverage (D/E 185.369).",
+      "key_risks": [],
+      "suggested_holding_period_days": 60,
+      "entry_zone": {
+        "current": 230.12,
         "note": "hold \u2014 no entry"
       },
       "exit_conditions": [
@@ -143,586 +329,45 @@
     {
       "market": "usa",
       "ticker": "APA",
-      "asof": "2026-08-10",
-      "action": "BUY",
-      "ensemble_score": 0.3156,
-      "raw_confidence": 0.6943,
-      "calibrated_confidence": 0.5996,
-      "regime_adjusted_confidence": 0.5696,
-      "model_agreement": 0.8182,
-      "disagreement_flag": false,
-      "n_models_scoring": 11,
-      "top_models": [
-        {
-          "model_id": "aegis.value.v1",
-          "score": 0.798
-        },
-        {
-          "model_id": "aegis.news.v1",
-          "score": 0.5583
-        },
-        {
-          "model_id": "aegis.momentum.v1",
-          "score": 0.5506
-        }
-      ],
-      "top_features": [
-        "adx_14",
-        "atr_14_pct",
-        "ca_days_since_last_dividend",
-        "ca_last_dividend_amount",
-        "distance_from_52w_high_pct",
-        "distance_from_52w_low_pct",
-        "earn_days_to_next",
-        "fund_debt_to_equity"
-      ],
-      "bull_case": "1-month momentum +19.15%; 3-month momentum +11.74%; high ROE (+26.66%); positive news sentiment (0.625).",
-      "bear_case": "high leverage (D/E 48.854); deep 60d drawdown (-22.10%).",
-      "key_risks": [
-        "leverage above 1x amplifies downside if fundamentals slip"
-      ],
-      "suggested_holding_period_days": 60,
-      "entry_zone": {
-        "low": 40.2,
-        "high": 41.84,
-        "current": 41.02,
-        "note": "\u00b12% band around current price"
-      },
-      "exit_conditions": [
-        "time-based: review after 60 days if action still holds",
-        "price-based: 8% stop-loss from entry",
-        "price-based: consider trimming +15% from entry",
-        "thesis-based: exit if bull case signals invert (any 2 of them)"
-      ],
-      "model_stamp": {
-        "model_id": "aegis.recommendation.v3",
-        "version": "1.0.0",
-        "engine": "recommendation_intelligence",
-        "market": "usa",
-        "feature_set_version": "b65ceb49a83a",
-        "schema_version": "b65ceb49a83a",
-        "calibration_version": "",
-        "approval_status": "experimental",
-        "approved_by": "",
-        "approved_on": ""
-      },
-      "feature_set_version": "b65ceb49a83a",
-      "schema_fingerprint": "b65ceb49a83a"
-    },
-    {
-      "market": "usa",
-      "ticker": "ADBE",
-      "asof": "2026-08-10",
-      "action": "BUY",
-      "ensemble_score": 0.3022,
-      "raw_confidence": 0.6943,
-      "calibrated_confidence": 0.5681,
-      "regime_adjusted_confidence": 0.5397,
-      "model_agreement": 0.8182,
-      "disagreement_flag": false,
-      "n_models_scoring": 11,
-      "top_models": [
-        {
-          "model_id": "aegis.momentum.v1",
-          "score": 0.5767
-        },
-        {
-          "model_id": "aegis.quality.v1",
-          "score": 0.4196
-        },
-        {
-          "model_id": "aegis.event_driven.v1",
-          "score": 0.3845
-        }
-      ],
-      "top_features": [
-        "adx_14",
-        "atr_14_pct",
-        "distance_from_52w_high_pct",
-        "distance_from_52w_low_pct",
-        "earn_days_to_next",
-        "fund_debt_to_equity",
-        "fund_earnings_growth",
-        "fund_market_cap_log"
-      ],
-      "bull_case": "1-month momentum +18.36%; 3-month momentum +15.63%; high ROE (+62.95%); positive news sentiment (0.375).",
-      "bear_case": "high leverage (D/E 61.443); deep 60d drawdown (-29.42%).",
-      "key_risks": [
-        "leverage above 1x amplifies downside if fundamentals slip"
-      ],
-      "suggested_holding_period_days": 60,
-      "entry_zone": {
-        "low": 267.501,
-        "high": 278.419,
-        "current": 272.96,
-        "note": "\u00b12% band around current price"
-      },
-      "exit_conditions": [
-        "time-based: review after 60 days if action still holds",
-        "price-based: 8% stop-loss from entry",
-        "price-based: consider trimming +15% from entry",
-        "thesis-based: exit if bull case signals invert (any 2 of them)"
-      ],
-      "model_stamp": {
-        "model_id": "aegis.recommendation.v3",
-        "version": "1.0.0",
-        "engine": "recommendation_intelligence",
-        "market": "usa",
-        "feature_set_version": "b65ceb49a83a",
-        "schema_version": "b65ceb49a83a",
-        "calibration_version": "",
-        "approval_status": "experimental",
-        "approved_by": "",
-        "approved_on": ""
-      },
-      "feature_set_version": "b65ceb49a83a",
-      "schema_fingerprint": "b65ceb49a83a"
-    },
-    {
-      "market": "usa",
-      "ticker": "ADSK",
-      "asof": "2026-08-10",
-      "action": "BUY",
-      "ensemble_score": 0.3022,
-      "raw_confidence": 0.6943,
-      "calibrated_confidence": 0.5397,
-      "regime_adjusted_confidence": 0.5127,
-      "model_agreement": 0.7273,
-      "disagreement_flag": false,
-      "n_models_scoring": 11,
-      "top_models": [
-        {
-          "model_id": "aegis.growth.v1",
-          "score": 0.832
-        },
-        {
-          "model_id": "aegis.value.v1",
-          "score": -0.5652
-        },
-        {
-          "model_id": "aegis.trend.v1",
-          "score": 0.5116
-        }
-      ],
-      "top_features": [
-        "adx_14",
-        "atr_14_pct",
-        "distance_from_52w_high_pct",
-        "distance_from_52w_low_pct",
-        "earn_days_to_next",
-        "fund_debt_to_equity",
-        "fund_earnings_growth",
-        "fund_market_cap_log"
-      ],
-      "bull_case": "1-month momentum +20.66%; 3-month momentum +10.84%; high ROE (+50.40%); positive news sentiment (0.375).",
-      "bear_case": "overbought RSI (77.284); high leverage (D/E 85.419); deep 60d drawdown (-24.36%).",
-      "key_risks": [
-        "earnings in 17 days \u2014 reduce position size ahead of print",
-        "leverage above 1x amplifies downside if fundamentals slip"
-      ],
-      "suggested_holding_period_days": 60,
-      "entry_zone": {
-        "low": 250.949,
-        "high": 261.191,
-        "current": 256.07,
-        "note": "\u00b12% band around current price"
-      },
-      "exit_conditions": [
-        "time-based: review after 60 days if action still holds",
-        "price-based: 8% stop-loss from entry",
-        "price-based: consider trimming +15% from entry",
-        "thesis-based: exit if bull case signals invert (any 2 of them)"
-      ],
-      "model_stamp": {
-        "model_id": "aegis.recommendation.v3",
-        "version": "1.0.0",
-        "engine": "recommendation_intelligence",
-        "market": "usa",
-        "feature_set_version": "b65ceb49a83a",
-        "schema_version": "b65ceb49a83a",
-        "calibration_version": "",
-        "approval_status": "experimental",
-        "approved_by": "",
-        "approved_on": ""
-      },
-      "feature_set_version": "b65ceb49a83a",
-      "schema_fingerprint": "b65ceb49a83a"
-    },
-    {
-      "market": "usa",
-      "ticker": "MSFT",
-      "asof": "2026-08-10",
-      "action": "BUY",
-      "ensemble_score": 0.2963,
-      "raw_confidence": 0.6943,
-      "calibrated_confidence": 0.5397,
-      "regime_adjusted_confidence": 0.5127,
-      "model_agreement": 0.6364,
-      "disagreement_flag": false,
-      "n_models_scoring": 11,
-      "top_models": [
-        {
-          "model_id": "aegis.trend.v1",
-          "score": 0.6962
-        },
-        {
-          "model_id": "aegis.quality.v1",
-          "score": 0.6628
-        },
-        {
-          "model_id": "aegis.mean_reversion.v1",
-          "score": 0.5049
-        }
-      ],
-      "top_features": [
-        "adx_14",
-        "atr_14_pct",
-        "ca_days_since_last_dividend",
-        "ca_last_dividend_amount",
-        "distance_from_52w_high_pct",
-        "distance_from_52w_low_pct",
-        "earn_days_to_next",
-        "fund_debt_to_equity"
-      ],
-      "bull_case": "1-month momentum +29.43%; 3-month momentum +25.16%; high ROE (+34.04%); positive news sentiment (0.500).",
-      "bear_case": "overbought RSI (84.500); high leverage (D/E 29.118); net insider selling ($-17,775,635, 90d); deep 60d drawdown (-23.38%).",
-      "key_risks": [
-        "leverage above 1x amplifies downside if fundamentals slip"
-      ],
-      "suggested_holding_period_days": 60,
-      "entry_zone": {
-        "low": 495.939,
-        "high": 516.181,
-        "current": 506.06,
-        "note": "\u00b12% band around current price"
-      },
-      "exit_conditions": [
-        "time-based: review after 60 days if action still holds",
-        "price-based: 8% stop-loss from entry",
-        "price-based: consider trimming +15% from entry",
-        "thesis-based: exit if bull case signals invert (any 2 of them)"
-      ],
-      "model_stamp": {
-        "model_id": "aegis.recommendation.v3",
-        "version": "1.0.0",
-        "engine": "recommendation_intelligence",
-        "market": "usa",
-        "feature_set_version": "b65ceb49a83a",
-        "schema_version": "b65ceb49a83a",
-        "calibration_version": "",
-        "approval_status": "experimental",
-        "approved_by": "",
-        "approved_on": ""
-      },
-      "feature_set_version": "b65ceb49a83a",
-      "schema_fingerprint": "b65ceb49a83a"
-    },
-    {
-      "market": "usa",
-      "ticker": "UBER",
-      "asof": "2026-08-10",
-      "action": "BUY",
-      "ensemble_score": 0.2874,
-      "raw_confidence": 0.6943,
-      "calibrated_confidence": 0.5681,
-      "regime_adjusted_confidence": 0.5397,
-      "model_agreement": 0.8182,
-      "disagreement_flag": false,
-      "n_models_scoring": 11,
-      "top_models": [
-        {
-          "model_id": "aegis.growth.v1",
-          "score": 0.6697
-        },
-        {
-          "model_id": "aegis.quality.v1",
-          "score": 0.5627
-        },
-        {
-          "model_id": "aegis.trend.v1",
-          "score": 0.3874
-        }
-      ],
-      "top_features": [
-        "adx_14",
-        "atr_14_pct",
-        "distance_from_52w_high_pct",
-        "distance_from_52w_low_pct",
-        "earn_days_to_next",
-        "fund_debt_to_equity",
-        "fund_earnings_growth",
-        "fund_market_cap_log"
-      ],
-      "bull_case": "1-month momentum +5.08%; high ROE (+37.16%); positive news sentiment (0.250).",
-      "bear_case": "high leverage (D/E 51.872).",
-      "key_risks": [
-        "leverage above 1x amplifies downside if fundamentals slip"
-      ],
-      "suggested_holding_period_days": 60,
-      "entry_zone": {
-        "low": 76.469,
-        "high": 79.591,
-        "current": 78.03,
-        "note": "\u00b12% band around current price"
-      },
-      "exit_conditions": [
-        "time-based: review after 60 days if action still holds",
-        "price-based: 8% stop-loss from entry",
-        "price-based: consider trimming +15% from entry",
-        "thesis-based: exit if bull case signals invert (any 2 of them)"
-      ],
-      "model_stamp": {
-        "model_id": "aegis.recommendation.v3",
-        "version": "1.0.0",
-        "engine": "recommendation_intelligence",
-        "market": "usa",
-        "feature_set_version": "b65ceb49a83a",
-        "schema_version": "b65ceb49a83a",
-        "calibration_version": "",
-        "approval_status": "experimental",
-        "approved_by": "",
-        "approved_on": ""
-      },
-      "feature_set_version": "b65ceb49a83a",
-      "schema_fingerprint": "b65ceb49a83a"
-    },
-    {
-      "market": "usa",
-      "ticker": "CF",
-      "asof": "2026-08-10",
-      "action": "BUY",
-      "ensemble_score": 0.2686,
-      "raw_confidence": 0.6943,
-      "calibrated_confidence": 0.5697,
-      "regime_adjusted_confidence": 0.5412,
-      "model_agreement": 0.7273,
-      "disagreement_flag": false,
-      "n_models_scoring": 11,
-      "top_models": [
-        {
-          "model_id": "aegis.growth.v1",
-          "score": 0.6479
-        },
-        {
-          "model_id": "aegis.quality.v1",
-          "score": 0.638
-        },
-        {
-          "model_id": "aegis.value.v1",
-          "score": 0.6305
-        }
-      ],
-      "top_features": [
-        "adx_14",
-        "atr_14_pct",
-        "ca_days_since_last_dividend",
-        "ca_last_dividend_amount",
-        "distance_from_52w_high_pct",
-        "distance_from_52w_low_pct",
-        "earn_days_to_next",
-        "fund_debt_to_equity"
-      ],
-      "bull_case": "high ROE (+29.87%); positive news sentiment (0.250).",
-      "bear_case": "high leverage (D/E 40.504); deep 60d drawdown (-20.09%).",
-      "key_risks": [
-        "leverage above 1x amplifies downside if fundamentals slip"
-      ],
-      "suggested_holding_period_days": 60,
-      "entry_zone": {
-        "low": 119.05,
-        "high": 123.91,
-        "current": 121.48,
-        "note": "\u00b12% band around current price"
-      },
-      "exit_conditions": [
-        "time-based: review after 60 days if action still holds",
-        "price-based: 8% stop-loss from entry",
-        "price-based: consider trimming +15% from entry",
-        "thesis-based: exit if bull case signals invert (any 2 of them)"
-      ],
-      "model_stamp": {
-        "model_id": "aegis.recommendation.v3",
-        "version": "1.0.0",
-        "engine": "recommendation_intelligence",
-        "market": "usa",
-        "feature_set_version": "b65ceb49a83a",
-        "schema_version": "b65ceb49a83a",
-        "calibration_version": "",
-        "approval_status": "experimental",
-        "approved_by": "",
-        "approved_on": ""
-      },
-      "feature_set_version": "b65ceb49a83a",
-      "schema_fingerprint": "b65ceb49a83a"
-    },
-    {
-      "market": "usa",
-      "ticker": "ROST",
-      "asof": "2026-08-10",
-      "action": "BUY",
-      "ensemble_score": 0.2632,
-      "raw_confidence": 0.6943,
-      "calibrated_confidence": 0.5397,
-      "regime_adjusted_confidence": 0.5127,
-      "model_agreement": 0.6364,
-      "disagreement_flag": false,
-      "n_models_scoring": 11,
-      "top_models": [
-        {
-          "model_id": "aegis.trend.v1",
-          "score": 0.776
-        },
-        {
-          "model_id": "aegis.growth.v1",
-          "score": 0.5208
-        },
-        {
-          "model_id": "aegis.value.v1",
-          "score": -0.4739
-        }
-      ],
-      "top_features": [
-        "adx_14",
-        "atr_14_pct",
-        "ca_days_since_last_dividend",
-        "ca_last_dividend_amount",
-        "distance_from_52w_high_pct",
-        "distance_from_52w_low_pct",
-        "earn_days_to_next",
-        "fund_debt_to_equity"
-      ],
-      "bull_case": "1-month momentum +16.11%; 3-month momentum +20.57%; high ROE (+38.98%).",
-      "bear_case": "high leverage (D/E 74.911).",
-      "key_risks": [
-        "earnings in 10 days \u2014 reduce position size ahead of print",
-        "leverage above 1x amplifies downside if fundamentals slip"
-      ],
-      "suggested_holding_period_days": 60,
-      "entry_zone": {
-        "low": 249.728,
-        "high": 259.921,
-        "current": 254.825,
-        "note": "\u00b12% band around current price"
-      },
-      "exit_conditions": [
-        "time-based: review after 60 days if action still holds",
-        "price-based: 8% stop-loss from entry",
-        "price-based: consider trimming +15% from entry",
-        "thesis-based: exit if bull case signals invert (any 2 of them)"
-      ],
-      "model_stamp": {
-        "model_id": "aegis.recommendation.v3",
-        "version": "1.0.0",
-        "engine": "recommendation_intelligence",
-        "market": "usa",
-        "feature_set_version": "b65ceb49a83a",
-        "schema_version": "b65ceb49a83a",
-        "calibration_version": "",
-        "approval_status": "experimental",
-        "approved_by": "",
-        "approved_on": ""
-      },
-      "feature_set_version": "b65ceb49a83a",
-      "schema_fingerprint": "b65ceb49a83a"
-    },
-    {
-      "market": "usa",
-      "ticker": "HON",
-      "asof": "2026-08-10",
-      "action": "BUY",
-      "ensemble_score": 0.2542,
-      "raw_confidence": 0.6943,
-      "calibrated_confidence": 0.5681,
-      "regime_adjusted_confidence": 0.5397,
-      "model_agreement": 0.6364,
-      "disagreement_flag": false,
-      "n_models_scoring": 11,
-      "top_models": [
-        {
-          "model_id": "aegis.growth.v1",
-          "score": 0.8297
-        },
-        {
-          "model_id": "aegis.trend.v1",
-          "score": 0.6272
-        },
-        {
-          "model_id": "aegis.value.v1",
-          "score": 0.568
-        }
-      ],
-      "top_features": [
-        "adx_14",
-        "atr_14_pct",
-        "ca_days_since_last_dividend",
-        "ca_days_since_last_split",
-        "ca_last_dividend_amount",
-        "ca_last_split_ratio",
-        "distance_from_52w_high_pct",
-        "distance_from_52w_low_pct"
-      ],
-      "bull_case": "1-month momentum +9.30%; high ROE (+46.58%).",
-      "bear_case": "high leverage (D/E 185.369).",
-      "key_risks": [
-        "leverage above 1x amplifies downside if fundamentals slip"
-      ],
-      "suggested_holding_period_days": 60,
-      "entry_zone": {
-        "low": 238.071,
-        "high": 247.789,
-        "current": 242.93,
-        "note": "\u00b12% band around current price"
-      },
-      "exit_conditions": [
-        "time-based: review after 60 days if action still holds",
-        "price-based: 8% stop-loss from entry",
-        "price-based: consider trimming +15% from entry",
-        "thesis-based: exit if bull case signals invert (any 2 of them)"
-      ],
-      "model_stamp": {
-        "model_id": "aegis.recommendation.v3",
-        "version": "1.0.0",
-        "engine": "recommendation_intelligence",
-        "market": "usa",
-        "feature_set_version": "b65ceb49a83a",
-        "schema_version": "b65ceb49a83a",
-        "calibration_version": "",
-        "approval_status": "experimental",
-        "approved_by": "",
-        "approved_on": ""
-      },
-      "feature_set_version": "b65ceb49a83a",
-      "schema_fingerprint": "b65ceb49a83a"
-    },
-    {
-      "market": "usa",
-      "ticker": "HONA",
-      "asof": "2026-08-10",
+      "asof": "2026-08-11",
       "action": "HOLD",
-      "ensemble_score": -0.251,
-      "raw_confidence": 0.534,
-      "calibrated_confidence": 0.1802,
-      "regime_adjusted_confidence": 0.1712,
-      "model_agreement": 0.0,
+      "ensemble_score": 0.2599,
+      "raw_confidence": 0.6045,
+      "calibrated_confidence": 0.4953,
+      "regime_adjusted_confidence": 0.4705,
+      "model_agreement": 0.7273,
       "disagreement_flag": false,
-      "n_models_scoring": 0,
-      "top_models": [],
+      "n_models_scoring": 11,
+      "top_models": [
+        {
+          "model_id": "aegis.value.v1",
+          "score": 0.8002
+        },
+        {
+          "model_id": "aegis.momentum.v1",
+          "score": 0.5291
+        },
+        {
+          "model_id": "aegis.ai_hybrid.v1",
+          "score": 0.4213
+        }
+      ],
       "top_features": [
         "adx_14",
         "atr_14_pct",
+        "ca_days_since_last_dividend",
+        "ca_last_dividend_amount",
+        "distance_from_52w_high_pct",
+        "distance_from_52w_low_pct",
         "earn_days_to_next",
-        "fund_earnings_growth",
-        "fund_market_cap_log",
-        "fund_price_to_book",
-        "fund_profit_margin",
-        "fund_quality_score"
+        "fund_debt_to_equity"
       ],
-      "bull_case": "no strong positive signals in the current feature snapshot.",
-      "bear_case": "1-month drawdown -23.45%; stretched valuation (P/E 49.571).",
+      "bull_case": "1-month momentum +18.46%; 3-month momentum +10.23%; high ROE (+26.66%); positive news sentiment (0.375).",
+      "bear_case": "high leverage (D/E 48.854); deep 60d drawdown (-22.10%).",
       "key_risks": [],
       "suggested_holding_period_days": 60,
       "entry_zone": {
-        "current": 163.09,
+        "current": 40.62,
         "note": "hold \u2014 no entry"
       },
       "exit_conditions": [
@@ -745,17 +390,154 @@
     },
     {
       "market": "usa",
-      "ticker": "AKAM",
-      "asof": "2026-08-10",
+      "ticker": "ANET",
+      "asof": "2026-08-11",
       "action": "HOLD",
-      "ensemble_score": -0.2525,
-      "raw_confidence": 0.6943,
-      "calibrated_confidence": 0.3124,
-      "regime_adjusted_confidence": 0.2968,
-      "model_agreement": 0.0,
+      "ensemble_score": 0.2574,
+      "raw_confidence": 0.5696,
+      "calibrated_confidence": 0.3837,
+      "regime_adjusted_confidence": 0.3645,
+      "model_agreement": 0.5455,
+      "disagreement_flag": true,
+      "n_models_scoring": 11,
+      "top_models": [
+        {
+          "model_id": "aegis.value.v1",
+          "score": -0.7602
+        },
+        {
+          "model_id": "aegis.quality.v1",
+          "score": 0.6321
+        },
+        {
+          "model_id": "aegis.trend.v1",
+          "score": 0.5601
+        }
+      ],
+      "top_features": [
+        "adx_14",
+        "atr_14_pct",
+        "distance_from_52w_high_pct",
+        "distance_from_52w_low_pct",
+        "earn_days_to_next",
+        "fund_earnings_growth",
+        "fund_market_cap_log",
+        "fund_price_to_book"
+      ],
+      "bull_case": "1-month momentum +8.37%; 3-month momentum +33.85%; strong fundamental quality (82.350); high ROE (+31.48%).",
+      "bear_case": "stretched valuation (P/E 62.611); net insider selling ($-668,324,719, 90d).",
+      "key_risks": [],
+      "suggested_holding_period_days": 60,
+      "entry_zone": {
+        "current": 197.85,
+        "note": "hold \u2014 no entry"
+      },
+      "exit_conditions": [
+        "no active exit trigger \u2014 HOLD position"
+      ],
+      "model_stamp": {
+        "model_id": "aegis.recommendation.v3",
+        "version": "1.0.0",
+        "engine": "recommendation_intelligence",
+        "market": "usa",
+        "feature_set_version": "b65ceb49a83a",
+        "schema_version": "b65ceb49a83a",
+        "calibration_version": "",
+        "approval_status": "experimental",
+        "approved_by": "",
+        "approved_on": ""
+      },
+      "feature_set_version": "b65ceb49a83a",
+      "schema_fingerprint": "b65ceb49a83a"
+    },
+    {
+      "market": "usa",
+      "ticker": "IT",
+      "asof": "2026-08-11",
+      "action": "HOLD",
+      "ensemble_score": 0.251,
+      "raw_confidence": 0.5696,
+      "calibrated_confidence": 0.4063,
+      "regime_adjusted_confidence": 0.386,
+      "model_agreement": 0.6364,
       "disagreement_flag": false,
-      "n_models_scoring": 0,
-      "top_models": [],
+      "n_models_scoring": 11,
+      "top_models": [
+        {
+          "model_id": "aegis.growth.v1",
+          "score": 0.585
+        },
+        {
+          "model_id": "aegis.trend.v1",
+          "score": 0.5561
+        },
+        {
+          "model_id": "aegis.mean_reversion.v1",
+          "score": 0.3723
+        }
+      ],
+      "top_features": [
+        "adx_14",
+        "atr_14_pct",
+        "distance_from_52w_high_pct",
+        "distance_from_52w_low_pct",
+        "earn_days_to_next",
+        "fund_earnings_growth",
+        "fund_market_cap_log",
+        "fund_price_to_book"
+      ],
+      "bull_case": "1-month momentum +40.84%; 3-month momentum +33.15%; high ROE (+1.14%); positive news sentiment (0.375).",
+      "bear_case": "overbought RSI (77.749); deep 60d drawdown (-29.99%).",
+      "key_risks": [],
+      "suggested_holding_period_days": 60,
+      "entry_zone": {
+        "current": 187.27,
+        "note": "hold \u2014 no entry"
+      },
+      "exit_conditions": [
+        "no active exit trigger \u2014 HOLD position"
+      ],
+      "model_stamp": {
+        "model_id": "aegis.recommendation.v3",
+        "version": "1.0.0",
+        "engine": "recommendation_intelligence",
+        "market": "usa",
+        "feature_set_version": "b65ceb49a83a",
+        "schema_version": "b65ceb49a83a",
+        "calibration_version": "",
+        "approval_status": "experimental",
+        "approved_by": "",
+        "approved_on": ""
+      },
+      "feature_set_version": "b65ceb49a83a",
+      "schema_fingerprint": "b65ceb49a83a"
+    },
+    {
+      "market": "usa",
+      "ticker": "ADSK",
+      "asof": "2026-08-11",
+      "action": "HOLD",
+      "ensemble_score": 0.2441,
+      "raw_confidence": 0.6045,
+      "calibrated_confidence": 0.4439,
+      "regime_adjusted_confidence": 0.4217,
+      "model_agreement": 0.6364,
+      "disagreement_flag": false,
+      "n_models_scoring": 11,
+      "top_models": [
+        {
+          "model_id": "aegis.growth.v1",
+          "score": 0.832
+        },
+        {
+          "model_id": "aegis.value.v1",
+          "score": -0.5611
+        },
+        {
+          "model_id": "aegis.trend.v1",
+          "score": 0.4802
+        }
+      ],
       "top_features": [
         "adx_14",
         "atr_14_pct",
@@ -766,12 +548,76 @@
         "fund_earnings_growth",
         "fund_market_cap_log"
       ],
-      "bull_case": "positive news sentiment (0.250).",
-      "bear_case": "1-month drawdown -5.98%; stretched valuation (P/E 42.627); high leverage (D/E 196.672); deep 60d drawdown (-33.02%).",
+      "bull_case": "1-month momentum +22.18%; high ROE (+50.40%); positive news sentiment (0.500).",
+      "bear_case": "overbought RSI (80.379); high leverage (D/E 85.419); deep 60d drawdown (-24.36%).",
+      "key_risks": [
+        "earnings in 16 days \u2014 reduce position size ahead of print"
+      ],
+      "suggested_holding_period_days": 60,
+      "entry_zone": {
+        "current": 251.59,
+        "note": "hold \u2014 no entry"
+      },
+      "exit_conditions": [
+        "no active exit trigger \u2014 HOLD position"
+      ],
+      "model_stamp": {
+        "model_id": "aegis.recommendation.v3",
+        "version": "1.0.0",
+        "engine": "recommendation_intelligence",
+        "market": "usa",
+        "feature_set_version": "b65ceb49a83a",
+        "schema_version": "b65ceb49a83a",
+        "calibration_version": "",
+        "approval_status": "experimental",
+        "approved_by": "",
+        "approved_on": ""
+      },
+      "feature_set_version": "b65ceb49a83a",
+      "schema_fingerprint": "b65ceb49a83a"
+    },
+    {
+      "market": "usa",
+      "ticker": "NUE",
+      "asof": "2026-08-11",
+      "action": "HOLD",
+      "ensemble_score": 0.2365,
+      "raw_confidence": 0.6045,
+      "calibrated_confidence": 0.4692,
+      "regime_adjusted_confidence": 0.4457,
+      "model_agreement": 0.6364,
+      "disagreement_flag": false,
+      "n_models_scoring": 11,
+      "top_models": [
+        {
+          "model_id": "aegis.trend.v1",
+          "score": 0.734
+        },
+        {
+          "model_id": "aegis.growth.v1",
+          "score": 0.3991
+        },
+        {
+          "model_id": "aegis.mean_reversion.v1",
+          "score": 0.3849
+        }
+      ],
+      "top_features": [
+        "adx_14",
+        "atr_14_pct",
+        "ca_days_since_last_dividend",
+        "ca_last_dividend_amount",
+        "distance_from_52w_high_pct",
+        "distance_from_52w_low_pct",
+        "earn_days_to_next",
+        "fund_debt_to_equity"
+      ],
+      "bull_case": "1-month momentum +16.14%; 3-month momentum +17.08%.",
+      "bear_case": "overbought RSI (77.290); high leverage (D/E 30.512); net insider selling ($-20,596,092, 90d).",
       "key_risks": [],
       "suggested_holding_period_days": 60,
       "entry_zone": {
-        "current": 117.65,
+        "current": 271.95,
         "note": "hold \u2014 no entry"
       },
       "exit_conditions": [
@@ -795,12 +641,12 @@
     {
       "market": "usa",
       "ticker": "D",
-      "asof": "2026-08-10",
+      "asof": "2026-08-11",
       "action": "HOLD",
-      "ensemble_score": -0.2536,
-      "raw_confidence": 0.6943,
-      "calibrated_confidence": 0.3298,
-      "regime_adjusted_confidence": 0.3133,
+      "ensemble_score": -0.247,
+      "raw_confidence": 0.6045,
+      "calibrated_confidence": 0.2867,
+      "regime_adjusted_confidence": 0.2724,
       "model_agreement": 0.0,
       "disagreement_flag": false,
       "n_models_scoring": 0,
@@ -815,12 +661,12 @@
         "earn_days_to_next",
         "fund_debt_to_equity"
       ],
-      "bull_case": "3-month momentum +8.14%.",
-      "bear_case": "1-month drawdown -5.16%; high leverage (D/E 160.459).",
+      "bull_case": "3-month momentum +9.23%.",
+      "bear_case": "high leverage (D/E 160.459).",
       "key_risks": [],
       "suggested_holding_period_days": 60,
       "entry_zone": {
-        "current": 67.15,
+        "current": 68.1,
         "note": "hold \u2014 no entry"
       },
       "exit_conditions": [
@@ -843,13 +689,111 @@
     },
     {
       "market": "usa",
-      "ticker": "CPT",
-      "asof": "2026-08-10",
+      "ticker": "VTRS",
+      "asof": "2026-08-11",
       "action": "HOLD",
-      "ensemble_score": -0.3035,
-      "raw_confidence": 0.6943,
-      "calibrated_confidence": 0.3124,
-      "regime_adjusted_confidence": 0.2968,
+      "ensemble_score": -0.2634,
+      "raw_confidence": 0.5486,
+      "calibrated_confidence": 0.2462,
+      "regime_adjusted_confidence": 0.2339,
+      "model_agreement": 0.0,
+      "disagreement_flag": false,
+      "n_models_scoring": 0,
+      "top_models": [],
+      "top_features": [
+        "adx_14",
+        "atr_14_pct",
+        "ca_days_since_last_dividend",
+        "ca_last_dividend_amount",
+        "distance_from_52w_high_pct",
+        "distance_from_52w_low_pct",
+        "earn_days_to_next",
+        "fund_debt_to_equity"
+      ],
+      "bull_case": "no strong positive signals in the current feature snapshot.",
+      "bear_case": "high leverage (D/E 95.535).",
+      "key_risks": [],
+      "suggested_holding_period_days": 60,
+      "entry_zone": {
+        "current": 16.28,
+        "note": "hold \u2014 no entry"
+      },
+      "exit_conditions": [
+        "no active exit trigger \u2014 HOLD position"
+      ],
+      "model_stamp": {
+        "model_id": "aegis.recommendation.v3",
+        "version": "1.0.0",
+        "engine": "recommendation_intelligence",
+        "market": "usa",
+        "feature_set_version": "b65ceb49a83a",
+        "schema_version": "b65ceb49a83a",
+        "calibration_version": "",
+        "approval_status": "experimental",
+        "approved_by": "",
+        "approved_on": ""
+      },
+      "feature_set_version": "b65ceb49a83a",
+      "schema_fingerprint": "b65ceb49a83a"
+    },
+    {
+      "market": "usa",
+      "ticker": "AKAM",
+      "asof": "2026-08-11",
+      "action": "HOLD",
+      "ensemble_score": -0.2696,
+      "raw_confidence": 0.6045,
+      "calibrated_confidence": 0.2712,
+      "regime_adjusted_confidence": 0.2576,
+      "model_agreement": 0.0,
+      "disagreement_flag": false,
+      "n_models_scoring": 0,
+      "top_models": [],
+      "top_features": [
+        "adx_14",
+        "atr_14_pct",
+        "distance_from_52w_high_pct",
+        "distance_from_52w_low_pct",
+        "earn_days_to_next",
+        "fund_debt_to_equity",
+        "fund_earnings_growth",
+        "fund_market_cap_log"
+      ],
+      "bull_case": "positive news sentiment (0.250).",
+      "bear_case": "1-month drawdown -7.49%; stretched valuation (P/E 42.272); high leverage (D/E 196.672); deep 60d drawdown (-33.02%).",
+      "key_risks": [],
+      "suggested_holding_period_days": 60,
+      "entry_zone": {
+        "current": 116.67,
+        "note": "hold \u2014 no entry"
+      },
+      "exit_conditions": [
+        "no active exit trigger \u2014 HOLD position"
+      ],
+      "model_stamp": {
+        "model_id": "aegis.recommendation.v3",
+        "version": "1.0.0",
+        "engine": "recommendation_intelligence",
+        "market": "usa",
+        "feature_set_version": "b65ceb49a83a",
+        "schema_version": "b65ceb49a83a",
+        "calibration_version": "",
+        "approval_status": "experimental",
+        "approved_by": "",
+        "approved_on": ""
+      },
+      "feature_set_version": "b65ceb49a83a",
+      "schema_fingerprint": "b65ceb49a83a"
+    },
+    {
+      "market": "usa",
+      "ticker": "KDP",
+      "asof": "2026-08-11",
+      "action": "HOLD",
+      "ensemble_score": -0.274,
+      "raw_confidence": 0.6045,
+      "calibrated_confidence": 0.2712,
+      "regime_adjusted_confidence": 0.2576,
       "model_agreement": 0.0,
       "disagreement_flag": false,
       "n_models_scoring": 0,
@@ -865,13 +809,11 @@
         "fund_market_cap_log"
       ],
       "bull_case": "no strong positive signals in the current feature snapshot.",
-      "bear_case": "high leverage (D/E 125.648).",
-      "key_risks": [
-        "weak trend strength (ADX 16.540) \u2014 call may be premature"
-      ],
+      "bear_case": "high leverage (D/E 100.137).",
+      "key_risks": [],
       "suggested_holding_period_days": 60,
       "entry_zone": {
-        "current": 109.08,
+        "current": 29.18,
         "note": "hold \u2014 no entry"
       },
       "exit_conditions": [
@@ -895,12 +837,12 @@
     {
       "market": "usa",
       "ticker": "CARR",
-      "asof": "2026-08-10",
+      "asof": "2026-08-11",
       "action": "HOLD",
-      "ensemble_score": -0.3157,
-      "raw_confidence": 0.6943,
-      "calibrated_confidence": 0.3124,
-      "regime_adjusted_confidence": 0.2968,
+      "ensemble_score": -0.2763,
+      "raw_confidence": 0.6045,
+      "calibrated_confidence": 0.2712,
+      "regime_adjusted_confidence": 0.2576,
       "model_agreement": 0.0,
       "disagreement_flag": false,
       "n_models_scoring": 0,
@@ -916,11 +858,11 @@
         "fund_market_cap_log"
       ],
       "bull_case": "no strong positive signals in the current feature snapshot.",
-      "bear_case": "1-month drawdown -7.20%; stretched valuation (P/E 45.314); high leverage (D/E 91.998); net insider selling ($-749,999,974, 90d); deep 60d drawdown (-20.87%).",
+      "bear_case": "1-month drawdown -8.47%; stretched valuation (P/E 45.443); high leverage (D/E 91.998); net insider selling ($-749,999,974, 90d); deep 60d drawdown (-20.87%).",
       "key_risks": [],
       "suggested_holding_period_days": 60,
       "entry_zone": {
-        "current": 63.44,
+        "current": 63.62,
         "note": "hold \u2014 no entry"
       },
       "exit_conditions": [
