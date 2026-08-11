@@ -1,32 +1,40 @@
 {
   "engine": "aegis.context.price_integrity_guard.v1",
-  "asof": "2026-08-09",
-  "generated_utc": "2026-08-09T03:53:13.383581+00:00",
-  "verdict": "YELLOW",
+  "asof": "2026-08-11",
+  "generated_utc": "2026-08-11T04:16:25.202984+00:00",
+  "verdict": "RED",
   "market_bar_freshness": {
     "india": {
-      "latest_bar_date": "2026-08-06",
-      "age_days": 3,
+      "latest_bar_date": "2026-08-07",
+      "age_days": 4,
       "n_stale": 0
     },
     "usa": {
       "latest_bar_date": "2026-08-05",
-      "age_days": 4,
+      "age_days": 6,
       "n_stale": 0
     }
   },
   "n_positions_checked": 43,
   "n_recs_checked": 30,
-  "n_critical": 0,
-  "n_warning": 23,
-  "critical_issues": [],
-  "warning_issues": [
+  "n_critical": 1,
+  "n_warning": 38,
+  "critical_issues": [
     {
       "market": "usa",
       "ticker": "*",
+      "check": "bar_data_stale",
+      "severity": "CRITICAL",
+      "detail": "latest bar 2026-08-05 is 6d old · pipeline data source failing"
+    }
+  ],
+  "warning_issues": [
+    {
+      "market": "india",
+      "ticker": "*",
       "check": "bar_data_lag",
       "severity": "WARNING",
-      "detail": "latest bar 2026-08-05 is 4d old (weekend allowance)"
+      "detail": "latest bar 2026-08-07 is 4d old (weekend allowance)"
     },
     {
       "market": "india",
@@ -78,89 +86,89 @@
       "detail": "no parquet close on 2026-08-01 · Entry 1625.5 unverifiable (bar gap)"
     },
     {
-      "market": "usa",
-      "ticker": "TRV",
+      "market": "india",
+      "ticker": "TCS.NS",
       "check": "stale_parquet",
       "severity": "WARNING",
-      "detail": "latest bar 2026-08-05 is 4d old"
+      "detail": "latest bar 2026-08-07 is 4d old"
     },
     {
-      "market": "usa",
-      "ticker": "V",
+      "market": "india",
+      "ticker": "GNFC.NS",
       "check": "stale_parquet",
       "severity": "WARNING",
-      "detail": "latest bar 2026-08-05 is 4d old"
+      "detail": "latest bar 2026-08-07 is 4d old"
     },
     {
-      "market": "usa",
-      "ticker": "NVDA",
+      "market": "india",
+      "ticker": "OFSS.NS",
       "check": "stale_parquet",
       "severity": "WARNING",
-      "detail": "latest bar 2026-08-05 is 4d old"
+      "detail": "latest bar 2026-08-07 is 4d old"
     },
     {
-      "market": "usa",
-      "ticker": "JPM",
+      "market": "india",
+      "ticker": "HCLTECH.NS",
       "check": "stale_parquet",
       "severity": "WARNING",
-      "detail": "latest bar 2026-08-05 is 4d old"
+      "detail": "latest bar 2026-08-07 is 4d old"
     },
     {
-      "market": "usa",
-      "ticker": "HON",
+      "market": "india",
+      "ticker": "CANBK.NS",
       "check": "stale_parquet",
       "severity": "WARNING",
-      "detail": "latest bar 2026-08-05 is 4d old"
+      "detail": "latest bar 2026-08-07 is 4d old"
     },
     {
-      "market": "usa",
-      "ticker": "GS",
+      "market": "india",
+      "ticker": "OIL.NS",
       "check": "stale_parquet",
       "severity": "WARNING",
-      "detail": "latest bar 2026-08-05 is 4d old"
+      "detail": "latest bar 2026-08-07 is 4d old"
     },
     {
-      "market": "usa",
-      "ticker": "AAPL",
+      "market": "india",
+      "ticker": "ATUL.NS",
       "check": "stale_parquet",
       "severity": "WARNING",
-      "detail": "latest bar 2026-08-05 is 4d old"
+      "detail": "latest bar 2026-08-07 is 4d old"
     },
     {
-      "market": "usa",
-      "ticker": "MSFT",
+      "market": "india",
+      "ticker": "INDIANB.NS",
       "check": "stale_parquet",
       "severity": "WARNING",
-      "detail": "latest bar 2026-08-05 is 4d old"
+      "detail": "latest bar 2026-08-07 is 4d old"
     },
     {
-      "market": "usa",
-      "ticker": "KO",
+      "market": "india",
+      "ticker": "INFY.NS",
       "check": "stale_parquet",
       "severity": "WARNING",
-      "detail": "latest bar 2026-08-05 is 4d old"
+      "detail": "latest bar 2026-08-07 is 4d old"
     },
     {
-      "market": "usa",
-      "ticker": "MMM",
+      "market": "india",
+      "ticker": "UNIONBANK.NS",
       "check": "stale_parquet",
       "severity": "WARNING",
-      "detail": "latest bar 2026-08-05 is 4d old"
+      "detail": "latest bar 2026-08-07 is 4d old"
     },
     {
-      "market": "usa",
-      "ticker": "INTC",
+      "market": "india",
+      "ticker": "DELHIVERY.NS",
       "check": "stale_parquet",
       "severity": "WARNING",
-      "detail": "latest bar 2026-08-05 is 4d old"
+      "detail": "latest bar 2026-08-07 is 4d old"
     },
     {
-      "market": "usa",
-      "ticker": "BA",
+      "market": "india",
+      "ticker": "TORNTPHARM.NS",
       "check": "stale_parquet",
       "severity": "WARNING",
-      "detail": "latest bar 2026-08-05 is 4d old"
+      "detail": "latest bar 2026-08-07 is 4d old"
     }
   ],
-  "recommendation": "Non-critical mismatches · notify in caption · allow send"
+  "recommendation": "1 CRITICAL price mismatches · BLOCK send · override with PRICE_GUARD_OVERRIDE=1"
 }

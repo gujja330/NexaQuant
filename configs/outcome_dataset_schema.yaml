@@ -1,0 +1,207 @@
+version: 1.0
+last_amended: 2026-08-11
+# P0 · Canonical Outcome Dataset schema + data dictionary
+# Locked per CEO directive · single source of truth for all research
+# Every research query MUST source from outcome_dataset.parquet · never from XLSX
+
+# ═══════════════════════════════════════════════════════════════════════
+# Identity (immutable · set at Position creation)
+# ═══════════════════════════════════════════════════════════════════════
+identity_fields:
+  position_id:
+    definition: "Immutable primary key · format {TICKER}_{MARKET}_{YYYYMMDD}"
+    source: "backend.portfolio.position_store"
+    set_at: "creation"
+    immutable: true
+  country:
+    definition: "IND or USA"
+    source: "pipeline config"
+    set_at: "creation"
+    immutable: true
+  runner:
+    definition: "R1 or R2 (never R3 · Constitutional invariant)"
+    source: "pipeline"
+    set_at: "creation"
+    immutable: true
+  ticker:
+    definition: "Bare ticker · no exchange suffix"
+    source: "position_store"
+    set_at: "creation"
+    immutable: true
+  sector:
+    definition: "GICS-style sector"
+    source: "reports/sector_cache.json"
+    set_at: "creation"
+    immutable: true
+  cap:
+    definition: "LargeCap or MidCap (India) · LargeCap (USA · S&P 500 only)"
+    source: "configs/india_universe_tiers.yaml"
+    set_at: "creation"
+    immutable: true
+
+# ═══════════════════════════════════════════════════════════════════════
+# Initial engine values (frozen at Position creation · never re-derived)
+# ═══════════════════════════════════════════════════════════════════════
+initial_fields:
+  initial_rank:
+    definition: "Rank at moment of first_seen · never overwritten"
+    source: "reports/research/rank_history.jsonl (earliest entry)"
+    set_at: "creation"
+    immutable: true
+  initial_confidence:
+    definition: "Confidence % at moment of first_seen"
+    source: "rank_history · earliest"
+    set_at: "creation"
+    immutable: true
+  initial_model_score:
+    definition: "Ensemble score at moment of first_seen"
+    source: "rank_history · earliest"
+    set_at: "creation"
+    immutable: true
+  initial_investability:
+    definition: "Investability score 0-100 at creation"
+    source: "reports/investability_{market}.json snapshot at creation"
+    set_at: "creation"
+    immutable: true
+  initial_investability_verdict:
+    definition: "QUALITY / OK / MARGINAL / AVOID at creation"
+    source: "investability report"
+    set_at: "creation"
+    immutable: true
+  entry_date:
+    definition: "Original recommendation date · never changes"
+    source: "position_store.first_seen_date"
+    set_at: "creation"
+    immutable: true
+  entry_price:
+    definition: "Close on Entry Date · frozen · never re-anchored"
+    source: "parquet close on Entry Date"
+    set_at: "creation"
+    immutable: true
+
+# ═══════════════════════════════════════════════════════════════════════
+# Time-series returns (computed from parquet · one value per horizon)
+# ═══════════════════════════════════════════════════════════════════════
+horizon_returns:
+  formula: "(price_at_horizon / entry_price - 1) * 100"
+  horizons_trading_days: [1, 3, 5, 10, 17, 30, 60, 90]
+  null_if_not_yet_observable: true
+
+# ═══════════════════════════════════════════════════════════════════════
+# Running extremes (updated daily · not frozen)
+# ═══════════════════════════════════════════════════════════════════════
+running_fields:
+  max_gain_pct:
+    definition: "(max close between Entry Date and today) / Entry - 1"
+    source: "parquet · rolling max"
+    set_at: "daily update"
+  max_drawdown_pct:
+    definition: "(min close between Entry Date and today) / Entry - 1"
+    source: "parquet · rolling min"
+    set_at: "daily update"
+  current_price:
+    definition: "Latest parquet close · same day"
+    source: "parquet iloc[-1] on eval day"
+    set_at: "daily update"
+  current_perf_pct:
+    definition: "(current_price / entry_price - 1) * 100"
+    source: "computed"
+    set_at: "daily update"
+
+# ═══════════════════════════════════════════════════════════════════════
+# Terminal fields (set only at Position closure)
+# ═══════════════════════════════════════════════════════════════════════
+terminal_fields:
+  exit_date:
+    definition: "Date of exit event"
+    source: "position_store OR XLSX EXIT row"
+    set_at: "closure"
+    immutable: true
+  exit_price:
+    definition: "Close on Exit Date"
+    source: "parquet on exit_date"
+    set_at: "closure"
+    immutable: true
+  exit_pnl_pct:
+    definition: "(exit_price / entry_price - 1) * 100 · realized"
+    source: "computed"
+    set_at: "closure"
+    immutable: true
+  exit_reason:
+    definition: "Rotation / Stop-loss / Take-profit / Manual"
+    source: "position_store · exit event log"
+    set_at: "closure"
+    immutable: true
+  win_flag:
+    definition: "True if exit_pnl_pct > 0. Open positions = null (NOT counted as win/loss)"
+    source: "computed at closure ONLY"
+    set_at: "closure"
+    immutable: true
+  lifecycle:
+    definition: "NEW · ACTIVE · REVIEWING · CLOSED · ARTIFACT"
+    source: "backend.portfolio.state_machine"
+    set_at: "creation and updated"
+
+# ═══════════════════════════════════════════════════════════════════════
+# Sample-size tiers · LOCKED per CEO directive
+# Any research query must respect these labels · no "signal" claims below n=15
+# ═══════════════════════════════════════════════════════════════════════
+sample_size_tiers:
+  - {min: 0,  max: 4,       label: "observation only",         color: gray}
+  - {min: 5,  max: 14,      label: "hypothesis",               color: yellow}
+  - {min: 15, max: 29,      label: "research signal",          color: amber}
+  - {min: 30, max: 49,      label: "stronger evidence",        color: green_light}
+  - {min: 50, max: 999999,  label: "validation candidate",     color: green_dark}
+
+# ═══════════════════════════════════════════════════════════════════════
+# Output
+# ═══════════════════════════════════════════════════════════════════════
+output:
+  primary: "reports/research/outcome_dataset.parquet"
+  summary: "reports/research/outcome_dataset_summary.json"
+  columns_ordered:
+    - position_id
+    - country
+    - runner
+    - ticker
+    - sector
+    - cap
+    - initial_rank
+    - initial_confidence
+    - initial_model_score
+    - initial_investability
+    - initial_investability_verdict
+    - entry_date
+    - entry_price
+    - current_price
+    - current_perf_pct
+    - max_gain_pct
+    - max_drawdown_pct
+    - ret_1d_pct
+    - ret_3d_pct
+    - ret_5d_pct
+    - ret_10d_pct
+    - ret_17d_pct
+    - ret_30d_pct
+    - ret_60d_pct
+    - ret_90d_pct
+    - exit_date
+    - exit_price
+    - exit_pnl_pct
+    - exit_reason
+    - win_flag
+    - lifecycle
+    - is_closed
+    - sample_tier_note
+
+# ═══════════════════════════════════════════════════════════════════════
+# Governance rules · from CEO directive
+# ═══════════════════════════════════════════════════════════════════════
+governance:
+  - "Every analytical query sources from outcome_dataset.parquet · never XLSX"
+  - "Open positions never counted as win/loss · win_flag=null until closure"
+  - "Initial fields immutable · never re-derived after Position creation"
+  - "Position ID immutable across every export · India + USA"
+  - "No engine changes based on n<50 (only observation)"
+  - "Interaction analysis (Cap x Sector x Runner) waits for n>=15 per cell"
+  - "Cross-tab publication requires sample_tier_note on every cell"

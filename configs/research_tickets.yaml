@@ -1,0 +1,132 @@
+version: 1.0
+last_amended: 2026-08-11
+# CEO research directive (locked 2026-08-11 · India workbook v10 analysis)
+# NO CODE CHANGES until 60-90 days evidence accumulates.
+# Tickets are OBSERVATION frameworks · not immediate implementations.
+
+lock_stance: |
+  Product architecture · presentation · DECISION vocabulary · Guard 10 ·
+  Investability · Priority classifier · all LOCKED.
+  Research/measurement continues · engine changes only after evidence
+  reaches minimum sample size (n≥100 per bucket).
+
+primary_finding: |
+  R2 rank is NOT monotonic in this early sample. Rank #4-10 currently
+  beats Rank #1-3. Rank alone insufficient as decision variable.
+  Sample too small for conclusion but strong enough to research.
+
+secondary_finding: |
+  Context/Sector fields populated on only ~25% of rows despite architecture
+  existing. Root cause investigation more valuable than adding new indicators.
+
+research_tickets:
+
+  - id: R-CTX-01
+    priority: P1
+    title: Context-adjusted ranking research
+    hypothesis: Base rank + Sector + Market + News > Base rank alone
+    test:
+      - Compare rank #1-15 outcomes for R1 vs R2 · sliced by context adjustment on/off
+      - Metrics: win rate · median return · expectancy · profit factor · max DD
+    min_sample: 100 closed per configuration
+    depends_on: Context field populated on ≥80% of rows (see R-DATA-01)
+
+  - id: R-SEC-01
+    priority: P1
+    title: Sector regime filter test
+    hypothesis: Top-quartile sectors outperform bottom-quartile for R1/R2
+    test:
+      - Track sector rotation rank at entry
+      - Segment outcomes by top/mid/bottom quartile sector at entry
+      - Focus: Healthcare · Pharma · Power (showing early weakness)
+    min_sample: 30 per sector-quartile bucket
+
+  - id: R-RANK-01
+    priority: P1
+    title: Rank calibration audit
+    hypothesis: Rank #1 does not empirically beat Rank #7 as often as engine assumes
+    test:
+      - Group outcomes by rank buckets: 1 · 2 · 3 · 4-5 · 6-10 · 11-15
+      - Compare win rate · avg return · max DD across buckets
+      - Statistical significance test (t-test between #1 and #6-10)
+    min_sample: 30 per bucket
+    action_if_confirmed: Reweight ranker's terminal scoring · defer to R-CTX-01
+
+  - id: R-CONF-01
+    priority: P2
+    title: Confidence calibration curve
+    hypothesis: Predicted confidence ≠ empirical win rate
+    test:
+      - Bucket confidence 0-10 · 10-20 · ... · 90-100
+      - Compute empirical win rate per bucket
+      - Fit calibration curve (isotonic regression)
+    min_sample: 30 per confidence bucket
+    action_if_uncalibrated: Rebuild confidence from Bayesian posterior · not raw ensemble
+
+  - id: R-INV-01
+    priority: P2
+    title: Investability x Timing matrix
+    hypothesis: Investability measures 'good company' · not 'good trade today'
+    test:
+      - Cross-tabulate Investability verdict vs Context signal vs actual P&L
+      - Identify high-Investability + weak-Context = bad-entry pattern
+    min_sample: 20 per cell
+    output: Decision matrix for BUY vs WAIT vs PROTECT vs SKIP
+
+  - id: R-NEG-01
+    priority: P1
+    title: Negative-P&L classifier
+    hypothesis: Losses split into 3 preventable classes vs unpreventable
+    classes:
+      - type_1_predictable: Sector weak · low liquidity · poor technical · earnings risk · macro event · governance · high vol
+      - type_2_unpredictable: Unexpected event/shock
+      - type_3_timing: Good company · good sector · good thesis · bad entry
+    test:
+      - Manual classification of every loser >-2%
+      - Compute % predictable vs unpredictable vs timing
+    min_sample: 30 losers
+    output: Feeds attribution engine (Sprint K Part 25)
+
+  - id: R-SIZE-01
+    priority: P3
+    title: Dynamic position sizing by evidence
+    hypothesis: LargeCap + strong sector deserves 5% · MidCap + weak sector deserves 1-2%
+    test:
+      - Score each entry: Expected edge × Confidence calibration × Sector health × Vol × Liquidity × Correlation × DD risk
+      - Compare fixed-size vs evidence-sized portfolio return + max DD
+    min_sample: 50 per sizing regime
+    warning: Do not deploy until R-CONF-01 and R-CTX-01 complete
+
+  - id: R-DATA-01
+    priority: P0
+    title: Fix Context field population (25% -> 80%+)
+    root_cause: Investigation required · not a research question · implementation gap
+    action: Trace why Ctx Drag / Ctx Reason / Top Drivers / Risk Meter / Health populated on <30% of rows
+    unblocks: R-CTX-01 · R-SEC-01 · most downstream research
+    scope: Data-pipeline audit only · no new engines
+
+  - id: R-ALPHA-01
+    priority: P2
+    title: Expected Alpha calibration
+    finding: Current correlation with actual P&L is -0.17 (early sample · not significant)
+    hypothesis: Displayed +58% alpha is not a calibrated return estimate
+    test:
+      - Track expected_alpha vs realized 17-day return per rec
+      - Compute correlation · IR · calibration slope
+    min_sample: 100
+    output: Replace point estimate with (median · range · confidence) triple
+
+optimization_target: |
+  DO NOT optimize for max win rate.
+  Optimize for RISK-ADJUSTED EXPECTANCY:
+    win_rate · median · avg · profit_factor · max_DD · EV · tail_loss · Sharpe · Sortino · turnover_cost
+  All measured together.
+
+data_generation_rules:
+  - Every closed position enters research corpus
+  - No manual overrides · engine decides what to record
+  - Attribution snapshot per rec (Sprint K Part 25)
+  - Weekly rollup emission (already wired via daily_scorecard.py)
+  - No engine changes based on single-stock anecdote
+
+next_review: 2026-09-08    # ~30 trading days · first statistical checkpoint
