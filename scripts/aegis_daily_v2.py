@@ -605,10 +605,16 @@ def _run_step(step: dict, dry_run: bool = False) -> dict:
     # per-step timeout via step["timeout_s"] (default 600s).
     step_timeout = int(step.get("timeout_s") or 600)
     try:
+        # 2026-08-11 CEO P0 pipeline hygiene · pin subprocess text encoding
+        # to UTF-8 · without this Windows subprocess.run defaults to
+        # locale.getpreferredencoding() (cp1252) and mangles Unicode from
+        # child scripts (regime emojis, ₹, ·, →, national flags) into
+        # mojibake like â‚¹, Â·, â†’, ðŸ‡®ðŸ‡³.
         r = subprocess.run(
             _cmd,
             cwd=str(_ROOT),
             capture_output=True, text=True,
+            encoding="utf-8", errors="replace",
             timeout=step_timeout,
         )
         elapsed = time.perf_counter() - t0
@@ -734,6 +740,45 @@ def main() -> int:
     print()
     print(f"  {n_success} step(s) succeeded, {n_fail} failed/missing")
     print(f"  ledger: reports/aegis_daily_v2_history.jsonl")
+
+    # 2026-08-11 CEO P0 pipeline hygiene · subsystem rollup so an SSoT or
+    # research failure cannot silently ride under a green pipeline. Each
+    # subsystem gets GREEN / YELLOW / RED so operators can tell at a glance
+    # which layer is degraded even when the wrapper exit code is 0.
+    def _subsystem_of(step_name: str) -> str:
+        n = step_name.lower()
+        if "recommendation_ssot" in n or n == "ssot":                    return "SSoT"
+        if "outcome_dataset" in n or "build_outcome" in n:               return "P0"
+        if "attribution" in n:                                            return "P1"
+        if "telegram" in n or "command_center" in n:                     return "DELIVERY"
+        if any(k in n for k in ("research_platform", "learning",
+                                    "benchmark", "runner1_validation",
+                                    "runner3", "hourly", "intraday")):    return "RESEARCH"
+        return "PRODUCTION"
+
+    subsystems: dict = {}
+    for r in results:
+        sub = _subsystem_of(r["name"])
+        d = subsystems.setdefault(sub, {"n_ok": 0, "n_fail": 0, "failures": []})
+        if r["verdict"] == "SUCCESS":
+            d["n_ok"] += 1
+        else:
+            d["n_fail"] += 1
+            d["failures"].append(f"{r['name']}({r['verdict']})")
+
+    print()
+    print("  SUBSYSTEM HEALTH ROLLUP:")
+    for sub_name in ("PRODUCTION", "SSoT", "DELIVERY", "RESEARCH", "P0", "P1"):
+        subd = subsystems.get(sub_name)
+        if not subd:
+            print(f"    {sub_name:11}  (no steps)")
+            continue
+        n_total = subd["n_ok"] + subd["n_fail"]
+        v = "GREEN" if subd["n_fail"] == 0 else ("YELLOW" if subd["n_ok"] > 0 else "RED")
+        line = f"    {sub_name:11}  {v:6}  ok={subd['n_ok']}/{n_total}"
+        if subd["failures"]:
+            line += f"  failed=[{', '.join(subd['failures'][:5])}]"
+        print(line)
 
     _append_ledger({
         "run_utc":       _iso_utc(),

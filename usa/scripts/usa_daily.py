@@ -474,9 +474,15 @@ def _run_step(step: dict) -> dict:
 
     t0 = time.time()
     try:
+        # 2026-08-11 CEO P0 pipeline hygiene · pin subprocess text encoding
+        # to UTF-8 · without this Windows subprocess.run defaults to
+        # locale.getpreferredencoding() (cp1252) and mangles Unicode from
+        # child scripts (regime emojis, ₹, ·, →, national flags) into
+        # mojibake like â‚¹, Â·, â†’, ðŸ‡®ðŸ‡³.
         r = subprocess.run(
             _cmd,
             cwd=str(_ROOT), capture_output=True, text=True, timeout=step_timeout,
+            encoding="utf-8", errors="replace",
         )
         elapsed = time.time() - t0
         # Stream stdout live to operator
@@ -545,6 +551,37 @@ def main() -> int:
         and step_by_name.get(r["name"], {}).get("optional")
     ]
 
+    # 2026-08-11 CEO P0 pipeline hygiene · subsystem rollup so the final
+    # summary distinguishes PRODUCTION / RESEARCH / SSoT / DELIVERY health.
+    # Previously an SSoT failure could be hidden inside "1 optional failure"
+    # while the run kept going and Telegram delivered as if healthy.
+    # Now each subsystem gets a GREEN / YELLOW / RED verdict up top.
+    def _subsystem_of(step_name: str) -> str:
+        n = step_name.lower()
+        if "recommendation_ssot" in n or n == "ssot":                    return "SSoT"
+        if "outcome_dataset" in n or "build_outcome" in n:               return "P0"
+        if "attribution" in n:                                            return "P1"
+        if "telegram" in n or "command_center" in n:                     return "DELIVERY"
+        if any(k in n for k in ("research_platform", "learning",
+                                    "benchmark", "runner1_validation",
+                                    "runner3", "hourly", "intraday")):    return "RESEARCH"
+        return "PRODUCTION"
+
+    subsystems: dict[str, dict[str, int]] = {}
+    for r in results:
+        sub = _subsystem_of(r["name"])
+        d = subsystems.setdefault(sub, {"n_ok": 0, "n_fail": 0, "failures": []})
+        if r["verdict"] == "SUCCESS":
+            d["n_ok"] += 1
+        else:
+            d["n_fail"] += 1
+            d["failures"].append(r["name"])
+
+    def _verdict(subd: dict) -> str:
+        if subd["n_fail"] == 0:                       return "GREEN"
+        if subd["n_ok"] > 0:                          return "YELLOW"
+        return "RED"
+
     _banner("SUMMARY")
     print(f"  steps:    {n_ok}/{len(STEPS)} ok")
     print(f"  required failures: {len(required_failures)}")
@@ -555,7 +592,20 @@ def main() -> int:
     if optional_failures:
         for of in optional_failures[:8]:
             print(f"    ! {of['name']} · verdict={of['verdict']}")
-    print(f"  elapsed:  {total_elapsed}s")
+
+    print()
+    print("  SUBSYSTEM HEALTH ROLLUP:")
+    for sub_name in ("PRODUCTION", "SSoT", "DELIVERY", "RESEARCH", "P0", "P1"):
+        subd = subsystems.get(sub_name)
+        if not subd:
+            print(f"    {sub_name:11}  (no steps)")
+            continue
+        v = _verdict(subd)
+        line = f"    {sub_name:11}  {v:6}  ok={subd['n_ok']}/{subd['n_ok']+subd['n_fail']}"
+        if subd["failures"]:
+            line += f"  failed=[{', '.join(subd['failures'][:5])}]"
+        print(line)
+    print(f"\n  elapsed:  {total_elapsed}s")
 
     # Append to ledger
     LEDGER.parent.mkdir(parents=True, exist_ok=True)

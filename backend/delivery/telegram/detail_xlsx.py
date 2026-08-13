@@ -1314,8 +1314,17 @@ def build_and_stamp_all(root: Path, asof: str,
                 print(f"[build_and_stamp:{m}] usa_runner1 skipped · {type(e).__name__}: {e}")
         try:
             recs = json.loads(recs_path.read_text(encoding="utf-8")).get("recommendations", [])
-            n_stamped = _rh.stamp_today(root, asof, m, "runner2", recs)
-            print(f"[build_and_stamp:{m}] rank_history stamped n={n_stamped}")
+            rh_detail = _rh.stamp_today_detailed(root, asof, m, "runner2", recs)
+            # 2026-08-11 CEO P0 · truthful log · distinguish idempotent skip
+            # from genuine no-op. rank_history is append-only + dedup by
+            # (asof,market,runner,ticker) · a rerun should legitimately
+            # produce n_new=0 with n_skipped_dedup=N when the ledger is
+            # already complete for the day. The old "n=0" line looked broken.
+            print(f"[build_and_stamp:{m}] rank_history: "
+                    f"new={rh_detail['n_new']} · "
+                    f"skipped_already_stamped={rh_detail['n_skipped_dedup']} · "
+                    f"recs_seen={rh_detail['n_recs_seen']} · "
+                    f"ledger_size_today={rh_detail['n_already_today'] + rh_detail['n_new']}")
             signals = _pp.evaluate_all_active(root, m, "runner2", asof, recs)
             _pp.emit_signals(root, m, "runner2", asof, signals)
             print(f"[build_and_stamp:{m}] profit_protection signals={len(signals)}")

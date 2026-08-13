@@ -136,6 +136,9 @@ def run_health_check(root: Path) -> dict:
     else:
         overall = "GREEN"
 
+    # 2026-08-11 CEO P0 pipeline hygiene · surface important_fails BY NAME
+    # in the payload + summary. "1 important stale" without naming what is
+    # stale is not operationally useful.
     return {
         "engine":        "aegis.context.health_monitor.v1",
         "generated_utc": datetime.now(timezone.utc).isoformat(),
@@ -145,6 +148,7 @@ def run_health_check(root: Path) -> dict:
         "n_critical_fails": len(critical_fails),
         "n_important_fails": len(important_fails),
         "critical_fails":    [asdict(r) for r in critical_fails],
+        "important_fails":   [asdict(r) for r in important_fails],
         "all_engines":       [asdict(r) for r in results],
         "recommendation": {
             "GREEN":  "All critical engines healthy · safe to send",
@@ -170,5 +174,18 @@ def render_summary(payload: dict) -> str:
     p = payload.get("n_pass", 0)
     cf = payload.get("n_critical_fails", 0)
     if v == "GREEN": return f"🟢 Context Health: {p}/{n} engines healthy"
-    if v == "YELLOW": return f"🟡 Context Health: {p}/{n} · {cf} critical · {payload.get('n_important_fails', 0)} important stale"
-    return f"🔴 Context Health: {p}/{n} · {cf} CRITICAL engine(s) FAILED · check reports/context/health_monitor.json"
+    if v == "YELLOW":
+        # 2026-08-11 CEO P0 · name the important-stale item(s) so operator
+        # doesn't have to open the JSON file to see WHAT is stale.
+        imp = payload.get("important_fails") or []
+        names = [f"{i.get('path','?')} (age {i.get('mtime_age_days',0):.1f}d)"
+                     for i in imp[:5]]
+        tail = f" · +{len(imp)-5} more" if len(imp) > 5 else ""
+        detail = f" · stale: {' | '.join(names)}{tail}" if names else ""
+        return (f"🟡 Context Health: {p}/{n} · {cf} critical · "
+                    f"{payload.get('n_important_fails', 0)} important stale{detail}")
+    # RED path · also name the critical fails
+    crit = payload.get("critical_fails") or []
+    crit_names = [i.get("path","?") for i in crit[:5]]
+    crit_detail = f" · CRITICAL: {' | '.join(crit_names)}" if crit_names else ""
+    return f"🔴 Context Health: {p}/{n} · {cf} CRITICAL engine(s) FAILED{crit_detail}"

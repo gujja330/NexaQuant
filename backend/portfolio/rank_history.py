@@ -98,16 +98,32 @@ def stamp_today(root: Path, asof: str, market: str, runner: str,
     Idempotent per (asof, market, runner, ticker) via a dedup check on the
     most-recent existing snapshot: if today's snapshot for this ticker is
     ALREADY in the ledger, we skip · never duplicate. Safe to call multiple
-    times per day."""
+    times per day.
+
+    Return: int count of NEW rows written this call. Callers that want
+    the richer breakdown (n_new, n_skipped_dedup, n_recs_seen) should use
+    `stamp_today_detailed` to avoid misleading n=0 log lines when the
+    ledger is already complete for the day (2026-08-11 CEO P0 hygiene).
+    """
+    return stamp_today_detailed(root, asof, market, runner, recs)["n_new"]
+
+
+def stamp_today_detailed(root: Path, asof: str, market: str, runner: str,
+                                  recs: list) -> dict:
+    """Same as stamp_today but returns {n_new, n_skipped_dedup, n_recs_seen,
+    n_already_today}. Lets callers log a truthful message when the ledger
+    is idempotent-skipped vs actually failing."""
     existing = {(r["asof"], r["market"], r["runner"], r["ticker"])
                      for r in load_all(root, market=market, runner=runner)
                      if r.get("asof") == asof}
-    n = 0
+    n_new = n_skip = 0
     for r in recs:
         t = r.get("ticker") or ""
         if not t: continue
         key = (asof, market, runner, t)
-        if key in existing: continue
+        if key in existing:
+            n_skip += 1
+            continue
         ia = r.get("investor_action") or {}
         pa = str(r.get("percentile_action") or "").upper()
         status = None
@@ -122,5 +138,10 @@ def stamp_today(root: Path, asof: str, market: str, runner: str,
                               confidence=r.get("calibrated_confidence") or r.get("confidence"),
                               model_score=r.get("ensemble_score"),
                               status=status)
-        n += 1
-    return n
+        n_new += 1
+    return {
+        "n_new":            n_new,
+        "n_skipped_dedup":  n_skip,
+        "n_recs_seen":      len(recs),
+        "n_already_today":  len(existing),
+    }
