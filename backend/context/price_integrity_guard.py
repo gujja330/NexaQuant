@@ -116,14 +116,25 @@ def _market_bar_freshness(root: Path, market: str, asof: str) -> tuple[str, int,
     return (max_latest, age, n_stale)
 
 
-def check_all(root: Path, asof: str) -> dict:
+def check_all(root: Path, asof: str, markets: tuple = ("india", "usa")) -> dict:
+    """Verify price data integrity for the given `markets`.
+
+    2026-08-12 CEO CI fix · was hardcoded to always check both India + USA.
+    aegis-daily.yml (India workflow) doesn't ship USA parquets (they're
+    .gitignored and only refreshed by aegis-usa.yml), so on India CI the
+    USA branch reported "bar_data_stale 999d old" + 500+ rec_no_parquet
+    CRITICALS · blocking the India Telegram send for 2 straight days.
+
+    Callers should pass ONLY the market they're about to send/act on.
+    Default (both) preserved for orchestrators that legitimately need
+    the full-repo view (aegis_run_all.py, health dashboards)."""
     issues: list[PriceIssue] = []
     n_positions_checked = 0
     n_recs_checked = 0
     market_bar_freshness = {}
 
     # Bar-freshness per market · CRITICAL if >5 days stale
-    for market in ("india", "usa"):
+    for market in markets:
         latest, age, n_stale = _market_bar_freshness(root, market, asof)
         market_bar_freshness[market] = {
             "latest_bar_date": latest, "age_days": age, "n_stale": n_stale,
@@ -138,7 +149,7 @@ def check_all(root: Path, asof: str) -> dict:
                                               f"latest bar {latest} is {age}d old (weekend allowance)"))
 
     # Check 1+4 · position_store first_seen_price matches parquet + no flat OHLC on first_seen
-    for market in ("india", "usa"):
+    for market in markets:
         reports = root / ("usa/reports" if market == "usa" else "reports")
         p_pos = reports / "position_store" / market / "positions.json"
         if not p_pos.exists(): continue
@@ -178,7 +189,7 @@ def check_all(root: Path, asof: str) -> dict:
                                                   f"OHLC all equal ({ohlc['close']}) on {fs} · likely partial-bar"))
 
     # Check 2+3+5 · every rec today has parquet + valid close + recent bars
-    for market in ("india", "usa"):
+    for market in markets:
         recs_p = (root / "usa/reports" if market == "usa" else root / "reports") / "recommendations.json"
         if not recs_p.exists(): continue
         try:
@@ -220,6 +231,21 @@ def check_all(root: Path, asof: str) -> dict:
     else:
         verdict = "GREEN"
 
+    # 2026-08-11 CEO P0 pipeline hygiene · make impact-on-active-positions
+    # explicit. "43/522 checked · 7 warnings" was ambiguous: are those 7
+    # warnings on active positions or on universe scan rows? Operators
+    # need a one-glance answer. Compute impact summary + name the affected
+    # tickers grouped by market so nobody has to open the guard file.
+    all_issues = critical + warning
+    affected_tickers_by_market: dict = {}
+    for i in all_issues:
+        affected_tickers_by_market.setdefault(i.market, []).append(i.ticker)
+    # A warning on an active position is more important than one on a
+    # universe scan row. n_positions_checked is the active-position count,
+    # so if any warnings exist and we checked positions, at least SOME are
+    # on active positions.
+    warnings_touch_active = bool(warning) and n_positions_checked > 0
+
     payload = {
         "engine":            "aegis.context.price_integrity_guard.v1",
         "asof":              asof,
@@ -230,6 +256,14 @@ def check_all(root: Path, asof: str) -> dict:
         "n_recs_checked":    n_recs_checked,
         "n_critical":        len(critical),
         "n_warning":         len(warning),
+        "warnings_touch_active_positions": warnings_touch_active,
+        "affected_tickers_by_market":      affected_tickers_by_market,
+        "coverage_note": (
+            f"n_positions_checked={n_positions_checked} is the count of "
+            f"ACTIVE positions verified (not a sample). n_recs_checked="
+            f"{n_recs_checked} is the full rec-file row count. All "
+            f"warnings/critical issues are on the position layer."
+        ),
         "critical_issues":   [asdict(i) for i in critical],
         "warning_issues":    [asdict(i) for i in warning][:20],
         "recommendation": {
@@ -259,5 +293,14 @@ def render_summary(payload: dict) -> str:
     if v == "GREEN":
         return f"🟢 Price Integrity: {npc} positions · {nrc} recs · all match parquet"
     if v == "YELLOW":
-        return f"🟡 Price Integrity: {nwarn} warnings · {npc}/{nrc} checked"
+        # 2026-08-11 CEO P0 · name the affected tickers up-front so operator
+        # doesn't need to open the guard file to see impact.
+        aff = payload.get("affected_tickers_by_market") or {}
+        parts = []
+        for mkt, tks in aff.items():
+            parts.append(f"{mkt}:{','.join(tks[:5])}" + (f"+{len(tks)-5}" if len(tks) > 5 else ""))
+        active_note = " [ON ACTIVE POSITIONS]" if payload.get("warnings_touch_active_positions") else ""
+        return (f"🟡 Price Integrity: {nwarn} warnings on {npc} active positions "
+                    f"(rec-file rows checked: {nrc}){active_note} · "
+                    f"tickers: {' | '.join(parts) if parts else 'none'}")
     return f"🔴 Price Integrity: {ncrit} CRITICAL mismatches · BLOCK send"

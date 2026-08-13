@@ -358,7 +358,11 @@ def main() -> int:
         try:
             from backend.context.price_integrity_guard import (
                 check_all as _pig, emit as _pig_emit, render_summary as _pig_render)
-            pig = _pig(_ROOT, asof)
+            # 2026-08-12 CEO CI fix · scope guard to the market we're actually
+            # sending. India CI has no USA parquets (they're .gitignored and
+            # only refreshed by aegis-usa.yml) so evaluating USA on India CI
+            # produced 500+ fake CRITICALS and blocked India send for 2 days.
+            pig = _pig(_ROOT, asof, markets=tuple(markets))
             _pig_emit(_ROOT, pig)
             print(f"[guard8:price] {_pig_render(pig)}")
             if pig.get("verdict") == "RED" \
