@@ -1,0 +1,72 @@
+{
+  "run_utc": "2026-08-13T04:54:13+00:00Z",
+  "total_elapsed_s": 3676.69,
+  "total_elapsed_min": 61.3,
+  "n_steps": 43,
+  "by_category": {
+    "yfinance_ingest": {
+      "n_steps": 9,
+      "total_s": 3400.7,
+      "pct": 92.5
+    },
+    "engine": {
+      "n_steps": 34,
+      "total_s": 275.9,
+      "pct": 7.5
+    },
+    "delivery": {
+      "n_steps": 0,
+      "total_s": 0,
+      "pct": 0.0
+    },
+    "other": {
+      "n_steps": 0,
+      "total_s": 0,
+      "pct": 0.0
+    }
+  },
+  "top_5_slowest": [
+    {
+      "name": "ingest_earnings",
+      "elapsed_s": 974.13,
+      "pct": 26.5,
+      "verdict": "SUCCESS"
+    },
+    {
+      "name": "ingest_news",
+      "elapsed_s": 728.95,
+      "pct": 19.8,
+      "verdict": "SUCCESS"
+    },
+    {
+      "name": "ingest_fundamentals",
+      "elapsed_s": 545.45,
+      "pct": 14.8,
+      "verdict": "SUCCESS"
+    },
+    {
+      "name": "ingest_corporate_actions",
+      "elapsed_s": 447.09,
+      "pct": 12.2,
+      "verdict": "SUCCESS"
+    },
+    {
+      "name": "refresh_market_data",
+      "elapsed_s": 256.82,
+      "pct": 7.0,
+      "verdict": "SUCCESS"
+    }
+  ],
+  "failing_steps": [
+    {
+      "name": "backend_validation",
+      "elapsed_s": 76.23,
+      "verdict": "FAILED"
+    }
+  ],
+  "recommendations": [
+    "Top-2 stages (ingest_earnings 974s + ingest_news 729s = 46% of runtime) both do per-ticker sequential yfinance calls · main optimization lever",
+    "Parallelizing with a small ThreadPool (workers=4) would ~4x throughput on those two alone but adds retry/backoff complexity · plan for a dedicated ingest-parallelism sprint after Sprint L data lands",
+    "For now: no optimization · correctness over speed (per CEO 2026-08-11 lock)"
+  ]
+}

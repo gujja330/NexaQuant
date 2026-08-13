@@ -773,19 +773,48 @@ def main() -> int:
                     latest_by_ticker[key] = (dt, r)
             positions = [(dt, r) for (dt, r) in latest_by_ticker.values()]
 
-            # Aggregate: sum realized (EXIT rows) + unrealized (open rows) using repaired numbers
+            # 2026-08-12 CEO fix · P0-3 exclude ARTIFACTS from open/closed
+            # counts + P1-5 formal P&L / win-rate definitions.
+            #
+            # Formal definitions (this is the SSoT for the caption + KPI band):
+            #   Position P&L (%)         = per-position price change (unweighted)
+            #   Realized P&L (sum)       = SUM of Exit P&L across CLOSED trades
+            #                              (excludes ARTIFACT · excludes ROTATED_SAMEDAY)
+            #   Unrealized P&L (sum)     = SUM of live P&L across ACTIVE positions
+            #                              (excludes ARTIFACT · excludes ROTATED_SAMEDAY)
+            #   Combined                 = Realized + Unrealized (sum of position %s,
+            #                              NOT portfolio-weighted return · see caveat)
+            #   Win rate                 = WINS / (WINS + LOSSES)
+            #     where WIN = pnl > +0.01% · LOSS = pnl < -0.01% · FLAT = else
+            #     ARTIFACT + ROTATED_SAMEDAY are EXCLUDED from all counters.
+            # NOTE · a portfolio-weighted return would need per-position sizing
+            # which we do not yet emit into the sheet. TODO after Sprint L.
             realized_sum = 0.0; n_realized = 0
             unrealized_sum = 0.0; n_unrealized = 0
             n_win = 0; n_loss = 0; n_flat = 0
+            n_artifact = 0
             best_pos = ("", 0.0); worst_pos = ("", 0.0)
+            _c_rec_date = h.index("Recommended Date") + 1 if h and "Recommended Date" in h else None
             for dt, r in positions:
                 status = r[c_st-1].value
+                # ARTIFACT detection · same rule as Priority J:
+                #   Entry Date == Exit Date  OR  status == ROTATED_SAMEDAY
+                _entry_dt = r[_c_rec_date-1].value if _c_rec_date else None
+                _exit_dt  = r[h.index("Exit Date")-1].value if h and "Exit Date" in h else None
+                _row_is_artifact = (
+                    status == "ROTATED_SAMEDAY"
+                    or (_entry_dt and _exit_dt and str(_entry_dt)[:10] == str(_exit_dt)[:10])
+                )
+                if _row_is_artifact:
+                    n_artifact += 1
+                    continue   # do NOT contribute to open/closed/win-rate stats
+
                 pnl = None
                 if status == "EXIT" and c_exit_pnl:
                     v = r[c_exit_pnl-1].value
                     if isinstance(v, (int, float)):
                         pnl = v; realized_sum += v; n_realized += 1
-                elif status != "ROTATED_SAMEDAY" and status != "EXIT":
+                elif status != "EXIT":
                     entry_v = r[c_entry-1].value if c_entry else None
                     tk = r[c_tk-1].value
                     live = _parquet_close(tk, mkt_key, dt)
@@ -800,7 +829,9 @@ def main() -> int:
                     if pnl < worst_pos[1]: worst_pos = (r[c_tk-1].value, pnl)
             combined = realized_sum + unrealized_sum
             n_total = n_realized + n_unrealized
-            win_rate = round(n_win / max(1, n_total) * 100, 1)
+            # Win rate denominator excludes flats (per formal definition above)
+            _win_denom = max(1, n_win + n_loss)
+            win_rate = round(n_win / _win_denom * 100, 1)
 
             # Portfolio header + KPI banner
             portfolio_ws.merge_cells("A1:L1")
@@ -811,13 +842,18 @@ def main() -> int:
             portfolio_ws["A1"].alignment = _Align(horizontal="center", vertical="center")
             portfolio_ws.row_dimensions[1].height = 28
 
+            # 2026-08-12 P0-3 · KPI banner now shows ARTIFACTS on their own row
+            # so operators don't confuse rotation artifacts with real positions.
+            # 'closed'/'open' counts EXCLUDE artifacts by definition (see loop).
             kpi_rows = [
                 ["Realized P&L (closed)", realized_sum / 100.0, f"{n_realized} closed",
                  "Best position", f"{best_pos[0]} {best_pos[1]:+.2f}%"],
                 ["Unrealized P&L (open)", unrealized_sum / 100.0, f"{n_unrealized} open",
                  "Worst position", f"{worst_pos[0]} {worst_pos[1]:+.2f}%"],
-                ["COMBINED PORTFOLIO",    combined / 100.0,      f"{n_total} positions",
-                 "Win rate", f"{win_rate}% ({n_win}W / {n_loss}L / {n_flat} flat)"],
+                ["COMBINED PORTFOLIO",    combined / 100.0,      f"{n_total} real positions",
+                 "Win rate", f"{win_rate}% ({n_win}W / {n_loss}L · {n_flat} flat excluded)"],
+                ["Artifacts (excluded)",  "",                    f"{n_artifact} same-day rotations",
+                 "Note", "not counted in P&L / win rate"],
             ]
             for r_off, kpi_row in enumerate(kpi_rows, start=3):
                 for c_off, val in enumerate(kpi_row, start=1):
@@ -952,6 +988,24 @@ def main() -> int:
                 _inv = _inv_map.get(tk, {})
                 inv_score = _inv.get("score")
                 inv_verdict = _inv.get("verdict", "")
+                # 2026-08-12 P1-4 · CEO fix · when Investability hasn't been
+                # computed yet for a NEW recommendation, substitute PENDING
+                # instead of empty string (previously showed as NaN and the
+                # Decision layer defaulted to PROTECT which is contradictory
+                # for a same-day STRONG BUY like ZYDUSLIFE +6.43%).
+                if not inv_verdict:
+                    inv_verdict = "⏳ PENDING"
+
+                # 2026-08-12 P0-1 · CEO fix · lifecycle-first detection.
+                # These flags feed BOTH _classify_priority and _resolve_decision
+                # so ARTIFACT/EXIT/NEW/ACTIVE state precedes generic protective
+                # rules. Previously a same-day STRONG BUY (+6.43%) got PROTECT
+                # because the decision layer ran trailing-stop logic without
+                # asking "is this even a held position yet?".
+                # `asof` is the run date; rec_dt is when the position was first
+                # recommended. Same day => NEW position, day-0 rules apply.
+                _is_new_position = bool(rec_dt) and str(rec_dt)[:10] == str(asof)[:10]
+                # ARTIFACT detected inline below via is_same_day check.
 
                 def _classify_priority(st, iv, pnl, is_same_day=False):
                     """Returns bucket letter A-J.
@@ -1019,10 +1073,43 @@ def main() -> int:
                 # DECISION · single human-facing synthesis (col 2)
                 decision_text, decision_color_key = _resolve_decision(
                     action, inv_verdict, status)
+
+                # 2026-08-12 CEO fix · P0-1 lifecycle-state precedence.
+                # Force Decision to respect lifecycle BEFORE any generic
+                # protective/trailing-stop rule can fire.
+                #
+                #   J bucket (ARTIFACT / same-day rotation)
+                #     -> Decision = ⚪ ARTIFACT  (never held · not a real trade)
+                #   I bucket (CLOSED · Runner=EXIT + Portfolio agrees)
+                #     -> Decision = ⚪ CLOSED    (position terminated, no follow-up needed)
+                #   H bucket (REVIEWING · Runner=EXIT but Portfolio challenging)
+                #     -> keep _resolve_decision result (that's the whole point of H)
+                #   NEW position (rec_dt == asof, not EXIT, not artifact)
+                #     -> P0-2 · use NEW-state logic, NOT trailing-stop/protect
+                #        · QUALITY/OK   -> 🟢 BUY (validate entry)
+                #        · MARGINAL     -> 🟡 WATCH · small size
+                #        · AVOID        -> 🔴 SKIP · quality fails
+                #        · PENDING      -> ⏳ PROVISIONAL BUY · investability not yet computed
+                if priority_bucket == "J":
+                    decision_text, decision_color_key = "⚪ ARTIFACT · not held", "gray"
+                elif priority_bucket == "I":
+                    decision_text, decision_color_key = "⚪ CLOSED", "gray"
+                elif _is_new_position and status != "EXIT" and priority_bucket != "H":
+                    _iv_key = str(inv_verdict).strip()
+                    if _iv_key in ("🏆 QUALITY", "✓ OK"):
+                        decision_text, decision_color_key = "🟢 BUY · new position · quality confirmed", "green"
+                    elif _iv_key == "⚠ MARGINAL":
+                        decision_text, decision_color_key = "🟡 WATCH · new · small size only", "yellow"
+                    elif _iv_key == "✗ AVOID":
+                        decision_text, decision_color_key = "🔴 SKIP · new · quality fails", "red"
+                    elif _iv_key == "⏳ PENDING":
+                        decision_text, decision_color_key = "⏳ PROVISIONAL BUY · investability pending", "yellow"
+                    # else: keep _resolve_decision result
+
                 # 2026-08-10 CEO v6 · closed positions get BLANK actionable fields
                 # (operator: "You don't want CLOSED · Next Review 15-Aug ·
                 # Decision HOLD · nonsense")
-                is_terminal = action in ("CLOSED", "IGNORE")
+                is_terminal = action in ("CLOSED", "IGNORE") or priority_bucket in ("I", "J")
                 price_trigger = "" if is_terminal else _price_trigger(action, stop_v, t1_v, curr)
                 next_review_anchor = rec_dt if rec_dt else dt
                 next_review = "" if is_terminal else _next_review_date(review, next_review_anchor)

@@ -300,8 +300,14 @@ def build(root: Path) -> list:
                 else:
                     lifecycle = "ACTIVE"
 
+                # 2026-08-12 CEO P0 integrity fix · include runner in position_id
+                # so (position_id) alone is a true primary key. Previously
+                # {TICKER}_{MKT}_{DATE} collided when the same position was
+                # picked by both R1 and R2 (LUPIN_IND_20260731 · COALINDIA_IND_20260731
+                # both showed 2 rows with identical id). Attribution and P1
+                # analyses group by position_id · duplicates skewed counts.
                 mkt_upper = "IND" if market.lower() == "india" else "USA"
-                position_id = f"{ticker_bare}_{mkt_upper}_{entry_date.replace('-','')}"
+                position_id = f"{ticker_bare}_{mkt_upper}_{entry_date.replace('-','')}_{runner_label}"
 
                 row = OutcomeRow(
                     position_id=position_id,
