@@ -31,6 +31,30 @@ require Sprint K's attribution + walk-forward data to be useful. See
   holding period 30-90 days") added to Part 25 attribution
   snapshot deliverable
 
+**v1.7 amended 2026-08-13 (CEO XLSX audit + runtime deferral)**: Two new
+Parts added after CEO manual review of 2026-08-12 India workbook + runtime
+discussion. Both deferred out of the 2026-08-11 hygiene sprint per operator
+"we can plan later":
+
+- **Part 28 · Risk→Decision Consistency Audit** (see below · full spec).
+  Origin: LUPIN 2026-08-12 had `STOP_LOSS_HIT · -6.2%` in Alerts but
+  Decision=`🟢 BUY` / Action=`BUY BIG`. Root cause: priority classifier
+  reads (status, inv_verdict, pnl) only · Alerts column is orphaned ·
+  Risk Controller signal never reaches the Decision layer. Also affects
+  POWERGRID (3 consecutive days) + closed positions HEROMOTOCO · INDIANB ·
+  ATUL · NATIONALUM · OFSS showing Decision=HOLD after actual closure.
+  Sprint K Part 28 = strict Risk-Controller-precedence + consistency
+  matrix + Post-Exit Assessment separation. ~1 full day of work.
+
+- **Part 29 · Pipeline Runtime Reduction** (see below · full spec).
+  Origin: manual `python scripts/aegis_run_all.py` takes ~60 min per
+  market. Profile at `reports/context/pipeline_runtime_profile.json`
+  shows 92.5% of runtime is 7 yfinance ingest steps, all sequential
+  per-ticker. Target: 60 min → 12-15 min per market via ThreadPool +
+  batch + staleness-aware skip. ~1 full day of work.
+
+Sprint K now 29 parts · execution window extends to 2026-11-30.
+
 **v1.6 amended 2026-08-08 (final)**: Constitutional rule from operator:
 "all developments should be dynamic · no hardcoding at all."
 
@@ -962,6 +986,310 @@ validation / calibration mode. No new engines. No new features.
 6. **Each Part has its own regression test** before merge
 7. **Guard 7 monitors every new engine output** as CRITICAL
 8. **All Part 24 checkboxes must pass** before declaring Sprint K+ complete
+
+---
+
+## Part 28 · Risk→Decision Consistency Audit
+
+**Added 2026-08-13** · CEO audit of 2026-08-12 India workbook found the
+Risk Controller signal is orphaned from the Decision layer. The final
+Decision can independently recompute BUY/HOLD after a binding stop-loss
+has fired. This is a state-machine integrity bug, not a scoring issue.
+
+### 28.1 · The bug
+
+LUPIN 2026-08-12 · exact XLSX rows shown to operator:
+
+```
+Ticker         LUPIN
+Alerts         STOP_LOSS_HIT · -6.2% ≤ -5.0% · exit
+Current Perf%  -6.20%
+Status         STRONG BUY
+🎯 DECISION    🟢 BUY
+Action         BUY BIG
+Urgency        🔴 HIGH
+Reason         Conviction Buy
+Review         30 DAYS
+```
+
+Reading these fields left to right: risk fired stop-loss, decision layer
+still says BUY BIG. That is not "one decision engine disagreeing with
+another" — it means the risk controller's veto never reached the layer
+that talks to the user.
+
+Root cause (verified in code):
+`scripts/telegram_command_center_send.py:_classify_priority()` accepts
+`(status, inv_verdict, pnl, is_same_day)` — the `Alerts` column
+containing STOP_LOSS_HIT / HARD_STOP / TRAILING_STOP_HIT etc. is never
+passed in. Priority bucket resolves purely from runner status + investability,
+so LUPIN (STRONG BUY + QUALITY inv) lands in bucket A and gets
+`🟢 BUY · high conviction` regardless of what the risk layer said.
+
+Also affects 4 STOP_LOSS_HIT rows in current workbook:
+
+| Date   | Stock     | Perf   | Alert         | Current Decision | Correct |
+|--------|-----------|-------:|---------------|------------------|---------|
+| Aug 10 | POWERGRID | -5.53% | STOP_LOSS_HIT | ⚫ SKIP           | 🔴 EXIT |
+| Aug 11 | POWERGRID | -6.28% | STOP_LOSS_HIT | ⚫ SKIP           | 🔴 EXIT |
+| Aug 12 | POWERGRID | -6.75% | STOP_LOSS_HIT | ⚫ SKIP           | 🔴 EXIT |
+| Aug 12 | **LUPIN** | -6.20% | STOP_LOSS_HIT | **🟢 BUY**       | 🔴 EXIT |
+
+POWERGRID resolves to SKIP (not EXIT · still wrong) · LUPIN resolves to
+BUY BIG (catastrophically wrong).
+
+### 28.2 · Required precedence hierarchy
+
+Risk-controller output is binding. In priority order:
+
+```
+1. EMERGENCY / HARD STOP             (unrecoverable · immediate exit)
+2. PORTFOLIO MAX DD                  (portfolio-level circuit breaker)
+3. GAP / VOLATILITY EXIT             (bar-level risk event)
+4. TRAILING STOP HIT                 (profit-protection binding)
+5. REDUCE                            (partial exit)
+6. PROTECT                           (tighten stop · no exit)
+7. HOLD                              (no action)
+8. BUY / ADD                         (risk-increasing · lowest priority)
+```
+
+A BUY signal MUST NEVER override a higher-priority EXIT signal.
+
+Alerts vocabulary that must trigger EXIT precedence:
+
+```
+STOP_LOSS_HIT
+HARD_STOP
+TRAILING_STOP_HIT
+GAP_EXIT
+PORTFOLIO_MAX_DD
+EMERGENCY_EXIT
+```
+
+### 28.3 · State transitions
+
+On any binding risk event:
+
+```
+Status         →  EXIT  (or EXIT_PENDING if execution unconfirmed)
+🎯 DECISION    →  🔴 EXIT
+Action         →  EXIT
+Urgency        →  🔴 IMMEDIATE
+Review         →  CLOSED
+Reason         →  Hard Stop Hit  (or the specific alert reason)
+Price Trigger  →  Hard Stop @ <price>
+```
+
+### 28.4 · Closed positions must never show live HOLD/BUY
+
+Current workbook has 5 rows with `Status = EXIT · Decision = HOLD ·
+Reason = Premature Exit?` (HEROMOTOCO · INDIANB · ATUL · NATIONALUM ·
+OFSS). This is confusing — user sees exit + hold and cannot tell what
+to do.
+
+Fix: once genuinely closed →
+
+```
+Decision  →  ⚪ CLOSED
+Action    →  CLOSED
+Review    →  CLOSED
+```
+
+Any post-exit analysis ("Premature exit · would have kept +10.6%") moves
+to a NEW separate column `Post-Exit Assessment` — never mixed with the
+live Decision column.
+
+### 28.5 · Stop-loss semantics (must be explicit)
+
+Determine and document whether stops are:
+
+1. **Close-based** (only trigger if close ≤ stop)
+2. **Intraday-low-based** (trigger if low ≤ stop that day)
+3. **Execution-confirmed** (only after actual fill)
+
+Without this decision, `STOP_LOSS_HIT` is ambiguous — an intraday breach
+that recovers by close would be labeled a hit under (2) but not (1).
+
+Recorded fields per exit:
+```
+stop trigger price
+trigger timestamp/session
+reference price
+execution price if known
+exit price
+realized P&L
+```
+
+### 28.6 · Live Decision vs Post-Exit Assessment
+
+Two orthogonal concepts · never mixed:
+
+**LIVE DECISION vocabulary** (what to do right now):
+```
+BUY · ADD · HOLD · PROTECT · REDUCE · EXIT · CLOSED · SKIP
+```
+
+**POST-EXIT ASSESSMENT vocabulary** (what happened after close):
+```
+Clean Exit · Premature Exit · Missed Upside · Good Rotation ·
+Bad Rotation · Stop Loss · Target Achieved · Time Exit
+```
+
+### 28.7 · Consistency matrix (automated test)
+
+Every rendered row must satisfy the validation table. Add
+`backend/tests/test_decision_consistency.py`:
+
+```
+VALID
+  STRONG BUY + BUY + BUY
+  HOLD + PROTECT + TIGHTEN STOP
+  HOLD + HOLD + HOLD
+  EXIT + EXIT + EXIT
+  EXIT + CLOSED + CLOSED
+  STOP_LOSS_HIT + EXIT
+
+INVALID (any occurrence = test failure)
+  EXIT + HOLD + REVIEW
+  EXIT + BUY + BUY BIG
+  STOP_LOSS_HIT + BUY
+  STOP_LOSS_HIT + ADD
+  STOP_LOSS_HIT + HOLD
+```
+
+Wire the check into the existing regression suite.
+
+### 28.8 · Telegram / XLSX parity
+
+Both channels must consume the SAME `final_decision` object. XLSX must
+never say `🔴 EXIT` while Telegram says `🟢 BUY` for the same ticker on
+the same day. Single source. Add a parity assertion in the sender.
+
+### 28.9 · P0 / P1 outcome dataset integration
+
+P0 Outcome Dataset must record for each closed position:
+```
+Position ID · Risk State · Decision · Entry · Stop · Stop Trigger ·
+Exit Date · Exit Price · Exit Reason · Exit P&L
+```
+
+P1 Attribution must use these canonical values (not reconstruct exits
+independently from XLSX rows).
+
+### 28.10 · Acceptance criteria (all must pass)
+
+```
+1. STOP_LOSS_HIT → EXIT                          100%
+2. Closed → live BUY/HOLD                        0
+3. EXIT + BUY combinations in workbook            0
+4. EXIT + HOLD combinations in workbook           0
+5. Telegram/XLSX decision mismatch                0
+6. Position ID mismatch (P0/XLSX)                 0
+7. Historical P&L contamination                   0
+8. Consistency-matrix test failures               0
+9. Live Decision containing Post-Exit label       0
+10. LUPIN/POWERGRID/HEROMOTOCO test cases         PASS
+```
+
+### 28.11 · Do NOT touch
+
+- R1/R2 model logic, weights, thresholds
+- Sealed engines
+- Portfolio construction algorithm
+- Decision vocabulary rules that ARE correct today (BUY/HOLD/PROTECT/etc.)
+
+This is state-machine repair · not model change.
+
+### 28.12 · Estimated effort
+
+~1 full day of focused work · 8 waves:
+
+1. Alerts feed into priority classifier (LUPIN fix) · 2 hrs
+2. Closed → CLOSED for all buckets not just I · 1 hr
+3. Consistency matrix + test · 1.5 hrs
+4. Post-Exit Assessment column split · 1 hr
+5. Stop semantics doc + PROTECT vs EXIT · 1 hr
+6. State continuity + immutability · 1 hr
+7. Telegram/XLSX parity + P0/P1 reconciliation · 1 hr
+8. Final smoke + 10 acceptance criteria · 0.5 hr
+
+---
+
+## Part 29 · Pipeline Runtime Reduction
+
+**Added 2026-08-13** · manual `python scripts/aegis_run_all.py` currently
+takes ~60 min per market. CI can absorb this (once per day) but local
+iteration is painful. Profile artifact:
+`reports/context/pipeline_runtime_profile.json`.
+
+### 29.1 · Baseline
+
+USA pipeline 2026-08-13 run · total 3676s (61 min) across 43 steps.
+Top 7 stages consume 92.5%:
+
+| Stage                    | Time  | % of total | Nature                    |
+|--------------------------|------:|-----------:|---------------------------|
+| ingest_earnings          | 974s  | 26.5%      | yfinance per-ticker       |
+| ingest_news              | 729s  | 19.8%      | Google News RSS per-ticker|
+| ingest_fundamentals      | 545s  | 14.8%      | yfinance per-ticker       |
+| ingest_corporate_actions | 447s  | 12.2%      | yfinance per-ticker       |
+| refresh_market_data      | 256s  | 7.0%       | yfinance OHLCV per-ticker |
+| ingest_insider           | 229s  | 6.2%       | yfinance per-ticker       |
+| ingest_sec_13f           | 196s  | 5.3%       | yfinance per-ticker       |
+
+All 7 are sequential per-ticker loops over ~500 tickers · ~0.5-1s network
+round-trip each · CPU idle. This is the entire bottleneck.
+
+### 29.2 · Three levers (ordered by effort/impact)
+
+**Lever A · Staleness-aware skip** (~2 hrs · low risk)
+Only refetch tickers whose parquet/JSON is older than N hours. Skips
+~40% of already-fresh tickers on a typical day.
+Expected: 60 min → ~35 min per market.
+
+**Lever B · ThreadPool parallelism** (~1 full day · medium risk)
+`concurrent.futures.ThreadPoolExecutor(max_workers=6)` around each
+per-ticker loop in the 7 ingest modules. Requires:
+- Per-worker semaphore to avoid yfinance rate limits
+- Exponential backoff on 429/503
+- Retry with jitter
+- Integration test on each of the 7 modules
+Expected: 60 min → ~12-15 min per market.
+
+**Lever C · Batch API where yfinance supports it** (~2-3 hrs · medium risk)
+`yfinance.Tickers(list).info` batch-fetches fundamentals + earnings for
+multiple tickers per call. Schema quirks in batch responses need handling.
+Expected: additional 20-30% on those 2 stages.
+
+### 29.3 · Recommended combo
+
+**A + B combined** → ~12-15 min per market. C is optional polish.
+
+### 29.4 · Non-goals
+
+- Do NOT change what data is fetched (same 500 tickers · same fields)
+- Do NOT change R1/R2 or downstream engine logic
+- Do NOT parallelize downstream engines (they're already fast · 7% of runtime)
+- Do NOT change CI cadence · this is purely local-iteration ergonomics
+
+### 29.5 · Acceptance criteria
+
+```
+1. Full USA run wall-clock ≤ 20 min                YES
+2. Full India run wall-clock ≤ 20 min              YES
+3. Data output byte-for-byte identical to serial baseline (deterministic)  YES
+4. Zero yfinance rate-limit failures across 10 consecutive runs           YES
+5. All 43 USA steps still SUCCESS                  YES
+6. All existing regression tests pass              YES
+```
+
+### 29.6 · Estimated effort
+
+~1 full day · Lever A + B combined. Lever C optional.
+
+### 29.7 · Ordering
+
+**Do Part 28 (Decision consistency) FIRST.** Correctness before speed.
+No point in optimizing a pipeline that outputs contradictory decisions.
 
 ---
 
