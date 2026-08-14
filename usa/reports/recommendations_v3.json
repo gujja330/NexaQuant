@@ -2,26 +2,88 @@
   "engine": "aegis.recommendation.v3",
   "version": "1.0.0",
   "market": "usa",
-  "run_utc": "2026-08-14T13:15:35+00:00",
+  "run_utc": "2026-08-14T15:57:23+00:00",
   "asof": "2026-08-14",
   "currency": "USD",
   "regime": "neutral",
   "n_tickers": 15,
   "distribution": {
     "STRONG_BUY": 0,
-    "BUY": 9,
-    "HOLD": 6,
+    "BUY": 8,
+    "HOLD": 7,
     "SELL": 0,
     "STRONG_SELL": 0
   },
-  "n_disagreement_collapsed": 1,
+  "n_disagreement_collapsed": 2,
   "recommendations": [
+    {
+      "market": "usa",
+      "ticker": "MU",
+      "asof": "2026-08-14",
+      "action": "HOLD",
+      "ensemble_score": 0.3423,
+      "raw_confidence": 0.7561,
+      "calibrated_confidence": 0.5426,
+      "regime_adjusted_confidence": 0.5155,
+      "model_agreement": 0.5455,
+      "disagreement_flag": true,
+      "n_models_scoring": 11,
+      "top_models": [
+        {
+          "model_id": "aegis.growth.v1",
+          "score": 0.929
+        },
+        {
+          "model_id": "aegis.quality.v1",
+          "score": 0.8927
+        },
+        {
+          "model_id": "aegis.mean_reversion.v1",
+          "score": 0.7504
+        }
+      ],
+      "top_features": [
+        "adx_14",
+        "ca_days_since_last_dividend",
+        "ca_last_dividend_amount",
+        "close",
+        "distance_from_52w_high_pct",
+        "distance_from_52w_low_pct",
+        "earn_days_to_next",
+        "earn_last_eps_reported"
+      ],
+      "bull_case": "1-month momentum +13.59%; 3-month momentum +38.03%; high ROE (+66.64%); positive news sentiment (0.500).",
+      "bear_case": "high leverage (D/E 6.330); net insider selling ($-167,811,531, 90d); deep 60d drawdown (-39.09%).",
+      "key_risks": [],
+      "suggested_holding_period_days": 60,
+      "entry_zone": {
+        "current": 964.29,
+        "note": "hold \u2014 no entry"
+      },
+      "exit_conditions": [
+        "no active exit trigger \u2014 HOLD position"
+      ],
+      "model_stamp": {
+        "model_id": "aegis.recommendation.v3",
+        "version": "1.0.0",
+        "engine": "recommendation_intelligence",
+        "market": "usa",
+        "feature_set_version": "b65ceb49a83a",
+        "schema_version": "b65ceb49a83a",
+        "calibration_version": "",
+        "approval_status": "experimental",
+        "approved_by": "",
+        "approved_on": ""
+      },
+      "feature_set_version": "b65ceb49a83a",
+      "schema_fingerprint": "b65ceb49a83a"
+    },
     {
       "market": "usa",
       "ticker": "ADSK",
       "asof": "2026-08-14",
       "action": "BUY",
-      "ensemble_score": 0.3141,
+      "ensemble_score": 0.3156,
       "raw_confidence": 0.7561,
       "calibrated_confidence": 0.5908,
       "regime_adjusted_confidence": 0.5613,
@@ -35,11 +97,11 @@
         },
         {
           "model_id": "aegis.trend.v1",
-          "score": 0.6696
+          "score": 0.5642
         },
         {
           "model_id": "aegis.value.v1",
-          "score": -0.5498
+          "score": -0.5598
         }
       ],
       "top_features": [
@@ -52,17 +114,156 @@
         "earn_last_surprise_pct",
         "fund_debt_to_equity"
       ],
-      "bull_case": "1-month momentum +18.84%; high ROE (+50.40%); positive news sentiment (0.500).",
-      "bear_case": "overbought RSI (78.892); high leverage (D/E 85.419); deep 60d drawdown (-24.36%).",
+      "bull_case": "1-month momentum +22.96%; 3-month momentum +8.27%; high ROE (+50.40%); positive news sentiment (0.500).",
+      "bear_case": "high leverage (D/E 85.419); deep 60d drawdown (-24.36%).",
       "key_risks": [
         "earnings in 13 days \u2014 reduce position size ahead of print",
         "leverage above 1x amplifies downside if fundamentals slip"
       ],
       "suggested_holding_period_days": 60,
       "entry_zone": {
-        "low": 252.801,
-        "high": 263.119,
-        "current": 257.96,
+        "low": 248.141,
+        "high": 258.269,
+        "current": 253.205,
+        "note": "\u00b12% band around current price"
+      },
+      "exit_conditions": [
+        "time-based: review after 60 days if action still holds",
+        "price-based: 8% stop-loss from entry",
+        "price-based: consider trimming +15% from entry",
+        "thesis-based: exit if bull case signals invert (any 2 of them)"
+      ],
+      "model_stamp": {
+        "model_id": "aegis.recommendation.v3",
+        "version": "1.0.0",
+        "engine": "recommendation_intelligence",
+        "market": "usa",
+        "feature_set_version": "b65ceb49a83a",
+        "schema_version": "b65ceb49a83a",
+        "calibration_version": "",
+        "approval_status": "experimental",
+        "approved_by": "",
+        "approved_on": ""
+      },
+      "feature_set_version": "b65ceb49a83a",
+      "schema_fingerprint": "b65ceb49a83a"
+    },
+    {
+      "market": "usa",
+      "ticker": "FOXA",
+      "asof": "2026-08-14",
+      "action": "BUY",
+      "ensemble_score": 0.3109,
+      "raw_confidence": 0.7561,
+      "calibrated_confidence": 0.5908,
+      "regime_adjusted_confidence": 0.5613,
+      "model_agreement": 0.7273,
+      "disagreement_flag": false,
+      "n_models_scoring": 11,
+      "top_models": [
+        {
+          "model_id": "aegis.event_driven.v1",
+          "score": 0.6978
+        },
+        {
+          "model_id": "aegis.trend.v1",
+          "score": 0.6935
+        },
+        {
+          "model_id": "aegis.mean_reversion.v1",
+          "score": 0.4906
+        }
+      ],
+      "top_features": [
+        "adx_14",
+        "close",
+        "distance_from_52w_high_pct",
+        "distance_from_52w_low_pct",
+        "earn_days_to_next",
+        "earn_last_eps_reported",
+        "earn_last_surprise_pct",
+        "fund_debt_to_equity"
+      ],
+      "bull_case": "1-month momentum +23.36%; positive news sentiment (0.375).",
+      "bear_case": "overbought RSI (86.518); high leverage (D/E 64.060); deep 60d drawdown (-28.59%).",
+      "key_risks": [
+        "leverage above 1x amplifies downside if fundamentals slip"
+      ],
+      "suggested_holding_period_days": 60,
+      "entry_zone": {
+        "low": 67.689,
+        "high": 70.451,
+        "current": 69.07,
+        "note": "\u00b12% band around current price"
+      },
+      "exit_conditions": [
+        "time-based: review after 60 days if action still holds",
+        "price-based: 8% stop-loss from entry",
+        "price-based: consider trimming +15% from entry",
+        "thesis-based: exit if bull case signals invert (any 2 of them)"
+      ],
+      "model_stamp": {
+        "model_id": "aegis.recommendation.v3",
+        "version": "1.0.0",
+        "engine": "recommendation_intelligence",
+        "market": "usa",
+        "feature_set_version": "b65ceb49a83a",
+        "schema_version": "b65ceb49a83a",
+        "calibration_version": "",
+        "approval_status": "experimental",
+        "approved_by": "",
+        "approved_on": ""
+      },
+      "feature_set_version": "b65ceb49a83a",
+      "schema_fingerprint": "b65ceb49a83a"
+    },
+    {
+      "market": "usa",
+      "ticker": "TER",
+      "asof": "2026-08-14",
+      "action": "BUY",
+      "ensemble_score": 0.307,
+      "raw_confidence": 0.7561,
+      "calibrated_confidence": 0.5892,
+      "regime_adjusted_confidence": 0.5597,
+      "model_agreement": 0.6364,
+      "disagreement_flag": false,
+      "n_models_scoring": 11,
+      "top_models": [
+        {
+          "model_id": "aegis.growth.v1",
+          "score": 0.8015
+        },
+        {
+          "model_id": "aegis.quality.v1",
+          "score": 0.7896
+        },
+        {
+          "model_id": "aegis.mean_reversion.v1",
+          "score": 0.77
+        }
+      ],
+      "top_features": [
+        "adx_14",
+        "ca_days_since_last_dividend",
+        "ca_last_dividend_amount",
+        "close",
+        "distance_from_52w_high_pct",
+        "distance_from_52w_low_pct",
+        "earn_days_to_next",
+        "earn_last_eps_reported"
+      ],
+      "bull_case": "1-month momentum +24.71%; 3-month momentum +25.08%; strong fundamental quality (83.310); high ROE (+36.46%); positive news sentiment (0.500).",
+      "bear_case": "stretched valuation (P/E 55.191); high leverage (D/E 2.883); deep 60d drawdown (-33.98%).",
+      "key_risks": [
+        "weak trend strength (ADX 17.168) \u2014 call may be premature",
+        "leverage above 1x amplifies downside if fundamentals slip"
+      ],
+      "suggested_holding_period_days": 60,
+      "entry_zone": {
+        "low": 393.97,
+        "high": 410.05,
+        "current": 402.01,
         "note": "\u00b12% band around current price"
       },
       "exit_conditions": [
@@ -91,7 +292,7 @@
       "ticker": "PLTR",
       "asof": "2026-08-14",
       "action": "HOLD",
-      "ensemble_score": 0.3105,
+      "ensemble_score": 0.3022,
       "raw_confidence": 0.7561,
       "calibrated_confidence": 0.5287,
       "regime_adjusted_confidence": 0.5023,
@@ -122,12 +323,12 @@
         "earn_last_surprise_pct",
         "fund_debt_to_equity"
       ],
-      "bull_case": "1-month momentum +33.15%; 3-month momentum +32.46%; strong fundamental quality (84.210); high ROE (+38.10%).",
-      "bear_case": "overbought RSI (79.065); stretched valuation (P/E 154.319); high leverage (D/E 2.139); negative news sentiment (-0.375); net insider selling ($-158,147,808, 90d); deep 60d drawdown (-33.23%).",
+      "bull_case": "1-month momentum +33.76%; 3-month momentum +30.91%; strong fundamental quality (84.210); high ROE (+38.10%).",
+      "bear_case": "overbought RSI (75.347); stretched valuation (P/E 152.724); high leverage (D/E 2.139); negative news sentiment (-0.375); net insider selling ($-158,147,808, 90d); deep 60d drawdown (-33.23%).",
       "key_risks": [],
       "suggested_holding_period_days": 60,
       "entry_zone": {
-        "current": 179.01,
+        "current": 177.065,
         "note": "hold \u2014 no entry"
       },
       "exit_conditions": [
@@ -150,305 +351,28 @@
     },
     {
       "market": "usa",
-      "ticker": "EIX",
+      "ticker": "SAIC",
       "asof": "2026-08-14",
       "action": "BUY",
-      "ensemble_score": 0.3079,
+      "ensemble_score": 0.2914,
       "raw_confidence": 0.7561,
-      "calibrated_confidence": 0.6219,
-      "regime_adjusted_confidence": 0.5908,
+      "calibrated_confidence": 0.5908,
+      "regime_adjusted_confidence": 0.5613,
       "model_agreement": 0.7273,
       "disagreement_flag": false,
       "n_models_scoring": 11,
       "top_models": [
         {
-          "model_id": "aegis.mean_reversion.v1",
-          "score": 1.0
-        },
-        {
-          "model_id": "aegis.value.v1",
-          "score": 0.9028
-        },
-        {
           "model_id": "aegis.event_driven.v1",
-          "score": 0.5503
-        }
-      ],
-      "top_features": [
-        "adx_14",
-        "ca_days_since_last_dividend",
-        "ca_last_dividend_amount",
-        "close",
-        "distance_from_52w_high_pct",
-        "distance_from_52w_low_pct",
-        "earn_days_to_next",
-        "earn_last_eps_reported"
-      ],
-      "bull_case": "strong fundamental quality (66.580); high ROE (+19.73%); positive news sentiment (0.375).",
-      "bear_case": "1-month drawdown -9.44%; oversold RSI (28.436) \u2014 momentum broken; high leverage (D/E 228.042).",
-      "key_risks": [
-        "leverage above 1x amplifies downside if fundamentals slip"
-      ],
-      "suggested_holding_period_days": 60,
-      "entry_zone": {
-        "low": 69.266,
-        "high": 72.094,
-        "current": 70.68,
-        "note": "\u00b12% band around current price"
-      },
-      "exit_conditions": [
-        "time-based: review after 60 days if action still holds",
-        "price-based: 8% stop-loss from entry",
-        "price-based: consider trimming +15% from entry",
-        "thesis-based: exit if bull case signals invert (any 2 of them)"
-      ],
-      "model_stamp": {
-        "model_id": "aegis.recommendation.v3",
-        "version": "1.0.0",
-        "engine": "recommendation_intelligence",
-        "market": "usa",
-        "feature_set_version": "b65ceb49a83a",
-        "schema_version": "b65ceb49a83a",
-        "calibration_version": "",
-        "approval_status": "experimental",
-        "approved_by": "",
-        "approved_on": ""
-      },
-      "feature_set_version": "b65ceb49a83a",
-      "schema_fingerprint": "b65ceb49a83a"
-    },
-    {
-      "market": "usa",
-      "ticker": "BMY",
-      "asof": "2026-08-14",
-      "action": "BUY",
-      "ensemble_score": 0.3074,
-      "raw_confidence": 0.7561,
-      "calibrated_confidence": 0.5892,
-      "regime_adjusted_confidence": 0.5597,
-      "model_agreement": 0.6364,
-      "disagreement_flag": false,
-      "n_models_scoring": 11,
-      "top_models": [
-        {
-          "model_id": "aegis.growth.v1",
-          "score": 0.7945
-        },
-        {
-          "model_id": "aegis.trend.v1",
-          "score": 0.6987
-        },
-        {
-          "model_id": "aegis.event_driven.v1",
-          "score": 0.6861
-        }
-      ],
-      "top_features": [
-        "adx_14",
-        "ca_days_since_last_dividend",
-        "ca_last_dividend_amount",
-        "close",
-        "distance_from_52w_high_pct",
-        "distance_from_52w_low_pct",
-        "earn_days_to_next",
-        "earn_last_eps_reported"
-      ],
-      "bull_case": "1-month momentum +6.84%; 3-month momentum +14.08%; high ROE (+46.60%).",
-      "bear_case": "high leverage (D/E 201.859).",
-      "key_risks": [
-        "leverage above 1x amplifies downside if fundamentals slip"
-      ],
-      "suggested_holding_period_days": 60,
-      "entry_zone": {
-        "low": 63.357,
-        "high": 65.943,
-        "current": 64.65,
-        "note": "\u00b12% band around current price"
-      },
-      "exit_conditions": [
-        "time-based: review after 60 days if action still holds",
-        "price-based: 8% stop-loss from entry",
-        "price-based: consider trimming +15% from entry",
-        "thesis-based: exit if bull case signals invert (any 2 of them)"
-      ],
-      "model_stamp": {
-        "model_id": "aegis.recommendation.v3",
-        "version": "1.0.0",
-        "engine": "recommendation_intelligence",
-        "market": "usa",
-        "feature_set_version": "b65ceb49a83a",
-        "schema_version": "b65ceb49a83a",
-        "calibration_version": "",
-        "approval_status": "experimental",
-        "approved_by": "",
-        "approved_on": ""
-      },
-      "feature_set_version": "b65ceb49a83a",
-      "schema_fingerprint": "b65ceb49a83a"
-    },
-    {
-      "market": "usa",
-      "ticker": "UBER",
-      "asof": "2026-08-14",
-      "action": "BUY",
-      "ensemble_score": 0.304,
-      "raw_confidence": 0.7561,
-      "calibrated_confidence": 0.6219,
-      "regime_adjusted_confidence": 0.5908,
-      "model_agreement": 0.8182,
-      "disagreement_flag": false,
-      "n_models_scoring": 11,
-      "top_models": [
-        {
-          "model_id": "aegis.event_driven.v1",
-          "score": 0.7409
-        },
-        {
-          "model_id": "aegis.growth.v1",
-          "score": 0.672
-        },
-        {
-          "model_id": "aegis.quality.v1",
-          "score": 0.567
-        }
-      ],
-      "top_features": [
-        "adx_14",
-        "close",
-        "distance_from_52w_high_pct",
-        "distance_from_52w_low_pct",
-        "earn_days_to_next",
-        "earn_last_eps_reported",
-        "earn_last_surprise_pct",
-        "fund_debt_to_equity"
-      ],
-      "bull_case": "high ROE (+37.16%); positive news sentiment (0.250).",
-      "bear_case": "high leverage (D/E 51.872).",
-      "key_risks": [
-        "leverage above 1x amplifies downside if fundamentals slip"
-      ],
-      "suggested_holding_period_days": 60,
-      "entry_zone": {
-        "low": 74.362,
-        "high": 77.398,
-        "current": 75.88,
-        "note": "\u00b12% band around current price"
-      },
-      "exit_conditions": [
-        "time-based: review after 60 days if action still holds",
-        "price-based: 8% stop-loss from entry",
-        "price-based: consider trimming +15% from entry",
-        "thesis-based: exit if bull case signals invert (any 2 of them)"
-      ],
-      "model_stamp": {
-        "model_id": "aegis.recommendation.v3",
-        "version": "1.0.0",
-        "engine": "recommendation_intelligence",
-        "market": "usa",
-        "feature_set_version": "b65ceb49a83a",
-        "schema_version": "b65ceb49a83a",
-        "calibration_version": "",
-        "approval_status": "experimental",
-        "approved_by": "",
-        "approved_on": ""
-      },
-      "feature_set_version": "b65ceb49a83a",
-      "schema_fingerprint": "b65ceb49a83a"
-    },
-    {
-      "market": "usa",
-      "ticker": "TER",
-      "asof": "2026-08-14",
-      "action": "BUY",
-      "ensemble_score": 0.3016,
-      "raw_confidence": 0.7561,
-      "calibrated_confidence": 0.5892,
-      "regime_adjusted_confidence": 0.5597,
-      "model_agreement": 0.6364,
-      "disagreement_flag": false,
-      "n_models_scoring": 11,
-      "top_models": [
-        {
-          "model_id": "aegis.growth.v1",
-          "score": 0.8015
-        },
-        {
-          "model_id": "aegis.quality.v1",
-          "score": 0.7896
-        },
-        {
-          "model_id": "aegis.mean_reversion.v1",
-          "score": 0.7558
-        }
-      ],
-      "top_features": [
-        "adx_14",
-        "ca_days_since_last_dividend",
-        "ca_last_dividend_amount",
-        "close",
-        "distance_from_52w_high_pct",
-        "distance_from_52w_low_pct",
-        "earn_days_to_next",
-        "earn_last_eps_reported"
-      ],
-      "bull_case": "1-month momentum +27.37%; 3-month momentum +27.92%; strong fundamental quality (83.310); high ROE (+36.46%); positive news sentiment (0.500).",
-      "bear_case": "stretched valuation (P/E 56.468); high leverage (D/E 2.883); deep 60d drawdown (-33.98%).",
-      "key_risks": [
-        "weak trend strength (ADX 14.695) \u2014 call may be premature",
-        "leverage above 1x amplifies downside if fundamentals slip"
-      ],
-      "suggested_holding_period_days": 60,
-      "entry_zone": {
-        "low": 402.31,
-        "high": 418.73,
-        "current": 410.52,
-        "note": "\u00b12% band around current price"
-      },
-      "exit_conditions": [
-        "time-based: review after 60 days if action still holds",
-        "price-based: 8% stop-loss from entry",
-        "price-based: consider trimming +15% from entry",
-        "thesis-based: exit if bull case signals invert (any 2 of them)"
-      ],
-      "model_stamp": {
-        "model_id": "aegis.recommendation.v3",
-        "version": "1.0.0",
-        "engine": "recommendation_intelligence",
-        "market": "usa",
-        "feature_set_version": "b65ceb49a83a",
-        "schema_version": "b65ceb49a83a",
-        "calibration_version": "",
-        "approval_status": "experimental",
-        "approved_by": "",
-        "approved_on": ""
-      },
-      "feature_set_version": "b65ceb49a83a",
-      "schema_fingerprint": "b65ceb49a83a"
-    },
-    {
-      "market": "usa",
-      "ticker": "SAIC",
-      "asof": "2026-08-14",
-      "action": "BUY",
-      "ensemble_score": 0.299,
-      "raw_confidence": 0.7561,
-      "calibrated_confidence": 0.5597,
-      "regime_adjusted_confidence": 0.5317,
-      "model_agreement": 0.6364,
-      "disagreement_flag": false,
-      "n_models_scoring": 11,
-      "top_models": [
-        {
-          "model_id": "aegis.event_driven.v1",
-          "score": 0.7432
-        },
-        {
-          "model_id": "aegis.trend.v1",
-          "score": 0.6475
+          "score": 0.7431
         },
         {
           "model_id": "aegis.growth.v1",
           "score": 0.5937
+        },
+        {
+          "model_id": "aegis.trend.v1",
+          "score": 0.5322
         }
       ],
       "top_features": [
@@ -461,7 +385,7 @@
         "earn_last_surprise_pct",
         "fund_debt_to_equity"
       ],
-      "bull_case": "1-month momentum +10.23%; 3-month momentum +32.35%; high ROE (+27.66%).",
+      "bull_case": "1-month momentum +10.51%; 3-month momentum +36.32%; high ROE (+27.66%); positive news sentiment (0.250).",
       "bear_case": "high leverage (D/E 187.983).",
       "key_risks": [
         "earnings in 17 days \u2014 reduce position size ahead of print",
@@ -469,9 +393,9 @@
       ],
       "suggested_holding_period_days": 60,
       "entry_zone": {
-        "low": 124.127,
-        "high": 129.193,
-        "current": 126.66,
+        "low": 123.377,
+        "high": 128.413,
+        "current": 125.895,
         "note": "\u00b12% band around current price"
       },
       "exit_conditions": [
@@ -500,7 +424,7 @@
       "ticker": "SMCI",
       "asof": "2026-08-14",
       "action": "BUY",
-      "ensemble_score": 0.2793,
+      "ensemble_score": 0.2904,
       "raw_confidence": 0.7561,
       "calibrated_confidence": 0.5597,
       "regime_adjusted_confidence": 0.5317,
@@ -510,11 +434,11 @@
       "top_models": [
         {
           "model_id": "aegis.event_driven.v1",
-          "score": 0.7885
+          "score": 0.7884
         },
         {
           "model_id": "aegis.momentum.v1",
-          "score": 0.7054
+          "score": 0.7128
         },
         {
           "model_id": "aegis.growth.v1",
@@ -531,16 +455,85 @@
         "earn_last_surprise_pct",
         "fund_debt_to_equity"
       ],
-      "bull_case": "1-month momentum +58.67%; 3-month momentum +26.94%; high ROE (+21.47%); positive news sentiment (0.250).",
+      "bull_case": "1-month momentum +62.03%; 3-month momentum +28.21%; high ROE (+21.47%); positive news sentiment (0.250).",
       "bear_case": "high leverage (D/E 64.308); deep 60d drawdown (-52.50%).",
       "key_risks": [
         "leverage above 1x amplifies downside if fundamentals slip"
       ],
       "suggested_holding_period_days": 60,
       "entry_zone": {
-        "low": 38.377,
-        "high": 39.943,
-        "current": 39.16,
+        "low": 38.396,
+        "high": 39.964,
+        "current": 39.18,
+        "note": "\u00b12% band around current price"
+      },
+      "exit_conditions": [
+        "time-based: review after 60 days if action still holds",
+        "price-based: 8% stop-loss from entry",
+        "price-based: consider trimming +15% from entry",
+        "thesis-based: exit if bull case signals invert (any 2 of them)"
+      ],
+      "model_stamp": {
+        "model_id": "aegis.recommendation.v3",
+        "version": "1.0.0",
+        "engine": "recommendation_intelligence",
+        "market": "usa",
+        "feature_set_version": "b65ceb49a83a",
+        "schema_version": "b65ceb49a83a",
+        "calibration_version": "",
+        "approval_status": "experimental",
+        "approved_by": "",
+        "approved_on": ""
+      },
+      "feature_set_version": "b65ceb49a83a",
+      "schema_fingerprint": "b65ceb49a83a"
+    },
+    {
+      "market": "usa",
+      "ticker": "EIX",
+      "asof": "2026-08-14",
+      "action": "BUY",
+      "ensemble_score": 0.2885,
+      "raw_confidence": 0.7561,
+      "calibrated_confidence": 0.6219,
+      "regime_adjusted_confidence": 0.5908,
+      "model_agreement": 0.7273,
+      "disagreement_flag": false,
+      "n_models_scoring": 11,
+      "top_models": [
+        {
+          "model_id": "aegis.mean_reversion.v1",
+          "score": 1.0
+        },
+        {
+          "model_id": "aegis.value.v1",
+          "score": 0.9044
+        },
+        {
+          "model_id": "aegis.event_driven.v1",
+          "score": 0.55
+        }
+      ],
+      "top_features": [
+        "adx_14",
+        "ca_days_since_last_dividend",
+        "ca_last_dividend_amount",
+        "close",
+        "distance_from_52w_high_pct",
+        "distance_from_52w_low_pct",
+        "earn_days_to_next",
+        "earn_last_eps_reported"
+      ],
+      "bull_case": "strong fundamental quality (66.580); high ROE (+19.73%); positive news sentiment (0.250).",
+      "bear_case": "1-month drawdown -8.92%; high leverage (D/E 228.042).",
+      "key_risks": [
+        "leverage above 1x amplifies downside if fundamentals slip"
+      ],
+      "suggested_holding_period_days": 60,
+      "entry_zone": {
+        "low": 69.663,
+        "high": 72.507,
+        "current": 71.085,
         "note": "\u00b12% band around current price"
       },
       "exit_conditions": [
@@ -569,17 +562,17 @@
       "ticker": "CRM",
       "asof": "2026-08-14",
       "action": "BUY",
-      "ensemble_score": 0.2786,
+      "ensemble_score": 0.285,
       "raw_confidence": 0.7561,
-      "calibrated_confidence": 0.6064,
-      "regime_adjusted_confidence": 0.5761,
-      "model_agreement": 0.7273,
+      "calibrated_confidence": 0.6383,
+      "regime_adjusted_confidence": 0.6064,
+      "model_agreement": 0.8182,
       "disagreement_flag": false,
       "n_models_scoring": 11,
       "top_models": [
         {
           "model_id": "aegis.event_driven.v1",
-          "score": 0.6599
+          "score": 0.6596
         },
         {
           "model_id": "aegis.news.v1",
@@ -587,7 +580,7 @@
         },
         {
           "model_id": "aegis.mean_reversion.v1",
-          "score": 0.4606
+          "score": 0.4732
         }
       ],
       "top_features": [
@@ -600,17 +593,17 @@
         "earn_days_to_next",
         "earn_last_eps_reported"
       ],
-      "bull_case": "1-month momentum +16.61%; 3-month momentum +12.49%; positive news sentiment (0.875).",
-      "bear_case": "overbought RSI (75.531); high leverage (D/E 124.282); deep 60d drawdown (-28.19%).",
+      "bull_case": "1-month momentum +15.16%; 3-month momentum +9.89%; positive news sentiment (0.875).",
+      "bear_case": "high leverage (D/E 124.282); deep 60d drawdown (-28.19%).",
       "key_risks": [
         "earnings in 12 days \u2014 reduce position size ahead of print",
         "leverage above 1x amplifies downside if fundamentals slip"
       ],
       "suggested_holding_period_days": 60,
       "entry_zone": {
-        "low": 197.343,
-        "high": 205.397,
-        "current": 201.37,
+        "low": 192.727,
+        "high": 200.593,
+        "current": 196.66,
         "note": "\u00b12% band around current price"
       },
       "exit_conditions": [
@@ -636,10 +629,10 @@
     },
     {
       "market": "usa",
-      "ticker": "FOXA",
+      "ticker": "UBER",
       "asof": "2026-08-14",
       "action": "BUY",
-      "ensemble_score": 0.2782,
+      "ensemble_score": 0.285,
       "raw_confidence": 0.7561,
       "calibrated_confidence": 0.5908,
       "regime_adjusted_confidence": 0.5613,
@@ -649,15 +642,15 @@
       "top_models": [
         {
           "model_id": "aegis.event_driven.v1",
-          "score": 0.6956
+          "score": 0.7407
         },
         {
-          "model_id": "aegis.value.v1",
-          "score": 0.5097
+          "model_id": "aegis.growth.v1",
+          "score": 0.672
         },
         {
-          "model_id": "aegis.news.v1",
-          "score": 0.4828
+          "model_id": "aegis.quality.v1",
+          "score": 0.5682
         }
       ],
       "top_features": [
@@ -670,16 +663,16 @@
         "earn_last_surprise_pct",
         "fund_debt_to_equity"
       ],
-      "bull_case": "1-month momentum +15.21%; positive news sentiment (0.500).",
-      "bear_case": "overbought RSI (81.374); high leverage (D/E 64.060); deep 60d drawdown (-28.59%).",
+      "bull_case": "high ROE (+37.16%); positive news sentiment (0.250).",
+      "bear_case": "high leverage (D/E 51.872).",
       "key_risks": [
         "leverage above 1x amplifies downside if fundamentals slip"
       ],
       "suggested_holding_period_days": 60,
       "entry_zone": {
-        "low": 64.141,
-        "high": 66.759,
-        "current": 65.45,
+        "low": 73.907,
+        "high": 76.923,
+        "current": 75.415,
         "note": "\u00b12% band around current price"
       },
       "exit_conditions": [
@@ -687,6 +680,57 @@
         "price-based: 8% stop-loss from entry",
         "price-based: consider trimming +15% from entry",
         "thesis-based: exit if bull case signals invert (any 2 of them)"
+      ],
+      "model_stamp": {
+        "model_id": "aegis.recommendation.v3",
+        "version": "1.0.0",
+        "engine": "recommendation_intelligence",
+        "market": "usa",
+        "feature_set_version": "b65ceb49a83a",
+        "schema_version": "b65ceb49a83a",
+        "calibration_version": "",
+        "approval_status": "experimental",
+        "approved_by": "",
+        "approved_on": ""
+      },
+      "feature_set_version": "b65ceb49a83a",
+      "schema_fingerprint": "b65ceb49a83a"
+    },
+    {
+      "market": "usa",
+      "ticker": "AJG",
+      "asof": "2026-08-14",
+      "action": "HOLD",
+      "ensemble_score": -0.2718,
+      "raw_confidence": 0.7561,
+      "calibrated_confidence": 0.3601,
+      "regime_adjusted_confidence": 0.3421,
+      "model_agreement": 0.0,
+      "disagreement_flag": false,
+      "n_models_scoring": 0,
+      "top_models": [],
+      "top_features": [
+        "adx_14",
+        "ca_days_since_last_dividend",
+        "ca_last_dividend_amount",
+        "close",
+        "distance_from_52w_high_pct",
+        "distance_from_52w_low_pct",
+        "earn_days_to_next",
+        "earn_last_eps_reported"
+      ],
+      "bull_case": "3-month momentum +26.45%; positive news sentiment (0.250).",
+      "bear_case": "stretched valuation (P/E 41.805); high leverage (D/E 59.401).",
+      "key_risks": [
+        "weak trend strength (ADX 9.966) \u2014 call may be premature"
+      ],
+      "suggested_holding_period_days": 60,
+      "entry_zone": {
+        "current": 252.005,
+        "note": "hold \u2014 no entry"
+      },
+      "exit_conditions": [
+        "no active exit trigger \u2014 HOLD position"
       ],
       "model_stamp": {
         "model_id": "aegis.recommendation.v3",
@@ -708,7 +752,7 @@
       "ticker": "BLDR",
       "asof": "2026-08-14",
       "action": "HOLD",
-      "ensemble_score": -0.2619,
+      "ensemble_score": -0.2734,
       "raw_confidence": 0.7281,
       "calibrated_confidence": 0.3207,
       "regime_adjusted_confidence": 0.3047,
@@ -727,13 +771,13 @@
         "fund_debt_to_equity"
       ],
       "bull_case": "no strong positive signals in the current feature snapshot.",
-      "bear_case": "1-month drawdown -5.93%; stretched valuation (P/E 79.957); high leverage (D/E 130.786); deep 60d drawdown (-27.07%).",
+      "bear_case": "stretched valuation (P/E 79.527); high leverage (D/E 130.786); deep 60d drawdown (-27.07%).",
       "key_risks": [
-        "weak trend strength (ADX 10.939) \u2014 call may be premature"
+        "weak trend strength (ADX 10.556) \u2014 call may be premature"
       ],
       "suggested_holding_period_days": 60,
       "entry_zone": {
-        "current": 73.56,
+        "current": 73.13,
         "note": "hold \u2014 no entry"
       },
       "exit_conditions": [
@@ -756,64 +800,13 @@
     },
     {
       "market": "usa",
-      "ticker": "TTWO",
+      "ticker": "MOS",
       "asof": "2026-08-14",
       "action": "HOLD",
-      "ensemble_score": -0.2696,
+      "ensemble_score": -0.2807,
       "raw_confidence": 0.7002,
-      "calibrated_confidence": 0.3001,
-      "regime_adjusted_confidence": 0.2851,
-      "model_agreement": 0.0,
-      "disagreement_flag": false,
-      "n_models_scoring": 0,
-      "top_models": [],
-      "top_features": [
-        "adx_14",
-        "close",
-        "distance_from_52w_high_pct",
-        "distance_from_52w_low_pct",
-        "earn_days_to_next",
-        "earn_last_eps_reported",
-        "earn_last_surprise_pct",
-        "fund_debt_to_equity"
-      ],
-      "bull_case": "no strong positive signals in the current feature snapshot.",
-      "bear_case": "high leverage (D/E 81.607); net insider selling ($-91,059,644, 90d).",
-      "key_risks": [
-        "weak trend strength (ADX 9.343) \u2014 call may be premature"
-      ],
-      "suggested_holding_period_days": 60,
-      "entry_zone": {
-        "current": 241.91,
-        "note": "hold \u2014 no entry"
-      },
-      "exit_conditions": [
-        "no active exit trigger \u2014 HOLD position"
-      ],
-      "model_stamp": {
-        "model_id": "aegis.recommendation.v3",
-        "version": "1.0.0",
-        "engine": "recommendation_intelligence",
-        "market": "usa",
-        "feature_set_version": "b65ceb49a83a",
-        "schema_version": "b65ceb49a83a",
-        "calibration_version": "",
-        "approval_status": "experimental",
-        "approved_by": "",
-        "approved_on": ""
-      },
-      "feature_set_version": "b65ceb49a83a",
-      "schema_fingerprint": "b65ceb49a83a"
-    },
-    {
-      "market": "usa",
-      "ticker": "MCK",
-      "asof": "2026-08-14",
-      "action": "HOLD",
-      "ensemble_score": -0.2796,
-      "raw_confidence": 0.6583,
-      "calibrated_confidence": 0.2978,
-      "regime_adjusted_confidence": 0.2829,
+      "calibrated_confidence": 0.3168,
+      "regime_adjusted_confidence": 0.301,
       "model_agreement": 0.0,
       "disagreement_flag": false,
       "n_models_scoring": 0,
@@ -828,12 +821,12 @@
         "earn_days_to_next",
         "earn_last_eps_reported"
       ],
-      "bull_case": "3-month momentum +10.52%.",
-      "bear_case": "net insider selling ($-23,861,880, 90d).",
+      "bull_case": "no strong positive signals in the current feature snapshot.",
+      "bear_case": "high leverage (D/E 52.249).",
       "key_risks": [],
       "suggested_holding_period_days": 60,
       "entry_zone": {
-        "current": 856.69,
+        "current": 21.815,
         "note": "hold \u2014 no entry"
       },
       "exit_conditions": [
@@ -859,7 +852,7 @@
       "ticker": "CPT",
       "asof": "2026-08-14",
       "action": "HOLD",
-      "ensemble_score": -0.2882,
+      "ensemble_score": -0.3033,
       "raw_confidence": 0.7561,
       "calibrated_confidence": 0.3421,
       "regime_adjusted_confidence": 0.325,
@@ -879,10 +872,12 @@
       ],
       "bull_case": "no strong positive signals in the current feature snapshot.",
       "bear_case": "high leverage (D/E 125.648).",
-      "key_risks": [],
+      "key_risks": [
+        "weak trend strength (ADX 13.078) \u2014 call may be premature"
+      ],
       "suggested_holding_period_days": 60,
       "entry_zone": {
-        "current": 110.47,
+        "current": 110.76,
         "note": "hold \u2014 no entry"
       },
       "exit_conditions": [
@@ -908,7 +903,7 @@
       "ticker": "CARR",
       "asof": "2026-08-14",
       "action": "HOLD",
-      "ensemble_score": -0.3238,
+      "ensemble_score": -0.306,
       "raw_confidence": 0.7561,
       "calibrated_confidence": 0.3421,
       "regime_adjusted_confidence": 0.325,
@@ -926,12 +921,12 @@
         "earn_last_surprise_pct",
         "fund_debt_to_equity"
       ],
-      "bull_case": "no strong positive signals in the current feature snapshot.",
-      "bear_case": "1-month drawdown -8.31%; stretched valuation (P/E 45.250); high leverage (D/E 91.998); net insider selling ($-749,999,974, 90d); deep 60d drawdown (-20.87%).",
+      "bull_case": "positive news sentiment (0.250).",
+      "bear_case": "1-month drawdown -9.07%; stretched valuation (P/E 44.834); high leverage (D/E 91.998); net insider selling ($-749,999,974, 90d); deep 60d drawdown (-20.87%).",
       "key_risks": [],
       "suggested_holding_period_days": 60,
       "entry_zone": {
-        "current": 63.35,
+        "current": 62.825,
         "note": "hold \u2014 no entry"
       },
       "exit_conditions": [
