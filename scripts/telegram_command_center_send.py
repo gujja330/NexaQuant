@@ -794,13 +794,21 @@ def main() -> int:
             n_win = 0; n_loss = 0; n_flat = 0
             n_artifact = 0
             best_pos = ("", 0.0); worst_pos = ("", 0.0)
-            _c_rec_date = h.index("Recommended Date") + 1 if h and "Recommended Date" in h else None
+            # 2026-08-13 CEO bug fix · previous code used h.index("Recommended Date")
+            # and h.index("Exit Date") which don't exist in source header
+            # (real column is "Recommended" · there is no "Exit Date" column
+            # at all · exit_date is derived on the fly from Date+Status).
+            # Result: _row_is_artifact was always False · KPI showed
+            # "0 same-day rotations" even when ~23 rows had ARTIFACT decisions.
+            _c_rec_date = h.index("Recommended") + 1 if h and "Recommended" in h else None
+            _c_date     = c_date   # row date · used as exit_date when status==EXIT
             for dt, r in positions:
                 status = r[c_st-1].value
                 # ARTIFACT detection · same rule as Priority J:
-                #   Entry Date == Exit Date  OR  status == ROTATED_SAMEDAY
+                #   status == ROTATED_SAMEDAY
+                #   OR (status == EXIT AND row Date == Recommended date) · same-day rotation
                 _entry_dt = r[_c_rec_date-1].value if _c_rec_date else None
-                _exit_dt  = r[h.index("Exit Date")-1].value if h and "Exit Date" in h else None
+                _exit_dt  = r[_c_date-1].value if (status == "EXIT" and _c_date) else None
                 _row_is_artifact = (
                     status == "ROTATED_SAMEDAY"
                     or (_entry_dt and _exit_dt and str(_entry_dt)[:10] == str(_exit_dt)[:10])
@@ -931,10 +939,25 @@ def main() -> int:
                 cell.alignment = _Align(horizontal="center", vertical="center")
                 portfolio_ws.column_dimensions[_gcl_src(c)].width = widths_pos[c-1]
 
-            # Sort positions: EXIT first, then by P&L descending
+            # 2026-08-13 CEO fix · sort order was EXIT-first which put all
+            # ARTIFACTs (which are same-day EXIT rotations) at the TOP of
+            # the Portfolio sheet. Operator: "looks like usa is not sorted
+            # still". Now sorts actionable first · ARTIFACTs last.
+            #
+            # Priority groups (lower = higher up in sheet):
+            #   0 = Active BUY/HOLD/PROTECT (P&L desc within group)
+            #   1 = Real EXIT (closed positions with actual holding period)
+            #   2 = ARTIFACT (same-day rotation · never held)
             def _sort_key(item):
                 dt, r = item
                 status = r[c_st-1].value
+                # Same-day rotation detection (matches KPI aggregator)
+                _e_dt = r[_c_rec_date-1].value if _c_rec_date else None
+                _x_dt = r[_c_date-1].value if (status == "EXIT" and _c_date) else None
+                is_artifact = (
+                    status == "ROTATED_SAMEDAY"
+                    or (_e_dt and _x_dt and str(_e_dt)[:10] == str(_x_dt)[:10])
+                )
                 pnl = 0
                 if status == "EXIT" and c_exit_pnl:
                     v = r[c_exit_pnl-1].value
@@ -945,8 +968,14 @@ def main() -> int:
                     live = _parquet_close(tk, mkt_key, dt)
                     if live and isinstance(entry_v, (int, float)) and entry_v > 0:
                         pnl = round((live - entry_v) / entry_v * 100, 2)
-                # EXIT rows first (group=0), then non-EXIT by descending P&L
-                group = 0 if status == "EXIT" else 1
+                # Group ordering:
+                #   2 = ARTIFACT (bottom)
+                #   1 = Real EXIT (middle)
+                #   0 = Active (top)
+                if is_artifact:                group = 2
+                elif status == "EXIT":         group = 1
+                else:                          group = 0
+                # Within group: best P&L first (descending)
                 return (group, -pnl)
 
             positions_sorted = sorted(positions, key=_sort_key)
