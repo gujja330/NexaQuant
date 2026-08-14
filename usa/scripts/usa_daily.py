@@ -301,13 +301,15 @@ STEPS = [
         "produces": ["usa/reports/price_context.json"],
         "requires": ["usa/reports/universe.json"],
     },
-    # ── FINAL PLATFORM COMPLETION · Phase 1 · SSoT Bridge (USA) ──
+    # ── FINAL PLATFORM COMPLETION · Phase 1 · SSoT Bridge (USA · GUARDED) ──
+    # 2026-08-14 · wrapped in SSoTGuard · see aegis_daily_v2.py for rationale.
     {
         "name":     "recommendation_ssot",
-        "desc":     "USA Recommendation SSoT bridge · publishes fresh recommendations.json from Runner 2 v3",
-        "script":   "backend/recommendation/ssot/run.py",
+        "desc":     "USA SSoT bridge · GUARDED (3 attempts + fallback + health) · publishes recommendations.json",
+        "script":   "backend/recommendation/ssot/guard.py",
         "script_args": ["--market", "usa"],
-        "produces": ["usa/reports/recommendations.json"],
+        "produces": ["usa/reports/recommendations.json",
+                        "reports/context/ssot_health.json"],
         "requires": ["usa/reports/recommendations_v3.json"],
         "optional": True,
     },

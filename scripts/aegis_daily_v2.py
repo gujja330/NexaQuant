@@ -184,17 +184,27 @@ STEPS = [
         "requires": ["reports/ensemble.json"],
         "optional": True,
     },
-    # ── FINAL PLATFORM COMPLETION · Phase 1 · SSoT Bridge ──
+    # ── FINAL PLATFORM COMPLETION · Phase 1 · SSoT Bridge (GUARDED) ──
+    # 2026-08-14 · wrapped in SSoTGuard (backend.recommendation.ssot.guard)
+    # after operator directive "build a strong guard for recommendation_ssot
+    # · this is happening frequently". Guard adds:
+    #   · 3 attempts + exponential backoff
+    #   · pre-flight: verify inputs exist + are fresh
+    #   · post-flight: verify recommendations.json coherent
+    #   · defensive-post-flight-before-fallback: never overwrite fresh data
+    #   · fallback: reuse previous-day snapshot with STALE marker
+    #   · health emission: reports/context/ssot_health.json (GREEN/YELLOW/RED)
     # Publishes fresh recommendations.json (legacy schema) from Runner 2 v3.
     # Closes the v2.2-audit keystone gap · unblocks 8+ downstream steps.
     {
         "name": "recommendation_ssot",
-        "desc": "Recommendation SSoT bridge · publishes fresh recommendations.json from Runner 2 v3 (Phase 1 keystone fix)",
-        "script": "backend/recommendation/ssot/run.py",
+        "desc": "SSoT bridge · GUARDED (3 attempts + fallback + health) · publishes recommendations.json",
+        "script": "backend/recommendation/ssot/guard.py",
         "script_args": ["--market", "india"],
-        "produces": ["reports/recommendations.json"],
+        "produces": ["reports/recommendations.json",
+                        "reports/context/ssot_health.json"],
         "requires": ["reports/recommendations_v3.json"],
-        "optional": False,   # keystone · MUST succeed
+        "optional": False,   # keystone · MUST succeed (guard now handles transient failure)
     },
     # ── Institutional Completion Program · L1→L2 wire-in for Phase 2/3/4 engines ──
     {
