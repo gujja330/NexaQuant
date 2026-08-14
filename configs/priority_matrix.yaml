@@ -1,5 +1,12 @@
-version: 1.0
+version: 1.1
+# 2026-08-14 · Sprint K Part 28 · added bucket R (RISK_EXIT · Risk Controller
+# binding veto). R OVERRIDES every other bucket · a STOP_LOSS_HIT / HARD_STOP /
+# TRAILING_STOP_HIT / GAP_EXIT / PORTFOLIO_MAX_DD / EMERGENCY_EXIT signal in
+# the Alerts column forces bucket R regardless of Status or Investability.
+# This fixes the LUPIN 2026-08-12 case where STOP_LOSS_HIT + STRONG BUY
+# produced Decision=BUY BIG (contradictory).
 buckets:
+  R: {urgency: "🔴 IMMEDIATE", reason: "Hard Stop Hit",  action: "EXIT",         review: "CLOSED",    color: "C00000"}
   A: {urgency: "🔴 HIGH",   reason: "Conviction Buy",      action: "BUY BIG",       review: "30 DAYS",   color: "70AD47"}
   B: {urgency: "🟠 HIGH",   reason: "Confirmed Buy",       action: "BUY",           review: "30 DAYS",   color: "C6EFCE"}
   C: {urgency: "🟠 HIGH",   reason: "Quality Dip",         action: "ADD",           review: "5 DAYS",    color: "B4D7EE"}
@@ -10,3 +17,14 @@ buckets:
   H: {urgency: "🟡 MEDIUM", reason: "Premature Exit?",     action: "REVIEW",        review: "5 DAYS",    color: "D6DCE4"}
   I: {urgency: "⚪ CLOSED", reason: "Clean Exit",          action: "CLOSED",        review: "N/A",       color: "E7E6E6"}
   J: {urgency: "⚪ CLOSED", reason: "Artifact",            action: "IGNORE",        review: "N/A",       color: "F2F2F2"}
+
+# Binding risk-controller signals (Alerts column). Presence of any of these
+# in the Alerts string forces bucket R (Risk Controller veto). Order = priority.
+binding_risk_signals:
+  - EMERGENCY_EXIT
+  - PORTFOLIO_MAX_DD
+  - HARD_STOP
+  - STOP_LOSS_HIT
+  - GAP_EXIT
+  - TRAILING_STOP_HIT
+  - CRITICAL_DEEP_LOSS

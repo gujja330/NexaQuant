@@ -509,6 +509,10 @@ def main() -> int:
             # Load PRIORITY_MATRIX + DECISION vocab BEFORE row iteration
             # so History-sheet row loop can resolve decisions
             PRIORITY_MATRIX = {}
+            # 2026-08-14 · Sprint K Part 28 · binding risk signals list.
+            # If any of these strings appear in the Alerts column, priority
+            # is forced to bucket R (Risk Controller veto · highest priority).
+            BINDING_RISK_SIGNALS: list[str] = []
             try:
                 import yaml as _yaml
                 _pm_path = _ROOT / "configs" / "priority_matrix.yaml"
@@ -520,6 +524,8 @@ def main() -> int:
                             d.get("action", ""), d.get("review", ""),
                             d.get("color", "F2F2F2"),
                         )
+                    BINDING_RISK_SIGNALS = [str(s).upper()
+                                                    for s in (_pm.get("binding_risk_signals") or [])]
             except Exception as _e:
                 print(f"[config:priority_matrix] load failed · {_e}")
             PRIORITY_FILLS = {k: _PF(start_color=v[4], end_color=v[4], fill_type="solid")
@@ -697,14 +703,20 @@ def main() -> int:
                         and isinstance(_row_current, (int, float)):
                     _pnl_pct_hist = (_row_current - _row_entry) / _row_entry * 100
 
-                def _hist_classify(st, iv, pnl, is_same_day=False):
+                def _hist_classify(st, iv, pnl, is_same_day=False, alerts=""):
                     q_high = iv in ("🏆 QUALITY", "✓ OK")
                     q_mid = iv == "⚠ MARGINAL"
                     q_low = iv == "✗ AVOID"
                     pnl_neg = isinstance(pnl, (int, float)) and pnl < 0
                     if st == "ROTATED_SAMEDAY": return "J"
+                    if st == "EXIT" and is_same_day: return "J"
+                    # 2026-08-14 Sprint K Part 28 · Risk Controller veto for History
+                    # rows too · same rule as _classify_priority.
+                    _alerts_up = str(alerts or "").upper()
+                    for _sig in BINDING_RISK_SIGNALS:
+                        if _sig in _alerts_up:
+                            return "R"
                     if st == "EXIT":
-                        if is_same_day: return "J"
                         return "H" if q_high else "I"
                     if st == "STRONG BUY" and iv == "🏆 QUALITY": return "A"
                     if st in ("BUY", "STRONG BUY") and q_high: return "B"
@@ -716,16 +728,32 @@ def main() -> int:
                     if q_low: return "F"
                     return "E"
 
-                # Same-day detection for History rows too
-                _hist_exit_date_col = h.index("Exit Date")+1 if "Exit Date" in h else None
-                _hist_ed = str(row[_hist_exit_date_col-1].value or "")[:10] if _hist_exit_date_col else ""
+                # 2026-08-14 · same-day detection · source has NO "Exit Date"
+                # column · derive from row Date when Status==EXIT (matches
+                # main-loop convention). Fixes the same phantom-column bug
+                # as the KPI aggregator hotfix.
+                _hist_ed = str(row[c_date-1].value or "")[:10] if (_row_status == "EXIT" and c_date) else ""
                 _hist_same_day = bool(_hist_ed and entry_dt and _hist_ed == entry_dt[:10])
+                # Read alerts for History rows so Risk Controller veto also
+                # fires here (Sprint K Part 28).
+                _hist_alerts = row[c_alerts-1].value if c_alerts else ""
                 hist_bucket = _hist_classify(_row_status, inv_v_verdict, _pnl_pct_hist,
-                                                                 is_same_day=_hist_same_day)
+                                                                 is_same_day=_hist_same_day,
+                                                                 alerts=_hist_alerts)
                 _matrix_h = PRIORITY_MATRIX.get(hist_bucket,
                                                                 ("—", "—", "—", "—", "F2F2F2"))
                 h_urg, h_rea, h_act, h_rev, _ = _matrix_h
                 h_decision, _ = _resolve_decision(h_act, inv_v_verdict, _row_status)
+                # 2026-08-14 · Sprint K Part 28 · apply same Decision overrides
+                # as the Portfolio-sheet path so both sheets tell the same story.
+                if hist_bucket == "R":
+                    _au = str(_hist_alerts or "").upper()
+                    _sig = next((s for s in BINDING_RISK_SIGNALS if s in _au), "HARD STOP")
+                    h_decision = f"🔴 EXIT · {_sig.replace('_',' ').title()} · IMMEDIATE"
+                elif hist_bucket == "J":
+                    h_decision = "⚪ ARTIFACT · not held"
+                elif hist_bucket in ("I", "H"):
+                    h_decision = "⚪ CLOSED"
 
                 # Write 12 appended columns (positions from END)
                 # Compute Execution Layer for History rows too
@@ -1036,17 +1064,34 @@ def main() -> int:
                 _is_new_position = bool(rec_dt) and str(rec_dt)[:10] == str(asof)[:10]
                 # ARTIFACT detected inline below via is_same_day check.
 
-                def _classify_priority(st, iv, pnl, is_same_day=False):
-                    """Returns bucket letter A-J.
-                    2026-08-10: same-day EXIT (Entry Date == Exit Date) reclassified
-                    as J (ARTIFACT) instead of I (CLOSED) · not a real trade."""
+                def _classify_priority(st, iv, pnl, is_same_day=False, alerts=""):
+                    """Returns bucket letter · R (Risk Veto) OR A-J (existing).
+
+                    2026-08-14 · Sprint K Part 28 · Risk Controller has veto.
+                    Any binding risk signal in Alerts (STOP_LOSS_HIT · HARD_STOP ·
+                    TRAILING_STOP_HIT · GAP_EXIT · PORTFOLIO_MAX_DD · EMERGENCY_EXIT ·
+                    CRITICAL_DEEP_LOSS) forces bucket R regardless of Status +
+                    Investability. Same-day rotations are still J even if a stop
+                    also fired (rotation semantic wins for that pathological case).
+
+                    2026-08-10 · same-day EXIT (Entry Date == Exit Date) reclassified
+                    as J (ARTIFACT) instead of I (CLOSED) · not a real trade.
+                    """
                     q_high = iv in ("🏆 QUALITY", "✓ OK")
                     q_mid = iv == "⚠ MARGINAL"
                     q_low = iv == "✗ AVOID"
                     pnl_neg = isinstance(pnl, (int, float)) and pnl < 0
+                    # ── Risk Controller veto (Sprint K Part 28) ──
+                    # Same-day ARTIFACT wins over R (never-held rotation is not
+                    # a real position that could be stopped-out).
                     if st == "ROTATED_SAMEDAY": return "J"
+                    if st == "EXIT" and is_same_day: return "J"
+                    _alerts_up = str(alerts or "").upper()
+                    for _sig in BINDING_RISK_SIGNALS:
+                        if _sig in _alerts_up:
+                            return "R"
+                    # ── existing rules ──
                     if st == "EXIT":
-                        if is_same_day: return "J"    # same-day rotation · not real trade
                         return "H" if q_high else "I"
                     if st == "STRONG BUY" and iv == "🏆 QUALITY": return "A"
                     if st in ("BUY", "STRONG BUY") and q_high:    return "B"
@@ -1065,8 +1110,11 @@ def main() -> int:
 
                 # Same-day detection · Entry Date == Exit Date == today = rotation artifact
                 _is_same_day = bool(exit_date and rec_dt and str(exit_date)[:10] == rec_dt[:10])
+                # 2026-08-14 Sprint K Part 28 · pass Alerts so Risk Controller
+                # veto can force bucket R when STOP_LOSS_HIT etc. present.
                 priority_bucket = _classify_priority(status, inv_verdict, _pnl_for_class,
-                                                                        is_same_day=_is_same_day)
+                                                                        is_same_day=_is_same_day,
+                                                                        alerts=alerts)
                 _matrix = PRIORITY_MATRIX.get(priority_bucket,
                                                             ("—", "—", "—", "—", "F2F2F2"))
                 priority_tag = priority_bucket   # for color lookup below
@@ -1103,27 +1151,41 @@ def main() -> int:
                 decision_text, decision_color_key = _resolve_decision(
                     action, inv_verdict, status)
 
-                # 2026-08-12 CEO fix · P0-1 lifecycle-state precedence.
-                # Force Decision to respect lifecycle BEFORE any generic
-                # protective/trailing-stop rule can fire.
+                # 2026-08-14 CEO fix · Sprint K Part 28 · Risk Controller veto +
+                # closed-position uniformity + NEW-state routing. Precedence
+                # order (highest first · every check is a hard override):
                 #
-                #   J bucket (ARTIFACT / same-day rotation)
-                #     -> Decision = ⚪ ARTIFACT  (never held · not a real trade)
-                #   I bucket (CLOSED · Runner=EXIT + Portfolio agrees)
-                #     -> Decision = ⚪ CLOSED    (position terminated, no follow-up needed)
-                #   H bucket (REVIEWING · Runner=EXIT but Portfolio challenging)
-                #     -> keep _resolve_decision result (that's the whole point of H)
+                #   R bucket (RISK VETO · Alerts contains STOP_LOSS_HIT etc.)
+                #     -> Decision = 🔴 EXIT · <alert reason> · IMMEDIATE
+                #     -> BINDING · overrides Status/Investability/lifecycle
+                #   J bucket (ARTIFACT · same-day rotation · never held)
+                #     -> Decision = ⚪ ARTIFACT · not held
+                #   I OR H bucket (EXIT closed positions · runner exited)
+                #     -> Decision = ⚪ CLOSED  (H was HOLD before · Sprint K Part 28)
+                #     -> Any "Premature Exit?" analysis moves to Post-Exit Assessment (Wave 4)
                 #   NEW position (rec_dt == asof, not EXIT, not artifact)
                 #     -> P0-2 · use NEW-state logic, NOT trailing-stop/protect
                 #        · QUALITY/OK   -> 🟢 BUY (validate entry)
                 #        · MARGINAL     -> 🟡 WATCH · small size
                 #        · AVOID        -> 🔴 SKIP · quality fails
                 #        · PENDING      -> ⏳ PROVISIONAL BUY · investability not yet computed
-                if priority_bucket == "J":
+                if priority_bucket == "R":
+                    # Extract the specific binding-signal name for the decision text
+                    _alerts_up = str(alerts or "").upper()
+                    _hit_signal = next(
+                        (s for s in BINDING_RISK_SIGNALS if s in _alerts_up),
+                        "HARD STOP")
+                    decision_text, decision_color_key = (
+                        f"🔴 EXIT · {_hit_signal.replace('_',' ').title()} · IMMEDIATE",
+                        "red")
+                elif priority_bucket == "J":
                     decision_text, decision_color_key = "⚪ ARTIFACT · not held", "gray"
-                elif priority_bucket == "I":
+                elif priority_bucket in ("I", "H"):
+                    # 2026-08-14 · both closed-position buckets route to CLOSED.
+                    # Previously H fell through to _resolve_decision which returned
+                    # HOLD · confusing for HEROMOTOCO/INDIANB/ATUL/NATIONALUM/OFSS.
                     decision_text, decision_color_key = "⚪ CLOSED", "gray"
-                elif _is_new_position and status != "EXIT" and priority_bucket != "H":
+                elif _is_new_position and status != "EXIT":
                     _iv_key = str(inv_verdict).strip()
                     if _iv_key in ("🏆 QUALITY", "✓ OK"):
                         decision_text, decision_color_key = "🟢 BUY · new position · quality confirmed", "green"
@@ -1138,7 +1200,9 @@ def main() -> int:
                 # 2026-08-10 CEO v6 · closed positions get BLANK actionable fields
                 # (operator: "You don't want CLOSED · Next Review 15-Aug ·
                 # Decision HOLD · nonsense")
-                is_terminal = action in ("CLOSED", "IGNORE") or priority_bucket in ("I", "J")
+                # 2026-08-14 · R (risk veto) is NOT terminal · needs execution today
+                # (Price Trigger + Exec Window populated). I/H/J stay terminal.
+                is_terminal = action in ("CLOSED", "IGNORE") or priority_bucket in ("I", "J", "H")
                 price_trigger = "" if is_terminal else _price_trigger(action, stop_v, t1_v, curr)
                 next_review_anchor = rec_dt if rec_dt else dt
                 next_review = "" if is_terminal else _next_review_date(review, next_review_anchor)
