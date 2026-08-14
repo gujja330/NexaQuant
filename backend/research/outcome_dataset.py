@@ -144,19 +144,32 @@ def _load_exit_events_index(root: Path) -> dict:
             except ValueError: return None
         c_ctry, c_run, c_tk, c_st, c_dt = col("Country"), col("Run_Type"), col("Ticker"), col("Status"), col("Date")
         c_pnl, c_reason = col("Exit P&L %"), col("Exit Reason")
+        # 2026-08-14 Sprint K Part 28 · also capture Alerts + Stop Loss so
+        # P0 outcome dataset can attribute WHY the exit fired · never
+        # reconstruct from XLSX again in downstream P1.
+        c_alerts, c_stop = col("Alerts"), col("Stop Loss")
         if not all([c_ctry, c_run, c_tk, c_st, c_dt]):
             wb.close(); return index
+        # Binding risk signals · must match configs/priority_matrix.yaml
+        _BINDING = ("EMERGENCY_EXIT", "PORTFOLIO_MAX_DD", "HARD_STOP",
+                        "STOP_LOSS_HIT", "GAP_EXIT", "TRAILING_STOP_HIT",
+                        "CRITICAL_DEEP_LOSS")
         for r in range(2, ws.max_row + 1):
             if ws.cell(r, c_st).value != "EXIT": continue
             market = str(ws.cell(r, c_ctry).value or "").lower()
             runner = str(ws.cell(r, c_run).value or "")
             ticker = str(ws.cell(r, c_tk).value or "").upper()
             ticker = ticker.replace(".NS","").replace(".BO","")
+            _alerts = str(ws.cell(r, c_alerts).value or "").upper() if c_alerts else ""
+            # Detect which binding risk signal (if any) drove the exit
+            _risk_state = next((s for s in _BINDING if s in _alerts), "CLEAN")
             key = (market, runner, ticker)
             index[key] = {
-                "exit_date":   str(ws.cell(r, c_dt).value or "")[:10],
-                "exit_pnl":    ws.cell(r, c_pnl).value if c_pnl else None,
-                "exit_reason": ws.cell(r, c_reason).value if c_reason else None,
+                "exit_date":         str(ws.cell(r, c_dt).value or "")[:10],
+                "exit_pnl":          ws.cell(r, c_pnl).value if c_pnl else None,
+                "exit_reason":       ws.cell(r, c_reason).value if c_reason else None,
+                "risk_state":        _risk_state,
+                "stop_trigger_price": ws.cell(r, c_stop).value if c_stop else None,
             }
         wb.close()
     except Exception:
@@ -205,6 +218,12 @@ class OutcomeRow:
     win_flag:                     bool | None   # None if open (per governance rule)
     lifecycle:                    str
     is_closed:                    bool
+    # 2026-08-14 Sprint K Part 28 · Wave 6 · risk-state provenance for
+    # Attribution + Learning. Captures WHY the position exited (which
+    # binding risk signal fired · or "clean" if profit target / time
+    # exit). Stored per position · immutable after close.
+    risk_state:                   str = ""    # STOP_LOSS_HIT / HARD_STOP / CLEAN / etc.
+    stop_trigger_price:           float | None = None
     sample_tier_note:             str = ""
 
 
@@ -342,6 +361,9 @@ def build(root: Path) -> list:
                     win_flag=win_flag,
                     lifecycle=lifecycle,
                     is_closed=is_closed,
+                    # Sprint K Part 28 · Wave 6 · risk-state provenance
+                    risk_state=str(exit_info.get("risk_state") or ("CLEAN" if is_closed else "")),
+                    stop_trigger_price=exit_info.get("stop_trigger_price"),
                 )
                 rows.append(row)
 

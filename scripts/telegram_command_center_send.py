@@ -923,6 +923,12 @@ def main() -> int:
                 "Stop Loss", "Target 1", "Target 2",
                 # CONTEXT (3)
                 "Action Note", "Alerts", "Exit Reason",
+                # 2026-08-14 Sprint K Part 28 · Wave 4 · Post-Exit Assessment
+                # is analytical / research-only · NEVER a live trading
+                # instruction. Live Decision column stays clean (BUY/HOLD/
+                # PROTECT/EXIT/CLOSED/ARTIFACT/SKIP). This column captures
+                # WHY the exit happened + WHAT the outcome was afterwards.
+                "Post-Exit Assessment",
             ]
             widths_pos = [12, 24, 12,
                               22, 12, 30,
@@ -930,7 +936,8 @@ def main() -> int:
                               12, 20, 16, 14, 12, 14, 12,
                               12, 12, 12, 10,
                               12, 12, 12,
-                              40, 40, 30]
+                              40, 40, 30,
+                              32]
 
             # R1/R2 consensus map · build from all keep_rows (before ticker loop)
             # (populated after keep_rows filter · so put function here · use later)
@@ -1229,6 +1236,28 @@ def main() -> int:
                 # 2026-08-10 CEO fix #3: R1/R2 Consensus column
                 consensus = _consensus(tk, runner_val)
 
+                # 2026-08-14 Sprint K Part 28 · Wave 4 · Post-Exit Assessment.
+                # Analytical / research-only classification of the CLOSE event.
+                # Never a trading instruction. Live Decision column is separate.
+                #   R bucket → Stop Loss Triggered · was <alert>
+                #   H bucket → Premature Exit? · quality was intact
+                #   I bucket → Clean Exit · quality had degraded
+                #   J bucket → Same-Day Rotation · never held
+                #   active   → blank
+                _post_exit_assessment = ""
+                if priority_bucket == "R":
+                    _au = str(alerts or "").upper()
+                    _sig = next((s for s in BINDING_RISK_SIGNALS if s in _au), "HARD_STOP")
+                    _post_exit_assessment = f"Stop Loss Triggered · {_sig.replace('_',' ').title()}"
+                    if isinstance(pnl_decimal, (int, float)):
+                        _post_exit_assessment += f" @ {pnl_decimal*100:+.2f}%"
+                elif priority_bucket == "H":
+                    _post_exit_assessment = "Premature Exit? · quality intact at close"
+                elif priority_bucket == "I":
+                    _post_exit_assessment = "Clean Exit · quality had degraded"
+                elif priority_bucket == "J":
+                    _post_exit_assessment = "Same-Day Rotation · never held"
+
                 vals = [
                     # IDENTITY (1-3)
                     tk, decision_text, lifecycle,
@@ -1246,10 +1275,12 @@ def main() -> int:
                     stop_v, t1_v, t2_v,
                     # CONTEXT (28-30)
                     _ACTIONS.get(status, ""), alerts or "", exit_reason,
+                    # POST-EXIT ASSESSMENT (31)
+                    _post_exit_assessment,
                 ]
                 for c, v in enumerate(vals, start=1):
                     cell = portfolio_ws.cell(i, c, v)
-                    text_cols = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 15, 16, 17, 18, 19, 28, 29, 30}
+                    text_cols = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 15, 16, 17, 18, 19, 28, 29, 30, 31}
                     cell.alignment = _Align(
                         horizontal="left" if c in text_cols else "right",
                         vertical="center", wrap_text=True)

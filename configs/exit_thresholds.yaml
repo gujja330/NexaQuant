@@ -1,7 +1,36 @@
-version: 1.0
+version: 1.1
 # Position exit thresholds · used by profit_protection engine + Alerts column
 # All values externalized 2026-08-08 per no-hardcode rule
 # Change these = change exit behavior · no code deploy needed
+
+# 2026-08-14 · Sprint K Part 28 · Wave 5 · stop semantics locked
+# ─────────────────────────────────────────────────────────────
+# AEGIS uses CLOSE-BASED stops · a stop is HIT only when the DAILY CLOSE
+# breaches the stop level. Intraday breaches that recover by close are
+# NOT hits. This matches how profit_protection engine already evaluates
+# every day (against parquet close) + is the deterministic, testable,
+# replay-friendly choice for a daily-cadence advisory pipeline.
+#
+# Implications:
+#   · Stop trigger price  = the ORIGINAL stop level (from Entry stamp)
+#   · Trigger reference   = today's parquet close
+#   · Trigger session     = end of trading day (~15:30 IST / 16:00 EST)
+#   · Execution price     = next-open (T+1) since we advise, not execute
+#   · Realized P&L        = (exit close - entry price) / entry price
+#     (uses the CLOSING price on the trigger day · not the stop level)
+#
+# When AEGIS grows to intraday cadence, ADD a second stop semantic
+# (intraday_low_based) rather than replacing this one. Never mix modes
+# silently in the same report.
+stop_semantics:
+  mode: "close_based"
+  trigger_session: "end_of_day"
+  trigger_reference: "parquet_daily_close"
+  execution_price_source: "next_open"   # T+1
+  # Distinguish PROTECT (approaching stop · still above) from EXIT (hit).
+  # If current_close > stop_level  -> PROTECT / TIGHTEN STOP  (bucket E)
+  # If current_close <= stop_level -> EXIT (binding) · fires STOP_LOSS_HIT
+  #                                   · classifier bucket R (Risk Veto)
 
 stop_loss:
   warning_pct: -5.0     # emits WARNING · STOP_LOSS_HIT
