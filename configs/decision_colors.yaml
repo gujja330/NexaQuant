@@ -1,0 +1,95 @@
+version: 1.0
+# 2026-08-14 · operator-approved color scheme (Telegram message_id 380)
+# Row color = actionable priority · sorted top→bottom by tier_rank
+#
+# match_order (below) is deterministic. Classifier walks it in order · first
+# hit wins. Any change to keywords or order = zero code deploy · edit config +
+# next CI cycle picks it up.
+
+tiers:
+  strong_buy:
+    label:         "Deep Green"
+    description:   "Strong Buy / Strong Buy Add · highest conviction"
+    hex_fill:      "548235"
+    hex_text:      "FFFFFF"
+    bold:          true
+    tier_rank:     1
+    keywords_any:
+      - "STRONG_BUY"
+      - "STRONG BUY"
+
+  buy:
+    label:         "Light Green"
+    description:   "Buy / Add / Provisional Buy · in buy zone"
+    hex_fill:      "C6EFCE"
+    hex_text:      "006100"
+    bold:          false
+    tier_rank:     2
+    keywords_any:
+      - "BUY"
+      - "ADD"
+      - "PROVISIONAL"
+
+  new:
+    label:         "Purple"
+    description:   "New · fresh recommendation today (Recommended = today) · needs decision"
+    hex_fill:      "D4C1E8"
+    hex_text:      "5B2A82"
+    bold:          true
+    tier_rank:     3
+    keywords_any:  []
+    trigger_on_new_position: true    # is_new_position=True forces this tier
+
+  hold:
+    label:         "Yellow"
+    description:   "Hold / Protect / Tighten Stop · position management"
+    hex_fill:      "FFF2CC"
+    hex_text:      "806000"
+    bold:          false
+    tier_rank:     4
+    keywords_any:
+      - "HOLD"
+      - "PROTECT"
+      - "TIGHTEN"
+      - "WATCH"
+
+  exit:
+    label:         "Light Red"
+    description:   "Exit / Sell Now / Immediate · urgent execute today"
+    hex_fill:      "FF9999"
+    hex_text:      "9C0006"
+    bold:          true
+    tier_rank:     5
+    keywords_any:
+      - "EXIT"
+      - "IMMEDIATE"
+      - "SELL"
+
+  closed:
+    label:         "Dark Red"
+    description:   "Closed / Skip / Artifact · already terminated · reference only"
+    hex_fill:      "C00000"
+    hex_text:      "FFFFFF"
+    bold:          false
+    tier_rank:     6
+    keywords_any:
+      - "CLOSED"
+      - "SKIP"
+      - "ARTIFACT"
+      - "IGNORE"
+
+# Deterministic classification order · first match wins.
+# NEW check runs FIRST · a same-day rec whose decision reads "BUY" would
+# otherwise fall into the buy tier · we want it in the purple NEW tier.
+# EXIT checked next · risk-veto decisions always highest priority among
+# non-new. CLOSED checked before strong_buy/buy so "⚪ CLOSED" doesn't
+# accidentally match "STRONG BUY" (it wouldn't, but be explicit).
+match_order:
+  - new
+  - exit
+  - closed
+  - strong_buy
+  - buy
+  - hold
+
+legend_heading: "COLOR LEGEND · row color = actionable priority · sorted top→bottom by tier"

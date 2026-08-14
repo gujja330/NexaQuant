@@ -543,6 +543,38 @@ def main() -> int:
             except Exception as _e:
                 print(f"[config:decision_vocabulary] load failed · {_e}")
 
+            # 2026-08-14 · operator-approved 6-tier color scheme (msg 380)
+            # Load configs/decision_colors.yaml · classify each row by DECISION
+            # family · row color + sort by tier_rank. Config-driven per no-hardcode rule.
+            DECISION_TIERS: dict = {}     # tier_key -> full tier dict
+            TIER_MATCH_ORDER: list = []   # ordered list of tier_keys to walk
+            TIER_LEGEND_HEADING = "COLOR LEGEND · row color = actionable priority"
+            try:
+                import yaml as _yaml
+                _dc_path = _ROOT / "configs" / "decision_colors.yaml"
+                if _dc_path.exists():
+                    _dc = _yaml.safe_load(_dc_path.read_text(encoding="utf-8")) or {}
+                    DECISION_TIERS = _dc.get("tiers") or {}
+                    TIER_MATCH_ORDER = _dc.get("match_order") or list(DECISION_TIERS.keys())
+                    TIER_LEGEND_HEADING = _dc.get("legend_heading") or TIER_LEGEND_HEADING
+            except Exception as _e:
+                print(f"[config:decision_colors] load failed · {_e}")
+
+            def _decision_tier(decision_text: str, is_new_position: bool) -> str:
+                """Return one of the tier keys (strong_buy/buy/new/hold/exit/closed)
+                by walking match_order and matching Decision keywords (uppercase)
+                or the trigger_on_new_position flag."""
+                dt_up = str(decision_text or "").upper()
+                for tier_key in TIER_MATCH_ORDER:
+                    tier = DECISION_TIERS.get(tier_key) or {}
+                    if tier.get("trigger_on_new_position") and is_new_position:
+                        return tier_key
+                    for kw in (tier.get("keywords_any") or []):
+                        if kw.upper() in dt_up:
+                            return tier_key
+                # Ultimate fallback: hold (yellow)
+                return "hold" if "hold" in DECISION_TIERS else next(iter(DECISION_TIERS.keys()), "hold")
+
             def _resolve_decision(action, inv_quality, status):
                 a = str(action or "").strip()
                 iq = str(inv_quality or "").strip()
@@ -901,6 +933,40 @@ def main() -> int:
                     if r_off == 5 and c_off <= 3:   # combined row highlighted
                         cell.fill = _PF(start_color="FFE699", end_color="FFE699", fill_type="solid")
 
+            # 2026-08-14 · operator-approved 6-tier color legend rows.
+            # Placed between KPI banner (rows 3-6) and position table.
+            # Legend heading at row 8 · one row per tier at rows 9-14.
+            _LEGEND_HEADING_ROW = 8
+            portfolio_ws.merge_cells(f"A{_LEGEND_HEADING_ROW}:L{_LEGEND_HEADING_ROW}")
+            _lh = portfolio_ws.cell(_LEGEND_HEADING_ROW, 1, TIER_LEGEND_HEADING)
+            _lh.font = _Font(bold=True, size=11, color="1F4E78")
+            _lh.alignment = _Align(horizontal="left", vertical="center")
+            _legend_start = _LEGEND_HEADING_ROW + 1
+            # Iterate tiers in tier_rank order (1..N)
+            _legend_ordered = sorted(
+                [(k, v) for k, v in DECISION_TIERS.items()],
+                key=lambda kv: int(kv[1].get("tier_rank") or 99))
+            for _leg_idx, (_tier_key, _tier_def) in enumerate(_legend_ordered):
+                _lr = _legend_start + _leg_idx
+                _label = str(_tier_def.get("label") or _tier_key)
+                _desc  = str(_tier_def.get("description") or "")
+                _hf    = str(_tier_def.get("hex_fill") or "F2F2F2")
+                _ht    = str(_tier_def.get("hex_text") or "000000")
+                _bold  = bool(_tier_def.get("bold"))
+                # Left cell = colored label swatch
+                _swatch = portfolio_ws.cell(_lr, 1, _label)
+                _swatch.fill = _PF(start_color=_hf, end_color=_hf, fill_type="solid")
+                _swatch.font = _Font(bold=True, color=_ht, size=10)
+                _swatch.alignment = _Align(horizontal="center", vertical="center")
+                # Right cells (merged) = description
+                portfolio_ws.merge_cells(start_row=_lr, start_column=2,
+                                                       end_row=_lr, end_column=6)
+                _dc = portfolio_ws.cell(_lr, 2, _desc)
+                _dc.font = _Font(size=10)
+                _dc.alignment = _Align(horizontal="left", vertical="center", wrap_text=True)
+            # Track where the position header goes (row after legend + 1 blank)
+            _pos_header_row = _legend_start + len(_legend_ordered) + 1
+
             # 2026-08-10 · CEO review fixes (semantic separation):
             #   1. Lifecycle column · NEW/ACTIVE/CLOSED (separate from Runner Status)
             #      Rule: EXITED only when Runner=EXIT AND Portfolio agrees (Priority I)
@@ -966,23 +1032,27 @@ def main() -> int:
                         _inv_map[r["ticker"]] = {"score": r["score"], "verdict": r["verdict"]}
             except Exception as _e:
                 print(f"[investability] load failed: {_e}")
+            # 2026-08-14 · position header row anchored to _pos_header_row
+            # (was hardcoded row 7 · now shifts down to accommodate legend).
             for c, name in enumerate(pos_hdr, start=1):
-                cell = portfolio_ws.cell(7, c, name)
+                cell = portfolio_ws.cell(_pos_header_row, c, name)
                 cell.font = _Font(bold=True, color="FFFFFF", size=11)
                 cell.fill = HEADER_FILL if 'HEADER_FILL' in globals() else _PF(
                     start_color="1F4E78", end_color="1F4E78", fill_type="solid")
                 cell.alignment = _Align(horizontal="center", vertical="center")
                 portfolio_ws.column_dimensions[_gcl_src(c)].width = widths_pos[c-1]
 
-            # 2026-08-13 CEO fix · sort order was EXIT-first which put all
-            # ARTIFACTs (which are same-day EXIT rotations) at the TOP of
-            # the Portfolio sheet. Operator: "looks like usa is not sorted
-            # still". Now sorts actionable first · ARTIFACTs last.
+            # 2026-08-14 operator-approved · sort by decision-TIER (not
+            # priority bucket). Same tier logic used for row color · classifier
+            # walks match_order in configs/decision_colors.yaml.
             #
-            # Priority groups (lower = higher up in sheet):
-            #   0 = Active BUY/HOLD/PROTECT (P&L desc within group)
-            #   1 = Real EXIT (closed positions with actual holding period)
-            #   2 = ARTIFACT (same-day rotation · never held)
+            # Tier ordering (top → bottom):
+            #   1 strong_buy  Deep Green
+            #   2 buy         Light Green
+            #   3 new         Purple  (is_new_position=True)
+            #   4 hold        Yellow
+            #   5 exit        Light Red
+            #   6 closed      Dark Red
             def _sort_key(item):
                 dt, r = item
                 status = r[c_st-1].value
@@ -993,6 +1063,7 @@ def main() -> int:
                     status == "ROTATED_SAMEDAY"
                     or (_e_dt and _x_dt and str(_e_dt)[:10] == str(_x_dt)[:10])
                 )
+                # P&L for within-tier sorting (best first)
                 pnl = 0
                 if status == "EXIT" and c_exit_pnl:
                     v = r[c_exit_pnl-1].value
@@ -1003,18 +1074,36 @@ def main() -> int:
                     live = _parquet_close(tk, mkt_key, dt)
                     if live and isinstance(entry_v, (int, float)) and entry_v > 0:
                         pnl = round((live - entry_v) / entry_v * 100, 2)
-                # Group ordering:
-                #   2 = ARTIFACT (bottom)
-                #   1 = Real EXIT (middle)
-                #   0 = Active (top)
-                if is_artifact:                group = 2
-                elif status == "EXIT":         group = 1
-                else:                          group = 0
-                # Within group: best P&L first (descending)
-                return (group, -pnl)
+                # ── Reproduce decision-tier from row data (mirrors write-loop) ──
+                # Alerts col for risk-veto detection
+                alerts_here = str(r[c_alerts-1].value if c_alerts else "").upper()
+                # is_new_position · rec_dt == asof AND not an artifact/exit
+                is_new = bool(_e_dt) and str(_e_dt)[:10] == str(asof)[:10] \
+                             and status != "EXIT" and not is_artifact
+                # Pre-classify tier without needing full decision_text · use
+                # the same precedence rules as the write loop.
+                if is_artifact:
+                    tier = "closed"
+                elif any(sig in alerts_here for sig in BINDING_RISK_SIGNALS):
+                    tier = "exit"
+                elif status == "EXIT":
+                    tier = "closed"
+                elif is_new:
+                    tier = "new"
+                elif status == "STRONG BUY":
+                    tier = "strong_buy"
+                elif status in ("BUY", "ACCUMULATE"):
+                    tier = "buy"
+                elif status in ("SELL", "REDUCE"):
+                    tier = "exit"
+                else:
+                    tier = "hold"
+                tier_rank = int((DECISION_TIERS.get(tier) or {}).get("tier_rank") or 99)
+                # Within tier: best P&L first (descending)
+                return (tier_rank, -pnl)
 
             positions_sorted = sorted(positions, key=_sort_key)
-            for i, (dt, r) in enumerate(positions_sorted, start=8):
+            for i, (dt, r) in enumerate(positions_sorted, start=_pos_header_row + 1):
                 tk = r[c_tk-1].value
                 status = r[c_st-1].value
                 entry_v = r[c_entry-1].value if c_entry else None
@@ -1300,19 +1389,28 @@ def main() -> int:
                     start_color=_dec_hex, end_color=_dec_hex, fill_type="solid")
                 portfolio_ws.cell(i, 2).font = _Font(bold=True, size=11)
 
-                # ROW COLOR now follows PRIORITY (not Status) · CEO call:
-                # "color code to change based on inv verdict now"
-                # Priority IS the composite of Status × Inv Verdict → colors reflect
-                # the synthesized decision, not either signal alone.
-                if priority_tag in PRIORITY_FILLS:
-                    fill = PRIORITY_FILLS[priority_tag]
-                    for c in range(1, len(pos_hdr) + 1):
-                        portfolio_ws.cell(i, c).fill = fill
-                if status in _STATUS_FILLS_LOCAL:
-                    fill = _STATUS_FILLS_LOCAL[status]
-                    for c in range(1, len(pos_hdr)+1):
-                        portfolio_ws.cell(i, c).fill = fill
-            portfolio_ws.freeze_panes = "A8"
+                # 2026-08-14 · operator-approved 6-tier color scheme (msg 380 approved).
+                # Row color = decision-TIER (from configs/decision_colors.yaml).
+                # Config-driven · edit YAML → next CI cycle picks up.
+                _row_tier = _decision_tier(decision_text, _is_new_position)
+                _tier_def = DECISION_TIERS.get(_row_tier) or {}
+                _tier_hex_fill = _tier_def.get("hex_fill") or "F2F2F2"
+                _tier_hex_text = _tier_def.get("hex_text") or "000000"
+                _tier_bold = bool(_tier_def.get("bold"))
+                _row_fill = _PF(start_color=_tier_hex_fill, end_color=_tier_hex_fill, fill_type="solid")
+                _row_font = _Font(color=_tier_hex_text, bold=_tier_bold)
+                for c in range(1, len(pos_hdr) + 1):
+                    _cell = portfolio_ws.cell(i, c)
+                    _cell.fill = _row_fill
+                    # Preserve DECISION cell's own bold-strong font (col 2)
+                    if c != 2:
+                        # Keep existing font (alignment / number format) but tint text
+                        try:
+                            _cell.font = _Font(color=_tier_hex_text, bold=_tier_bold,
+                                                    size=_cell.font.size or 11)
+                        except Exception:
+                            _cell.font = _row_font
+            portfolio_ws.freeze_panes = f"A{_pos_header_row + 1}"
 
             # Rename Sheet 2 · make Portfolio come first
             ws2.title = f"AEGIS {mkt_key} History"
