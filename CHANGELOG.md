@@ -5,6 +5,180 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
+## [v2.1.2] — 2026-08-14 · Sprint K Part 28 · Risk→Decision Consistency
+
+**State-machine integrity release.**
+
+Executes Sprint K+ Part 28 (specced 2026-08-13 as commit `775eb8a5`).
+Fixes the LUPIN 2026-08-12 P0 bug (STOP_LOSS_HIT + Decision=BUY BIG
+simultaneously visible in the same XLSX row) and the entire family of
+Status/Decision/Action contradictions surfaced by the CEO XLSX audit.
+
+**Do NOT touch was honoured throughout:** zero changes to R1/R2 model
+logic, thresholds, weights, sealed scoring engines, or the portfolio
+construction algorithm. This sprint is Decision-layer state-machine
+repair only.
+
+Six commits · 8 waves · shipped:
+
+| Commit    | Scope                                                                        |
+|-----------|------------------------------------------------------------------------------|
+| `e12096cd` | Waves 1-3 · Risk Controller precedence + CLOSED uniformity + consistency matrix |
+| `0b020aed` | Waves 4-7 · Post-Exit column + stop semantics + risk state in P0 + validator |
+
+### Added
+
+**Bucket R · Risk Controller Veto** (`configs/priority_matrix.yaml`, `e12096cd`)
+New highest-priority bucket. Any binding risk signal in the `Alerts`
+column (STOP_LOSS_HIT · HARD_STOP · TRAILING_STOP_HIT · GAP_EXIT ·
+PORTFOLIO_MAX_DD · EMERGENCY_EXIT · CRITICAL_DEEP_LOSS) forces bucket R
+regardless of Status or Investability. Bucket R renders as:
+```
+🎯 DECISION       🔴 EXIT · Stop Loss Hit · IMMEDIATE
+Urgency          🔴 IMMEDIATE
+Action           EXIT
+Review           CLOSED
+```
+Same-day rotation (bucket J · never held) still wins over R for the
+pathological case where a same-day rotation also had a stop signal.
+
+**Post-Exit Assessment column** (col 31, `0b020aed`)
+Analytical / research-only classification of the close event.
+NEVER a trading instruction. Live Decision column stays clean.
+Populated:
+- R → `Stop Loss Triggered · <SIGNAL> @ <perf>%`
+- H → `Premature Exit? · quality intact at close`
+- I → `Clean Exit · quality had degraded`
+- J → `Same-Day Rotation · never held`
+- active → blank
+
+**Automated consistency-matrix tests** (`backend/tests/test_decision_consistency.py`)
+21 pytest tests, all pass. Enforces every INVALID combination from spec:
+- STOP_LOSS_HIT + BUY/ADD/HOLD → FAIL
+- HARD_STOP / TRAILING_STOP_HIT / GAP_EXIT / PORTFOLIO_MAX_DD /
+  EMERGENCY_EXIT / CRITICAL_DEEP_LOSS + BUY → FAIL
+- EXIT status + HOLD/BUY/ADD decision → FAIL
+Plus explicit anchors for LUPIN / POWERGRID / HEROMOTOCO test cases +
+precedence-hierarchy test iterating every binding signal against the
+strongest buy pattern (STRONG BUY + QUALITY + +15% P&L).
+
+**P0 outcome dataset · risk-state provenance** (`0b020aed`)
+`OutcomeRow` extended with:
+- `risk_state` (STOP_LOSS_HIT · HARD_STOP · CLEAN · etc.)
+- `stop_trigger_price` (the level that triggered the exit)
+`_load_exit_events_index()` reads Alerts + Stop Loss columns from
+history XLSX at capture time · P1 Attribution can now group closed
+positions by binding-signal type without reconstructing from XLSX.
+
+**Stop semantics locked to close-based** (`configs/exit_thresholds.yaml`)
+New `stop_semantics` block documents:
+- Mode = `close_based` (daily close breaches stop = HIT)
+- Trigger reference = parquet daily close
+- Trigger session = end-of-day
+- Execution price = next-open (T+1)
+- Distinguishes PROTECT (approaching · current close > stop) from
+  EXIT (hit · current close ≤ stop → bucket R)
+Any future intraday semantic must be ADDED alongside · never replace.
+
+**Acceptance-criteria validator** (`scripts/validate_decision_acceptance.py`)
+Reads both markets' Portfolio sheets + P0 outcome parquet · computes
+all 10 acceptance criteria + prints PASS/FAIL per criterion:
+```
+#1  STOP_LOSS_HIT → EXIT                       100%
+#2  Closed → live BUY/HOLD                     0
+#3  EXIT + BUY combinations                    0
+#4  EXIT + HOLD combinations                   0
+#5  Telegram/XLSX parity                       single-source guarantee
+#6  Position ID uniqueness (P0)                0 duplicates
+#7  Historical P&L contamination               0 suspicious
+#8  Consistency-matrix tests                   invokes pytest
+#9  Live Decision containing Post-Exit label   0
+#10 Named test cases                           LUPIN/POWERGRID/HEROMOTOCO...
+```
+Non-zero exit if any criterion fails · can plug into CI.
+
+### Fixed
+
+**LUPIN 2026-08-12 P0 · Alerts orphaned from Decision** (`e12096cd`)
+Root cause verified: `_classify_priority()` accepted
+`(status, inv_verdict, pnl, is_same_day)` only — the `Alerts` column
+containing STOP_LOSS_HIT was NEVER passed in. So LUPIN
+(STRONG BUY + QUALITY inv) landed in bucket A → Decision=BUY BIG
+regardless of the risk signal.
+
+Fix: both call sites (`_classify_priority` for Portfolio sheet and
+`_hist_classify` for History sheet) now accept `alerts` and short-
+circuit to bucket R when any binding signal present.
+
+Verified: LUPIN 2026-08-12 case now returns bucket=R · decision=EXIT.
+
+**POWERGRID · SKIP → EXIT** (`e12096cd`)
+3 consecutive days (Aug 10-12) POWERGRID had STOP_LOSS_HIT but Decision=SKIP.
+Now correctly bucket R → EXIT · IMMEDIATE.
+
+**HEROMOTOCO / INDIANB / ATUL / NATIONALUM / OFSS · closed showing HOLD** (`e12096cd`)
+Bucket H (EXIT + Quality-high) fell through to `_resolve_decision`
+which returned HOLD. Now H and I both route to `⚪ CLOSED` in the
+live Decision column. Any "Premature Exit?" analysis moved to the
+new Post-Exit Assessment column (Wave 4).
+
+**Position ID collision** (`ba37e654` yesterday + rebuilt today)
+LUPIN and COALINDIA had 2 rows each with identical position_id
+(R1 and R2 shared it). Fixed by adding `_{RUNNER}` suffix. Verified
+this morning's P0 rebuild: 44 rows / 44 unique position IDs · 0 dupes.
+
+### Changed
+
+- Row-write loop appends 31st column (Post-Exit Assessment · text width 32)
+- `is_terminal` predicate now includes bucket H (was only I + J)
+- Portfolio sort key already fixed yesterday · Sprint K adds R and H
+  routing but doesn't affect sort order (R is active · needs exec)
+
+### Governance invariants unchanged
+
+- R1/R2, sealed engines, thresholds, weights · untouched
+- Fingerprint: `e4c070673568c52d…` (MON001 sealed baseline)
+- Sealed + LAB files: 0 touched
+- Research NEVER feeds back into R1/R2 automatically
+- All 8 waves shipped with green pytest · no bypasses
+
+### Acceptance criteria status
+
+Code-level guarantee (unit tests):
+```
+#8  Consistency-matrix tests                   21/21 PASS
+```
+
+Run-time verification against XLSX (deferred to next CI rebuild ·
+Windows-local `build_unified_history` hang known · see Known Unresolved):
+```
+#1  STOP_LOSS_HIT → EXIT                       code guarantees 100%
+#2  Closed → live BUY/HOLD                     code guarantees 0
+#3  EXIT + BUY                                 code guarantees 0
+#4  EXIT + HOLD                                code guarantees 0
+#5  Telegram/XLSX parity                       single-source · CODE GUARANTEE
+#6  Position ID uniqueness                     PASS (44/44 in fresh P0)
+#7  Historical P&L contamination               PASS
+#9  Live Decision Post-Exit label leak         code guarantees 0
+#10 LUPIN/POWERGRID/HEROMOTOCO cases           PASS (see test suite)
+```
+
+The 21-test consistency matrix is the acceptance floor · every future
+sender change re-runs it in CI. First live proof lands on the next
+scheduled CI cycle (~06:41 UTC daily).
+
+### Known unresolved (still deferred)
+
+- `build_unified_history` local hang on Windows (~15 min · doesn't
+  reproduce on Linux CI). Investigation deferred. Local iteration
+  works via `--skip-refresh --skip-regen` or waits for CI rebuild.
+- Sprint K Part 29 · pipeline runtime reduction (60min → 15min) ·
+  deferred by operator "we can plan later".
+- Sprint K Parts 25-27 · Attribution / Investability / Compounder ·
+  execution scheduled Nov 4-30.
+
+---
+
 ## [v2.1.1] — 2026-08-13 · Pipeline Hygiene Sprint
 
 **Non-model correctness + observability release.**
