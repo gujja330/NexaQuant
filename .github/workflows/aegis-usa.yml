@@ -3,12 +3,22 @@ name: AEGIS USA
 # USA parallel deployment. Runs the 13-step USA pipeline on a schedule
 # and on manual dispatch. Completely independent from India's aegis-daily.yml.
 #
-# Schedule: 15:30 UTC on weekdays (~11:30 EDT / 10:30 EST) — after US
-# market close so `_D1.parquet` has today's close available.
+# 2026-08-14 · operator directive: "usa u can decide best time zone but
+# before market starts only?"  Answer: PRE-MARKET so operator sees results
+# during evening IST (convenient) instead of 2:30 AM IST (old post-market
+# 20:30 UTC slot was 4:00 AM IST · inconvenient for review).
+#
+# Attempts (US pre-market): 12:00 · 12:30 · 13:00 UTC  (IST: 5:30 · 6:00 · 6:30 PM)
+#   · 12:00 UTC = 08:00 EDT / 07:00 EST = 1.5h before 9:30 EDT open
+#   · Uses YESTERDAY's close data (already in yfinance from prior 20:00 UTC close)
+#   · Three slots handle GitHub's schedule flakiness (best-effort · often delayed)
+#   · Manual dispatch always runs
 
 on:
   schedule:
-    - cron: "30 20 * * 1-5"   # 20:30 UTC = 16:30 EDT (30min after close)
+    - cron: "0 12 * * 1-5"    # 12:00 UTC = 5:30 PM IST · 8:00 AM EDT (primary)
+    - cron: "30 12 * * 1-5"   # 12:30 UTC = 6:00 PM IST (backup 1)
+    - cron: "0 13 * * 1-5"    # 13:00 UTC = 6:30 PM IST (backup 2)
   workflow_dispatch:
 
 # Wave Y · Constitution Article 45: concurrency block prevents overlapping runs.

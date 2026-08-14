@@ -13,7 +13,11 @@ name: AEGIS Daily
 #   TODAY IST, using YESTERDAY's session close as the reference bar (normal
 #   morning-brief pattern in Indian institutional flow).
 #
-# Attempts (IST): ~06:00 (primary) · ~06:30 (backup 1) · ~07:00 (backup 2) · ~08:00 (backup 3).
+# 2026-08-14 · operator directive: "every day trigger should happen for
+# india should be between 6am to 7am". Locked to 3 slots inside that window.
+# Removed the 08:00 IST slot (was outside the 6-7 AM window).
+#
+# Attempts (IST): ~06:00 (primary) · ~06:30 (backup 1) · ~07:00 (backup 2)
 # Cron UTC = IST - 05:30. All slots after 00:00 UTC so datetime.now().date()
 # in the UTC runner and $(TZ=Asia/Kolkata date +%F) both return TODAY IST.
 # Manual dispatch always runs.
@@ -24,13 +28,11 @@ name: AEGIS Daily
 
 on:
   schedule:
-    # Morning-IST slots. Yesterday's NSE close (15:30 IST) has published to
-    # yfinance by now; the generator uses that bar and stamps picks with
-    # today's IST date (`Generated = datetime.now().date()`).
-    - cron: "30 0 * * 1-5"    # ~06:00 IST — primary (before market open)
+    # Morning-IST slots · 6-7 AM per operator lock 2026-08-14.
+    # Yesterday's NSE close (15:30 IST) has published to yfinance by 06:00 IST.
+    - cron: "30 0 * * 1-5"    # ~06:00 IST — primary (2h 15m before market open)
     - cron: "0 1 * * 1-5"     # ~06:30 IST — backup 1
-    - cron: "30 1 * * 1-5"    # ~07:00 IST — backup 2
-    - cron: "30 2 * * 1-5"    # ~08:00 IST — backup 3 (last morning slot)
+    - cron: "30 1 * * 1-5"    # ~07:00 IST — backup 2 (last of morning window)
   workflow_dispatch:
 
 # Wave Y · Constitution Article 45: workflows touching shared state MUST
