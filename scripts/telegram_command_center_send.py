@@ -639,13 +639,21 @@ def main() -> int:
             keep_rows = [row for row in src_ws.iter_rows(min_row=2, values_only=False)
                                     if str(row[c_ctry-1].value or "").upper() == mkt_key.upper()]
 
-            # 2026-08-14 · operator directive: "usa list is very big still in
-            # xlsx". Root cause: source workbook keeps ALL 507 USA universe-scan
-            # rows daily (from usa/reports/recommendations.json · universe_role
-            # = universe_scan). Telegram XLSX should only carry the CANONICAL
-            # set: today's selected candidates (v3 · ~15 tickers) UNION every
-            # ticker ever in position_store (closed/active positions must not
-            # disappear from history when they drop out of the daily 15).
+            # 2026-08-14 · operator directives:
+            #   1. "usa list is very big still in xlsx"
+            #   2. "we switched to s&P 500 large cap, why we need still old
+            #       stocks like trv and all"
+            #
+            # Root cause: source workbook keeps ALL 507 USA universe-scan rows
+            # daily. Also historical position_store carries pre-S&P-500-switch
+            # tickers (TRV · V · etc. from earlier universe) that are no longer
+            # in the active universe.
+            #
+            # Filter = CANONICAL_SET  INTERSECT  CURRENT_UNIVERSE_SET
+            #   canonical  = v3-selected ∪ position_store (active + exited + history)
+            #   universe   = today's active tickers from usa/reports/universe.json
+            #                (currently S&P 500 large cap · 500-ish tickers)
+            # Historical tickers no longer in the S&P 500 = dropped.
             # India already has ~15 selected only · this filter is a no-op there.
             if mkt_key.upper() == "USA":
                 import json as _json
@@ -660,8 +668,7 @@ def main() -> int:
                             if _tk: _canonical.add(_tk)
                     except Exception:
                         pass
-                # b. Any ticker ever in position_store (historical positions
-                # must persist even if they drop out of today's selected set)
+                # b. Any ticker ever in position_store (active + exited)
                 _pos = _ROOT / "usa" / "reports" / "position_store" / "usa" / "positions.json"
                 if _pos.exists():
                     try:
@@ -673,22 +680,52 @@ def main() -> int:
                             if _tk: _canonical.add(_tk)
                     except Exception:
                         pass
-                # c. Historical position ledger (safety net for pre-position_store)
-                _pos_hist = _ROOT / "usa" / "reports" / "position_store" / "usa" / "history.jsonl"
-                if _pos_hist.exists():
+                # c. (removed 2026-08-14 · operator: "we switched to S&P 500
+                #     large cap, why we need still old stocks like TRV")
+                # history.jsonl is a raw event log · contains pre-switch
+                # position openings (Jul 29 TRV, V, HON etc. from earlier
+                # universe experiments). Using it re-surfaces stale tickers
+                # the operator no longer wants to see. Only positions.json
+                # (managed by portfolio_manager · reflects current era) is
+                # the authoritative "what am I holding" source.
+
+                # d. Current active universe (S&P 500) · intersect to drop
+                # historical tickers no longer in the universe.
+                _current_universe: set = set()
+                _uni = _ROOT / "usa" / "reports" / "universe.json"
+                if _uni.exists():
                     try:
-                        for _line in _pos_hist.read_text(encoding="utf-8").splitlines():
-                            if not _line.strip(): continue
-                            _e = _json.loads(_line)
-                            _tk = str(_e.get("ticker") or "").upper()
-                            if _tk: _canonical.add(_tk)
+                        _ud = _json.loads(_uni.read_text(encoding="utf-8"))
+                        for _t in (_ud.get("tickers") or []):
+                            _sym = _t.get("symbol") if isinstance(_t, dict) else str(_t)
+                            if _sym:
+                                _current_universe.add(str(_sym).upper())
                     except Exception:
                         pass
+                # Also add v3 selected as guaranteed-present · even if universe
+                # file happens to be stale · today's selections are authoritative.
+                _v3_set: set = set()
+                if _v3.exists():
+                    try:
+                        _d = _json.loads(_v3.read_text(encoding="utf-8"))
+                        for _r in (_d.get("recommendations") or []):
+                            _tk = str(_r.get("ticker") or "").upper()
+                            if _tk: _v3_set.add(_tk)
+                    except Exception:
+                        pass
+                _effective_universe = (_current_universe | _v3_set) if _current_universe else _canonical
+                _final_set = _canonical & _effective_universe
                 _before = len(keep_rows)
+                _dropped_stale = _canonical - _effective_universe   # observability
                 keep_rows = [row for row in keep_rows
-                                    if str(row[c_tk-1].value or "").upper() in _canonical]
-                print(f"[xlsx:USA] canonical filter · {_before} -> {len(keep_rows)} rows "
-                      f"(kept {len(_canonical)} canonical tickers · dropped universe-scan noise)")
+                                    if str(row[c_tk-1].value or "").upper() in _final_set]
+                print(f"[xlsx:USA] canonical∩universe filter · {_before} -> {len(keep_rows)} rows "
+                      f"(canonical={len(_canonical)} · universe={len(_current_universe)} · "
+                      f"final={len(_final_set)} · dropped-as-out-of-universe={len(_dropped_stale)})")
+                if _dropped_stale:
+                    _sample = sorted(_dropped_stale)[:10]
+                    print(f"[xlsx:USA]   dropped historical (not in current universe): "
+                          f"{_sample}{'...' if len(_dropped_stale) > 10 else ''}")
             # Write market-specific XLSX file · adds "Cap Size" column at end
             from openpyxl import Workbook as _WB
             out_path = xlsx_path.parent / f"aegis_history_{mkt_key.lower()}.xlsx"
