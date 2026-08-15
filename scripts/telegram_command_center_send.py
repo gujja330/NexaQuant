@@ -638,6 +638,57 @@ def main() -> int:
             # Filter rows by market
             keep_rows = [row for row in src_ws.iter_rows(min_row=2, values_only=False)
                                     if str(row[c_ctry-1].value or "").upper() == mkt_key.upper()]
+
+            # 2026-08-14 · operator directive: "usa list is very big still in
+            # xlsx". Root cause: source workbook keeps ALL 507 USA universe-scan
+            # rows daily (from usa/reports/recommendations.json · universe_role
+            # = universe_scan). Telegram XLSX should only carry the CANONICAL
+            # set: today's selected candidates (v3 · ~15 tickers) UNION every
+            # ticker ever in position_store (closed/active positions must not
+            # disappear from history when they drop out of the daily 15).
+            # India already has ~15 selected only · this filter is a no-op there.
+            if mkt_key.upper() == "USA":
+                import json as _json
+                _canonical: set = set()
+                # a. Currently selected candidates (v3)
+                _v3 = _ROOT / "usa" / "reports" / "recommendations_v3.json"
+                if _v3.exists():
+                    try:
+                        _d = _json.loads(_v3.read_text(encoding="utf-8"))
+                        for _r in (_d.get("recommendations") or []):
+                            _tk = str(_r.get("ticker") or "").upper()
+                            if _tk: _canonical.add(_tk)
+                    except Exception:
+                        pass
+                # b. Any ticker ever in position_store (historical positions
+                # must persist even if they drop out of today's selected set)
+                _pos = _ROOT / "usa" / "reports" / "position_store" / "usa" / "positions.json"
+                if _pos.exists():
+                    try:
+                        _pd = _json.loads(_pos.read_text(encoding="utf-8"))
+                        for _tk in (_pd.get("positions") or {}).keys():
+                            _canonical.add(str(_tk).upper())
+                        for _e in (_pd.get("exited") or []):
+                            _tk = str(_e.get("ticker") or "").upper()
+                            if _tk: _canonical.add(_tk)
+                    except Exception:
+                        pass
+                # c. Historical position ledger (safety net for pre-position_store)
+                _pos_hist = _ROOT / "usa" / "reports" / "position_store" / "usa" / "history.jsonl"
+                if _pos_hist.exists():
+                    try:
+                        for _line in _pos_hist.read_text(encoding="utf-8").splitlines():
+                            if not _line.strip(): continue
+                            _e = _json.loads(_line)
+                            _tk = str(_e.get("ticker") or "").upper()
+                            if _tk: _canonical.add(_tk)
+                    except Exception:
+                        pass
+                _before = len(keep_rows)
+                keep_rows = [row for row in keep_rows
+                                    if str(row[c_tk-1].value or "").upper() in _canonical]
+                print(f"[xlsx:USA] canonical filter · {_before} -> {len(keep_rows)} rows "
+                      f"(kept {len(_canonical)} canonical tickers · dropped universe-scan noise)")
             # Write market-specific XLSX file · adds "Cap Size" column at end
             from openpyxl import Workbook as _WB
             out_path = xlsx_path.parent / f"aegis_history_{mkt_key.lower()}.xlsx"
