@@ -48,7 +48,8 @@ from .command_center import _company_name, _short_ticker
 #  Confidence Band High · Correlation · Hist Win Rate · Hist Median Ret ·
 #  Hist Avg Hold). Restore as v3 when Ticket R007 lands with the data.
 COLUMNS = [
-    ("Position ID",         26),      # Sprint K prep · {TKR}_{MKT}_{YYYYMMDD} stable lifecycle identity
+    ("Position ID",         32),      # 2026-08-15 · runner-specific · {R}-{TKR}-{MKT}-{YYYYMMDD}-{sig6}
+    ("Legacy Position ID",  22),      # 2026-08-15 · old {TKR}_{MKT}_{YYYYMMDD} preserved for migration
     ("Date",                12),
     ("Country",             10),
     ("Run_Type",            10),      # "R1" | "R2" only · 2026-08-07 · operator locked
@@ -174,15 +175,121 @@ def _trading_days_between(start_iso: str, end_iso: str) -> int | None:
     return days
 
 
-def _position_id(ticker: str, market: str, first_seen: str) -> str:
-    """Sprint K · stable Position ID = {TKR}_{MKT}_{YYYYMMDD}.
-    Uses first_seen_date · never today's date · so ID persists across the
-    entire lifecycle (Issue #21)."""
+def _position_id(ticker: str, market: str, first_seen: str,
+                          runner: str | None = None) -> str:
+    """Sprint K + 2026-08-15 · runner-specific stable Position ID.
+
+    New format:  {R}-{TKR}-{MKT}-{YYYYMMDD}-{sig6}
+        R    = R1 or R2 (empty allowed for legacy · defaults to 'R?')
+        sig6 = deterministic 6-char sha256 signature over the tuple
+
+    Rationale (operator directive 2026-08-15, Section 1):
+      R1 and R2 are independent decision engines. Same stock may
+      legitimately be R1=EXIT and R2=HOLD. Previous format
+      `LUPIN_IND_20260731` collided across runners so both engines'
+      states got merged. Now each runner has its OWN Position ID.
+
+    Immutable across the lifecycle · same inputs = same ID forever.
+    """
+    if not ticker or not first_seen: return ""
+    import hashlib as _hashlib
+    bare = ticker.replace(".NS", "").replace(".BO", "").upper()
+    mkt = (market or "").upper()[:3]
+    ds = first_seen[:10].replace("-", "")
+    # Runner tag · normalized · empty → "R?" so old rows migrate deterministically
+    r_raw = (runner or "").upper().replace("_NEW", "").strip()
+    r_tag = r_raw if r_raw in ("R1", "R2", "R3") else "R?"
+    # 6-char deterministic signature so IDs stay short + globally unique
+    sig = _hashlib.sha256(f"{r_tag}-{bare}-{mkt}-{ds}".encode()).hexdigest()[:6]
+    return f"{r_tag}-{bare}-{mkt}-{ds}-{sig}"
+
+
+def _legacy_position_id(ticker: str, market: str, first_seen: str) -> str:
+    """Old {TKR}_{MKT}_{YYYYMMDD} format · preserved in the legacy_position_id
+    field for migration mapping (operator Section 21: preserve original ID
+    in a legacy/reference field · never delete history)."""
     if not ticker or not first_seen: return ""
     bare = ticker.replace(".NS", "").replace(".BO", "").upper()
     mkt = (market or "").upper()[:3]
     ds = first_seen[:10].replace("-", "")
     return f"{bare}_{mkt}_{ds}"
+
+
+# 2026-08-15 · Section 7 (NEW opportunity logic) · module-level cache of
+# earliest (market, runner, ticker) → Date from the CURRENT aegis_history.xlsx.
+# Populated once at start of build_unified_history · used as fallback for
+# first_seen when position_store doesn't hold the ticker. Fixes ONGC /
+# HINDUNILVR bug where Recommended got restamped to today every day.
+_HISTORY_FIRST_SEEN: dict = {}
+
+
+def _load_history_first_seen(root) -> None:
+    """One-shot loader · reads aegis_history.xlsx and populates the module
+    cache. Idempotent · safe to call multiple times per build."""
+    global _HISTORY_FIRST_SEEN
+    _HISTORY_FIRST_SEEN = {}
+    p = root / "reports" / "telegram" / "aegis_history.xlsx"
+    if not p.exists():
+        return
+    try:
+        wb = load_workbook(p, read_only=True)
+        ws = wb["AEGIS Daily"] if "AEGIS Daily" in wb.sheetnames else wb.active
+        h = [c.value for c in ws[1]]
+        def _col(name):
+            try: return h.index(name) + 1
+            except ValueError: return None
+        c_ctry = _col("Country")
+        c_run  = _col("Run_Type")
+        c_tk   = _col("Ticker")
+        c_date = _col("Date")
+        if not all([c_ctry, c_run, c_tk, c_date]):
+            wb.close(); return
+        for r in range(2, ws.max_row + 1):
+            mk = str(ws.cell(r, c_ctry).value or "").lower()
+            rn = str(ws.cell(r, c_run).value or "").upper().replace("_NEW", "")
+            tk = str(ws.cell(r, c_tk).value or "").upper().replace(".NS", "").replace(".BO", "")
+            dt = str(ws.cell(r, c_date).value or "")[:10]
+            if not (mk and rn and tk and dt):
+                continue
+            key = (mk, rn, tk)
+            if key not in _HISTORY_FIRST_SEEN or dt < _HISTORY_FIRST_SEEN[key]:
+                _HISTORY_FIRST_SEEN[key] = dt
+        wb.close()
+    except Exception:
+        pass
+
+
+def _lookup_history_first_seen(root, market: str, runner: str, ticker: str) -> str:
+    """Return earliest observed Date for (market, runner, ticker) in the
+    current history XLSX · empty string if not seen before."""
+    if not _HISTORY_FIRST_SEEN:
+        _load_history_first_seen(root)
+    tk_bare = (ticker or "").upper().replace(".NS", "").replace(".BO", "")
+    rn = (runner or "").upper().replace("_NEW", "")
+    return _HISTORY_FIRST_SEEN.get((market.lower(), rn, tk_bare), "")
+
+
+def _opportunity_status(root, market: str, runner: str, ticker: str, asof: str) -> str:
+    """Classify per operator Section 12: NEW / EXISTING / RE-ENTRY.
+
+    NEW      · never seen before OR first-seen date == today's asof
+    EXISTING · seen before today AND not previously exited
+    RE-ENTRY · seen before today AND previously exited (position closed
+               then re-selected · rare · gets a NEW Position ID upstream)
+    """
+    earliest = _lookup_history_first_seen(root, market, runner, ticker)
+    if not earliest or earliest == asof[:10]:
+        return "NEW"
+    # Check exit history to distinguish EXISTING vs RE-ENTRY
+    tk_bare = (ticker or "").upper().replace(".NS", "").replace(".BO", "")
+    rn = (runner or "").upper().replace("_NEW", "")
+    try:
+        exited = _load_exited_set(root, market)
+        if (rn, tk_bare) in exited:
+            return "RE-ENTRY"
+    except Exception:
+        pass
+    return "EXISTING"
 
 
 def _position_stage(days_held: int, health_band: str, status: str) -> str:
@@ -358,7 +465,14 @@ def _rec_to_row(rec: Mapping, market: str, root: Path,
         if entry_price is None:
             entry_price = current_price
         if not first_seen:
-            first_seen = asof
+            # 2026-08-15 · Section 7 fix · Before falling back to today's asof,
+            # look up earliest appearance of this (market, runner, ticker) in
+            # the current aegis_history.xlsx. Fixes the ONGC / HINDUNILVR bug
+            # where position_store was missing them, so Recommended got
+            # restamped to today every day and opp_age flagged them NEW forever.
+            _hist_first_seen = _lookup_history_first_seen(root, market,
+                                                                                (runner or "").replace("_NEW",""), ticker)
+            first_seen = _hist_first_seen or asof
 
     stop = ez.get("stop_loss")
     t1 = ez.get("target_1")
@@ -556,7 +670,9 @@ def _rec_to_row(rec: Mapping, market: str, root: Path,
             exit_reason = f"→ {_repl}{rank_str} · +{_edge:.1f}pp alpha"
 
     # Sprint K quick-wins · derived fields
-    pos_id = _position_id(ticker, market, first_seen or asof)
+    # 2026-08-15 · runner-specific Position ID (Section 1 of operator directive)
+    pos_id     = _position_id(ticker, market, first_seen or asof, runner=runner)
+    legacy_pid = _legacy_position_id(ticker, market, first_seen or asof)
     pos_stage = _position_stage(days_rec if isinstance(days_rec, int) else 0,
                                              health_band, status)
     trading_days = _trading_days_between(first_seen or asof, asof) \
@@ -570,7 +686,8 @@ def _rec_to_row(rec: Mapping, market: str, root: Path,
     # 2026-08-07 · operator: strip _NEW suffix · Run_Type only R1 or R2
     runner_clean = runner.replace("_NEW", "") if runner else runner
     return [
-        pos_id,               # Sprint K · {TKR}_{MKT}_{YYYYMMDD} stable lifecycle ID
+        pos_id,               # 2026-08-15 · runner-specific · {R}-{TKR}-{MKT}-{YYYYMMDD}-{sig6}
+        legacy_pid,           # 2026-08-15 · old format preserved for migration
         asof, country, runner_clean, ticker, company, status,
         # Position Stage column DROPPED · redundant with Status
         exit_reason,          # NEW · blank unless status = EXIT
@@ -1257,6 +1374,11 @@ def build_unified_history(root: Path, asof: str,
     out_dir = root / "reports" / "telegram"
     out_dir.mkdir(parents=True, exist_ok=True)
     path = out_dir / "aegis_history.xlsx"
+
+    # 2026-08-15 · Section 7 · pre-load history first-seen cache so per-row
+    # first_seen fallback uses ORIGINAL Recommended date, not today's asof.
+    # Must run BEFORE _collect_rows_for_market or every row still gets today.
+    _load_history_first_seen(root)
 
     all_rows = []
     for m in markets:

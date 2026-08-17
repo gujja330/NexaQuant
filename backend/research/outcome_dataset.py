@@ -224,6 +224,10 @@ class OutcomeRow:
     # exit). Stored per position · immutable after close.
     risk_state:                   str = ""    # STOP_LOSS_HIT / HARD_STOP / CLEAN / etc.
     stop_trigger_price:           float | None = None
+    # 2026-08-15 · Section 21 · preserve old {TKR}_{MKT}_{DATE} for migration.
+    # Non-authoritative · reference-only field for correlating with rows
+    # written before runner-specific position_id landed (commit b5cc3e29 +).
+    legacy_position_id:           str = ""
     sample_tier_note:             str = ""
 
 
@@ -319,14 +323,20 @@ def build(root: Path) -> list:
                 else:
                     lifecycle = "ACTIVE"
 
-                # 2026-08-12 CEO P0 integrity fix · include runner in position_id
-                # so (position_id) alone is a true primary key. Previously
-                # {TICKER}_{MKT}_{DATE} collided when the same position was
-                # picked by both R1 and R2 (LUPIN_IND_20260731 · COALINDIA_IND_20260731
-                # both showed 2 rows with identical id). Attribution and P1
-                # analyses group by position_id · duplicates skewed counts.
+                # 2026-08-15 · operator directive Section 1 · runner-specific
+                # Position ID: {R}-{TKR}-{MKT}-{YYYYMMDD}-{sig6}. R1 and R2
+                # are independent decision engines · same stock may legit-
+                # imately be R1=EXIT and R2=HOLD · position_id must diverge.
+                # Old format {TKR}_{MKT}_{YYYYMMDD} preserved in
+                # legacy_position_id for migration mapping.
+                import hashlib as _hashlib
                 mkt_upper = "IND" if market.lower() == "india" else "USA"
-                position_id = f"{ticker_bare}_{mkt_upper}_{entry_date.replace('-','')}_{runner_label}"
+                ds = entry_date.replace("-", "")
+                _sig = _hashlib.sha256(
+                    f"{runner_label}-{ticker_bare}-{mkt_upper}-{ds}".encode()
+                ).hexdigest()[:6]
+                position_id = f"{runner_label}-{ticker_bare}-{mkt_upper}-{ds}-{_sig}"
+                legacy_position_id = f"{ticker_bare}_{mkt_upper}_{ds}"
 
                 row = OutcomeRow(
                     position_id=position_id,
@@ -364,6 +374,8 @@ def build(root: Path) -> list:
                     # Sprint K Part 28 · Wave 6 · risk-state provenance
                     risk_state=str(exit_info.get("risk_state") or ("CLEAN" if is_closed else "")),
                     stop_trigger_price=exit_info.get("stop_trigger_price"),
+                    # 2026-08-15 · Section 21 migration reference
+                    legacy_position_id=legacy_position_id,
                 )
                 rows.append(row)
 

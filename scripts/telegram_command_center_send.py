@@ -887,7 +887,18 @@ def main() -> int:
                 ws2.cell(r_idx, len(new_h) - 11, _cap_size(tk, mkt_key))
                 row_dt = str(row[c_date-1].value or "")[:10]
                 entry_dt = str(row[c_recommended-1].value or "")[:10] if c_recommended else ""
-                opp_age = "🆕 NEW" if (row_dt and row_dt == entry_dt) else "OLD"
+                # 2026-08-15 · Section 12 · Opportunity Status vocabulary
+                # NEW      · row_dt == entry_dt (genuine first appearance)
+                # EXISTING · row_dt > entry_dt (position rolled forward)
+                # RE-ENTRY · derived from position_store exited history
+                # (RE-ENTRY detection deferred to next wave · needs exit-set
+                # cross-check per row · current NEW/EXISTING is the P0 fix.)
+                if row_dt and entry_dt and row_dt == entry_dt:
+                    opp_age = "🆕 NEW"
+                elif row_dt and entry_dt and row_dt > entry_dt:
+                    opp_age = "EXISTING"
+                else:
+                    opp_age = "EXISTING"   # fallback · no first-day distinction
                 ws2.cell(r_idx, len(new_h) - 10, opp_age)
                 ws2.cell(r_idx, len(new_h) - 9, inv_v_score)
                 ws2.cell(r_idx, len(new_h) - 8, inv_v_verdict)
