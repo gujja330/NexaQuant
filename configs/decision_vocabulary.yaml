@@ -1,63 +1,69 @@
-version: 3.0
-last_amended: 2026-08-10
-# LOCKED · 6-value operator-facing decision vocabulary.
-# Operator directive: "based on decision only i will plan on stocks."
-# CEO review: "12 values too many · reduce to 6."
+version: 4.0
+last_amended: 2026-08-15
+# LOCKED · 5-value operator-facing decision vocabulary (per Section 4 of
+# operator directive 2026-08-15).
 #
-# Internal engine keeps all sophistication (Priority buckets · Investability
-# scores · Runner Status · etc). Only the operator-facing DECISION is
-# constrained to these 6 verbs.
+# Only BUY / HOLD / PROTECT / EXIT / CLOSED appear in the Decision column.
+# All previous variants (BUY BIG · ADD · TIGHTEN STOP · REVIEW · WATCH ·
+# CLEAN EXIT · PREMATURE EXIT · IMMEDIATE · etc.) collapse into these 5.
+# Sub-detail persists as internal metadata / reason fields · never in
+# the operator-facing Decision column.
 #
-# CLOSED and IGNORED are NOT decisions · they're Lifecycle states.
-# BUY BIG and BUY CAUTIOUSLY are NOT decisions · size is a separate field.
-# REVIEW is NOT a decision · portfolio-challenging-exit is HOLD with
-# Lifecycle=REVIEWING internally.
+# SKIP is REMOVED from Decision (Section 5): if AEGIS says SKIP the stock
+# is NOT an investment · must not appear in the main active portfolio
+# table · move to a research/candidate dataset instead (opportunity cost
+# tracked separately). See build_and_stamp: SKIP rows filtered out.
+#
+# ARTIFACT (same-day rotation) is a lifecycle metadata · CLOSED is what
+# it surfaces AS in the Decision column · the "artifact" nuance is
+# preserved in Lifecycle + Post-Exit Assessment.
 
 # Rule matcher · first match wins · matches on Action from Priority matrix
 rules:
 
-  # ═══ NEGATIVE · 🔴 ═══
+  # ═══ EXIT · 🔴 · risk-veto / stop-loss / rotation / hard exit ═══
   - match: {action: "EXIT"}
     decision: "🔴 EXIT"
     color: red
 
-  # ═══ PROTECT · 🟠 ═══
-  # PROTECT = held with degraded risk / tighter stop
+  # ═══ PROTECT · 🟠 · position management (stop tightening / trailing) ═══
   - match: {action: "TIGHTEN STOP"}
     decision: "🟠 PROTECT"
     color: amber
 
-  # REVIEW (Priority H · Premature Exit challenged) → operator sees HOLD
-  # Portfolio-challenging-exit is internal state · surface as HOLD to operator
+  # ═══ HOLD · 🟢 · no action / continued holding ═══
   - match: {action: "REVIEW"}
-    decision: "🟢 HOLD"
-    color: green
-
-  # ═══ POSITIVE · 🟢 ═══
-  - match: {action: "BUY BIG"}
-    decision: "🟢 BUY"       # BUY BIG collapsed · size determines intensity
-    color: green_dark
-  - match: {action: "ADD"}
-    decision: "🟢 ADD"
-    color: green
-  - match: {action: "BUY"}
-    decision: "🟢 BUY"       # BUY CAUTIOUSLY collapsed
+    decision: "🟢 HOLD"           # portfolio-challenging-exit surfaces as HOLD
     color: green
   - match: {action: "HOLD"}
     decision: "🟢 HOLD"
     color: green
 
-  # ═══ SKIP · ⚫ ═══
-  - match: {action: "SKIP"}
-    decision: "⚫ SKIP"
-    color: black
+  # ═══ BUY · 🟢 · new entry / add (size determined by Action Note, not Decision) ═══
+  - match: {action: "BUY BIG"}
+    decision: "🟢 BUY"            # was 'BUY BIG' · size lives in metadata
+    color: green_dark
+  - match: {action: "ADD"}
+    decision: "🟢 BUY"            # ADD collapsed into BUY per Section 4
+    color: green
+  - match: {action: "BUY"}
+    decision: "🟢 BUY"
+    color: green
 
-  # ═══ TERMINAL STATES · not actionable · but explicit so operator sees ONE clear signal ═══
+  # ═══ SKIP → EXIT semantic in Decision (was ⚫ SKIP · Section 5 removes it)
+  # SKIP rows are FILTERED from the primary Portfolio table upstream in the
+  # sender. If any leak through, they surface as EXIT so operator sees an
+  # actionable signal rather than a mute "SKIP".
+  - match: {action: "SKIP"}
+    decision: "🔴 EXIT"           # Section 5 · SKIP not a portfolio decision
+    color: red
+
+  # ═══ TERMINAL · CLOSED · not actionable ═══
   - match: {action: "CLOSED"}
     decision: "⚪ CLOSED"
     color: gray
   - match: {action: "IGNORE"}
-    decision: "⚪ ARTIFACT"
+    decision: "⚪ CLOSED"         # ARTIFACT collapsed into CLOSED
     color: gray
 
   # ═══ FALLBACK ═══
@@ -71,5 +77,16 @@ colors:
   green:       "C6EFCE"
   amber:       "FFCC66"
   red:         "F8CBAD"
-  black:       "808080"
   gray:        "E7E6E6"
+
+# Section 4 spec vocabulary
+allowed_decisions:
+  - "BUY"
+  - "HOLD"
+  - "PROTECT"
+  - "EXIT"
+  - "CLOSED"
+
+# Section 5 filter · SKIP never appears in the primary portfolio table.
+# Sender enforces this via `_skip_from_portfolio` check.
+skip_from_portfolio: true

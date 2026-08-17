@@ -726,6 +726,39 @@ def main() -> int:
                     _sample = sorted(_dropped_stale)[:10]
                     print(f"[xlsx:USA]   dropped historical (not in current universe): "
                           f"{_sample}{'...' if len(_dropped_stale) > 10 else ''}")
+
+            # 2026-08-15 · Section 5 · SKIP rows NEVER appear in the primary
+            # portfolio table. SKIP means "not an investment" · showing it as
+            # a decision would corrupt portfolio P&L + confuse the operator.
+            # SKIP candidates go to a separate research dataset (see
+            # reports/research/skip_candidates_{market}.jsonl) so opportunity-
+            # cost analysis stays possible without polluting portfolio counts.
+            _skipped_rows = [row for row in keep_rows
+                                       if str(row[c_st-1].value or "").upper() == "SKIP"]
+            _before_skip = len(keep_rows)
+            keep_rows = [row for row in keep_rows
+                                if str(row[c_st-1].value or "").upper() != "SKIP"]
+            if _skipped_rows:
+                _skip_out = (_ROOT / "reports" / "research" /
+                                    f"skip_candidates_{mkt_key.lower()}.jsonl")
+                _skip_out.parent.mkdir(parents=True, exist_ok=True)
+                try:
+                    import json as _jj
+                    with _skip_out.open("a", encoding="utf-8") as _sf:
+                        for _sr in _skipped_rows:
+                            _sf.write(_jj.dumps({
+                                "asof":   str(_sr[c_date-1].value or "")[:10],
+                                "ticker": str(_sr[c_tk-1].value or ""),
+                                "runner": str(_sr[3].value or "") if len(_sr) > 3 else "",
+                                "status": "SKIP",
+                                "current_price": _sr[c_current-1].value if c_current else None,
+                                "note":   "Filtered from portfolio table · opportunity-cost tracking only",
+                            }, default=str) + "\n")
+                    print(f"[xlsx:{mkt_key}] SKIP filter · {_before_skip} -> {len(keep_rows)} rows "
+                          f"({len(_skipped_rows)} SKIP moved to {_skip_out.relative_to(_ROOT)})")
+                except Exception as _e:
+                    print(f"[xlsx:{mkt_key}] SKIP research write failed · {_e}")
+
             # Write market-specific XLSX file · adds "Cap Size" column at end
             from openpyxl import Workbook as _WB
             out_path = xlsx_path.parent / f"aegis_history_{mkt_key.lower()}.xlsx"
@@ -1009,9 +1042,21 @@ def main() -> int:
             portfolio_ws["A1"].alignment = _Align(horizontal="center", vertical="center")
             portfolio_ws.row_dimensions[1].height = 28
 
-            # 2026-08-12 P0-3 · KPI banner now shows ARTIFACTS on their own row
-            # so operators don't confuse rotation artifacts with real positions.
-            # 'closed'/'open' counts EXCLUDE artifacts by definition (see loop).
+            # 2026-08-12 P0-3 · KPI banner now shows ARTIFACTS on their own row.
+            # 2026-08-15 Section 6 · P&L 3-way separation:
+            #   A. Realized P&L    · closed positions · entry → exit price
+            #   B. Unrealized P&L  · active positions · entry → latest price
+            #   C. Opportunity P&L · SKIP candidates  · TRACKED SEPARATELY in
+            #      reports/research/skip_candidates_{market}.jsonl · NEVER
+            #      included in portfolio P&L (would corrupt actual returns).
+            # 'closed'/'open' counts EXCLUDE artifacts + SKIP by definition.
+            _skip_dataset = _ROOT / "reports" / "research" / f"skip_candidates_{mkt_key.lower()}.jsonl"
+            _n_skip_tracked = 0
+            if _skip_dataset.exists():
+                try:
+                    _n_skip_tracked = sum(1 for l in _skip_dataset.read_text(encoding="utf-8").splitlines() if l.strip())
+                except Exception:
+                    pass
             kpi_rows = [
                 ["Realized P&L (closed)", realized_sum / 100.0, f"{n_realized} closed",
                  "Best position", f"{best_pos[0]} {best_pos[1]:+.2f}%"],
@@ -1021,6 +1066,8 @@ def main() -> int:
                  "Win rate", f"{win_rate}% ({n_win}W / {n_loss}L · {n_flat} flat excluded)"],
                 ["Artifacts (excluded)",  "",                    f"{n_artifact} same-day rotations",
                  "Note", "not counted in P&L / win rate"],
+                ["Opportunity dataset",   "",                    f"{_n_skip_tracked} SKIP candidates tracked",
+                 "Location", "reports/research/skip_candidates_*.jsonl · never in portfolio"],
             ]
             for r_off, kpi_row in enumerate(kpi_rows, start=3):
                 for c_off, val in enumerate(kpi_row, start=1):
@@ -1091,9 +1138,12 @@ def main() -> int:
                 # 2026-08-14 Sprint K Part 28 · Wave 4 · Post-Exit Assessment
                 # is analytical / research-only · NEVER a live trading
                 # instruction. Live Decision column stays clean (BUY/HOLD/
-                # PROTECT/EXIT/CLOSED/ARTIFACT/SKIP). This column captures
-                # WHY the exit happened + WHAT the outcome was afterwards.
+                # PROTECT/EXIT/CLOSED).
                 "Post-Exit Assessment",
+                # 2026-08-15 · Section 13 · Decision Basis · one short reason
+                # explaining WHY the Decision was reached. Deterministic ·
+                # derived from lifecycle + risk + status.
+                "Decision Basis",
             ]
             widths_pos = [12, 24, 12,
                               22, 12, 30,
@@ -1102,7 +1152,8 @@ def main() -> int:
                               12, 12, 12, 10,
                               12, 12, 12,
                               40, 40, 30,
-                              32]
+                              32,
+                              22]   # Decision Basis
 
             # R1/R2 consensus map · build from all keep_rows (before ticker loop)
             # (populated after keep_rows filter · so put function here · use later)
@@ -1446,6 +1497,30 @@ def main() -> int:
                 elif priority_bucket == "J":
                     _post_exit_assessment = "Same-Day Rotation · never held"
 
+                # 2026-08-15 · Section 13 · Decision Basis · one short reason
+                # explaining WHY. Deterministic derivation · matches the
+                # priority classifier's decision chain.
+                _au = str(alerts or "").upper()
+                if priority_bucket == "R":
+                    _sig = next((s for s in BINDING_RISK_SIGNALS if s in _au), "HARD STOP")
+                    _decision_basis = f"STOP LOSS HIT · {_sig.replace('_',' ').title()}"
+                elif priority_bucket == "J":
+                    _decision_basis = "SAME-DAY ROTATION"
+                elif priority_bucket in ("I", "H"):
+                    _decision_basis = "MODEL EXIT · Runner closed"
+                elif _is_new_position and status != "EXIT":
+                    _decision_basis = "NEW OPPORTUNITY"
+                elif str(inv_verdict or "").strip() == "✗ AVOID":
+                    _decision_basis = "QUALITY FAILED"
+                elif priority_bucket == "E":
+                    _decision_basis = "PROTECT · watch"
+                elif priority_bucket == "G":
+                    _decision_basis = "RISK REDUCTION"
+                elif status in ("STRONG BUY", "BUY"):
+                    _decision_basis = "MODEL CONTINUES · buy signal"
+                else:
+                    _decision_basis = "MODEL CONTINUES"
+
                 vals = [
                     # IDENTITY (1-3)
                     tk, decision_text, lifecycle,
@@ -1465,10 +1540,12 @@ def main() -> int:
                     _ACTIONS.get(status, ""), alerts or "", exit_reason,
                     # POST-EXIT ASSESSMENT (31)
                     _post_exit_assessment,
+                    # DECISION BASIS (32)
+                    _decision_basis,
                 ]
                 for c, v in enumerate(vals, start=1):
                     cell = portfolio_ws.cell(i, c, v)
-                    text_cols = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 15, 16, 17, 18, 19, 28, 29, 30, 31}
+                    text_cols = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 15, 16, 17, 18, 19, 28, 29, 30, 31, 32}
                     cell.alignment = _Align(
                         horizontal="left" if c in text_cols else "right",
                         vertical="center", wrap_text=True)
