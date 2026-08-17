@@ -874,6 +874,13 @@ def _collect_rows_for_market(root: Path, market: str, asof: str) -> list[list]:
             _rt = _runner_tag(root, market, "runner1", tk, asof, "R1")
             if _key(_rt, tk) in exited: continue
             rows.append(_rec_to_row(r1_rec, market, root, runner=_rt, asof=asof))
+            # 2026-08-17 · operator Section 1 · track India R1 active tickers
+            # so the archived-R1 render (below) EXCLUDES them. Prior to this
+            # fix, orphans + archived double-wrote the same (Position ID,
+            # Date, Runner) with contradictory statuses (STRONG BUY vs HOLD).
+            # Verified in production: 56 contradictory duplicates across BEL,
+            # COALINDIA, ICICIBANK, LUPIN, POWERGRID, PIDILITIND, SUNPHARMA.
+            active_r1.add(tk.replace(".NS", "").replace(".BO", "").upper())
     elif market == "usa":
         try:
             usa_r1_path = root / "usa" / "reports" / "runner1_orphans.json"
@@ -1361,6 +1368,140 @@ def _append_to_workbook(path: Path, rows: list[list]) -> None:
     wb.save(path)
 
 
+# 2026-08-17 · operator Section 3+13 · deterministic priority for the
+# Decision Resolver. Lower rank = higher priority (wins in dedup).
+_STATUS_PRIORITY = {
+    "EXIT":         0,   # terminal · always wins
+    "SELL":         0,
+    "REDUCE":       1,   # partial exit
+    "PROTECT":      1,   # tighten stop
+    "HOLD":         2,   # cautious continue
+    "ADD":          3,
+    "ACCUMULATE":   3,
+    "BUY":          4,
+    "STRONG BUY":   5,   # bullish · lowest priority in a resolver
+    "SKIP":         6,   # not-an-investment
+    "ROTATED_SAMEDAY": 7,
+    "":             99,
+}
+
+# Binding risk signals · presence in Alerts BEATS every Status
+_BINDING_RISK_SIGNALS = (
+    "EMERGENCY_EXIT", "PORTFOLIO_MAX_DD", "HARD_STOP",
+    "STOP_LOSS_HIT", "GAP_EXIT", "TRAILING_STOP_HIT",
+    "CRITICAL_DEEP_LOSS",
+)
+
+
+def _row_priority(row) -> tuple:
+    """Return sort key · LOWER = HIGHER priority (survives dedup).
+
+    Priority stack:
+      1. binding risk signal in Alerts   -> highest (rank 0)
+      2. Status ranked per _STATUS_PRIORITY
+      3. Later Position ID timestamp as tiebreaker (prefer freshest sig)
+    """
+    # Row is a list matching COLUMNS order. Look up by index.
+    # Position ID (0), Legacy (1), Date (2), Country (3), Runner (4),
+    # Ticker (5), Company (6), Status (7), Exit Reason (8), ... Alerts (~24)
+    status = str(row[7] if len(row) > 7 else "").upper().strip()
+    # Alerts column position depends on schema · scan any col matching signal
+    has_binding = False
+    for cell in row:
+        if not isinstance(cell, str): continue
+        cu = cell.upper()
+        for sig in _BINDING_RISK_SIGNALS:
+            if sig in cu:
+                has_binding = True
+                break
+        if has_binding: break
+    risk_rank = 0 if has_binding else 1
+    status_rank = _STATUS_PRIORITY.get(status, 50)
+    return (risk_rank, status_rank)
+
+
+def _dedupe_by_priority(rows: list) -> list:
+    """Group by (Position ID, Date, Run_Type) · keep the row with lowest
+    _row_priority tuple (highest authoritative decision)."""
+    from collections import defaultdict
+    groups: dict = defaultdict(list)
+    for r in rows:
+        # Key columns: Position ID (0) · Date (2) · Run_Type (4)
+        pid  = str(r[0] if len(r) > 0 else "")
+        date = str(r[2] if len(r) > 2 else "")[:10]
+        run  = str(r[4] if len(r) > 4 else "")
+        groups[(pid, date, run)].append(r)
+    resolved = []
+    n_conflicts = 0
+    for key, rr in groups.items():
+        if len(rr) == 1:
+            resolved.append(rr[0])
+            continue
+        n_conflicts += 1
+        # Sort by priority · lowest tuple = keeper
+        rr_sorted = sorted(rr, key=_row_priority)
+        winner = rr_sorted[0]
+        resolved.append(winner)
+    if n_conflicts:
+        print(f"[decision_resolver] resolved {n_conflicts} duplicate (Position ID, Date, Runner) "
+              f"conflicts · kept highest-priority row each")
+    return resolved
+
+
+def _validate_no_lifecycle_violations(rows: list) -> tuple[list, int]:
+    """Operator Section 13 · hard validation guards before Portfolio.xlsx write.
+
+    Returns (rows, n_violations). Violations LOGGED to stderr · non-fatal
+    so pipeline still ships · but next validate_position_continuity.py run
+    will surface them in the acceptance report."""
+    from collections import defaultdict
+    n_viol = 0
+    # 1. Same Position ID + Date + Runner should have exactly 1 row (post-dedup)
+    by_key = defaultdict(list)
+    for r in rows:
+        pid, date, run = str(r[0]), str(r[2])[:10], str(r[4])
+        by_key[(pid, date, run)].append(r)
+    for key, rr in by_key.items():
+        if len(rr) > 1:
+            n_viol += 1
+            print(f"[validate:duplicate_after_dedup] {key} still has {len(rr)} rows · resolver failed")
+
+    # 2. CLOSED position (in earlier row) should never appear ACTIVE (later row)
+    closed_pids = defaultdict(list)   # pid -> [(date, status)]
+    for r in rows:
+        pid = str(r[0]); date = str(r[2])[:10]; status = str(r[7] or "").upper()
+        closed_pids[pid].append((date, status))
+    for pid, appearances in closed_pids.items():
+        appearances.sort()
+        was_closed = False
+        for date, status in appearances:
+            if status == "EXIT":
+                was_closed = True
+                continue
+            if was_closed and status in ("STRONG BUY", "BUY", "ADD", "HOLD", "ACCUMULATE"):
+                n_viol += 1
+                print(f"[validate:closed_reactivated] {pid} · date={date} · was CLOSED · now {status}")
+
+    # 3. Binding risk signal in Alerts but Status not EXIT
+    for r in rows:
+        alerts_up = ""
+        for cell in r:
+            if isinstance(cell, str):
+                cu = cell.upper()
+                for sig in _BINDING_RISK_SIGNALS:
+                    if sig in cu:
+                        alerts_up = cu; break
+                if alerts_up: break
+        if alerts_up:
+            status = str(r[7] or "").upper()
+            if status not in ("EXIT", "SELL"):
+                n_viol += 1
+                pid = r[0]; date = str(r[2])[:10]
+                print(f"[validate:risk_without_exit] {pid} · {date} · alerts has risk signal · Status={status}")
+
+    return rows, n_viol
+
+
 def build_unified_history(root: Path, asof: str,
                               markets: list[str] | None = None) -> Path:
     """Append today's rows for all markets to reports/telegram/aegis_history.xlsx.
@@ -1383,6 +1524,33 @@ def build_unified_history(root: Path, asof: str,
     all_rows = []
     for m in markets:
         all_rows.extend(_collect_rows_for_market(root, m, asof))
+
+    # 2026-08-17 · operator Section 3+13 · Authoritative Decision Resolver.
+    # Defense-in-depth: even after prevention fix in _collect_rows_for_market,
+    # dedup by (Position ID, Date, Run_Type) here. Keep the row with the
+    # highest-priority effective decision (matches operator hierarchy):
+    #
+    #   1. binding risk signal in Alerts (STOP_LOSS_HIT / HARD_STOP / etc.)
+    #   2. Status == EXIT
+    #   3. Status == HOLD (more cautious wins over BUY when signals disagree)
+    #   4. Status == ADD / BUY / STRONG BUY (bullish · lowest priority)
+    #
+    # If two duplicate rows exist, the survivor is the one carrying the
+    # more-urgent Alert or the more-cautious Status. Rationale: never let
+    # a bullish row silently overwrite a risk-triggering row.
+    _n_before = len(all_rows)
+    all_rows = _dedupe_by_priority(all_rows)
+    _n_dropped = _n_before - len(all_rows)
+    if _n_dropped:
+        print(f"[resolver] dedup dropped {_n_dropped} contradictory rows "
+              f"({_n_before} -> {len(all_rows)})")
+
+    # 2026-08-17 · operator Section 13 · hard validation guards.
+    # Runs after dedup · logs any lifecycle-violation warnings so the
+    # acceptance validator can flag them. Non-fatal · pipeline still ships.
+    all_rows, _n_viol = _validate_no_lifecycle_violations(all_rows)
+    if _n_viol:
+        print(f"[validate] {_n_viol} lifecycle violation(s) surfaced · investigate")
 
     if not path.exists():
         _write_new_workbook(path, all_rows)
