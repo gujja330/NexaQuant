@@ -20,6 +20,11 @@ on:
     - cron: "30 12 * * 1-5"   # 12:30 UTC = 6:00 PM IST (backup 1)
     - cron: "0 13 * * 1-5"    # 13:00 UTC = 6:30 PM IST (backup 2)
   workflow_dispatch:
+  # 2026-08-18 · TEMPORARY · fire on next main push to force a fresh CI-built
+  # XLSX after the gujja330 account switch. REVERT this section in follow-up
+  # commit once Telegram delivery confirmed.
+  push:
+    branches: [main]
 
 # Wave Y · Constitution Article 45: concurrency block prevents overlapping runs.
 concurrency:

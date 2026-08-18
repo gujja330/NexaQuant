@@ -34,6 +34,11 @@ on:
     - cron: "0 1 * * 1-5"     # ~06:30 IST — backup 1
     - cron: "30 1 * * 1-5"    # ~07:00 IST — backup 2 (last of morning window)
   workflow_dispatch:
+  # 2026-08-18 · TEMPORARY · fire on next main push to force a fresh CI-built
+  # XLSX after the gujja330 account switch. REVERT this section in follow-up
+  # commit once Telegram delivery confirmed.
+  push:
+    branches: [main]
 
 # Wave Y · Constitution Article 45: workflows touching shared state MUST
 # declare concurrency. Fixes v2.2 T1/Sch1 (duplicate scheduler+Telegram sends).
