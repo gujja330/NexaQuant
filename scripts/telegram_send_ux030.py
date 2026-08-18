@@ -157,56 +157,20 @@ def _log_delivery(record: dict) -> None:
 
 
 def main() -> int:
-    load_env()
-    token = os.environ.get("TELEGRAM_BOT_TOKEN")
-    chat = os.environ.get("TELEGRAM_CHAT_ID")
-
-    if not token or not chat:
-        print("  cannot send: missing TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID")
-        return 2
-
-    ctx = load_context()
-    if not ctx.recommendations and not ctx.champion:
-        print("  cannot send: no reports/recommendations.json or champion_strategy.json")
-        return 3
-
-    # Build all sections, then consolidate into ONE Telegram message per market.
-    # Priority-ordered top-down so the reader sees Executive Summary first.
-    # Per operator directive 2026-07-20: one full-length message, not part-splits.
-    sections = [
-        ("Executive Summary",  renderer.render_executive_summary(ctx)),
-        ("New Buys",           renderer.render_new_buys_summary(ctx, n=8)),
-        ("Portfolio Health",   renderer.render_portfolio_health(ctx)),
-        ("Champion Update",    renderer.render_champion_update(ctx)),
-        ("Morning Brief",      renderer.render_morning_brief(ctx)),
-    ]
-    body = _consolidate("🇮🇳 AEGIS INDIA · Daily Brief", sections, budget=3900)
-
-    t0 = time.perf_counter()
-    ok, detail = send_markdown(token, chat, body)
-    elapsed = time.perf_counter() - t0
-    if ok:
-        print(f"  [india_brief] sent ({len(body)} chars, {elapsed:.2f}s)")
-    else:
-        print(f"  [india_brief] cannot send: {detail}")
-
-    _log_delivery({
-        "ts_utc":       datetime.now(timezone.utc).isoformat(),
-        "sender":       "ux030",
-        "mode":         "consolidated",
-        "market":       "india",
-        "ok":           ok,
-        "chars":        len(body),
-        "elapsed_s":    round(elapsed, 3),
-        "detail_head":  detail[:200],
-        "sections":     [n for n, s in sections if s],
-    })
-
-    if ok:
-        print(f"  sent ({len(body)} chars in one consolidated message)")
-        return 0
-    print(f"  cannot send: {detail[:120]}")
-    return 1
+    # 2026-08-18 · DISABLED per operator hard rule:
+    #   "dont send me history. send me india and usa aegis seperately
+    #    nothing else on telegram . make a note"
+    # This UX030 sender previously delivered a 5-section text brief for
+    # India (Executive Summary + New Buys + Portfolio Health + Champion
+    # Update + Morning Brief). That is exactly the "nothing else"
+    # forbidden. Per-market XLSX delivery lives in
+    # scripts/telegram_command_center_send.py · this sender is neutered
+    # · exits 0 · no message sent.
+    #
+    # See memory: feedback_telegram_delivery_policy
+    print("  AEGIS India · text brief · DISABLED (per operator policy 2026-08-18)")
+    print("  Per-market XLSX delivery handled by telegram_command_center_send.py")
+    return 0
 
 
 if __name__ == "__main__":

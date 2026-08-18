@@ -94,59 +94,22 @@ def send_message(token: str, chat_id: str, text: str) -> tuple[bool, str]:
 
 
 def main() -> int:
-    load_env()
-    token   = os.environ.get("TELEGRAM_BOT_TOKEN")
-    chat_id = os.environ.get("TELEGRAM_CHAT_ID")
-    if not token or not chat_id:
-        print("[usa telegram] TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID not set — skipping (optional).")
-        return 0
-
+    # 2026-08-18 · DISABLED per operator hard rule:
+    #   "dont send me history. send me india and usa aegis seperately
+    #    nothing else on telegram . make a note"
+    # This script previously delivered a 5-section text daily brief
+    # (Executive Summary + Top Opportunities + Portfolio Health +
+    # Benchmark + Morning Brief). That is exactly the "nothing else"
+    # the operator forbids. Per-market XLSX delivery lives in
+    # scripts/telegram_command_center_send.py · this sender is
+    # neutered · exits 0 · no message sent.
+    #
+    # See memory: feedback_telegram_delivery_policy
     print("=" * 70)
-    print("  AEGIS USA · Telegram send · USD · S&P 500 benchmark")
+    print("  AEGIS USA · text brief · DISABLED (per operator policy 2026-08-18)")
+    print("  Per-market XLSX delivery handled by telegram_command_center_send.py")
     print("=" * 70)
-
-    # Per operator directive 2026-07-20: send ONE full-length message per market,
-    # not part-splits. Sections priority-ordered top-down.
-    sections_ordered = [
-        ("Executive Summary", "executive_summary"),
-        ("Top Opportunities", "top_opportunities"),
-        ("Portfolio Health",  "portfolio_health"),
-        ("Benchmark",         "benchmark"),
-        ("Morning Brief",     "morning_brief"),
-    ]
-    label_to_body = {label: body for label, body in renderer.render_all()}
-    sections = [(disp, label_to_body.get(key, "")) for disp, key in sections_ordered]
-
-    body = _consolidate("🇺🇸 AEGIS USA · Daily Brief (USD)", sections, budget=3900)
-
-    t0 = time.time()
-    success, resp = send_message(token, chat_id, body)
-    elapsed = time.time() - t0
-    if success:
-        print(f"  [usa_brief] sent ({len(body)} chars, {elapsed:.2f}s)")
-    else:
-        print(f"  [usa_brief] cannot send: {resp[:120]}")
-
-    date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    ledger_path = _USA / "reports" / f"telegram_delivery_{date}.jsonl"
-    ledger_path.parent.mkdir(parents=True, exist_ok=True)
-    with ledger_path.open("a", encoding="utf-8") as f:
-        f.write(json.dumps({
-            "run_utc":     datetime.now(timezone.utc).isoformat(timespec="seconds") + "Z",
-            "market":      "USA",
-            "mode":        "consolidated",
-            "ok":          success,
-            "chars":       len(body),
-            "elapsed_s":   round(elapsed, 3),
-            "sections":    [disp for disp, b in sections if b],
-            "response":    resp[:200] if not success else "OK",
-        }, default=str) + "\n")
-
-    if success:
-        print(f"\n  sent ({len(body)} chars in one consolidated message)")
-        return 0
-    print(f"\n  cannot send: {resp[:120]}")
-    return 1
+    return 0
 
 
 if __name__ == "__main__":
