@@ -1,5 +1,27 @@
 # AEGIS · Sprint K+ · Locked Production Spec
 
+**v1.8 amended 2026-08-18 (CEO final architectural fix · Position
+Lifecycle + Opportunity Registry + Output Integrity)**: added **Part 30
+· Opportunity Registry + Daily NEW Discovery Engine** (executed same
+day · 5 waves shipped). Origin: Aug 18 India workbook audit surfaced
+Zydus (NEW every day since Aug 11), ONGC/HINDUNILVR (Recommended date
+restamped daily), INDIGO (NEW+CLOSED same day appearing in active
+Portfolio), NTPC/BATAINDIA/LICI/TATAPOWER (EXIT + ACTIVE coexistence),
+and 60-column Portfolio being unusable as a decision cockpit. Operator
+verbatim: "AEGIS must stop treating today's recommendation as a new
+opportunity. It needs a persistent Opportunity Registry."
+
+Part 30 answers this with an event-sourced Registry that gives every
+investment idea one immutable `opportunity_id` + `created_date` across
+its entire lifecycle. Every downstream NEW/EXISTING/CLOSED/REJECTED
+determination now reads the Registry · not today's XLSX. Also adds a
+zero-tolerance validation gate (11 checks from operator Section 26),
+Portfolio 3-section banner layout (NEW / EXISTING / ACTION REQUIRED /
+CLOSED), 14-column hide-in-Excel for slim client view, INDIGO REJECTED
+filter, and a daily discovery diagnostic file. All shipped same day as
+5 commits (0380fe4e · 3fb264e2 · dd915ad5 · aa422853). Sprint K now
+30 parts · execution window unchanged.
+
 **v1.2 amended 2026-08-08**: added Part 25 (Dual-Snapshot Attribution) +
 Part 26 (Institutional Investability Engine · 9 sub-engines · replaces
 blocklist thinking) + Part 27 (Emerging Compounder research module ·
@@ -1290,6 +1312,216 @@ Expected: additional 20-30% on those 2 stages.
 
 **Do Part 28 (Decision consistency) FIRST.** Correctness before speed.
 No point in optimizing a pipeline that outputs contradictory decisions.
+
+---
+
+## Part 30 · Opportunity Registry + Daily NEW Discovery Engine (SHIPPED 2026-08-18)
+
+**Added AND executed 2026-08-18** · same-day ship · operator directive
+"AEGIS must stop treating today's recommendation as a new opportunity ·
+it needs a persistent Opportunity Registry." Fixes root-cause behind
+Zydus/ONGC/Hindunilvr NEW-forever + INDIGO NEW+CLOSED + 60-column
+Portfolio bloat + no daily discovery diagnostic. Cross-references:
+supersedes aspirational Part 19 (New Opportunities), populates Part 22
+(Self Learning) input, satisfies Part 23 (Regression Tests) for the
+opportunity + decision layer.
+
+### 30.1 · The bug (operator's Aug 18 India workbook audit)
+
+Concrete failures in `aegis_history_india(20260818-120216).xlsx`:
+
+| Ticker | First rec | Aug 18 Portfolio state | Correct behaviour |
+|---|---|---|---|
+| ZYDUSLIFE | Aug 11 | still 🆕 NEW | NEW day 0 only · ACTIVE from day 2 |
+| ONGC | Aug 12 | Recommended = Aug 17 (restamped) | Recommended immutable = Aug 12 |
+| HINDUNILVR | Aug 12 | NEW on Aug 12·13·17 | NEW exactly once |
+| INDIGO | Aug 18 (new) | NEW + immediately CLOSED · in active NEW section | REJECTED · dropped from Portfolio |
+| NTPC / BATAINDIA / LICI / TATAPOWER | varies | EXIT decision · Lifecycle ACTIVE | EXIT → Lifecycle CLOSED same day |
+| Portfolio | 60 columns · SKIP + ARTIFACT mixed | overwhelming | ~15 essentials only |
+
+### 30.2 · Root cause
+
+Row builder computed `first_seen` from workbook history OR fell back
+to `asof` (today). No persistent per-opportunity lifecycle store, so
+`Recommended` got restamped daily → `opp_age` flagged NEW every day.
+Section-17 client-facing simplification never happened. Same-day
+rejections had no dedicated status.
+
+### 30.3 · Architectural fix · persistent Opportunity Registry
+
+New module `backend/research/opportunity_registry.py` · append-only
+JSONL at `reports/research/opportunity_registry.jsonl` · event-sourced
+with load-time collapse (latest event per `opportunity_id` wins).
+
+Schema per opportunity (12 fields):
+- `opportunity_id` — deterministic hash: `{MKT}-{R}-{TICKER}-{YYYYMMDD}-{sig6}`
+- `market` · `runner` · `ticker` (bare · no .NS/.BO)
+- `created_date` · YYYY-MM-DD · **IMMUTABLE**
+- `initial_signal` · `initial_rank` · `initial_score`
+- `status` · ACTIVE | CLOSED | REJECTED (one-way transitions)
+- `closed_date` · `closed_reason` · `last_seen_date` · `ts_utc`
+
+Public API:
+- `make_opportunity_id()` · deterministic
+- `get_or_create()` · returns existing ACTIVE if any · else creates
+  new with today's asof as created_date (re-entry case)
+- `close()` · ACTIVE → CLOSED (idempotent · never reverses)
+- `reject()` · ACTIVE → REJECTED (INDIGO same-day case)
+- `touch()` · update last_seen_date without mutating status
+- `lifecycle_state(opp, asof)` · NEW / ACTIVE / CLOSED / REJECTED
+- `opportunity_age_days()` · today - created_date
+
+### 30.4 · Constitutional invariants (enforced by tests)
+
+- `created_date` never changes for an existing `opportunity_id`
+- Status transitions strictly one-way (CLOSED cannot revert to ACTIVE)
+- Re-entry after CLOSE creates NEW `opportunity_id` (LUPIN case)
+- REJECTED same-day never resurrects as ACTIVE (INDIGO case)
+- `opportunity_id` is a deterministic hash · idempotent
+
+### 30.5 · Wiring into row builder (Wave 2)
+
+`backend/delivery/telegram/detail_xlsx.py:_rec_to_row`:
+- `first_seen` fallback consults Registry FIRST (via `get_or_create`)
+- Workbook-history lookup is now the second-tier fallback (bootstrap)
+- Registry's `created_date` becomes the row's `Recommended` value
+- Downstream `opp_age` reads from Registry too via `_opportunity_status`
+
+Result: Zydus/ONGC/Hindunilvr `Recommended` stays fixed at first-day
+value forever · NEW fires exactly once.
+
+### 30.6 · Portfolio 3-section layout (Wave 3 · Section 17)
+
+Portfolio sheet rows grouped into 4 banner-separated sections:
+```
+🆕 NEW OPPORTUNITIES TODAY       (light blue banner)
+📊 EXISTING POSITIONS            (light green banner)
+⚠️  ACTION REQUIRED · EXITS       (light red banner)
+⚪ CLOSED · REFERENCE ONLY       (gray banner)
+```
+Banner rows are merged full-width · 20 px tall · bold · colored fill.
+Sections with zero rows skipped (no empty banner shown).
+
+### 30.7 · Slim column view (Wave 3 · Section 15)
+
+14 internal-audit columns HIDDEN in Excel (preserved in the XLSX
+file · not deleted · Excel `Unhide` reveals them):
+
+| Hidden | Reason |
+|---|---|
+| Price Trigger · Execution Window | Redundant with Stop Loss + Target |
+| R1/R2 Consensus · Exit Date · Exit Price · Exit Reason | Closed-row-only |
+| Action · Review · Inv Quality · Investability · Action Note | Internal |
+| Alerts | Internal (Risk Controller reads) |
+| Post-Exit Assessment · Decision Basis | Analytical / research |
+
+Result: 18 columns visible (15 essentials + Sector + Cap + Days) ·
+matches operator Section 15 recommended client-facing layout.
+
+### 30.8 · INDIGO REJECTED-drop filter (Wave 3)
+
+Cross-references Registry · drops any row whose (market, runner,
+ticker, row.Recommended) matches a REJECTED opportunity. Same-day
+rotation artifacts never appear in the active Portfolio. Printed
+`[xlsx:MKT] INDIGO filter · dropped N REJECTED same-day rows` for CI
+visibility.
+
+### 30.9 · Section 26 · 11 zero-tolerance validation checks (Wave 4)
+
+`backend/research/opportunity_validator.py:validate_rows()`. Runs
+after Decision Resolver dedup · logs to
+`reports/context/opportunity_violations.json` with per-check counts:
+
+1. Duplicate (Position ID, Date, Runner) with contradictory Status
+2. CLOSED → ACTIVE transition (same PID re-appears as buy-family)
+3. EXIT + HOLD coexistence
+4. EXIT + BUY coexistence
+5. Binding risk signal in Alerts but Status not EXIT
+6. SKIP in unified rows list (must be filtered upstream)
+
+Non-fatal at write time · pipeline still ships · findings surface for
+CI and next-run audit.
+
+### 30.10 · Section 23 · Daily discovery diagnostic (Wave 5)
+
+`backend/research/opportunity_validator.py:emit_daily_diagnostic()` ·
+writes `reports/context/daily_opportunity_discovery.json`:
+
+```json
+{
+  "asof": "2026-08-18",
+  "counts": {
+    "active_opportunities":   42,
+    "created_today":           3,
+    "new_actionable_today":    2,
+    "rejected_today":          1,
+    "reentries_today":         0,
+    "closed_today":            1,
+    "total_ever_active":      42,
+    "total_ever_closed":      15,
+    "total_ever_rejected":     3
+  },
+  "verdict": "2 new opportunity(ies) discovered · 0 re-entry",
+  "new_opportunities": [ {...}, {...} ],
+  "closed_today_details": [ {...} ]
+}
+```
+
+If `new_actionable_today == 0` verdict is explicitly:
+`"NO QUALIFIED NEW OPPORTUNITY TODAY"` · never manufactured.
+
+### 30.11 · Regression test coverage
+
+`backend/tests/test_opportunity_registry.py` · **11 tests · all pass**:
+- id deterministic · id diverges across runner + market
+- ZYDUSLIFE · NEW only on created_date · ACTIVE for days 2-7
+- ONGC · created_date immutable across 6 daily reruns
+- LUPIN · re-entry after CLOSE gets NEW id · original stays CLOSED
+- INDIGO · same-day REJECTED · never returns as ACTIVE
+- lifecycle_state variants (NEW/ACTIVE/CLOSED/REJECTED)
+- opportunity_age_days math
+- CLOSED cannot revert (constitutional invariant)
+- bulk helpers (count_by_status · opportunities_created_on · active_opportunities)
+
+### 30.12 · Do NOT touch
+
+- R1/R2 model logic · weights · thresholds
+- Sealed engines
+- Portfolio construction algorithm
+- Decision Resolver priority order (already Sprint K Part 28)
+
+Part 30 is state-machine + presentation + validation only. Zero model
+changes.
+
+### 30.13 · Execution status
+
+**SHIPPED 2026-08-18** across 5 commits on `gujja330/NexaQuant@main`:
+
+| Commit | Wave |
+|---|---|
+| `0380fe4e` | Wave 1 · Opportunity Registry (module + 11 tests) |
+| `3fb264e2` | Wave 2 · Registry wired into row builder + opp_status |
+| `aa422853` | Wave 3 · 3-section layout + slim columns + INDIGO filter |
+| `dd915ad5` | Waves 4+5 · validation gate + daily diagnostic |
+
+Cross-references: closes operator directives from Aug 15 (22-section
+Position Continuity) + Aug 17 (Section 17 acceptance validator) +
+Aug 18 (this final architectural fix). Combined with Sprint K Part 28
+(Risk→Decision Consistency) the full lifecycle chain is now:
+
+```
+R1 · R2 signals
+   ↓
+Opportunity Registry (Part 30 · this) · immutable per-idea lifecycle
+   ↓
+Decision Resolver (Part 28) · single authoritative Decision per (PID,Date)
+   ↓
+Portfolio 3-section output (Part 30 · this) · client-facing 15 columns
+   ↓
+Zero-tolerance validation (Part 30 · this) · Section 26 gate
+   ↓
+Daily discovery diagnostic (Part 30 · this)
+```
 
 ---
 
