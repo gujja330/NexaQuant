@@ -1583,6 +1583,36 @@ def build_unified_history(root: Path, asof: str,
     if _n_viol:
         print(f"[validate] {_n_viol} lifecycle violation(s) surfaced · investigate")
 
+    # 2026-08-18 · Wave 4 · Section 26 · 11 zero-tolerance opportunity checks.
+    # Non-fatal at write time (pipeline must still ship) · findings recorded
+    # to reports/context/opportunity_violations.json for CI visibility.
+    try:
+        from backend.research.opportunity_validator import (
+            validate_rows as _opp_validate, emit_daily_diagnostic,
+        )
+        # Header for validate_rows · matches COLUMNS list positions
+        _col_names = [name for name, _w in COLUMNS]
+        _oviols, _osummary = _opp_validate(all_rows, _col_names, asof)
+        if _oviols:
+            _viol_p = root / "reports" / "context" / "opportunity_violations.json"
+            _viol_p.parent.mkdir(parents=True, exist_ok=True)
+            _viol_p.write_text(
+                json.dumps({"asof": asof, "summary": _osummary,
+                                "violations": _oviols[:200]},
+                                indent=2, ensure_ascii=False, default=str),
+                encoding="utf-8")
+            print(f"[opp_validate] {len(_oviols)} violation(s) · "
+                  f"see reports/context/opportunity_violations.json")
+            print(f"[opp_validate] by-check counts: {_osummary}")
+        else:
+            print(f"[opp_validate] 0 violations · Section 26 zero-tolerance PASSED")
+        # 2026-08-18 · Wave 5 · daily discovery diagnostic
+        _diag_p = emit_daily_diagnostic(root, asof)
+        _dd = json.loads(_diag_p.read_text(encoding="utf-8"))
+        print(f"[opp_discovery] {_dd.get('verdict')}")
+    except Exception as _e:
+        print(f"[opp_validate] skipped · {type(_e).__name__}: {_e}")
+
     if not path.exists():
         _write_new_workbook(path, all_rows)
     else:
