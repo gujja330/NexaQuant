@@ -34,8 +34,12 @@ def test_1_repo_root_discovered_correctly():
         f"repo root missing run_daily.bat marker: {paths.REPO_ROOT}")
     assert (paths.REPO_ROOT / "india").is_dir(), (
         f"repo root missing india/ marker: {paths.REPO_ROOT}")
-    assert paths.REPO_ROOT.name in ("prism", "NexaQuant"), (
-        f"unexpected repo root name '{paths.REPO_ROOT.name}' (allowed: prism, NexaQuant)")
+    # 2026-08-18 · added 'nexaquant' (lowercase) for gujja330/nexaquant CI checkout.
+    # Old praveen330/NexaQuant used mixed case · gujja330 uses lowercase.
+    # Local dev folder is 'prism'.
+    assert paths.REPO_ROOT.name in ("prism", "NexaQuant", "nexaquant"), (
+        f"unexpected repo root name '{paths.REPO_ROOT.name}' "
+        f"(allowed: prism, NexaQuant, nexaquant)")
     print(f"  TEST 1 PASS: repo root discovered ({paths.REPO_ROOT.name})")
 
 
