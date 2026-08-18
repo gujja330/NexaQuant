@@ -272,24 +272,43 @@ def _lookup_history_first_seen(root, market: str, runner: str, ticker: str) -> s
 def _opportunity_status(root, market: str, runner: str, ticker: str, asof: str) -> str:
     """Classify per operator Section 12: NEW / EXISTING / RE-ENTRY.
 
-    NEW      · never seen before OR first-seen date == today's asof
-    EXISTING · seen before today AND not previously exited
-    RE-ENTRY · seen before today AND previously exited (position closed
-               then re-selected · rare · gets a NEW Position ID upstream)
+    2026-08-18 · Wave 2 · authoritative source is the Opportunity Registry.
+    Falls back to workbook history if registry is empty (bootstrap case).
+
+    NEW      · registry has no ACTIVE opportunity OR created_date == asof
+    EXISTING · registry has ACTIVE opportunity with created_date < asof AND
+               no prior CLOSED opportunity for this (mkt,runner,ticker)
+    RE-ENTRY · registry has ACTIVE opportunity AND prior CLOSED exists
     """
-    earliest = _lookup_history_first_seen(root, market, runner, ticker)
-    if not earliest or earliest == asof[:10]:
-        return "NEW"
-    # Check exit history to distinguish EXISTING vs RE-ENTRY
     tk_bare = (ticker or "").upper().replace(".NS", "").replace(".BO", "")
     rn = (runner or "").upper().replace("_NEW", "")
     try:
-        exited = _load_exited_set(root, market)
-        if (rn, tk_bare) in exited:
-            return "RE-ENTRY"
+        from backend.research import opportunity_registry as _oreg
+        reg = _oreg.load_all(root)
+        opps = reg.get((market.lower(), rn, tk_bare), [])
+        active = [o for o in opps if o.is_active()]
+        if not active:
+            return "NEW"
+        opp = active[0]
+        if opp.created_date == asof[:10]:
+            return "NEW"
+        # Prior CLOSED opportunities for same (mkt,runner,ticker) = RE-ENTRY
+        prior_closed = [o for o in opps
+                              if o.status == "CLOSED"
+                              and o.opportunity_id != opp.opportunity_id]
+        return "RE-ENTRY" if prior_closed else "EXISTING"
     except Exception:
-        pass
-    return "EXISTING"
+        # Fallback · legacy workbook-history-only logic
+        earliest = _lookup_history_first_seen(root, market, runner, ticker)
+        if not earliest or earliest == asof[:10]:
+            return "NEW"
+        try:
+            exited = _load_exited_set(root, market)
+            if (rn, tk_bare) in exited:
+                return "RE-ENTRY"
+        except Exception:
+            pass
+        return "EXISTING"
 
 
 def _position_stage(days_held: int, health_band: str, status: str) -> str:
@@ -465,14 +484,26 @@ def _rec_to_row(rec: Mapping, market: str, root: Path,
         if entry_price is None:
             entry_price = current_price
         if not first_seen:
-            # 2026-08-15 · Section 7 fix · Before falling back to today's asof,
-            # look up earliest appearance of this (market, runner, ticker) in
-            # the current aegis_history.xlsx. Fixes the ONGC / HINDUNILVR bug
-            # where position_store was missing them, so Recommended got
-            # restamped to today every day and opp_age flagged them NEW forever.
-            _hist_first_seen = _lookup_history_first_seen(root, market,
-                                                                                (runner or "").replace("_NEW",""), ticker)
-            first_seen = _hist_first_seen or asof
+            # 2026-08-18 · Wave 2 · consult persistent Opportunity Registry
+            # FIRST · falls back to workbook history only if the registry
+            # is empty (bootstrap case). Registry is the SSoT for the
+            # opportunity's created_date across the entire lifecycle
+            # (fixes Zydus/ONGC/Hindunilvr NEW-forever bug at the root).
+            try:
+                from backend.research import opportunity_registry as _oreg
+                _r_clean = (runner or "").replace("_NEW", "").upper()
+                _tk_bare = ticker.replace(".NS","").replace(".BO","").upper()
+                _opp = _oreg.get_or_create(
+                    root, market, _r_clean, _tk_bare, asof,
+                    initial_signal=status or "",
+                    initial_rank=rank if isinstance(rank, int) else None,
+                )
+                first_seen = _opp.created_date or asof
+            except Exception:
+                # Fallback · legacy workbook history lookup
+                _hist_first_seen = _lookup_history_first_seen(root, market,
+                                                                                    (runner or "").replace("_NEW",""), ticker)
+                first_seen = _hist_first_seen or asof
 
     stop = ez.get("stop_loss")
     t1 = ez.get("target_1")
