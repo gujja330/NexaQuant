@@ -1192,6 +1192,31 @@ def main() -> int:
                 cell.alignment = _Align(horizontal="center", vertical="center")
                 portfolio_ws.column_dimensions[_gcl_src(c)].width = widths_pos[c-1]
 
+            # 2026-08-18 · Wave 3 · Section 15 · slim client-facing view.
+            # Operator wants ~15 essential columns visible · not 32.
+            # Hide internal-audit columns in Excel (preserved in file for
+            # research/audit consumers · just not shown by default). Excel
+            # 'Unhide' reveals them if operator ever needs the full view.
+            _HIDDEN_COL_NAMES = {
+                "Price Trigger",        # 4  · redundant with Stop Loss + Target
+                "Execution Window",     # 6
+                "R1/R2 Consensus",      # 8
+                "Exit Date",            # 12 · only meaningful for closed rows
+                "Action",               # 16 · Decision (col 2) is operator-facing
+                "Review",               # 17
+                "Inv Quality",          # 19 · internal
+                "Investability",        # 20 · internal score
+                "Exit Price",           # 23 · only for closed
+                "Action Note",          # 28
+                "Alerts",               # 29 · internal (Risk Controller reads this)
+                "Exit Reason",          # 30 · only for closed
+                "Post-Exit Assessment", # 31 · analytical / research only
+                "Decision Basis",       # 32 · analytical / research only
+            }
+            for c, name in enumerate(pos_hdr, start=1):
+                if name in _HIDDEN_COL_NAMES:
+                    portfolio_ws.column_dimensions[_gcl_src(c)].hidden = True
+
             # 2026-08-14 operator-approved · sort by decision-TIER (not
             # priority bucket). Same tier logic used for row color · classifier
             # walks match_order in configs/decision_colors.yaml.
@@ -1253,7 +1278,96 @@ def main() -> int:
                 return (tier_rank, -pnl)
 
             positions_sorted = sorted(positions, key=_sort_key)
-            for i, (dt, r) in enumerate(positions_sorted, start=_pos_header_row + 1):
+
+            # 2026-08-18 · Wave 3 · Section 17 · INDIGO filter.
+            # Drop rows whose (mkt, runner, ticker) has a REJECTED opportunity
+            # in the registry with created_date == this row's row_date. Those
+            # are same-day close/rotation artifacts · must never appear in the
+            # active Portfolio (would confuse operator with 'NEW + CLOSED').
+            _rejected_row_keys: set = set()
+            try:
+                from backend.research import opportunity_registry as _oreg
+                _reg = _oreg.load_all(_ROOT)
+                for _opps in _reg.values():
+                    for _o in _opps:
+                        if _o.status == "REJECTED":
+                            _rejected_row_keys.add(
+                                (_o.market.lower(), _o.runner.upper(),
+                                  _o.ticker.upper(), _o.created_date[:10]))
+            except Exception:
+                pass
+            if _rejected_row_keys:
+                _before_flt = len(positions_sorted)
+                _kept = []
+                for _item in positions_sorted:
+                    _dt, _r = _item
+                    _tk = str(_r[c_tk-1].value or "").upper().replace(".NS","").replace(".BO","")
+                    _rn = str(_r[3].value or "").upper().replace("_NEW","")
+                    _rd = str(_r[c_recommended-1].value or "")[:10] if c_recommended else ""
+                    if (mkt_key.lower(), _rn, _tk, _rd) in _rejected_row_keys:
+                        continue    # drop INDIGO-style rejected same-day row
+                    _kept.append(_item)
+                positions_sorted = _kept
+                if len(positions_sorted) < _before_flt:
+                    print(f"[xlsx:{mkt_key}] INDIGO filter · dropped "
+                          f"{_before_flt - len(positions_sorted)} REJECTED same-day rows")
+
+            # 2026-08-18 · Wave 3 · Section 17 · 3-section banner rows.
+            # Group positions by section · order them as a flat list where
+            # section transitions inject a banner-row placeholder. The write
+            # loop below emits banners inline when it encounters one.
+            _SECTION_ORDER = [
+                ("new_opps",  "🆕 NEW OPPORTUNITIES TODAY",     "B4C7E7", "000000"),
+                ("existing",  "📊 EXISTING POSITIONS",         "E2EFDA", "000000"),
+                ("action",    "⚠️  ACTION REQUIRED · EXITS",   "FCE4D6", "9C0006"),
+                ("closed",    "⚪ CLOSED · REFERENCE ONLY",   "D9D9D9", "595959"),
+            ]
+            def _row_section(_item):
+                _dt, _r = _item
+                _st = str(_r[c_st-1].value or "").upper()
+                _al = str(_r[c_alerts-1].value if c_alerts else "").upper()
+                _rd = str(_r[c_recommended-1].value or "")[:10] if c_recommended else ""
+                _same_day = _rd == asof[:10] and _st != "EXIT"
+                if any(sig in _al for sig in BINDING_RISK_SIGNALS): return "action"
+                if _st == "EXIT": return "closed"
+                if _same_day: return "new_opps"
+                return "existing"
+
+            # Reorder positions_sorted by (section, existing sort) so
+            # rows for each section are contiguous. Keeps within-section
+            # ordering (P&L desc within tier).
+            _by_section: dict = {k: [] for k, *_ in _SECTION_ORDER}
+            for _item in positions_sorted:
+                _by_section.setdefault(_row_section(_item), []).append(_item)
+            positions_sorted = []
+            _banner_row_indexes: dict = {}   # {row_index: (banner_text, fill_hex, text_hex)}
+            _cursor = _pos_header_row + 1
+            for _sect_key, _banner_text, _fill_hex, _text_hex in _SECTION_ORDER:
+                _rr = _by_section.get(_sect_key) or []
+                if not _rr: continue
+                _banner_row_indexes[_cursor] = (_banner_text, _fill_hex, _text_hex)
+                _cursor += 1               # reserve banner row
+                for _r in _rr:
+                    positions_sorted.append(_r)
+                    _cursor += 1
+
+            # Emit banners now (write loop uses assigned row indexes).
+            for _br, (_txt, _fill, _tc) in _banner_row_indexes.items():
+                portfolio_ws.merge_cells(start_row=_br, start_column=1,
+                                                          end_row=_br, end_column=len(pos_hdr))
+                _bc = portfolio_ws.cell(_br, 1, _txt)
+                _bc.font = _Font(bold=True, size=12, color=_tc)
+                _bc.fill = _PF(start_color=_fill, end_color=_fill, fill_type="solid")
+                _bc.alignment = _Align(horizontal="center", vertical="center")
+                portfolio_ws.row_dimensions[_br].height = 20
+
+            # Build (target_row_index, item) pairs so the write loop uses
+            # row indices that skip past banner rows.
+            _row_indexes = [r for r in range(_pos_header_row + 1, _cursor)
+                                    if r not in _banner_row_indexes]
+            for i, (dt, r) in zip(_row_indexes, positions_sorted):
+                # (loop body below is the original write logic)
+                # First iteration variable unpacking · pass through
                 tk = r[c_tk-1].value
                 status = r[c_st-1].value
                 entry_v = r[c_entry-1].value if c_entry else None
