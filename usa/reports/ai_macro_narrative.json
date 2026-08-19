@@ -2,145 +2,95 @@
   "engine": "ai_macro_narrative",
   "version": "v1.0",
   "market": "usa",
-  "run_utc": "2026-08-14T15:57:06+00:00",
-  "asof": "2026-08-14",
+  "run_utc": "2026-08-19T14:33:25+00:00",
+  "asof": "2026-08-19",
   "output": {
     "agent": "macro_analyst",
     "version": "v1.0",
     "market": "usa",
-    "asof": "2026-08-14",
-    "headline": "regime=unknown \u00b7 vol=calm \u00b7 active_impacts=2 \u00b7 macro_score=+0.20",
-    "narrative": "regime=unknown \u00b7 vol=calm \u00b7 active_impacts=2 \u00b7 macro_score=+0.20.\n\nAEGIS Macro & Intermarket Intelligence audit. Combines commodity moves, currency pressures, yield curve, VIX regime, and sector rotation into a single macro regime call. Emits an impact matrix + knowledge graph that downstream engines (Recommendation, Risk, Portfolio, Learning, AI Auditor) will consume from Sprint 8 onward.\n\nDoes NOT approve or promote \u2014 every commodity impact, sector rotation call, and regime label is DESCRIPTIVE and requires operator interpretation. AI never trades on macro alone.",
+    "asof": "2026-08-19",
+    "headline": "regime=unknown \u00b7 vol=normal \u00b7 active_impacts=0 \u00b7 macro_score=+0.10",
+    "narrative": "regime=unknown \u00b7 vol=normal \u00b7 active_impacts=0 \u00b7 macro_score=+0.10.\n\nAEGIS Macro & Intermarket Intelligence audit. Combines commodity moves, currency pressures, yield curve, VIX regime, and sector rotation into a single macro regime call. Emits an impact matrix + knowledge graph that downstream engines (Recommendation, Risk, Portfolio, Learning, AI Auditor) will consume from Sprint 8 onward.\n\nDoes NOT approve or promote \u2014 every commodity impact, sector rotation call, and regime label is DESCRIPTIVE and requires operator interpretation. AI never trades on macro alone.",
     "findings": [
       {
         "type": "macro_regime",
         "primary": "unknown",
-        "secondary": "inflationary",
+        "secondary": null,
         "confidence": 0.9,
-        "macro_score": 0.2,
+        "macro_score": 0.1,
         "evidence": {
-          "vol_regime": "calm",
-          "oil_1w_pct": 5.075,
-          "gold_1w_pct": 2.403,
-          "usd_1w_pct": 0.053,
+          "vol_regime": "normal",
+          "oil_1w_pct": 2.956,
+          "gold_1w_pct": 2.788,
+          "usd_1w_pct": -1.046,
           "yield_curve_inversion": false,
-          "ten_year_1m_bps": -1.8923360000000002
+          "ten_year_1m_bps": -5.5345770000000005
         }
       },
       {
         "type": "volatility",
         "symbol": "^VIX",
-        "level": 14.61,
-        "regime": "calm",
-        "chg_1m_pct": -11.185
+        "level": 15.37,
+        "regime": "normal",
+        "chg_1m_pct": -1.285
       },
       {
         "type": "central_bank_state",
         "bank": "Fed",
         "rate_cycle": "neutral",
-        "yield_curve_slope": 33.8,
+        "yield_curve_slope": 30.4,
         "inversion": false,
         "liquidity_score": 0.0,
         "notes": [
-          "Fed: cycle=neutral \u00b7 short_1m=-9.7384bps"
+          "Fed: cycle=neutral \u00b7 short_1m=-9.2625bps"
         ]
-      },
-      {
-        "type": "commodity_impact",
-        "commodity": "Brent Crude",
-        "direction": "up",
-        "positive_sectors": [
-          "Energy",
-          "Oil Producers"
-        ],
-        "negative_sectors": [
-          "Airlines",
-          "Transportation",
-          "Auto",
-          "Paints"
-        ],
-        "confidence": 0.9,
-        "rationale": ""
-      },
-      {
-        "type": "commodity_impact",
-        "commodity": "WTI Crude",
-        "direction": "up",
-        "positive_sectors": [
-          "Energy",
-          "Oil Producers",
-          "Oil Services"
-        ],
-        "negative_sectors": [
-          "Airlines",
-          "Transportation",
-          "Consumer Discretionary",
-          "Paints",
-          "FMCG",
-          "Auto",
-          "Logistics",
-          "Chemicals"
-        ],
-        "confidence": 0.92,
-        "rationale": "Rising oil raises transportation + input costs; erodes margins for downstream consumers; boosts upstream producers. Historically the single most reliable commodity \u2192 sector relationship."
       },
       {
         "type": "sector_rotation",
         "leaders": [
           {
             "sector": "Energy",
-            "return_pct": 16.52
-          },
-          {
-            "sector": "Financials",
-            "return_pct": 3.71
+            "return_pct": 17.04
           },
           {
             "sector": "Healthcare",
-            "return_pct": 3.4
+            "return_pct": 8.65
+          },
+          {
+            "sector": "Financials",
+            "return_pct": 4.57
           }
         ],
         "laggards": [
           {
             "sector": "Utilities",
-            "return_pct": -2.3
-          },
-          {
-            "sector": "Consumer Discretionary",
-            "return_pct": 0.09
+            "return_pct": -2.26
           },
           {
             "sector": "Industrials",
-            "return_pct": 0.51
+            "return_pct": -1.23
+          },
+          {
+            "sector": "Technology",
+            "return_pct": -1.09
           }
         ],
-        "rotation_strength": 0.37
-      },
-      {
-        "type": "knowledge_graph_summary",
-        "n_entries": 2,
-        "factor_kinds": [
-          "commodity"
-        ],
-        "top_factors": [
-          "Brent Crude",
-          "WTI Crude"
-        ]
+        "rotation_strength": 0.396
       },
       {
         "type": "composition",
         "n_commodities": 3,
         "n_currencies": 1,
         "n_bonds": 4,
-        "n_active_impacts": 2,
-        "n_kg_entries": 2
+        "n_active_impacts": 0,
+        "n_kg_entries": 0
       }
     ],
     "evidence": {
       "primary_regime": "unknown",
-      "vol_regime": "calm",
-      "n_active_impacts": 2,
-      "macro_score": 0.2
+      "vol_regime": "normal",
+      "n_active_impacts": 0,
+      "macro_score": 0.1
     },
     "citations": [
       "backend/macro_intel/engine.py",
