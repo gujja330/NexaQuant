@@ -449,11 +449,33 @@ def _rec_to_row(rec: Mapping, market: str, root: Path,
     entry_price = first_seen = high_water = low_water = None
     if ps:
         entry_price = ps.get("first_seen_price")
-        first_seen = ps.get("first_seen_date")
+        # 2026-08-20 · Registry-SSoT fix · DO NOT take first_seen_date from
+        # position_store any more. position_store gets restamped daily by
+        # the portfolio_manager which is exactly the bug that made Zydus/
+        # ONGC/HINDUNILVR show NEW every day. Registry is now the SSoT for
+        # first_seen · consulted unconditionally below (line ~490).
+        # first_seen = ps.get("first_seen_date")   # ← disabled · was the bug source
         high_water = ps.get("high_water_price")
         low_water = ps.get("low_water_price")
         if current_price is None:
             current_price = ps.get("last_seen_price")
+
+    # 2026-08-20 · Registry SSoT · consult BEFORE any other fallback so
+    # the immutable created_date always wins over position_store /
+    # workbook-history / asof. Guarantees NEW-once semantics regardless
+    # of downstream restamping bugs.
+    try:
+        from backend.research import opportunity_registry as _oreg
+        _r_clean = (runner or "").replace("_NEW", "").upper()
+        _tk_bare = ticker.replace(".NS","").replace(".BO","").upper()
+        _opp = _oreg.get_or_create(
+            root, market, _r_clean, _tk_bare, asof,
+            initial_signal=status or "",
+            initial_rank=rank if isinstance(rank, int) else None,
+        )
+        first_seen = _opp.created_date or first_seen
+    except Exception:
+        pass   # registry unavailable · falls through to legacy logic below
 
     # P0 FIX 2026-08-06 · never fall back to current_price for Entry
     # (operator: "AEGIS is recreating the recommendation every day · Entry

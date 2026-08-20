@@ -237,6 +237,10 @@ jobs:
           # tomorrow's CI reads TODAY's canonical horizons + recs.
           git add reports/recommendations.json reports/dynamic_holding.json 2>/dev/null || true
           git add reports/research/portfolio_snapshot_*.json reports/research/portfolio_ledger.jsonl reports/research/rotation_ledger.jsonl 2>/dev/null || true
+          # 2026-08-20 · Sprint K Part 30 · Registry MUST persist across CI runs
+          # or every fresh checkout treats every ticker as first-time NEW (bug).
+          git add reports/research/opportunity_registry.jsonl 2>/dev/null || true
+          git add reports/context/opportunity_violations.json reports/context/daily_opportunity_discovery.json 2>/dev/null || true
           # Phase 2 v2 artifacts (best-effort; skip if any are missing on a given day)
           git add reports/investment_intelligence.json reports/intelligence_summary.json reports/intelligence_conflicts.json reports/intelligence_explanation.json reports/investment_intelligence.parquet 2>/dev/null || true
           git add reports/adaptive_rec_v2_signal.json reports/adaptive_rec_v2_scoreboard.json reports/adaptive_rec_v2_feature_importance.json reports/adaptive_rec_v2_reliability.json reports/adaptive_rec_v2_signal.parquet reports/adaptive_rec_v2_migration.md 2>/dev/null || true
