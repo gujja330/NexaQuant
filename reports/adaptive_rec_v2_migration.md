@@ -1,6 +1,6 @@
 # Adaptive Recommendation Engine · v1.4 → v2.0 · Migration Guide
 
-_Generated 2026-08-19T03:31:41.213982+00:00Z · code_sha `ac550ced98f7`_
+_Generated 2026-08-20T03:30:55.266899+00:00Z · code_sha `eb272df766da`_
 
 ## Summary
 
