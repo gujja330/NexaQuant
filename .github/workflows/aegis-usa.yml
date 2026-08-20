@@ -136,6 +136,9 @@ jobs:
           # or every fresh checkout treats every ticker as first-time NEW (bug).
           git add reports/research/opportunity_registry.jsonl 2>/dev/null || true
           git add reports/context/opportunity_violations.json reports/context/daily_opportunity_discovery.json 2>/dev/null || true
+          # 2026-08-20 · commit per-market XLSX too · so local devs pulling
+          # the repo get freshest India+USA delivered files (was Aug-14 stale).
+          git add reports/telegram/aegis_history_india.xlsx reports/telegram/aegis_history_usa.xlsx 2>/dev/null || true
           git diff --cached --quiet || git commit -m "AEGIS USA daily: refresh reports [skip ci]"
           git push || true
 

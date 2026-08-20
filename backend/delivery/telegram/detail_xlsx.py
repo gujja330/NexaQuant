@@ -474,6 +474,14 @@ def _rec_to_row(rec: Mapping, market: str, root: Path,
             initial_rank=rank if isinstance(rank, int) else None,
         )
         first_seen = _opp.created_date or first_seen
+        # 2026-08-20 · when this row is Status=EXIT, transition the
+        # opportunity to CLOSED in the Registry. Idempotent · already-
+        # closed returns unchanged. Fixes 'registry never records
+        # closes · re-entry logic can't distinguish new-vs-old on
+        # future re-selection'.
+        if str(status or "").upper() == "EXIT" and _opp.is_active():
+            _oreg.close(root, _opp.opportunity_id, asof,
+                            reason=str(exit_reason or "EXIT"))
     except Exception:
         pass   # registry unavailable · falls through to legacy logic below
 

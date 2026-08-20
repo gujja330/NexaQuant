@@ -84,9 +84,15 @@ def main() -> int:
         print("[bootstrap] required columns missing · abort")
         wb.close(); return 1
 
-    # Walk every row · for each (market, runner, ticker) record earliest Date
-    # + the Status observed on that earliest date (as initial_signal)
+    # Walk every row · for each (market, runner, ticker):
+    #   · earliest[key]        = (earliest Date, Status on that earliest date)
+    #   · latest_exit[key]     = (EXIT Date, exit reason) if ever exited · else None
+    # 2026-08-20 · enhanced from creation-only seed to also close opportunities
+    # whose most-recent status in history is EXIT · fixes 'all 596 records
+    # marked ACTIVE despite dozens of visible ⚪ CLOSED rows in Aug 20 output'.
     earliest: dict = {}
+    latest_exit: dict = {}   # key -> (exit_date, exit_reason)
+    c_exit_reason = _col("Exit Reason")
     for r in range(2, ws.max_row + 1):
         mk = str(ws.cell(r, c_ctry).value or "").lower()
         rn = str(ws.cell(r, c_run).value or "").upper().replace("_NEW", "")
@@ -99,9 +105,17 @@ def main() -> int:
         prev = earliest.get(key)
         if prev is None or dt < prev[0]:
             earliest[key] = (dt, st)
+        # Track EXIT events · keep latest exit date per key
+        if str(st).upper() == "EXIT":
+            reason = str(ws.cell(r, c_exit_reason).value or "").strip() \
+                          if c_exit_reason else ""
+            prior_exit = latest_exit.get(key)
+            if prior_exit is None or dt > prior_exit[0]:
+                latest_exit[key] = (dt, reason or "closed in history")
     wb.close()
 
     print(f"[bootstrap] found {len(earliest)} unique (market, runner, ticker) tuples")
+    print(f"[bootstrap] detected {len(latest_exit)} tuples that were EXITed at some point")
 
     # Load current registry · skip tuples that already have ACTIVE entry
     reg = _oreg.load_all(_ROOT)
@@ -131,9 +145,31 @@ def main() -> int:
         except Exception as e:
             print(f"  ! failed to seed {key}: {type(e).__name__}: {e}")
 
+    # 2026-08-20 · close-transition pass · walk latest_exit and mark those
+    # opportunities EXITed. Operator directive "exit or close one word is
+    # enough · prefer exit default" · so we call registry.close() (which
+    # sets status=CLOSED internally · display layer renders as EXIT).
+    n_closed = 0
+    if not args.dry_run:
+        reg = _oreg.load_all(_ROOT)   # refresh · include just-seeded records
+        for key, (exit_dt, reason) in sorted(latest_exit.items()):
+            opps = reg.get(key, [])
+            active = [o for o in opps if o.is_active()]
+            if not active:
+                continue
+            opp = active[0]
+            try:
+                _oreg.close(_ROOT, opp.opportunity_id, exit_dt, reason,
+                                  registry=reg)
+                n_closed += 1
+            except Exception as e:
+                print(f"  ! failed to close {key}: {type(e).__name__}: {e}")
+
     print()
     print(f"[bootstrap] {'would seed' if args.dry_run else 'seeded'}: {n_seeded}")
     print(f"[bootstrap] skipped (already active in registry): {n_skipped}")
+    if not args.dry_run:
+        print(f"[bootstrap] closed (Exit detected in history): {n_closed}")
     if seeded_samples:
         print()
         print(f"  sample of {'planned' if args.dry_run else 'seeded'} entries:")
@@ -148,7 +184,8 @@ def main() -> int:
         # Verify by reading back
         reg2 = _oreg.load_all(_ROOT)
         actives = _oreg.active_opportunities(reg2)
-        print(f"  ✓ verified · {len(actives)} ACTIVE opportunities in registry")
+        closes  = _oreg.count_by_status(reg2).get("CLOSED", 0)
+        print(f"  ✓ verified · ACTIVE={len(actives)}  CLOSED={closes}  (CLOSED renders as EXIT in Portfolio)")
     return 0
 
 

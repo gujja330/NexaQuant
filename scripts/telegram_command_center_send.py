@@ -906,7 +906,7 @@ def main() -> int:
                 elif hist_bucket == "J":
                     h_decision = "⚪ ARTIFACT · not held"
                 elif hist_bucket in ("I", "H"):
-                    h_decision = "⚪ CLOSED"
+                    h_decision = "🔴 EXIT"      # 2026-08-20 · one-word · CLOSED collapsed
 
                 # Write 12 appended columns (positions from END)
                 # Compute Execution Layer for History rows too
@@ -1320,7 +1320,7 @@ def main() -> int:
                 ("new_opps",  "🆕 NEW OPPORTUNITIES TODAY",     "B4C7E7", "000000"),
                 ("existing",  "📊 EXISTING POSITIONS",         "E2EFDA", "000000"),
                 ("action",    "⚠️  ACTION REQUIRED · EXITS",   "FCE4D6", "9C0006"),
-                ("closed",    "⚪ CLOSED · REFERENCE ONLY",   "D9D9D9", "595959"),
+                ("closed",    "🔴 EXIT · REFERENCE ONLY",    "D9D9D9", "9C0006"),
             ]
             def _row_section(_item):
                 _dt, _r = _item
@@ -1539,12 +1539,11 @@ def main() -> int:
                         f"🔴 EXIT · {_hit_signal.replace('_',' ').title()} · IMMEDIATE",
                         "red")
                 elif priority_bucket == "J":
-                    decision_text, decision_color_key = "⚪ ARTIFACT · not held", "gray"
+                    # 2026-08-20 · one-word rule · ARTIFACT collapsed to EXIT
+                    decision_text, decision_color_key = "🔴 EXIT · same-day rotation", "red"
                 elif priority_bucket in ("I", "H"):
-                    # 2026-08-14 · both closed-position buckets route to CLOSED.
-                    # Previously H fell through to _resolve_decision which returned
-                    # HOLD · confusing for HEROMOTOCO/INDIANB/ATUL/NATIONALUM/OFSS.
-                    decision_text, decision_color_key = "⚪ CLOSED", "gray"
+                    # 2026-08-20 · one-word rule · CLOSED collapsed to EXIT
+                    decision_text, decision_color_key = "🔴 EXIT", "red"
                 elif _is_new_position and status != "EXIT":
                     _iv_key = str(inv_verdict).strip()
                     if _iv_key in ("🏆 QUALITY", "✓ OK"):
@@ -1571,16 +1570,23 @@ def main() -> int:
                 # 2026-08-10 CEO fix v6 · added REVIEWING state (explicit)
                 # 4 lifecycle states operator can act on unambiguously:
                 #   🆕 NEW        · first day of recommendation
-                #   🟢 ACTIVE     · held · both Runner + Portfolio agree to hold/protect
-                #   🟡 REVIEWING  · Runner=EXIT · Portfolio challenging (Priority H)
-                #   ⚪ CLOSED     · Runner=EXIT · Portfolio agrees close (Priority I)
-                #   ⚪ ARTIFACT   · same-day rotation (never held)
-                if priority_bucket == "I":
-                    lifecycle = "⚪ CLOSED"
-                elif priority_bucket == "H":
-                    lifecycle = "🟡 REVIEWING"   # NEW · portfolio disputing exit
-                elif priority_bucket == "J":
-                    lifecycle = "⚪ ARTIFACT"
+                # 2026-08-20 · operator directive "exit or close one word is
+                # enough · prefer exit default". Lifecycle vocab collapsed to:
+                #   🆕 NEW     · first day of the opportunity (rec_dt == today)
+                #   🟢 ACTIVE  · held (BUY/HOLD/PROTECT)
+                #   🔴 EXIT    · closed / rotated / same-day artifact · anything
+                #                terminal · one word covers I / H / J / R buckets
+                # Also · terminal Decision (starts with EXIT/CLOSED/ARTIFACT)
+                # FORCES Lifecycle=EXIT · fixes the NTPC/LICI/BATAINDIA case
+                # where Decision was EXIT but Lifecycle stayed ACTIVE.
+                _dec_up = str(decision_text or "").upper()
+                _is_terminal_decision = (
+                    priority_bucket in ("R", "I", "J", "H")
+                    or _dec_up.startswith("🔴 EXIT") or "CLOSED" in _dec_up
+                    or "ARTIFACT" in _dec_up
+                )
+                if _is_terminal_decision:
+                    lifecycle = "🔴 EXIT"
                 elif rec_dt and dt and rec_dt == dt:
                     lifecycle = "🆕 NEW"
                 else:

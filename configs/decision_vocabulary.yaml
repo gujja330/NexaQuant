@@ -60,10 +60,10 @@ rules:
 
   # ═══ TERMINAL · CLOSED · not actionable ═══
   - match: {action: "CLOSED"}
-    decision: "⚪ CLOSED"
+    decision: "🔴 EXIT"        # 2026-08-20 · CLOSED collapsed into EXIT · one-word rule
     color: gray
   - match: {action: "IGNORE"}
-    decision: "⚪ CLOSED"         # ARTIFACT collapsed into CLOSED
+    decision: "🔴 EXIT"        # 2026-08-20 · CLOSED collapsed into EXIT · one-word rule         # ARTIFACT collapsed into CLOSED
     color: gray
 
   # ═══ FALLBACK ═══
@@ -85,7 +85,8 @@ allowed_decisions:
   - "HOLD"
   - "PROTECT"
   - "EXIT"
-  - "CLOSED"
+  # 2026-08-20 · operator "exit or close one word is enough · prefer exit default"
+  # CLOSED collapsed into EXIT · same terminal semantics · one label wins
 
 # Section 5 filter · SKIP never appears in the primary portfolio table.
 # Sender enforces this via `_skip_from_portfolio` check.
