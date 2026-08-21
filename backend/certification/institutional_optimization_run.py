@@ -55,12 +55,71 @@ def main() -> int:
             json.dumps(asdict(rep), indent=2, default=str), encoding="utf-8")
         # Enrich SSoT recs · add percentile_action field alongside existing action
         pct_by_ticker = {d["ticker"]: d for d in rep.decisions}
+        # 2026-08-21 · PROMOTE percentile_action to the PRIMARY `action`/
+        # `recommendation` field · INDIA ONLY for now.
+        #
+        # Why:
+        #   The absolute-threshold classifier at backend/recommendation/
+        #   classifier.py requires calibrated_confidence >= 0.50 to emit a
+        #   BUY. India recs land in [0.24, 0.44] due to the calibration
+        #   damping formula, so every rec drops to HOLD — 15/15 HOLD for
+        #   3+ consecutive days. Operator: "multiple times i said so far,
+        #   new recommendations is not seen".
+        #   The percentile classifier is the institutional pattern — top/
+        #   bottom 20% become actionable regardless of absolute magnitude
+        #   (cross-sectional ranking, not absolute threshold). It runs in
+        #   this same step but only writes a sidecar field; consumers still
+        #   read the stale absolute-classifier action.
+        #   investor_actionable/engine.py:643 already prefers percentile_
+        #   action · this promotion finishes the migration for every OTHER
+        #   consumer (Telegram sender, dashboard, ops_check).
+        #
+        # Why India only:
+        #   USA already emits balanced actions (~8 BUY / 7 HOLD in current
+        #   payload) with the absolute classifier · promoting to percentile
+        #   would narrow USA to top-20% only (3 BUYs), a regression. Extend
+        #   to USA later if/when its distribution also collapses to all-HOLD.
+        promoted = 0
+        promoted_from: dict[str, int] = {}
+        new_action_dist: dict[str, int] = {}
+        _do_promote = (str(args.market).lower() == "india")
         for r in recs:
             pcd = pct_by_ticker.get(r["ticker"])
             if pcd:
                 r["percentile_action"] = pcd["action"]
                 r["score_percentile"] = pcd["score_percentile"]
                 r["percentile_reason"] = pcd["reason"]
+                if _do_promote:
+                    orig = r.get("action") or r.get("recommendation") or "HOLD"
+                    # Normalize percentile vocab (STRONG_BUY → STRONG BUY ·
+                    # matches ssot/bridge.py::ACTION_MAP output vocabulary).
+                    new_action = pcd["action"].replace("_", " ")
+                    if new_action != orig:
+                        promoted += 1
+                        promoted_from[f"{orig}->{new_action}"] = (
+                            promoted_from.get(f"{orig}->{new_action}", 0) + 1)
+                    r["action_prior_absolute"] = orig
+                    r["action"] = new_action
+                    r["recommendation"] = new_action
+                    new_action_dist[new_action] = new_action_dist.get(new_action, 0) + 1
+        if _do_promote:
+            payload["action_distribution"] = new_action_dist
+            payload["percentile_promotion"] = {
+                "enabled":        True,
+                "market":         args.market,
+                "promoted_count": promoted,
+                "transitions":    promoted_from,
+                "note":           ("percentile_action promoted to primary action field "
+                                    "on 2026-08-21 · fixes all-HOLD stuck state · "
+                                    "audit trail preserved in `action_prior_absolute` · "
+                                    "India-only for now (USA absolute classifier still balanced)"),
+            }
+        else:
+            payload["percentile_promotion"] = {
+                "enabled": False,
+                "market":  args.market,
+                "note":    "percentile promotion applies to India only · USA absolute classifier still balanced",
+            }
         payload["recommendations"] = recs
         payload["percentile_engine"] = "aegis.recommendation.percentile_classifier.v1"
 

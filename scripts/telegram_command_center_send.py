@@ -985,7 +985,14 @@ def main() -> int:
             unrealized_sum = 0.0; n_unrealized = 0
             n_win = 0; n_loss = 0; n_flat = 0
             n_artifact = 0
-            best_pos = ("", 0.0); worst_pos = ("", 0.0)
+            # 2026-08-21 · operator flagged "P&L says LICI top but row shows EXIT" ·
+            # root cause was a single portfolio-wide best_pos/worst_pos being
+            # visually paired with the Realized row while actually tracking the
+            # best of BOTH buckets. Split into per-bucket bests so the label
+            # next to Realized only refers to closed trades, and the label next
+            # to Unrealized only refers to open positions.
+            best_realized = ("", 0.0); worst_realized = ("", 0.0)
+            best_unreal   = ("", 0.0); worst_unreal   = ("", 0.0)
             # 2026-08-13 CEO bug fix · previous code used h.index("Recommended Date")
             # and h.index("Exit Date") which don't exist in source header
             # (real column is "Recommended" · there is no "Exit Date" column
@@ -1010,10 +1017,12 @@ def main() -> int:
                     continue   # do NOT contribute to open/closed/win-rate stats
 
                 pnl = None
+                is_realized = False
                 if status == "EXIT" and c_exit_pnl:
                     v = r[c_exit_pnl-1].value
                     if isinstance(v, (int, float)):
                         pnl = v; realized_sum += v; n_realized += 1
+                        is_realized = True
                 elif status != "EXIT":
                     entry_v = r[c_entry-1].value if c_entry else None
                     tk = r[c_tk-1].value
@@ -1025,8 +1034,13 @@ def main() -> int:
                     if pnl > 0.01: n_win += 1
                     elif pnl < -0.01: n_loss += 1
                     else: n_flat += 1
-                    if pnl > best_pos[1]: best_pos = (r[c_tk-1].value, pnl)
-                    if pnl < worst_pos[1]: worst_pos = (r[c_tk-1].value, pnl)
+                    tk_v = r[c_tk-1].value
+                    if is_realized:
+                        if pnl > best_realized[1]:  best_realized = (tk_v, pnl)
+                        if pnl < worst_realized[1]: worst_realized = (tk_v, pnl)
+                    else:
+                        if pnl > best_unreal[1]:    best_unreal   = (tk_v, pnl)
+                        if pnl < worst_unreal[1]:   worst_unreal  = (tk_v, pnl)
             combined = realized_sum + unrealized_sum
             n_total = n_realized + n_unrealized
             # Win rate denominator excludes flats (per formal definition above)
@@ -1057,13 +1071,21 @@ def main() -> int:
                     _n_skip_tracked = sum(1 for l in _skip_dataset.read_text(encoding="utf-8").splitlines() if l.strip())
                 except Exception:
                     pass
+            # 2026-08-21 · label pairs each P&L row with a best/worst FROM THE
+            # SAME BUCKET so operator can't misread a still-open winner (LICI
+            # HOLD +7.92%) as a closed realized winner.
+            def _fmt(pair, empty="—"):
+                if not pair[0]: return empty
+                return f"{pair[0]} {pair[1]:+.2f}%"
             kpi_rows = [
                 ["Realized P&L (closed)", realized_sum / 100.0, f"{n_realized} closed",
-                 "Best position", f"{best_pos[0]} {best_pos[1]:+.2f}%"],
+                 "Top closed",   _fmt(best_realized)],
                 ["Unrealized P&L (open)", unrealized_sum / 100.0, f"{n_unrealized} open",
-                 "Worst position", f"{worst_pos[0]} {worst_pos[1]:+.2f}%"],
+                 "Top open",     _fmt(best_unreal)],
                 ["COMBINED PORTFOLIO",    combined / 100.0,      f"{n_total} real positions",
                  "Win rate", f"{win_rate}% ({n_win}W / {n_loss}L · {n_flat} flat excluded)"],
+                ["Worst positions",       "",                    "",
+                 "Realized · Open", f"{_fmt(worst_realized)}  ·  {_fmt(worst_unreal)}"],
                 ["Artifacts (excluded)",  "",                    f"{n_artifact} same-day rotations",
                  "Note", "not counted in P&L / win rate"],
                 ["Opportunity dataset",   "",                    f"{_n_skip_tracked} SKIP candidates tracked",
