@@ -1077,15 +1077,19 @@ def main() -> int:
             def _fmt(pair, empty="—"):
                 if not pair[0]: return empty
                 return f"{pair[0]} {pair[1]:+.2f}%"
+            # 2026-08-21 · operator vocab: "active P&L, exit P&L makes sense".
+            # Rename Realized→Exit, Unrealized→Active so labels match the
+            # section banners the operator scans daily (EXISTING POSITIONS
+            # = active · EXIT · REFERENCE ONLY = exits).
             kpi_rows = [
-                ["Realized P&L (closed)", realized_sum / 100.0, f"{n_realized} closed",
-                 "Top closed",   _fmt(best_realized)],
-                ["Unrealized P&L (open)", unrealized_sum / 100.0, f"{n_unrealized} open",
-                 "Top open",     _fmt(best_unreal)],
-                ["COMBINED PORTFOLIO",    combined / 100.0,      f"{n_total} real positions",
+                ["Exit P&L (closed)",      realized_sum / 100.0, f"{n_realized} exits",
+                 "Top exit",     _fmt(best_realized)],
+                ["Active P&L (open)",      unrealized_sum / 100.0, f"{n_unrealized} active",
+                 "Top active",   _fmt(best_unreal)],
+                ["COMBINED PORTFOLIO",     combined / 100.0,      f"{n_total} real positions",
                  "Win rate", f"{win_rate}% ({n_win}W / {n_loss}L · {n_flat} flat excluded)"],
-                ["Worst positions",       "",                    "",
-                 "Realized · Open", f"{_fmt(worst_realized)}  ·  {_fmt(worst_unreal)}"],
+                ["Worst positions",        "",                    "",
+                 "Exit · Active", f"{_fmt(worst_realized)}  ·  {_fmt(worst_unreal)}"],
                 ["Artifacts (excluded)",  "",                    f"{n_artifact} same-day rotations",
                  "Note", "not counted in P&L / win rate"],
                 ["Opportunity dataset",   "",                    f"{_n_skip_tracked} SKIP candidates tracked",
