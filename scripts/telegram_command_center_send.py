@@ -1122,6 +1122,26 @@ def main() -> int:
                     _new_detail = _diag.zero_reason or "no candidates cleared gates"
             except Exception as _e:
                 _new_detail = f"diagnostic error · {type(_e).__name__}: {_e}"
+            # 2026-08-21 · Wave 5 · rotation engine (§26 + §27).
+            # Compare weakest existing position vs strongest NEW candidate ·
+            # suggest ROTATE when strength gap exceeds threshold. Advisory
+            # only · never auto-executes a trade.
+            _rotate_summary = "ROTATE · engine unavailable"
+            _rotate_detail  = ""
+            try:
+                from backend.research import rotation_engine as _rot
+                _rep = _rot.compute(_ROOT, mkt_key.lower(), latest_date)
+                _rot.emit(_ROOT, _rep)
+                _rotate_summary = _rot.summary_line(_rep)
+                if _rep.n_suggestions > 0:
+                    _rotate_detail = " · ".join(
+                        f"{s['existing_ticker']}→{s['new_ticker']} "
+                        f"(+{s.get('alpha_delta_pp') or 0}pp)"
+                        for s in _rep.suggestions[:3])
+                else:
+                    _rotate_detail = _rep.reason_if_zero or ""
+            except Exception as _e:
+                _rotate_detail = f"rotation error · {type(_e).__name__}: {_e}"
             # 2026-08-21 · SKIP removed entirely per operator "we dont need skip
             # itself". Opportunity dataset tile deleted · no SKIP tracker.
             kpi_rows = [
@@ -1129,6 +1149,9 @@ def main() -> int:
                 # sees today's NEW state before scrolling past P&L numbers.
                 ["🆕 NEW OPPORTUNITIES",  "",                    _new_summary,
                  "Detail",       _new_detail],
+                # ROTATE suggestions panel · Wave 5 · § 26 + § 27
+                ["🔄 ROTATION SUGGESTIONS", "",                  _rotate_summary,
+                 "Detail",       _rotate_detail],
                 ["Exit P&L (closed)",      realized_sum / 100.0, f"{n_realized} exits",
                  "Top exit",     _fmt(best_realized)],
                 ["Active P&L (open)",      unrealized_sum / 100.0, f"{n_unrealized} active",

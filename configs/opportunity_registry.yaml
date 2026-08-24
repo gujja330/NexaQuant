@@ -28,6 +28,21 @@ re_entry:
   rejected_same_day_cooling_days: 3
 
 # ─────────────────────────────────────────────────────────────
+# Rotation engine (Wave 5) · daily replacement suggestions
+# ─────────────────────────────────────────────────────────────
+rotation:
+  # Alpha gap (in points) required before ROTATE is suggested.
+  # score/rank delta between weakest existing and strongest NEW must
+  # exceed this before we suggest swapping capital.
+  min_alpha_delta_pp:  5.0
+  # Existing positions younger than this are not suggested for rotation
+  # (give a new position time to work · reduces churn).
+  min_holding_days:    5
+  # Cap on suggestions surfaced per day · keeps operator focused on
+  # the most impactful pairs.
+  max_suggestions:     3
+
+# ─────────────────────────────────────────────────────────────
 # Diagnostic exports (consumed by Wave 6 daily diagnostic report)
 # ─────────────────────────────────────────────────────────────
 diagnostic:
