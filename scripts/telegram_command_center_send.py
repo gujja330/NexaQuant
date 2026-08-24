@@ -2084,23 +2084,37 @@ def main() -> int:
                         return f"{v:,.2f}" if v > 0 else "?"
                     except Exception:
                         return "?"
-                _dec_up_a = str(decision_text or "").upper()
+                # 2026-08-24 · operator: "dont confuse more make this actions:
+                # new - active - active + and exit". Four verbs · one-word each
+                # · matches vocab v5.0. EXIT covers both live stop-hits and
+                # historical closes (one-word rule). Currency prefix stays
+                # market-appropriate (₹ for India · $ for USA).
+                _cur = "$" if mkt_key.lower() == "usa" else "₹"
                 _curr_s = _fmt_num(curr)
                 _stop_s = _fmt_num(stop_v)
                 _t1_s   = _fmt_num(t1_v)
                 _entry_s = _fmt_num(entry_v)
                 _pnl_s  = (f"{pnl_decimal*100:+.1f}%"
                                  if isinstance(pnl_decimal, (int, float)) else "?")
-                if "EXIT" in _dec_up_a and priority_bucket == "R":
-                    _action_str = f"🔴 EXIT NOW · {_decision_basis[:40]} · was entry ₹{_entry_s}"
-                elif "EXIT" in _dec_up_a:
-                    _action_str = f"⚪ CLOSED · P&L {_pnl_s} · exit ₹{_curr_s}"
+                _dec_up_a = str(decision_text or "").upper()
+                # EXIT dominates · both R-bucket (stop hit) and I/H/J
+                # buckets (historical close) surface as one word EXIT.
+                if ("EXIT" in _dec_up_a or "CLOSED" in _dec_up_a
+                    or priority_bucket in ("R", "I", "H", "J")):
+                    if priority_bucket == "R":
+                        _action_str = (f"🔴 EXIT · {_decision_basis[:40]} · "
+                                              f"was entry {_cur}{_entry_s}")
+                    else:
+                        _action_str = f"🔴 EXIT · P&L {_pnl_s} · exit {_cur}{_curr_s}"
                 elif "NEW" in _dec_up_a:
-                    _action_str = f"🟣 BUY {tk} at ₹{_curr_s} · stop ₹{_stop_s} · T1 ₹{_t1_s}"
+                    _action_str = (f"🟣 NEW · {tk} @ {_cur}{_curr_s} · "
+                                          f"stop {_cur}{_stop_s} · T1 {_cur}{_t1_s}")
                 elif "ACTIVE+" in _dec_up_a or "ACTIVE +" in _dec_up_a:
-                    _action_str = f"🟢 ADD more · at ₹{_curr_s} · stop ₹{_stop_s} · P&L {_pnl_s}"
+                    _action_str = (f"🟢 ACTIVE+ · @ {_cur}{_curr_s} · "
+                                          f"stop {_cur}{_stop_s} · P&L {_pnl_s}")
                 else:
-                    _action_str = f"🟢 HOLD · stop ₹{_stop_s} · P&L {_pnl_s}"
+                    _action_str = (f"🟢 ACTIVE · stop {_cur}{_stop_s} · "
+                                          f"P&L {_pnl_s}")
 
                 vals = [
                     # IDENTITY (1-4) · Ticker + Action + Decision + Lifecycle
