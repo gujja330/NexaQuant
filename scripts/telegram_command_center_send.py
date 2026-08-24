@@ -1102,9 +1102,33 @@ def main() -> int:
             # = active · EXIT · REFERENCE ONLY = exits).
             _r90_win_pct = (round(r90_win / max(1, r90_win + r90_loss) * 100, 1)
                               if (r90_win + r90_loss) else 0.0)
+            # 2026-08-21 · Wave 4 · NEW opportunity visibility panel.
+            # Operator directive §30 + "new stocks is not flowing day by day
+            # is my strong feeling · check throughly plz". Compute today's
+            # NEW opportunity summary + zero-reason explanation and surface
+            # it as the FIRST KPI row · operator sees NEW status at a glance.
+            _new_summary = "NEW · diagnostic unavailable"
+            _new_detail  = ""
+            try:
+                from backend.research import new_opportunity_diagnostic as _nod
+                _diag = _nod.compute(_ROOT, mkt_key.lower(), latest_date)
+                _nod.emit(_ROOT, _diag)
+                _new_summary = _nod.summary_line(_diag)
+                if _diag.n_new_today > 0:
+                    _new_detail = " · ".join(
+                        f"{c['runner']}·{c['ticker']}·rank {c.get('rank') or '?'}"
+                        for c in _diag.top_new[:5])
+                else:
+                    _new_detail = _diag.zero_reason or "no candidates cleared gates"
+            except Exception as _e:
+                _new_detail = f"diagnostic error · {type(_e).__name__}: {_e}"
             # 2026-08-21 · SKIP removed entirely per operator "we dont need skip
             # itself". Opportunity dataset tile deleted · no SKIP tracker.
             kpi_rows = [
+                # NEW OPPORTUNITIES panel · FIRST row of KPI banner so operator
+                # sees today's NEW state before scrolling past P&L numbers.
+                ["🆕 NEW OPPORTUNITIES",  "",                    _new_summary,
+                 "Detail",       _new_detail],
                 ["Exit P&L (closed)",      realized_sum / 100.0, f"{n_realized} exits",
                  "Top exit",     _fmt(best_realized)],
                 ["Active P&L (open)",      unrealized_sum / 100.0, f"{n_unrealized} active",
