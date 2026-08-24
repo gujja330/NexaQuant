@@ -1107,57 +1107,56 @@ def main() -> int:
             # is my strong feeling · check throughly plz". Compute today's
             # NEW opportunity summary + zero-reason explanation and surface
             # it as the FIRST KPI row · operator sees NEW status at a glance.
-            _new_summary = "NEW · diagnostic unavailable"
+            # 2026-08-21 · NEW-opportunity Strong Guard.
+            # Operator directive: "build strong guard for new recommendation
+            # engine". Wraps Wave 4/5/6 chain (NEW + Rotation + Ops) with
+            # pre/post validation, 3 retries + exponential backoff, held-
+            # penalty rotation force (fixes "same stocks daily"), and
+            # fallback to last-good diagnostic snapshot on total failure.
+            # Guard emits reports/context/new_opp_guard_health_{mkt}.json.
+            _guard_summary = "GUARD · unavailable"
+            _guard_note    = ""
+            _new_summary = "NEW · pending guard"
             _new_detail  = ""
-            try:
-                from backend.research import new_opportunity_diagnostic as _nod
-                _diag = _nod.compute(_ROOT, mkt_key.lower(), latest_date)
-                _nod.emit(_ROOT, _diag)
-                _new_summary = _nod.summary_line(_diag)
-                if _diag.n_new_today > 0:
-                    _new_detail = " · ".join(
-                        f"{c['runner']}·{c['ticker']}·rank {c.get('rank') or '?'}"
-                        for c in _diag.top_new[:5])
-                else:
-                    _new_detail = _diag.zero_reason or "no candidates cleared gates"
-            except Exception as _e:
-                _new_detail = f"diagnostic error · {type(_e).__name__}: {_e}"
-            # 2026-08-21 · Wave 5 · rotation engine (§26 + §27).
-            # Compare weakest existing position vs strongest NEW candidate ·
-            # suggest ROTATE when strength gap exceeds threshold. Advisory
-            # only · never auto-executes a trade.
-            _rotate_summary = "ROTATE · engine unavailable"
+            _rotate_summary = "ROTATE · pending guard"
             _rotate_detail  = ""
-            try:
-                from backend.research import rotation_engine as _rot
-                _rep = _rot.compute(_ROOT, mkt_key.lower(), latest_date)
-                _rot.emit(_ROOT, _rep)
-                _rotate_summary = _rot.summary_line(_rep)
-                if _rep.n_suggestions > 0:
-                    _rotate_detail = " · ".join(
-                        f"{s['existing_ticker']}→{s['new_ticker']} "
-                        f"(+{s.get('alpha_delta_pp') or 0}pp)"
-                        for s in _rep.suggestions[:3])
-                else:
-                    _rotate_detail = _rep.reason_if_zero or ""
-            except Exception as _e:
-                _rotate_detail = f"rotation error · {type(_e).__name__}: {_e}"
-            # 2026-08-21 · Wave 6 · daily ops diagnostic (§ 31).
-            # Runs AFTER the NEW + Rotation diagnostics so it can consume
-            # them. Emits reports/context/daily_ops_diagnostic_{market}.json
-            # + warnings surface in the KPI banner.
             _ops_summary = ""
             _ops_warn    = ""
             try:
-                from backend.research import daily_ops_diagnostic as _dod
+                from backend.recommendation.new_opp_guard import (
+                    guarded_run, summary_line as _guard_line,
+                )
+                _hg = guarded_run(_ROOT, mkt_key.lower(), latest_date)
+                _guard_summary = _guard_line(_hg)
+                _guard_note = _hg.notes or "; ".join(_hg.error_history[:2])
+                # After guard runs · pull the just-emitted diagnostics
+                from backend.research import (
+                    new_opportunity_diagnostic as _nod,
+                    rotation_engine as _rot,
+                    daily_ops_diagnostic as _dod,
+                )
+                _diag = _nod.compute(_ROOT, mkt_key.lower(), latest_date)
+                _new_summary = _nod.summary_line(_diag)
+                _new_detail = (" · ".join(
+                    f"{c['runner']}·{c['ticker']}·rank {c.get('rank') or '?'}"
+                    for c in _diag.top_new[:5])
+                                     if _diag.n_new_today > 0
+                                     else (_diag.zero_reason or "no candidates cleared gates"))
+                _rep = _rot.compute(_ROOT, mkt_key.lower(), latest_date)
+                _rotate_summary = _rot.summary_line(_rep)
+                _rotate_detail = (" · ".join(
+                    f"{s['existing_ticker']}→{s['new_ticker']} "
+                    f"(+{s.get('alpha_delta_pp') or 0}pp)"
+                    for s in _rep.suggestions[:3])
+                                          if _rep.n_suggestions > 0
+                                          else (_rep.reason_if_zero or ""))
                 _ops = _dod.compute(_ROOT, mkt_key.lower(), latest_date)
-                _dod.emit(_ROOT, _ops)
                 _ops_summary = _dod.summary_line(_ops)
                 _ops_warn = (f"{len(_ops.warnings)} warnings · " +
                                     "; ".join(_ops.warnings[:2])
                                     if _ops.warnings else "no warnings")
             except Exception as _e:
-                _ops_warn = f"ops diagnostic error · {type(_e).__name__}: {_e}"
+                _guard_note = f"guard error · {type(_e).__name__}: {_e}"
             # 2026-08-21 · Wave 7 · acceptance-gate regression (§32-§35).
             # Runs LAST · consumes prior diagnostics · verdict shown in KPI
             # banner. Non-blocking · operator still sees the XLSX. Failing
@@ -1197,6 +1196,9 @@ def main() -> int:
                 # ACCEPTANCE GATE panel · Wave 7 · § 32-35 · verdict shown here
                 ["🛡 ACCEPTANCE GATE",     "",                  _reg_summary,
                  "Detail",       _reg_detail],
+                # NEW-OPP STRONG GUARD · 2026-08-21 operator directive
+                ["🛡 NEW-OPP GUARD",        "",                  _guard_summary,
+                 "Note",         _guard_note],
                 ["Exit P&L (closed)",      realized_sum / 100.0, f"{n_realized} exits",
                  "Top exit",     _fmt(best_realized)],
                 ["Active P&L (open)",      unrealized_sum / 100.0, f"{n_unrealized} active",

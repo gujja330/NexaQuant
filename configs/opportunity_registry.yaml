@@ -28,6 +28,22 @@ re_entry:
   rejected_same_day_cooling_days: 3
 
 # ─────────────────────────────────────────────────────────────
+# NEW-opportunity Strong Guard (2026-08-21 · operator directive)
+# ─────────────────────────────────────────────────────────────
+new_opp_guard:
+  # Held-penalty rotation force · fixes "same stocks daily" complaint.
+  # When ≥ min_active_pct_to_trigger of today's recs are tickers already
+  # ACTIVE in Registry, subtract held_penalty_pp from their scores + re-
+  # rank. Non-destructive (original score saved as pre_penalty_score).
+  # Set held_penalty_pp: 0.0 to disable the penalty entirely.
+  held_penalty_pp:            5.0    # points off score for held tickers
+  min_active_pct_to_trigger:  0.60   # only apply if ≥ 60% overlap
+
+  # Guard retry knobs (also documented in the module docstring).
+  # 3 attempts · exponential backoff 3s → 9s → 27s · then fallback to
+  # last-good diagnostic snapshot (marked degraded_from_previous_day).
+
+# ─────────────────────────────────────────────────────────────
 # Rotation engine (Wave 5) · daily replacement suggestions
 # ─────────────────────────────────────────────────────────────
 rotation:
