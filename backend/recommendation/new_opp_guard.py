@@ -255,6 +255,9 @@ def guarded_run(root: Path, market: str, asof: str) -> NewOppGuardHealth:
         h.error_history.append(f"held_penalty · {type(e).__name__}: {e}")
 
     # Invoke NEW + Rotation + Ops diagnostic chain
+    # 2026-08-21 · queue extension · Parts 8/9/10/13/14/15/20 modules
+    # now run inside the guard so their outputs are guaranteed present +
+    # covered by retry + fallback.
     for attempt in range(1, _MAX_ATTEMPTS + 1):
         h.attempts = attempt
         try:
@@ -263,9 +266,44 @@ def guarded_run(root: Path, market: str, asof: str) -> NewOppGuardHealth:
                 rotation_engine as _rot,
                 daily_ops_diagnostic as _dod,
             )
+            from backend.gates import context_sector_gate as _csg
+            from backend.risk import dynamic_risk_v2 as _drv
+            from backend.recommendation import rec_review as _rev
+            from backend.context import data_quality_gate as _dqg
             _diag = _nod.compute(root, market, asof); _nod.emit(root, _diag)
             _rep  = _rot.compute(root, market, asof); _rot.emit(root, _rep)
             _ops  = _dod.compute(root, market, asof); _dod.emit(root, _ops)
+            # Parts 10 + 13 · context/sector gate over recs' tickers
+            try:
+                _rec_p = ((root / "usa" / "reports" / "recommendations.json")
+                                if market == "usa"
+                                else (root / "reports" / "recommendations.json"))
+                if _rec_p.exists():
+                    _rd = json.loads(_rec_p.read_text(encoding="utf-8"))
+                    _pairs = [(str(r.get("ticker","")).upper().replace(".NS","").replace(".BO",""),
+                                    r.get("sector",""))
+                                    for r in _rd.get("recommendations", [])]
+                    _gate_rep = _csg.compute_report(root, market, asof, _pairs)
+                    _csg.emit(root, _gate_rep)
+            except Exception as _e2:
+                h.error_history.append(f"gate · {type(_e2).__name__}: {_e2}")
+            # Parts 8 + 15 · dynamic risk (ATR + trailing lift)
+            try:
+                _risk = _drv.compute(root, market, asof); _drv.emit(root, _risk)
+            except Exception as _e2:
+                h.error_history.append(f"risk · {type(_e2).__name__}: {_e2}")
+            # Parts 9 + 14 · recommendation review + confidence trajectory
+            try:
+                _rv = _rev.compute(root, market, asof); _rev.emit(root, _rv)
+            except Exception as _e2:
+                h.error_history.append(f"review · {type(_e2).__name__}: {_e2}")
+            # Part 20 · data quality hard gate
+            try:
+                _dq = _dqg.compute(root, market, asof); _dqg.emit(root, _dq)
+                if _dq.verdict == "FAIL":
+                    h.error_history.append(f"data_quality · FAIL · {_dq.n_fail} hard-fail checks")
+            except Exception as _e2:
+                h.error_history.append(f"data_quality · {type(_e2).__name__}: {_e2}")
             # Post-flight
             _ok, _reason = _postflight(root, market, asof)
             if not _ok:

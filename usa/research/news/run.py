@@ -119,11 +119,18 @@ def main() -> int:
 
     now = datetime.now(timezone.utc)
     now_iso = now.isoformat(timespec="seconds")
-    rows = []
-    for sym, name in universe:
+
+    # 2026-08-21 · Part 29 Lever B · ThreadPool parallel per-ticker fetch.
+    # Was: serial with 0.15s sleep = 500 * (fetch_ms + 150) ≈ 12 min.
+    # Now: parallel_map with 6 workers + TokenBucket rate limit = ~2 min.
+    # Deterministic output order preserved (parallel_map returns in input order).
+    from backend.ingest.pipeline_helpers import parallel_map
+
+    def _fetch_row(pair):
+        sym, name = pair
         titles = _headlines(name, n=8)
         score, pos, neg, n_head = _score(titles)
-        rows.append({
+        return {
             "asof":        now.date().isoformat(),
             "ingested_utc": now_iso,
             "symbol":      sym,
@@ -132,8 +139,13 @@ def main() -> int:
             "pos":         pos,
             "neg":         neg,
             "n_headlines": n_head,
-        })
-        time.sleep(0.15)     # be gentle to Google News
+        }
+
+    rows = parallel_map(_fetch_row, list(universe),
+                                 max_workers=6, rate_per_sec=8.0,
+                                 max_retries=2, progress_every=50)
+    # Drop any None (failed fetches) · downstream engines tolerate gaps
+    rows = [r for r in rows if r is not None]
 
     df_new = pd.DataFrame(rows)
     OUT_PARQUET.parent.mkdir(parents=True, exist_ok=True)

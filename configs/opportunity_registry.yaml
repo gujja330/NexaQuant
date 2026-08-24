@@ -44,6 +44,42 @@ new_opp_guard:
   # last-good diagnostic snapshot (marked degraded_from_previous_day).
 
 # ─────────────────────────────────────────────────────────────
+# Parts 10 + 13 · Context + Sector active gates
+# ─────────────────────────────────────────────────────────────
+gates:
+  # When macro_regime hostile (risk-off/bear/crisis) with confidence
+  # ≥ 0.60 · BLOCK new BUY signals (force ACTIVE). Lower confidence
+  # yields DOWNGRADE instead. Sector laggards downgrade · sector
+  # laggards WITH bearish sector_context state block entirely.
+  hostile_macro_min_confidence:  0.60
+
+# ─────────────────────────────────────────────────────────────
+# Parts 8 + 15 · Dynamic Risk (ATR) + Profit Protection (trailing lift)
+# ─────────────────────────────────────────────────────────────
+risk_engine:
+  atr_multiplier:         2.0    # standard stop = current - ATR14 × 2.0
+  trailing_lift_min_pct:  5.0    # only lift trailing stop when profit ≥ 5%
+  high_vol_scale:         1.5    # wider stop multiplier in high-vol regimes
+  high_vol_atr_pct:       3.0    # ATR% > 3.0 = high-vol regime
+
+# ─────────────────────────────────────────────────────────────
+# Parts 9 + 14 · Recommendation Review + Dynamic Confidence trajectory
+# ─────────────────────────────────────────────────────────────
+review_engine:
+  # Confidence delta thresholds (percentage points)
+  collapse_threshold_pp:  30.0   # ≥ 30pp drop = confidence collapsed
+  rising_threshold_pp:    5.0    # ≥ 5pp change = rising / falling
+
+# ─────────────────────────────────────────────────────────────
+# Part 20 · Data Quality hard gate
+# ─────────────────────────────────────────────────────────────
+data_quality_gate:
+  max_recs_stale_days:      3    # > 3d stale = FAIL (block delivery)
+  warn_duplicate_tickers:   3    # > N same-ticker across R1+R2 = WARN
+  warn_min_universe:       50    # < N tickers scanned = WARN
+  warn_stale_prev_close:    5    # > N rows with stale Prev Close = WARN
+
+# ─────────────────────────────────────────────────────────────
 # Rotation engine (Wave 5) · daily replacement suggestions
 # ─────────────────────────────────────────────────────────────
 rotation:

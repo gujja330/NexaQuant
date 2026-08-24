@@ -1679,3 +1679,37 @@ Sprint L (Distillation + Capital Preservation) queued for Dec 2026 -
 Jan 2027 · depends on Part 25 attribution data + Part 26 investability.
 
 ## Signed 2026-08-21 (Appendices T + U · Sprint K+ closure ledger)
+
+---
+
+## Appendix V · Closure Batch 2 (2026-08-21 · same session)
+
+Operator directive: "close the ready-to-ship queue · large research
+we can hold when we get data". Every non-data-dependent part below
+now CLOSED · ships in one bundled commit.
+
+| Part | Status | Ships in |
+|------|--------|----------|
+| Part 8  · Dynamic Risk Engine (full)      | ✅ CLOSED | backend/risk/dynamic_risk_v2.py · ATR + trailing + vol-scaled stops |
+| Part 9  · Dynamic Confidence (full)       | ✅ CLOSED | backend/recommendation/rec_review.py · confidence-trajectory tracking |
+| Part 10 · Context Engine (active gate)    | ✅ CLOSED | backend/gates/context_sector_gate.py · hostile-regime BLOCK/DOWNGRADE |
+| Part 13 · Sector Engine (active gate)     | ✅ CLOSED | backend/gates/context_sector_gate.py · laggard downgrade + bearish state block |
+| Part 14 · Recommendation Review           | ✅ CLOSED | backend/recommendation/rec_review.py · daily HOLD / TIGHTEN / ADD / REVIEW actions |
+| Part 15 · Profit Protection (full)        | ✅ CLOSED | backend/risk/dynamic_risk_v2.py · trailing_lift_min_pct config-driven |
+| Part 20 · Data Quality (full)             | ✅ CLOSED | backend/context/data_quality_gate.py · HARD FAIL blocks delivery |
+| Part 29 Lever B · rollout                 | ⏳ PARTIAL | biggest ingest (news 729s) migrated to parallel_map · 6 more per-request |
+
+All 7 new modules wire into `backend/recommendation/new_opp_guard.py`
+so their outputs are covered by retry + fallback + health emission.
+Configs live in `configs/opportunity_registry.yaml` (gates · risk_engine ·
+review_engine · data_quality_gate blocks).
+
+**Sprint K+ remaining after this batch (all data-dependent or LAST):**
+- Part 22 · Self-Learning (needs 30-90d Registry data)
+- Part 25 · Dual-Snapshot Attribution (scheduled Nov 4-10)
+- Part 26 · Institutional Investability Engine (large research)
+- Part 27 · Emerging Compounder Engine (large research)
+- Part 29 Lever B remaining 6 ingest modules (per-request)
+- LAST · Institutional Walk-Forward Validation (production go/no-go)
+
+## Signed 2026-08-21 (Appendix V · Closure Batch 2 · queue empty)
