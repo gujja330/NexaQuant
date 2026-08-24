@@ -1627,3 +1627,55 @@ Any consumer that hand-rolls its own classification logic violates
 this appendix and must be redirected through `classify()`.
 
 ## Signed 2026-08-21 (Part 28 · Waves 1-8 · vocab v5.0 acceptance)
+
+---
+
+## Appendix T · Sprint K+ Closure Ledger
+
+Ships during 2026-08-21 session (11 commits · both markets):
+
+| Part | Status | Ships in |
+|------|--------|----------|
+| Part 5  · Recommendation Continuity     | ✅ CLOSED | Wave 3 (Registry cooling + Exit History) |
+| Part 7  · Position tracking             | ✅ CLOSED | Wave 2 (canonical position collapse) |
+| Part 8  · Dynamic Risk Engine           | ⏳ PARTIAL | Wave 1 stop-loss vocab · full engine (ATR/trailing/vol-scaled) pending |
+| Part 9  · Dynamic Confidence Engine     | ⏳ PARTIAL | Wave 1 percentile promotion (India) · confidence evolution over time pending |
+| Part 16 · Rotation Engine               | ✅ CLOSED | Wave 5 (weakest existing vs strongest NEW · threshold-gated) |
+| Part 17 · Runner Comparison             | ✅ CLOSED | Wave 2 (SPLIT / AGREE consensus tag) |
+| Part 19 · New Opportunities             | ✅ CLOSED | Wave 4 (funnel diagnostic + zero-reason narrative) |
+| Part 20 · Data Quality                  | ⏳ PARTIAL | Wave 6 diagnostic warnings · full data-quality gate pending |
+| Part 28 · Risk→Decision Consistency     | ✅ CLOSED | This session · vocab-v5.0 LUPIN regression + Appendix S state machine |
+| Part 29 · Pipeline Runtime Reduction    | ⏳ PARTIAL | Lever A shipped (staleness skip · rerun ≤5min) · Lever B substrate ready · per-module rollout pending |
+| Part 30 · Opportunity Registry          | ✅ CLOSED | 2026-08-18 · persistent event-sourced JSONL |
+| **NEW · NEW-Opp Strong Guard**          | ✅ CLOSED | 2026-08-21 · Wave 4/5/6 wrapped with retry + held-penalty rotation force + fallback + health |
+
+Also shipped Waves 1-7 of the 2026-08-21 36-section operator directive
+(vocab v5.0 collapse · 3-color palette · investable-only filter · 90d
+exit tile · canonical position · Exit History sheet · daily ops
+diagnostic · acceptance-gate regression). See individual wave commits.
+
+## Appendix U · Sprint K+ Remaining Path
+
+Open work grouped by dependency + operator value:
+
+**Ready to ship next (small-medium each):**
+- Part 10 · Context Engine (active gate · currently informational)
+- Part 13 · Sector Engine (active gate · currently informational)
+- Part 8/9/14/15 dynamic engines batch (full ATR + trailing + review + protect)
+- Part 29 Lever B rollout (per-ingest ThreadPool migration · one at a time)
+
+**Data-dependent (need 30-90d of Registry accumulation):**
+- Part 22 · Self-Learning (feedback loop)
+- Part 25 · Dual-Snapshot Attribution (scheduled Nov 4-10)
+
+**Large research modules:**
+- Part 26 · Institutional Investability Engine (v1.3 spec · 11 sub-engines)
+- Part 27 · Emerging Compounder Engine (research module)
+
+**LAST · production go/no-go gate:**
+- Institutional Walk-Forward Validation (5-stage full-stack replay · both markets · runs ABSOLUTE LAST per lock)
+
+Sprint L (Distillation + Capital Preservation) queued for Dec 2026 -
+Jan 2027 · depends on Part 25 attribution data + Part 26 investability.
+
+## Signed 2026-08-21 (Appendices T + U · Sprint K+ closure ledger)
