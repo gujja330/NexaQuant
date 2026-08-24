@@ -1209,17 +1209,45 @@ def main() -> int:
 
             # R1/R2 consensus map · build from all keep_rows (before ticker loop)
             # (populated after keep_rows filter · so put function here · use later)
-            _by_ticker_runners = {}
+            # 2026-08-21 · Wave 2 · enriched consensus map. Operator §7 + §8 + §32:
+            # "One stock = one canonical live portfolio position" · reconcile
+            # R1/R2 disagreement · LUPIN R1=EXIT + R2=HOLD must not show as two
+            # confusing rows. Map now carries per-ticker bucket set so the
+            # write loop can tag SPLIT decisions in the Runner cell.
+            def _row_bucket(_r_cells):
+                _st = str((_r_cells[c_st-1].value if hasattr(_r_cells[c_st-1], 'value')
+                                   else _r_cells[c_st-1]) or "").upper()
+                _al_v = (_r_cells[c_alerts-1].value if c_alerts and
+                            hasattr(_r_cells[c_alerts-1], 'value') else "")
+                _al = str(_al_v or "").upper()
+                if _st == "EXIT" or any(sig in _al for sig in BINDING_RISK_SIGNALS):
+                    return "EXIT"
+                if _st in ("BUY", "STRONG BUY", "ACCUMULATE", "ADD", "BUY BIG"):
+                    return "ACTIVE+"
+                return "ACTIVE"
+            _by_ticker_runners: dict = {}
+            _bucket_by_key: dict = {}
             for _r in keep_rows:
                 _tk = _r[c_tk-1].value
                 _rn = _r[3].value if len(_r) > 3 else None
                 if _tk and _rn:
-                    _by_ticker_runners.setdefault(_tk, set()).add(str(_rn))
+                    _rn_norm = str(_rn).upper().replace("_NEW", "")
+                    _by_ticker_runners.setdefault(_tk, set()).add(_rn_norm)
+                    _bucket_by_key[(str(_tk).upper(), _rn_norm)] = _row_bucket(_r)
             def _consensus(tk, this_runner):
                 runners = _by_ticker_runners.get(tk, set())
                 if len(runners) == 1:
                     return f"🔹 {this_runner} ONLY"
-                return "✅ AGREE"  # both present · could compare actions later
+                # Both R1 + R2 present · compare their buckets
+                _tk_up = str(tk).upper()
+                _b_r1 = _bucket_by_key.get((_tk_up, "R1"))
+                _b_r2 = _bucket_by_key.get((_tk_up, "R2"))
+                if _b_r1 and _b_r2 and _b_r1 == _b_r2:
+                    return f"✅ AGREE ({_b_r1})"
+                if _b_r1 and _b_r2:
+                    # SPLIT · operator wants to see the disagreement clearly
+                    return f"⚠️ SPLIT · R1={_b_r1} · R2={_b_r2}"
+                return "✅ AGREE"
 
             # PRIORITY_MATRIX + DECISION vocab + EXEC layer already loaded at top of _split_and_send
 
@@ -1432,6 +1460,69 @@ def main() -> int:
                       f"{_n_same_day_artifact} same-day artifacts · "
                       f"{_n_avoid_new} NEW·AVOID rows · "
                       f"({_before_flt3} → {len(positions_sorted)})")
+
+            # ─────────────────────────────────────────────────────────
+            # 2026-08-21 · Wave 2 · canonical position collapse.
+            # Operator directive §7 · "One stock = one canonical live
+            # portfolio position". §8 · reconcile R1/R2 disagreement.
+            # §32 LUPIN test · R1=EXIT + R2=HOLD must render as ONE
+            # canonical row (not two confusing independent rows).
+            #
+            # Consensus rules under vocab v5.0:
+            #   both EXIT              → keep EXIT row · canonical EXIT
+            #   one EXIT · one non-EXIT → keep non-EXIT · REVIEW tag
+            #                              (conservative · operator inspects)
+            #   both same bucket       → keep either (deterministic: R1 wins)
+            #   different non-EXIT     → priority NEW > ACTIVE+ > ACTIVE
+            #
+            # The dropped row still lives in aegis_history.xlsx for audit ·
+            # only the operator-facing Portfolio view collapses to one row.
+            _canon_before = len(positions_sorted)
+            _by_pos: dict = {}
+            for _item in positions_sorted:
+                _dt_c, _r_c = _item
+                _tk_c = str(_r_c[c_tk-1].value or "").upper().replace(".NS","").replace(".BO","")
+                _by_pos.setdefault(_tk_c, []).append(_item)
+            _canonical: list = []
+            _n_split_resolved = 0
+            _tier_map = {"EXIT": 4, "NEW": 3, "ACTIVE+": 2, "ACTIVE": 1}
+            for _tk_c, _items in _by_pos.items():
+                if len(_items) == 1:
+                    _canonical.append(_items[0]); continue
+                # Multi-runner ticker · resolve
+                def _item_bucket(_it):
+                    _st_i = str(_it[1][c_st-1].value or "").upper()
+                    _rd_i = (str(_it[1][_c_rec_date-1].value or "")[:10]
+                                 if _c_rec_date else "")
+                    _dt_i = str(_it[0])[:10]
+                    if _st_i == "EXIT": return "EXIT"
+                    if _rd_i == asof[:10]: return "NEW"
+                    if _st_i in ("BUY", "STRONG BUY", "ACCUMULATE", "ADD", "BUY BIG"):
+                        return "ACTIVE+"
+                    return "ACTIVE"
+                _bkts = [(_item_bucket(_it), _it) for _it in _items]
+                _exit_items = [it for (b, it) in _bkts if b == "EXIT"]
+                _non_exit_items = [it for (b, it) in _bkts if b != "EXIT"]
+                if _exit_items and not _non_exit_items:
+                    # both EXIT · keep first EXIT row (R1 wins by sort)
+                    _canonical.append(_exit_items[0])
+                elif _exit_items and _non_exit_items:
+                    # SPLIT · keep the non-EXIT row · consensus tag added
+                    # by _consensus() in the write loop
+                    _canonical.append(_non_exit_items[0])
+                    _n_split_resolved += 1
+                else:
+                    # no EXITs · pick highest-priority bucket
+                    _sorted = sorted(_bkts,
+                                          key=lambda bi: -_tier_map.get(bi[0], 0))
+                    _canonical.append(_sorted[0][1])
+                    if len({b for b, _ in _bkts}) > 1:
+                        _n_split_resolved += 1
+            positions_sorted = _canonical
+            if _canon_before != len(positions_sorted):
+                print(f"[xlsx:{mkt_key}] canonical position collapse · "
+                      f"{_canon_before} → {len(positions_sorted)} rows · "
+                      f"{_n_split_resolved} R1/R2 splits resolved")
 
             # Reorder positions_sorted by (section, existing sort) so
             # rows for each section are contiguous. Keeps within-section
