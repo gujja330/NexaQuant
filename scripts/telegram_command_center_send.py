@@ -1207,28 +1207,65 @@ def main() -> int:
                     _inv_detail = " · ".join(_parts) or "no material differences"
             except Exception as _e:
                 _inv_detail = f"shadow read error · {type(_e).__name__}: {_e}"
+            # 2026-08-24 · KPI BANNER SIMPLIFIED · operator: "toomuch of
+            # confusion, multiple columns" + "what u decide tell me instead
+            # of asking me". Collapsed 6 diagnostic panels (NEW OPP + ROTATE
+            # + OPS + ACCEPTANCE + GUARD + INVESTABILITY) into ONE
+            # 🩺 AEGIS HEALTH row. Full detail lives in an APPENDIX section
+            # at the bottom for anyone who wants to drill in.
+            # Also added: 🔬 SUGGESTED NEW row surfacing the top 3
+            # investability-shadow discoveries the recommender missed.
+            def _worst_verdict(*verdicts):
+                order = {"RED": 3, "FAIL": 3, "❌": 3,
+                             "YELLOW": 2, "WARN": 2, "⚠️": 2,
+                             "GREEN": 1, "PASS": 1, "✅": 1}
+                best = 1
+                for v in verdicts:
+                    for k, sc in order.items():
+                        if k in str(v or ""): best = max(best, sc); break
+                return "❌ RED" if best == 3 else "⚠️ YELLOW" if best == 2 else "✅ GREEN"
+            _health_verdict = _worst_verdict(
+                _guard_summary, _reg_summary, _ops_summary, _new_summary)
+            _health_line = (f"{_health_verdict} · "
+                                    f"NEW={_new_summary.split('·')[0].strip() if 'NEW' in _new_summary else '?'} · "
+                                    f"ROT={_rotate_summary.split('·')[0].strip() if 'ROTATE' in _rotate_summary else '?'} · "
+                                    f"GUARD={_guard_summary.split('·')[0].strip()} · "
+                                    f"REG={_reg_summary.split('·')[0].strip()}")
+            _health_detail = (f"full detail in APPENDIX at bottom · panels: "
+                                       f"NEW·ROTATE·OPS·ACCEPTANCE·GUARD·INVESTABILITY")
+
+            # Pull top 3 shadow discoveries for the SUGGESTED NEW row
+            _sug_summary = "SUGGESTED · no discoveries"
+            _sug_detail  = ""
+            try:
+                import json as _json
+                _inv_p2 = (_ROOT / "reports" / "context"
+                                 / f"investability_shadow_diagnostic_{mkt_key.lower()}.json")
+                if _inv_p2.exists():
+                    _ish = _json.loads(_inv_p2.read_text(encoding="utf-8"))
+                    _disc = _ish.get("top_discoveries") or []
+                    if _disc:
+                        _sug_summary = f"SUGGESTED · {len(_disc)} high-quality picks the recommender missed"
+                        _sug_detail = " · ".join(
+                            f"{d['ticker']}({d.get('score',0):.0f}·{d.get('verdict','')})"
+                            for d in _disc[:3])
+                    else:
+                        _sug_summary = "SUGGESTED · no discoveries above threshold"
+            except Exception:
+                pass
+
             # 2026-08-21 · SKIP removed entirely per operator "we dont need skip
             # itself". Opportunity dataset tile deleted · no SKIP tracker.
             kpi_rows = [
-                # NEW OPPORTUNITIES panel · FIRST row of KPI banner so operator
-                # sees today's NEW state before scrolling past P&L numbers.
-                ["🆕 NEW OPPORTUNITIES",  "",                    _new_summary,
-                 "Detail",       _new_detail],
-                # ROTATE suggestions panel · Wave 5 · § 26 + § 27
-                ["🔄 ROTATION SUGGESTIONS", "",                  _rotate_summary,
-                 "Detail",       _rotate_detail],
-                # OPS DIAGNOSTIC panel · Wave 6 · § 31
-                ["🔍 OPS DIAGNOSTIC",       "",                  _ops_summary,
-                 "Warnings",     _ops_warn],
-                # ACCEPTANCE GATE panel · Wave 7 · § 32-35 · verdict shown here
-                ["🛡 ACCEPTANCE GATE",     "",                  _reg_summary,
-                 "Detail",       _reg_detail],
-                # NEW-OPP STRONG GUARD · 2026-08-21 operator directive
-                ["🛡 NEW-OPP GUARD",        "",                  _guard_summary,
-                 "Note",         _guard_note],
-                # PART 26 INVESTABILITY SHADOW · 2026-08-21 parallel track
-                ["🔬 INVESTABILITY (SHADOW)", "",               _inv_summary,
-                 "Detail",       _inv_detail],
+                # ONE health row · scan in 3 seconds
+                ["🩺 AEGIS HEALTH",         "",                    _health_line,
+                 "Details",      _health_detail],
+                # 🔬 SUGGESTED NEW · top 3 investability shadow discoveries
+                # · directly addresses "same stocks daily" · surfaces genuine
+                # quality names the recommender is missing.
+                ["🔬 SUGGESTED NEW",         "",                    _sug_summary,
+                 "Detail",       _sug_detail],
+                # P&L numbers · what operator actually needs to make trade decisions
                 ["Exit P&L (closed)",      realized_sum / 100.0, f"{n_realized} exits",
                  "Top exit",     _fmt(best_realized)],
                 ["Active P&L (open)",      unrealized_sum / 100.0, f"{n_unrealized} active",
@@ -1237,13 +1274,30 @@ def main() -> int:
                  "Win rate", f"{win_rate}% ({n_win}W / {n_loss}L · {n_flat} flat excluded)"],
                 ["Worst positions",        "",                    "",
                  "Exit · Active", f"{_fmt(worst_realized)}  ·  {_fmt(worst_unreal)}"],
-                # 2026-08-21 · Wave 1 · rolling 90d exit tracker (operator ask ·
-                # "SHOW LAST 3 MONTHS P&L FOR CLOSED STOCKS ONLY · TRACKING ONLY")
+                # 2026-08-21 · rolling 90d exit tracker
                 ["Last 90d Exit P&L",       r90_sum / 100.0,       f"{r90_n} closed",
                  "Win rate · Best · Worst",
                  f"{_r90_win_pct}% · {_fmt(r90_best)} · {_fmt(r90_worst)}"],
                 ["Artifacts (excluded)",  "",                    f"{n_artifact} same-day rotations",
                  "Note", "not counted in P&L / win rate"],
+            ]
+            # Diagnostic detail lines · rendered AFTER the position table as
+            # an APPENDIX (was cluttering the top-of-sheet before).
+            _appendix_rows = [
+                ["", "", "", "", ""],
+                ["── APPENDIX · diagnostic panels (drill-in) ──", "", "", "", ""],
+                ["🆕 NEW OPPORTUNITIES",  "",                    _new_summary,
+                 "Detail",       _new_detail],
+                ["🔄 ROTATION",             "",                  _rotate_summary,
+                 "Detail",       _rotate_detail],
+                ["🔍 OPS DIAGNOSTIC",       "",                  _ops_summary,
+                 "Warnings",     _ops_warn],
+                ["🛡 ACCEPTANCE GATE",     "",                  _reg_summary,
+                 "Detail",       _reg_detail],
+                ["🛡 NEW-OPP GUARD",        "",                  _guard_summary,
+                 "Note",         _guard_note],
+                ["🔬 INVESTABILITY (SHADOW)", "",              _inv_summary,
+                 "Detail",       _inv_detail],
             ]
             for r_off, kpi_row in enumerate(kpi_rows, start=3):
                 for c_off, val in enumerate(kpi_row, start=1):
@@ -1296,8 +1350,12 @@ def main() -> int:
             #   2. R1/R2 Consensus column · AGREE/SPLIT/R1-only/R2-only
             #   3. Next Review = Recommended Date + horizon (stable · not sliding)
             pos_hdr = [
-                # IDENTITY (3) · Lifecycle sits with identity now
-                "Ticker", "🎯 DECISION", "Lifecycle",
+                # 2026-08-24 · operator: "based on which columns w eneed to
+                # take decision is also very confusing for me man". Added
+                # 🎯 ACTION column · ONE plain-English sentence per row so
+                # operator knows exactly what to do without scanning others.
+                # IDENTITY (4) · Ticker + Action + Decision + Lifecycle
+                "Ticker", "🎯 ACTION", "🎯 DECISION", "Lifecycle",
                 # EXECUTION LAYER (3)
                 "Price Trigger", "Next Review", "Execution Window",
                 # META (7)
@@ -1321,7 +1379,7 @@ def main() -> int:
                 # derived from lifecycle + risk + status.
                 "Decision Basis",
             ]
-            widths_pos = [12, 24, 12,
+            widths_pos = [12, 46, 24, 12,
                               22, 12, 30,
                               8, 14, 22, 20, 12, 12, 8,
                               12, 20, 16, 14, 12, 14, 12,
@@ -2017,48 +2075,80 @@ def main() -> int:
                 else:
                     _decision_basis = "MODEL CONTINUES"
 
+                # 2026-08-24 · plain-English 🎯 ACTION column · single
+                # sentence per row so operator can decide without scanning
+                # 10 columns. Format: "<VERB> at ₹P (stop ₹S · T1 ₹T1)".
+                def _fmt_num(x):
+                    try:
+                        v = float(x)
+                        return f"{v:,.2f}" if v > 0 else "?"
+                    except Exception:
+                        return "?"
+                _dec_up_a = str(decision_text or "").upper()
+                _curr_s = _fmt_num(curr)
+                _stop_s = _fmt_num(stop_v)
+                _t1_s   = _fmt_num(t1_v)
+                _entry_s = _fmt_num(entry_v)
+                _pnl_s  = (f"{pnl_decimal*100:+.1f}%"
+                                 if isinstance(pnl_decimal, (int, float)) else "?")
+                if "EXIT" in _dec_up_a and priority_bucket == "R":
+                    _action_str = f"🔴 EXIT NOW · {_decision_basis[:40]} · was entry ₹{_entry_s}"
+                elif "EXIT" in _dec_up_a:
+                    _action_str = f"⚪ CLOSED · P&L {_pnl_s} · exit ₹{_curr_s}"
+                elif "NEW" in _dec_up_a:
+                    _action_str = f"🟣 BUY {tk} at ₹{_curr_s} · stop ₹{_stop_s} · T1 ₹{_t1_s}"
+                elif "ACTIVE+" in _dec_up_a or "ACTIVE +" in _dec_up_a:
+                    _action_str = f"🟢 ADD more · at ₹{_curr_s} · stop ₹{_stop_s} · P&L {_pnl_s}"
+                else:
+                    _action_str = f"🟢 HOLD · stop ₹{_stop_s} · P&L {_pnl_s}"
+
                 vals = [
-                    # IDENTITY (1-3)
-                    tk, decision_text, lifecycle,
-                    # EXECUTION LAYER (4-6)
+                    # IDENTITY (1-4) · Ticker + Action + Decision + Lifecycle
+                    tk, _action_str, decision_text, lifecycle,
+                    # EXECUTION LAYER (5-7)
                     price_trigger, next_review, exec_window,
-                    # META (7-13)
+                    # META (8-14)
                     runner_val, consensus, _sector_for(tk, mkt_key), _cap_size(tk, mkt_key),
                     rec_dt, exit_date, days,
-                    # DECISION SUPPORT (14-20)
+                    # DECISION SUPPORT (15-21)
                     urgency, reason, action, review,
                     status, inv_verdict, inv_score,
-                    # PRICE + P&L (21-24)
+                    # PRICE + P&L (22-25)
                     entry_v, curr, exit_price, pnl_decimal,
-                    # RISK/TARGET (25-27)
+                    # RISK/TARGET (26-28)
                     stop_v, t1_v, t2_v,
-                    # CONTEXT (28-30)
+                    # CONTEXT (29-31)
                     _ACTIONS.get(status, ""), alerts or "", exit_reason,
-                    # POST-EXIT ASSESSMENT (31)
+                    # POST-EXIT ASSESSMENT (32)
                     _post_exit_assessment,
-                    # DECISION BASIS (32)
+                    # DECISION BASIS (33)
                     _decision_basis,
                 ]
                 for c, v in enumerate(vals, start=1):
                     cell = portfolio_ws.cell(i, c, v)
-                    text_cols = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 15, 16, 17, 18, 19, 28, 29, 30, 31, 32}
+                    # +1 shift on text_cols to accommodate new ACTION at col 2
+                    text_cols = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16, 17, 18, 19, 20, 29, 30, 31, 32, 33}
                     cell.alignment = _Align(
                         horizontal="left" if c in text_cols else "right",
                         vertical="center", wrap_text=True)
                     # Number formats
-                    if c == 13 and isinstance(days, int):       # Days
+                    # +1 shift on all numeric col indices after ACTION insertion
+                    if c == 14 and isinstance(days, int):       # Days
                         cell.number_format = "0"
-                    elif c == 20 and isinstance(inv_score, (int, float)):  # Investability
+                    elif c == 21 and isinstance(inv_score, (int, float)):  # Investability
                         cell.number_format = "0.0"
-                    elif c in (21, 22, 23, 25, 26, 27):         # Entry/Curr/Exit/Stop/T1/T2
+                    elif c in (22, 23, 24, 26, 27, 28):         # Entry/Curr/Exit/Stop/T1/T2
                         cell.number_format = "#,##0.00"
-                    elif c == 24 and pnl_decimal is not None:   # P&L %
+                    elif c == 25 and pnl_decimal is not None:   # P&L %
                         cell.number_format = "+0.00%;-0.00%;0.00%"
 
-                # DECISION cell gets its own color (col 2) · overrides row fill
+                # DECISION cell gets its own color (col 3 · shifted from 2 by ACTION insertion)
                 _dec_hex = DECISION_COLORS.get(decision_color_key, "E7E6E6")
-                portfolio_ws.cell(i, 2).fill = _PF(
+                portfolio_ws.cell(i, 3).fill = _PF(
                     start_color=_dec_hex, end_color=_dec_hex, fill_type="solid")
+                portfolio_ws.cell(i, 3).font = _Font(bold=True, size=11)
+                # 🎯 ACTION cell (col 2) also gets emphasis · this is the
+                # single column operator scans to decide.
                 portfolio_ws.cell(i, 2).font = _Font(bold=True, size=11)
 
                 # 2026-08-14 · operator-approved 6-tier color scheme (msg 380 approved).
@@ -2074,8 +2164,8 @@ def main() -> int:
                 for c in range(1, len(pos_hdr) + 1):
                     _cell = portfolio_ws.cell(i, c)
                     _cell.fill = _row_fill
-                    # Preserve DECISION cell's own bold-strong font (col 2)
-                    if c != 2:
+                    # Preserve ACTION (col 2) + DECISION (col 3) bold fonts.
+                    if c not in (2, 3):
                         # Keep existing font (alignment / number format) but tint text
                         try:
                             _cell.font = _Font(color=_tier_hex_text, bold=_tier_bold,
@@ -2083,6 +2173,24 @@ def main() -> int:
                         except Exception:
                             _cell.font = _row_font
             portfolio_ws.freeze_panes = f"A{_pos_header_row + 1}"
+
+            # ═══════════════════════════════════════════════════════════════
+            # APPENDIX · diagnostic panels (moved from top per 2026-08-24
+            # operator: "toomuch of confusion, multiple columns"). Written
+            # after the position table so operator scans NEW/ACTIVE/EXIT
+            # rows first · diagnostic drill-in lives below the fold.
+            # ═══════════════════════════════════════════════════════════════
+            try:
+                _app_row = portfolio_ws.max_row + 2
+                for _r_off, _kpi_row in enumerate(_appendix_rows, start=_app_row):
+                    for _c_off, _v in enumerate(_kpi_row, start=1):
+                        _c = portfolio_ws.cell(_r_off, _c_off, _v)
+                        _c.font = _Font(size=10, italic=(_c_off > 1))
+                        _c.alignment = _Align(vertical="center", wrap_text=True)
+                        if _c_off == 1 and str(_v or "").startswith("──"):
+                            _c.font = _Font(bold=True, size=11)
+            except Exception:
+                pass    # non-fatal · appendix is decorative
 
             # ═══════════════════════════════════════════════════════════════
             # SHEET 2 · EXIT HISTORY (90d) · Wave 3 · 2026-08-21
