@@ -324,6 +324,28 @@ def guarded_run(root: Path, market: str, asof: str) -> NewOppGuardHealth:
                             [f"invest_shadow · {w}" for w in _shadow_diag.warnings[:3]])
             except Exception as _e2:
                 h.error_history.append(f"invest_shadow · {type(_e2).__name__}: {_e2}")
+            # 2026-08-24 · Angel-powered additions (India-only · no-op USA).
+            # Operator: "u can pull whatever data is availble using angel,
+            # dont miss the chance." Two low-cost Angel calls per day:
+            #   (a) universe validator · cross-check tickers vs NSE master
+            #   (b) LTP snapshot for held positions · fresh mid-market prices
+            try:
+                if market.lower() == "india":
+                    from backend.ingest import angel_universe_validator as _auv
+                    _uv = _auv.validate_universe(root, market, asof)
+                    _auv.emit_validation(root, _uv)
+                    if _uv.n_dead > 0:
+                        h.error_history.append(
+                            f"angel_universe · {_uv.n_dead} DEAD symbols · "
+                            f"first: {', '.join(_uv.dead_symbols[:5])}")
+                    # LTP snapshot for ACTIVE tickers only · cheap batch call
+                    _held = sorted({o.ticker for opps in reg.values() for o in opps
+                                            if o.market.lower() == "india" and o.is_active()})
+                    if _held:
+                        _ltp = _auv.fetch_ltp_batch(root, _held)
+                        _auv.emit_ltp_snapshot(root, market, _ltp)
+            except Exception as _e2:
+                h.error_history.append(f"angel · {type(_e2).__name__}: {_e2}")
             # Post-flight
             _ok, _reason = _postflight(root, market, asof)
             if not _ok:
