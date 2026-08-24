@@ -113,7 +113,13 @@ def _run(cmd: list[str], *, cwd: Path = _ROOT, env_extra: dict | None = None) ->
 def main() -> int:
     ap = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
                                        description=__doc__)
-    ap.add_argument("--market", choices=["india", "usa", "both"], default="both")
+    # 2026-08-21 · operator directive · "seperate run method by country".
+    # Removed default="both" · explicit market required to prevent accidental
+    # dual-market runs. Prefer scripts/run_india.py or scripts/run_usa.py.
+    ap.add_argument("--market", choices=["india", "usa", "both"], required=True,
+                     help="REQUIRED · pick india · usa · both (dual). Use "
+                            "scripts/run_india.py or scripts/run_usa.py for "
+                            "unambiguous per-country runs.")
     ap.add_argument("--skip-refresh", action="store_true", help="skip stage 1")
     ap.add_argument("--skip-regen", action="store_true", help="skip stages 2+3")
     ap.add_argument("--skip-xlsx", action="store_true", help="skip stage 4")
@@ -137,6 +143,21 @@ def main() -> int:
         args.dry_run = True
 
     markets = ["india", "usa"] if args.market == "both" else [args.market]
+
+    # 2026-08-21 · Windows cp1252 can't render flag emojis · reconfigure stdout.
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+    # Unambiguous country banner · no more "did USA run?" confusion.
+    _mkt_banner = {
+        "india": "[INDIA ONLY] USA pipeline WILL NOT run",
+        "usa":   "[USA ONLY] India pipeline WILL NOT run",
+        "both":  "[BOTH MARKETS] India + USA will run sequentially",
+    }[args.market]
+    print("\n" + "=" * 66)
+    print(f"  {_mkt_banner}")
+    print("=" * 66)
 
     # Stage plan (skips accounted for)
     stages = []
