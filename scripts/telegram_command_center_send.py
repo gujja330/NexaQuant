@@ -1142,6 +1142,22 @@ def main() -> int:
                     _rotate_detail = _rep.reason_if_zero or ""
             except Exception as _e:
                 _rotate_detail = f"rotation error · {type(_e).__name__}: {_e}"
+            # 2026-08-21 · Wave 6 · daily ops diagnostic (§ 31).
+            # Runs AFTER the NEW + Rotation diagnostics so it can consume
+            # them. Emits reports/context/daily_ops_diagnostic_{market}.json
+            # + warnings surface in the KPI banner.
+            _ops_summary = ""
+            _ops_warn    = ""
+            try:
+                from backend.research import daily_ops_diagnostic as _dod
+                _ops = _dod.compute(_ROOT, mkt_key.lower(), latest_date)
+                _dod.emit(_ROOT, _ops)
+                _ops_summary = _dod.summary_line(_ops)
+                _ops_warn = (f"{len(_ops.warnings)} warnings · " +
+                                    "; ".join(_ops.warnings[:2])
+                                    if _ops.warnings else "no warnings")
+            except Exception as _e:
+                _ops_warn = f"ops diagnostic error · {type(_e).__name__}: {_e}"
             # 2026-08-21 · SKIP removed entirely per operator "we dont need skip
             # itself". Opportunity dataset tile deleted · no SKIP tracker.
             kpi_rows = [
@@ -1152,6 +1168,9 @@ def main() -> int:
                 # ROTATE suggestions panel · Wave 5 · § 26 + § 27
                 ["🔄 ROTATION SUGGESTIONS", "",                  _rotate_summary,
                  "Detail",       _rotate_detail],
+                # OPS DIAGNOSTIC panel · Wave 6 · § 31
+                ["🔍 OPS DIAGNOSTIC",       "",                  _ops_summary,
+                 "Warnings",     _ops_warn],
                 ["Exit P&L (closed)",      realized_sum / 100.0, f"{n_realized} exits",
                  "Top exit",     _fmt(best_realized)],
                 ["Active P&L (open)",      unrealized_sum / 100.0, f"{n_unrealized} active",
@@ -1319,26 +1338,26 @@ def main() -> int:
                 cell.alignment = _Align(horizontal="center", vertical="center")
                 portfolio_ws.column_dimensions[_gcl_src(c)].width = widths_pos[c-1]
 
-            # 2026-08-18 · Wave 3 · Section 15 · slim client-facing view.
-            # Operator wants ~15 essential columns visible · not 32.
-            # Hide internal-audit columns in Excel (preserved in file for
-            # research/audit consumers · just not shown by default). Excel
-            # 'Unhide' reveals them if operator ever needs the full view.
+            # 2026-08-21 · Wave 6 · § 28 · reduce Portfolio to ~25 essential
+            # columns. Operator: "MAIN PORTFOLIO should contain only essential
+            # decision fields." Everything hidden here still lives in the
+            # workbook for audit (Excel Unhide reveals).
+            # Wave 2 · R1/R2 Consensus stays UNHIDDEN so operator sees the
+            # SPLIT tag when runners disagree (LUPIN case).
             _HIDDEN_COL_NAMES = {
-                "Price Trigger",        # 4  · redundant with Stop Loss + Target
-                "Execution Window",     # 6
-                "R1/R2 Consensus",      # 8
-                "Exit Date",            # 12 · only meaningful for closed rows
-                "Action",               # 16 · Decision (col 2) is operator-facing
-                "Review",               # 17
-                "Inv Quality",          # 19 · internal
-                "Investability",        # 20 · internal score
-                "Exit Price",           # 23 · only for closed
-                "Action Note",          # 28
-                "Alerts",               # 29 · internal (Risk Controller reads this)
-                "Exit Reason",          # 30 · only for closed
-                "Post-Exit Assessment", # 31 · analytical / research only
-                "Decision Basis",       # 32 · analytical / research only
+                "Price Trigger",        # redundant with Stop Loss + Target
+                "Execution Window",     # execution-detail metadata
+                "Exit Date",            # exits live on Exit History sheet now
+                "Action",               # Decision (col 2) is operator-facing
+                "Review",               # covered by Next Review
+                "Inv Quality",          # internal
+                "Investability",        # internal score (filter driver)
+                "Exit Price",           # exits on Exit History sheet
+                "Action Note",          # covered by Reason + Urgency
+                "Alerts",               # internal (Risk Controller reads)
+                "Exit Reason",          # exits on Exit History sheet
+                "Post-Exit Assessment", # analytical / research only
+                "Decision Basis",       # analytical / research only
             }
             for c, name in enumerate(pos_hdr, start=1):
                 if name in _HIDDEN_COL_NAMES:
