@@ -66,6 +66,7 @@ STEPS = [
         "produces": ["data/raw/india/news_sentiment.parquet"],
         "requires": [],
         "optional": True,   # FinBERT/RSS latency shouldn't halt the pipeline
+        "staleness_skip_hours": 6,   # Part 29 Lever A · 6h intraday freshness
     },
     {
         "name": "ingest_fundamentals",
@@ -74,6 +75,7 @@ STEPS = [
         "produces": ["data/raw/india/fundamentals.parquet"],
         "requires": [],
         "optional": True,
+        "staleness_skip_hours": 20,  # Part 29 Lever A · quarterly cadence
     },
     # Enterprise Finalization · Phase 1 · Macro substrate ingest.
     # Populates reports/macro_summary.json (+ data/raw/india/) which the
@@ -94,6 +96,7 @@ STEPS = [
         "produces": ["data/raw/india/corporate_actions.parquet"],
         "requires": [],
         "optional": True,
+        "staleness_skip_hours": 20,  # Part 29 Lever A · daily cadence enough
     },
     {
         "name": "backend_validation",
@@ -578,6 +581,23 @@ def _run_step(step: dict, dry_run: bool = False) -> dict:
             "note": f"script not found: {step['script']}",
         }
 
+    # 2026-08-21 · Part 29 Lever A · staleness-aware skip.
+    # If every `produces` artifact is fresher than the configured window
+    # AND the step opts in via step.get("staleness_skip_hours"), skip the
+    # subprocess launch entirely. Cuts ~40% of wall-clock on typical days.
+    _stale_h = step.get("staleness_skip_hours")
+    if _stale_h and step.get("produces") and not dry_run:
+        try:
+            from backend.ingest.pipeline_helpers import orchestrator_step_fresh
+            _abs = [str(_ROOT / rel) for rel in step["produces"]]
+            if orchestrator_step_fresh(_abs, max_age_hours=float(_stale_h)):
+                return {"name": step["name"],
+                              "verdict": "SUCCESS_CACHED",
+                              "elapsed_s": 0.0, "returncode": 0,
+                              "note": f"artifacts fresh (< {_stale_h}h) · skipped"}
+        except Exception:
+            pass    # helper unavailable · fall through to normal run
+
     # Optional steps skip gracefully if their env is not configured
     missing_env = [k for k in step.get("requires_env", []) if not os.environ.get(k)]
     if missing_env:
@@ -691,7 +711,15 @@ def main() -> int:
                      help="print the plan and exit")
     ap.add_argument("--dry-run", action="store_true",
                      help="print each step's command without running")
+    # 2026-08-21 · Part 29 · bypass Lever A staleness skip when operator
+    # explicitly wants a fresh fetch (e.g., news broke mid-day).
+    ap.add_argument("--force-fresh", action="store_true",
+                     help="ignore staleness_skip_hours · refetch every ingest (Part 29)")
     args = ap.parse_args()
+    if args.force_fresh:
+        for s in STEPS:
+            s.pop("staleness_skip_hours", None)
+        print("[part29] --force-fresh · staleness skip disabled for this run")
 
     only = set()
     if args.only:

@@ -65,6 +65,8 @@ STEPS = [
         "produces": ["usa/reports/fundamentals.json"],
         "requires": ["usa/reports/universe.json"],
         "optional": True,
+        # Part 29 Lever A · fundamentals change quarterly · 20h skip is safe
+        "staleness_skip_hours": 20,
     },
     {
         "name":     "ingest_news",
@@ -75,6 +77,9 @@ STEPS = [
         "requires": ["usa/reports/universe.json"],
         "optional": True,
         "timeout_s": 900,    # 2026-08-05 · Google News RSS per-ticker fetch slow on 918-ticker universe
+        # Part 29 Lever A · news 6h skip · captures intraday moves but skips
+        # if a run already refreshed news within the last 6 hours
+        "staleness_skip_hours": 6,
     },
     {
         "name":     "ingest_earnings",
@@ -85,6 +90,8 @@ STEPS = [
         "requires": ["usa/reports/universe.json"],
         "optional": True,
         "timeout_s": 1200,   # 2026-08-05 · yfinance earnings-endpoint slow · was hitting 600s default
+        # Part 29 Lever A · earnings dates only change quarterly · 20h safe
+        "staleness_skip_hours": 20,
     },
     {
         "name":     "ingest_insider",
@@ -94,6 +101,9 @@ STEPS = [
                        "usa/reports/insider_summary.json"],
         "requires": ["usa/reports/universe.json"],
         "optional": True,
+        # Part 29 Lever A · insider filings are daily but batching every 12h
+        # is acceptable (Form 4 has a 2-business-day filing lag)
+        "staleness_skip_hours": 12,
     },
     {
         "name":     "ingest_etf_flows",
@@ -121,6 +131,9 @@ STEPS = [
                        "usa/reports/corporate_actions_summary.json"],
         "requires": ["usa/reports/universe.json"],
         "optional": True,
+        # Part 29 Lever A · corporate actions are announced days ahead ·
+        # 20h skip catches every same-day event without daily refetch churn
+        "staleness_skip_hours": 20,
     },
     {
         "name":     "ingest_sec_13f",
@@ -130,6 +143,8 @@ STEPS = [
                        "usa/reports/sec_13f_summary.json"],
         "requires": ["usa/reports/universe.json"],
         "optional": True,
+        # Part 29 Lever A · 13F filings are quarterly · 48h skip fine
+        "staleness_skip_hours": 48,
     },
     {
         "name":     "backend_validation",
@@ -451,6 +466,23 @@ def _run_step(step: dict) -> dict:
     script = _ROOT / step["script"]
     if not script.exists():
         return {"name": step["name"], "verdict": "MISSING_SCRIPT", "elapsed_s": 0.0}
+
+    # 2026-08-21 · Part 29 Lever A · staleness-aware skip.
+    # If every `produces` artifact is fresher than the configured window
+    # AND the step opts in via step.get("staleness_skip_hours"), skip the
+    # subprocess launch entirely. Cuts ~40% of wall-clock on typical days.
+    # Non-opt-in steps (default) run every time · zero behavior change.
+    _stale_h = step.get("staleness_skip_hours")
+    if _stale_h and step.get("produces"):
+        try:
+            from backend.ingest.pipeline_helpers import orchestrator_step_fresh
+            _abs = [str(_ROOT / rel) for rel in step["produces"]]
+            if orchestrator_step_fresh(_abs, max_age_hours=float(_stale_h)):
+                return {"name": step["name"],
+                              "verdict": "SUCCESS_CACHED",
+                              "elapsed_s": 0.0}
+        except Exception:
+            pass    # helper unavailable · fall through to normal run
 
     # Verify required inputs exist
     for req in step.get("requires", []):
