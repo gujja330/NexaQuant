@@ -1158,6 +1158,29 @@ def main() -> int:
                                     if _ops.warnings else "no warnings")
             except Exception as _e:
                 _ops_warn = f"ops diagnostic error · {type(_e).__name__}: {_e}"
+            # 2026-08-21 · Wave 7 · acceptance-gate regression (§32-§35).
+            # Runs LAST · consumes prior diagnostics · verdict shown in KPI
+            # banner. Non-blocking · operator still sees the XLSX. Failing
+            # checks land in reports/context/wave_regression_{market}.json.
+            _reg_summary = ""
+            _reg_detail  = ""
+            try:
+                from backend.research import wave_regression as _wreg
+                _wrp = _wreg.compute(_ROOT, mkt_key.lower(), latest_date)
+                _wreg.emit(_ROOT, _wrp)
+                _reg_summary = _wreg.summary_line(_wrp)
+                _fails = [c for c in _wrp.checks if c.get("status") == "FAIL"]
+                _warns = [c for c in _wrp.checks if c.get("status") == "WARN"]
+                if _fails:
+                    _reg_detail = " · ".join(
+                        f"[{c['code']}] {c['detail'][:60]}" for c in _fails[:3])
+                elif _warns:
+                    _reg_detail = " · ".join(
+                        f"[{c['code']}] {c['detail'][:60]}" for c in _warns[:3])
+                else:
+                    _reg_detail = "all Wave 1-6 invariants hold"
+            except Exception as _e:
+                _reg_detail = f"regression check error · {type(_e).__name__}: {_e}"
             # 2026-08-21 · SKIP removed entirely per operator "we dont need skip
             # itself". Opportunity dataset tile deleted · no SKIP tracker.
             kpi_rows = [
@@ -1171,6 +1194,9 @@ def main() -> int:
                 # OPS DIAGNOSTIC panel · Wave 6 · § 31
                 ["🔍 OPS DIAGNOSTIC",       "",                  _ops_summary,
                  "Warnings",     _ops_warn],
+                # ACCEPTANCE GATE panel · Wave 7 · § 32-35 · verdict shown here
+                ["🛡 ACCEPTANCE GATE",     "",                  _reg_summary,
+                 "Detail",       _reg_detail],
                 ["Exit P&L (closed)",      realized_sum / 100.0, f"{n_realized} exits",
                  "Top exit",     _fmt(best_realized)],
                 ["Active P&L (open)",      unrealized_sum / 100.0, f"{n_unrealized} active",
