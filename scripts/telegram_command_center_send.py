@@ -993,6 +993,19 @@ def main() -> int:
             # to Unrealized only refers to open positions.
             best_realized = ("", 0.0); worst_realized = ("", 0.0)
             best_unreal   = ("", 0.0); worst_unreal   = ("", 0.0)
+            # 2026-08-21 · Wave 1 · rolling 90-day Exit P&L tracker.
+            # Operator: "IN FINAL XLSX U NEED TO SHOW LAST 3 MONTHS P&L FOR
+            # CLOSED STOCKS ONLY · PLZ ENSURE THAT TRACKING ONLY · U DONT
+            # NEED TO SHOW STOCKS". Aggregate sum + count + win rate over
+            # closed exits with row_date within last 90 days of asof.
+            from datetime import date as _date_cls, timedelta as _td
+            try:
+                _asof_dt = _date_cls.fromisoformat(str(latest_date)[:10])
+            except (TypeError, ValueError):
+                _asof_dt = _date_cls.today()
+            _90d_cutoff = _asof_dt - _td(days=90)
+            r90_sum = 0.0; r90_n = 0; r90_win = 0; r90_loss = 0
+            r90_best = ("", 0.0); r90_worst = ("", 0.0)
             # 2026-08-13 CEO bug fix · previous code used h.index("Recommended Date")
             # and h.index("Exit Date") which don't exist in source header
             # (real column is "Recommended" · there is no "Exit Date" column
@@ -1023,6 +1036,18 @@ def main() -> int:
                     if isinstance(v, (int, float)):
                         pnl = v; realized_sum += v; n_realized += 1
                         is_realized = True
+                        # 2026-08-21 · Wave 1 · roll into 90d window if recent
+                        try:
+                            _row_d = _date_cls.fromisoformat(str(dt)[:10])
+                            if _row_d >= _90d_cutoff:
+                                r90_sum += v; r90_n += 1
+                                if v > 0.01: r90_win += 1
+                                elif v < -0.01: r90_loss += 1
+                                _tk_v = r[c_tk-1].value
+                                if v > r90_best[1]:  r90_best  = (_tk_v, v)
+                                if v < r90_worst[1]: r90_worst = (_tk_v, v)
+                        except (TypeError, ValueError):
+                            pass
                 elif status != "EXIT":
                     entry_v = r[c_entry-1].value if c_entry else None
                     tk = r[c_tk-1].value
@@ -1056,21 +1081,15 @@ def main() -> int:
             portfolio_ws["A1"].alignment = _Align(horizontal="center", vertical="center")
             portfolio_ws.row_dimensions[1].height = 28
 
-            # 2026-08-12 P0-3 · KPI banner now shows ARTIFACTS on their own row.
-            # 2026-08-15 Section 6 · P&L 3-way separation:
-            #   A. Realized P&L    · closed positions · entry → exit price
-            #   B. Unrealized P&L  · active positions · entry → latest price
-            #   C. Opportunity P&L · SKIP candidates  · TRACKED SEPARATELY in
-            #      reports/research/skip_candidates_{market}.jsonl · NEVER
-            #      included in portfolio P&L (would corrupt actual returns).
+            # 2026-08-12 P0-3 · KPI banner shows ARTIFACTS on their own row.
+            # 2026-08-15 Section 6 · P&L 2-way separation (SKIP tracked in
+            # research file · never included in portfolio P&L):
+            #   A. Exit P&L    · closed positions · entry → exit price
+            #   B. Active P&L  · active positions · entry → latest price
             # 'closed'/'open' counts EXCLUDE artifacts + SKIP by definition.
-            _skip_dataset = _ROOT / "reports" / "research" / f"skip_candidates_{mkt_key.lower()}.jsonl"
-            _n_skip_tracked = 0
-            if _skip_dataset.exists():
-                try:
-                    _n_skip_tracked = sum(1 for l in _skip_dataset.read_text(encoding="utf-8").splitlines() if l.strip())
-                except Exception:
-                    pass
+            # 2026-08-21 · SKIP dataset tile removed per operator "any way we
+            # are not investing, then dont show in portfolio" · research
+            # file at reports/research/skip_candidates_*.jsonl persists.
             # 2026-08-21 · label pairs each P&L row with a best/worst FROM THE
             # SAME BUCKET so operator can't misread a still-open winner (LICI
             # HOLD +7.92%) as a closed realized winner.
@@ -1081,6 +1100,10 @@ def main() -> int:
             # Rename Realized→Exit, Unrealized→Active so labels match the
             # section banners the operator scans daily (EXISTING POSITIONS
             # = active · EXIT · REFERENCE ONLY = exits).
+            _r90_win_pct = (round(r90_win / max(1, r90_win + r90_loss) * 100, 1)
+                              if (r90_win + r90_loss) else 0.0)
+            # 2026-08-21 · SKIP removed entirely per operator "we dont need skip
+            # itself". Opportunity dataset tile deleted · no SKIP tracker.
             kpi_rows = [
                 ["Exit P&L (closed)",      realized_sum / 100.0, f"{n_realized} exits",
                  "Top exit",     _fmt(best_realized)],
@@ -1090,10 +1113,13 @@ def main() -> int:
                  "Win rate", f"{win_rate}% ({n_win}W / {n_loss}L · {n_flat} flat excluded)"],
                 ["Worst positions",        "",                    "",
                  "Exit · Active", f"{_fmt(worst_realized)}  ·  {_fmt(worst_unreal)}"],
+                # 2026-08-21 · Wave 1 · rolling 90d exit tracker (operator ask ·
+                # "SHOW LAST 3 MONTHS P&L FOR CLOSED STOCKS ONLY · TRACKING ONLY")
+                ["Last 90d Exit P&L",       r90_sum / 100.0,       f"{r90_n} closed",
+                 "Win rate · Best · Worst",
+                 f"{_r90_win_pct}% · {_fmt(r90_best)} · {_fmt(r90_worst)}"],
                 ["Artifacts (excluded)",  "",                    f"{n_artifact} same-day rotations",
                  "Note", "not counted in P&L / win rate"],
-                ["Opportunity dataset",   "",                    f"{_n_skip_tracked} SKIP candidates tracked",
-                 "Location", "reports/research/skip_candidates_*.jsonl · never in portfolio"],
             ]
             for r_off, kpi_row in enumerate(kpi_rows, start=3):
                 for c_off, val in enumerate(kpi_row, start=1):
@@ -1342,11 +1368,16 @@ def main() -> int:
             # Group positions by section · order them as a flat list where
             # section transitions inject a banner-row placeholder. The write
             # loop below emits banners inline when it encounters one.
+            # 2026-08-21 · vocab v5.0 · sections match the 4-value decision
+            # vocabulary (NEW / ACTIVE / ACTIVE+ / EXIT). ACTIVE and ACTIVE+
+            # share one section since they visually share the green tier.
+            # EXIT gets two sub-sections: "today's actionable exits" (stop
+            # hit, urgent) vs "recent closed reference" (last 30 days).
             _SECTION_ORDER = [
-                ("new_opps",  "🆕 NEW OPPORTUNITIES TODAY",     "B4C7E7", "000000"),
-                ("existing",  "📊 EXISTING POSITIONS",         "E2EFDA", "000000"),
-                ("action",    "⚠️  ACTION REQUIRED · EXITS",   "FCE4D6", "9C0006"),
-                ("closed",    "🔴 EXIT · REFERENCE ONLY",    "D9D9D9", "9C0006"),
+                ("new_opps",  "🆕 NEW",                          "D5A6EA", "000000"),
+                ("existing",  "🟢 ACTIVE",                       "C6EFCE", "000000"),
+                ("action",    "🔴 EXIT · ACTION REQUIRED TODAY", "FCE4D6", "9C0006"),
+                ("closed",    "🔴 EXIT · REFERENCE (last 30d)",  "F8CBAD", "9C0006"),
             ]
             def _row_section(_item):
                 _dt, _r = _item
@@ -1358,6 +1389,49 @@ def main() -> int:
                 if _st == "EXIT": return "closed"
                 if _same_day: return "new_opps"
                 return "existing"
+
+            # 2026-08-21 · Wave 1 · investable-only + 30-day + same-day filters.
+            # Operator directives (2026-08-21 batch):
+            #   "only investable stocks we need to see in portfolio"
+            #   "EXIT STOCKS WE CAN REMOVE FROM PORTFOLIO MONTH ON MONTH"
+            #   § 5 · "a stock cannot simultaneously be NEW and CLOSED on the
+            #          same daily recommendation snapshot"
+            # Drop from portfolio view (research files still track everything):
+            #   1. EXIT rows older than 30 days from asof     · scannability
+            #   2. Same-day rec_dt == asof AND Status == EXIT · JIOFIN artifact
+            #   3. NEW candidate rows with ✗ AVOID verdict    · not investable
+            _cutoff_30d = (_asof_dt - _td(days=30)).isoformat()
+            _iv_col_idx = h.index("Investability") + 1 if "Investability" in h else None
+            _before_flt3 = len(positions_sorted)
+            _kept3 = []
+            _n_old_exits = 0; _n_same_day_artifact = 0; _n_avoid_new = 0
+            for _item in positions_sorted:
+                _dt2, _r2 = _item
+                _st2 = str(_r2[c_st-1].value or "").upper()
+                _row_dt2 = str(_dt2)[:10]
+                _rec_dt2 = (str(_r2[_c_rec_date-1].value or "")[:10]
+                                    if _c_rec_date else "")
+                _iv2 = (str(_r2[_iv_col_idx-1].value or "")
+                                    if _iv_col_idx else "")
+                _is_same_day_artifact = (
+                    _st2 == "EXIT" and _rec_dt2 and _rec_dt2 == _row_dt2)
+                _is_new_avoid = (
+                    _rec_dt2 == asof[:10] and _st2 != "EXIT"
+                    and "AVOID" in _iv2.upper())
+                if _st2 == "EXIT" and _row_dt2 < _cutoff_30d:
+                    _n_old_exits += 1;         continue
+                if _is_same_day_artifact:
+                    _n_same_day_artifact += 1; continue
+                if _is_new_avoid:
+                    _n_avoid_new += 1;         continue
+                _kept3.append(_item)
+            positions_sorted = _kept3
+            if (_n_old_exits + _n_same_day_artifact + _n_avoid_new) > 0:
+                print(f"[xlsx:{mkt_key}] investable-only filter · "
+                      f"dropped {_n_old_exits} old exits (>30d) · "
+                      f"{_n_same_day_artifact} same-day artifacts · "
+                      f"{_n_avoid_new} NEW·AVOID rows · "
+                      f"({_before_flt3} → {len(positions_sorted)})")
 
             # Reorder positions_sorted by (section, existing sort) so
             # rows for each section are contiguous. Keeps within-section
@@ -1581,6 +1655,42 @@ def main() -> int:
                     elif _iv_key == "⏳ PENDING":
                         decision_text, decision_color_key = "⏳ PROVISIONAL BUY · investability pending", "yellow"
                     # else: keep _resolve_decision result
+
+                # ─────────────────────────────────────────────────────────
+                # 2026-08-21 · Wave 1 · vocab v5.0 collapse to 4 values.
+                # Operator directive: "new + active + active plus + exit
+                # makes sense why hold? new will become active + exit thats
+                # it, straight and simple · active plus means add more ·
+                # only 3 colors thats it, straight and simple".
+                #
+                # After all precedence logic above computes a rich decision
+                # text (with sub-detail like "BUY · new position · quality
+                # confirmed" or "EXIT · Stop Loss Hit · IMMEDIATE"), collapse
+                # to the 4-value operator vocab. Sub-detail already lives in
+                # Reason / Urgency / Action columns · no information loss.
+                #   R / I / J / H / any EXIT-family      → 🔴 EXIT
+                #   NEW position (rec_dt == asof)         → 🆕 NEW
+                #   Existing · BUY/ADD/STRONG BUY family  → 🟢 ACTIVE+
+                #   Everything else (HOLD/PROTECT/WATCH)  → 🟢 ACTIVE
+                # 3 colors: purple (NEW) · green (ACTIVE + ACTIVE+) · red (EXIT).
+                _dec_upper = str(decision_text or "").upper()
+                _is_exit_family = (
+                    priority_bucket in ("R", "I", "J", "H")
+                    or "EXIT" in _dec_upper or "CLOSED" in _dec_upper
+                    or "ARTIFACT" in _dec_upper or "SKIP" in _dec_upper
+                )
+                _is_buy_family = (
+                    status in ("BUY", "STRONG BUY", "ACCUMULATE", "ADD", "BUY BIG")
+                    or " BUY" in _dec_upper or "ADD" in _dec_upper
+                )
+                if _is_exit_family:
+                    decision_text, decision_color_key = "🔴 EXIT", "red"
+                elif _is_new_position and status != "EXIT":
+                    decision_text, decision_color_key = "🆕 NEW", "purple"
+                elif _is_buy_family:
+                    decision_text, decision_color_key = "🟢 ACTIVE+", "green"
+                else:
+                    decision_text, decision_color_key = "🟢 ACTIVE", "green"
 
                 # 2026-08-10 CEO v6 · closed positions get BLANK actionable fields
                 # (operator: "You don't want CLOSED · Next Review 15-Aug ·

@@ -1,22 +1,27 @@
-version: 4.0
-last_amended: 2026-08-15
-# LOCKED · 5-value operator-facing decision vocabulary (per Section 4 of
-# operator directive 2026-08-15).
+version: 5.0
+last_amended: 2026-08-21
+# LOCKED · 4-value operator-facing decision vocabulary (2026-08-21).
 #
-# Only BUY / HOLD / PROTECT / EXIT / CLOSED appear in the Decision column.
-# All previous variants (BUY BIG · ADD · TIGHTEN STOP · REVIEW · WATCH ·
-# CLEAN EXIT · PREMATURE EXIT · IMMEDIATE · etc.) collapse into these 5.
-# Sub-detail persists as internal metadata / reason fields · never in
-# the operator-facing Decision column.
+# Operator directive: "new + active + active plus + exit makes sense why
+# hold ? new will become active + exit thats it, straight and simple ·
+# active plus means add more · only 3 colors thats it, straight and simple"
 #
-# SKIP is REMOVED from Decision (Section 5): if AEGIS says SKIP the stock
-# is NOT an investment · must not appear in the main active portfolio
-# table · move to a research/candidate dataset instead (opportunity cost
-# tracked separately). See build_and_stamp: SKIP rows filtered out.
+# The Decision column now shows ONLY:
 #
-# ARTIFACT (same-day rotation) is a lifecycle metadata · CLOSED is what
-# it surfaces AS in the Decision column · the "artifact" nuance is
-# preserved in Lifecycle + Post-Exit Assessment.
+#   🆕 NEW      · Purple  · fresh recommendation today (first day, rec_dt == asof)
+#   🟢 ACTIVE   · Green   · held position, no action needed
+#   🟢 ACTIVE+  · Green   · held position, model wants MORE (add / stronger conviction)
+#   🔴 EXIT     · Red     · closing today / already closed / same-day artifact / stop hit
+#
+# All prior vocabulary (BUY / HOLD / PROTECT / STRONG BUY / ADD / BUY BIG
+# / WATCH / TIGHTEN STOP / CLOSED / SKIP / ARTIFACT / REVIEW / IGNORE)
+# collapses into these four. Sub-detail (stop tightening, urgency,
+# quality flag, exit reason) persists in ORTHOGONAL columns (Urgency,
+# Reason, Action, Stop Loss, Exit Reason) · never in the Decision cell.
+#
+# SKIP is NEVER a Decision · rows failing the investability/quality gate
+# are filtered from the primary Portfolio table entirely (Section 6 of
+# 2026-08-15 directive · confirmed 2026-08-21).
 
 # Rule matcher · first match wins · matches on Action from Priority matrix
 rules:
@@ -26,68 +31,68 @@ rules:
     decision: "🔴 EXIT"
     color: red
 
-  # ═══ PROTECT · 🟠 · position management (stop tightening / trailing) ═══
-  - match: {action: "TIGHTEN STOP"}
-    decision: "🟠 PROTECT"
-    color: amber
-
-  # ═══ HOLD · 🟢 · no action / continued holding ═══
-  - match: {action: "REVIEW"}
-    decision: "🟢 HOLD"           # portfolio-challenging-exit surfaces as HOLD
-    color: green
-  - match: {action: "HOLD"}
-    decision: "🟢 HOLD"
-    color: green
-
-  # ═══ BUY · 🟢 · new entry / add (size determined by Action Note, not Decision) ═══
+  # ═══ ACTIVE+ · 🟢 · held & model wants more (any BUY-family action) ═══
+  # BUY / BUY BIG / ADD / STRONG BUY / ACCUMULATE all collapse here when
+  # applied to an EXISTING position. For a NEW position (rec_dt == asof)
+  # the post-processor overrides to 🆕 NEW · the vocabulary router lives
+  # in scripts/telegram_command_center_send.py::_normalize_decision.
   - match: {action: "BUY BIG"}
-    decision: "🟢 BUY"            # was 'BUY BIG' · size lives in metadata
-    color: green_dark
+    decision: "🟢 ACTIVE+"
+    color: green
   - match: {action: "ADD"}
-    decision: "🟢 BUY"            # ADD collapsed into BUY per Section 4
+    decision: "🟢 ACTIVE+"
     color: green
   - match: {action: "BUY"}
-    decision: "🟢 BUY"
+    decision: "🟢 ACTIVE+"
     color: green
 
-  # ═══ SKIP → EXIT semantic in Decision (was ⚫ SKIP · Section 5 removes it)
-  # SKIP rows are FILTERED from the primary Portfolio table upstream in the
-  # sender. If any leak through, they surface as EXIT so operator sees an
-  # actionable signal rather than a mute "SKIP".
-  - match: {action: "SKIP"}
-    decision: "🔴 EXIT"           # Section 5 · SKIP not a portfolio decision
+  # ═══ ACTIVE · 🟢 · held, no action needed ═══
+  # HOLD / PROTECT / REVIEW / TIGHTEN STOP · everything the operator does
+  # NOT need to act on today. Any stop-tightening or protect nuance
+  # lives in the Action + Stop Loss columns, not in Decision.
+  - match: {action: "TIGHTEN STOP"}
+    decision: "🟢 ACTIVE"
+    color: green
+  - match: {action: "REVIEW"}
+    decision: "🟢 ACTIVE"
+    color: green
+  - match: {action: "HOLD"}
+    decision: "🟢 ACTIVE"
+    color: green
+
+  # 2026-08-21 · SKIP fully removed per operator: "we dont need skip stocks
+  # to be seen in portfolio anymore. we dont need skip itself". SKIP rows
+  # are HARD-FILTERED upstream in the sender · they can never reach this
+  # rule matcher. No SKIP mapping · no SKIP fallback · no SKIP tile.
+
+  # ═══ TERMINAL · CLOSED / IGNORE / ARTIFACT · all collapse to EXIT ═══
+  - match: {action: "CLOSED"}
+    decision: "🔴 EXIT"
+    color: red
+  - match: {action: "IGNORE"}
+    decision: "🔴 EXIT"
     color: red
 
-  # ═══ TERMINAL · CLOSED · not actionable ═══
-  - match: {action: "CLOSED"}
-    decision: "🔴 EXIT"        # 2026-08-20 · CLOSED collapsed into EXIT · one-word rule
-    color: gray
-  - match: {action: "IGNORE"}
-    decision: "🔴 EXIT"        # 2026-08-20 · CLOSED collapsed into EXIT · one-word rule         # ARTIFACT collapsed into CLOSED
-    color: gray
-
-  # ═══ FALLBACK ═══
+  # ═══ FALLBACK · unknown action defaults to ACTIVE (safest for held) ═══
   - match: {}
-    decision: "—"
-    color: gray
+    decision: "🟢 ACTIVE"
+    color: green
 
-# Color codes for decision cell
+# 3-color palette · operator directive 2026-08-21 "only 3 colors"
+#   purple → NEW           · fresh opportunity today (attention)
+#   green  → ACTIVE + ACTIVE+ (both variants share the color)
+#   red    → EXIT          · terminal state
 colors:
-  green_dark:  "70AD47"
-  green:       "C6EFCE"
-  amber:       "FFCC66"
-  red:         "F8CBAD"
-  gray:        "E7E6E6"
+  purple: "D5A6EA"      # NEW · fresh recommendation
+  green:  "C6EFCE"      # ACTIVE · ACTIVE+ (add-more variant)
+  red:    "F8CBAD"      # EXIT · closing / closed / stopped
 
-# Section 4 spec vocabulary
+# 4-value operator-facing vocabulary
 allowed_decisions:
-  - "BUY"
-  - "HOLD"
-  - "PROTECT"
-  - "EXIT"
-  # 2026-08-20 · operator "exit or close one word is enough · prefer exit default"
-  # CLOSED collapsed into EXIT · same terminal semantics · one label wins
+  - "NEW"       # first day of the opportunity
+  - "ACTIVE"    # held · no action
+  - "ACTIVE+"   # held · model wants more (add)
+  - "EXIT"      # closing / closed / terminal
 
-# Section 5 filter · SKIP never appears in the primary portfolio table.
-# Sender enforces this via `_skip_from_portfolio` check.
+# SKIP never appears in the primary portfolio table · sender enforces.
 skip_from_portfolio: true
