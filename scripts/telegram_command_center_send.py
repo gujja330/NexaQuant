@@ -1366,26 +1366,39 @@ def main() -> int:
                 cell.alignment = _Align(horizontal="center", vertical="center")
                 portfolio_ws.column_dimensions[_gcl_src(c)].width = widths_pos[c-1]
 
-            # 2026-08-21 · Wave 6 · § 28 · reduce Portfolio to ~25 essential
-            # columns. Operator: "MAIN PORTFOLIO should contain only essential
-            # decision fields." Everything hidden here still lives in the
-            # workbook for audit (Excel Unhide reveals).
-            # Wave 2 · R1/R2 Consensus stays UNHIDDEN so operator sees the
-            # SPLIT tag when runners disagree (LUPIN case).
+            # 2026-08-21 · Wave 6 · operator "toomuch of confusion, multiple
+            # columns?". Aggressive slim to 10 visible columns · everything
+            # else hidden (Excel Unhide reveals for audit).
+            #
+            # Visible (10): Ticker · Decision · Runner · Sector · Days ·
+            #               Urgency · Entry · Current · P&L % · Stop Loss
+            #
+            # Strong-Buy vs Buy differentiation under vocab v5.0:
+            #   both collapse to 🟢 ACTIVE+ in Decision · intensity shows in
+            #   Urgency column (HIGH = strong · MEDIUM = normal · LOW = weak).
             _HIDDEN_COL_NAMES = {
-                "Price Trigger",        # redundant with Stop Loss + Target
-                "Execution Window",     # execution-detail metadata
-                "Exit Date",            # exits live on Exit History sheet now
-                "Action",               # Decision (col 2) is operator-facing
-                "Review",               # covered by Next Review
-                "Inv Quality",          # internal
-                "Investability",        # internal score (filter driver)
-                "Exit Price",           # exits on Exit History sheet
-                "Action Note",          # covered by Reason + Urgency
-                "Alerts",               # internal (Risk Controller reads)
-                "Exit Reason",          # exits on Exit History sheet
-                "Post-Exit Assessment", # analytical / research only
-                "Decision Basis",       # analytical / research only
+                "Lifecycle",              # redundant with Decision under v5.0
+                "Price Trigger",
+                "Next Review",
+                "Execution Window",
+                "R1/R2 Consensus",        # Runner cell shows the split tag
+                "Cap",                    # Sector tells the story
+                "Entry Date",             # Days column already conveys age
+                "Exit Date",
+                "Reason",                 # hidden · Urgency conveys severity
+                "Action",
+                "Review",
+                "Status",                 # raw feed · not client-facing
+                "Inv Quality",
+                "Investability",
+                "Exit Price",
+                "Target 1",
+                "Target 2",
+                "Action Note",
+                "Alerts",
+                "Exit Reason",
+                "Post-Exit Assessment",
+                "Decision Basis",
             }
             for c, name in enumerate(pos_hdr, start=1):
                 if name in _HIDDEN_COL_NAMES:
