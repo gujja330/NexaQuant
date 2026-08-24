@@ -1,0 +1,34 @@
+version: 1.0
+last_amended: 2026-08-24
+# Ticker rename / demerger alias map.
+# Consumed by backend.ingest.ticker_health::resolve_alias(root, market, ticker).
+# When yfinance returns 404 for a legacy symbol, ingest modules can call
+# resolve_alias() to get the current live NSE symbol.
+#
+# Add entries in this format per market:
+#   OLD_TICKER: NEW_TICKER
+#
+# Operator directive 2026-08-24: fundamentals ingest logs showed 4
+# permanent 404s (TATAMOTORS · MM · LTIM · PEL). Best-guess aliases
+# below · operator can correct after checking NSE symbol page.
+
+india:
+  # Tata Motors · demerged into commercial + passenger vehicles 2024/25
+  # Legacy TATAMOTORS may still exist · alias here if broker confirms rename.
+  # TATAMOTORS: TATAMOTORS-NEW-CV       # example placeholder · verify with NSE
+
+  # Mahindra & Mahindra · yfinance lookup fails with MM.NS (correct is M&M.NS
+  # but that '&' character breaks URL encoding · Angel uses "M&M-EQ").
+  # Recommended fix: update universe to use "MAHINDRA" or bare "M&M".
+  MM: "M&M"
+
+  # LTIMindtree · post LTI + Mindtree merger the NSE symbol became LTIM
+  # but some feeds still fail. Verify + alias if needed.
+  # LTIM: LTIM-NEW
+
+  # Piramal Enterprises · Piramal Pharma demerged in 2022 · symbol split.
+  # PEL: PIRAMALENT     # verify · may need "PPLPHARMA" for the demerged entity
+
+usa:
+  # Add USA symbol renames here as they surface (e.g. FB → META historical).
+  # META: META

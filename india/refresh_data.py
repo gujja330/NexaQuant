@@ -45,8 +45,41 @@ def _to_schema(df):
     return out.dropna(subset=["close"])
 
 
+def _angel_daily_fallback(sym: str) -> "pd.DataFrame | None":
+    """2026-08-24 · Angel SmartAPI fallback for tickers where yfinance
+    fails (delisted / renamed / 404). Uses .env.angel credentials.
+    Returns fresh daily bars in the parquet schema or None on failure."""
+    try:
+        from backend.intraday.feed import angel_adapter as _angel
+        df = _angel.fetch_bars(ROOT, sym, market="india",
+                                              interval="1d", lookback_days=45)
+        if df is None or df.empty: return None
+        # angel_adapter returns df with 'date' index + open/high/low/close/volume
+        df2 = df.rename(columns=str.lower)
+        idx = pd.to_datetime(df2.index).normalize()
+        out = pd.DataFrame(index=idx)
+        out.index.name = "time"
+        for c in ("open", "high", "low", "close"):
+            if c in df2.columns:
+                out[c] = pd.to_numeric(df2[c], errors="coerce")
+        out["tick_volume"] = pd.to_numeric(
+            df2.get("volume", 0), errors="coerce").fillna(0).astype("int64")
+        out["spread"] = 0.0
+        return out.dropna(subset=["close"])
+    except Exception:
+        return None
+
+
 def refresh(limit=None):
     import yfinance as yf
+    # 2026-08-24 · ticker_health tracker · log every attempt so operator
+    # sees which symbols are consistently dead (TATAMOTORS / MM / LTIM / PEL
+    # pattern). Non-fatal if the module isn't available.
+    try:
+        from backend.ingest import ticker_health as _th
+    except Exception:
+        _th = None
+
     files = sorted(glob.glob(str(RAW / "*_D1.parquet")))
     syms = [Path(f).stem.replace("_D1", "") for f in files]
     syms = [s for s in syms if s not in SKIP]
@@ -55,6 +88,7 @@ def refresh(limit=None):
     tmap = {ticker_for(s): s for s in syms}
     tickers = list(tmap)
     updated, total_rows, failed, newest = 0, 0, [], None
+    angel_rescued = 0     # 2026-08-24 · count tickers Angel saved
 
     for i in range(0, len(tickers), CHUNK):
         batch = tickers[i:i + CHUNK]
@@ -66,23 +100,64 @@ def refresh(limit=None):
         for tkr in batch:
             sym = tmap[tkr]
             path = RAW / f"{sym}_D1.parquet"
+            yf_ok = False
             try:
                 sub = data[tkr] if isinstance(data.columns, pd.MultiIndex) else data
                 fresh = _to_schema(sub.dropna(how="all"))
-                if fresh.empty:
-                    continue
-                existing = pd.read_parquet(path)
-                add = fresh[fresh.index > existing.index[-1]]
-                if add.empty:
-                    continue
-                merged = pd.concat([existing, add[existing.columns.intersection(add.columns)]])
-                merged = merged[~merged.index.duplicated(keep="last")].sort_index()
-                merged.to_parquet(path)
-                updated += 1; total_rows += len(add)
-                newest = max(newest, merged.index[-1]) if newest else merged.index[-1]
-            except Exception:
-                failed.append(tkr)
-    return dict(updated=updated, rows=total_rows, failed=failed, newest=newest, n=len(tickers))
+                if not fresh.empty:
+                    yf_ok = True
+                    existing = pd.read_parquet(path)
+                    add = fresh[fresh.index > existing.index[-1]]
+                    if not add.empty:
+                        merged = pd.concat([existing, add[existing.columns.intersection(add.columns)]])
+                        merged = merged[~merged.index.duplicated(keep="last")].sort_index()
+                        merged.to_parquet(path)
+                        updated += 1; total_rows += len(add)
+                        newest = max(newest, merged.index[-1]) if newest else merged.index[-1]
+                    if _th is not None:
+                        _th.record(ROOT, "india", sym, source="yfinance:daily", ok=True)
+            except Exception as e:
+                if _th is not None:
+                    _th.record(ROOT, "india", sym, source="yfinance:daily",
+                                     ok=False, error=str(e)[:200])
+            # 2026-08-24 · yfinance failed · try Angel SmartAPI fallback
+            if not yf_ok:
+                _rescued = _angel_daily_fallback(sym)
+                if _rescued is not None and not _rescued.empty:
+                    try:
+                        existing = pd.read_parquet(path)
+                        add = _rescued[_rescued.index > existing.index[-1]]
+                        if not add.empty:
+                            merged = pd.concat([existing, add[existing.columns.intersection(add.columns)]])
+                            merged = merged[~merged.index.duplicated(keep="last")].sort_index()
+                            merged.to_parquet(path)
+                            updated += 1; total_rows += len(add)
+                            newest = max(newest, merged.index[-1]) if newest else merged.index[-1]
+                            angel_rescued += 1
+                            if _th is not None:
+                                _th.record(ROOT, "india", sym,
+                                                 source="angel:daily:fallback", ok=True)
+                    except Exception:
+                        failed.append(tkr)
+                        if _th is not None:
+                            _th.record(ROOT, "india", sym,
+                                             source="angel:daily:fallback", ok=False)
+                else:
+                    failed.append(tkr)
+                    if _th is not None:
+                        _th.record(ROOT, "india", sym,
+                                         source="angel:daily:fallback", ok=False,
+                                         error="no data returned")
+    # Emit ticker health report daily
+    if _th is not None:
+        try:
+            from datetime import date as _d
+            rep = _th.compute_report(ROOT, "india", _d.today().isoformat())
+            _th.emit(ROOT, rep)
+        except Exception:
+            pass
+    return dict(updated=updated, rows=total_rows, failed=failed,
+                     newest=newest, n=len(tickers), angel_rescued=angel_rescued)
 
 
 def main():
@@ -96,6 +171,8 @@ def main():
     print(f"  symbols checked : {r['n']}")
     print(f"  updated         : {r['updated']}  (+{r['rows']} new rows)")
     print(f"  newest date now : {r['newest'].date() if r['newest'] is not None else 'unchanged'}")
+    if r.get("angel_rescued"):
+        print(f"  Angel rescued   : {r['angel_rescued']}  (yfinance 404 · fallback succeeded)")
     if r["failed"]:
         print(f"  failed/skipped  : {len(r['failed'])} (e.g. {r['failed'][:5]})")
     if r["updated"] == 0 and not r["failed"]:

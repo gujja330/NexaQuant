@@ -77,10 +77,20 @@ jobs:
         if: steps.guard.outputs.run == 'true'
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements-dashboard.txt gspread google-auth yfinance pyyaml
+          # 2026-08-24 · smartapi-python + pyotp added for Angel SmartAPI
+          # fallback in refresh_data.py (rescues yfinance 404 tickers).
+          pip install -r requirements-dashboard.txt gspread google-auth yfinance pyyaml \
+                        smartapi-python pyotp
 
-      - name: Refresh market data (append latest bars via yfinance)
+      - name: Refresh market data (yfinance primary · Angel fallback for 404s)
         if: steps.guard.outputs.run == 'true'
+        env:
+          # 2026-08-24 · Angel SmartAPI credentials (used only as 404-fallback
+          # to rescue delisted/renamed tickers · yfinance stays primary).
+          ANGEL_API_KEY:      ${{ secrets.ANGEL_API_KEY }}
+          ANGEL_CLIENT_CODE:  ${{ secrets.ANGEL_CLIENT_CODE }}
+          ANGEL_PIN:          ${{ secrets.ANGEL_PIN }}
+          ANGEL_TOTP_SECRET:  ${{ secrets.ANGEL_TOTP_SECRET }}
         run: python india/refresh_data.py || echo "data refresh issue; will let freshness gate decide"
 
       - name: Freshness gate — abort if data is stale
