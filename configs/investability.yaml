@@ -82,3 +82,24 @@ governance_thresholds:
   institutional_holding_min:  0.20
   short_ratio_max:            5.0
   esg_risk_max:               5.0
+
+# ─────────────────────────────────────────────────────────────
+# Part 26 · Shadow Runner (2026-08-21)
+# Runs PARALLEL to the recommender · scores EVERY ticker in the
+# universe daily. Never touches recommender output while
+# enforce_gate is false · pure informational.
+# ─────────────────────────────────────────────────────────────
+shadow:
+  # Score every ticker in the universe daily · true by default
+  enabled:            true
+
+  # Enforcement · when true, tickers below gate_threshold are
+  # filtered OUT of the recommender's actionable set. Keep FALSE
+  # for at least 2 weeks after enabling shadow, review the daily
+  # investability_shadow_diagnostic_{market}.json, then flip.
+  enforce_gate:       false
+
+  # Score threshold below which a ticker is considered "REJECT"
+  # under gate simulation. Matches the existing thresholds.reject
+  # value above (default 60).
+  gate_threshold:     60.0

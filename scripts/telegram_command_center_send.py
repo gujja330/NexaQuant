@@ -1180,6 +1180,33 @@ def main() -> int:
                     _reg_detail = "all Wave 1-6 invariants hold"
             except Exception as _e:
                 _reg_detail = f"regression check error · {type(_e).__name__}: {_e}"
+            # Part 26 · Investability Shadow diagnostic (2026-08-21).
+            # Reads the shadow diagnostic emitted by new_opp_guard's parallel
+            # chain · surfaces "how much would investability change today".
+            _inv_summary = "invest · shadow off"
+            _inv_detail  = ""
+            try:
+                import json as _json
+                _inv_p = (_ROOT / "reports" / "context"
+                                / f"investability_shadow_diagnostic_{mkt_key.lower()}.json")
+                if _inv_p.exists():
+                    _idata = _json.loads(_inv_p.read_text(encoding="utf-8"))
+                    _mode = "ENFORCE" if _idata.get("enforce_gate") else "SHADOW"
+                    _inv_summary = (f"[{_mode}] scored={_idata.get('n_scored',0)} · "
+                                            f"pass={_idata.get('n_would_pass',0)} · "
+                                            f"fail={_idata.get('n_would_fail',0)}")
+                    _rej = _idata.get("would_reject_from_recs") or []
+                    _disc = _idata.get("top_discoveries") or []
+                    _parts = []
+                    if _rej:
+                        _parts.append(f"would-reject: " + ", ".join(
+                            f"{r['ticker']}({r.get('score','?')})" for r in _rej[:3]))
+                    if _disc:
+                        _parts.append(f"discoveries: " + ", ".join(
+                            f"{r['ticker']}({r.get('score','?')})" for r in _disc[:3]))
+                    _inv_detail = " · ".join(_parts) or "no material differences"
+            except Exception as _e:
+                _inv_detail = f"shadow read error · {type(_e).__name__}: {_e}"
             # 2026-08-21 · SKIP removed entirely per operator "we dont need skip
             # itself". Opportunity dataset tile deleted · no SKIP tracker.
             kpi_rows = [
@@ -1199,6 +1226,9 @@ def main() -> int:
                 # NEW-OPP STRONG GUARD · 2026-08-21 operator directive
                 ["🛡 NEW-OPP GUARD",        "",                  _guard_summary,
                  "Note",         _guard_note],
+                # PART 26 INVESTABILITY SHADOW · 2026-08-21 parallel track
+                ["🔬 INVESTABILITY (SHADOW)", "",               _inv_summary,
+                 "Detail",       _inv_detail],
                 ["Exit P&L (closed)",      realized_sum / 100.0, f"{n_realized} exits",
                  "Top exit",     _fmt(best_realized)],
                 ["Active P&L (open)",      unrealized_sum / 100.0, f"{n_unrealized} active",

@@ -1713,3 +1713,55 @@ review_engine · data_quality_gate blocks).
 - LAST · Institutional Walk-Forward Validation (production go/no-go)
 
 ## Signed 2026-08-21 (Appendix V · Closure Batch 2 · queue empty)
+
+---
+
+## Appendix W · Part 26 Investability Shadow Track (2026-08-24)
+
+Operator: "can we try walk forward / large research?" then
+"do this a parallel track, without disturbing existing pipeline".
+
+Chose Part 26 over Walk-Forward Validation because:
+  · Only 20 days of Registry forward-truth · WFV would be noise
+  · Bar data is 5.5 years deep · already enough for future WFV
+  · Part 26 needs zero historical outcome data · runs today
+  · Improves NEW-opportunity discovery immediately
+
+Ships · backend/investability/shadow_runner.py
+  Scores every ticker in the universe (229 India · ~918 USA) daily
+  against the 11 sub-engines already in backend/investability/. Uses
+  parallel_map (Part 29 Lever B) to hit ~2 min per market vs ~15
+  serial.
+
+Outputs · both new
+  reports/investability_shadow_{market}.json
+    Full 11-sub-engine score for every ticker in the universe.
+  reports/context/investability_shadow_diagnostic_{market}.json
+    Universe counts · gate simulation · recommender-vs-shadow diff
+    · top 5 discoveries (high-scoring tickers the recommender missed)
+    · top 5 questionable (low-scoring tickers currently in recs).
+
+Config · configs/investability.yaml::shadow
+  enabled:        true         · run daily (turn off if slow)
+  enforce_gate:   false        · SHADOW ONLY · never gates recommender
+  gate_threshold: 60.0         · matches thresholds.reject
+
+Wiring · backend/recommendation/new_opp_guard.py
+  Guard chain adds a shadow-runner step (non-blocking · try/except).
+  Warnings from the shadow diagnostic surface in guard health.
+
+KPI panel · scripts/telegram_command_center_send.py
+  New row: "🔬 INVESTABILITY (SHADOW)"
+    "[SHADOW] scored=229 · pass=180 · fail=49"
+    "would-reject: TICKER(score) · discoveries: TICKER(score)"
+
+Enforcement path · after 2+ weeks of shadow output review:
+  1. Operator confirms would-reject list looks reasonable
+  2. Flip configs/investability.yaml::shadow.enforce_gate to true
+  3. Recommender output starts filtering tickers below threshold
+  4. Full institutional pipeline: Universe → Investability → Runners
+
+Part 26 status: **CORE SHIPPED · in shadow mode · enforcement pending
+operator review**.
+
+## Signed 2026-08-24 (Appendix W · Part 26 Investability Shadow)

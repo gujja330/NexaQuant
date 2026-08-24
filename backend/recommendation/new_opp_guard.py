@@ -304,6 +304,26 @@ def guarded_run(root: Path, market: str, asof: str) -> NewOppGuardHealth:
                     h.error_history.append(f"data_quality · FAIL · {_dq.n_fail} hard-fail checks")
             except Exception as _e2:
                 h.error_history.append(f"data_quality · {type(_e2).__name__}: {_e2}")
+            # Part 26 · Institutional Investability Engine · SHADOW TRACK.
+            # Operator directive 2026-08-21: "do this a parallel track,
+            # without disturbing existing pipeline". Runs alongside · never
+            # gates recommender while enforce_gate is false (config default).
+            # Guarded by config toggle so it can be turned off if slow.
+            try:
+                import yaml as _yaml
+                _inv_cfg_p = root / "configs" / "investability.yaml"
+                _shadow_cfg = {}
+                if _inv_cfg_p.exists():
+                    _shadow_cfg = (_yaml.safe_load(_inv_cfg_p.read_text(encoding="utf-8"))
+                                             or {}).get("shadow", {}) or {}
+                if _shadow_cfg.get("enabled", True):
+                    from backend.investability import shadow_runner as _shr
+                    _scored, _shadow_diag = _shr.run(root, market, asof)
+                    if _shadow_diag.warnings:
+                        h.error_history.extend(
+                            [f"invest_shadow · {w}" for w in _shadow_diag.warnings[:3]])
+            except Exception as _e2:
+                h.error_history.append(f"invest_shadow · {type(_e2).__name__}: {_e2}")
             # Post-flight
             _ok, _reason = _postflight(root, market, asof)
             if not _ok:
