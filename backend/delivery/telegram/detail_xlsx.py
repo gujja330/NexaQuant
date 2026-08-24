@@ -473,15 +473,21 @@ def _rec_to_row(rec: Mapping, market: str, root: Path,
             initial_signal=status or "",
             initial_rank=rank if isinstance(rank, int) else None,
         )
-        first_seen = _opp.created_date or first_seen
-        # 2026-08-20 · when this row is Status=EXIT, transition the
-        # opportunity to CLOSED in the Registry. Idempotent · already-
-        # closed returns unchanged. Fixes 'registry never records
-        # closes · re-entry logic can't distinguish new-vs-old on
-        # future re-selection'.
-        if str(status or "").upper() == "EXIT" and _opp.is_active():
-            _oreg.close(root, _opp.opportunity_id, asof,
-                            reason=str(exit_reason or "EXIT"))
+        # 2026-08-21 · Wave 3 · re-entry cooling gate. When cooling
+        # blocks a re-entry get_or_create returns None · fall back to
+        # the row's own first_seen (legacy) so the row still renders
+        # for today, but log for the daily diagnostic. Actual portfolio
+        # inclusion is decided by the sender's filter chain.
+        if _opp is not None:
+            first_seen = _opp.created_date or first_seen
+            # 2026-08-20 · when this row is Status=EXIT, transition the
+            # opportunity to CLOSED in the Registry. Idempotent · already-
+            # closed returns unchanged. Fixes 'registry never records
+            # closes · re-entry logic can't distinguish new-vs-old on
+            # future re-selection'.
+            if str(status or "").upper() == "EXIT" and _opp.is_active():
+                _oreg.close(root, _opp.opportunity_id, asof,
+                                reason=str(exit_reason or "EXIT"))
     except Exception:
         pass   # registry unavailable · falls through to legacy logic below
 

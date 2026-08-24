@@ -126,6 +126,72 @@ def _registry_path(root: Path) -> Path:
     return root / "reports" / "research" / "opportunity_registry.jsonl"
 
 
+# 2026-08-21 · Wave 3 · re-entry cooling period.
+# Cached at module import · reloaded if the config file changes since load.
+_CONFIG_CACHE: dict = {}
+_CONFIG_MTIME: float = 0.0
+
+
+def _load_config(root: Path) -> dict:
+    """Load configs/opportunity_registry.yaml · cached with mtime check."""
+    global _CONFIG_CACHE, _CONFIG_MTIME
+    p = root / "configs" / "opportunity_registry.yaml"
+    if not p.exists():
+        return {}
+    try:
+        mtime = p.stat().st_mtime
+        if _CONFIG_CACHE and mtime == _CONFIG_MTIME:
+            return _CONFIG_CACHE
+        import yaml
+        _CONFIG_CACHE = yaml.safe_load(p.read_text(encoding="utf-8")) or {}
+        _CONFIG_MTIME = mtime
+        return _CONFIG_CACHE
+    except Exception:
+        return {}
+
+
+def _cooling_days_needed(prev_closed: "Opportunity", root: Path) -> int:
+    """Return the cooling-period days required before this closed
+    opportunity can seed a re-entry. Configurable by close reason."""
+    cfg = _load_config(root).get("re_entry", {}) or {}
+    base = int(cfg.get("cooling_period_days", 7))
+    reason = str(prev_closed.closed_reason or "").upper()
+    if prev_closed.status == "REJECTED":
+        return int(cfg.get("rejected_same_day_cooling_days", 3))
+    if "STOP_LOSS_HIT" in reason or "STOP LOSS" in reason:
+        return base + int(cfg.get("stop_loss_extra_cooling_days", 7))
+    return base
+
+
+def is_re_entry_blocked(existing: list, asof: str, root: Path) -> tuple:
+    """Check §10 no-artificial-re-entry rule. Returns (blocked, reason).
+    Not blocked when: no previous close · or cooling period elapsed."""
+    from datetime import date
+    if not existing:
+        return (False, "")
+    # Any ACTIVE → not a re-entry situation, caller returns existing
+    if any(o.is_active() for o in existing):
+        return (False, "")
+    # Find most-recent terminal close
+    terminals = [o for o in existing if o.is_terminal()]
+    if not terminals:
+        return (False, "")
+    latest = max(terminals, key=lambda o: (o.closed_date, o.ts_utc))
+    try:
+        cd = date.fromisoformat(latest.closed_date[:10])
+        ad = date.fromisoformat(asof[:10])
+        days_since = (ad - cd).days
+    except Exception:
+        return (False, "")
+    needed = _cooling_days_needed(latest, root)
+    if days_since < needed:
+        return (True,
+                  f"cooling period · prev {latest.status} on {latest.closed_date} "
+                  f"({days_since}d ago) · needs {needed}d "
+                  f"· reason={latest.closed_reason or 'n/a'}")
+    return (False, "")
+
+
 # ─────────────────────────────────────────────────────────────
 # Load / Save
 # ─────────────────────────────────────────────────────────────
@@ -180,11 +246,22 @@ def get_or_create(root: Path, market: str, runner: str, ticker: str,
                             initial_signal: str = "",
                             initial_rank: int | None = None,
                             initial_score: float | None = None,
-                            registry: dict | None = None) -> Opportunity:
+                            registry: dict | None = None,
+                            enforce_cooling: bool = True) -> Opportunity | None:
     """Return the ACTIVE opportunity for (market, runner, ticker), creating
     one if none exists. If an ACTIVE opportunity exists · returns it
     unchanged (created_date preserved). If only CLOSED/REJECTED exist ·
-    creates a NEW re-entry opportunity with today's asof as created_date."""
+    creates a NEW re-entry opportunity with today's asof as created_date.
+
+    2026-08-21 · Wave 3 · re-entry cooling per operator §10:
+      "A closed stock must NOT immediately appear as NEW again simply
+       because the model still ranks it highly. Require a re-entry
+       condition."
+    When enforce_cooling=True (default), a re-entry within the configured
+    cooling window returns None instead of creating a new opportunity_id.
+    Caller is expected to skip that ticker for the day. The block reason
+    is emitted to reports/context/opportunity_cooling_blocks.jsonl for
+    the daily diagnostic report."""
     if registry is None:
         registry = load_all(root)
     market = market.lower()
@@ -196,6 +273,14 @@ def get_or_create(root: Path, market: str, runner: str, ticker: str,
     for opp in existing:
         if opp.is_active():
             return opp
+    # 2026-08-21 · Wave 3 · cooling gate for re-entries
+    if enforce_cooling and existing:
+        blocked, reason = is_re_entry_blocked(existing, asof, root)
+        if blocked:
+            # Log the block so the daily diagnostic report can explain
+            # "why zero NEW today for this ticker".
+            _log_cooling_block(root, market, runner, tk, asof, reason)
+            return None
     # No active · create new (either first-ever OR re-entry after CLOSE)
     opp = Opportunity(
         opportunity_id=make_opportunity_id(market, runner, tk, asof),
@@ -211,6 +296,24 @@ def get_or_create(root: Path, market: str, runner: str, ticker: str,
     _append(root, asdict(opp))
     registry.setdefault(key, []).append(opp)
     return opp
+
+
+def _log_cooling_block(root: Path, market: str, runner: str,
+                                ticker: str, asof: str, reason: str) -> None:
+    """Append one cooling-block entry to the diagnostic sidecar."""
+    p = root / "reports" / "context" / "opportunity_cooling_blocks.jsonl"
+    p.parent.mkdir(parents=True, exist_ok=True)
+    entry = {
+        "asof":   asof[:10],
+        "market": market, "runner": runner, "ticker": ticker,
+        "reason": reason,
+        "ts_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+    }
+    try:
+        with p.open("a", encoding="utf-8") as fh:
+            fh.write(json.dumps(entry, ensure_ascii=False) + "\n")
+    except Exception:
+        pass
 
 
 def close(root: Path, opportunity_id: str, asof: str, reason: str,

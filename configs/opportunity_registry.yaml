@@ -1,0 +1,37 @@
+version: 1.0
+# 2026-08-21 · Wave 3 · Opportunity Registry configuration.
+# Governs re-entry rules, cooling periods, and other lifecycle constraints
+# that the Registry enforces at write time.
+#
+# Operator directive §10 · "A closed stock must NOT immediately appear as
+# NEW again simply because the model still ranks it highly. Require a
+# re-entry condition." Cooling period is the minimum-required condition
+# per this config · additional condition checks (fresh setup, expected
+# alpha delta) live in Waves 4-5.
+
+re_entry:
+  # Minimum calendar days that must elapse between CLOSED/REJECTED status
+  # and a new opportunity_id for the same (market, runner, ticker).
+  # If the model re-ranks the ticker before this window expires, the
+  # sender's get_or_create() returns None and the row is skipped for the
+  # day (research file still captures the model's ranking intent).
+  cooling_period_days: 7
+
+  # Cooling period does NOT apply if the previous close was on a hard
+  # STOP_LOSS_HIT (protects against re-entering a broken position too
+  # quickly). Bump to 14 days for stopped-out re-entries.
+  stop_loss_extra_cooling_days: 7
+
+  # A REJECTED same-day rotation (INDIGO / JIOFIN pattern) counts as a
+  # very-short lived close. Its cooling is shorter than a genuine
+  # closed position because no capital was actually deployed.
+  rejected_same_day_cooling_days: 3
+
+# ─────────────────────────────────────────────────────────────
+# Diagnostic exports (consumed by Wave 6 daily diagnostic report)
+# ─────────────────────────────────────────────────────────────
+diagnostic:
+  # If N tickers are blocked by cooling on a given day, surface this
+  # in reports/context/daily_opportunity_discovery.json so the
+  # "why zero NEW today" report can explain the shortfall.
+  emit_cooling_blocks_to_diagnostic: true

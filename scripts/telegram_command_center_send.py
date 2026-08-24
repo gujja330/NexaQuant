@@ -1396,16 +1396,17 @@ def main() -> int:
             # Group positions by section · order them as a flat list where
             # section transitions inject a banner-row placeholder. The write
             # loop below emits banners inline when it encounters one.
-            # 2026-08-21 · vocab v5.0 · sections match the 4-value decision
-            # vocabulary (NEW / ACTIVE / ACTIVE+ / EXIT). ACTIVE and ACTIVE+
-            # share one section since they visually share the green tier.
-            # EXIT gets two sub-sections: "today's actionable exits" (stop
-            # hit, urgent) vs "recent closed reference" (last 30 days).
+            # 2026-08-21 · Wave 3 · Portfolio sheet is JUST NEW + ACTIVE now.
+            # Operator directive: "portfolio is main sheet for new and active".
+            # Historical exits moved to dedicated "Exit History (90d)" sheet.
+            # We keep the "ACTION REQUIRED TODAY" section for today's urgent
+            # stops so operator can't miss an immediate exit signal · this is
+            # today's decision, not historical reference.
             _SECTION_ORDER = [
                 ("new_opps",  "🆕 NEW",                          "D5A6EA", "000000"),
                 ("existing",  "🟢 ACTIVE",                       "C6EFCE", "000000"),
                 ("action",    "🔴 EXIT · ACTION REQUIRED TODAY", "FCE4D6", "9C0006"),
-                ("closed",    "🔴 EXIT · REFERENCE (last 30d)",  "F8CBAD", "9C0006"),
+                # "closed" section retired · see Exit History sheet
             ]
             def _row_section(_item):
                 _dt, _r = _item
@@ -1418,21 +1419,25 @@ def main() -> int:
                 if _same_day: return "new_opps"
                 return "existing"
 
-            # 2026-08-21 · Wave 1 · investable-only + 30-day + same-day filters.
+            # 2026-08-21 · Wave 1 + Wave 3 · investable-only + exits-off-portfolio.
             # Operator directives (2026-08-21 batch):
             #   "only investable stocks we need to see in portfolio"
-            #   "EXIT STOCKS WE CAN REMOVE FROM PORTFOLIO MONTH ON MONTH"
+            #   "portfolio is main sheet for new and active" (Wave 3)
+            #   "add new sheet, show last 3 months stock by stock P&L"
             #   § 5 · "a stock cannot simultaneously be NEW and CLOSED on the
             #          same daily recommendation snapshot"
-            # Drop from portfolio view (research files still track everything):
-            #   1. EXIT rows older than 30 days from asof     · scannability
+            # Drop from Portfolio sheet (Exit History sheet + research files
+            # still track everything):
+            #   1. EXIT rows without a today-actionable stop signal → move
+            #      entirely to the dedicated Exit History (90d) sheet
             #   2. Same-day rec_dt == asof AND Status == EXIT · JIOFIN artifact
-            #   3. NEW candidate rows with ✗ AVOID verdict    · not investable
-            _cutoff_30d = (_asof_dt - _td(days=30)).isoformat()
+            #   3. NEW candidate rows with ✗ AVOID verdict · not investable
+            # Exception: EXIT with a BINDING_RISK_SIGNAL in Alerts (stop hit
+            # TODAY) stays in the "ACTION REQUIRED TODAY" section.
             _iv_col_idx = h.index("Investability") + 1 if "Investability" in h else None
             _before_flt3 = len(positions_sorted)
             _kept3 = []
-            _n_old_exits = 0; _n_same_day_artifact = 0; _n_avoid_new = 0
+            _n_exit_moved = 0; _n_same_day_artifact = 0; _n_avoid_new = 0
             for _item in positions_sorted:
                 _dt2, _r2 = _item
                 _st2 = str(_r2[c_st-1].value or "").upper()
@@ -1441,24 +1446,31 @@ def main() -> int:
                                     if _c_rec_date else "")
                 _iv2 = (str(_r2[_iv_col_idx-1].value or "")
                                     if _iv_col_idx else "")
+                _al2 = (str(_r2[c_alerts-1].value or "").upper()
+                                    if c_alerts else "")
                 _is_same_day_artifact = (
                     _st2 == "EXIT" and _rec_dt2 and _rec_dt2 == _row_dt2)
                 _is_new_avoid = (
                     _rec_dt2 == asof[:10] and _st2 != "EXIT"
                     and "AVOID" in _iv2.upper())
-                if _st2 == "EXIT" and _row_dt2 < _cutoff_30d:
-                    _n_old_exits += 1;         continue
+                _is_today_urgent_stop = (
+                    _st2 == "EXIT"
+                    and any(sig in _al2 for sig in BINDING_RISK_SIGNALS))
                 if _is_same_day_artifact:
                     _n_same_day_artifact += 1; continue
                 if _is_new_avoid:
                     _n_avoid_new += 1;         continue
+                # EXIT stays only if it's a TODAY urgent stop · else goes to
+                # the Exit History sheet
+                if _st2 == "EXIT" and not _is_today_urgent_stop:
+                    _n_exit_moved += 1;        continue
                 _kept3.append(_item)
             positions_sorted = _kept3
-            if (_n_old_exits + _n_same_day_artifact + _n_avoid_new) > 0:
-                print(f"[xlsx:{mkt_key}] investable-only filter · "
-                      f"dropped {_n_old_exits} old exits (>30d) · "
-                      f"{_n_same_day_artifact} same-day artifacts · "
-                      f"{_n_avoid_new} NEW·AVOID rows · "
+            if (_n_exit_moved + _n_same_day_artifact + _n_avoid_new) > 0:
+                print(f"[xlsx:{mkt_key}] portfolio filter · "
+                      f"{_n_exit_moved} exits → Exit History sheet · "
+                      f"{_n_same_day_artifact} same-day artifacts dropped · "
+                      f"{_n_avoid_new} NEW·AVOID rows dropped · "
                       f"({_before_flt3} → {len(positions_sorted)})")
 
             # ─────────────────────────────────────────────────────────
@@ -1935,7 +1947,95 @@ def main() -> int:
                             _cell.font = _row_font
             portfolio_ws.freeze_panes = f"A{_pos_header_row + 1}"
 
-            # Rename Sheet 2 · make Portfolio come first
+            # ═══════════════════════════════════════════════════════════════
+            # SHEET 2 · EXIT HISTORY (90d) · Wave 3 · 2026-08-21
+            # Operator directive: "add new sheet, show last 3 months stock
+            # by stock P&L profit loss, makes sense to track it. portfolio
+            # is main sheet for new and active" · columns per operator:
+            # stock name · start date · closed date · entry price · closing
+            # price · P&L.
+            # ═══════════════════════════════════════════════════════════════
+            exit_ws = wb2.create_sheet("Exit History (90d)", 1)
+            _exit_hdr = ["Stock", "Runner", "Entry Date", "Exit Date",
+                            "Days Held", "Entry Price", "Exit Price",
+                            "P&L %", "Exit Reason"]
+            _exit_widths = [14, 8, 12, 12, 10, 14, 14, 12, 40]
+            # Title row
+            exit_ws.merge_cells("A1:I1")
+            exit_ws["A1"] = f"AEGIS {mkt_key} · EXIT HISTORY · last 90 days as of {latest_date or 'today'}"
+            exit_ws["A1"].font = _Font(bold=True, size=14, color="FFFFFF")
+            exit_ws["A1"].fill = _PF(start_color="1F4E78", end_color="1F4E78", fill_type="solid")
+            exit_ws["A1"].alignment = _Align(horizontal="center", vertical="center")
+            exit_ws.row_dimensions[1].height = 28
+            # Header row
+            for _c, _n in enumerate(_exit_hdr, start=1):
+                _hc = exit_ws.cell(3, _c, _n)
+                _hc.font = _Font(bold=True, color="FFFFFF", size=11)
+                _hc.fill = _PF(start_color="1F4E78", end_color="1F4E78", fill_type="solid")
+                _hc.alignment = _Align(horizontal="center", vertical="center")
+                exit_ws.column_dimensions[_gcl_src(_c)].width = _exit_widths[_c-1]
+            # Body · walk keep_rows for EXIT status within last 90 days
+            _exit_rows: list = []
+            _exit_cutoff = (_asof_dt - _td(days=90)).isoformat()
+            for _r in keep_rows:
+                _st_e = str(_r[c_st-1].value or "").upper()
+                if _st_e != "EXIT": continue
+                _row_dt_e = str(_r[c_date-1].value or "")[:10]
+                if _row_dt_e < _exit_cutoff: continue
+                _rn_e = str(_r[c_run-1].value or "").upper().replace("_NEW", "")
+                _tk_e = str(_r[c_tk-1].value or "").upper().replace(".NS","").replace(".BO","")
+                _entry_dt_e = (str(_r[_c_rec_date-1].value or "")[:10]
+                                        if _c_rec_date else "")
+                _pnl_e = _r[c_exit_pnl-1].value if c_exit_pnl else None
+                _entry_p = _r[c_entry-1].value if c_entry else None
+                _exit_p = _r[h.index("Current Price") + 1 - 1].value if "Current Price" in h else None
+                _reason = (_r[h.index("Exit Reason") + 1 - 1].value
+                                    if "Exit Reason" in h else "")
+                try:
+                    from datetime import date as _d
+                    _d0 = _d.fromisoformat(_entry_dt_e)
+                    _d1 = _d.fromisoformat(_row_dt_e)
+                    _days_held = (_d1 - _d0).days
+                except Exception:
+                    _days_held = ""
+                _exit_rows.append((
+                    _row_dt_e, _tk_e, _rn_e, _entry_dt_e, _row_dt_e,
+                    _days_held, _entry_p, _exit_p, _pnl_e, _reason,
+                ))
+            # Sort · most recent exit first
+            _exit_rows.sort(key=lambda x: x[0], reverse=True)
+            _rowptr = 4
+            for _er in _exit_rows:
+                (_dt_key, _tk_e, _rn_e, _entry_dt_e, _exit_dt_e,
+                 _days_held, _entry_p, _exit_p, _pnl_e, _reason) = _er
+                _vals = [_tk_e, _rn_e, _entry_dt_e, _exit_dt_e, _days_held,
+                             _entry_p, _exit_p,
+                             (_pnl_e / 100.0 if isinstance(_pnl_e, (int, float)) else ""),
+                             str(_reason or "")]
+                for _c, _v in enumerate(_vals, start=1):
+                    _cell = exit_ws.cell(_rowptr, _c, _v)
+                    _cell.font = _Font(size=10)
+                    _cell.alignment = _Align(horizontal="center", vertical="center")
+                    if _c == 8:   # P&L column
+                        _cell.number_format = "+0.00%;-0.00%;0.00%"
+                        if isinstance(_pnl_e, (int, float)):
+                            if _pnl_e > 0.01:
+                                _cell.fill = _PF(start_color="C6EFCE",
+                                                          end_color="C6EFCE",
+                                                          fill_type="solid")
+                            elif _pnl_e < -0.01:
+                                _cell.fill = _PF(start_color="F8CBAD",
+                                                          end_color="F8CBAD",
+                                                          fill_type="solid")
+                _rowptr += 1
+            if not _exit_rows:
+                exit_ws.merge_cells(f"A4:I4")
+                _empty = exit_ws.cell(4, 1, "no exits in the last 90 days")
+                _empty.alignment = _Align(horizontal="center")
+                _empty.font = _Font(size=10, italic=True, color="7F7F7F")
+            exit_ws.freeze_panes = "A4"
+
+            # Rename Sheet 3 · full history stays last
             ws2.title = f"AEGIS {mkt_key} History"
 
             wb2.save(out_path)
