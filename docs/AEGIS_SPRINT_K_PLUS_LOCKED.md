@@ -1543,3 +1543,87 @@ from live operation."
 
 Sprint K+ is CONSTITUTIONALLY LOCKED. Any deviation from these 24 parts
 requires operator explicit amendment.
+
+---
+
+## Appendix S · Stop-Loss State Machine (Part 28 · shipped 2026-08-21)
+
+The Alerts → priority-bucket → decision-collapse chain is now deterministic.
+This appendix documents the state machine so the assertions in
+`backend/tests/test_decision_consistency.py` + `test_vocab_v5_lupin.py` and
+the acceptance checks A11-A16 in `wave_regression.py` have a single source
+of truth.
+
+### S.1 · State transition diagram
+
+```
+   ┌────────────────┐    price hits    ┌────────────────┐
+   │ 🟢 ACTIVE      │ ───stop level───▶│ 🔴 EXIT · IMMED │
+   │ (no risk sig)  │                  │ (stop hit today)│
+   └────────────────┘                  └────────────────┘
+           │                                    │
+           │ model says BUY/ADD                 │ sender writes exit
+           ▼                                    ▼
+   ┌────────────────┐                  ┌────────────────┐
+   │ 🟢 ACTIVE+     │                  │ Registry marks │
+   │ (add more)     │                  │ CLOSED         │
+   └────────────────┘                  └────────────────┘
+           │                                    │
+           │ price hits stop                    │
+           └──────────────────┐        cooling  │
+                              ▼        period   ▼
+                    ┌────────────────┐  ┌────────────────┐
+                    │ 🔴 EXIT ·       │  │ Ineligible for │
+                    │ Stop Hit       │  │ NEW · 7-14 d   │
+                    └────────────────┘  └────────────────┘
+```
+
+### S.2 · The four transition rules
+
+1. **ACTIVE / ACTIVE+ → EXIT**
+   Fires the instant `Alerts` contains any binding-risk signal from
+   `configs/priority_matrix.yaml::binding_risk_signals` (STOP_LOSS_HIT ·
+   HARD_STOP · TRAILING_STOP_HIT · GAP_EXIT · PORTFOLIO_MAX_DD ·
+   EMERGENCY_EXIT · CRITICAL_DEEP_LOSS). Bucket R overrides every other
+   classification rule.
+
+2. **EXIT → CLOSED (Registry)**
+   Sender's `_rec_to_row` calls `opportunity_registry.close()` on the
+   opportunity_id when Status == EXIT and the opp is still ACTIVE.
+   Idempotent · re-runs don't re-fire close events.
+
+3. **CLOSED → cooling window**
+   `configs/opportunity_registry.yaml::re_entry.cooling_period_days = 7`
+   base · `+7` extra after STOP_LOSS_HIT (14d total) · `3d` for rotation
+   artifacts. Enforced in `is_re_entry_blocked()` · blocked re-entries
+   return None from `get_or_create()`.
+
+4. **Cooling expiry → eligible for new opportunity_id**
+   A fresh recommendation post-cooling creates a NEW opportunity_id
+   (never reuses the CLOSED one). Different id = different investment
+   thesis for audit + attribution.
+
+### S.3 · What is NOT part of this state machine
+
+- **PROTECT** is not a state · Wave 1 vocab v5.0 collapsed it into
+  ACTIVE. Stop-tightening is a `TIGHTEN STOP` action recorded in the
+  Action + Stop Loss columns · never in the Decision column.
+- **REDUCE / TRIM** are not states · treated as EXIT with a reason.
+- **REVIEW** is not a state · position is either ACTIVE (still holding)
+  or EXIT (closing).
+- **PENDING investability** does not gate the state machine · marked
+  as 🆕 NEW · PROVISIONAL BUY in the Reason column, still counts as ACTIVE.
+
+### S.4 · Consumer contract
+
+Every consumer of the priority-bucket API must call:
+
+```python
+from backend.tests.test_decision_consistency import classify, decision_for
+# ↑ single source of truth · both live and test paths import this.
+```
+
+Any consumer that hand-rolls its own classification logic violates
+this appendix and must be redirected through `classify()`.
+
+## Signed 2026-08-21 (Part 28 · Waves 1-8 · vocab v5.0 acceptance)
