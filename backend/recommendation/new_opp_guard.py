@@ -254,10 +254,65 @@ def guarded_run(root: Path, market: str, asof: str) -> NewOppGuardHealth:
     except Exception as e:
         h.error_history.append(f"held_penalty · {type(e).__name__}: {e}")
 
-    # Invoke NEW + Rotation + Ops diagnostic chain
-    # 2026-08-21 · queue extension · Parts 8/9/10/13/14/15/20 modules
-    # now run inside the guard so their outputs are guaranteed present +
-    # covered by retry + fallback.
+    # 2026-08-25 · SPEED FIX (operator: pipeline took 2-3hrs · target 60min)
+    # HEAVY modules moved OUT of the retry loop · run ONCE, log if slow.
+    #   · shadow_runner scores 229 tickers via yfinance (~10 min)
+    #   · Angel universe validator + LTP (~30-60s)
+    # Previous design ran these inside the 3-attempt retry loop · a single
+    # transient failure could trigger 3× the shadow work = 30 min wasted.
+    # If a heavy module errors we still ship using yesterday's snapshot ·
+    # never blocking. Registry loaded once here for both blocks.
+    try:
+        from backend.research import opportunity_registry as _oreg
+        reg = _oreg.load_all(root)
+    except Exception:
+        reg = {}
+    try:
+        import yaml as _yaml
+        _inv_cfg_p = root / "configs" / "investability.yaml"
+        _shadow_cfg = {}
+        if _inv_cfg_p.exists():
+            _shadow_cfg = (_yaml.safe_load(_inv_cfg_p.read_text(encoding="utf-8"))
+                                     or {}).get("shadow", {}) or {}
+        if _shadow_cfg.get("enabled", True):
+            from backend.investability import shadow_runner as _shr
+            # Staleness cache · skip if shadow scored within last 20 hours
+            _shd_out = (root / "reports"
+                              / f"investability_shadow_{market}.json")
+            _skip_shadow = False
+            if _shd_out.exists():
+                import time as _time
+                if (_time.time() - _shd_out.stat().st_mtime) < 20 * 3600:
+                    _skip_shadow = True
+                    print(f"[shadow_runner:{market}] staleness cache hit · skipping (fresh <20h)")
+            if not _skip_shadow:
+                _scored, _shadow_diag = _shr.run(root, market, asof)
+                if _shadow_diag.warnings:
+                    h.error_history.extend(
+                        [f"invest_shadow · {w}" for w in _shadow_diag.warnings[:3]])
+    except Exception as _e2:
+        h.error_history.append(f"invest_shadow · {type(_e2).__name__}: {_e2}")
+    # Angel additions · India only · cheap
+    try:
+        if market.lower() == "india":
+            from backend.ingest import angel_universe_validator as _auv
+            _uv = _auv.validate_universe(root, market, asof)
+            _auv.emit_validation(root, _uv)
+            if _uv.n_dead > 0:
+                h.error_history.append(
+                    f"angel_universe · {_uv.n_dead} DEAD symbols · "
+                    f"first: {', '.join(_uv.dead_symbols[:5])}")
+            _held = sorted({o.ticker for opps in reg.values() for o in opps
+                                    if o.market.lower() == "india" and o.is_active()})
+            if _held:
+                _ltp = _auv.fetch_ltp_batch(root, _held)
+                _auv.emit_ltp_snapshot(root, market, _ltp)
+    except Exception as _e2:
+        h.error_history.append(f"angel · {type(_e2).__name__}: {_e2}")
+
+    # Invoke NEW + Rotation + Ops diagnostic chain (LIGHT modules only)
+    # 2026-08-25 · after moving heavy modules out, retry loop covers only
+    # the cheap JSON-emit steps · retries are near-free.
     for attempt in range(1, _MAX_ATTEMPTS + 1):
         h.attempts = attempt
         try:
@@ -304,48 +359,12 @@ def guarded_run(root: Path, market: str, asof: str) -> NewOppGuardHealth:
                     h.error_history.append(f"data_quality · FAIL · {_dq.n_fail} hard-fail checks")
             except Exception as _e2:
                 h.error_history.append(f"data_quality · {type(_e2).__name__}: {_e2}")
-            # Part 26 · Institutional Investability Engine · SHADOW TRACK.
-            # Operator directive 2026-08-21: "do this a parallel track,
-            # without disturbing existing pipeline". Runs alongside · never
-            # gates recommender while enforce_gate is false (config default).
-            # Guarded by config toggle so it can be turned off if slow.
-            try:
-                import yaml as _yaml
-                _inv_cfg_p = root / "configs" / "investability.yaml"
-                _shadow_cfg = {}
-                if _inv_cfg_p.exists():
-                    _shadow_cfg = (_yaml.safe_load(_inv_cfg_p.read_text(encoding="utf-8"))
-                                             or {}).get("shadow", {}) or {}
-                if _shadow_cfg.get("enabled", True):
-                    from backend.investability import shadow_runner as _shr
-                    _scored, _shadow_diag = _shr.run(root, market, asof)
-                    if _shadow_diag.warnings:
-                        h.error_history.extend(
-                            [f"invest_shadow · {w}" for w in _shadow_diag.warnings[:3]])
-            except Exception as _e2:
-                h.error_history.append(f"invest_shadow · {type(_e2).__name__}: {_e2}")
-            # 2026-08-24 · Angel-powered additions (India-only · no-op USA).
-            # Operator: "u can pull whatever data is availble using angel,
-            # dont miss the chance." Two low-cost Angel calls per day:
-            #   (a) universe validator · cross-check tickers vs NSE master
-            #   (b) LTP snapshot for held positions · fresh mid-market prices
-            try:
-                if market.lower() == "india":
-                    from backend.ingest import angel_universe_validator as _auv
-                    _uv = _auv.validate_universe(root, market, asof)
-                    _auv.emit_validation(root, _uv)
-                    if _uv.n_dead > 0:
-                        h.error_history.append(
-                            f"angel_universe · {_uv.n_dead} DEAD symbols · "
-                            f"first: {', '.join(_uv.dead_symbols[:5])}")
-                    # LTP snapshot for ACTIVE tickers only · cheap batch call
-                    _held = sorted({o.ticker for opps in reg.values() for o in opps
-                                            if o.market.lower() == "india" and o.is_active()})
-                    if _held:
-                        _ltp = _auv.fetch_ltp_batch(root, _held)
-                        _auv.emit_ltp_snapshot(root, market, _ltp)
-            except Exception as _e2:
-                h.error_history.append(f"angel · {type(_e2).__name__}: {_e2}")
+            # 2026-08-25 · SPEED FIX (operator "took almost 2-3hrs · 60min
+            # and less works") · The heavy modules (shadow_runner ~10min ·
+            # Angel LTP ~30s) MOVED OUTSIDE this retry loop. They ran once
+            # BEFORE this loop started. No longer 3× re-run on transient
+            # failure. Retry loop keeps only the CHEAP modules (diagnostic
+            # JSON emit + post-flight validation).
             # Post-flight
             _ok, _reason = _postflight(root, market, asof)
             if not _ok:

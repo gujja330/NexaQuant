@@ -496,13 +496,21 @@ def compute(root: Path, market: str, asof: str) -> WaveRegressionReport:
     return rep
 
 
+# 2026-08-25 · in-process cache for pytest results · avoids 3× subprocess
+# forks when wave_regression is invoked repeatedly per pipeline run.
+_PYTEST_CACHE: dict = {}
+
+
 def _run_pytest_module(root: Path, rel_path: str) -> bool:
     """Best-effort pytest invocation · returns True on all-pass, False otherwise.
     Safe for CI (uses subprocess with tight timeout so a hung test can't stall
-    the sender)."""
+    the sender). Cached per-process so repeat calls don't re-fork subprocess."""
+    if rel_path in _PYTEST_CACHE:
+        return _PYTEST_CACHE[rel_path]
     import subprocess, sys
     p = root / rel_path
     if not p.exists():
+        _PYTEST_CACHE[rel_path] = False
         return False
     try:
         r = subprocess.run(
@@ -510,8 +518,10 @@ def _run_pytest_module(root: Path, rel_path: str) -> bool:
                  "--no-header", "--tb=no"],
             cwd=str(root), capture_output=True, text=True, timeout=30,
         )
-        return r.returncode == 0
+        _PYTEST_CACHE[rel_path] = (r.returncode == 0)
+        return _PYTEST_CACHE[rel_path]
     except Exception:
+        _PYTEST_CACHE[rel_path] = False
         return False
 
 
