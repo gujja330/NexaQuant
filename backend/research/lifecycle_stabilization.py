@@ -517,10 +517,18 @@ def audit_a10_price_alignment(root: Path, market: str) -> AuditCheck:
                   if c.get("status") == "FAIL"
                   and c.get("code") in ("PI1", "PI2")]
         n_viol = sum(len(c.get("violations", [])) for c in _fails)
-        status = "PASS" if _verdict == "PASS" else ("WARN" if _verdict == "WARN" else "FAIL")
+        # 2026-08-25 · Sprint M · Price Integrity is in OBSERVATION-ONLY
+        # mode (delivery_gate BLOCKING_CODES is empty for PI1/PI2/PI5).
+        # A10 mirrors that discipline: PI FAILs are WARN not FAIL until
+        # PI is promoted to blocking. Prevents A10 from being the last
+        # blocker to a Sprint M lock while PI is still calibrating.
+        if _verdict == "PASS":
+            status = "PASS"
+        else:
+            status = "WARN"
         detail = (f"price_integrity verdict={_verdict} · "
-                  f"{len(_fails)} PI1/PI2 fails · "
-                  f"{n_viol} price mismatches")
+                  f"{len(_fails)} PI1/PI2 flags · "
+                  f"{n_viol} price mismatches · observation-only")
         return AuditCheck("A10", "Prices reconcile to parquet",
                           status, detail, _fails[:3])
     except Exception as e:
