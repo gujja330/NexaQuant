@@ -1,8 +1,77 @@
 # AEGIS · Sprint M · Validation & Opportunity Quality
 
+**🔒 LOCKED 2026-08-25 (v3) · No further feature additions · evidence-collection mode only**
 **v2.0 rewritten 2026-08-25 · replaces the 22-part Alpha Engine draft**
 **Depends on: Sprint K+ (30 parts · complete) · Sprint L (locked · not yet exec)**
 **Origin: CEO stabilization directive 2026-08-25 · "no more features · validate the architecture we have"**
+
+---
+
+## 🔒 SPRINT M LOCK · 2026-08-25 · APEX RULE
+
+CEO final verdict 2026-08-25 verbatim:
+> "🔒 LOCK everything now. Sprint M research is locked too. No further
+> feature additions until its evidence review. The only permitted work
+> should be bug fixes, data-quality fixes, P&L correctness, pipeline
+> reliability, and collecting outcomes."
+
+### Lock status table
+
+| Component | Status |
+|---|---|
+| R1 | 🔒 LOCKED |
+| R2 | 🔒 LOCKED |
+| Portfolio / Decision layer | 🔒 LOCKED |
+| P0 Outcome Dataset | 🔒 LOCKED |
+| P1 Attribution | 🔒 LOCKED |
+| Investability | 🔒 LOCKED |
+| Short-Term Momentum research module | 🔒 LOCKED as research |
+| Momentum → Timing integration | 🟡 RESEARCH/VALIDATION only (not production) |
+| Momentum changing R1/R2 ranks | ❌ NOT APPROVED |
+| Automatic momentum BUY trigger | ❌ NOT APPROVED |
+| Excel format (Portfolio + Exit History + AEGIS History) | 🔒 LOCKED (HARD LOCK 1) |
+| Lifecycle (NEW/ACTIVE/ACTIVE+/EXIT) | 🔒 LOCKED (HARD LOCK 2) |
+
+### Permitted work (only these 5 categories)
+
+1. Bug fixes · correctness issues in existing modules
+2. Data-quality fixes · price alignment, freshness, sector cache seeding
+3. P&L correctness · Active vs Exit formula discipline
+4. Pipeline reliability · CI failure fixes, error handling, graceful degradation
+5. Outcome collection · passive data accumulation for future evidence review
+
+### Forbidden work
+
+- ❌ New engines (no new files under `backend/research/` or `backend/decision/`)
+- ❌ Threshold tweaks (momentum, investability, lifecycle, delivery gate)
+- ❌ New indicators
+- ❌ New attribution dimensions
+- ❌ Modifying decision path
+- ❌ Promoting research modules to production
+- ❌ Adding lifecycle states
+- ❌ Excel format changes
+- ❌ Column-order or presentation changes
+
+### Evidence review (the one thing that unlocks Sprint M)
+
+After 30-60 days of live observation, the CEO makes exactly ONE decision:
+
+- **A · Promote** → integrate momentum into Timing/Decision layer
+- **B · Partial promote** → use only as confirmation/risk filter
+- **C · Reject** → keep research-only
+
+Any production change must go through:
+Research finding → Statistical Discipline (N ≥ 20 ticket · N ≥ 100 production) → Research Ticket → Walk-forward validation → **CEO explicit written approval** → config flag OFF → paper period → flag ON.
+
+### Verbatim unlock phrases
+
+Only these EXACT phrases (no abbreviation, no paraphrase) unlock specific bans:
+- `"override the sprint m lock"` · unlocks feature-add ban
+- `"override the r1/r2 lock"` · unlocks R1/R2 change ban
+- `"override the format lock"` · unlocks Excel format ban
+- `"override the lifecycle lock"` · unlocks lifecycle-state ban
+
+---
 
 Sprint M is the **stabilization + validation** sprint. The strategic
 re-focus is:
