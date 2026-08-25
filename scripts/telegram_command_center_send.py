@@ -1641,13 +1641,21 @@ def main() -> int:
                 ("action",    "🔴 EXIT · ACTION REQUIRED TODAY", "FCE4D6", "9C0006"),
                 # "closed" section retired · see Exit History sheet
             ]
-            # 2026-08-25 · fix operator complaint "why red stocks seen in
-            # portfolio" · BATAINDIA/TATAPOWER (bucket G · Structural
-            # Failure) leaked into ACTIVE section because Status stayed
-            # HOLD while Decision resolved to EXIT via bucket G. Fixed
-            # here by pre-classifying the bucket using the same rules
-            # the row-write loop uses.
+            # 2026-08-25 v2 · A17 fix v2 · earlier fix used the wrong column.
+            # "Health" is a 0-100 score, NOT the investability verdict.
+            # Load investability_{market}.json map once + look up per ticker
+            # to get the real verdict (🏆 QUALITY / ✓ OK / ⚠ MARGINAL / ✗ AVOID).
             _EXIT_ACTIONS = {"EXIT", "SKIP", "CLOSED", "IGNORE"}
+            _iv_verdict_map: dict = {}
+            try:
+                import json as _js2
+                _iv_p2 = _ROOT / "reports" / f"investability_{mkt_key.lower()}.json"
+                if _iv_p2.exists():
+                    _iv_data2 = _js2.loads(_iv_p2.read_text(encoding="utf-8"))
+                    for _r_iv in (_iv_data2.get("results") or []):
+                        _iv_verdict_map[_r_iv["ticker"].upper()] = _r_iv.get("verdict", "")
+            except Exception:
+                pass
             def _row_section(_item):
                 _dt, _r = _item
                 _st = str(_r[c_st-1].value or "").upper()
@@ -1658,14 +1666,12 @@ def main() -> int:
                 if any(sig in _al for sig in BINDING_RISK_SIGNALS): return "action"
                 # 2. Real Status=EXIT → closed bin (Exit History sheet)
                 if _st == "EXIT": return "closed"
-                # 3. Structural Failure / Quality Fail (bucket G/F/H) · Status=HOLD
-                #    but decision resolves to EXIT. Detect via investability +
-                #    live P&L (mirrors _classify_priority logic).
-                try:
-                    _iv_col = h.index("Health") if "Health" in h else None
-                    _iv = str((_r[_iv_col].value if _iv_col is not None else "") or "")
-                except Exception:
-                    _iv = ""
+                # 3. Bucket G/F · Structural Failure / Quality Fail · Status=HOLD
+                #    but Decision resolves to EXIT. Detect via investability
+                #    verdict lookup (bucket-classifier requires ✗ AVOID).
+                _tk_sec = str(_r[c_tk-1].value or "").upper() \
+                                .replace(".NS","").replace(".BO","")
+                _iv = _iv_verdict_map.get(_tk_sec, "")
                 _q_low = _iv == "✗ AVOID"
                 # Estimate P&L from Entry vs Current (both in source XLSX)
                 _pnl_neg = False
@@ -2383,21 +2389,30 @@ def main() -> int:
                     _days_held = (_d1 - _d0).days
                 except Exception:
                     _days_held = ""
-                # 2026-08-25 · operator: "exit reasons whats tock u r showing?
-                # where are they like example TCS?" · Convert internal jargon
-                # like "→ GNFC.NS · +6.7pp alpha" into plain-English:
-                # "Rotated to GNFC · better setup (+6.7pp)". Stop-hit stays.
+                # 2026-08-25 v2 · A18 fix v2 · earlier regex only caught
+                # "→ TK.NS · Xpp alpha" pattern. Broadened to also handle
+                # "Rotation → LUPIN.NS (+51.8pp)" and any generic "→ TK.NS ..."
+                # form so no jargon leaks to operator.
+                import re as _re
                 _reason_s = str(_reason or "").strip()
-                if _reason_s.startswith("→") and "alpha" in _reason_s.lower():
-                    # Format: "→ GNFC.NS · +6.7pp alpha"
-                    _parts = _reason_s.replace("→", "").strip().split("·")
-                    _new_tk = _parts[0].strip().replace(".NS","").replace(".BO","")
-                    _delta = _parts[1].strip() if len(_parts) > 1 else ""
-                    _reason_s = f"Rotated to {_new_tk} · better setup ({_delta.replace(' alpha','')})"
+                if not _reason_s:
+                    _reason_s = "Closed (no reason recorded)"
                 elif "STOP_LOSS_HIT" in _reason_s.upper() or "STOP LOSS" in _reason_s.upper():
                     _reason_s = "Stop loss hit"
-                elif not _reason_s:
-                    _reason_s = "Closed (no reason recorded)"
+                elif "→" in _reason_s:
+                    # Match any → TICKER.NS ... pattern
+                    # Handles: "→ GNFC.NS · +6.7pp alpha"
+                    #          "Rotation → LUPIN.NS (+51.8pp)"
+                    #          "→ TCS.NS · rotated"
+                    _m = _re.search(r"→\s*([A-Z][A-Z0-9\-&]+)(?:\.NS|\.BO)?\b[^\d\-\+]*([\-\+][\d\.]+\s*pp)?", _reason_s)
+                    if _m:
+                        _new_tk = _m.group(1)
+                        _delta = _m.group(2) or ""
+                        _reason_s = (f"Rotated to {_new_tk} · better setup ({_delta})"
+                                            if _delta else f"Rotated to {_new_tk}")
+                    else:
+                        # Arrow present but no ticker extracted · strip arrow only
+                        _reason_s = _reason_s.replace("→", "→ ").strip()
                 # Sector lookup
                 _sec_e = _sector_for(_tk_e, mkt_key)
                 _exit_rows.append((
