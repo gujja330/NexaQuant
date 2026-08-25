@@ -57,6 +57,45 @@ from backend.portfolio.position_store.mark_to_market import (  # noqa: E402
 )
 
 
+def _plain_exit_reason(raw: object) -> str:
+    """A18 · plain-English exit reason · no '→ TK.NS · Xpp alpha' jargon.
+
+    Shared sanitizer for BOTH the keep_rows path AND the Registry-sync
+    path in the Exit History (90d) sheet builder. Every reason string
+    that reaches the operator MUST pass through here.
+    """
+    _s = str(raw or "").strip()
+    if not _s:
+        return "Closed (no reason recorded)"
+    _u = _s.upper()
+    if "STOP_LOSS_HIT" in _u or "STOP LOSS" in _u:
+        return "Stop loss hit"
+    if "TIME_STOP" in _u or "TIME STOP" in _u:
+        return "Time stop reached"
+    if "TRAILING" in _u and "STOP" in _u:
+        return "Trailing stop hit"
+    if "PROFIT_TAKE" in _u or "PROFIT TAKE" in _u:
+        return "Profit target hit"
+    if "→" in _s:
+        _m = re.search(
+            r"→\s*([A-Z][A-Z0-9\-&]+)(?:\.NS|\.BO)?\b[^\d\-\+]*"
+            r"([\-\+][\d\.]+\s*pp)?", _s)
+        if _m:
+            _new_tk = _m.group(1)
+            _delta = _m.group(2) or ""
+            return (f"Rotated to {_new_tk} · better setup ({_delta})"
+                    if _delta else f"Rotated to {_new_tk}")
+        # arrow but no ticker · strip everything after arrow
+        return _s.split("→")[0].strip() or "Rotated to a better opportunity"
+    # Also strip stray "alpha" / "pp" jargon from otherwise plain reasons
+    if " alpha" in _s.lower() or "Xpp" in _s or "xpp" in _s:
+        _cleaned = _s.replace("Xpp", "").replace("xpp", "")
+        _cleaned = re.sub(r"\s*·\s*\d+pp\s*alpha", "", _cleaned)
+        _cleaned = re.sub(r"\s+alpha", "", _cleaned, flags=re.IGNORECASE)
+        return _cleaned.strip() or "Closed"
+    return _s
+
+
 def _load_env() -> None:
     for name in (".env.telegram", ".env"):
         p = _ROOT / name
@@ -1863,6 +1902,46 @@ def main() -> int:
                       f"({_before_flt3} → {len(positions_sorted)})")
 
             # ─────────────────────────────────────────────────────────
+            # 2026-08-25 · A22/A24 ROOT FIX · Registry fully-closed filter.
+            # If a ticker has ALL runners CLOSED in the Registry (no active
+            # runner anywhere), it must never appear in Portfolio · not in
+            # ACTION, ACTIVE, or NEW sections. IEX(R2)-only-CLOSED had been
+            # leaking as a stale STOP_LOSS_HIT ACTION row every day.
+            try:
+                from backend.research import opportunity_registry as _oreg_fully
+                _reg_fully = _oreg_fully.load_all(_ROOT)
+                _has_active_runner: dict = {}   # {ticker: bool}
+                for _opps in _reg_fully.values():
+                    for _o in _opps:
+                        if _o.market.lower() != mkt_key.lower(): continue
+                        _tkf = _o.ticker.upper().replace(".NS","").replace(".BO","")
+                        if _o.is_active():
+                            _has_active_runner[_tkf] = True
+                        else:
+                            _has_active_runner.setdefault(_tkf, False)
+                _bef_ff = len(positions_sorted)
+                _kept_ff = []
+                _n_fully_closed = 0
+                for _item in positions_sorted:
+                    _dt_ff, _r_ff = _item
+                    _tk_ff = str(_r_ff[c_tk-1].value or "") \
+                                    .upper().replace(".NS","").replace(".BO","")
+                    if _tk_ff in _has_active_runner and \
+                       _has_active_runner[_tk_ff] is False:
+                        _n_fully_closed += 1
+                        continue
+                    _kept_ff.append(_item)
+                positions_sorted = _kept_ff
+                if _n_fully_closed > 0:
+                    print(f"[xlsx:{mkt_key}] fully-closed filter · "
+                          f"{_n_fully_closed} tickers dropped "
+                          f"(all runners CLOSED in Registry) "
+                          f"({_bef_ff} → {len(positions_sorted)})")
+            except Exception as _e_ff:
+                print(f"[xlsx:{mkt_key}] fully-closed filter skipped · "
+                      f"{type(_e_ff).__name__}: {_e_ff}")
+
+            # ─────────────────────────────────────────────────────────
             # 2026-08-21 · Wave 2 · canonical position collapse.
             # Operator directive §7 · "One stock = one canonical live
             # portfolio position". §8 · reconcile R1/R2 disagreement.
@@ -2505,30 +2584,11 @@ def main() -> int:
                     _days_held = (_d1 - _d0).days
                 except Exception:
                     _days_held = ""
-                # 2026-08-25 v2 · A18 fix v2 · earlier regex only caught
-                # "→ TK.NS · Xpp alpha" pattern. Broadened to also handle
-                # "Rotation → LUPIN.NS (+51.8pp)" and any generic "→ TK.NS ..."
-                # form so no jargon leaks to operator.
-                import re as _re
-                _reason_s = str(_reason or "").strip()
-                if not _reason_s:
-                    _reason_s = "Closed (no reason recorded)"
-                elif "STOP_LOSS_HIT" in _reason_s.upper() or "STOP LOSS" in _reason_s.upper():
-                    _reason_s = "Stop loss hit"
-                elif "→" in _reason_s:
-                    # Match any → TICKER.NS ... pattern
-                    # Handles: "→ GNFC.NS · +6.7pp alpha"
-                    #          "Rotation → LUPIN.NS (+51.8pp)"
-                    #          "→ TCS.NS · rotated"
-                    _m = _re.search(r"→\s*([A-Z][A-Z0-9\-&]+)(?:\.NS|\.BO)?\b[^\d\-\+]*([\-\+][\d\.]+\s*pp)?", _reason_s)
-                    if _m:
-                        _new_tk = _m.group(1)
-                        _delta = _m.group(2) or ""
-                        _reason_s = (f"Rotated to {_new_tk} · better setup ({_delta})"
-                                            if _delta else f"Rotated to {_new_tk}")
-                    else:
-                        # Arrow present but no ticker extracted · strip arrow only
-                        _reason_s = _reason_s.replace("→", "→ ").strip()
+                # 2026-08-25 v3 · A18 fix v3 · shared plain-English sanitizer
+                # applied to BOTH the keep_rows path (here) AND the Registry-
+                # sync path below. Previous versions only sanitized here so
+                # 3 Registry-sourced rows leaked jargon every run.
+                _reason_s = _plain_exit_reason(_reason)
                 # Sector lookup
                 _sec_e = _sector_for(_tk_e, mkt_key)
                 _exit_rows.append((
@@ -2558,9 +2618,8 @@ def main() -> int:
                                         - _dz.fromisoformat(_o.created_date)).days
                         except Exception:
                             _dh = ""
-                        _reason_e = str(_o.closed_reason or "Closed (no reason recorded)")
-                        if "STOP_LOSS_HIT" in _reason_e.upper():
-                            _reason_e = "Stop loss hit"
+                        # A18 · use shared sanitizer to strip "→ TK.NS" jargon
+                        _reason_e = _plain_exit_reason(_o.closed_reason)
                         _exit_rows.append((
                             _o.closed_date, _o.ticker.upper(),
                             _sector_for(_o.ticker, mkt_key),
@@ -2735,6 +2794,101 @@ def main() -> int:
                         ws2.cell(_hr, 1, _m)
             except Exception as _e:
                 print(f"[history:{mkt_key}] Month column insert skipped · {_e}")
+
+            # ─────────────────────────────────────────────────────────
+            # 2026-08-25 · A17 POST-BUILD SAFETY-NET · product-grade fix.
+            # Root cause: the sender has 2 independent bucket classifiers
+            # (_row_classify_bucket vs _classify_priority) that can disagree,
+            # letting rows with ACTION="🔴 EXIT" land in the ACTIVE section.
+            # This sweep guarantees A17 can never fire regardless of upstream
+            # logic: any ACTIVE row whose ACTION column starts "🔴 EXIT" is
+            # migrated to the "🔴 EXIT · ACTION REQUIRED TODAY" section.
+            # Idempotent · no-op when upstream is already correct.
+            # ─────────────────────────────────────────────────────────
+            try:
+                pws = portfolio_ws
+                _mig_count = 0
+                _active_hdr_row = None
+                _action_hdr_row = None
+                _next_hdr_after_active = None
+                # 1. Find section header row indexes · a row can BOTH be
+                # the ACTION header AND terminate the ACTIVE band, so we
+                # check each condition independently (no elif skips).
+                for _rr in range(1, pws.max_row + 1):
+                    _v = str(pws.cell(_rr, 1).value or "")
+                    _is_active_hdr = ("🟢" in _v and "ACTIVE" in _v.upper())
+                    _is_action_hdr = ("🔴 EXIT" in _v and
+                                      "ACTION" in _v.upper())
+                    _is_any_hdr = _is_active_hdr or _is_action_hdr or \
+                                  _v.startswith(("🆕", "🟣", "🔴"))
+                    if _is_active_hdr and _active_hdr_row is None:
+                        _active_hdr_row = _rr
+                    if _is_action_hdr and _action_hdr_row is None:
+                        _action_hdr_row = _rr
+                    if _active_hdr_row is not None and \
+                       _next_hdr_after_active is None and \
+                       _is_any_hdr and not _is_active_hdr and \
+                       _rr > _active_hdr_row:
+                        _next_hdr_after_active = _rr
+                # Fallback: no next header found → ACTIVE runs to end
+                if _active_hdr_row and _next_hdr_after_active is None:
+                    _next_hdr_after_active = pws.max_row + 1
+                if _active_hdr_row and _next_hdr_after_active:
+                    # 2. Find A17-violating rows inside the ACTIVE band
+                    _rescue_rows = []
+                    for _rr in range(_active_hdr_row + 1,
+                                     _next_hdr_after_active):
+                        _act = str(pws.cell(_rr, 2).value or "")
+                        _tk = str(pws.cell(_rr, 1).value or "")
+                        if _act.startswith("🔴 EXIT") and _tk and \
+                           not _tk.startswith(("🟢","🔴","🆕","🟣")):
+                            # Capture the row's cells + formatting to move
+                            _cells = []
+                            for _cc in range(1, pws.max_column + 1):
+                                _c = pws.cell(_rr, _cc)
+                                _cells.append({
+                                    "value": _c.value,
+                                    "font": _c.font.copy() if _c.font else None,
+                                    "fill": _c.fill.copy() if _c.fill else None,
+                                    "align": _c.alignment.copy() if _c.alignment else None,
+                                    "num_fmt": _c.number_format,
+                                })
+                            _rescue_rows.append((_rr, _cells))
+                    if _rescue_rows and _action_hdr_row:
+                        # 3. Insert rescued rows right after ACTION header,
+                        # deleting them from the ACTIVE band.
+                        # openpyxl · delete bottom-up to keep indexes stable.
+                        _rescue_rows.sort(key=lambda t: t[0])
+                        # First, delete the leak rows (bottom-up) so indexes stay valid
+                        for _rr, _ in reversed(_rescue_rows):
+                            pws.delete_rows(_rr, 1)
+                        # After delete, ACTION header row shifts if it was
+                        # below the deleted rows. Recompute.
+                        _action_hdr_row_new = None
+                        for _rr in range(1, pws.max_row + 1):
+                            _v = str(pws.cell(_rr, 1).value or "")
+                            if "🔴 EXIT" in _v and "ACTION" in _v.upper():
+                                _action_hdr_row_new = _rr; break
+                        if _action_hdr_row_new:
+                            # Insert blank rows for rescued items
+                            pws.insert_rows(_action_hdr_row_new + 1,
+                                            amount=len(_rescue_rows))
+                            for _i, (_, _cells) in enumerate(_rescue_rows):
+                                _tgt = _action_hdr_row_new + 1 + _i
+                                for _cc, _cd in enumerate(_cells, start=1):
+                                    _c = pws.cell(_tgt, _cc, _cd["value"])
+                                    if _cd["font"]:  _c.font = _cd["font"]
+                                    if _cd["fill"]:  _c.fill = _cd["fill"]
+                                    if _cd["align"]: _c.alignment = _cd["align"]
+                                    if _cd["num_fmt"]: _c.number_format = _cd["num_fmt"]
+                            _mig_count = len(_rescue_rows)
+                if _mig_count:
+                    print(f"[a17_safety_net:{mkt_key}] migrated {_mig_count} "
+                          f"EXIT rows from ACTIVE → ACTION REQUIRED "
+                          f"(product-grade fix · classifier invariant enforced)")
+            except Exception as _e:
+                print(f"[a17_safety_net:{mkt_key}] skipped · "
+                      f"{type(_e).__name__}: {_e}")
 
             wb2.save(out_path)
             src_wb.close()

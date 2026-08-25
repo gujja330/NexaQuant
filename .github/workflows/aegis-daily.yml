@@ -192,6 +192,21 @@ jobs:
       #
       # Only sender that runs is the Command Center. If ever needed, either
       # legacy sender can be re-enabled by uncommenting its step block.
+      # ─────────────────────────────────────────────────────────
+      # 2026-08-25 · MANDATORY delivery-tests gate (product-grade fix).
+      # Operator directive: "same 4 blockers persist · make this a proper
+      # product". The classifier invariants (A17/A18/A22/A24) are enforced
+      # as executable pytest specs. If ANY spec fails, Telegram send is
+      # SKIPPED and CI marks the run failed · no more silent "hope-it-works"
+      # pushes. Zero blast radius on green days · blocks only on regression.
+      # ─────────────────────────────────────────────────────────
+      - name: Delivery classifier tests (blocks Telegram if red)
+        id: delivery_tests
+        if: steps.guard.outputs.run == 'true' && steps.freshcheck.outputs.verified == 'true'
+        run: |
+          python -m pytest tests/delivery/ -v --tb=short
+          echo "delivery_tests_passed=true" >> $GITHUB_OUTPUT
+
       - name: Telegram Command Center (India · SINGLE SENDER · cycle 6)
         id: send
         # Consumes reports/recommendations.json enriched by cycles 3-4
@@ -200,7 +215,7 @@ jobs:
         # ai_scorecard + attribution_summary from v2.4).
         # This is the ONLY Telegram delivery path — no more two-pipeline drift.
         # 2026-08-10 · added id=send so mark-published can gate on outcome.
-        if: steps.guard.outputs.run == 'true' && steps.freshcheck.outputs.verified == 'true'
+        if: steps.guard.outputs.run == 'true' && steps.freshcheck.outputs.verified == 'true' && steps.delivery_tests.outcome == 'success'
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
@@ -266,6 +281,31 @@ jobs:
           git add reports/aegis_daily_v2_history.jsonl 2>/dev/null || true
           git diff --cached --quiet || git commit -m "AEGIS daily: append market data + refresh report + DB [skip ci]"
           git push || true
+
+      # 2026-08-25 · SILENT-RED-ALERT for India · mirrors USA workflow.
+      # If delivery_tests block or send fails, operator gets a plain-text
+      # Telegram alert (never again silently red).
+      - name: India CI failure Telegram alert
+        if: always() && steps.guard.outputs.run == 'true' && (failure() || steps.delivery_tests.outcome != 'success' || steps.send.outcome != 'success')
+        continue-on-error: true
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          MSG="🇮🇳 AEGIS INDIA CI FAILED · run ${{ github.run_id }}%0A"
+          MSG="$MSG · delivery_tests: ${{ steps.delivery_tests.outcome || 'skipped' }}%0A"
+          MSG="$MSG · send: ${{ steps.send.outcome || 'skipped' }}%0A"
+          MSG="$MSG · commit: ${{ github.sha }}%0A"
+          MSG="$MSG · URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          if [ -n "$TELEGRAM_BOT_TOKEN" ] && [ -n "$TELEGRAM_CHAT_ID" ]; then
+            curl -sS -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
+              -d "chat_id=$TELEGRAM_CHAT_ID" \
+              -d "text=$MSG" \
+              -d "disable_web_page_preview=true" || true
+            echo "[india_ci_alert] sent"
+          else
+            echo "[india_ci_alert] TELEGRAM secrets missing · alert skipped"
+          fi
 
       # ═══════════════════════════════════════════════════════════════════════
       # Research post-processing (2026-08-11 · CEO final wiring)

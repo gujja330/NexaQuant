@@ -92,15 +92,52 @@ jobs:
               print(f'[usa_runner1] skipped · {p.get(\"reason\")}')
           "
 
+      # 2026-08-25 · MANDATORY delivery-tests gate · mirrors India.
+      - name: Delivery classifier tests (blocks Telegram if red)
+        id: delivery_tests_usa
+        if: always()
+        continue-on-error: true
+        run: python -m pytest tests/delivery/ -v --tb=short
+
       - name: Telegram Command Center (USA · cycle 6 · single crisp message)
         # Consumes usa/reports/recommendations.json enriched by cycles 3-4.
         # First USA-side Telegram delivery · matches India parity.
-        if: always()
+        # 2026-08-25 · gated on delivery_tests_usa outcome per product-grade fix.
+        id: send_usa
+        if: always() && steps.delivery_tests_usa.outcome == 'success'
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
         continue-on-error: true
         run: python scripts/telegram_command_center_send.py --market usa
+
+      # 2026-08-25 · SILENT-RED-ALERT · operator directive:
+      # "yesterday i havent received usa notification too. usa is completely
+      # thrown away". USA CI had been failing silently for 4 days. This step
+      # sends a plain-text Telegram alert whenever ANY earlier step failed
+      # OR the delivery-tests gate blocked the send · so a silent red day
+      # can never happen again.
+      - name: USA CI failure Telegram alert
+        if: always() && (failure() || steps.delivery_tests_usa.outcome != 'success' || steps.send_usa.outcome != 'success')
+        continue-on-error: true
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          MSG="🇺🇸 AEGIS USA CI FAILED · run ${{ github.run_id }}%0A"
+          MSG="$MSG · delivery_tests: ${{ steps.delivery_tests_usa.outcome || 'skipped' }}%0A"
+          MSG="$MSG · send: ${{ steps.send_usa.outcome || 'skipped' }}%0A"
+          MSG="$MSG · commit: ${{ github.sha }}%0A"
+          MSG="$MSG · URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          if [ -n "$TELEGRAM_BOT_TOKEN" ] && [ -n "$TELEGRAM_CHAT_ID" ]; then
+            curl -sS -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
+              -d "chat_id=$TELEGRAM_CHAT_ID" \
+              -d "text=$MSG" \
+              -d "disable_web_page_preview=true" || true
+            echo "[usa_ci_alert] sent"
+          else
+            echo "[usa_ci_alert] TELEGRAM secrets missing · alert skipped"
+          fi
 
       - name: Upload USA morning report
         if: always()
