@@ -55,7 +55,9 @@ jobs:
           python -m pip install --upgrade pip
           # openpyxl 2026-08-06 · required by rotation_outcome_tracker.detect_rotations_today
           # (reads XLSX via build_and_stamp_all → telegram_command_center_send)
-          pip install pandas numpy pyarrow pyyaml yfinance scikit-learn openpyxl scipy
+          # 2026-08-25 · pytest added · required by delivery classifier
+          # tests gate (blocks Telegram if red · mirrors India workflow).
+          pip install pandas numpy pyarrow pyyaml yfinance scikit-learn openpyxl scipy pytest
 
       - name: Run USA daily orchestrator
         # CEO cycle 4: pass Telegram secrets so usa/scripts/telegram_send.py
