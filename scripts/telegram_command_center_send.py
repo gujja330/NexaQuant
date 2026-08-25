@@ -1327,128 +1327,75 @@ def main() -> int:
             except Exception:
                 pass
 
-            # 2026-08-21 · SKIP removed entirely per operator "we dont need skip
-            # itself". Opportunity dataset tile deleted · no SKIP tracker.
-            kpi_rows = [
-                # ONE health row · scan in 3 seconds
-                ["🩺 AEGIS HEALTH",         "",                    _health_line,
-                 "Details",      _health_detail],
-                # 🔬 SUGGESTED NEW · top 3 investability shadow discoveries
-                # · directly addresses "same stocks daily" · surfaces genuine
-                # quality names the recommender is missing.
-                ["🔬 SUGGESTED NEW",         "",                    _sug_summary,
-                 "Detail",       _sug_detail],
-                # P&L numbers · what operator actually needs to make trade decisions
-                ["Exit P&L (closed)",      realized_sum / 100.0, f"{n_realized} exits",
-                 "Top exit",     _fmt(best_realized)],
-                ["Active P&L (open)",      unrealized_sum / 100.0, f"{n_unrealized} active",
-                 "Top active",   _fmt(best_unreal)],
-                ["COMBINED PORTFOLIO",     combined / 100.0,      f"{n_total} real positions",
-                 "Win rate", f"{win_rate}% ({n_win}W / {n_loss}L · {n_flat} flat excluded)"],
-                ["Worst positions",        "",                    "",
-                 "Exit · Active", f"{_fmt(worst_realized)}  ·  {_fmt(worst_unreal)}"],
-                # 2026-08-21 · rolling 90d exit tracker
-                ["Last 90d Exit P&L",       r90_sum / 100.0,       f"{r90_n} closed",
-                 "Win rate · Best · Worst",
-                 f"{_r90_win_pct}% · {_fmt(r90_best)} · {_fmt(r90_worst)}"],
-                ["Artifacts (excluded)",  "",                    f"{n_artifact} same-day rotations",
-                 "Note", "not counted in P&L / win rate"],
-            ]
-            # 2026-08-25 · operator "what is this appendix not able to
-            # understand" · APPENDIX DELETED. All diagnostic detail lives
-            # in the reports/context/*.json files for anyone who wants
-            # to drill in · not cluttering the Portfolio.
-            _appendix_rows = []
-            for r_off, kpi_row in enumerate(kpi_rows, start=3):
-                for c_off, val in enumerate(kpi_row, start=1):
-                    cell = portfolio_ws.cell(r_off, c_off, val)
-                    cell.font = _Font(bold=(c_off in (1, 4)), size=11)
-                    # Column 2 = numeric P&L · display as %
-                    if c_off == 2:
-                        cell.number_format = "+0.00%;-0.00%;0.00%"
-                    if r_off == 5 and c_off <= 3:   # combined row highlighted
-                        cell.fill = _PF(start_color="FFE699", end_color="FFE699", fill_type="solid")
+            # ─────────────────────────────────────────────────────────
+            # 2026-08-25 · CLEAN LAYOUT · operator: "just table / same like
+            # exit sheet / another two rows for analysis thats it at top /
+            # analysis bring to top and rest all table at bottom / very
+            # clean and neat correct"
+            #
+            # Row 1: Title (already set at line 1131)
+            # Row 2: Analysis line 1 · Active count + Unrealized P&L + Today's P&L
+            # Row 3: Analysis line 2 · Positive P&L + Negative P&L
+            # Row 4: BLANK (spacer)
+            # Row 5: Column headers (visible cols only, hidden cols skipped)
+            # Row 6+: ONE continuous table · row colors signal type
+            #        (purple = SUGGESTED NEW, bright purple = NEW today,
+            #         green = ACTIVE) · no section banners between rows
+            # EXIT rows go ONLY to Exit History (90d) sheet · never here.
+            # ─────────────────────────────────────────────────────────
 
-            # 2026-08-14 · operator-approved 6-tier color legend rows.
-            # Placed between KPI banner (rows 3-6) and position table.
-            # Legend heading at row 8 · one row per tier at rows 9-14.
-            _LEGEND_HEADING_ROW = 8
-            portfolio_ws.merge_cells(f"A{_LEGEND_HEADING_ROW}:L{_LEGEND_HEADING_ROW}")
-            _lh = portfolio_ws.cell(_LEGEND_HEADING_ROW, 1, TIER_LEGEND_HEADING)
-            _lh.font = _Font(bold=True, size=11, color="1F4E78")
-            _lh.alignment = _Align(horizontal="left", vertical="center")
-            _legend_start = _LEGEND_HEADING_ROW + 1
-            # Iterate tiers in tier_rank order (1..N)
-            _legend_ordered = sorted(
-                [(k, v) for k, v in DECISION_TIERS.items()],
-                key=lambda kv: int(kv[1].get("tier_rank") or 99))
-            for _leg_idx, (_tier_key, _tier_def) in enumerate(_legend_ordered):
-                _lr = _legend_start + _leg_idx
-                _label = str(_tier_def.get("label") or _tier_key)
-                _desc  = str(_tier_def.get("description") or "")
-                _hf    = str(_tier_def.get("hex_fill") or "F2F2F2")
-                _ht    = str(_tier_def.get("hex_text") or "000000")
-                _bold  = bool(_tier_def.get("bold"))
-                # Left cell = colored label swatch
-                _swatch = portfolio_ws.cell(_lr, 1, _label)
-                _swatch.fill = _PF(start_color=_hf, end_color=_hf, fill_type="solid")
-                _swatch.font = _Font(bold=True, color=_ht, size=10)
-                _swatch.alignment = _Align(horizontal="center", vertical="center")
-                # Right cells (merged) = description
-                portfolio_ws.merge_cells(start_row=_lr, start_column=2,
-                                                       end_row=_lr, end_column=6)
-                _dc = portfolio_ws.cell(_lr, 2, _desc)
-                _dc.font = _Font(size=10)
-                _dc.alignment = _Align(horizontal="left", vertical="center", wrap_text=True)
-            # Track where the position header goes (row after legend + 1 blank)
-            _pos_header_row = _legend_start + len(_legend_ordered) + 1
+            # Compute Today's P&L, Positive, Negative from ACTIVE positions
+            # (loops keep_rows · skips EXIT · reads live parquet + prev close)
+            _today_moves: list = []
+            _active_pnls: list = []
+            for _r_a in keep_rows:
+                _st_a = str(_r_a[c_st-1].value or "").upper()
+                if _st_a == "EXIT": continue
+                _tk_a = str(_r_a[c_tk-1].value or "")
+                _e_a  = _r_a[c_entry-1].value if c_entry else None
+                _dt_a = str(_r_a[c_date-1].value or "")[:10] if c_date else ""
+                if isinstance(_e_a, (int, float)) and _e_a > 0:
+                    _live_a = _parquet_close(_tk_a, mkt_key, _dt_a)
+                    if _live_a:
+                        _active_pnls.append((_live_a - _e_a) / _e_a * 100)
+                        _prev_a = _parquet_prev_close(_tk_a, mkt_key, _dt_a)
+                        if _prev_a and _prev_a > 0:
+                            _today_moves.append((_live_a - _prev_a) / _prev_a * 100)
 
-            # 2026-08-25 · operator: "cant see a single new stocks?" +
-            # "where is sunpharma example i am asking". Emit a prominent
-            # SUGGESTED NEW strip right after the legend · lists the top
-            # investability-shadow discoveries the recommender missed so
-            # operator SEES them without opening the shadow JSON file.
-            try:
-                import json as _jsonw
-                _inv_p3 = (_ROOT / "reports" / "context"
-                                 / f"investability_shadow_diagnostic_{mkt_key.lower()}.json")
-                if _inv_p3.exists():
-                    _ish3 = _jsonw.loads(_inv_p3.read_text(encoding="utf-8"))
-                    _disc3 = _ish3.get("top_discoveries") or []
-                    if _disc3:
-                        # Purple banner + 1 row per discovery
-                        _sug_row = _pos_header_row + 1
-                        portfolio_ws.merge_cells(start_row=_sug_row, start_column=1,
-                                                                  end_row=_sug_row, end_column=6)
-                        _sb = portfolio_ws.cell(_sug_row, 1,
-                                                             f"🆕 SUGGESTED NEW · {len(_disc3)} high-quality picks "
-                                                             "the recommender missed today "
-                                                             "(shadow investability)")
-                        _sb.font = _Font(bold=True, size=12, color="5B2A82")
-                        _sb.fill = _PF(start_color="D5A6EA", end_color="D5A6EA", fill_type="solid")
-                        _sb.alignment = _Align(horizontal="left", vertical="center")
-                        portfolio_ws.row_dimensions[_sug_row].height = 22
-                        _sug_row += 1
-                        # One row per discovery · plain-English pitch
-                        for _d in _disc3[:5]:
-                            _tk3 = _d.get("ticker", "?")
-                            _sc3 = _d.get("score", 0)
-                            _vd3 = _d.get("verdict", "")
-                            _top3 = ", ".join(f"{k}={int(v)}"
-                                                        for k, v in (_d.get("top_engines") or [])[:3])
-                            _line = (f"  · {_tk3:<12} score {_sc3:.1f} · {_vd3} · "
-                                          f"strongest: {_top3}")
-                            portfolio_ws.merge_cells(start_row=_sug_row, start_column=1,
-                                                                      end_row=_sug_row, end_column=6)
-                            _cell3 = portfolio_ws.cell(_sug_row, 1, _line)
-                            _cell3.font = _Font(size=10, color="5B2A82")
-                            _cell3.fill = _PF(start_color="EFE0F7",
-                                                        end_color="EFE0F7", fill_type="solid")
-                            _cell3.alignment = _Align(horizontal="left", vertical="center")
-                            _sug_row += 1
-                        _pos_header_row = _sug_row + 1     # shift position header down
-            except Exception as _e:
-                print(f"[xlsx:{mkt_key}] suggested-new strip skipped · {_e}")
+            _n_active = len(_active_pnls)
+            _avg_pnl  = (sum(_active_pnls) / _n_active) if _n_active else 0
+            _today_avg = (sum(_today_moves) / len(_today_moves)) if _today_moves else 0
+            _pos = [p for p in _active_pnls if p > 0]
+            _neg = [p for p in _active_pnls if p < 0]
+
+            # Row 2 · Active + Today's P&L
+            portfolio_ws.merge_cells("A2:L2")
+            _r2 = portfolio_ws.cell(2, 1,
+                f"🟢 Active: {_n_active} positions  ·  "
+                f"Unrealized P&L: {_avg_pnl:+.2f}%  ·  "
+                f"Today's P&L: {_today_avg:+.2f}%")
+            _r2.font = _Font(bold=True, size=11, color="1F4E78")
+            _r2.alignment = _Align(horizontal="left", vertical="center")
+            _r2.fill = _PF(start_color="E7EEF7", end_color="E7EEF7", fill_type="solid")
+            portfolio_ws.row_dimensions[2].height = 20
+
+            # Row 3 · Positive + Negative
+            portfolio_ws.merge_cells("A3:L3")
+            _pos_sum = sum(_pos) if _pos else 0
+            _neg_sum = sum(_neg) if _neg else 0
+            _r3 = portfolio_ws.cell(3, 1,
+                f"✅ Positive: {len(_pos)} positions · +{_pos_sum:.2f}% total  ·  "
+                f"❌ Negative: {len(_neg)} positions · {_neg_sum:.2f}% total")
+            _r3.font = _Font(bold=True, size=11, color="1F4E78")
+            _r3.alignment = _Align(horizontal="left", vertical="center")
+            _r3.fill = _PF(start_color="E7EEF7", end_color="E7EEF7", fill_type="solid")
+            portfolio_ws.row_dimensions[3].height = 20
+
+            # Row 4 · blank spacer
+            portfolio_ws.row_dimensions[4].height = 8
+
+            # Row 5 · column headers (position table starts here)
+            _pos_header_row = 5
 
             # 2026-08-10 · CEO review fixes (semantic separation):
             #   1. Lifecycle column · NEW/ACTIVE/CLOSED (separate from Runner Status)
@@ -1728,11 +1675,16 @@ def main() -> int:
             # We keep the "ACTION REQUIRED TODAY" section for today's urgent
             # stops so operator can't miss an immediate exit signal · this is
             # today's decision, not historical reference.
+            # 2026-08-25 · CLEAN LAYOUT · operator "just table like exit
+            # sheet · no section banners between rows". Sections kept for
+            # LOGICAL ordering only (no banner rows emitted). EXIT rows
+            # excluded entirely · they live in Exit History (90d) sheet.
             _SECTION_ORDER = [
-                ("new_opps",  "🆕 NEW",                          "D5A6EA", "000000"),
-                ("existing",  "🟢 ACTIVE",                       "C6EFCE", "000000"),
-                ("action",    "🔴 EXIT · ACTION REQUIRED TODAY", "FCE4D6", "9C0006"),
-                # "closed" section retired · see Exit History sheet
+                ("suggested_new", None, "D5A6EA", "5B2A82"),   # purple rows
+                ("new_opps",      None, "E9D5F5", "5B2A82"),   # bright purple rows
+                ("existing",      None, "C6EFCE", "000000"),   # green rows
+                # "action" removed · EXIT rows go to Exit History only
+                # "closed" retired · see Exit History sheet
             ]
             # 2026-08-25 v3 · A17 BULLETPROOF · earlier fixes relied on the
             # 42-ticker investability sample OR raw "Health" column. Both
@@ -2045,35 +1997,109 @@ def main() -> int:
             # Reorder positions_sorted by (section, existing sort) so
             # rows for each section are contiguous. Keeps within-section
             # ordering (P&L desc within tier).
+            # 2026-08-25 · CLEAN LAYOUT · logical grouping WITHOUT banner
+            # rows. Rows written contiguously in section order · each row
+            # keeps its own tier-fill color (green/purple/etc) so section
+            # boundaries are visually implicit. Operator: "no section
+            # banners between rows".
+            # EXIT rows filtered out entirely · they belong in Exit History.
             _by_section: dict = {k: [] for k, *_ in _SECTION_ORDER}
             for _item in positions_sorted:
-                _by_section.setdefault(_row_section(_item), []).append(_item)
+                _sec_key = _row_section(_item)
+                # HARD RULE · never route to Portfolio: "action" (EXIT-family)
+                # or "closed" (already-closed) · both live in Exit History.
+                if _sec_key in ("action", "closed"): continue
+                _by_section.setdefault(_sec_key, []).append(_item)
             positions_sorted = []
-            _banner_row_indexes: dict = {}   # {row_index: (banner_text, fill_hex, text_hex)}
             _cursor = _pos_header_row + 1
             for _sect_key, _banner_text, _fill_hex, _text_hex in _SECTION_ORDER:
                 _rr = _by_section.get(_sect_key) or []
                 if not _rr: continue
-                _banner_row_indexes[_cursor] = (_banner_text, _fill_hex, _text_hex)
-                _cursor += 1               # reserve banner row
                 for _r in _rr:
                     positions_sorted.append(_r)
                     _cursor += 1
 
-            # Emit banners now (write loop uses assigned row indexes).
-            for _br, (_txt, _fill, _tc) in _banner_row_indexes.items():
-                portfolio_ws.merge_cells(start_row=_br, start_column=1,
-                                                          end_row=_br, end_column=len(pos_hdr))
-                _bc = portfolio_ws.cell(_br, 1, _txt)
-                _bc.font = _Font(bold=True, size=12, color=_tc)
-                _bc.fill = _PF(start_color=_fill, end_color=_fill, fill_type="solid")
-                _bc.alignment = _Align(horizontal="center", vertical="center")
-                portfolio_ws.row_dimensions[_br].height = 20
+            # No banners · row indexes are contiguous from position header + 1
+            _banner_row_indexes: dict = {}
+            _row_indexes = list(range(_pos_header_row + 1, _cursor))
 
-            # Build (target_row_index, item) pairs so the write loop uses
-            # row indices that skip past banner rows.
-            _row_indexes = [r for r in range(_pos_header_row + 1, _cursor)
-                                    if r not in _banner_row_indexes]
+            # ─────────────────────────────────────────────────────────
+            # 2026-08-25 · SUGGESTED NEW as FULL rows at top of table.
+            # Operator: "suggested new picks to be added in below list
+            # also we discussed, why its not added with purple / for new
+            # also main all these columns then it makes sense right".
+            # Rendered as regular position rows with light-purple fill.
+            # Section boundary is implicit via row color · no banner.
+            # ─────────────────────────────────────────────────────────
+            _sug_written = 0
+            try:
+                import json as _jss
+                _sug_p = (_ROOT / "reports" / "context"
+                                / f"investability_shadow_diagnostic_{mkt_key.lower()}.json")
+                if _sug_p.exists():
+                    _sug_data = _jss.loads(_sug_p.read_text(encoding="utf-8"))
+                    _sug_picks = (_sug_data.get("top_discoveries") or [])[:5]
+                    if _sug_picks:
+                        # Shift ACTIVE rows down by len(_sug_picks) rows
+                        _row_indexes = list(
+                            range(_pos_header_row + 1 + len(_sug_picks),
+                                  _cursor + len(_sug_picks)))
+                        _cursor += len(_sug_picks)
+                        # Write each SUGGESTED NEW as a full row
+                        from datetime import datetime as _dt_sug
+                        _month_now = _dt_sug.now().strftime("%b %Y")
+                        _sug_fill = _PF(start_color="E9D5F5",
+                                        end_color="E9D5F5", fill_type="solid")
+                        for _idx_s, _p in enumerate(_sug_picks):
+                            _tk_s = str(_p.get("ticker", "?")).upper()
+                            _sc_s = _p.get("score", 0)
+                            _vd_s = _p.get("verdict", "")
+                            # Get live price for proposed entry
+                            _live_s = _parquet_close(
+                                _tk_s, mkt_key, latest_date or "")
+                            _entry_s = round(_live_s, 2) if _live_s else None
+                            _stop_s = (round(_live_s * 0.95, 2)
+                                       if _live_s else None)
+                            _sec_s = _sector_for(_tk_s, mkt_key)
+                            _row_num = _pos_header_row + 1 + _idx_s
+                            # Fill 34-col vals (matching write loop layout)
+                            _sug_vals = [None] * 34
+                            _sug_vals[0]  = _tk_s                     # Ticker
+                            _sug_vals[2]  = "🟣 SUGGESTED"            # DECISION
+                            _sug_vals[4]  = _month_now                # Month
+                            _sug_vals[8]  = "SHADOW"                  # Runner
+                            _sug_vals[10] = _sec_s                    # Sector
+                            _sug_vals[12] = ""                        # Entry Date (pending)
+                            _sug_vals[13] = ""                        # Exit Date
+                            _sug_vals[14] = 0                         # Days
+                            _sug_vals[15] = "REVIEW"                  # Urgency
+                            _sug_vals[20] = _vd_s                     # Inv Quality
+                            _sug_vals[21] = _sc_s                     # Investability
+                            _sug_vals[22] = _entry_s                  # Entry
+                            _sug_vals[23] = _entry_s                  # Current
+                            _sug_vals[25] = 0.0                       # P&L %
+                            _sug_vals[26] = _stop_s                   # Stop Loss
+                            for _cc, _vv in enumerate(_sug_vals, start=1):
+                                _sc = portfolio_ws.cell(_row_num, _cc, _vv)
+                                _sc.fill = _sug_fill
+                                _sc.font = _Font(bold=(_cc == 3), size=10,
+                                                 color="5B2A82")
+                                _sc.alignment = _Align(
+                                    horizontal="left" if _cc in (1,3,5,9,11,13,14,16,21)
+                                    else "right",
+                                    vertical="center", wrap_text=True)
+                                if _cc == 15: _sc.number_format = "0"
+                                elif _cc == 22: _sc.number_format = "0.0"
+                                elif _cc in (23, 24, 27):
+                                    _sc.number_format = "#,##0.00"
+                                elif _cc == 26:
+                                    _sc.number_format = "+0.00%;-0.00%;0.00%"
+                        _sug_written = len(_sug_picks)
+                        print(f"[xlsx:{mkt_key}] SUGGESTED NEW rows · "
+                              f"{_sug_written} picks rendered as purple rows")
+            except Exception as _e_sug:
+                print(f"[xlsx:{mkt_key}] SUGGESTED NEW skipped · "
+                      f"{type(_e_sug).__name__}: {_e_sug}")
             for i, (dt, r) in zip(_row_indexes, positions_sorted):
                 # (loop body below is the original write logic)
                 # First iteration variable unpacking · pass through
@@ -2511,23 +2537,9 @@ def main() -> int:
                             _cell.font = _row_font
             portfolio_ws.freeze_panes = f"A{_pos_header_row + 1}"
 
-            # ═══════════════════════════════════════════════════════════════
-            # APPENDIX · diagnostic panels (moved from top per 2026-08-24
-            # operator: "toomuch of confusion, multiple columns"). Written
-            # after the position table so operator scans NEW/ACTIVE/EXIT
-            # rows first · diagnostic drill-in lives below the fold.
-            # ═══════════════════════════════════════════════════════════════
-            try:
-                _app_row = portfolio_ws.max_row + 2
-                for _r_off, _kpi_row in enumerate(_appendix_rows, start=_app_row):
-                    for _c_off, _v in enumerate(_kpi_row, start=1):
-                        _c = portfolio_ws.cell(_r_off, _c_off, _v)
-                        _c.font = _Font(size=10, italic=(_c_off > 1))
-                        _c.alignment = _Align(vertical="center", wrap_text=True)
-                        if _c_off == 1 and str(_v or "").startswith("──"):
-                            _c.font = _Font(bold=True, size=11)
-            except Exception:
-                pass    # non-fatal · appendix is decorative
+            # 2026-08-25 · APPENDIX REMOVED per operator "very clean and
+            # neat". All diagnostic drill-in lives in reports/context/*.json
+            # for anyone who needs to audit · not cluttering the Portfolio.
 
             # ═══════════════════════════════════════════════════════════════
             # SHEET 2 · EXIT HISTORY (90d) · Wave 3 · 2026-08-21
@@ -2553,9 +2565,20 @@ def main() -> int:
             exit_ws["A1"].fill = _PF(start_color="1F4E78", end_color="1F4E78", fill_type="solid")
             exit_ws["A1"].alignment = _Align(horizontal="center", vertical="center")
             exit_ws.row_dimensions[1].height = 28
-            # Header row
+            # 2026-08-25 · CLEAN LAYOUT · match Portfolio · 2 analysis rows
+            # at top (rows 2-3), blank spacer (row 4), header (row 5),
+            # data (row 6+). Operator: "same for exit sheet and portfolio".
+            # Analysis rows computed after body loop populates _exit_rows;
+            # cells are pre-created here as placeholders and filled later.
+            exit_ws.merge_cells("A2:M2")
+            exit_ws.merge_cells("A3:M3")
+            exit_ws.row_dimensions[2].height = 20
+            exit_ws.row_dimensions[3].height = 20
+            exit_ws.row_dimensions[4].height = 8    # blank spacer
+            # Header row (shifted from row 3 → row 5)
+            _EXIT_HDR_ROW = 5
             for _c, _n in enumerate(_exit_hdr, start=1):
-                _hc = exit_ws.cell(3, _c, _n)
+                _hc = exit_ws.cell(_EXIT_HDR_ROW, _c, _n)
                 _hc.font = _Font(bold=True, color="FFFFFF", size=11)
                 _hc.fill = _PF(start_color="1F4E78", end_color="1F4E78", fill_type="solid")
                 _hc.alignment = _Align(horizontal="center", vertical="center")
@@ -2620,18 +2643,42 @@ def main() -> int:
                             _dh = ""
                         # A18 · use shared sanitizer to strip "→ TK.NS" jargon
                         _reason_e = _plain_exit_reason(_o.closed_reason)
+                        # 2026-08-25 · fill missing Entry/Exit prices from
+                        # parquet · Registry sync had None for both, leaving
+                        # R2 rows blank in Exit History. Sector always looked
+                        # up via _sector_for · rarely returns "—" now.
+                        _entry_p_reg = _parquet_close(
+                            _o.ticker, mkt_key, _o.created_date)
+                        _exit_p_reg  = _parquet_close(
+                            _o.ticker, mkt_key, _o.closed_date)
+                        _pnl_reg = None
+                        if (isinstance(_entry_p_reg, (int, float))
+                            and isinstance(_exit_p_reg, (int, float))
+                            and _entry_p_reg > 0):
+                            _pnl_reg = round(
+                                (_exit_p_reg - _entry_p_reg)
+                                / _entry_p_reg * 100, 2)
                         _exit_rows.append((
                             _o.closed_date, _o.ticker.upper(),
                             _sector_for(_o.ticker, mkt_key),
                             _o.runner, _o.created_date, _o.closed_date,
-                            _dh, None, None, None, _reason_e,
+                            _dh,
+                            round(_entry_p_reg, 2) if _entry_p_reg else None,
+                            round(_exit_p_reg, 2) if _exit_p_reg else None,
+                            _pnl_reg, _reason_e,
                         ))
                         _seen_keys.add(_key)
             except Exception as _e:
                 print(f"[exit_history:{mkt_key}] registry sync skipped · {_e}")
             # Sort · most recent exit first
             _exit_rows.sort(key=lambda x: x[0], reverse=True)
-            _rowptr = 4
+            # 2026-08-25 · CLEAN LAYOUT · body starts row 6 (after title +
+            # 2 analysis + blank + header). Month color-band cadence:
+            # walk in date-desc order · alternate light/dark grey each
+            # time the month changes so operator scans monthly cohorts.
+            _rowptr = _EXIT_HDR_ROW + 1
+            _last_month = None
+            _band_toggle = True   # True → light grey, False → white
             for _er in _exit_rows:
                 (_dt_key, _tk_e, _sec_e, _rn_e, _entry_dt_e, _exit_dt_e,
                  _days_held, _entry_p, _exit_p, _pnl_e, _reason) = _er
@@ -2688,13 +2735,57 @@ def main() -> int:
                 if _row_fill_e is not None:
                     for _c in range(1, len(_exit_hdr) + 1):
                         exit_ws.cell(_rowptr, _c).fill = _row_fill_e
+                else:
+                    # No P&L color · apply Month color band for zebra-scan
+                    _cur_month = str(_exit_dt_e or _dt_key)[:7]
+                    if _cur_month != _last_month:
+                        _band_toggle = not _band_toggle
+                        _last_month = _cur_month
+                    if _band_toggle:
+                        _band_fill = _PF(start_color="F2F2F2",
+                                         end_color="F2F2F2", fill_type="solid")
+                        for _c in range(1, len(_exit_hdr) + 1):
+                            exit_ws.cell(_rowptr, _c).fill = _band_fill
                 _rowptr += 1
             if not _exit_rows:
-                exit_ws.merge_cells(f"A4:M4")
-                _empty = exit_ws.cell(4, 1, "no exits in the last 90 days")
+                exit_ws.merge_cells(f"A{_EXIT_HDR_ROW+1}:M{_EXIT_HDR_ROW+1}")
+                _empty = exit_ws.cell(_EXIT_HDR_ROW+1, 1, "no exits in the last 90 days")
                 _empty.alignment = _Align(horizontal="center")
                 _empty.font = _Font(size=10, italic=True, color="7F7F7F")
-            exit_ws.freeze_panes = "A4"
+            exit_ws.freeze_panes = f"A{_EXIT_HDR_ROW+1}"
+
+            # 2026-08-25 · POPULATE the 2 analysis rows at top now that
+            # _exit_rows is finalized. Row 2 · Total realized P&L +
+            # exit count + win rate. Row 3 · Positive + Negative breakdown.
+            try:
+                _exit_pnls = [x[9] for x in _exit_rows
+                              if isinstance(x[9], (int, float))
+                              and abs(x[9]) > 0.01]
+                _n_ex = len(_exit_pnls)
+                _pos_ex = [p for p in _exit_pnls if p > 0]
+                _neg_ex = [p for p in _exit_pnls if p < 0]
+                _tot_ex = sum(_exit_pnls) if _exit_pnls else 0
+                _wr_ex = (round(len(_pos_ex) / _n_ex * 100, 1)
+                          if _n_ex else 0)
+                _r2e = exit_ws.cell(2, 1,
+                    f"📊 Total: {_n_ex} exits · Realized P&L: {_tot_ex:+.2f}%  ·  "
+                    f"Win Rate: {_wr_ex}%")
+                _r2e.font = _Font(bold=True, size=11, color="1F4E78")
+                _r2e.alignment = _Align(horizontal="left", vertical="center")
+                _r2e.fill = _PF(start_color="E7EEF7",
+                                end_color="E7EEF7", fill_type="solid")
+                _pos_sum_e = sum(_pos_ex) if _pos_ex else 0
+                _neg_sum_e = sum(_neg_ex) if _neg_ex else 0
+                _r3e = exit_ws.cell(3, 1,
+                    f"✅ Positive: {len(_pos_ex)} exits · +{_pos_sum_e:.2f}% total  ·  "
+                    f"❌ Negative: {len(_neg_ex)} exits · {_neg_sum_e:.2f}% total")
+                _r3e.font = _Font(bold=True, size=11, color="1F4E78")
+                _r3e.alignment = _Align(horizontal="left", vertical="center")
+                _r3e.fill = _PF(start_color="E7EEF7",
+                                end_color="E7EEF7", fill_type="solid")
+            except Exception as _e_top:
+                print(f"[exit_history:{mkt_key}] top analysis rows skipped · "
+                      f"{type(_e_top).__name__}: {_e_top}")
 
             # 2026-08-25 · operator: "also give total P&L , positive P&L,
             # negative p&l. by month, anyhow we track for atleast 3 months.
