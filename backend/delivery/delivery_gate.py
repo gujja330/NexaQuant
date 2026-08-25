@@ -127,6 +127,18 @@ def decide(root: Path, market: str) -> GateDecision:
         d.blocking_codes.append("GUARD:RED")
         d.reasons.append(f"[GUARD:RED] {_guard.get('notes','')}")
 
+    # 2026-08-25 · Price Integrity Guard · CEO directive.
+    # PI1/PI2/PI5 FAIL blocks delivery · PI3/PI4/PI6 are WARN only
+    # (they cannot silently degrade a run to invisible failure).
+    _pig = _load_json(ctx / f"price_integrity_{market}.json")
+    _PIG_BLOCKING = {"PI1", "PI2", "PI5"}
+    for chk in _pig.get("checks", []):
+        if chk.get("status") == "FAIL" and chk.get("code") in _PIG_BLOCKING:
+            d.blocking_codes.append(chk.get("code"))
+            d.reasons.append(
+                f"[{chk['code']}] {chk.get('name','')} · "
+                f"{chk.get('detail','')}")
+
     # Overall verdict
     if d.blocking_codes and not override:
         d.verdict = "BLOCK"

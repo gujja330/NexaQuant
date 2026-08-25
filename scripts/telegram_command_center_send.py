@@ -3008,6 +3008,55 @@ def main() -> int:
                 print(f"[post_build_regression:{mkt_key}] recompute skipped · "
                       f"{type(_e_pbr).__name__}: {_e_pbr}")
 
+            # 2026-08-25 · PRICE INTEGRITY GUARD · CEO directive:
+            # "check if ur entry price what u r offering and exit price
+            # are inlined in data and date and on that day with history
+            # we preserved". 6 checks · PI1/PI2/PI5 block delivery on
+            # FAIL · PI3/PI4/PI6 WARN. Positions extracted from the
+            # freshly-built XLSX so we validate what the operator will
+            # actually see.
+            try:
+                from backend.context import price_integrity_guard as _pig
+                _pig_positions: list = []
+                # Walk keep_rows · build the position-dict list the
+                # guard expects.  status/entry/exit/dates from the raw
+                # source XLSX · unchanged by build.
+                for _r_pi in keep_rows:
+                    _tk_pi = str(_r_pi[c_tk-1].value or "").upper() \
+                             .replace(".NS","").replace(".BO","")
+                    if not _tk_pi: continue
+                    _st_pi = str(_r_pi[c_st-1].value or "").upper()
+                    _rec_pi = (str(_r_pi[_c_rec_date-1].value or "")[:10]
+                               if _c_rec_date else "")
+                    _date_pi = str(_r_pi[c_date-1].value or "")[:10] \
+                               if c_date else ""
+                    _entry_pi = (_r_pi[c_entry-1].value
+                                 if c_entry else None)
+                    _curr_pi = (_r_pi[c_current-1].value
+                                if c_current else None)
+                    _pig_positions.append({
+                        "ticker": _tk_pi,
+                        "status": _st_pi,
+                        "entry_date": _rec_pi,
+                        "entry_price": _entry_pi,
+                        "exit_date": _date_pi if _st_pi == "EXIT" else None,
+                        "exit_price": _curr_pi if _st_pi == "EXIT" else None,
+                    })
+                _pig_rep = _pig.compute(_ROOT, mkt_key.lower(),
+                                        _pig_positions, latest_date)
+                _pig.emit(_ROOT, _pig_rep)
+                print(f"[price_integrity:{mkt_key}] "
+                      f"{_pig.summary_line(_pig_rep)}")
+                for _pig_chk in _pig_rep.checks:
+                    if _pig_chk.status == "FAIL":
+                        print(f"  {_pig_chk.code} FAIL · "
+                              f"{_pig_chk.detail}")
+                        for _v in _pig_chk.violations[:3]:
+                            print(f"    · {_v}")
+            except Exception as _e_pig:
+                print(f"[price_integrity:{mkt_key}] skipped · "
+                      f"{type(_e_pig).__name__}: {_e_pig}")
+
             # 2026-08-25 · ZERO-TOLERANCE DELIVERY GATE ·
             # operator: "u shouldnt give me a chance to question right"
             # Consult all guards BEFORE the Telegram POST. If any hard-
@@ -3052,6 +3101,26 @@ def main() -> int:
             print(f"[xlsx:{mkt_key}] file={out_path.name} · rows={len(keep_rows)} · sent={ok}")
             if not ok:
                 print(f"  detail: {msg[:180]}")
+            # 2026-08-25 · PI3 · seed parquet fingerprints on successful
+            # send · establishes baseline for tomorrow's immutability
+            # check. Only seed when send actually succeeded · a failed
+            # send may indicate corrupt data we don't want to bless.
+            if ok:
+                try:
+                    from backend.context import price_integrity_guard as _pig_seed
+                    _seed_tickers = set()
+                    for _r_seed in keep_rows:
+                        _tk_seed = str(_r_seed[c_tk-1].value or "") \
+                                   .upper().replace(".NS","").replace(".BO","")
+                        if _tk_seed: _seed_tickers.add(_tk_seed)
+                    _pig_seed.save_fingerprints(
+                        _ROOT, mkt_key.lower(), _seed_tickers,
+                        asof=latest_date)
+                    print(f"[price_integrity:{mkt_key}] fingerprints seeded · "
+                          f"{len(_seed_tickers)} tickers · asof={latest_date}")
+                except Exception as _e_seed:
+                    print(f"[price_integrity:{mkt_key}] seed skipped · "
+                          f"{type(_e_seed).__name__}: {_e_seed}")
             return ok
 
         # Import Font at module scope (used in split_and_send)
