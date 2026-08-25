@@ -1281,24 +1281,11 @@ def main() -> int:
                 ["Artifacts (excluded)",  "",                    f"{n_artifact} same-day rotations",
                  "Note", "not counted in P&L / win rate"],
             ]
-            # Diagnostic detail lines · rendered AFTER the position table as
-            # an APPENDIX (was cluttering the top-of-sheet before).
-            _appendix_rows = [
-                ["", "", "", "", ""],
-                ["── APPENDIX · diagnostic panels (drill-in) ──", "", "", "", ""],
-                ["🆕 NEW OPPORTUNITIES",  "",                    _new_summary,
-                 "Detail",       _new_detail],
-                ["🔄 ROTATION",             "",                  _rotate_summary,
-                 "Detail",       _rotate_detail],
-                ["🔍 OPS DIAGNOSTIC",       "",                  _ops_summary,
-                 "Warnings",     _ops_warn],
-                ["🛡 ACCEPTANCE GATE",     "",                  _reg_summary,
-                 "Detail",       _reg_detail],
-                ["🛡 NEW-OPP GUARD",        "",                  _guard_summary,
-                 "Note",         _guard_note],
-                ["🔬 INVESTABILITY (SHADOW)", "",              _inv_summary,
-                 "Detail",       _inv_detail],
-            ]
+            # 2026-08-25 · operator "what is this appendix not able to
+            # understand" · APPENDIX DELETED. All diagnostic detail lives
+            # in the reports/context/*.json files for anyone who wants
+            # to drill in · not cluttering the Portfolio.
+            _appendix_rows = []
             for r_off, kpi_row in enumerate(kpi_rows, start=3):
                 for c_off, val in enumerate(kpi_row, start=1):
                     cell = portfolio_ws.cell(r_off, c_off, val)
@@ -1342,6 +1329,53 @@ def main() -> int:
                 _dc.alignment = _Align(horizontal="left", vertical="center", wrap_text=True)
             # Track where the position header goes (row after legend + 1 blank)
             _pos_header_row = _legend_start + len(_legend_ordered) + 1
+
+            # 2026-08-25 · operator: "cant see a single new stocks?" +
+            # "where is sunpharma example i am asking". Emit a prominent
+            # SUGGESTED NEW strip right after the legend · lists the top
+            # investability-shadow discoveries the recommender missed so
+            # operator SEES them without opening the shadow JSON file.
+            try:
+                import json as _jsonw
+                _inv_p3 = (_ROOT / "reports" / "context"
+                                 / f"investability_shadow_diagnostic_{mkt_key.lower()}.json")
+                if _inv_p3.exists():
+                    _ish3 = _jsonw.loads(_inv_p3.read_text(encoding="utf-8"))
+                    _disc3 = _ish3.get("top_discoveries") or []
+                    if _disc3:
+                        # Purple banner + 1 row per discovery
+                        _sug_row = _pos_header_row + 1
+                        portfolio_ws.merge_cells(start_row=_sug_row, start_column=1,
+                                                                  end_row=_sug_row, end_column=6)
+                        _sb = portfolio_ws.cell(_sug_row, 1,
+                                                             f"🆕 SUGGESTED NEW · {len(_disc3)} high-quality picks "
+                                                             "the recommender missed today "
+                                                             "(shadow investability)")
+                        _sb.font = _Font(bold=True, size=12, color="5B2A82")
+                        _sb.fill = _PF(start_color="D5A6EA", end_color="D5A6EA", fill_type="solid")
+                        _sb.alignment = _Align(horizontal="left", vertical="center")
+                        portfolio_ws.row_dimensions[_sug_row].height = 22
+                        _sug_row += 1
+                        # One row per discovery · plain-English pitch
+                        for _d in _disc3[:5]:
+                            _tk3 = _d.get("ticker", "?")
+                            _sc3 = _d.get("score", 0)
+                            _vd3 = _d.get("verdict", "")
+                            _top3 = ", ".join(f"{k}={int(v)}"
+                                                        for k, v in (_d.get("top_engines") or [])[:3])
+                            _line = (f"  · {_tk3:<12} score {_sc3:.1f} · {_vd3} · "
+                                          f"strongest: {_top3}")
+                            portfolio_ws.merge_cells(start_row=_sug_row, start_column=1,
+                                                                      end_row=_sug_row, end_column=6)
+                            _cell3 = portfolio_ws.cell(_sug_row, 1, _line)
+                            _cell3.font = _Font(size=10, color="5B2A82")
+                            _cell3.fill = _PF(start_color="EFE0F7",
+                                                        end_color="EFE0F7", fill_type="solid")
+                            _cell3.alignment = _Align(horizontal="left", vertical="center")
+                            _sug_row += 1
+                        _pos_header_row = _sug_row + 1     # shift position header down
+            except Exception as _e:
+                print(f"[xlsx:{mkt_key}] suggested-new strip skipped · {_e}")
 
             # 2026-08-10 · CEO review fixes (semantic separation):
             #   1. Lifecycle column · NEW/ACTIVE/CLOSED (separate from Runner Status)
@@ -1603,15 +1637,51 @@ def main() -> int:
                 ("action",    "🔴 EXIT · ACTION REQUIRED TODAY", "FCE4D6", "9C0006"),
                 # "closed" section retired · see Exit History sheet
             ]
+            # 2026-08-25 · fix operator complaint "why red stocks seen in
+            # portfolio" · BATAINDIA/TATAPOWER (bucket G · Structural
+            # Failure) leaked into ACTIVE section because Status stayed
+            # HOLD while Decision resolved to EXIT via bucket G. Fixed
+            # here by pre-classifying the bucket using the same rules
+            # the row-write loop uses.
+            _EXIT_ACTIONS = {"EXIT", "SKIP", "CLOSED", "IGNORE"}
             def _row_section(_item):
                 _dt, _r = _item
                 _st = str(_r[c_st-1].value or "").upper()
                 _al = str(_r[c_alerts-1].value if c_alerts else "").upper()
                 _rd = str(_r[c_recommended-1].value or "")[:10] if c_recommended else ""
                 _same_day = _rd == asof[:10] and _st != "EXIT"
+                # 1. Binding-risk signal in Alerts → today's action (bucket R)
                 if any(sig in _al for sig in BINDING_RISK_SIGNALS): return "action"
+                # 2. Real Status=EXIT → closed bin (Exit History sheet)
                 if _st == "EXIT": return "closed"
+                # 3. Structural Failure / Quality Fail (bucket G/F/H) · Status=HOLD
+                #    but decision resolves to EXIT. Detect via investability +
+                #    live P&L (mirrors _classify_priority logic).
+                try:
+                    _iv_col = h.index("Health") if "Health" in h else None
+                    _iv = str((_r[_iv_col].value if _iv_col is not None else "") or "")
+                except Exception:
+                    _iv = ""
+                _q_low = _iv == "✗ AVOID"
+                # Estimate P&L from Entry vs Current (both in source XLSX)
+                _pnl_neg = False
+                try:
+                    _entry_col = h.index("Entry Price") if "Entry Price" in h else None
+                    _curr_col  = h.index("Current Price") if "Current Price" in h else None
+                    if _entry_col is not None and _curr_col is not None:
+                        _e = _r[_entry_col].value; _c_v = _r[_curr_col].value
+                        if isinstance(_e, (int, float)) and isinstance(_c_v, (int, float)) and _e > 0:
+                            _pnl_neg = (_c_v - _e) / _e < 0
+                except Exception:
+                    pass
+                # Bucket G · quality-avoid + negative P&L · action=EXIT
+                # Bucket F · quality-avoid alone · action=SKIP
+                # Both should render in ACTION section, not ACTIVE.
+                if _q_low:
+                    return "action"
+                # 4. Same-day new-rec (rec_date == asof) → NEW section
                 if _same_day: return "new_opps"
+                # 5. Default · ACTIVE
                 return "existing"
 
             # 2026-08-21 · Wave 1 + Wave 3 · investable-only + exits-off-portfolio.
@@ -2215,12 +2285,13 @@ def main() -> int:
             # price · P&L.
             # ═══════════════════════════════════════════════════════════════
             exit_ws = wb2.create_sheet("Exit History (90d)", 1)
-            _exit_hdr = ["Stock", "Runner", "Entry Date", "Exit Date",
+            # 2026-08-25 · operator: "sector missing exit sheet"
+            _exit_hdr = ["Stock", "Sector", "Runner", "Entry Date", "Exit Date",
                             "Days Held", "Entry Price", "Exit Price",
                             "P&L %", "Exit Reason"]
-            _exit_widths = [14, 8, 12, 12, 10, 14, 14, 12, 40]
+            _exit_widths = [14, 22, 8, 12, 12, 10, 14, 14, 12, 46]
             # Title row
-            exit_ws.merge_cells("A1:I1")
+            exit_ws.merge_cells("A1:J1")
             exit_ws["A1"] = f"AEGIS {mkt_key} · EXIT HISTORY · last 90 days as of {latest_date or 'today'}"
             exit_ws["A1"].font = _Font(bold=True, size=14, color="FFFFFF")
             exit_ws["A1"].fill = _PF(start_color="1F4E78", end_color="1F4E78", fill_type="solid")
@@ -2257,17 +2328,34 @@ def main() -> int:
                     _days_held = (_d1 - _d0).days
                 except Exception:
                     _days_held = ""
+                # 2026-08-25 · operator: "exit reasons whats tock u r showing?
+                # where are they like example TCS?" · Convert internal jargon
+                # like "→ GNFC.NS · +6.7pp alpha" into plain-English:
+                # "Rotated to GNFC · better setup (+6.7pp)". Stop-hit stays.
+                _reason_s = str(_reason or "").strip()
+                if _reason_s.startswith("→") and "alpha" in _reason_s.lower():
+                    # Format: "→ GNFC.NS · +6.7pp alpha"
+                    _parts = _reason_s.replace("→", "").strip().split("·")
+                    _new_tk = _parts[0].strip().replace(".NS","").replace(".BO","")
+                    _delta = _parts[1].strip() if len(_parts) > 1 else ""
+                    _reason_s = f"Rotated to {_new_tk} · better setup ({_delta.replace(' alpha','')})"
+                elif "STOP_LOSS_HIT" in _reason_s.upper() or "STOP LOSS" in _reason_s.upper():
+                    _reason_s = "Stop loss hit"
+                elif not _reason_s:
+                    _reason_s = "Closed (no reason recorded)"
+                # Sector lookup
+                _sec_e = _sector_for(_tk_e, mkt_key)
                 _exit_rows.append((
-                    _row_dt_e, _tk_e, _rn_e, _entry_dt_e, _row_dt_e,
-                    _days_held, _entry_p, _exit_p, _pnl_e, _reason,
+                    _row_dt_e, _tk_e, _sec_e, _rn_e, _entry_dt_e, _row_dt_e,
+                    _days_held, _entry_p, _exit_p, _pnl_e, _reason_s,
                 ))
             # Sort · most recent exit first
             _exit_rows.sort(key=lambda x: x[0], reverse=True)
             _rowptr = 4
             for _er in _exit_rows:
-                (_dt_key, _tk_e, _rn_e, _entry_dt_e, _exit_dt_e,
+                (_dt_key, _tk_e, _sec_e, _rn_e, _entry_dt_e, _exit_dt_e,
                  _days_held, _entry_p, _exit_p, _pnl_e, _reason) = _er
-                _vals = [_tk_e, _rn_e, _entry_dt_e, _exit_dt_e, _days_held,
+                _vals = [_tk_e, _sec_e, _rn_e, _entry_dt_e, _exit_dt_e, _days_held,
                              _entry_p, _exit_p,
                              (_pnl_e / 100.0 if isinstance(_pnl_e, (int, float)) else ""),
                              str(_reason or "")]
@@ -2275,20 +2363,25 @@ def main() -> int:
                     _cell = exit_ws.cell(_rowptr, _c, _v)
                     _cell.font = _Font(size=10)
                     _cell.alignment = _Align(horizontal="center", vertical="center")
-                    if _c == 8:   # P&L column
+                    if _c == 9:   # P&L column shifted +1 by Sector insertion
                         _cell.number_format = "+0.00%;-0.00%;0.00%"
-                        if isinstance(_pnl_e, (int, float)):
-                            if _pnl_e > 0.01:
-                                _cell.fill = _PF(start_color="C6EFCE",
-                                                          end_color="C6EFCE",
-                                                          fill_type="solid")
-                            elif _pnl_e < -0.01:
-                                _cell.fill = _PF(start_color="F8CBAD",
-                                                          end_color="F8CBAD",
-                                                          fill_type="solid")
+                # 2026-08-25 · operator "exit color code to entire row" ·
+                # fill EVERY cell in the row with the P&L-based color, not
+                # just the P&L cell.
+                _row_fill_e = None
+                if isinstance(_pnl_e, (int, float)):
+                    if _pnl_e > 0.01:
+                        _row_fill_e = _PF(start_color="C6EFCE",
+                                                    end_color="C6EFCE", fill_type="solid")
+                    elif _pnl_e < -0.01:
+                        _row_fill_e = _PF(start_color="F8CBAD",
+                                                    end_color="F8CBAD", fill_type="solid")
+                if _row_fill_e is not None:
+                    for _c in range(1, len(_exit_hdr) + 1):
+                        exit_ws.cell(_rowptr, _c).fill = _row_fill_e
                 _rowptr += 1
             if not _exit_rows:
-                exit_ws.merge_cells(f"A4:I4")
+                exit_ws.merge_cells(f"A4:J4")
                 _empty = exit_ws.cell(4, 1, "no exits in the last 90 days")
                 _empty.alignment = _Align(horizontal="center")
                 _empty.font = _Font(size=10, italic=True, color="7F7F7F")
