@@ -1,6 +1,6 @@
 {
-  "run_utc": "2026-08-25T04:27:32.844441+00:00Z",
-  "code_sha": "5d0a266e98a7",
+  "run_utc": "2026-08-25T14:06:51.818453+00:00Z",
+  "code_sha": "b4adb564e37a",
   "engine": "Adaptive Recommendation Engine",
   "version": "v2.1 \u00b7 Intelligence Fusion",
   "as_of": "2026-08-25",
@@ -23,7 +23,7 @@
       "sector": "",
       "industry": "",
       "raw_recommendation": "STRONG BUY",
-      "raw_composite_score": 67.17,
+      "raw_composite_score": 67.175,
       "raw_confidence": 0.3409,
       "intelligence_score": 37.35,
       "fusion_decision": "Avoid",
@@ -229,7 +229,7 @@
       "sector": "",
       "industry": "",
       "raw_recommendation": "STRONG BUY",
-      "raw_composite_score": 63.88,
+      "raw_composite_score": 63.87,
       "raw_confidence": 0.4302,
       "intelligence_score": 37.42,
       "fusion_decision": "Avoid",
@@ -431,217 +431,11 @@
       "conflict_severity": "MINOR"
     },
     {
-      "ticker": "HCLTECH.NS",
-      "sector": "",
-      "industry": "",
-      "raw_recommendation": "BUY",
-      "raw_composite_score": 62.28,
-      "raw_confidence": 0.4312,
-      "intelligence_score": 37.42,
-      "fusion_decision": "Avoid",
-      "dimensions": [
-        {
-          "name": "research",
-          "score": null,
-          "explanation": "no research scores available",
-          "source": "recommendations.json",
-          "weight_hint": 0.15
-        },
-        {
-          "name": "historical",
-          "score": null,
-          "explanation": "no historical trades on file for this ticker",
-          "source": "learning.parquet (DEV025)",
-          "weight_hint": 0.1
-        },
-        {
-          "name": "validation",
-          "score": 55.0,
-          "explanation": "only 0 reconciled trades so far \u00b7 drift=insufficient_evidence \u00b7 giving neutral bias 55 pending more evidence",
-          "source": "validation_v2_latest.json (v2.0)",
-          "weight_hint": 0.1
-        },
-        {
-          "name": "risk",
-          "score": 45,
-          "explanation": "ticker not in top-K sized universe \u00b7 portfolio verdict=empty portfolio -> default 45",
-          "source": "risk_capital_v2_latest.json (v2.0)",
-          "weight_hint": 0.1
-        },
-        {
-          "name": "portfolio_fit",
-          "score": 0,
-          "explanation": "included in 0 of 99 portfolio constructions -> 0.0",
-          "source": "recommendations.json (DEV022 rollup)",
-          "weight_hint": 0.1
-        },
-        {
-          "name": "knowledge_graph",
-          "score": 76.51,
-          "explanation": "influence=0.0071 \u00b7 degree_centrality=0.0247 -> 76.5",
-          "source": "entity_network.json (DEV031-B)",
-          "weight_hint": 0.05
-        },
-        {
-          "name": "dna",
-          "score": 50.0,
-          "explanation": "no historical DNA pattern for HCLTECH.NS \u2014 neutral",
-          "source": "recommendation_dna_feedback.json (v1.5)",
-          "weight_hint": 0.1
-        },
-        {
-          "name": "calibration",
-          "score": 50.0,
-          "explanation": "calibration metrics incomplete",
-          "source": "confidence_calibration.json",
-          "weight_hint": 0.05
-        },
-        {
-          "name": "learning",
-          "score": 0,
-          "explanation": "same_ticker=0 \u00b7 same_industry=0 \u00b7 same_sector=0 -> 0.0",
-          "source": "learning.parquet (DEV025)",
-          "weight_hint": 0.05
-        },
-        {
-          "name": "explainability",
-          "score": 15.0,
-          "explanation": "path_len=1/4 \u00b7 champion=False \u00b7 outcome=False \u00b7 signals=0 -> 15.0",
-          "source": "recommendation_paths.json (DEV031-B)",
-          "weight_hint": 0.05
-        }
-      ],
-      "contributions": [
-        {
-          "name": "risk",
-          "score": 45,
-          "weight": 0.15,
-          "weight_norm": 0.2308,
-          "contribution": 10.385,
-          "source": "risk_capital_v2_latest.json (v2.0)"
-        },
-        {
-          "name": "validation",
-          "score": 55.0,
-          "weight": 0.1,
-          "weight_norm": 0.1538,
-          "contribution": 8.462,
-          "source": "validation_v2_latest.json (v2.0)"
-        },
-        {
-          "name": "dna",
-          "score": 50.0,
-          "weight": 0.1,
-          "weight_norm": 0.1538,
-          "contribution": 7.692,
-          "source": "recommendation_dna_feedback.json (v1.5)"
-        },
-        {
-          "name": "knowledge_graph",
-          "score": 76.51,
-          "weight": 0.05,
-          "weight_norm": 0.0769,
-          "contribution": 5.885,
-          "source": "entity_network.json (DEV031-B)"
-        },
-        {
-          "name": "calibration",
-          "score": 50.0,
-          "weight": 0.05,
-          "weight_norm": 0.0769,
-          "contribution": 3.846,
-          "source": "confidence_calibration.json"
-        },
-        {
-          "name": "explainability",
-          "score": 15.0,
-          "weight": 0.05,
-          "weight_norm": 0.0769,
-          "contribution": 1.154,
-          "source": "recommendation_paths.json (DEV031-B)"
-        },
-        {
-          "name": "portfolio_fit",
-          "score": 0,
-          "weight": 0.1,
-          "weight_norm": 0.1538,
-          "contribution": 0.0,
-          "source": "recommendations.json (DEV022 rollup)"
-        },
-        {
-          "name": "learning",
-          "score": 0,
-          "weight": 0.05,
-          "weight_norm": 0.0769,
-          "contribution": 0.0,
-          "source": "learning.parquet (DEV025)"
-        }
-      ],
-      "top_contributors": [
-        "risk",
-        "validation",
-        "dna"
-      ],
-      "bottom_contributors": [
-        "explainability",
-        "portfolio_fit",
-        "learning"
-      ],
-      "n_dimensions_used": 8,
-      "n_dimensions_missing": 2,
-      "missing_dimensions": [
-        "research",
-        "historical"
-      ],
-      "why_this": [
-        {
-          "name": "knowledge_graph",
-          "score": 76.51,
-          "why": "influence=0.0071 \u00b7 degree_centrality=0.0247 -> 76.5"
-        },
-        {
-          "name": "validation",
-          "score": 55.0,
-          "why": "only 0 reconciled trades so far \u00b7 drift=insufficient_evidence \u00b7 giving neutral bias 55 pending more evidence"
-        },
-        {
-          "name": "dna",
-          "score": 50.0,
-          "why": "no historical DNA pattern for HCLTECH.NS \u2014 neutral"
-        }
-      ],
-      "why_not_stronger": [
-        {
-          "name": "portfolio_fit",
-          "score": 0,
-          "why": "included in 0 of 99 portfolio constructions -> 0.0"
-        },
-        {
-          "name": "learning",
-          "score": 0,
-          "why": "same_ticker=0 \u00b7 same_industry=0 \u00b7 same_sector=0 -> 0.0"
-        },
-        {
-          "name": "explainability",
-          "score": 15.0,
-          "why": "path_len=1/4 \u00b7 champion=False \u00b7 outcome=False \u00b7 signals=0 -> 15.0"
-        }
-      ],
-      "conflicts": [
-        {
-          "severity": "MINOR",
-          "rule": "wide_dimension_spread",
-          "detail": "Wide spread: knowledge_graph=77 vs portfolio_fit=0 (gap 77) \u2014 check evidence quality per dimension."
-        }
-      ],
-      "conflict_severity": "MINOR"
-    },
-    {
       "ticker": "OIL.NS",
       "sector": "",
       "industry": "",
-      "raw_recommendation": "HOLD",
-      "raw_composite_score": 62.165,
+      "raw_recommendation": "BUY",
+      "raw_composite_score": 62.22,
       "raw_confidence": 0.375,
       "intelligence_score": 37.38,
       "fusion_decision": "Avoid",
@@ -843,11 +637,217 @@
       "conflict_severity": "MINOR"
     },
     {
+      "ticker": "HCLTECH.NS",
+      "sector": "",
+      "industry": "",
+      "raw_recommendation": "HOLD",
+      "raw_composite_score": 62.14,
+      "raw_confidence": 0.4312,
+      "intelligence_score": 37.42,
+      "fusion_decision": "Avoid",
+      "dimensions": [
+        {
+          "name": "research",
+          "score": null,
+          "explanation": "no research scores available",
+          "source": "recommendations.json",
+          "weight_hint": 0.15
+        },
+        {
+          "name": "historical",
+          "score": null,
+          "explanation": "no historical trades on file for this ticker",
+          "source": "learning.parquet (DEV025)",
+          "weight_hint": 0.1
+        },
+        {
+          "name": "validation",
+          "score": 55.0,
+          "explanation": "only 0 reconciled trades so far \u00b7 drift=insufficient_evidence \u00b7 giving neutral bias 55 pending more evidence",
+          "source": "validation_v2_latest.json (v2.0)",
+          "weight_hint": 0.1
+        },
+        {
+          "name": "risk",
+          "score": 45,
+          "explanation": "ticker not in top-K sized universe \u00b7 portfolio verdict=empty portfolio -> default 45",
+          "source": "risk_capital_v2_latest.json (v2.0)",
+          "weight_hint": 0.1
+        },
+        {
+          "name": "portfolio_fit",
+          "score": 0,
+          "explanation": "included in 0 of 99 portfolio constructions -> 0.0",
+          "source": "recommendations.json (DEV022 rollup)",
+          "weight_hint": 0.1
+        },
+        {
+          "name": "knowledge_graph",
+          "score": 76.51,
+          "explanation": "influence=0.0071 \u00b7 degree_centrality=0.0247 -> 76.5",
+          "source": "entity_network.json (DEV031-B)",
+          "weight_hint": 0.05
+        },
+        {
+          "name": "dna",
+          "score": 50.0,
+          "explanation": "no historical DNA pattern for HCLTECH.NS \u2014 neutral",
+          "source": "recommendation_dna_feedback.json (v1.5)",
+          "weight_hint": 0.1
+        },
+        {
+          "name": "calibration",
+          "score": 50.0,
+          "explanation": "calibration metrics incomplete",
+          "source": "confidence_calibration.json",
+          "weight_hint": 0.05
+        },
+        {
+          "name": "learning",
+          "score": 0,
+          "explanation": "same_ticker=0 \u00b7 same_industry=0 \u00b7 same_sector=0 -> 0.0",
+          "source": "learning.parquet (DEV025)",
+          "weight_hint": 0.05
+        },
+        {
+          "name": "explainability",
+          "score": 15.0,
+          "explanation": "path_len=1/4 \u00b7 champion=False \u00b7 outcome=False \u00b7 signals=0 -> 15.0",
+          "source": "recommendation_paths.json (DEV031-B)",
+          "weight_hint": 0.05
+        }
+      ],
+      "contributions": [
+        {
+          "name": "risk",
+          "score": 45,
+          "weight": 0.15,
+          "weight_norm": 0.2308,
+          "contribution": 10.385,
+          "source": "risk_capital_v2_latest.json (v2.0)"
+        },
+        {
+          "name": "validation",
+          "score": 55.0,
+          "weight": 0.1,
+          "weight_norm": 0.1538,
+          "contribution": 8.462,
+          "source": "validation_v2_latest.json (v2.0)"
+        },
+        {
+          "name": "dna",
+          "score": 50.0,
+          "weight": 0.1,
+          "weight_norm": 0.1538,
+          "contribution": 7.692,
+          "source": "recommendation_dna_feedback.json (v1.5)"
+        },
+        {
+          "name": "knowledge_graph",
+          "score": 76.51,
+          "weight": 0.05,
+          "weight_norm": 0.0769,
+          "contribution": 5.885,
+          "source": "entity_network.json (DEV031-B)"
+        },
+        {
+          "name": "calibration",
+          "score": 50.0,
+          "weight": 0.05,
+          "weight_norm": 0.0769,
+          "contribution": 3.846,
+          "source": "confidence_calibration.json"
+        },
+        {
+          "name": "explainability",
+          "score": 15.0,
+          "weight": 0.05,
+          "weight_norm": 0.0769,
+          "contribution": 1.154,
+          "source": "recommendation_paths.json (DEV031-B)"
+        },
+        {
+          "name": "portfolio_fit",
+          "score": 0,
+          "weight": 0.1,
+          "weight_norm": 0.1538,
+          "contribution": 0.0,
+          "source": "recommendations.json (DEV022 rollup)"
+        },
+        {
+          "name": "learning",
+          "score": 0,
+          "weight": 0.05,
+          "weight_norm": 0.0769,
+          "contribution": 0.0,
+          "source": "learning.parquet (DEV025)"
+        }
+      ],
+      "top_contributors": [
+        "risk",
+        "validation",
+        "dna"
+      ],
+      "bottom_contributors": [
+        "explainability",
+        "portfolio_fit",
+        "learning"
+      ],
+      "n_dimensions_used": 8,
+      "n_dimensions_missing": 2,
+      "missing_dimensions": [
+        "research",
+        "historical"
+      ],
+      "why_this": [
+        {
+          "name": "knowledge_graph",
+          "score": 76.51,
+          "why": "influence=0.0071 \u00b7 degree_centrality=0.0247 -> 76.5"
+        },
+        {
+          "name": "validation",
+          "score": 55.0,
+          "why": "only 0 reconciled trades so far \u00b7 drift=insufficient_evidence \u00b7 giving neutral bias 55 pending more evidence"
+        },
+        {
+          "name": "dna",
+          "score": 50.0,
+          "why": "no historical DNA pattern for HCLTECH.NS \u2014 neutral"
+        }
+      ],
+      "why_not_stronger": [
+        {
+          "name": "portfolio_fit",
+          "score": 0,
+          "why": "included in 0 of 99 portfolio constructions -> 0.0"
+        },
+        {
+          "name": "learning",
+          "score": 0,
+          "why": "same_ticker=0 \u00b7 same_industry=0 \u00b7 same_sector=0 -> 0.0"
+        },
+        {
+          "name": "explainability",
+          "score": 15.0,
+          "why": "path_len=1/4 \u00b7 champion=False \u00b7 outcome=False \u00b7 signals=0 -> 15.0"
+        }
+      ],
+      "conflicts": [
+        {
+          "severity": "MINOR",
+          "rule": "wide_dimension_spread",
+          "detail": "Wide spread: knowledge_graph=77 vs portfolio_fit=0 (gap 77) \u2014 check evidence quality per dimension."
+        }
+      ],
+      "conflict_severity": "MINOR"
+    },
+    {
       "ticker": "UNIONBANK.NS",
       "sector": "",
       "industry": "",
       "raw_recommendation": "HOLD",
-      "raw_composite_score": 61.92,
+      "raw_composite_score": 61.865,
       "raw_confidence": 0.303,
       "intelligence_score": 37.31,
       "fusion_decision": "Avoid",
@@ -1053,7 +1053,7 @@
       "sector": "",
       "industry": "",
       "raw_recommendation": "HOLD",
-      "raw_composite_score": 61.635,
+      "raw_composite_score": 61.57,
       "raw_confidence": 0.3495,
       "intelligence_score": 37.36,
       "fusion_decision": "Avoid",
@@ -1259,7 +1259,7 @@
       "sector": "",
       "industry": "",
       "raw_recommendation": "HOLD",
-      "raw_composite_score": 61.46,
+      "raw_composite_score": 61.38,
       "raw_confidence": 0.3614,
       "intelligence_score": 37.37,
       "fusion_decision": "Avoid",
@@ -1465,7 +1465,7 @@
       "sector": "",
       "industry": "",
       "raw_recommendation": "HOLD",
-      "raw_composite_score": 60.845,
+      "raw_composite_score": 60.83,
       "raw_confidence": 0.3499,
       "intelligence_score": 37.36,
       "fusion_decision": "Avoid",
@@ -1671,7 +1671,7 @@
       "sector": "",
       "industry": "",
       "raw_recommendation": "HOLD",
-      "raw_composite_score": 60.3,
+      "raw_composite_score": 60.285,
       "raw_confidence": 0.3327,
       "intelligence_score": 37.34,
       "fusion_decision": "Avoid",
@@ -1877,7 +1877,7 @@
       "sector": "",
       "industry": "",
       "raw_recommendation": "HOLD",
-      "raw_composite_score": 60.235,
+      "raw_composite_score": 60.195,
       "raw_confidence": 0.284,
       "intelligence_score": 37.3,
       "fusion_decision": "Avoid",
@@ -2289,7 +2289,7 @@
       "sector": "",
       "industry": "",
       "raw_recommendation": "HOLD",
-      "raw_composite_score": 37.105,
+      "raw_composite_score": 36.955,
       "raw_confidence": 0.2629,
       "intelligence_score": 37.27,
       "fusion_decision": "Avoid",
@@ -2701,7 +2701,7 @@
       "sector": "",
       "industry": "",
       "raw_recommendation": "STRONG SELL",
-      "raw_composite_score": 35.46,
+      "raw_composite_score": 35.4,
       "raw_confidence": 0.2629,
       "intelligence_score": 37.27,
       "fusion_decision": "Avoid",
@@ -2907,7 +2907,7 @@
       "sector": "",
       "industry": "",
       "raw_recommendation": "STRONG SELL",
-      "raw_composite_score": 34.6,
+      "raw_composite_score": 34.565,
       "raw_confidence": 0.243,
       "intelligence_score": 37.25,
       "fusion_decision": "Avoid",
