@@ -17,9 +17,11 @@ india:
   # Legacy TATAMOTORS may still exist · alias here if broker confirms rename.
   # TATAMOTORS: TATAMOTORS-NEW-CV       # example placeholder · verify with NSE
 
-  # Mahindra & Mahindra · yfinance lookup fails with MM.NS (correct is M&M.NS
-  # but that '&' character breaks URL encoding · Angel uses "M&M-EQ").
-  # Recommended fix: update universe to use "MAHINDRA" or bare "M&M".
+  # Mahindra & Mahindra · fixed 2026-08-25 · yfinance symbol is M&M.NS
+  # (verified: MM.NS returns 404, M&M.NS returns valid data · Close 3415).
+  # Universe now uses M&M.NS directly (india/data_nse.py:31 updated).
+  # Parquet file renamed MM_D1.parquet → M&M_D1.parquet.
+  # Alias kept below in case legacy code references MM.
   MM: "M&M"
 
   # LTIMindtree · post LTI + Mindtree merger the NSE symbol became LTIM
