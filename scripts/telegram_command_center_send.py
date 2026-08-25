@@ -3260,6 +3260,30 @@ def main() -> int:
                       f"{type(_e_smb).__name__}: {_e_smb}")
 
             # ─────────────────────────────────────────────────────────
+            # 2026-08-25 · SPRINT M.1 · Timing Engine (M10)
+            # Investability + Momentum + Regime → Timing Score + Verdict
+            # NON-BLOCKING research output · never mutates R1/R2
+            # ─────────────────────────────────────────────────────────
+            try:
+                from backend.decision import timing_engine as _te
+                _te_rep = _te.compute(_ROOT, mkt_key.lower())
+                _te.emit(_ROOT, _te_rep)
+                print(f"[timing_engine:{mkt_key}] "
+                      f"{_te.summary_line(_te_rep)}")
+            except Exception as _e_te:
+                print(f"[timing_engine:{mkt_key}] skipped · "
+                      f"{type(_e_te).__name__}: {_e_te}")
+            try:
+                from backend.research import momentum_attribution as _ma
+                _ma_rep = _ma.compute(_ROOT, mkt_key.lower())
+                _ma.emit(_ROOT, _ma_rep)
+                print(f"[momentum_attribution:{mkt_key}] "
+                      f"{_ma.summary_line(_ma_rep)}")
+            except Exception as _e_ma:
+                print(f"[momentum_attribution:{mkt_key}] skipped · "
+                      f"{type(_e_ma).__name__}: {_e_ma}")
+
+            # ─────────────────────────────────────────────────────────
             # 2026-08-25 · SPRINT M · LOCK GATE · 8-check verifier
             # CEO's final acceptance gate. Verdict: READY_TO_LOCK /
             # ALMOST_READY / NOT_READY. Non-blocking · surfaces status.

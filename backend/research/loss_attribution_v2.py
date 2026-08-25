@@ -45,6 +45,12 @@ SCHEMA_FINGERPRINT = "aegis.loss_attribution.v2.20260825"
 LOSS_CATEGORIES = [
     "STOP_LOSS_HIT", "TIME_STOP", "THESIS_FAILURE",
     "SECTOR_DRAG", "MACRO_SHOCK", "QUALITY_FALSE_POSITIVE",
+    # 2026-08-25 · Sprint M.1 · CEO directive · momentum-related causes
+    "BAD_TIMING",              # entered while momentum deteriorating
+    "MOMENTUM_FAILURE",        # momentum reversed against thesis after entry
+    "CHASE_EXTENSION",         # entered on extended move · reverted to mean
+    "FALSE_BREAKOUT",          # broke out then failed
+    "SECTOR_MOMENTUM_FAILURE", # sector momentum broke down · dragged position
 ]
 
 
@@ -238,6 +244,12 @@ def recommendation_for(category: str) -> str:
         "SECTOR_DRAG":           "add sector-momentum overlay · block entries when sector rotating out",
         "MACRO_SHOCK":           "widen entry regime filter · reduce entries in high-vol regimes",
         "QUALITY_FALSE_POSITIVE": "recalibrate investability quality band · was too generous",
+        # Momentum-related · from Sprint M.1 Timing Engine integration
+        "BAD_TIMING":            "add momentum-confirmation gate at entry · don't enter deteriorating names",
+        "MOMENTUM_FAILURE":      "add trailing-momentum check · exit when 5d/20d agree bearish",
+        "CHASE_EXTENSION":       "add RSI/extension filter · don't enter RSI>75 with weak volume",
+        "FALSE_BREAKOUT":        "require volume confirm ≥ 1.5x AND multi-timeframe agreement",
+        "SECTOR_MOMENTUM_FAILURE": "add sector-regime overlay · block entries in LAGGARD sectors",
     }.get(category, "review individually")
 
 
