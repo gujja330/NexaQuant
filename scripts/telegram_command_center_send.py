@@ -3234,6 +3234,32 @@ def main() -> int:
                       f"{type(_e_mo).__name__}: {_e_mo}")
 
             # ─────────────────────────────────────────────────────────
+            # 2026-08-25 · SPRINT M · Short-Term Momentum + Backtest
+            # Quick rise + quick fall detector with volatility-adjusted
+            # thresholds · RSI · volume · sector context · multi-timeframe.
+            # Backtest walk-forward evaluates verdict accuracy.
+            # ─────────────────────────────────────────────────────────
+            try:
+                from backend.research import short_term_momentum as _sm
+                _sm_rep = _sm.compute(_ROOT, mkt_key.lower())
+                _sm.emit(_ROOT, _sm_rep)
+                print(f"[short_term_momentum:{mkt_key}] "
+                      f"{_sm.summary_line(_sm_rep)}")
+            except Exception as _e_sm:
+                print(f"[short_term_momentum:{mkt_key}] skipped · "
+                      f"{type(_e_sm).__name__}: {_e_sm}")
+            try:
+                from backend.research import short_term_momentum_backtest as _smb
+                _smb_rep = _smb.compute(_ROOT, mkt_key.lower(),
+                                        lookback_days=60, universe_limit=100)
+                _smb.emit(_ROOT, _smb_rep)
+                print(f"[momentum_backtest:{mkt_key}] "
+                      f"{_smb.summary_line(_smb_rep)}")
+            except Exception as _e_smb:
+                print(f"[momentum_backtest:{mkt_key}] skipped · "
+                      f"{type(_e_smb).__name__}: {_e_smb}")
+
+            # ─────────────────────────────────────────────────────────
             # 2026-08-25 · SPRINT M · LOCK GATE · 8-check verifier
             # CEO's final acceptance gate. Verdict: READY_TO_LOCK /
             # ALMOST_READY / NOT_READY. Non-blocking · surfaces status.

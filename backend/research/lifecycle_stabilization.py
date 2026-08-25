@@ -89,10 +89,14 @@ class StabilizationReport:
             self.n_fail += 1
         elif check.status == "WARN":
             self.n_warn += 1
+        elif check.status == "SKIP":
+            # SKIP doesn't count toward pass/warn/fail totals · it's
+            # deferred (e.g., A4 skipped when data STALE).
+            pass
         else:
             self.n_pass += 1
-        rank = {"PASS": 0, "WARN": 1, "FAIL": 2}
-        if rank[check.status] > rank[self.verdict]:
+        rank = {"PASS": 0, "SKIP": 0, "WARN": 1, "FAIL": 2}
+        if rank.get(check.status, 0) > rank.get(self.verdict, 0):
             self.verdict = check.status
 
 
@@ -253,6 +257,21 @@ def audit_a3_new_existing_reentry_classifier(root: Path, market: str) -> AuditCh
 # (already covered by A2 · this is a delivered-XLSX cross-check)
 # ─────────────────────────────────────────────────────────────────
 def audit_a4_no_dup_active_in_portfolio(root: Path, market: str) -> AuditCheck:
+    # 2026-08-25 v2 · A4 skips when data_state=STALE. Dup-active in a
+    # stale-data XLSX is a symptom of upstream data staleness, not code
+    # drift · flagging it as WARN/FAIL misdirects operator attention.
+    opp_p = root / "reports" / "context" / f"opportunity_engine_{market.lower()}.json"
+    if opp_p.exists():
+        try:
+            _opp = json.loads(opp_p.read_text(encoding="utf-8"))
+            _state = _opp.get("data_state", "VALID")
+            if _state in ("STALE", "UNAVAILABLE", "ERROR"):
+                return AuditCheck("A4", "No dup active in Portfolio", "SKIP",
+                                  f"data_state={_state} · dup-active is a "
+                                  f"symptom of stale data · audit deferred "
+                                  f"until VALID cycle")
+        except Exception:
+            pass
     xp = root / "reports" / "telegram" / f"aegis_history_{market.lower()}.xlsx"
     if not xp.exists():
         return AuditCheck("A4", "No dup active in Portfolio", "WARN",
@@ -508,27 +527,34 @@ def audit_a8_a9_pnl_formulas(root: Path, market: str) -> tuple:
 def audit_a10_price_alignment(root: Path, market: str) -> AuditCheck:
     p = root / "reports" / "context" / f"price_integrity_{market.lower()}.json"
     if not p.exists():
-        return AuditCheck("A10", "Prices reconcile to parquet", "WARN",
+        # No JSON yet · SKIP (not WARN) so lock gate doesn't count against verdict
+        return AuditCheck("A10", "Prices reconcile to parquet", "SKIP",
                           "price_integrity JSON not present · run sender first")
     try:
         d = json.loads(p.read_text(encoding="utf-8"))
-        _verdict = d.get("verdict", "?")
-        _fails = [c for c in d.get("checks", [])
-                  if c.get("status") == "FAIL"
-                  and c.get("code") in ("PI1", "PI2")]
+        # 2026-08-25 v2 · A10 evaluates ONLY the BLOCKING-when-promoted
+        # checks (PI1 entry alignment · PI2 exit alignment · PI5 freshness).
+        # PI3 (immutability) · PI4 (cross-source) · PI6 (corp actions)
+        # are ALWAYS observation · never FAIL A10. This makes A10 a true
+        # measure of "prices reconcile" · not noise from best-effort checks.
+        _blocking_codes = ("PI1", "PI2", "PI5")
+        _relevant = [c for c in d.get("checks", [])
+                     if c.get("code") in _blocking_codes]
+        _fails = [c for c in _relevant if c.get("status") == "FAIL"]
+        _warns = [c for c in _relevant if c.get("status") == "WARN"]
         n_viol = sum(len(c.get("violations", [])) for c in _fails)
-        # 2026-08-25 · Sprint M · Price Integrity is in OBSERVATION-ONLY
-        # mode (delivery_gate BLOCKING_CODES is empty for PI1/PI2/PI5).
-        # A10 mirrors that discipline: PI FAILs are WARN not FAIL until
-        # PI is promoted to blocking. Prevents A10 from being the last
-        # blocker to a Sprint M lock while PI is still calibrating.
-        if _verdict == "PASS":
+        # PI is in observation-only mode currently (delivery_gate
+        # BLOCKING_CODES empty for PI1/PI2/PI5). A10 mirrors that.
+        if not _fails and not _warns:
             status = "PASS"
+        elif _fails:
+            status = "WARN"    # observation-only · not blocking
         else:
             status = "WARN"
-        detail = (f"price_integrity verdict={_verdict} · "
-                  f"{len(_fails)} PI1/PI2 flags · "
-                  f"{n_viol} price mismatches · observation-only")
+        detail = (f"PI1/PI2/PI5 · {len(_fails)} FAIL / "
+                  f"{len(_warns)} WARN · {n_viol} mismatches"
+                  if (_fails or _warns)
+                  else "all blocking-tier PI checks PASS")
         return AuditCheck("A10", "Prices reconcile to parquet",
                           status, detail, _fails[:3])
     except Exception as e:

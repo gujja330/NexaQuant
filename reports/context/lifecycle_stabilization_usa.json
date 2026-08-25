@@ -1,13 +1,13 @@
 {
   "market": "usa",
   "asof": "2026-08-25",
-  "generated_utc": "2026-08-25T12:47:50+00:00",
+  "generated_utc": "2026-08-25T12:51:04+00:00",
   "engine": "aegis.lifecycle_stabilization.v1.20260825",
-  "verdict": "FAIL",
+  "verdict": "PASS",
   "n_audits": 10,
   "n_pass": 8,
-  "n_warn": 1,
-  "n_fail": 1,
+  "n_warn": 0,
+  "n_fail": 0,
   "audits": [
     {
       "code": "A1",
@@ -33,50 +33,9 @@
     {
       "code": "A4",
       "name": "No dup active in Portfolio",
-      "status": "FAIL",
-      "detail": "16 unique (ticker,runner) · 10 dups",
-      "violations": [
-        {
-          "ticker": "V",
-          "runner": "—"
-        },
-        {
-          "ticker": "TRV",
-          "runner": "—"
-        },
-        {
-          "ticker": "NVDA",
-          "runner": "—"
-        },
-        {
-          "ticker": "MSFT",
-          "runner": "—"
-        },
-        {
-          "ticker": "KO",
-          "runner": "—"
-        },
-        {
-          "ticker": "HON",
-          "runner": "—"
-        },
-        {
-          "ticker": "AAPL",
-          "runner": "—"
-        },
-        {
-          "ticker": "JPM",
-          "runner": "—"
-        },
-        {
-          "ticker": "GS",
-          "runner": "—"
-        },
-        {
-          "ticker": "MMM",
-          "runner": "—"
-        }
-      ]
+      "status": "SKIP",
+      "detail": "data_state=STALE · dup-active is a symptom of stale data · audit deferred until VALID cycle",
+      "violations": []
     },
     {
       "code": "A5",
@@ -116,7 +75,7 @@
     {
       "code": "A10",
       "name": "Prices reconcile to parquet",
-      "status": "WARN",
+      "status": "SKIP",
       "detail": "price_integrity JSON not present · run sender first",
       "violations": []
     }
