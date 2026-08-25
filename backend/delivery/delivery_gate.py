@@ -128,10 +128,14 @@ def decide(root: Path, market: str) -> GateDecision:
         d.reasons.append(f"[GUARD:RED] {_guard.get('notes','')}")
 
     # 2026-08-25 · Price Integrity Guard · CEO directive.
-    # PI1/PI2/PI5 FAIL blocks delivery · PI3/PI4/PI6 are WARN only
-    # (they cannot silently degrade a run to invisible failure).
+    # OBSERVATION PERIOD · start with all PI checks NON-BLOCKING so we
+    # can measure real-world drift base rate over 2-3 days BEFORE
+    # promoting PI1/PI2/PI5 to BLOCK. Rationale: 0.5% tolerance may
+    # legitimately fire on corporate actions or intraday-vs-close price
+    # mismatches; blocking without a baseline could ship zero XLSX.
+    # After base-rate observation, uncomment the BLOCK set below.
     _pig = _load_json(ctx / f"price_integrity_{market}.json")
-    _PIG_BLOCKING = {"PI1", "PI2", "PI5"}
+    _PIG_BLOCKING: set = set()   # {"PI1", "PI2", "PI5"} · promote after calibration
     for chk in _pig.get("checks", []):
         if chk.get("status") == "FAIL" and chk.get("code") in _PIG_BLOCKING:
             d.blocking_codes.append(chk.get("code"))
