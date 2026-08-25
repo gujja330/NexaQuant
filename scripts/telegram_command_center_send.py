@@ -2896,6 +2896,27 @@ def main() -> int:
             if len(keep_rows) == 0:
                 print(f"[xlsx:{mkt_key}] SKIPPED · 0 rows for market (fresh start · awaiting next pipeline run)")
                 return True
+            # 2026-08-25 · CRITICAL FIX · re-compute wave_regression AFTER
+            # the safety-net has fixed the built XLSX. The earlier
+            # wave_regression run at line ~1240 fires BEFORE the XLSX is
+            # even written, so its output reflects yesterday's file state
+            # and the delivery_gate (below) was reading STALE FAIL codes
+            # for A17/A18/A22/A24 even after the safety-net cleaned them
+            # up. Root cause of the "same 4 blockers persist" pattern.
+            try:
+                from backend.research import wave_regression as _wreg_post
+                _wr_post = _wreg_post.compute(
+                    _ROOT, mkt_key.lower(), latest_date)
+                _wreg_post.emit(_ROOT, _wr_post)
+                _post_fails = [c for c in _wr_post.checks
+                                if c.get("status") == "FAIL"]
+                print(f"[post_build_regression:{mkt_key}] recomputed · "
+                      f"verdict={_wr_post.verdict} · "
+                      f"{len(_post_fails)} FAILs after safety-net")
+            except Exception as _e_pbr:
+                print(f"[post_build_regression:{mkt_key}] recompute skipped · "
+                      f"{type(_e_pbr).__name__}: {_e_pbr}")
+
             # 2026-08-25 · ZERO-TOLERANCE DELIVERY GATE ·
             # operator: "u shouldnt give me a chance to question right"
             # Consult all guards BEFORE the Telegram POST. If any hard-
