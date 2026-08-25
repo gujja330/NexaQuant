@@ -2159,6 +2159,95 @@ def main() -> int:
             except Exception as _e_sug:
                 print(f"[xlsx:{mkt_key}] SUGGESTED NEW skipped · "
                       f"{type(_e_sug).__name__}: {_e_sug}")
+
+            # ─────────────────────────────────────────────────────────
+            # 2026-08-25 · CEO Option A · MOMENTUM rows inside existing
+            # SUGGESTED NEW section · Runner="MOMENTUM" · purple styling ·
+            # only POTENTIAL_ENTRY + REBOUND_WATCH verdicts · rec-level
+            # tagged. Zero new column · zero new sheet · zero header change.
+            # Reads reports/context/timing_engine_{market}.json.
+            # NEVER auto-influences R1/R2 · these are OPERATOR-review rows.
+            # ─────────────────────────────────────────────────────────
+            _mom_written = 0
+            try:
+                import json as _jsm
+                _te_p = (_ROOT / "reports" / "context"
+                         / f"timing_engine_{mkt_key.lower()}.json")
+                if _te_p.exists():
+                    _te_data = _jsm.loads(_te_p.read_text(encoding="utf-8"))
+                    # Filter to actionable verdicts only · cap at 5
+                    _mom_picks = [s for s in (_te_data.get("scores") or [])
+                                  if s.get("decision") in
+                                     ("BUY", "WATCH", "REBOUND_WATCH")][:5]
+                    if _mom_picks:
+                        # Shift ACTIVE row indices down by len(_mom_picks)
+                        _row_indexes = list(
+                            range(_pos_header_row + 1 + _sug_written + len(_mom_picks),
+                                  _cursor + len(_mom_picks)))
+                        _cursor += len(_mom_picks)
+                        from datetime import datetime as _dt_mom
+                        _month_now = _dt_mom.now().strftime("%b %Y")
+                        # Slightly different purple hue to distinguish from SHADOW
+                        _mom_fill = _PF(start_color="D4B8F0",
+                                        end_color="D4B8F0", fill_type="solid")
+                        for _idx_m, _s in enumerate(_mom_picks):
+                            _tk_m = str(_s.get("ticker", "?")).upper()
+                            _dec_m = _s.get("decision", "")
+                            _rec_lvl = _s.get("recommendation_level", "")
+                            _rsi = _s.get("rsi_14")
+                            _r5 = _s.get("return_5d_pct")
+                            _live_m = _parquet_close(
+                                _tk_m, mkt_key, latest_date or "")
+                            _entry_m = round(_live_m, 2) if _live_m else None
+                            _stop_m = (round(_live_m * 0.95, 2)
+                                       if _live_m else None)
+                            _sec_m = _sector_for(_tk_m, mkt_key)
+                            _row_num = (_pos_header_row + 1 + _sug_written
+                                        + _idx_m)
+                            # Decision string blends the timing verdict + rec level
+                            _dec_str = f"🎯 MOMENTUM · {_dec_m}"
+                            _reason = _s.get("reason", "")[:50]
+                            # Urgency reflects timing state
+                            _urg = "REVIEW"
+                            _sug_vals = [None] * 34
+                            _sug_vals[0]  = _tk_m                    # Ticker
+                            _sug_vals[2]  = _dec_str                 # DECISION
+                            _sug_vals[4]  = _month_now               # Month
+                            _sug_vals[8]  = "MOMENTUM"               # Runner
+                            _sug_vals[10] = _sec_m                   # Sector
+                            _sug_vals[12] = ""                       # Entry Date (pending)
+                            _sug_vals[13] = ""                       # Exit Date
+                            _sug_vals[14] = 0                        # Days
+                            _sug_vals[15] = _urg                     # Urgency
+                            _sug_vals[20] = _s.get("investability_band","UNKNOWN")
+                            _sug_vals[21] = _rec_lvl                 # Investability shows rec level
+                            _sug_vals[22] = _entry_m                 # Entry
+                            _sug_vals[23] = _entry_m                 # Current
+                            _sug_vals[25] = 0.0                      # P&L %
+                            _sug_vals[26] = _stop_m                  # Stop Loss
+                            for _cc, _vv in enumerate(_sug_vals, start=1):
+                                _sc = portfolio_ws.cell(_row_num, _cc, _vv)
+                                _sc.fill = _mom_fill
+                                _sc.font = _Font(bold=(_cc == 3), size=10,
+                                                 color="4A1D6E")
+                                _sc.alignment = _Align(
+                                    horizontal="left" if _cc in (1,3,5,9,11,13,14,16,21)
+                                    else "right",
+                                    vertical="center", wrap_text=True)
+                                if _cc == 15: _sc.number_format = "0"
+                                elif _cc == 22 and isinstance(_rec_lvl, (int,float)):
+                                    _sc.number_format = "0.0"
+                                elif _cc in (23, 24, 27):
+                                    _sc.number_format = "#,##0.00"
+                                elif _cc == 26:
+                                    _sc.number_format = "+0.00%;-0.00%;0.00%"
+                        _mom_written = len(_mom_picks)
+                        print(f"[xlsx:{mkt_key}] MOMENTUM rows · "
+                              f"{_mom_written} timing-engine picks rendered "
+                              f"(Runner=MOMENTUM · purple)")
+            except Exception as _e_mom:
+                print(f"[xlsx:{mkt_key}] MOMENTUM rows skipped · "
+                      f"{type(_e_mom).__name__}: {_e_mom}")
             for i, (dt, r) in zip(_row_indexes, positions_sorted):
                 # (loop body below is the original write logic)
                 # First iteration variable unpacking · pass through
