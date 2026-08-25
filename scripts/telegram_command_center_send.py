@@ -1641,10 +1641,12 @@ def main() -> int:
                 ("action",    "🔴 EXIT · ACTION REQUIRED TODAY", "FCE4D6", "9C0006"),
                 # "closed" section retired · see Exit History sheet
             ]
-            # 2026-08-25 v2 · A17 fix v2 · earlier fix used the wrong column.
-            # "Health" is a 0-100 score, NOT the investability verdict.
-            # Load investability_{market}.json map once + look up per ticker
-            # to get the real verdict (🏆 QUALITY / ✓ OK / ⚠ MARGINAL / ✗ AVOID).
+            # 2026-08-25 v3 · A17 BULLETPROOF · earlier fixes relied on the
+            # 42-ticker investability sample OR raw "Health" column. Both
+            # miss tickers not in the sample (BATAINDIA/TATAPOWER).
+            # Now use PRIORITY_MATRIX directly: compute the row's bucket
+            # by mirroring the classifier logic, then check if bucket's
+            # action is EXIT-family. Deterministic · covers every row.
             _EXIT_ACTIONS = {"EXIT", "SKIP", "CLOSED", "IGNORE"}
             _iv_verdict_map: dict = {}
             try:
@@ -1656,6 +1658,49 @@ def main() -> int:
                         _iv_verdict_map[_r_iv["ticker"].upper()] = _r_iv.get("verdict", "")
             except Exception:
                 pass
+            # Compute live P&L for a row (used by bucket classifier)
+            def _row_live_pnl_pct(_r):
+                try:
+                    _e_col = h.index("Entry Price") if "Entry Price" in h else None
+                    _c_col = h.index("Current Price") if "Current Price" in h else None
+                    if _e_col is None or _c_col is None: return None
+                    _e = _r[_e_col].value; _c_v = _r[_c_col].value
+                    if isinstance(_e, (int,float)) and isinstance(_c_v, (int,float)) and _e > 0:
+                        return (_c_v - _e) / _e * 100
+                except Exception:
+                    pass
+                return None
+
+            def _row_classify_bucket(_r):
+                """Mirror _classify_priority logic to precompute bucket."""
+                _st = str(_r[c_st-1].value or "").upper()
+                _al = str(_r[c_alerts-1].value if c_alerts else "").upper()
+                _tk = str(_r[c_tk-1].value or "").upper() \
+                            .replace(".NS","").replace(".BO","")
+                _iv = _iv_verdict_map.get(_tk, "")
+                _q_high = _iv in ("🏆 QUALITY", "✓ OK")
+                _q_low = _iv == "✗ AVOID"
+                _pnl = _row_live_pnl_pct(_r)
+                _pnl_neg = isinstance(_pnl, (int,float)) and _pnl < 0
+                # Binding-risk veto → R
+                if any(sig in _al for sig in BINDING_RISK_SIGNALS): return "R"
+                # EXIT status routes
+                if _st == "EXIT": return "H" if _q_high else "I"
+                # STRUCTURAL FAILURE · Status=HOLD but neg P&L → G-family
+                # (this catches BATAINDIA/TATAPOWER even when investability
+                # sample doesn't have them · negative P&L on a held position
+                # with no quality boost is bucket G structural failure)
+                if _st in ("HOLD",) and _pnl_neg and not _q_high:
+                    return "G"
+                # Existing classifier rules for other cases
+                if _q_low and _pnl_neg: return "G"
+                if _q_low:              return "F"
+                if _st == "STRONG BUY" and _iv == "🏆 QUALITY": return "A"
+                if _st in ("BUY","STRONG BUY") and _q_high:    return "B"
+                if _st == "HOLD" and _q_high and _pnl_neg:     return "C"
+                if _st == "HOLD" and _q_high:                  return "D"
+                return "E"
+
             def _row_section(_item):
                 _dt, _r = _item
                 _st = str(_r[c_st-1].value or "").upper()
@@ -1666,9 +1711,11 @@ def main() -> int:
                 if any(sig in _al for sig in BINDING_RISK_SIGNALS): return "action"
                 # 2. Real Status=EXIT → closed bin (Exit History sheet)
                 if _st == "EXIT": return "closed"
-                # 3. Bucket G/F · Structural Failure / Quality Fail · Status=HOLD
-                #    but Decision resolves to EXIT. Detect via investability
-                #    verdict lookup (bucket-classifier requires ✗ AVOID).
+                # 3. Compute bucket · route based on PRIORITY_MATRIX action
+                _bkt = _row_classify_bucket(_r)
+                _bkt_action = (PRIORITY_MATRIX.get(_bkt) or ("","","","",""))[2].upper()
+                if _bkt in ("R","G","F"): return "action"
+                if _bkt in ("H","I","J"): return "closed"
                 _tk_sec = str(_r[c_tk-1].value or "").upper() \
                                 .replace(".NS","").replace(".BO","")
                 _iv = _iv_verdict_map.get(_tk_sec, "")
@@ -1811,21 +1858,22 @@ def main() -> int:
                       f"{_canon_before} → {len(positions_sorted)} rows · "
                       f"{_n_split_resolved} R1/R2 splits resolved")
 
-            # 2026-08-25 · CLOSED-DEDUP GUARD · operator: "iex already in
-            # exit list · in portfolio why IEX again". Any ticker whose
-            # Registry status is CLOSED must NOT appear in the live
-            # Portfolio (it lives ONLY in Exit History sheet). This
-            # catches the case where the recommender re-evaluates a
-            # closed ticker and produces a stale STOP_LOSS_HIT alert.
+            # 2026-08-25 v3 · RUNNER-AWARE dedup (bulletproof) · IEX has
+            # R1 ACTIVE + R2 CLOSED · KOTAKBANK has R1 ACTIVE + R2 CLOSED.
+            # Previous filter dropped these entirely (wrong) since the
+            # ticker had a CLOSED entry anywhere. Now check (ticker,runner)
+            # pair · a ticker only leaves the Portfolio when its OWN runner
+            # is CLOSED.
             try:
                 from backend.research import opportunity_registry as _oreg_dedup
                 _reg_dedup = _oreg_dedup.load_all(_ROOT)
-                _closed_tks: set = set()
+                _closed_pairs: set = set()      # {(ticker, runner)}
                 for _opps in _reg_dedup.values():
                     for _o in _opps:
                         if (_o.market.lower() == mkt_key.lower()
                             and _o.status == "CLOSED"):
-                            _closed_tks.add(_o.ticker.upper())
+                            _closed_pairs.add((_o.ticker.upper(),
+                                                            _o.runner.upper().replace("_NEW","")))
                 _dedup_before = len(positions_sorted)
                 _kept_dd = []
                 _n_dropped_closed = 0
@@ -1834,16 +1882,17 @@ def main() -> int:
                     _dt_dd, _r_dd = _item
                     _tk_dd = str(_r_dd[c_tk-1].value or "").upper() \
                                     .replace(".NS", "").replace(".BO", "")
-                    if _tk_dd in _closed_tks:
+                    _rn_dd = str(_r_dd[3].value or "").upper().replace("_NEW", "")
+                    if (_tk_dd, _rn_dd) in _closed_pairs:
                         _n_dropped_closed += 1
-                        _dropped_tickers.append(_tk_dd)
+                        _dropped_tickers.append(f"{_tk_dd}({_rn_dd})")
                         continue
                     _kept_dd.append(_item)
                 positions_sorted = _kept_dd
                 if _n_dropped_closed > 0:
-                    print(f"[xlsx:{mkt_key}] Registry-CLOSED dedup · "
-                              f"dropped {_n_dropped_closed} tickers from Portfolio "
-                              f"(already in Exit History): {', '.join(_dropped_tickers[:5])}")
+                    print(f"[xlsx:{mkt_key}] Registry-CLOSED runner-aware dedup · "
+                              f"dropped {_n_dropped_closed} rows: "
+                              f"{', '.join(_dropped_tickers[:5])}")
             except Exception as _e:
                 print(f"[xlsx:{mkt_key}] Registry-dedup failed · {type(_e).__name__}: {_e}")
 
@@ -2509,7 +2558,9 @@ def main() -> int:
                 for _er in _exit_rows:
                     _dt_key = str(_er[0])[:7]     # YYYY-MM
                     _pnl_v = _er[9]               # P&L % index in tuple
-                    if isinstance(_pnl_v, (int, float)):
+                    # 2026-08-25 · exclude 0.0% same-day rotation artifacts ·
+                    # they inflate the exit count without being real trades.
+                    if isinstance(_pnl_v, (int, float)) and abs(_pnl_v) > 0.01:
                         _by_month[_dt_key].append(_pnl_v)
                 # Header
                 _summary_row = _rowptr + 2

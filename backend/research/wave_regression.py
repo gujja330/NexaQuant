@@ -426,14 +426,38 @@ def compute(root: Path, market: str, asof: str) -> WaveRegressionReport:
                     if _v:
                         _exit_tks.add(str(_v).upper().strip())
             _overlap = _portfolio_tks & _exit_tks
+            # 2026-08-25 · A22 runner-aware · a ticker legitimately appears
+            # in BOTH sheets when R1 is ACTIVE (Portfolio) and R2 is CLOSED
+            # (Exit History). Only flag when there is NO active runner for
+            # the ticker (i.e., every Registry entry is CLOSED yet the
+            # ticker is somehow still in Portfolio).
+            _real_dupes = set()
+            try:
+                from backend.research import opportunity_registry as _oreg_a22
+                _reg_a22 = _oreg_a22.load_all(root)
+                for _tk_ov in _overlap:
+                    _has_active = False
+                    for _opps in _reg_a22.values():
+                        for _o in _opps:
+                            if (_o.market.lower() == market
+                                and _o.ticker.upper() == _tk_ov
+                                and _o.is_active()):
+                                _has_active = True; break
+                        if _has_active: break
+                    if not _has_active:
+                        _real_dupes.add(_tk_ov)
+            except Exception:
+                _real_dupes = _overlap  # fail-safe: use raw overlap
             wb.close()
-            if _overlap:
+            if _real_dupes:
                 rep.add("A22", "No ticker in both Portfolio + Exit History",
                             "FAIL",
-                            f"{len(_overlap)} dupes: {', '.join(sorted(_overlap)[:5])}")
+                            f"{len(_real_dupes)} dupes: {', '.join(sorted(_real_dupes)[:5])}")
             else:
+                _multi = len(_overlap - _real_dupes)
                 rep.add("A22", "No ticker in both Portfolio + Exit History",
-                            "PASS", "no dedup violations")
+                            "PASS",
+                            f"no true dupes · {_multi} multi-runner tickers accepted")
     except Exception as e:
         rep.add("A22", "No ticker in both Portfolio + Exit History", "WARN",
                     f"could not verify · {type(e).__name__}: {e}")
@@ -473,24 +497,43 @@ def compute(root: Path, market: str, asof: str) -> WaveRegressionReport:
                     "WARN", f"could not verify · {type(e).__name__}: {e}")
 
     # A24 · Portfolio ACTION-section tickers not in Registry-CLOSED
+    # 2026-08-25 · RUNNER-AWARE (was ticker-only · false-flagged multi-
+    # runner tickers like IEX/KOTAKBANK where R1 is ACTIVE + R2 is CLOSED
+    # · that's legit, not a lifecycle bug).
     try:
         from backend.research import opportunity_registry as _oreg2
         _reg2 = _oreg2.load_all(root)
-        _closed2 = set()
+        _closed_pairs2 = set()   # {(ticker, runner)}
+        _active_pairs2 = set()
         for _opps in _reg2.values():
             for _o in _opps:
-                if _o.market.lower() == market and _o.status == "CLOSED":
-                    _closed2.add(_o.ticker.upper())
-        # A22 already computed _portfolio_tks · if any are closed, FAIL
-        _bad = _portfolio_tks & _closed2 if '_portfolio_tks' in dir() else set()
-        if _bad:
-            rep.add("A24", "Portfolio contains no Registry-CLOSED tickers",
-                        "FAIL", f"{len(_bad)} closed in Portfolio: {', '.join(sorted(_bad)[:5])}")
+                if _o.market.lower() != market: continue
+                _pair = (_o.ticker.upper(),
+                              _o.runner.upper().replace("_NEW",""))
+                if _o.status == "CLOSED":
+                    _closed_pairs2.add(_pair)
+                elif _o.is_active():
+                    _active_pairs2.add(_pair)
+        # A ticker in Portfolio is BAD only if its SAME-runner Registry
+        # entry is CLOSED (which we can't easily know from the XLSX
+        # ticker column alone · so use the stricter rule: fail only if
+        # a ticker has ONLY CLOSED entries with NO ACTIVE entries).
+        _bad_pairs = set()
+        for _p in _closed_pairs2:
+            _tk_p = _p[0]
+            _has_active = any(_ap[0] == _tk_p for _ap in _active_pairs2)
+            if not _has_active and _tk_p in (_portfolio_tks if '_portfolio_tks' in dir() else set()):
+                _bad_pairs.add(_p)
+        if _bad_pairs:
+            _bad_labels = sorted(f"{p[0]}({p[1]})" for p in _bad_pairs)
+            rep.add("A24", "Portfolio contains no fully-CLOSED tickers",
+                        "FAIL",
+                        f"{len(_bad_pairs)} closed in Portfolio: {', '.join(_bad_labels[:5])}")
         else:
-            rep.add("A24", "Portfolio contains no Registry-CLOSED tickers",
-                        "PASS", "lifecycle sync clean")
+            rep.add("A24", "Portfolio contains no fully-CLOSED tickers",
+                        "PASS", "runner-aware lifecycle sync clean")
     except Exception as e:
-        rep.add("A24", "Portfolio contains no Registry-CLOSED tickers",
+        rep.add("A24", "Portfolio contains no fully-CLOSED tickers",
                     "WARN", f"could not verify · {type(e).__name__}: {e}")
 
     return rep
