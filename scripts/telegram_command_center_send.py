@@ -403,28 +403,16 @@ def main() -> int:
                 return 2
         except Exception as e:
             print(f"[guard7:health] check failed · {type(e).__name__}: {e} · proceeding")
-        # Guard 8 · Price Integrity · verifies data pull is CORRECT before send
-        # (operator directive 2026-08-06 · "pipeline should be very strong in
-        # pulling right data with guard")
+        # Guard 8 · Price Integrity · superseded by Sprint M · price_integrity
+        # runs INSIDE _split_and_send at line ~2900+ using the modern
+        # compute()/emit()/summary_line() API. The old check_all import
+        # signature no longer exists · this block is now a no-op that just
+        # notes the guard runs later in the flow.
         try:
-            from backend.context.price_integrity_guard import (
-                check_all as _pig, emit as _pig_emit, render_summary as _pig_render)
-            # 2026-08-12 CEO CI fix · scope guard to the market we're actually
-            # sending. India CI has no USA parquets (they're .gitignored and
-            # only refreshed by aegis-usa.yml) so evaluating USA on India CI
-            # produced 500+ fake CRITICALS and blocked India send for 2 days.
-            pig = _pig(_ROOT, asof, markets=tuple(markets))
-            _pig_emit(_ROOT, pig)
-            print(f"[guard8:price] {_pig_render(pig)}")
-            if pig.get("verdict") == "RED" \
-               and os.environ.get("PRICE_GUARD_OVERRIDE") != "1":
-                print(f"[guard8:price] BLOCKING send · {pig['n_critical']} CRITICAL "
-                      f"price mismatches. Override with PRICE_GUARD_OVERRIDE=1")
-                for r in pig.get("critical_issues", [])[:5]:
-                    print(f"    ✗ {r['market']} {r['ticker']} · {r['check']}: {r['detail']}")
-                return 2
-        except Exception as e:
-            print(f"[guard8:price] check failed · {type(e).__name__}: {e} · proceeding")
+            print(f"[guard8:price] price_integrity now runs INSIDE _split_and_send · "
+                  f"see reports/context/price_integrity_{{market}}.json")
+        except Exception:
+            pass
         # 2026-08-08 · Guard 9 · Pipeline heartbeat (operator directive after
         # silent Aug-3 pipeline miss: "pages you if a trading day passes with
         # no pipeline execution"). Emit gap alert prepended to caption so
@@ -969,6 +957,13 @@ def main() -> int:
                 if isinstance(_row_entry, (int, float)) and _row_entry > 0 \
                         and isinstance(_row_current, (int, float)):
                     _pnl_pct_hist = (_row_current - _row_entry) / _row_entry * 100
+                # 2026-08-25 · HOTFIX · entry_dt was defined AT LINE 1036 but
+                # USED at line 1003 (_hist_same_day check) causing
+                # UnboundLocalError on USA sender · crashing full 47-min run.
+                # Move assignment above first use.
+                entry_dt = (str(row[c_recommended-1].value or "")[:10]
+                            if c_recommended else "")
+                row_dt = str(row[c_date-1].value or "")[:10]
 
                 def _hist_classify(st, iv, pnl, is_same_day=False, alerts=""):
                     q_high = iv in ("🏆 QUALITY", "✓ OK")
@@ -1032,8 +1027,8 @@ def main() -> int:
                 h_exec_win = _execution_window(h_act)
 
                 ws2.cell(r_idx, len(new_h) - 11, _cap_size(tk, mkt_key))
-                row_dt = str(row[c_date-1].value or "")[:10]
-                entry_dt = str(row[c_recommended-1].value or "")[:10] if c_recommended else ""
+                # entry_dt and row_dt already defined earlier in this iteration
+                # (moved up as part of the UnboundLocalError hotfix)
                 # 2026-08-15 · Section 12 · Opportunity Status vocabulary
                 # NEW      · row_dt == entry_dt (genuine first appearance)
                 # EXISTING · row_dt > entry_dt (position rolled forward)
