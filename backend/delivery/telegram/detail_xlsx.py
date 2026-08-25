@@ -746,8 +746,12 @@ def _rec_to_row(rec: Mapping, market: str, root: Path,
                             if first_seen else 0
     prev_close_val = _prev_close(root, ticker, market)
     # Auto-compute Current Perf % from immutable Entry (Issue #8)
+    # 2026-08-25 · A9 fix (Sprint M Phase A) · Current Perf % is
+    # ACTIVE-P&L discipline · ONLY populated for OPEN positions ·
+    # blank for EXIT status. Prevents A9 audit FAIL "Active P&L
+    # populated on EXIT row (should be blank)".
     if isinstance(entry_price, (int, float)) and isinstance(current_price, (int, float)) \
-       and entry_price > 0:
+       and entry_price > 0 and str(status).upper() != "EXIT":
         cur_ret = round((current_price - entry_price) / entry_price * 100, 2)
 
     # 2026-08-07 · operator: strip _NEW suffix · Run_Type only R1 or R2

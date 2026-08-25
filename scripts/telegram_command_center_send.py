@@ -3158,6 +3158,60 @@ def main() -> int:
                 print(f"[lifecycle_stabilization:{mkt_key}] skipped · "
                       f"{type(_e_ls).__name__}: {_e_ls}")
 
+            # ─────────────────────────────────────────────────────────
+            # 2026-08-25 · SPRINT M · PHASE B · Opportunity Engine
+            # ─────────────────────────────────────────────────────────
+            try:
+                from backend.research import opportunity_engine as _oe
+                _oe_rep = _oe.compute(_ROOT, mkt_key.lower(), latest_date)
+                _oe.emit(_ROOT, _oe_rep)
+                print(f"[opportunity_engine:{mkt_key}] "
+                      f"{_oe.summary_line(_oe_rep)}")
+            except Exception as _e_oe:
+                print(f"[opportunity_engine:{mkt_key}] skipped · "
+                      f"{type(_e_oe).__name__}: {_e_oe}")
+
+            # ─────────────────────────────────────────────────────────
+            # 2026-08-25 · SPRINT M · PHASE C · Attribution Matrix
+            # (multi-dim rollups · winner-vs-loser dimensions · false pos)
+            # ─────────────────────────────────────────────────────────
+            try:
+                from backend.research import attribution_matrix as _am
+                _am_rep = _am.compute(_ROOT, mkt_key.lower())
+                _am.emit(_ROOT, _am_rep)
+                print(f"[attribution_matrix:{mkt_key}] "
+                      f"{_am.summary_line(_am_rep)}")
+                # Phase D · auto-file tickets from findings (N-gated)
+                try:
+                    from backend.research import research_ticket as _rt
+                    _filed = _rt.auto_file_from_attribution(
+                        _ROOT, mkt_key.lower(), _am_rep)
+                    if _filed:
+                        print(f"[research_ticket:{mkt_key}] filed "
+                              f"{len(_filed)} tickets · {_filed[:3]}")
+                except Exception as _e_rt:
+                    print(f"[research_ticket:{mkt_key}] skipped · "
+                          f"{type(_e_rt).__name__}: {_e_rt}")
+            except Exception as _e_am:
+                print(f"[attribution_matrix:{mkt_key}] skipped · "
+                      f"{type(_e_am).__name__}: {_e_am}")
+
+            # ─────────────────────────────────────────────────────────
+            # 2026-08-25 · SPRINT M · PHASE E · Emerging Leader (Small-Cap)
+            # Separate research pipeline · never contaminates R1/R2.
+            # ─────────────────────────────────────────────────────────
+            try:
+                from backend.research import emerging_leader_engine as _el
+                # Only run India for now (universe cap coverage)
+                if mkt_key.lower() == "india":
+                    _el_rep = _el.compute(_ROOT, mkt_key.lower())
+                    _el.emit(_ROOT, _el_rep)
+                    print(f"[emerging_leader:{mkt_key}] "
+                          f"{_el.summary_line(_el_rep)}")
+            except Exception as _e_el:
+                print(f"[emerging_leader:{mkt_key}] skipped · "
+                      f"{type(_e_el).__name__}: {_e_el}")
+
             # 2026-08-25 · PRICE INTEGRITY GUARD · CEO directive:
             # "check if ur entry price what u r offering and exit price
             # are inlined in data and date and on that day with history
