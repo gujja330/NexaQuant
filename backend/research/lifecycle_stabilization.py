@@ -38,9 +38,24 @@ from typing import Optional
 
 SCHEMA_FINGERPRINT = "aegis.lifecycle_stabilization.v1.20260825"
 
-# LOCK 2 · these are the ONLY valid lifecycle states
-VALID_STATES = {"NEW", "ACTIVE", "ACTIVE+", "EXIT", "CLOSED",
-                "ROTATED_SAMEDAY", "HOLD"}    # HOLD is legacy · treated as ACTIVE
+# LOCK 2 · CEO tightened 2026-08-25 (2nd pass · "exit or closed use only
+# one word plz, dont confuse") · terminal state is ONE word: EXIT.
+# Canonical lifecycle is exactly 4 states:  NEW / ACTIVE / ACTIVE+ / EXIT
+# Registry may persist "CLOSED" for historical reasons · canonicalize()
+# maps it to EXIT so display + audits only ever show the 4.
+VALID_STATES = {"NEW", "ACTIVE", "ACTIVE+", "EXIT"}
+LEGACY_STATES = {"CLOSED", "HOLD", "ROTATED_SAMEDAY"}
+ALL_TOLERATED_STATES = VALID_STATES | LEGACY_STATES
+
+
+def canonicalize_state(state: str) -> str:
+    """Map any tolerated state to one of the 4 canonical CEO-locked states.
+    CLOSED → EXIT · HOLD → ACTIVE · ROTATED_SAMEDAY → EXIT."""
+    s = str(state or "").upper().strip()
+    if s in VALID_STATES: return s
+    if s in ("CLOSED", "ROTATED_SAMEDAY"): return "EXIT"
+    if s == "HOLD": return "ACTIVE"
+    return s   # unknown · leave as-is so audits catch it
 
 # LOCK 2 · legitimate transitions (both directions allowed for RE-ENTRY)
 # but re-entry MUST get a NEW Position ID (audit A5)

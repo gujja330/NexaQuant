@@ -3230,6 +3230,33 @@ def main() -> int:
                       f"{type(_e_mo).__name__}: {_e_mo}")
 
             # ─────────────────────────────────────────────────────────
+            # 2026-08-25 · SPRINT M · Part 22 · Consolidated Alpha Report
+            # (25 CEO metrics + top-10 tickets · JSON + markdown)
+            # ─────────────────────────────────────────────────────────
+            try:
+                from backend.research import aegis_alpha_report as _ar
+                _ar_rep = _ar.compute(_ROOT, mkt_key.lower())
+                _ar.emit(_ROOT, _ar_rep)
+                _ar.emit_markdown(_ROOT, _ar_rep)
+                print(f"[alpha_report:{mkt_key}] {_ar.summary_line(_ar_rep)}")
+            except Exception as _e_ar:
+                print(f"[alpha_report:{mkt_key}] skipped · "
+                      f"{type(_e_ar).__name__}: {_e_ar}")
+
+            # ─────────────────────────────────────────────────────────
+            # 2026-08-25 · SPRINT M · Part 19 · CEO Daily Summary
+            # (5-section digest · markdown for daily glance)
+            # ─────────────────────────────────────────────────────────
+            try:
+                from backend.delivery import ceo_daily_summary as _cd
+                _cd_rep = _cd.compute(_ROOT, mkt_key.lower())
+                _cd.emit(_ROOT, _cd_rep)
+                print(f"[ceo_daily:{mkt_key}] {_cd.summary_line(_cd_rep)}")
+            except Exception as _e_cd:
+                print(f"[ceo_daily:{mkt_key}] skipped · "
+                      f"{type(_e_cd).__name__}: {_e_cd}")
+
+            # ─────────────────────────────────────────────────────────
             # 2026-08-25 · SPRINT M · PHASE E · Emerging Leader (Small-Cap)
             # Separate research pipeline · never contaminates R1/R2.
             # ─────────────────────────────────────────────────────────

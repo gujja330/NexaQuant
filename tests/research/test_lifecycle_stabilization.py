@@ -205,12 +205,13 @@ class TestCompute:
 class TestValidStates:
 
     def test_locked_states_present(self):
-        # LOCK 2 · these are the ONLY valid states
+        # LOCK 2 · CEO tightened 2026-08-25 v2 · canonical = 4 states.
+        # EXIT is the ONE terminal word · CLOSED is LEGACY only.
         assert "NEW" in VALID_STATES
         assert "ACTIVE" in VALID_STATES
         assert "ACTIVE+" in VALID_STATES
         assert "EXIT" in VALID_STATES
-        assert "CLOSED" in VALID_STATES
+        assert "CLOSED" not in VALID_STATES  # canonicalized to EXIT
 
     def test_forbidden_states_not_present(self):
         # LOCK 2 · these must NOT be treated as separate lifecycle states
