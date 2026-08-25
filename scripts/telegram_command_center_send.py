@@ -2396,7 +2396,33 @@ def main() -> int:
             if len(keep_rows) == 0:
                 print(f"[xlsx:{mkt_key}] SKIPPED · 0 rows for market (fresh start · awaiting next pipeline run)")
                 return True
-            # Send
+            # 2026-08-25 · ZERO-TOLERANCE DELIVERY GATE ·
+            # operator: "u shouldnt give me a chance to question right"
+            # Consult all guards BEFORE the Telegram POST. If any hard-
+            # blocking check FAILs, send a plain-text alert INSTEAD of
+            # the defective XLSX. Operator never sees a broken report.
+            try:
+                from backend.delivery.delivery_gate import (
+                    decide as _gate_decide, emit as _gate_emit,
+                    blocked_summary as _gate_blocked,
+                )
+                _gd = _gate_decide(_ROOT, mkt_key.lower())
+                _gate_emit(_ROOT, mkt_key.lower(), _gd)
+                if _gd.verdict == "BLOCK":
+                    print(f"[gate:{mkt_key}] 🚫 BLOCKED · {len(_gd.blocking_codes)} check(s) fail")
+                    for _r in _gd.reasons[:5]:
+                        print(f"  · {_r[:140]}")
+                    # Send text alert instead of XLSX · operator knows why
+                    _alert = _gate_blocked(_gd)
+                    _ok_alert, _msg_alert = _send_markdown(token, chat_id, _alert)
+                    print(f"[gate:{mkt_key}] alert sent={_ok_alert}")
+                    return False    # non-zero exit · CI logs turn red
+                if _gd.override_used:
+                    print(f"[gate:{mkt_key}] ⚠️ OVERRIDE ACTIVE · shipping despite {len(_gd.blocking_codes)} fails")
+            except Exception as _e:
+                print(f"[gate:{mkt_key}] gate check errored · {type(_e).__name__}: {_e} · shipping anyway (fail-open)")
+
+            # Send · gate passed
             # 2026-08-10 · operator: "simple note with date · why note so big"
             # Suppress heartbeat banner + Monday operator guide from Telegram
             # caption (kept in stdout logs · zero UI clutter for operator)
