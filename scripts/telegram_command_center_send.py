@@ -1536,21 +1536,30 @@ def main() -> int:
             # Strong-Buy vs Buy differentiation under vocab v5.0:
             #   both collapse to 🟢 ACTIVE+ in Decision · intensity shows in
             #   Urgency column (HIGH = strong · MEDIUM = normal · LOW = weak).
+            # 2026-08-25 · Bloomberg-style redesign · operator asks:
+            # "add sector, entry date, exit date, thats needed" +
+            # "mm-yyyy too for filtering" + "add confidence plz in a column" +
+            # "date sorting needed latest should come top" +
+            # "dont remove color coding" (row colors preserved via tier fill).
+            # Visible cols: Ticker · Decision · Month · Runner · Sector ·
+            #   Entry Date · Exit Date · Days · Urgency · Entry · Current ·
+            #   P&L % · Investability (as Confidence) · Stop Loss
             _HIDDEN_COL_NAMES = {
+                "🎯 ACTION",              # duplicate of Decision + supporting cols
                 "Lifecycle",              # redundant with Decision under v5.0
                 "Price Trigger",
                 "Next Review",
                 "Execution Window",
                 "R1/R2 Consensus",        # Runner cell shows the split tag
                 "Cap",                    # Sector tells the story
-                "Entry Date",             # Days column already conveys age
-                "Exit Date",
-                "Reason",                 # hidden · Urgency conveys severity
+                # Entry Date · UN-HIDDEN per operator
+                # Exit Date · UN-HIDDEN per operator
+                "Reason",                 # covered by Urgency
                 "Action",
                 "Review",
                 "Status",                 # raw feed · not client-facing
-                "Inv Quality",
-                "Investability",
+                # Inv Quality · UN-HIDDEN as "Verdict" per operator (2026-08-25)
+                # Investability · UN-HIDDEN as "Confidence" per operator
                 "Exit Price",
                 "Target 1",
                 "Target 2",
@@ -1621,10 +1630,21 @@ def main() -> int:
                 else:
                     tier = "hold"
                 tier_rank = int((DECISION_TIERS.get(tier) or {}).get("tier_rank") or 99)
-                # Within tier: best P&L first (descending)
-                return (tier_rank, -pnl)
+                # 2026-08-25 · operator: "date sorting needed latest should
+                # come top". Sort by tier_rank (section grouping) then by
+                # row date DESCENDING (latest first within section) ·
+                # tiebreak on best P&L.
+                _dt_key = str(dt)[:10] if dt else "0"
+                return (tier_rank, _dt_key * -1 if False else "", -pnl)
 
-            positions_sorted = sorted(positions, key=_sort_key)
+            positions_sorted = sorted(
+                positions,
+                key=lambda it: (
+                    _sort_key(it)[0],       # tier_rank
+                    -1 * int(str(it[0])[:10].replace("-", "")) if it[0] else 0,  # date DESC
+                    _sort_key(it)[2],       # -pnl tiebreak (best P&L first)
+                ),
+            )
 
             # 2026-08-18 · Wave 3 · Section 17 · INDIGO filter.
             # Drop rows whose (mkt, runner, ticker) has a REJECTED opportunity
@@ -2445,10 +2465,10 @@ def main() -> int:
             _exit_hdr = ["Stock", "Sector", "Month", "Runner",
                             "Entry Date", "Exit Date",
                             "Days Held", "Entry Price", "Exit Price",
-                            "P&L %", "Exit Reason"]
-            _exit_widths = [14, 22, 16, 8, 12, 12, 10, 14, 14, 12, 46]
-            # Title row (widened for Month column)
-            exit_ws.merge_cells("A1:K1")
+                            "P&L %", "Confidence", "Verdict", "Exit Reason"]
+            _exit_widths = [14, 22, 12, 8, 12, 12, 10, 14, 14, 12, 12, 14, 46]
+            # Title row (widened for Confidence + Verdict cols)
+            exit_ws.merge_cells("A1:M1")
             exit_ws["A1"] = f"AEGIS {mkt_key} · EXIT HISTORY · last 90 days as of {latest_date or 'today'}"
             exit_ws["A1"].font = _Font(bold=True, size=14, color="FFFFFF")
             exit_ws["A1"].fill = _PF(start_color="1F4E78", end_color="1F4E78", fill_type="solid")
@@ -2563,9 +2583,31 @@ def main() -> int:
                                                                 "%Y-%m").strftime("%b %Y")
                 except Exception:
                     _month_e = str(_exit_dt_e or _dt_key)[:7]
+                # 2026-08-25 · add Confidence + Verdict per operator
+                # "add same for all portfolio / exit stocks for us forward
+                # validation". Lookup from investability_{market}.json.
+                _iv_lookup = _iv_verdict_map if '_iv_verdict_map' in dir() else {}
+                _iv_data_local = {}
+                try:
+                    import json as _js4
+                    _iv_p_l = _ROOT / "reports" / f"investability_{mkt_key.lower()}.json"
+                    if _iv_p_l.exists():
+                        _iv_full = _js4.loads(_iv_p_l.read_text(encoding="utf-8"))
+                        for _r_iv in (_iv_full.get("results") or []):
+                            _iv_data_local[_r_iv["ticker"].upper()] = {
+                                "score":   _r_iv.get("score"),
+                                "verdict": _r_iv.get("verdict"),
+                            }
+                except Exception:
+                    pass
+                _iv_row = _iv_data_local.get(_tk_e.upper(), {})
+                _conf_v = _iv_row.get("score")
+                _vrd_v  = _iv_row.get("verdict", "")
                 _vals = [_tk_e, _sec_e, _month_e, _rn_e, _entry_dt_e, _exit_dt_e,
                              _days_held, _entry_p, _exit_p,
                              (_pnl_e / 100.0 if isinstance(_pnl_e, (int, float)) else ""),
+                             _conf_v if _conf_v is not None else "",
+                             _vrd_v,
                              str(_reason or "")]
                 for _c, _v in enumerate(_vals, start=1):
                     _cell = exit_ws.cell(_rowptr, _c, _v)
@@ -2589,7 +2631,7 @@ def main() -> int:
                         exit_ws.cell(_rowptr, _c).fill = _row_fill_e
                 _rowptr += 1
             if not _exit_rows:
-                exit_ws.merge_cells(f"A4:K4")
+                exit_ws.merge_cells(f"A4:M4")
                 _empty = exit_ws.cell(4, 1, "no exits in the last 90 days")
                 _empty.alignment = _Align(horizontal="center")
                 _empty.font = _Font(size=10, italic=True, color="7F7F7F")
