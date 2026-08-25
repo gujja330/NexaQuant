@@ -1,0 +1,124 @@
+{
+  "market": "usa",
+  "asof": "2026-08-25",
+  "generated_utc": "2026-08-25T12:34:49+00:00",
+  "engine": "aegis.lifecycle_stabilization.v1.20260825",
+  "verdict": "FAIL",
+  "n_audits": 10,
+  "n_pass": 8,
+  "n_warn": 1,
+  "n_fail": 1,
+  "audits": [
+    {
+      "code": "A1",
+      "name": "Position ID immutable",
+      "status": "PASS",
+      "detail": "546 Position IDs · 0 duplicated",
+      "violations": []
+    },
+    {
+      "code": "A2",
+      "name": "One active per (ticker, runner)",
+      "status": "PASS",
+      "detail": "508 unique active (ticker, runner) pairs · 0 duplicates",
+      "violations": []
+    },
+    {
+      "code": "A3",
+      "name": "NEW/EXISTING/RE-ENTRY classifier",
+      "status": "PASS",
+      "detail": "546 entries classified cleanly · 0 violations",
+      "violations": []
+    },
+    {
+      "code": "A4",
+      "name": "No dup active in Portfolio",
+      "status": "FAIL",
+      "detail": "16 unique (ticker,runner) · 10 dups",
+      "violations": [
+        {
+          "ticker": "V",
+          "runner": "—"
+        },
+        {
+          "ticker": "TRV",
+          "runner": "—"
+        },
+        {
+          "ticker": "NVDA",
+          "runner": "—"
+        },
+        {
+          "ticker": "MSFT",
+          "runner": "—"
+        },
+        {
+          "ticker": "KO",
+          "runner": "—"
+        },
+        {
+          "ticker": "HON",
+          "runner": "—"
+        },
+        {
+          "ticker": "AAPL",
+          "runner": "—"
+        },
+        {
+          "ticker": "JPM",
+          "runner": "—"
+        },
+        {
+          "ticker": "GS",
+          "runner": "—"
+        },
+        {
+          "ticker": "MMM",
+          "runner": "—"
+        }
+      ]
+    },
+    {
+      "code": "A5",
+      "name": "No CLOSED → NEW leaks",
+      "status": "PASS",
+      "detail": "546 (ticker,runner) pairs · 0 leaks",
+      "violations": []
+    },
+    {
+      "code": "A6",
+      "name": "No SKIP in Portfolio",
+      "status": "PASS",
+      "detail": "0 SKIP rows found",
+      "violations": []
+    },
+    {
+      "code": "A7",
+      "name": "No SKIP in P&L",
+      "status": "PASS",
+      "detail": "0 SKIP rows with non-zero P&L",
+      "violations": []
+    },
+    {
+      "code": "A8",
+      "name": "Active P&L formula",
+      "status": "PASS",
+      "detail": "1088 active rows · 0 violations",
+      "violations": []
+    },
+    {
+      "code": "A9",
+      "name": "Exit P&L formula",
+      "status": "PASS",
+      "detail": "38 exit rows · 0 violations",
+      "violations": []
+    },
+    {
+      "code": "A10",
+      "name": "Prices reconcile to parquet",
+      "status": "WARN",
+      "detail": "price_integrity JSON not present · run sender first",
+      "violations": []
+    }
+  ]
+}

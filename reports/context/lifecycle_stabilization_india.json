@@ -1,0 +1,708 @@
+{
+  "market": "india",
+  "asof": "2026-08-25",
+  "generated_utc": "2026-08-25T12:38:45+00:00",
+  "engine": "aegis.lifecycle_stabilization.v1.20260825",
+  "verdict": "FAIL",
+  "n_audits": 10,
+  "n_pass": 9,
+  "n_warn": 0,
+  "n_fail": 1,
+  "audits": [
+    {
+      "code": "A1",
+      "name": "Position ID immutable",
+      "status": "PASS",
+      "detail": "65 Position IDs · 0 duplicated",
+      "violations": []
+    },
+    {
+      "code": "A2",
+      "name": "One active per (ticker, runner)",
+      "status": "PASS",
+      "detail": "32 unique active (ticker, runner) pairs · 0 duplicates",
+      "violations": []
+    },
+    {
+      "code": "A3",
+      "name": "NEW/EXISTING/RE-ENTRY classifier",
+      "status": "PASS",
+      "detail": "65 entries classified cleanly · 0 violations",
+      "violations": []
+    },
+    {
+      "code": "A4",
+      "name": "No dup active in Portfolio",
+      "status": "PASS",
+      "detail": "41 unique (ticker,runner) · 0 dups",
+      "violations": []
+    },
+    {
+      "code": "A5",
+      "name": "No CLOSED → NEW leaks",
+      "status": "PASS",
+      "detail": "65 (ticker,runner) pairs · 0 leaks",
+      "violations": []
+    },
+    {
+      "code": "A6",
+      "name": "No SKIP in Portfolio",
+      "status": "PASS",
+      "detail": "0 SKIP rows found",
+      "violations": []
+    },
+    {
+      "code": "A7",
+      "name": "No SKIP in P&L",
+      "status": "PASS",
+      "detail": "0 SKIP rows with non-zero P&L",
+      "violations": []
+    },
+    {
+      "code": "A8",
+      "name": "Active P&L formula",
+      "status": "PASS",
+      "detail": "511 active rows · 0 violations",
+      "violations": []
+    },
+    {
+      "code": "A9",
+      "name": "Exit P&L formula",
+      "status": "PASS",
+      "detail": "33 exit rows · 0 violations",
+      "violations": []
+    },
+    {
+      "code": "A10",
+      "name": "Prices reconcile to parquet",
+      "status": "FAIL",
+      "detail": "price_integrity verdict=FAIL · 2 PI1/PI2 fails · 76 price mismatches",
+      "violations": [
+        {
+          "code": "PI1",
+          "name": "Entry-price alignment",
+          "status": "FAIL",
+          "detail": "544 positions checked · 60 drifted > 0.5%",
+          "violations": [
+            {
+              "ticker": "CANBK",
+              "entry_date": "2026-08-10",
+              "quoted": 131.95,
+              "actual": 129.0,
+              "delta_pct": 2.29,
+              "reason": "entry price drift 2.29%"
+            },
+            {
+              "ticker": "UNIONBANK",
+              "entry_date": "2026-08-10",
+              "quoted": 183.6,
+              "actual": 181.14,
+              "delta_pct": 1.36,
+              "reason": "entry price drift 1.36%"
+            },
+            {
+              "ticker": "DEEPAKNTR",
+              "entry_date": "2026-08-11",
+              "quoted": 1796.5,
+              "actual": 1779.2,
+              "delta_pct": 0.97,
+              "reason": "entry price drift 0.97%"
+            },
+            {
+              "ticker": "ZYDUSLIFE",
+              "entry_date": "2026-08-11",
+              "quoted": 1119,
+              "actual": 1191.0,
+              "delta_pct": 6.05,
+              "reason": "entry price drift 6.05%"
+            },
+            {
+              "ticker": "SIEMENS",
+              "entry_date": "2026-08-14",
+              "quoted": 4019,
+              "actual": 3940.0,
+              "delta_pct": 2.01,
+              "reason": "entry price drift 2.01%"
+            },
+            {
+              "ticker": "ONGC",
+              "entry_date": "2026-08-14",
+              "quoted": 239.05,
+              "actual": 236.4,
+              "delta_pct": 1.12,
+              "reason": "entry price drift 1.12%"
+            },
+            {
+              "ticker": "HINDUNILVR",
+              "entry_date": "2026-08-14",
+              "quoted": 2063,
+              "actual": 2077.0,
+              "delta_pct": 0.67,
+              "reason": "entry price drift 0.67%"
+            },
+            {
+              "ticker": "ONGC",
+              "entry_date": "2026-08-17",
+              "quoted": 236.4,
+              "actual": 238.49,
+              "delta_pct": 0.88,
+              "reason": "entry price drift 0.88%"
+            },
+            {
+              "ticker": "HINDUNILVR",
+              "entry_date": "2026-08-17",
+              "quoted": 2077,
+              "actual": 2055.0,
+              "delta_pct": 1.07,
+              "reason": "entry price drift 1.07%"
+            },
+            {
+              "ticker": "ONGC",
+              "entry_date": "2026-08-19",
+              "quoted": 239.5,
+              "actual": 238.0,
+              "delta_pct": 0.63,
+              "reason": "entry price drift 0.63%"
+            },
+            {
+              "ticker": "HINDUNILVR",
+              "entry_date": "2026-08-19",
+              "quoted": 2035,
+              "actual": 2020.7,
+              "delta_pct": 0.71,
+              "reason": "entry price drift 0.71%"
+            },
+            {
+              "ticker": "SAIL",
+              "entry_date": "2026-08-20",
+              "quoted": 172.75,
+              "actual": 174.9,
+              "delta_pct": 1.23,
+              "reason": "entry price drift 1.23%"
+            },
+            {
+              "ticker": "KOTAKBANK",
+              "entry_date": "2026-08-21",
+              "quoted": 389.3,
+              "actual": 402.8,
+              "delta_pct": 3.35,
+              "reason": "entry price drift 3.35%"
+            },
+            {
+              "ticker": "MGL",
+              "entry_date": "2026-08-21",
+              "quoted": 1137.8,
+              "actual": 1114.2,
+              "delta_pct": 2.12,
+              "reason": "entry price drift 2.12%"
+            },
+            {
+              "ticker": "APOLLOHOSP",
+              "entry_date": "2026-08-21",
+              "quoted": 8750,
+              "actual": 8693.0,
+              "delta_pct": 0.66,
+              "reason": "entry price drift 0.66%"
+            },
+            {
+              "ticker": "ICICIBANK",
+              "entry_date": "2026-08-04",
+              "quoted": 1438.5,
+              "actual": 1449.5,
+              "delta_pct": 0.76,
+              "reason": "entry price drift 0.76%"
+            },
+            {
+              "ticker": "SUNPHARMA",
+              "entry_date": "2026-08-04",
+              "quoted": 2014.8,
+              "actual": 1955.3,
+              "delta_pct": 3.04,
+              "reason": "entry price drift 3.04%"
+            },
+            {
+              "ticker": "PIDILITIND",
+              "entry_date": "2026-08-04",
+              "quoted": 1625.5,
+              "actual": 1642.5,
+              "delta_pct": 1.04,
+              "reason": "entry price drift 1.04%"
+            },
+            {
+              "ticker": "POWERGRID",
+              "entry_date": "2026-08-05",
+              "quoted": 285.9,
+              "actual": 283.4,
+              "delta_pct": 0.88,
+              "reason": "entry price drift 0.88%"
+            },
+            {
+              "ticker": "IRCTC",
+              "entry_date": "2026-08-04",
+              "quoted": 494.35,
+              "actual": 507.9,
+              "delta_pct": 2.67,
+              "reason": "entry price drift 2.67%"
+            },
+            {
+              "ticker": "COALINDIA",
+              "entry_date": "2026-08-05",
+              "quoted": 411.3,
+              "actual": 417.6,
+              "delta_pct": 1.51,
+              "reason": "entry price drift 1.51%"
+            },
+            {
+              "ticker": "ITC",
+              "entry_date": "2026-08-05",
+              "quoted": 282.9,
+              "actual": 289.0,
+              "delta_pct": 2.11,
+              "reason": "entry price drift 2.11%"
+            },
+            {
+              "ticker": "LUPIN",
+              "entry_date": "2026-08-04",
+              "quoted": 2417,
+              "actual": 2383.9,
+              "delta_pct": 1.39,
+              "reason": "entry price drift 1.39%"
+            },
+            {
+              "ticker": "CHAMBLFERT",
+              "entry_date": "2026-08-04",
+              "quoted": 443.35,
+              "actual": 452.35,
+              "delta_pct": 1.99,
+              "reason": "entry price drift 1.99%"
+            },
+            {
+              "ticker": "COALINDIA",
+              "entry_date": "2026-08-04",
+              "quoted": 411.3,
+              "actual": 415.15,
+              "delta_pct": 0.93,
+              "reason": "entry price drift 0.93%"
+            },
+            {
+              "ticker": "ITC",
+              "entry_date": "2026-08-04",
+              "quoted": 282.9,
+              "actual": 284.85,
+              "delta_pct": 0.68,
+              "reason": "entry price drift 0.68%"
+            },
+            {
+              "ticker": "PERSISTENT",
+              "entry_date": "2026-08-05",
+              "quoted": 5322.4,
+              "actual": 5499.0,
+              "delta_pct": 3.21,
+              "reason": "entry price drift 3.21%"
+            },
+            {
+              "ticker": "BAJAJHLDNG",
+              "entry_date": "2026-08-05",
+              "quoted": 11127,
+              "actual": 11475.0,
+              "delta_pct": 3.03,
+              "reason": "entry price drift 3.03%"
+            },
+            {
+              "ticker": "KOTAKBANK",
+              "entry_date": "2026-08-04",
+              "quoted": 389.3,
+              "actual": 397.0,
+              "delta_pct": 1.94,
+              "reason": "entry price drift 1.94%"
+            },
+            {
+              "ticker": "BRITANNIA",
+              "entry_date": "2026-08-04",
+              "quoted": 5406,
+              "actual": 5454.5,
+              "delta_pct": 0.89,
+              "reason": "entry price drift 0.89%"
+            },
+            {
+              "ticker": "ICICIBANK",
+              "entry_date": "2026-08-04",
+              "quoted": 1438.5,
+              "actual": 1449.5,
+              "delta_pct": 0.76,
+              "reason": "entry price drift 0.76%"
+            },
+            {
+              "ticker": "SUNPHARMA",
+              "entry_date": "2026-08-04",
+              "quoted": 2014.8,
+              "actual": 1955.3,
+              "delta_pct": 3.04,
+              "reason": "entry price drift 3.04%"
+            },
+            {
+              "ticker": "PIDILITIND",
+              "entry_date": "2026-08-04",
+              "quoted": 1625.5,
+              "actual": 1642.5,
+              "delta_pct": 1.04,
+              "reason": "entry price drift 1.04%"
+            },
+            {
+              "ticker": "POWERGRID",
+              "entry_date": "2026-08-05",
+              "quoted": 285.9,
+              "actual": 283.4,
+              "delta_pct": 0.88,
+              "reason": "entry price drift 0.88%"
+            },
+            {
+              "ticker": "IRCTC",
+              "entry_date": "2026-08-04",
+              "quoted": 494.35,
+              "actual": 507.9,
+              "delta_pct": 2.67,
+              "reason": "entry price drift 2.67%"
+            },
+            {
+              "ticker": "COALINDIA",
+              "entry_date": "2026-08-05",
+              "quoted": 411.3,
+              "actual": 417.6,
+              "delta_pct": 1.51,
+              "reason": "entry price drift 1.51%"
+            },
+            {
+              "ticker": "ITC",
+              "entry_date": "2026-08-05",
+              "quoted": 282.9,
+              "actual": 289.0,
+              "delta_pct": 2.11,
+              "reason": "entry price drift 2.11%"
+            },
+            {
+              "ticker": "LUPIN",
+              "entry_date": "2026-08-04",
+              "quoted": 2417,
+              "actual": 2383.9,
+              "delta_pct": 1.39,
+              "reason": "entry price drift 1.39%"
+            },
+            {
+              "ticker": "CHAMBLFERT",
+              "entry_date": "2026-08-04",
+              "quoted": 443.35,
+              "actual": 452.35,
+              "delta_pct": 1.99,
+              "reason": "entry price drift 1.99%"
+            },
+            {
+              "ticker": "COALINDIA",
+              "entry_date": "2026-08-04",
+              "quoted": 411.3,
+              "actual": 415.15,
+              "delta_pct": 0.93,
+              "reason": "entry price drift 0.93%"
+            },
+            {
+              "ticker": "ITC",
+              "entry_date": "2026-08-04",
+              "quoted": 282.9,
+              "actual": 284.85,
+              "delta_pct": 0.68,
+              "reason": "entry price drift 0.68%"
+            },
+            {
+              "ticker": "PERSISTENT",
+              "entry_date": "2026-08-05",
+              "quoted": 5322.4,
+              "actual": 5499.0,
+              "delta_pct": 3.21,
+              "reason": "entry price drift 3.21%"
+            },
+            {
+              "ticker": "BAJAJHLDNG",
+              "entry_date": "2026-08-05",
+              "quoted": 11127,
+              "actual": 11475.0,
+              "delta_pct": 3.03,
+              "reason": "entry price drift 3.03%"
+            },
+            {
+              "ticker": "KOTAKBANK",
+              "entry_date": "2026-08-04",
+              "quoted": 389.3,
+              "actual": 397.0,
+              "delta_pct": 1.94,
+              "reason": "entry price drift 1.94%"
+            },
+            {
+              "ticker": "BRITANNIA",
+              "entry_date": "2026-08-04",
+              "quoted": 5406,
+              "actual": 5454.5,
+              "delta_pct": 0.89,
+              "reason": "entry price drift 0.89%"
+            },
+            {
+              "ticker": "ICICIBANK",
+              "entry_date": "2026-08-04",
+              "quoted": 1438.5,
+              "actual": 1449.5,
+              "delta_pct": 0.76,
+              "reason": "entry price drift 0.76%"
+            },
+            {
+              "ticker": "SUNPHARMA",
+              "entry_date": "2026-08-04",
+              "quoted": 2014.8,
+              "actual": 1955.3,
+              "delta_pct": 3.04,
+              "reason": "entry price drift 3.04%"
+            },
+            {
+              "ticker": "PIDILITIND",
+              "entry_date": "2026-08-04",
+              "quoted": 1625.5,
+              "actual": 1642.5,
+              "delta_pct": 1.04,
+              "reason": "entry price drift 1.04%"
+            },
+            {
+              "ticker": "POWERGRID",
+              "entry_date": "2026-08-05",
+              "quoted": 285.9,
+              "actual": 283.4,
+              "delta_pct": 0.88,
+              "reason": "entry price drift 0.88%"
+            },
+            {
+              "ticker": "COALINDIA",
+              "entry_date": "2026-08-05",
+              "quoted": 411.3,
+              "actual": 417.6,
+              "delta_pct": 1.51,
+              "reason": "entry price drift 1.51%"
+            },
+            {
+              "ticker": "IRCTC",
+              "entry_date": "2026-08-04",
+              "quoted": 494.35,
+              "actual": 507.9,
+              "delta_pct": 2.67,
+              "reason": "entry price drift 2.67%"
+            },
+            {
+              "ticker": "ITC",
+              "entry_date": "2026-08-05",
+              "quoted": 282.9,
+              "actual": 289.0,
+              "delta_pct": 2.11,
+              "reason": "entry price drift 2.11%"
+            },
+            {
+              "ticker": "LUPIN",
+              "entry_date": "2026-08-04",
+              "quoted": 2417,
+              "actual": 2383.9,
+              "delta_pct": 1.39,
+              "reason": "entry price drift 1.39%"
+            },
+            {
+              "ticker": "CHAMBLFERT",
+              "entry_date": "2026-08-04",
+              "quoted": 443.35,
+              "actual": 452.35,
+              "delta_pct": 1.99,
+              "reason": "entry price drift 1.99%"
+            },
+            {
+              "ticker": "COALINDIA",
+              "entry_date": "2026-08-04",
+              "quoted": 411.3,
+              "actual": 415.15,
+              "delta_pct": 0.93,
+              "reason": "entry price drift 0.93%"
+            },
+            {
+              "ticker": "ITC",
+              "entry_date": "2026-08-04",
+              "quoted": 282.9,
+              "actual": 284.85,
+              "delta_pct": 0.68,
+              "reason": "entry price drift 0.68%"
+            },
+            {
+              "ticker": "PERSISTENT",
+              "entry_date": "2026-08-05",
+              "quoted": 5322.4,
+              "actual": 5499.0,
+              "delta_pct": 3.21,
+              "reason": "entry price drift 3.21%"
+            },
+            {
+              "ticker": "BAJAJHLDNG",
+              "entry_date": "2026-08-05",
+              "quoted": 11127,
+              "actual": 11475.0,
+              "delta_pct": 3.03,
+              "reason": "entry price drift 3.03%"
+            },
+            {
+              "ticker": "KOTAKBANK",
+              "entry_date": "2026-08-04",
+              "quoted": 389.3,
+              "actual": 397.0,
+              "delta_pct": 1.94,
+              "reason": "entry price drift 1.94%"
+            },
+            {
+              "ticker": "BRITANNIA",
+              "entry_date": "2026-08-04",
+              "quoted": 5406,
+              "actual": 5454.5,
+              "delta_pct": 0.89,
+              "reason": "entry price drift 0.89%"
+            }
+          ]
+        },
+        {
+          "code": "PI2",
+          "name": "Exit-price alignment",
+          "status": "FAIL",
+          "detail": "33 exits checked · 16 drifted > 0.5%",
+          "violations": [
+            {
+              "ticker": "INDIANB",
+              "exit_date": "2026-08-07",
+              "quoted": 853.4,
+              "actual": 889.5,
+              "delta_pct": 4.06,
+              "reason": "exit price drift 4.06%"
+            },
+            {
+              "ticker": "ATUL",
+              "exit_date": "2026-08-07",
+              "quoted": 6834,
+              "actual": 6774.0,
+              "delta_pct": 0.89,
+              "reason": "exit price drift 0.89%"
+            },
+            {
+              "ticker": "PRESTIGE",
+              "exit_date": "2026-08-07",
+              "quoted": 1594.5,
+              "actual": 1584.8,
+              "delta_pct": 0.61,
+              "reason": "exit price drift 0.61%"
+            },
+            {
+              "ticker": "VOLTAS",
+              "exit_date": "2026-08-07",
+              "quoted": 1296.8,
+              "actual": 1285.0,
+              "delta_pct": 0.92,
+              "reason": "exit price drift 0.92%"
+            },
+            {
+              "ticker": "CANBK",
+              "exit_date": "2026-08-10",
+              "quoted": 131.95,
+              "actual": 129.0,
+              "delta_pct": 2.29,
+              "reason": "exit price drift 2.29%"
+            },
+            {
+              "ticker": "UNIONBANK",
+              "exit_date": "2026-08-10",
+              "quoted": 183.6,
+              "actual": 181.14,
+              "delta_pct": 1.36,
+              "reason": "exit price drift 1.36%"
+            },
+            {
+              "ticker": "AMBER",
+              "exit_date": "2026-08-10",
+              "quoted": 7435,
+              "actual": 7095.0,
+              "delta_pct": 4.79,
+              "reason": "exit price drift 4.79%"
+            },
+            {
+              "ticker": "DEEPAKNTR",
+              "exit_date": "2026-08-11",
+              "quoted": 1796.5,
+              "actual": 1779.2,
+              "delta_pct": 0.97,
+              "reason": "exit price drift 0.97%"
+            },
+            {
+              "ticker": "OFSS",
+              "exit_date": "2026-08-14",
+              "quoted": 11679,
+              "actual": 11828.0,
+              "delta_pct": 1.26,
+              "reason": "exit price drift 1.26%"
+            },
+            {
+              "ticker": "SIEMENS",
+              "exit_date": "2026-08-14",
+              "quoted": 4019,
+              "actual": 3940.0,
+              "delta_pct": 2.01,
+              "reason": "exit price drift 2.01%"
+            },
+            {
+              "ticker": "NATIONALUM",
+              "exit_date": "2026-08-17",
+              "quoted": 376,
+              "actual": 387.55,
+              "delta_pct": 2.98,
+              "reason": "exit price drift 2.98%"
+            },
+            {
+              "ticker": "ADANIGREEN",
+              "exit_date": "2026-08-17",
+              "quoted": 1348,
+              "actual": 1327.6,
+              "delta_pct": 1.54,
+              "reason": "exit price drift 1.54%"
+            },
+            {
+              "ticker": "SAIL",
+              "exit_date": "2026-08-20",
+              "quoted": 172.75,
+              "actual": 174.9,
+              "delta_pct": 1.23,
+              "reason": "exit price drift 1.23%"
+            },
+            {
+              "ticker": "KOTAKBANK",
+              "exit_date": "2026-08-21",
+              "quoted": 397.35,
+              "actual": 402.8,
+              "delta_pct": 1.35,
+              "reason": "exit price drift 1.35%"
+            },
+            {
+              "ticker": "MGL",
+              "exit_date": "2026-08-21",
+              "quoted": 1137.8,
+              "actual": 1114.2,
+              "delta_pct": 2.12,
+              "reason": "exit price drift 2.12%"
+            },
+            {
+              "ticker": "APOLLOHOSP",
+              "exit_date": "2026-08-21",
+              "quoted": 8750,
+              "actual": 8693.0,
+              "delta_pct": 0.66,
+              "reason": "exit price drift 0.66%"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

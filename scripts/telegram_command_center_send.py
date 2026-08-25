@@ -586,7 +586,11 @@ def main() -> int:
                         _stale_days = (_today - _recs_d_iso).days
                     except ValueError:
                         _stale_days = 999
-                    if _stale_days > 4:
+                    # 2026-08-25 · threshold tightened from > 4 to >= 3 ·
+                    # USA recs at 2026-08-21 vs today 2026-08-25 = 4 days ·
+                    # previous > 4 rule didn't fire · CI kept failing. Now
+                    # a 3-day-stale market skips gracefully.
+                    if _stale_days >= 3:
                         print(f"[stale-data-skip:{mkt_key}] recommendations.json "
                               f"asof={_recs_asof} · stale {_stale_days} days · "
                               f"skipping sender gracefully · upstream data pipeline "
@@ -3228,6 +3232,22 @@ def main() -> int:
             except Exception as _e_mo:
                 print(f"[missed_opportunity:{mkt_key}] skipped · "
                       f"{type(_e_mo).__name__}: {_e_mo}")
+
+            # ─────────────────────────────────────────────────────────
+            # 2026-08-25 · SPRINT M · LOCK GATE · 8-check verifier
+            # CEO's final acceptance gate. Verdict: READY_TO_LOCK /
+            # ALMOST_READY / NOT_READY. Non-blocking · surfaces status.
+            # ─────────────────────────────────────────────────────────
+            try:
+                from backend.research import sprint_m_lock_gate as _lg
+                _lg_rep = _lg.compute(_ROOT, mkt_key.lower())
+                _lg.emit(_ROOT, _lg_rep)
+                print(f"[sprint_m_lock_gate:{mkt_key}] "
+                      f"{_lg.summary_line(_lg_rep)}")
+                print(f"  {_lg_rep.recommendation}")
+            except Exception as _e_lg:
+                print(f"[sprint_m_lock_gate:{mkt_key}] skipped · "
+                      f"{type(_e_lg).__name__}: {_e_lg}")
 
             # ─────────────────────────────────────────────────────────
             # 2026-08-25 · SPRINT M · Part 22 · Consolidated Alpha Report
