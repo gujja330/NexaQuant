@@ -1,0 +1,114 @@
+{
+  "market": "usa",
+  "asof": "2026-08-25",
+  "generated_utc": "2026-08-25T12:47:51+00:00",
+  "engine": "aegis.sprint_m_lock_gate.v1.20260825",
+  "verdict": "ALMOST_READY",
+  "n_pass": 6,
+  "n_warn": 1,
+  "n_fail": 0,
+  "n_skip": 1,
+  "checks": [
+    {
+      "id": "L1",
+      "name": "Lifecycle clean PASS",
+      "status": "WARN",
+      "detail": "1 audits FAIL but data_state=STALE · A4 will resolve when USA data pipeline refreshes",
+      "evidence": {
+        "verdict": "FAIL",
+        "PASS": 8,
+        "WARN": 1,
+        "FAIL": 1,
+        "fail_codes": [
+          "A4"
+        ]
+      }
+    },
+    {
+      "id": "L2",
+      "name": "Stale-data semantics",
+      "status": "PASS",
+      "detail": "state=STALE · correctly flagged (not masked as 0 opps)",
+      "evidence": {
+        "data_state": "STALE",
+        "recs_asof": "2026-08-21",
+        "stale_days": 4,
+        "n_total_today": 0
+      }
+    },
+    {
+      "id": "L3",
+      "name": "No duplicate/re-entry contamination",
+      "status": "PASS",
+      "detail": "A2 + A5 both PASS · Registry clean",
+      "evidence": {
+        "A2_status": "PASS",
+        "A5_status": "PASS"
+      }
+    },
+    {
+      "id": "L4",
+      "name": "Active vs Exit P&L discipline",
+      "status": "PASS",
+      "detail": "A8 (Active) + A9 (Exit) both PASS · formula clean",
+      "evidence": {
+        "A8_status": "PASS",
+        "A9_status": "PASS",
+        "A8_detail": "1088 active rows · 0 violations",
+        "A9_detail": "38 exit rows · 0 violations"
+      }
+    },
+    {
+      "id": "L5",
+      "name": "SKIP excluded from Portfolio + P&L",
+      "status": "PASS",
+      "detail": "A6 + A7 both PASS · no SKIP leakage",
+      "evidence": {
+        "A6_status": "PASS",
+        "A7_status": "PASS"
+      }
+    },
+    {
+      "id": "L6",
+      "name": "R1_NEW / R2_NEW genuinely new",
+      "status": "SKIP",
+      "detail": "data_state=STALE · cannot validate freshness · wait for VALID cycle",
+      "evidence": {
+        "n_new": 0,
+        "n_reentry": 0,
+        "n_existing": 0,
+        "n_r1_new": 0,
+        "n_r2_new": 0,
+        "contamination_count": 0,
+        "data_state": "STALE"
+      }
+    },
+    {
+      "id": "L7",
+      "name": "NEW vs EXISTING P&L comparison measurement",
+      "status": "PASS",
+      "detail": "measurement active · 535 observations tracked ({'NEW': 535, 'EXISTING': 0, 'RE-ENTRY': 0})",
+      "evidence": {
+        "cohort_n": {
+          "NEW": 535,
+          "EXISTING": 0,
+          "RE-ENTRY": 0
+        },
+        "n_total": 535
+      }
+    },
+    {
+      "id": "L8",
+      "name": "Missed opportunities capturing",
+      "status": "PASS",
+      "detail": "capturing active · capture rate 54.3% · successful reject rate 17.4%",
+      "evidence": {
+        "missed_winners_n": 144,
+        "capture_rate_pct": 54.3,
+        "rejection_universe_n": 908,
+        "successful_reject_pct": 17.4
+      }
+    }
+  ],
+  "recommendation": "🟡 Almost ready · resolve 1 WARN then lock"
+}
