@@ -566,6 +566,35 @@ def main() -> int:
                 return None
 
         def _split_and_send(mkt_label: str, mkt_key: str, caption_body: str):
+            # 2026-08-25 · STALE-DATA GRACEFUL SKIP · CEO directive
+            # "if usa data pipeline broken upstream, don't hard-fail CI ·
+            # skip gracefully with informative log". Prevents the
+            # AEGIS USA CI FAILED · send: failure loop when upstream
+            # usa_daily.py hasn't refreshed recommendations.json in days.
+            _recs_p = (_ROOT / ("usa/reports/recommendations.json"
+                                if mkt_key.lower() == "usa"
+                                else "reports/recommendations.json"))
+            if _recs_p.exists():
+                try:
+                    import json as _js_stale
+                    _recs_d = _js_stale.loads(_recs_p.read_text(encoding="utf-8"))
+                    _recs_asof = str(_recs_d.get("asof", ""))[:10]
+                    from datetime import date as _d_stale, timedelta as _td_stale
+                    _today = _d_stale.today()
+                    try:
+                        _recs_d_iso = _d_stale.fromisoformat(_recs_asof)
+                        _stale_days = (_today - _recs_d_iso).days
+                    except ValueError:
+                        _stale_days = 999
+                    if _stale_days > 4:
+                        print(f"[stale-data-skip:{mkt_key}] recommendations.json "
+                              f"asof={_recs_asof} · stale {_stale_days} days · "
+                              f"skipping sender gracefully · upstream data pipeline "
+                              f"needs refresh · returning True to keep CI green")
+                        return True
+                except Exception as _e_stale:
+                    print(f"[stale-data-skip:{mkt_key}] check failed · "
+                          f"{type(_e_stale).__name__}: {_e_stale} · continuing")
             src_wb = _lwb(xlsx_path)
             src_ws = src_wb["AEGIS Daily"] if "AEGIS Daily" in src_wb.sheetnames else src_wb.active
             h = [c.value for c in src_ws[1]]
@@ -3106,6 +3135,28 @@ def main() -> int:
             except Exception as _e_lag_o:
                 print(f"[loss_avoidance:{mkt_key}] skipped · "
                       f"{type(_e_lag_o).__name__}: {_e_lag_o}")
+
+            # ─────────────────────────────────────────────────────────
+            # 2026-08-25 · SPRINT M · PHASE A · Lifecycle Stabilization
+            # audit. Runs 10 audits (Position ID immutable · one-active-
+            # per-pair · NEW/EXISTING/RE-ENTRY classifier · no CLOSED→NEW
+            # leaks · no SKIP in Portfolio · SKIP-not-in-P&L · Active vs
+            # Exit P&L formula discipline · price alignment). Emits JSON
+            # for CI monitoring. Non-blocking initially · promote to
+            # BLOCKING after Phase A complete + 2-3 clean days.
+            # ─────────────────────────────────────────────────────────
+            try:
+                from backend.research import lifecycle_stabilization as _ls
+                _ls_rep = _ls.compute(_ROOT, mkt_key.lower())
+                _ls.emit(_ROOT, _ls_rep)
+                print(f"[lifecycle_stabilization:{mkt_key}] "
+                      f"{_ls.summary_line(_ls_rep)}")
+                for _a in _ls_rep.audits:
+                    if _a.status == "FAIL":
+                        print(f"  ❌ {_a.code} {_a.name} · {_a.detail}")
+            except Exception as _e_ls:
+                print(f"[lifecycle_stabilization:{mkt_key}] skipped · "
+                      f"{type(_e_ls).__name__}: {_e_ls}")
 
             # 2026-08-25 · PRICE INTEGRITY GUARD · CEO directive:
             # "check if ur entry price what u r offering and exit price
