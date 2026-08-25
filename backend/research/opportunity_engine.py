@@ -55,6 +55,13 @@ class OpportunityEngineReport:
     asof: str
     generated_utc: str
     engine: str = SCHEMA_FINGERPRINT
+    # 2026-08-25 · Sprint M.1.2 · data-state semantics · CEO directive
+    # "never collapse STALE into 0 opportunities". Report state is one
+    # of: VALID / NO_OPPORTUNITY / UNAVAILABLE / STALE / ERROR
+    data_state: str = "VALID"
+    data_state_reason: str = ""
+    recs_asof: str = ""             # asof from source recommendations.json
+    recs_stale_days: int = 0
     n_total_today: int = 0
     n_new: int = 0
     n_existing: int = 0
@@ -247,12 +254,55 @@ def suppression_check(root: Path, market: str, asof: str) -> dict:
 # ─────────────────────────────────────────────────────────────────
 # PUBLIC · compute + emit
 # ─────────────────────────────────────────────────────────────────
+def _check_data_state(root: Path, market: str, asof: str,
+                      stale_threshold_days: int = 3) -> tuple:
+    """M.1.2 · Determine data state · returns (state, reason, recs_asof,
+    stale_days). CEO directive: never collapse STALE into 0 opportunities."""
+    recs_p = (root / ("usa/reports/recommendations.json"
+                      if market.lower() == "usa"
+                      else "reports/recommendations.json"))
+    if not recs_p.exists():
+        return ("UNAVAILABLE",
+                "recommendations.json missing · upstream pipeline failed",
+                "", 999)
+    try:
+        d = json.loads(recs_p.read_text(encoding="utf-8"))
+        recs_asof = str(d.get("asof", ""))[:10]
+        n_recs = len(d.get("recommendations", []))
+        if not recs_asof:
+            return ("ERROR", "recommendations.json missing asof field",
+                    "", 999)
+        if n_recs == 0:
+            return ("NO_OPPORTUNITY",
+                    "recommendations.json exists but empty", recs_asof, 0)
+        try:
+            _rec_d = date.fromisoformat(recs_asof)
+            _stale = (date.fromisoformat(str(asof)[:10]) - _rec_d).days
+        except ValueError:
+            return ("ERROR", f"invalid asof format '{recs_asof}'", recs_asof, 999)
+        if _stale > stale_threshold_days:
+            return ("STALE",
+                    f"recommendations.json asof={recs_asof} is "
+                    f"{_stale} days behind today · upstream refresh needed",
+                    recs_asof, _stale)
+        return ("VALID", "", recs_asof, _stale)
+    except Exception as e:
+        return ("ERROR", f"read failed · {type(e).__name__}: {e}", "", 999)
+
+
 def compute(root: Path, market: str, asof: str) -> OpportunityEngineReport:
     rep = OpportunityEngineReport(
         market=market.lower(),
         asof=str(asof)[:10],
         generated_utc=datetime.now(timezone.utc).isoformat(timespec="seconds"),
     )
+    # M.1.2 · classify data state FIRST · so 0 opps doesn't masquerade as "no picks"
+    state, reason, recs_asof, stale_days = _check_data_state(
+        root, market, str(asof)[:10])
+    rep.data_state = state
+    rep.data_state_reason = reason
+    rep.recs_asof = recs_asof
+    rep.recs_stale_days = stale_days
     rows = classify_today(root, market, str(asof)[:10])
     rep.detail = [asdict(r) for r in rows]
     rep.n_total_today = len(rows)
@@ -281,7 +331,13 @@ def emit(root: Path, report: OpportunityEngineReport) -> Path:
 
 
 def summary_line(rep: OpportunityEngineReport) -> str:
-    return (f"opportunity_engine · today {rep.n_total_today} opps · "
+    # M.1.2 · surface data_state prominently so operator never confuses
+    # STALE with NO_OPPORTUNITY
+    if rep.data_state != "VALID":
+        return (f"opportunity_engine · state={rep.data_state} · "
+                f"recs_asof={rep.recs_asof} · stale {rep.recs_stale_days}d · "
+                f"{rep.data_state_reason[:60]}")
+    return (f"opportunity_engine · state=VALID · today {rep.n_total_today} opps · "
             f"NEW {rep.n_new} · RE-ENTRY {rep.n_reentry} · "
             f"EXISTING {rep.n_existing} · freshness {rep.freshness_ratio}% · "
             f"R1_new {rep.n_r1_new} R2_new {rep.n_r2_new} · "

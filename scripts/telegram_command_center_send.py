@@ -3197,6 +3197,39 @@ def main() -> int:
                       f"{type(_e_am).__name__}: {_e_am}")
 
             # ─────────────────────────────────────────────────────────
+            # 2026-08-25 · SPRINT M.1 · Hardening engines · NEW-opportunity
+            # forward outcomes + ranking effectiveness + missed-opportunity
+            # classifier (successful reject vs missed winner).
+            # ─────────────────────────────────────────────────────────
+            try:
+                from backend.research import new_opportunity_outcomes as _oo
+                _oo_rep = _oo.compute(_ROOT, mkt_key.lower())
+                _oo.emit(_ROOT, _oo_rep)
+                print(f"[new_opp_outcomes:{mkt_key}] "
+                      f"{_oo.summary_line(_oo_rep)[:200]}")
+            except Exception as _e_oo:
+                print(f"[new_opp_outcomes:{mkt_key}] skipped · "
+                      f"{type(_e_oo).__name__}: {_e_oo}")
+            try:
+                from backend.research import ranking_effectiveness as _re
+                _re_rep = _re.compute(_ROOT, mkt_key.lower())
+                _re.emit(_ROOT, _re_rep)
+                print(f"[ranking_effectiveness:{mkt_key}] "
+                      f"{_re.summary_line(_re_rep)}")
+            except Exception as _e_re:
+                print(f"[ranking_effectiveness:{mkt_key}] skipped · "
+                      f"{type(_e_re).__name__}: {_e_re}")
+            try:
+                from backend.research import missed_opportunity_v2 as _mo
+                _mo_rep = _mo.compute(_ROOT, mkt_key.lower())
+                _mo.emit(_ROOT, _mo_rep)
+                print(f"[missed_opportunity:{mkt_key}] "
+                      f"{_mo.summary_line(_mo_rep)}")
+            except Exception as _e_mo:
+                print(f"[missed_opportunity:{mkt_key}] skipped · "
+                      f"{type(_e_mo).__name__}: {_e_mo}")
+
+            # ─────────────────────────────────────────────────────────
             # 2026-08-25 · SPRINT M · PHASE E · Emerging Leader (Small-Cap)
             # Separate research pipeline · never contaminates R1/R2.
             # ─────────────────────────────────────────────────────────

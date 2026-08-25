@@ -78,7 +78,8 @@ class TestOpportunityEngine:
         rep = _oe.compute(tmp_path, "india", "2026-08-25")
         s = _oe.summary_line(rep)
         assert "opportunity_engine" in s
-        assert "freshness" in s
+        # M.1.2 · summary now always shows "state=" (VALID or otherwise)
+        assert "state=" in s
 
 
 # ═════════════════════════════════════════════════════════════════
