@@ -1,0 +1,107 @@
+version: 1.0
+last_amended: 2026-08-25
+# AEGIS Pipeline Layer Configuration · SSoT for scheduler + operator + CI.
+#
+# The pipeline is 4 independent layers. Each layer reads its inputs from
+# disk + writes its outputs to disk · so any layer can be rerun in
+# isolation without invalidating other layers.
+#
+# Operator directive 2026-08-25 · "dont hardcode anything, always make
+# dynamic pipelines / reusable for longterm".
+#
+# Add / remove / reorder layers by editing this file · scripts/run_*.py
+# read this config at runtime · zero code change needed.
+# ═══════════════════════════════════════════════════════════════════════
+
+# Global defaults · overridden per-layer where needed.
+defaults:
+  timeout_sec:         900
+  fail_open:           false           # true = layer failure doesn't block downstream
+  emit_health_json:    true            # writes reports/context/layer_health_{layer}.json
+  work_dir:            "."             # cwd for subprocess launches
+  python_exe:          null            # uses sys.executable when null
+
+# Layer definitions · executed in `order` respecting `depends_on`.
+layers:
+
+  # ── LAYER 1 · DATA · 5:00 AM IST · ~15 min ─────────────────────────────
+  # Runs the full 47-step aegis_daily orchestrator. Pulls yfinance +
+  # Angel · writes parquets + JSON. This IS the current daily pipeline
+  # ingesting fresh market data. Owning `data` here just means "no other
+  # layer touches raw data · it stays a single ingestion authority".
+  data:
+    order:            1
+    script:           "scripts/aegis_daily_v2.py"
+    script_args:      ["--continue"]
+    timeout_sec:      1800
+    depends_on:       []
+    idempotent:       true             # same-day rerun is safe (staleness cache)
+    per_market:       false            # runs both markets in one call
+    description:      "Ingest fresh market data · yfinance + Angel · daily parquets"
+    outputs:
+      - "data/raw/india/*_D1.parquet"
+      - "reports/recommendations.json"
+
+  # ── LAYER 2 · INTELLIGENCE · 5:30 AM IST · ~10 min ────────────────────
+  # Runs everything that turns raw data into decisions: shadow scoring,
+  # rotation, NEW opportunity diagnostic, ops health, dynamic risk,
+  # rec review, data quality, Angel LTP snapshot. All outputs land in
+  # reports/context/*.json · consumed by Layer 3.
+  intelligence:
+    order:            2
+    script:           "scripts/run_intelligence.py"
+    timeout_sec:      900
+    depends_on:       [data]
+    idempotent:       true
+    per_market:       true             # split into per-market invocations
+    description:      "Compute NEW/rotation/risk/investability intelligence"
+    outputs:
+      - "reports/context/new_opportunity_diagnostic_{market}.json"
+      - "reports/context/rotation_suggestions_{market}.json"
+      - "reports/context/daily_ops_diagnostic_{market}.json"
+      - "reports/context/data_quality_gate_{market}.json"
+      - "reports/context/dynamic_risk_{market}.json"
+      - "reports/context/rec_review_{market}.json"
+      - "reports/investability_shadow_{market}.json"
+
+  # ── LAYER 3 · ASSEMBLY · 6:00 AM IST · ~30 seconds ────────────────────
+  # Reads intelligence JSONs · builds 3 sheets (Portfolio + Exit History
+  # + AEGIS History) · runs delivery gate (A1-A24). Fast because no
+  # yfinance/Angel calls · pure sheet writes. Operator can invoke this
+  # locally in <30s to preview or validate.
+  assembly:
+    order:            3
+    script:           "scripts/run_assembly.py"
+    timeout_sec:      120
+    depends_on:       [intelligence]
+    idempotent:       true
+    per_market:       true
+    description:      "Build XLSX sheets + run delivery gate (A1-A24)"
+    outputs:
+      - "reports/telegram/aegis_history_{market}.xlsx"
+      - "reports/context/delivery_gate_{market}.json"
+      - "reports/context/wave_regression_{market}.json"
+
+  # ── LAYER 4 · DELIVERY · 6:01 AM IST · ~5 seconds ─────────────────────
+  # POSTs the built XLSX to Telegram. If delivery gate returned BLOCK
+  # (from Layer 3), sends the plain-text alert instead. Zero heavy
+  # work · just HTTP calls.
+  delivery:
+    order:            4
+    script:           "scripts/run_delivery.py"
+    timeout_sec:      60
+    depends_on:       [assembly]
+    idempotent:       false            # duplicate Telegram sends confuse operator
+    per_market:       true
+    description:      "POST XLSX (or BLOCK alert) to Telegram"
+    outputs:          []               # side-effect only
+
+# ═══════════════════════════════════════════════════════════════════════
+# Health emission
+# Each layer writes reports/context/layer_health_{layer}.json with:
+#   {status: GREEN|YELLOW|RED, elapsed_sec, exit_code, notes}
+# Consumed by scripts/aegis_ops_check.py + Telegram Command Center KPI.
+# ═══════════════════════════════════════════════════════════════════════
+health:
+  emit_path_pattern:  "reports/context/layer_health_{layer}.json"
+  aggregate_path:     "reports/context/pipeline_layer_health.json"

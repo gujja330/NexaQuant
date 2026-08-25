@@ -273,6 +273,12 @@ def _send_one_market(market: str, token: str, chat_id: str) -> tuple[bool, dict]
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--market", choices=["india", "usa", "both"], default="both")
+    # 2026-08-25 · --build-only · runs the full sheet-building pipeline
+    # (Portfolio + Exit History + AEGIS History) WITHOUT posting to
+    # Telegram. Used by scripts/verify_delivery.py to test A17-A24
+    # checks against a fresh XLSX built with the latest code.
+    ap.add_argument("--build-only", action="store_true",
+                     help="build the XLSX but skip Telegram POST (verifier mode)")
     ap.add_argument("--dry-run", action="store_true",
                        help="Render + print message but do not send")
     # Operator directive 2026-08-04: "i should get on xlsx output plz, no
@@ -302,6 +308,12 @@ def main() -> int:
             print("(compact message suppressed · pass --with-message to render)")
         return 0
 
+    # 2026-08-25 · --build-only skips Telegram token requirement · lets
+    # verify_delivery.py exercise the full XLSX build + gate checks
+    # locally without needing real bot credentials.
+    if args.build_only:
+        token = token or "BUILD_ONLY_NO_TOKEN"
+        chat_id = chat_id or "0"
     if not token or not chat_id:
         print(f"[command_center] MISSING TELEGRAM tokens · skipping "
               f"(sender remains optional in CI). Requested markets: {markets}")
@@ -449,6 +461,10 @@ def main() -> int:
             "ROTATED_SAMEDAY": "Not held · same-day rotation artifact",
         }
 
+        # 2026-08-25 · lru_cache · same (ticker, date) called dozens of times
+        # per sender run · caching cuts 50 file opens to N (one per ticker).
+        from functools import lru_cache as _lru_cache
+        @_lru_cache(maxsize=2048)
         def _parquet_close(ticker: str, market: str, target_date: str) -> float | None:
             """Latest parquet close on or before target_date · source of truth."""
             import pandas as _pd
@@ -1122,12 +1138,30 @@ def main() -> int:
             _rotate_detail  = ""
             _ops_summary = ""
             _ops_warn    = ""
+            # 2026-08-25 · build-only mode skips the 10-min guarded_run · uses
+            # whatever intelligence JSON is already on disk. Cuts verify cycle
+            # from ~10min to ~30s. Fresh intelligence still runs in normal
+            # CI mode (no flag). Operator can run verify locally without
+            # waiting for shadow scoring.
+            _build_only_here = bool(getattr(args, "build_only", False))
             try:
                 from backend.recommendation.new_opp_guard import (
                     guarded_run, summary_line as _guard_line,
                 )
-                _hg = guarded_run(_ROOT, mkt_key.lower(), latest_date)
-                _guard_summary = _guard_line(_hg)
+                if _build_only_here:
+                    print(f"[build-only:{mkt_key}] SKIPPING guarded_run · reading existing intelligence")
+                    # Fake a "GREEN attempts=0" guard health so KPI banner renders
+                    class _FakeHG:
+                        verdict = "GREEN"; attempts = 0; n_new_today = 0
+                        n_rotation_suggestions = 0; n_daily_warnings = 0
+                        held_penalty_applied = False; held_penalty_promoted = 0
+                        degraded_from_previous_day = False
+                        notes = "build-only mode · guard skipped"
+                        error_history = []
+                    _hg = _FakeHG()
+                else:
+                    _hg = guarded_run(_ROOT, mkt_key.lower(), latest_date)
+                _guard_summary = _guard_line(_hg) if hasattr(_hg, 'verdict') else "GREEN"
                 _guard_note = _hg.notes or "; ".join(_hg.error_history[:2])
                 # After guard runs · pull the just-emitted diagnostics
                 from backend.research import (
@@ -1659,14 +1693,27 @@ def main() -> int:
             except Exception:
                 pass
             # Compute live P&L for a row (used by bucket classifier)
+            # 2026-08-25 v4 · FIX · raw XLSX "Current Price" is often
+            # STALE (BATAINDIA showed 709 = Entry) · same source as sender
+            # for ACTION column: use _parquet_close for LIVE bar close.
             def _row_live_pnl_pct(_r):
                 try:
                     _e_col = h.index("Entry Price") if "Entry Price" in h else None
-                    _c_col = h.index("Current Price") if "Current Price" in h else None
-                    if _e_col is None or _c_col is None: return None
-                    _e = _r[_e_col].value; _c_v = _r[_c_col].value
-                    if isinstance(_e, (int,float)) and isinstance(_c_v, (int,float)) and _e > 0:
-                        return (_c_v - _e) / _e * 100
+                    if _e_col is None: return None
+                    _e = _r[_e_col].value
+                    if not (isinstance(_e, (int,float)) and _e > 0): return None
+                    _tk = str(_r[c_tk-1].value or "")
+                    _dt = str(_r[c_date-1].value or "")[:10] if c_date else asof[:10]
+                    _live = _parquet_close(_tk, mkt_key, _dt)
+                    if _live is None:
+                        # Fallback to XLSX Current Price
+                        _cc = h.index("Current Price") if "Current Price" in h else None
+                        if _cc is not None:
+                            _cv = _r[_cc].value
+                            if isinstance(_cv, (int,float)):
+                                _live = _cv
+                    if _live and _e > 0:
+                        return (_live - _e) / _e * 100
                 except Exception:
                     pass
                 return None
@@ -2658,6 +2705,7 @@ def main() -> int:
             # Consult all guards BEFORE the Telegram POST. If any hard-
             # blocking check FAILs, send a plain-text alert INSTEAD of
             # the defective XLSX. Operator never sees a broken report.
+            _build_only_mode = bool(getattr(args, "build_only", False))
             try:
                 from backend.delivery.delivery_gate import (
                     decide as _gate_decide, emit as _gate_emit,
@@ -2669,15 +2717,23 @@ def main() -> int:
                     print(f"[gate:{mkt_key}] 🚫 BLOCKED · {len(_gd.blocking_codes)} check(s) fail")
                     for _r in _gd.reasons[:5]:
                         print(f"  · {_r[:140]}")
-                    # Send text alert instead of XLSX · operator knows why
-                    _alert = _gate_blocked(_gd)
-                    _ok_alert, _msg_alert = _send_markdown(token, chat_id, _alert)
-                    print(f"[gate:{mkt_key}] alert sent={_ok_alert}")
-                    return False    # non-zero exit · CI logs turn red
+                    if not _build_only_mode:
+                        _alert = _gate_blocked(_gd)
+                        _ok_alert, _msg_alert = _send_markdown(token, chat_id, _alert)
+                        print(f"[gate:{mkt_key}] alert sent={_ok_alert}")
+                        return False
+                    else:
+                        print(f"[gate:{mkt_key}] BUILD-ONLY mode · no Telegram alert · exiting with BLOCK verdict")
+                        return False
                 if _gd.override_used:
                     print(f"[gate:{mkt_key}] ⚠️ OVERRIDE ACTIVE · shipping despite {len(_gd.blocking_codes)} fails")
             except Exception as _e:
                 print(f"[gate:{mkt_key}] gate check errored · {type(_e).__name__}: {_e} · shipping anyway (fail-open)")
+
+            # BUILD-ONLY · XLSX is written · skip Telegram POST · return OK
+            if _build_only_mode:
+                print(f"[build-only:{mkt_key}] XLSX built at {out_path.name} · Telegram skipped")
+                return True
 
             # Send · gate passed
             # 2026-08-10 · operator: "simple note with date · why note so big"
