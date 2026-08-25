@@ -1,6 +1,6 @@
 # AEGIS Attribution Report
 
-**Generated:** 2026-08-25T05:28:41+00:00
+**Generated:** 2026-08-25T15:13:35+00:00
 **Source:** `reports/research/outcome_dataset.parquet`
 **Positions:** 50 total · 27 closed · 23 open
 
@@ -33,11 +33,11 @@
 | Basic Materials | 4 | 75.0% | 1.295% | 0.805% | 20.19 | OBS |
 | Consumer Cyclical | 4 | 25.0% | 0.73% | -0.255% | 2.03 | OBS |
 | Industrials | 1 | 100.0% | 0.45% | 0.45% | None | OBS |
-| Unclassified | 5 | 60.0% | 0.318% | 0.16% | 2.69 | HYP |
+| Healthcare | 4 | 50.0% | -0.018% | 0.025% | 0.94 | OBS |
 | Real Estate | 1 | 0.0% | -0.03% | -0.03% | 0.0 | OBS |
-| Healthcare | 2 | 0.0% | -0.595% | -0.595% | 0.0 | OBS |
-| Financial Services | 3 | 66.7% | -1.16% | 0.99% | 0.47 | OBS |
+| Financial Services | 5 | 60.0% | -0.602% | 0.99% | 0.6 | HYP |
 | Energy | 1 | 0.0% | -1.36% | -1.36% | 0.0 | OBS |
+| Communication Services | 1 | 0.0% | 0.0% | 0.0% | None | OBS |
 
 ### initial_investability_verdict
 | Value | N | Win% | Avg P&L | Median | Profit Factor | Tier |
@@ -63,11 +63,11 @@
 | R2 x Basic Materials | 4 | 75.0% | 1.295% | 0.805% | OBS |
 | R2 x Consumer Cyclical | 4 | 25.0% | 0.73% | -0.255% | OBS |
 | R2 x Industrials | 1 | 100.0% | 0.45% | 0.45% | OBS |
-| R2 x Unclassified | 5 | 60.0% | 0.318% | 0.16% | HYP |
+| R2 x Healthcare | 4 | 50.0% | -0.018% | 0.025% | OBS |
 | R2 x Real Estate | 1 | 0.0% | -0.03% | -0.03% | OBS |
-| R2 x Healthcare | 2 | 0.0% | -0.595% | -0.595% | OBS |
-| R2 x Financial Services | 3 | 66.7% | -1.16% | 0.99% | OBS |
+| R2 x Financial Services | 5 | 60.0% | -0.602% | 0.99% | HYP |
 | R2 x Energy | 1 | 0.0% | -1.36% | -1.36% | OBS |
+| R2 x Communication Services | 1 | 0.0% | 0.0% | 0.0% | OBS |
 
 ### cap x sector
 | Combination | N | Win% | Avg P&L | Median | Tier |
@@ -79,13 +79,13 @@
 | MidCap x Utilities | 2 | 50.0% | 1.49% | 1.49% | OBS |
 | MidCap x Basic Materials | 4 | 75.0% | 1.295% | 0.805% | OBS |
 | MidCap x Industrials | 1 | 100.0% | 0.45% | 0.45% | OBS |
-| MidCap x Unclassified | 4 | 50.0% | 0.357% | 0.48% | OBS |
-| LargeCap x Unclassified | 1 | 100.0% | 0.16% | 0.16% | OBS |
+| LargeCap x Healthcare | 1 | 100.0% | 0.16% | 0.16% | OBS |
 | MidCap x Real Estate | 1 | 0.0% | -0.03% | -0.03% | OBS |
-| MidCap x Healthcare | 2 | 0.0% | -0.595% | -0.595% | OBS |
+| MidCap x Healthcare | 3 | 33.3% | -0.077% | -0.11% | OBS |
 | MidCap x Consumer Cyclical | 3 | 0.0% | -0.947% | -0.26% | OBS |
+| MidCap x Financial Services | 4 | 50.0% | -1.27% | 0.025% | OBS |
 | MidCap x Energy | 1 | 0.0% | -1.36% | -1.36% | OBS |
-| MidCap x Financial Services | 2 | 50.0% | -2.775% | -2.775% | OBS |
+| MidCap x Communication Services | 1 | 0.0% | 0.0% | 0.0% | OBS |
 
 ### runner x cap x sector
 | Combination | N | Win% | Avg P&L | Median | Tier |
@@ -97,13 +97,13 @@
 | R2 x MidCap x Utilities | 2 | 50.0% | 1.49% | 1.49% | OBS |
 | R2 x MidCap x Basic Materials | 4 | 75.0% | 1.295% | 0.805% | OBS |
 | R2 x MidCap x Industrials | 1 | 100.0% | 0.45% | 0.45% | OBS |
-| R2 x MidCap x Unclassified | 4 | 50.0% | 0.357% | 0.48% | OBS |
-| R2 x LargeCap x Unclassified | 1 | 100.0% | 0.16% | 0.16% | OBS |
+| R2 x LargeCap x Healthcare | 1 | 100.0% | 0.16% | 0.16% | OBS |
 | R2 x MidCap x Real Estate | 1 | 0.0% | -0.03% | -0.03% | OBS |
-| R2 x MidCap x Healthcare | 2 | 0.0% | -0.595% | -0.595% | OBS |
+| R2 x MidCap x Healthcare | 3 | 33.3% | -0.077% | -0.11% | OBS |
 | R2 x MidCap x Consumer Cyclical | 3 | 0.0% | -0.947% | -0.26% | OBS |
+| R2 x MidCap x Financial Services | 4 | 50.0% | -1.27% | 0.025% | OBS |
 | R2 x MidCap x Energy | 1 | 0.0% | -1.36% | -1.36% | OBS |
-| R2 x MidCap x Financial Services | 2 | 50.0% | -2.775% | -2.775% | OBS |
+| R2 x MidCap x Communication Services | 1 | 0.0% | 0.0% | 0.0% | OBS |
 
 ### runner x initial_investability_verdict
 | Combination | N | Win% | Avg P&L | Median | Tier |
@@ -137,8 +137,9 @@
 | Financial Services x 🏆 QUALITY | 1 | 100.0% | 2.07% | 2.07% | OBS |
 | Utilities x ⚠ MARGINAL | 2 | 50.0% | 1.49% | 1.49% | OBS |
 | Basic Materials x ✓ OK | 1 | 100.0% | 1.01% | 1.01% | OBS |
+| Healthcare x  | 2 | 100.0% | 0.56% | 0.56% | OBS |
 | Industrials x ⚠ MARGINAL | 1 | 100.0% | 0.45% | 0.45% | OBS |
-| Unclassified x  | 5 | 60.0% | 0.318% | 0.16% | HYP |
+| Financial Services x  | 2 | 50.0% | 0.235% | 0.235% | OBS |
 | Basic Materials x 🏆 QUALITY | 2 | 50.0% | 0.165% | 0.165% | OBS |
 | Real Estate x ⚠ MARGINAL | 1 | 0.0% | -0.03% | -0.03% | OBS |
 | Consumer Cyclical x ⚠ MARGINAL | 2 | 0.0% | -0.255% | -0.255% | OBS |
@@ -146,6 +147,7 @@
 | Energy x ⚠ MARGINAL | 1 | 0.0% | -1.36% | -1.36% | OBS |
 | Consumer Cyclical x ✗ AVOID | 1 | 0.0% | -2.33% | -2.33% | OBS |
 | Financial Services x ✓ OK | 2 | 50.0% | -2.775% | -2.775% | OBS |
+| Communication Services x  | 1 | 0.0% | 0.0% | 0.0% | OBS |
 
 ## Winner profile (top 5 · Runner × Cap × Sector)
 | # | Runner | Cap | Sector | N | Win% | Avg P&L | Tier |
@@ -159,10 +161,10 @@
 ## Failure profile (bottom 5 · Runner × Cap × Sector)
 | # | Runner | Cap | Sector | N | Win% | Avg P&L | Tier |
 |---|---|---|---|---|---|---|---|
-| 1 | R2 | MidCap | Financial Services | 2 | 50.0% | -2.77% | OBS |
-| 2 | R2 | MidCap | Energy | 1 | 0.0% | -1.36% | OBS |
+| 1 | R2 | MidCap | Energy | 1 | 0.0% | -1.36% | OBS |
+| 2 | R2 | MidCap | Financial Services | 4 | 50.0% | -1.27% | OBS |
 | 3 | R2 | MidCap | Consumer Cyclical | 3 | 0.0% | -0.95% | OBS |
-| 4 | R2 | MidCap | Healthcare | 2 | 0.0% | -0.6% | OBS |
+| 4 | R2 | MidCap | Healthcare | 3 | 33.3% | -0.08% | OBS |
 | 5 | R2 | MidCap | Real Estate | 1 | 0.0% | -0.03% | OBS |
 
 ---
