@@ -213,16 +213,28 @@ def compute(root: Path, market: str, asof: str) -> WaveRegressionReport:
     # ─────────────────────────────────────────────────────────
 
     # A11 · Classifier + Decision unit tests pass (LUPIN + vocab v5.0)
-    _test_ok = _run_pytest_module(root,
-                                                "backend/tests/test_decision_consistency.py")
-    _v5_ok = _run_pytest_module(root,
-                                          "backend/tests/test_vocab_v5_lupin.py")
-    if _test_ok and _v5_ok:
-        rep.add("A11", "Classifier + vocab v5.0 unit tests (Part 28)", "PASS",
-                    "21 legacy tests + 7 vocab-v5.0 tests all pass")
+    # 2026-08-25 · distinguish "tests unavailable" (WARN · pytest missing)
+    # from "tests actually failed" (FAIL · classifier regression).
+    def _pytest_available() -> bool:
+        try:
+            import pytest as _p    # noqa: F401
+            return True
+        except ImportError:
+            return False
+    if not _pytest_available():
+        rep.add("A11", "Classifier + vocab v5.0 unit tests (Part 28)", "WARN",
+                    "pytest not installed on runner · install pytest to enable")
     else:
-        rep.add("A11", "Classifier + vocab v5.0 unit tests (Part 28)", "FAIL",
-                    f"test_decision_consistency={_test_ok} · test_vocab_v5_lupin={_v5_ok}")
+        _test_ok = _run_pytest_module(root,
+                                                    "backend/tests/test_decision_consistency.py")
+        _v5_ok = _run_pytest_module(root,
+                                              "backend/tests/test_vocab_v5_lupin.py")
+        if _test_ok and _v5_ok:
+            rep.add("A11", "Classifier + vocab v5.0 unit tests (Part 28)", "PASS",
+                        "21 legacy tests + 7 vocab-v5.0 tests all pass")
+        else:
+            rep.add("A11", "Classifier + vocab v5.0 unit tests (Part 28)", "FAIL",
+                        f"test_decision_consistency={_test_ok} · test_vocab_v5_lupin={_v5_ok}")
 
     # A12 · Alerts→bucket→Decision chain integrity · sampled from live rows
     _bad_alert_bucket = _sample_alert_bucket_integrity(root, market)

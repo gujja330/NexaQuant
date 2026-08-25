@@ -79,8 +79,10 @@ jobs:
           python -m pip install --upgrade pip
           # 2026-08-24 · smartapi-python + pyotp added for Angel SmartAPI
           # fallback in refresh_data.py (rescues yfinance 404 tickers).
+          # 2026-08-25 · pytest added so acceptance-gate A11 can run
+          # test_decision_consistency + test_vocab_v5_lupin on CI.
           pip install -r requirements-dashboard.txt gspread google-auth yfinance pyyaml \
-                        smartapi-python pyotp
+                        smartapi-python pyotp pytest
 
       - name: Refresh market data (yfinance primary · Angel fallback for 404s)
         if: steps.guard.outputs.run == 'true'
