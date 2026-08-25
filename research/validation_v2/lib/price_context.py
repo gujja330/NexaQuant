@@ -21,7 +21,10 @@ RAW_DIR = _ROOT / "data" / "raw" / "india"
 
 
 def _load_prices(ticker: str) -> pd.DataFrame:
-    p = RAW_DIR / f"{ticker}_D1.parquet"
+    # 2026-08-25 · bug fix · recommendations use "GNFC.NS" but parquet
+    # files are "GNFC_D1.parquet" (bare). Strip the suffix.
+    bare = ticker.upper().replace(".NS", "").replace(".BO", "").strip()
+    p = RAW_DIR / f"{bare}_D1.parquet"
     if not p.exists():
         return pd.DataFrame()
     try:
