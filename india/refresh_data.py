@@ -24,8 +24,32 @@ SKIP = {"fundamentals"}
 CHUNK = 40
 
 
+def _load_yf_aliases() -> dict:
+    """2026-08-25 · aliases from configs/ticker_aliases.yaml so we can
+    translate legacy universe entries (MM.NS) to their current yfinance
+    symbols (M&M.NS) WITHOUT touching MON001-sealed india/data_nse.py.
+    Keeps scientific integrity intact while still pulling live data."""
+    p = ROOT / "configs" / "ticker_aliases.yaml"
+    if not p.exists(): return {}
+    try:
+        import yaml
+        cfg = yaml.safe_load(p.read_text(encoding="utf-8")) or {}
+        return {k.upper(): v for k, v in (cfg.get("india") or {}).items()}
+    except Exception:
+        return {}
+
+
+_YF_ALIASES = _load_yf_aliases()
+
+
 def ticker_for(sym):
-    return NON_STOCK.get(sym, f"{sym}.NS")
+    """Universe symbol → yfinance download symbol. Applies alias
+    translation for legacy names (MM → M&M etc.). Non-stock indices
+    keep their special mapping."""
+    if sym in NON_STOCK:
+        return NON_STOCK[sym]
+    yf_sym = _YF_ALIASES.get(sym.upper(), sym)
+    return f"{yf_sym}.NS"
 
 
 def _to_schema(df):
