@@ -337,7 +337,7 @@ def compute(root: Path, market: str, asof: str) -> WaveRegressionReport:
             _jargon = 0
             if "Exit History (90d)" in wb.sheetnames:
                 _ws = wb["Exit History (90d)"]
-                for _row in _ws.iter_rows(min_row=4, values_only=True):
+                for _row in _ws.iter_rows(min_row=6, values_only=True):  # 2026-08-25 · layout · header row5 · data row6+
                     _reason = str(_row[-1] or "")
                     if "→" in _reason and ("alpha" in _reason.lower() or ".NS" in _reason):
                         _jargon += 1
@@ -353,6 +353,9 @@ def compute(root: Path, market: str, asof: str) -> WaveRegressionReport:
                     f"could not verify · {type(e).__name__}: {e}")
 
     # A19 · Exit History sheet has Sector column populated
+    # 2026-08-25 · LAYOUT-AWARE · sender moved header from row 3 → row 5
+    # for the clean-layout redesign · search all rows for the header
+    # instead of hard-coding row 3.
     try:
         from openpyxl import load_workbook
         xp = root / "reports" / "telegram" / f"aegis_history_{market}.xlsx"
@@ -361,8 +364,14 @@ def compute(root: Path, market: str, asof: str) -> WaveRegressionReport:
             _has_sector = False
             if "Exit History (90d)" in wb.sheetnames:
                 _ws = wb["Exit History (90d)"]
-                _hdr_row = [c.value for c in _ws[3]]
-                _has_sector = "Sector" in _hdr_row
+                # Search first 10 rows for a header row · one that
+                # contains "Stock" AND "Sector" together identifies it.
+                for _rr in range(1, min(11, _ws.max_row + 1)):
+                    _hdr_row = [c.value for c in _ws[_rr]]
+                    if "Stock" in _hdr_row and "Sector" in _hdr_row:
+                        _has_sector = True; break
+                    elif "Sector" in _hdr_row:
+                        _has_sector = True; break
             wb.close()
             if _has_sector:
                 rep.add("A19", "Exit History has Sector column", "PASS",
@@ -421,7 +430,7 @@ def compute(root: Path, market: str, asof: str) -> WaveRegressionReport:
                         if _tk and len(_tk) < 20:   # ticker sanity
                             _portfolio_tks.add(_tk.upper())
             if "Exit History (90d)" in wb.sheetnames:
-                for _row in wb["Exit History (90d)"].iter_rows(min_row=4, values_only=True):
+                for _row in wb["Exit History (90d)"].iter_rows(min_row=6, values_only=True):  # layout-aware · row6+
                     _v = _row[0] if _row else None
                     if _v:
                         _exit_tks.add(str(_v).upper().strip())
@@ -480,7 +489,7 @@ def compute(root: Path, market: str, asof: str) -> WaveRegressionReport:
             if xp.exists():
                 _wb2 = _lw(xp, read_only=True)
                 if "Exit History (90d)" in _wb2.sheetnames:
-                    for _row in _wb2["Exit History (90d)"].iter_rows(min_row=4, values_only=True):
+                    for _row in _wb2["Exit History (90d)"].iter_rows(min_row=6, values_only=True):  # layout-aware
                         if _row and _row[0]:
                             _in_eh.add(str(_row[0]).upper().strip())
                 _wb2.close()
