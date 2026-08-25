@@ -3038,6 +3038,75 @@ def main() -> int:
                 print(f"[post_build_regression:{mkt_key}] recompute skipped · "
                       f"{type(_e_pbr).__name__}: {_e_pbr}")
 
+            # ─────────────────────────────────────────────────────────
+            # 2026-08-25 · LOSS ATTRIBUTION v2 + AVOIDANCE GUARD · CEO
+            # directive "walk forward validation what it learnt from exit
+            # data / any strategy on loss stocks / sector or cap analysis
+            # to overcome losses / can u explore and build and push into
+            # testing for future data and active portfolio in losses".
+            #
+            # Runs AFTER XLSX save · reads Registry + parquet + investability
+            # · emits reports/research/loss_patterns_{mkt}.json (post-mortem
+            # · 6-category classifier · sector + cap-size rollup) +
+            # reports/context/loss_avoidance_{mkt}.json (forward-looking
+            # · per-active-loser HOLD/TIGHTEN_STOP/EXIT/REVIEW verdict).
+            # Non-blocking · never mutates recs · operator promotes findings.
+            # ─────────────────────────────────────────────────────────
+            try:
+                from backend.research import loss_attribution_v2 as _la
+                _la_rep = _la.compute(_ROOT, mkt_key.lower())
+                _la.emit(_ROOT, _la_rep)
+                _la.emit_markdown(_ROOT, _la_rep)
+                print(f"[loss_attribution:{mkt_key}] "
+                      f"{_la.summary_line(_la_rep)}")
+            except Exception as _e_la:
+                print(f"[loss_attribution:{mkt_key}] skipped · "
+                      f"{type(_e_la).__name__}: {_e_la}")
+
+            try:
+                from backend.research import loss_avoidance_guard as _lag
+                # Build active positions from keep_rows · sender's canonical
+                # ACTIVE set (post-canonical-collapse · minus EXITs)
+                _lag_positions: list = []
+                _seen_tk: set = set()
+                for _r_lag in keep_rows:
+                    _st_lag = str(_r_lag[c_st-1].value or "").upper()
+                    if _st_lag == "EXIT": continue
+                    _tk_lag = str(_r_lag[c_tk-1].value or "")
+                    if not _tk_lag or _tk_lag in _seen_tk: continue
+                    _e_lag = _r_lag[c_entry-1].value if c_entry else None
+                    _c_lag = _r_lag[c_current-1].value if c_current else None
+                    _stop_lag = _r_lag[c_stop-1].value if c_stop else None
+                    _rec_lag = (str(_r_lag[_c_rec_date-1].value or "")[:10]
+                                if _c_rec_date else "")
+                    if not (isinstance(_e_lag, (int, float)) and _e_lag > 0
+                            and isinstance(_c_lag, (int, float)) and _c_lag > 0):
+                        continue
+                    _seen_tk.add(_tk_lag)
+                    _lag_positions.append({
+                        "ticker": _tk_lag,
+                        "entry_date": _rec_lag,
+                        "entry_price": float(_e_lag),
+                        "current_price": float(_c_lag),
+                        "stop_price": (float(_stop_lag)
+                                       if isinstance(_stop_lag, (int, float))
+                                       else None),
+                    })
+                _lag_rep = _lag.compute(_ROOT, mkt_key.lower(),
+                                        _lag_positions)
+                _lag.emit(_ROOT, _lag_rep)
+                print(f"[loss_avoidance:{mkt_key}] "
+                      f"{_lag.summary_line(_lag_rep)}")
+                # Surface EXIT-verdict tickers in log for immediate attention
+                for _v_lag in _lag_rep.verdicts:
+                    if _v_lag.get("verdict") == "EXIT":
+                        print(f"  ⚠ EXIT verdict · {_v_lag['ticker']} · "
+                              f"pnl {_v_lag['pnl_pct']:+.2f}% · "
+                              f"{', '.join(_v_lag.get('signals_fired', [])[:2])}")
+            except Exception as _e_lag_o:
+                print(f"[loss_avoidance:{mkt_key}] skipped · "
+                      f"{type(_e_lag_o).__name__}: {_e_lag_o}")
+
             # 2026-08-25 · PRICE INTEGRITY GUARD · CEO directive:
             # "check if ur entry price what u r offering and exit price
             # are inlined in data and date and on that day with history
