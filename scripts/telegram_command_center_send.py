@@ -485,10 +485,36 @@ def main() -> int:
                                 if _sector_cache_path.exists() else {"india": {}, "usa": {}}
 
         def _sector_for(ticker: str, market: str) -> str:
-            """Look up sector · cached · fallback to '—'."""
-            short = str(ticker or "").replace(".NS", "").replace(".BO", "").upper()
-            bucket = _sector_cache.get(market.lower(), {})
-            return bucket.get(short) or bucket.get(str(ticker).upper()) or "—"
+            """Look up sector · cached · auto-fetch from yfinance on miss ·
+            persist for next run. Operator "sector missing" · guaranteed
+            self-healing: any unknown ticker gets fetched once then cached."""
+            short = str(ticker or "").replace(".NS", "") \
+                                     .replace(".BO", "").upper()
+            mkt = market.lower()
+            bucket = _sector_cache.setdefault(mkt, {})
+            cached = bucket.get(short) or bucket.get(str(ticker).upper())
+            if cached: return cached
+            # AUTO-FETCH · one-shot yfinance call · cache result (even
+            # if it fails · so we don't retry every send for delisted).
+            try:
+                import yfinance as _yf
+                _sym = short + (".NS" if mkt == "india" else "")
+                _info = _yf.Ticker(_sym).info or {}
+                _sec = str(_info.get("sector") or "").strip()
+                if _sec:
+                    bucket[short] = _sec
+                    try:
+                        _sector_cache_path.write_text(
+                            json.dumps(_sector_cache, indent=2,
+                                       ensure_ascii=False),
+                            encoding="utf-8")
+                    except Exception:
+                        pass
+                    return _sec
+            except Exception:
+                pass
+            # Miss stays missing this run · next-day seeding job can fix
+            return "—"
 
         # Action explanations for the Action column (operator: "actions needed
         # short explanation · enter buy zone means to buy on that days?")
@@ -2735,17 +2761,21 @@ def main() -> int:
                 if _row_fill_e is not None:
                     for _c in range(1, len(_exit_hdr) + 1):
                         exit_ws.cell(_rowptr, _c).fill = _row_fill_e
-                else:
-                    # No P&L color · apply Month color band for zebra-scan
-                    _cur_month = str(_exit_dt_e or _dt_key)[:7]
-                    if _cur_month != _last_month:
-                        _band_toggle = not _band_toggle
-                        _last_month = _cur_month
-                    if _band_toggle:
-                        _band_fill = _PF(start_color="F2F2F2",
-                                         end_color="F2F2F2", fill_type="solid")
-                        for _c in range(1, len(_exit_hdr) + 1):
-                            exit_ws.cell(_rowptr, _c).fill = _band_fill
+                # 2026-08-25 v2 · MONTH COLOR BAND on ALL rows (not just
+                # zero-P&L). Operator "month colors missing". The Month
+                # CELL gets its own distinctive fill · alternates per
+                # month change so operator can scan monthly cohorts even
+                # when the row background is green/red from P&L color.
+                _cur_month = str(_exit_dt_e or _dt_key)[:7]
+                if _cur_month != _last_month:
+                    _band_toggle = not _band_toggle
+                    _last_month = _cur_month
+                _month_fill_hex = "BDD7EE" if _band_toggle else "FFF2CC"
+                _month_cell = exit_ws.cell(_rowptr, 3)   # Month is col 3
+                _month_cell.fill = _PF(start_color=_month_fill_hex,
+                                       end_color=_month_fill_hex,
+                                       fill_type="solid")
+                _month_cell.font = _Font(bold=True, size=10, color="1F4E78")
                 _rowptr += 1
             if not _exit_rows:
                 exit_ws.merge_cells(f"A{_EXIT_HDR_ROW+1}:M{_EXIT_HDR_ROW+1}")
