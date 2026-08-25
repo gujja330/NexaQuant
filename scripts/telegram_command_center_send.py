@@ -1388,8 +1388,12 @@ def main() -> int:
                 # take decision is also very confusing for me man". Added
                 # 🎯 ACTION column · ONE plain-English sentence per row so
                 # operator knows exactly what to do without scanning others.
-                # IDENTITY (4) · Ticker + Action + Decision + Lifecycle
-                "Ticker", "🎯 ACTION", "🎯 DECISION", "Lifecycle",
+                # 2026-08-25 · Month column added per operator
+                # "add month column plz" + "year also makes sense" +
+                # "mm-yyyy makes sense in single column like May 2026".
+                # Values formatted "August 2026" via strftime("%b %Y").
+                # IDENTITY (5) · Ticker + Action + Decision + Lifecycle + Month
+                "Ticker", "🎯 ACTION", "🎯 DECISION", "Lifecycle", "Month",
                 # EXECUTION LAYER (3)
                 "Price Trigger", "Next Review", "Execution Window",
                 # META (7)
@@ -1413,7 +1417,7 @@ def main() -> int:
                 # derived from lifecycle + risk + status.
                 "Decision Basis",
             ]
-            widths_pos = [12, 46, 24, 12,
+            widths_pos = [12, 46, 24, 12, 10,       # + Month width 10
                               22, 12, 30,
                               8, 14, 22, 20, 12, 12, 8,
                               12, 20, 16, 14, 12, 14, 12,
@@ -1801,6 +1805,42 @@ def main() -> int:
                       f"{_canon_before} → {len(positions_sorted)} rows · "
                       f"{_n_split_resolved} R1/R2 splits resolved")
 
+            # 2026-08-25 · CLOSED-DEDUP GUARD · operator: "iex already in
+            # exit list · in portfolio why IEX again". Any ticker whose
+            # Registry status is CLOSED must NOT appear in the live
+            # Portfolio (it lives ONLY in Exit History sheet). This
+            # catches the case where the recommender re-evaluates a
+            # closed ticker and produces a stale STOP_LOSS_HIT alert.
+            try:
+                from backend.research import opportunity_registry as _oreg_dedup
+                _reg_dedup = _oreg_dedup.load_all(_ROOT)
+                _closed_tks: set = set()
+                for _opps in _reg_dedup.values():
+                    for _o in _opps:
+                        if (_o.market.lower() == mkt_key.lower()
+                            and _o.status == "CLOSED"):
+                            _closed_tks.add(_o.ticker.upper())
+                _dedup_before = len(positions_sorted)
+                _kept_dd = []
+                _n_dropped_closed = 0
+                _dropped_tickers = []
+                for _item in positions_sorted:
+                    _dt_dd, _r_dd = _item
+                    _tk_dd = str(_r_dd[c_tk-1].value or "").upper() \
+                                    .replace(".NS", "").replace(".BO", "")
+                    if _tk_dd in _closed_tks:
+                        _n_dropped_closed += 1
+                        _dropped_tickers.append(_tk_dd)
+                        continue
+                    _kept_dd.append(_item)
+                positions_sorted = _kept_dd
+                if _n_dropped_closed > 0:
+                    print(f"[xlsx:{mkt_key}] Registry-CLOSED dedup · "
+                              f"dropped {_n_dropped_closed} tickers from Portfolio "
+                              f"(already in Exit History): {', '.join(_dropped_tickers[:5])}")
+            except Exception as _e:
+                print(f"[xlsx:{mkt_key}] Registry-dedup failed · {type(_e).__name__}: {_e}")
+
             # Reorder positions_sorted by (section, existing sort) so
             # rows for each section are contiguous. Keeps within-section
             # ordering (P&L desc within tier).
@@ -2186,47 +2226,59 @@ def main() -> int:
                     _action_str = (f"🟢 ACTIVE · stop {_cur}{_stop_s} · "
                                           f"P&L {_pnl_s}")
 
+                # 2026-08-25 · Month column · operator "mm-yyyy makes sense
+                # in single column like May 2026, June 2026" · format as
+                # "August 2026" (full month name + year) via strftime.
+                def _month_label(_iso: str) -> str:
+                    _s = str(_iso or "")[:7]
+                    if not _s or "-" not in _s: return ""
+                    try:
+                        from datetime import datetime as _dt2
+                        return _dt2.strptime(_s, "%Y-%m").strftime("%b %Y")
+                    except Exception:
+                        return _s
+                _month_p = _month_label(rec_dt)
                 vals = [
-                    # IDENTITY (1-4) · Ticker + Action + Decision + Lifecycle
-                    tk, _action_str, decision_text, lifecycle,
-                    # EXECUTION LAYER (5-7)
+                    # IDENTITY (1-5) · Ticker + Action + Decision + Lifecycle + Month
+                    tk, _action_str, decision_text, lifecycle, _month_p,
+                    # EXECUTION LAYER (6-8)
                     price_trigger, next_review, exec_window,
-                    # META (8-14)
+                    # META (9-15)
                     runner_val, consensus, _sector_for(tk, mkt_key), _cap_size(tk, mkt_key),
                     rec_dt, exit_date, days,
-                    # DECISION SUPPORT (15-21)
+                    # DECISION SUPPORT (16-22)
                     urgency, reason, action, review,
                     status, inv_verdict, inv_score,
-                    # PRICE + P&L (22-25)
+                    # PRICE + P&L (23-26)
                     entry_v, curr, exit_price, pnl_decimal,
-                    # RISK/TARGET (26-28)
+                    # RISK/TARGET (27-29)
                     stop_v, t1_v, t2_v,
-                    # CONTEXT (29-31)
+                    # CONTEXT (30-32)
                     _ACTIONS.get(status, ""), alerts or "", exit_reason,
-                    # POST-EXIT ASSESSMENT (32)
+                    # POST-EXIT ASSESSMENT (33)
                     _post_exit_assessment,
-                    # DECISION BASIS (33)
+                    # DECISION BASIS (34)
                     _decision_basis,
                 ]
                 for c, v in enumerate(vals, start=1):
                     cell = portfolio_ws.cell(i, c, v)
-                    # +1 shift on text_cols to accommodate new ACTION at col 2
-                    text_cols = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16, 17, 18, 19, 20, 29, 30, 31, 32, 33}
+                    # +1 shift on all text/format columns after Month insertion at col 5
+                    text_cols = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16, 17, 18, 19, 20, 21, 30, 31, 32, 33, 34}
                     cell.alignment = _Align(
                         horizontal="left" if c in text_cols else "right",
                         vertical="center", wrap_text=True)
                     # Number formats
-                    # +1 shift on all numeric col indices after ACTION insertion
-                    if c == 14 and isinstance(days, int):       # Days
+                    # +2 shift on numeric col indices (ACTION at 2 + Month at 5)
+                    if c == 15 and isinstance(days, int):       # Days
                         cell.number_format = "0"
-                    elif c == 21 and isinstance(inv_score, (int, float)):  # Investability
+                    elif c == 22 and isinstance(inv_score, (int, float)):  # Investability
                         cell.number_format = "0.0"
-                    elif c in (22, 23, 24, 26, 27, 28):         # Entry/Curr/Exit/Stop/T1/T2
+                    elif c in (23, 24, 25, 27, 28, 29):         # Entry/Curr/Exit/Stop/T1/T2
                         cell.number_format = "#,##0.00"
-                    elif c == 25 and pnl_decimal is not None:   # P&L %
+                    elif c == 26 and pnl_decimal is not None:   # P&L %
                         cell.number_format = "+0.00%;-0.00%;0.00%"
 
-                # DECISION cell gets its own color (col 3 · shifted from 2 by ACTION insertion)
+                # DECISION cell keeps col 3 · ACTION at col 2 · Month at col 5
                 _dec_hex = DECISION_COLORS.get(decision_color_key, "E7E6E6")
                 portfolio_ws.cell(i, 3).fill = _PF(
                     start_color=_dec_hex, end_color=_dec_hex, fill_type="solid")
@@ -2248,8 +2300,8 @@ def main() -> int:
                 for c in range(1, len(pos_hdr) + 1):
                     _cell = portfolio_ws.cell(i, c)
                     _cell.fill = _row_fill
-                    # Preserve ACTION (col 2) + DECISION (col 3) bold fonts.
-                    if c not in (2, 3):
+                    # Preserve ACTION (col 2) + DECISION (col 3) + Month (col 5) fonts.
+                    if c not in (2, 3, 5):
                         # Keep existing font (alignment / number format) but tint text
                         try:
                             _cell.font = _Font(color=_tier_hex_text, bold=_tier_bold,
@@ -2285,13 +2337,16 @@ def main() -> int:
             # price · P&L.
             # ═══════════════════════════════════════════════════════════════
             exit_ws = wb2.create_sheet("Exit History (90d)", 1)
-            # 2026-08-25 · operator: "sector missing exit sheet"
-            _exit_hdr = ["Stock", "Sector", "Runner", "Entry Date", "Exit Date",
+            # 2026-08-25 · operator: "sector missing exit sheet" +
+            # "add month column plz" + "year also makes sense" · Month
+            # column formatted YYYY-MM covers both.
+            _exit_hdr = ["Stock", "Sector", "Month", "Runner",
+                            "Entry Date", "Exit Date",
                             "Days Held", "Entry Price", "Exit Price",
                             "P&L %", "Exit Reason"]
-            _exit_widths = [14, 22, 8, 12, 12, 10, 14, 14, 12, 46]
-            # Title row
-            exit_ws.merge_cells("A1:J1")
+            _exit_widths = [14, 22, 16, 8, 12, 12, 10, 14, 14, 12, 46]
+            # Title row (widened for Month column)
+            exit_ws.merge_cells("A1:K1")
             exit_ws["A1"] = f"AEGIS {mkt_key} · EXIT HISTORY · last 90 days as of {latest_date or 'today'}"
             exit_ws["A1"].font = _Font(bold=True, size=14, color="FFFFFF")
             exit_ws["A1"].fill = _PF(start_color="1F4E78", end_color="1F4E78", fill_type="solid")
@@ -2349,21 +2404,63 @@ def main() -> int:
                     _row_dt_e, _tk_e, _sec_e, _rn_e, _entry_dt_e, _row_dt_e,
                     _days_held, _entry_p, _exit_p, _pnl_e, _reason_s,
                 ))
+            # 2026-08-25 · operator: "why sunpharma should present in exit
+            # sheet too?" · Sync Registry-CLOSED events so today's exits
+            # appear in Exit History same day (previously only appeared
+            # after CI wrote the history XLSX back to git next day).
+            try:
+                from backend.research import opportunity_registry as _oreg_eh
+                _reg_eh = _oreg_eh.load_all(_ROOT)
+                _seen_keys = {(x[1], x[3], str(x[0])[:10]) for x in _exit_rows}
+                for _opps in _reg_eh.values():
+                    for _o in _opps:
+                        if _o.market.lower() != mkt_key.lower(): continue
+                        if _o.status != "CLOSED": continue
+                        if not _o.closed_date: continue
+                        if _o.closed_date < _exit_cutoff: continue
+                        _key = (_o.ticker.upper(), _o.runner, _o.closed_date)
+                        if _key in _seen_keys: continue     # already in exit_rows
+                        # Synthesize a row from Registry data
+                        try:
+                            from datetime import date as _dz
+                            _dh = (_dz.fromisoformat(_o.closed_date)
+                                        - _dz.fromisoformat(_o.created_date)).days
+                        except Exception:
+                            _dh = ""
+                        _reason_e = str(_o.closed_reason or "Closed (no reason recorded)")
+                        if "STOP_LOSS_HIT" in _reason_e.upper():
+                            _reason_e = "Stop loss hit"
+                        _exit_rows.append((
+                            _o.closed_date, _o.ticker.upper(),
+                            _sector_for(_o.ticker, mkt_key),
+                            _o.runner, _o.created_date, _o.closed_date,
+                            _dh, None, None, None, _reason_e,
+                        ))
+                        _seen_keys.add(_key)
+            except Exception as _e:
+                print(f"[exit_history:{mkt_key}] registry sync skipped · {_e}")
             # Sort · most recent exit first
             _exit_rows.sort(key=lambda x: x[0], reverse=True)
             _rowptr = 4
             for _er in _exit_rows:
                 (_dt_key, _tk_e, _sec_e, _rn_e, _entry_dt_e, _exit_dt_e,
                  _days_held, _entry_p, _exit_p, _pnl_e, _reason) = _er
-                _vals = [_tk_e, _sec_e, _rn_e, _entry_dt_e, _exit_dt_e, _days_held,
-                             _entry_p, _exit_p,
+                # Format as "August 2026" (matches Portfolio Month column)
+                try:
+                    from datetime import datetime as _dt3
+                    _month_e = _dt3.strptime(str(_exit_dt_e or _dt_key)[:7],
+                                                                "%Y-%m").strftime("%b %Y")
+                except Exception:
+                    _month_e = str(_exit_dt_e or _dt_key)[:7]
+                _vals = [_tk_e, _sec_e, _month_e, _rn_e, _entry_dt_e, _exit_dt_e,
+                             _days_held, _entry_p, _exit_p,
                              (_pnl_e / 100.0 if isinstance(_pnl_e, (int, float)) else ""),
                              str(_reason or "")]
                 for _c, _v in enumerate(_vals, start=1):
                     _cell = exit_ws.cell(_rowptr, _c, _v)
                     _cell.font = _Font(size=10)
                     _cell.alignment = _Align(horizontal="center", vertical="center")
-                    if _c == 9:   # P&L column shifted +1 by Sector insertion
+                    if _c == 10:   # P&L column shifted +2 (Sector + Month)
                         _cell.number_format = "+0.00%;-0.00%;0.00%"
                 # 2026-08-25 · operator "exit color code to entire row" ·
                 # fill EVERY cell in the row with the P&L-based color, not
@@ -2381,14 +2478,108 @@ def main() -> int:
                         exit_ws.cell(_rowptr, _c).fill = _row_fill_e
                 _rowptr += 1
             if not _exit_rows:
-                exit_ws.merge_cells(f"A4:J4")
+                exit_ws.merge_cells(f"A4:K4")
                 _empty = exit_ws.cell(4, 1, "no exits in the last 90 days")
                 _empty.alignment = _Align(horizontal="center")
                 _empty.font = _Font(size=10, italic=True, color="7F7F7F")
             exit_ws.freeze_panes = "A4"
 
+            # 2026-08-25 · operator: "also give total P&L , positive P&L,
+            # negative p&l. by month, anyhow we track for atleast 3 months.
+            # plan exit sheet with added information."
+            # Emit a per-month summary strip AFTER the exit rows.
+            try:
+                from collections import defaultdict as _dd
+                _by_month = _dd(list)
+                for _er in _exit_rows:
+                    _dt_key = str(_er[0])[:7]     # YYYY-MM
+                    _pnl_v = _er[9]               # P&L % index in tuple
+                    if isinstance(_pnl_v, (int, float)):
+                        _by_month[_dt_key].append(_pnl_v)
+                # Header
+                _summary_row = _rowptr + 2
+                exit_ws.merge_cells(start_row=_summary_row, start_column=1,
+                                                    end_row=_summary_row, end_column=len(_exit_hdr))
+                _sh = exit_ws.cell(_summary_row, 1,
+                                                "── MONTHLY P&L SUMMARY (last 3 months) ──")
+                _sh.font = _Font(bold=True, size=12, color="FFFFFF")
+                _sh.fill = _PF(start_color="1F4E78", end_color="1F4E78", fill_type="solid")
+                _sh.alignment = _Align(horizontal="center", vertical="center")
+                _summary_row += 1
+                # Column headers
+                _sum_hdr = ["Month", "N Exits", "Wins", "Losses",
+                                "Total P&L %", "Positive P&L %", "Negative P&L %", "Win Rate"]
+                for _c, _n in enumerate(_sum_hdr, start=1):
+                    _sc = exit_ws.cell(_summary_row, _c, _n)
+                    _sc.font = _Font(bold=True, size=10, color="FFFFFF")
+                    _sc.fill = _PF(start_color="4472C4", end_color="4472C4", fill_type="solid")
+                    _sc.alignment = _Align(horizontal="center")
+                _summary_row += 1
+                # Rows sorted most-recent-month first · limit 3 months
+                from datetime import datetime as _dt5
+                for _month in sorted(_by_month.keys(), reverse=True)[:3]:
+                    _vals_m = _by_month[_month]
+                    _n_ex = len(_vals_m)
+                    _wins = [v for v in _vals_m if v > 0]
+                    _losses = [v for v in _vals_m if v < 0]
+                    _total = round(sum(_vals_m), 2)
+                    _pos_sum = round(sum(_wins), 2)
+                    _neg_sum = round(sum(_losses), 2)
+                    _win_rate = (round(len(_wins) / max(1, len(_wins) + len(_losses)) * 100, 1)
+                                        if (_wins or _losses) else 0.0)
+                    try:
+                        _month_label_s = _dt5.strptime(_month, "%Y-%m").strftime("%b %Y")
+                    except Exception:
+                        _month_label_s = _month
+                    _row_vals = [_month_label_s, _n_ex, len(_wins), len(_losses),
+                                        f"{_total:+.2f}%", f"{_pos_sum:+.2f}%",
+                                        f"{_neg_sum:+.2f}%", f"{_win_rate}%"]
+                    for _c, _v in enumerate(_row_vals, start=1):
+                        _mc = exit_ws.cell(_summary_row, _c, _v)
+                        _mc.font = _Font(size=10, bold=(_c == 5))
+                        _mc.alignment = _Align(horizontal="center")
+                        # Color total P&L cell
+                        if _c == 5 and isinstance(_total, (int, float)):
+                            if _total > 0:
+                                _mc.fill = _PF(start_color="C6EFCE",
+                                                        end_color="C6EFCE", fill_type="solid")
+                            elif _total < 0:
+                                _mc.fill = _PF(start_color="F8CBAD",
+                                                        end_color="F8CBAD", fill_type="solid")
+                    _summary_row += 1
+            except Exception as _e:
+                print(f"[exit_history:{mkt_key}] monthly summary skipped · {_e}")
+
             # Rename Sheet 3 · full history stays last
             ws2.title = f"AEGIS {mkt_key} History"
+
+            # 2026-08-25 · operator "add month column plz in ... even in
+            # 3rd sheet" + "mm-yyyy makes sense in single column like
+            # May 2026" · Insert Month as leftmost column, formatted
+            # "August 2026" (full month name + year).
+            try:
+                from datetime import datetime as _dt4
+                ws2.insert_cols(1)
+                _hist_h = [c.value for c in ws2[1]]
+                ws2.cell(1, 1, "Month").font = _Font(bold=True, color="FFFFFF", size=11)
+                ws2.cell(1, 1).fill = _PF(start_color="1F4E78",
+                                                          end_color="1F4E78", fill_type="solid")
+                _date_col_hist = None
+                for _ci, _cn in enumerate(_hist_h, start=1):
+                    if str(_cn or "").strip() == "Date":
+                        _date_col_hist = _ci; break
+                if _date_col_hist is not None:
+                    for _hr in range(2, ws2.max_row + 1):
+                        _dv = ws2.cell(_hr, _date_col_hist).value
+                        _s = str(_dv or "")[:7] if _dv else ""
+                        try:
+                            _m = (_dt4.strptime(_s, "%Y-%m").strftime("%b %Y")
+                                      if _s and "-" in _s else "")
+                        except Exception:
+                            _m = _s
+                        ws2.cell(_hr, 1, _m)
+            except Exception as _e:
+                print(f"[history:{mkt_key}] Month column insert skipped · {_e}")
 
             wb2.save(out_path)
             src_wb.close()

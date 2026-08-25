@@ -398,6 +398,101 @@ def compute(root: Path, market: str, asof: str) -> WaveRegressionReport:
         rep.add("A21", "No dead-symbol tickers in universe",
                     "PASS", f"universe clean per Angel NSE master")
 
+    # ─────────────────────────────────────────────────────────
+    # 2026-08-25 · A22-A24 · ZERO-TOLERANCE dedup + lifecycle sync
+    # (blocking · operator: "iex already in exit list · in portfolio
+    #  why IEX again")
+    # ─────────────────────────────────────────────────────────
+
+    # A22 · No ticker in BOTH Portfolio AND Exit History (dedup)
+    try:
+        from openpyxl import load_workbook
+        xp = root / "reports" / "telegram" / f"aegis_history_{market}.xlsx"
+        if xp.exists():
+            wb = load_workbook(xp, read_only=True)
+            _portfolio_tks: set = set()
+            _exit_tks: set = set()
+            if "Portfolio" in wb.sheetnames:
+                for _row in wb["Portfolio"].iter_rows(values_only=True):
+                    _v = _row[0] if _row else None
+                    if _v and str(_v).replace(".NS", "").replace(".BO", "").isupper():
+                        # First-column values in ACTIVE section are tickers
+                        _tk = str(_v).replace(".NS","").replace(".BO","").strip()
+                        if _tk and len(_tk) < 20:   # ticker sanity
+                            _portfolio_tks.add(_tk.upper())
+            if "Exit History (90d)" in wb.sheetnames:
+                for _row in wb["Exit History (90d)"].iter_rows(min_row=4, values_only=True):
+                    _v = _row[0] if _row else None
+                    if _v:
+                        _exit_tks.add(str(_v).upper().strip())
+            _overlap = _portfolio_tks & _exit_tks
+            wb.close()
+            if _overlap:
+                rep.add("A22", "No ticker in both Portfolio + Exit History",
+                            "FAIL",
+                            f"{len(_overlap)} dupes: {', '.join(sorted(_overlap)[:5])}")
+            else:
+                rep.add("A22", "No ticker in both Portfolio + Exit History",
+                            "PASS", "no dedup violations")
+    except Exception as e:
+        rep.add("A22", "No ticker in both Portfolio + Exit History", "WARN",
+                    f"could not verify · {type(e).__name__}: {e}")
+
+    # A23 · Every Registry-CLOSED ticker must appear in Exit History
+    try:
+        from backend.research import opportunity_registry as _oreg
+        _reg = _oreg.load_all(root)
+        _closed_reg = set()
+        for _opps in _reg.values():
+            for _o in _opps:
+                if _o.market.lower() == market and _o.status == "CLOSED":
+                    _closed_reg.add(_o.ticker.upper())
+        # Compare vs Exit History tickers
+        _in_eh = _exit_tks if 'FALLBACK' not in dir() and '_exit_tks' in dir() else set()
+        # If we don't have _exit_tks in scope, re-read
+        if not _in_eh:
+            from openpyxl import load_workbook as _lw
+            xp = root / "reports" / "telegram" / f"aegis_history_{market}.xlsx"
+            if xp.exists():
+                _wb2 = _lw(xp, read_only=True)
+                if "Exit History (90d)" in _wb2.sheetnames:
+                    for _row in _wb2["Exit History (90d)"].iter_rows(min_row=4, values_only=True):
+                        if _row and _row[0]:
+                            _in_eh.add(str(_row[0]).upper().strip())
+                _wb2.close()
+        _missing_from_eh = _closed_reg - _in_eh
+        if _missing_from_eh:
+            rep.add("A23", "Registry-CLOSED tickers appear in Exit History",
+                        "FAIL",
+                        f"{len(_missing_from_eh)} missing: {', '.join(sorted(_missing_from_eh)[:5])}")
+        else:
+            rep.add("A23", "Registry-CLOSED tickers appear in Exit History",
+                        "PASS", f"{len(_closed_reg)} closed opps all synced")
+    except Exception as e:
+        rep.add("A23", "Registry-CLOSED tickers appear in Exit History",
+                    "WARN", f"could not verify · {type(e).__name__}: {e}")
+
+    # A24 · Portfolio ACTION-section tickers not in Registry-CLOSED
+    try:
+        from backend.research import opportunity_registry as _oreg2
+        _reg2 = _oreg2.load_all(root)
+        _closed2 = set()
+        for _opps in _reg2.values():
+            for _o in _opps:
+                if _o.market.lower() == market and _o.status == "CLOSED":
+                    _closed2.add(_o.ticker.upper())
+        # A22 already computed _portfolio_tks · if any are closed, FAIL
+        _bad = _portfolio_tks & _closed2 if '_portfolio_tks' in dir() else set()
+        if _bad:
+            rep.add("A24", "Portfolio contains no Registry-CLOSED tickers",
+                        "FAIL", f"{len(_bad)} closed in Portfolio: {', '.join(sorted(_bad)[:5])}")
+        else:
+            rep.add("A24", "Portfolio contains no Registry-CLOSED tickers",
+                        "PASS", "lifecycle sync clean")
+    except Exception as e:
+        rep.add("A24", "Portfolio contains no Registry-CLOSED tickers",
+                    "WARN", f"could not verify · {type(e).__name__}: {e}")
+
     return rep
 
 

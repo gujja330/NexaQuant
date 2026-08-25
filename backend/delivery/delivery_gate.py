@@ -32,6 +32,10 @@ BLOCKING_CODES: set = {
     "A17",   # EXIT rows leaking into ACTIVE section
     "A18",   # exit reasons plain-English (no jargon)
     "A19",   # Exit History has Sector column
+    # 2026-08-25 · lifecycle sync + dedup (operator IEX-in-both bug)
+    "A22",   # dedup · no ticker in both Portfolio + Exit History
+    "A23",   # sync · every Registry-CLOSED ticker in Exit History
+    "A24",   # sync · no Registry-CLOSED ticker in Portfolio
 }
 
 # Data-quality gate hard fails always block.
