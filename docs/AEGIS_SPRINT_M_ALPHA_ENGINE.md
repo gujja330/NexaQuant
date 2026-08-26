@@ -378,3 +378,127 @@ Operator answers all 6 in ≤ 5 minutes from daily output:
 
 Then Session 1 starts with A1-A2-A4-A5 (Position ID + duplicate audits ·
 lowest-risk · fastest wins · all reads Registry · no format changes).
+
+---
+
+# 🔒 SPRINT M · POST-LOCK RESEARCH PHASE (v3.0 · 2026-08-26)
+
+**Delivery layer HARD LOCKED at commit `3c4fa815` · `PRODUCTION_LOCK.md`.**
+
+Sprint M implementation phase is complete. All subsequent Sprint M work
+is **research/measurement only** and MUST NOT modify the locked delivery
+layer. This section is the CEO-approved architecture for the research
+phase (verbatim from CEO handover 2026-08-26).
+
+## The two-runner architecture
+
+```
+                 🔒 PRODUCTION
+                 ┌─────────────┐
+                 │ R1 / R2     │
+                 │ LOCKED      │
+                 └──────┬──────┘
+                        │
+                  canonical data
+                        │
+                        ▼
+              ┌──────────────────┐
+              │ Sprint M Research│
+              │ Experimental     │
+              │ Runner  ( M-R )  │
+              └────────┬─────────┘
+                       │
+             measurements / evidence
+                       │
+                       ▼
+              Research conclusions
+                       │
+              ┌────────┴────────┐
+              │                 │
+          reject/change      future gate
+                              ↓
+                       production change
+```
+
+### 🔒 R1 / R2 · Frozen production baseline
+
+Under the hard lock. Cannot be modified. Serves as the stable control
+group for Sprint M measurements.
+
+### 🧪 M-R · Sprint M Research Runner (new · sandboxed)
+
+* Consumes the **locked canonical inputs** (Position Registry, opportunity
+  registry, feature store, price data)
+* Uses the existing Registry and lifecycle definitions as its baseline
+* Generates **research signals / measurements** only
+* Records hypothetical decisions and outcomes to a **separate research
+  ledger** (proposed: `reports/research/mr_runner_{market}.jsonl`)
+* **MUST NOT** alter the production Portfolio / XLSX / Telegram delivery
+* **MUST NOT** contaminate R1/R2 statistics
+* Has its own experiment/version identifier (e.g. `M-R.v0.1`)
+
+### 🚫 Naming
+
+Do NOT call the sandbox runner `R3`. That name is reserved for a future
+production runner promoted through the change gate. During research it
+is `M-R` (Sprint M Research Runner) or `Sprint M Experimental Runner`.
+
+Only after research proves a strategy deserves production status do we
+formally design `R3` and put it through the `PRODUCTION_LOCK.md`
+future-change gate (six-item process: research evidence · ticket ·
+reproducible test · walk-forward · full regression · CEO approval).
+
+## Sprint M research/measurement work-list (M1–M6)
+
+**M1 · Baseline measurement**
+- Establish locked baseline metrics against `3c4fa815`
+- Measure R1 vs R2 separately
+- Measure ACTIVE → EXIT lifecycle outcomes
+- Measure realized performance (not presentation metrics)
+
+**M2 · Signal quality**
+- Which signals actually predict subsequent returns
+- False positives / false negatives per signal category
+- Separate investability-quality from trading-signal-quality
+
+**M3 · Risk / stop-loss measurement**
+- CANBK-style canonical fallback usage rate
+- Stop placement quality (distance, hit rate, whipsaw)
+- Stop-trigger outcomes (was the exit correct?)
+- Whether the risk-mutation → EXIT mutation improves realized results
+
+**M4 · Momentum quality-band**
+- Measure WATCH / EMERGING / SKIP outcomes
+- No production presentation changes yet
+- Validate that the shadow-first quality-band join produces useful signals
+
+**M5 · Re-entry measurement**
+- Track HINDZINC / OFSS / CANBK / HCLTECH and future RE-ENTRY positions
+- Compare RE-ENTRY outcomes against first-entry outcomes
+- Establish whether RE-ENTRY is a distinct edge worth its own promotion path
+
+**M6 · Research conclusions**
+- Identify what is statistically useful (n≥100 closed per bucket, wilson CI)
+- Propose changes **without implementing** them in the locked delivery layer
+- Any eventual production change goes through the six-item future-change gate
+
+## Hard rules for Sprint M research
+
+1. **Do not touch the locked delivery layer** (`_split_and_send`,
+   `xlsx_contract`, `xlsx_validator`, canonical JSON emit, etc.)
+2. **Do not modify R1/R2 signals, thresholds or universes**
+3. **Do not reopen the locked code just because research finds something
+   interesting** · run it through the change gate
+4. **M-R output is measurement-only** · no Telegram, no operator-facing XLSX
+5. **Every research signal has an explicit expected-return, hypothesis,
+   and evaluation criterion** · no fishing expeditions
+6. **N-threshold gates** · no production promotion below n=100 closed
+   positions per bucket, wilson CI, walk-forward validation
+7. **Explicit CEO approval** required before ANY production change
+
+## Amendment Log (v3)
+
+- **v3.0 · 2026-08-26** · Post-lock research phase architecture added
+  (CEO handover after `3c4fa815` HARD LOCK). Introduces M-R sandbox
+  runner and M1-M6 research work-list. R3 name reserved for future
+  post-gate production runner.
