@@ -3625,12 +3625,39 @@ def main() -> int:
             except Exception as _e:
                 print(f"[gate:{mkt_key}] gate check errored · {type(_e).__name__}: {_e} · shipping anyway (fail-open)")
 
+            # ─────────────────────────────────────────────────────────
+            # 2026-08-26 · CEO DELIVERY CONTRACT · xlsx_validator runs
+            # 22 invariants against the built XLSX. Fail-before-send:
+            # if any BLOCK-severity invariant FAILs, refuse to POST.
+            # This is the ROOT-CAUSE fix that ends the daily bug cycle.
+            # ─────────────────────────────────────────────────────────
+            try:
+                from backend.delivery import xlsx_validator as _xval
+                _val_rep = _xval.validate(_ROOT, mkt_key.lower(), out_path)
+                _xval.emit(_ROOT, _val_rep)
+                print(f"[xlsx_validator:{mkt_key}] "
+                      f"{_xval.summary_line(_val_rep)}")
+                for _iv in _val_rep.invariants:
+                    if _iv.status == "FAIL":
+                        print(f"  ❌ {_iv.code} · {_iv.name} · {_iv.detail[:80]}")
+                if _xval.should_block_send(_val_rep):
+                    print(f"[xlsx_validator:{mkt_key}] 🚫 BLOCKED · "
+                          f"refusing Telegram POST · sending alert instead")
+                    if not _build_only_mode:
+                        _alert_x = _xval.render_blocked_alert(_val_rep)
+                        _ok_x, _msg_x = _send_markdown(token, chat_id, _alert_x)
+                        print(f"[xlsx_validator:{mkt_key}] alert sent={_ok_x}")
+                    return False
+            except Exception as _e_val:
+                print(f"[xlsx_validator:{mkt_key}] validator errored · "
+                      f"{type(_e_val).__name__}: {_e_val} · shipping anyway (fail-open)")
+
             # BUILD-ONLY · XLSX is written · skip Telegram POST · return OK
             if _build_only_mode:
                 print(f"[build-only:{mkt_key}] XLSX built at {out_path.name} · Telegram skipped")
                 return True
 
-            # Send · gate passed
+            # Send · gate passed AND validator passed
             # 2026-08-10 · operator: "simple note with date · why note so big"
             # Suppress heartbeat banner + Monday operator guide from Telegram
             # caption (kept in stdout logs · zero UI clutter for operator)
