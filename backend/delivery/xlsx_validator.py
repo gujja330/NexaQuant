@@ -758,6 +758,81 @@ class XlsxValidator:
                                    "BLOCK", "SKIP",
                                    f"{type(e).__name__}: {e}")
 
+    def check_entry_price_immutable(self) -> InvariantResult:
+        """I26 · non-same-day ACTIVE/RE-ENTRY rows must have entry_price
+        matching parquet close on entry_date within 2%. Catches the
+        entry-price re-stamp defect (MSFT-style ~0% P&L)."""
+        from openpyxl import load_workbook
+        import pandas as pd
+        try:
+            wb = load_workbook(self.xlsx_path, read_only=True, data_only=True)
+            if "Portfolio" not in wb.sheetnames:
+                return InvariantResult("I26", "Entry price immutable",
+                                       "BLOCK", "SKIP", "no Portfolio")
+            ws = wb["Portfolio"]
+            r1 = str(ws.cell(1, 1).value or "")
+            # Extract asof from title · "AEGIS INDIA PORTFOLIO · as of 2026-08-26"
+            import re
+            m = re.search(r"as of\s+(\d{4}-\d{2}-\d{2})", r1)
+            asof = m.group(1) if m else None
+            if not asof:
+                wb.close()
+                return InvariantResult("I26", "Entry price immutable",
+                                       "BLOCK", "SKIP", "no asof in title")
+            violations = []
+            for r_idx in range(6, ws.max_row + 1):
+                _tk = str(ws.cell(r_idx, 1).value or "").upper()
+                if not _tk or _tk.startswith(("🟢","🔴","🆕","🟣",
+                                              "AEGIS","📊","🩺","✅","❌")):
+                    continue
+                _rn = str(ws.cell(r_idx, 9).value or "").upper()
+                if _rn in ("SHADOW", "MOMENTUM"): continue
+                _dec = str(ws.cell(r_idx, 3).value or "")
+                if "🔴 EXIT" in _dec or "🟣 SUGGESTED" in _dec: continue
+                _entry_date = str(ws.cell(r_idx, 13).value or "")[:10]
+                _entry_v = ws.cell(r_idx, 23).value
+                if not _entry_date or _entry_date == asof: continue
+                if not (isinstance(_entry_v, (int, float)) and _entry_v > 0):
+                    continue
+                # Look up parquet close on entry_date
+                clean = _tk.replace(".NS","").replace(".BO","")
+                base = ("usa/data/raw/us" if self.market.lower()=="usa"
+                        else "data/raw/india")
+                p = self.root / base / f"{clean}_D1.parquet"
+                if not p.exists(): continue
+                try:
+                    df = pd.read_parquet(p)
+                    col = "close" if "close" in df.columns else "Close"
+                    df.index = pd.to_datetime(df.index).strftime("%Y-%m-%d")
+                    if _entry_date not in df.index:
+                        earlier = [d for d in df.index if d <= _entry_date]
+                        if not earlier: continue
+                        historical_close = float(df.loc[earlier[-1], col])
+                    else:
+                        historical_close = float(df.loc[_entry_date, col])
+                except Exception:
+                    continue
+                delta_pct = abs(_entry_v - historical_close) / historical_close * 100
+                if delta_pct > 2.0:
+                    violations.append({
+                        "ticker":            _tk,
+                        "row":               r_idx,
+                        "entry_date":        _entry_date,
+                        "stored_entry":      round(_entry_v, 2),
+                        "parquet_close":     round(historical_close, 2),
+                        "delta_pct":         round(delta_pct, 2),
+                    })
+            wb.close()
+            status = "PASS" if not violations else "FAIL"
+            return InvariantResult(
+                "I26", "Entry price immutable", "BLOCK", status,
+                f"{len(violations)} rows where stored entry drifts >2% "
+                f"from parquet close on entry_date", violations[:5])
+        except Exception as e:
+            return InvariantResult("I26", "Entry price immutable",
+                                   "BLOCK", "SKIP",
+                                   f"{type(e).__name__}: {e}")
+
     def check_realized_matches_exit_history(self) -> InvariantResult:
         """I25 · Portfolio Row 2 Realized 90d numbers must reconcile to
         Exit History (90d) sheet's row count."""

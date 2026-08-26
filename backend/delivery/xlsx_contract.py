@@ -281,6 +281,16 @@ INVARIANTS: list = [
                "are being used as source of truth.",
         check_fn_name="check_realized_matches_exit_history",
     ),
+    Invariant(
+        code="I26", name="Entry price immutable for non-same-day rows",
+        severity="BLOCK", scope="Portfolio",
+        detail="For any ACTIVE/RE-ENTRY row where entry_date != asof, "
+               "the row's Entry Price must match parquet close on entry_date "
+               "within 2% tolerance. Catches the MSFT-style '~0% P&L' bug "
+               "where the row-write path re-stamps entry_price to today's "
+               "current price for existing positions.",
+        check_fn_name="check_entry_price_immutable",
+    ),
 ]
 
 # Groupings for the validator to iterate
