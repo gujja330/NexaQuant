@@ -1398,48 +1398,138 @@ def main() -> int:
             # EXIT rows go ONLY to Exit History (90d) sheet · never here.
             # ─────────────────────────────────────────────────────────
 
-            # Compute Today's P&L, Positive, Negative from ACTIVE positions
-            # (loops keep_rows · skips EXIT · reads live parquet + prev close)
+            # 2026-08-26 · CEO CORRECTNESS FIX · Portfolio summary was
+            # counting HISTORY OBSERVATIONS (571 rows India · 90 rows USA)
+            # instead of unique currently-active Position IDs (122 India ·
+            # 62 USA). The accumulated ±849%/-773% P&L totals were noise
+            # from repeated daily snapshots · not real portfolio return.
+            #
+            # New logic (per CEO directive):
+            #   1. Source of truth = Registry (opportunity_id · lifecycle-aware)
+            #   2. Active count = unique Position IDs where is_active()=True
+            #   3. Per-position: (Current - Entry) / Entry from parquet
+            #   4. Skip STALE positions (parquet gap > 5 cal days)
+            #   5. SUGGESTED / SHADOW never counted in P&L
+            #   6. Aggregate = mean per-position pct (equal-weight · until
+            #      real capital weights available)
+            #   7. Realized (last 90d) computed from Registry CLOSED events
             _today_moves: list = []
             _active_pnls: list = []
-            for _r_a in keep_rows:
-                _st_a = str(_r_a[c_st-1].value or "").upper()
-                if _st_a == "EXIT": continue
-                _tk_a = str(_r_a[c_tk-1].value or "")
-                _e_a  = _r_a[c_entry-1].value if c_entry else None
-                _dt_a = str(_r_a[c_date-1].value or "")[:10] if c_date else ""
-                if isinstance(_e_a, (int, float)) and _e_a > 0:
-                    _live_a = _parquet_close(_tk_a, mkt_key, _dt_a)
-                    if _live_a:
-                        _active_pnls.append((_live_a - _e_a) / _e_a * 100)
-                        _prev_a = _parquet_prev_close(_tk_a, mkt_key, _dt_a)
-                        if _prev_a and _prev_a > 0:
-                            _today_moves.append((_live_a - _prev_a) / _prev_a * 100)
+            _stale_positions: int = 0
+            _realized_pnls: list = []
+            try:
+                from backend.research import opportunity_registry as _oreg_sum
+                from datetime import date as _d_sum, timedelta as _td_sum
+                _reg_sum = _oreg_sum.load_all(_ROOT)
+                _today_iso = str(latest_date or _d_sum.today().isoformat())[:10]
+                _stale_cutoff = (_d_sum.fromisoformat(_today_iso)
+                                  - _td_sum(days=5)).isoformat()
+                _realized_cutoff = (_d_sum.fromisoformat(_today_iso)
+                                     - _td_sum(days=90)).isoformat()
+                _seen_pids: set = set()
+                for _opps in _reg_sum.values():
+                    for _o in _opps:
+                        if _o.market.lower() != mkt_key.lower(): continue
+                        _pid = getattr(_o, "opportunity_id", None) or \
+                               f"{_o.ticker}_{_o.runner}_{_o.created_date}"
+                        if _pid in _seen_pids: continue
+                        _seen_pids.add(_pid)
+                        _tk_s = _o.ticker
+                        _cd_s = str(_o.created_date or "")[:10]
+                        # Realized (last 90d)
+                        if (_o.status in ("CLOSED", "EXIT")
+                            and _o.closed_date
+                            and str(_o.closed_date)[:10] >= _realized_cutoff):
+                            _xd = str(_o.closed_date)[:10]
+                            _ep_r = _parquet_close(_tk_s, mkt_key, _cd_s)
+                            _xp_r = _parquet_close(_tk_s, mkt_key, _xd)
+                            if (isinstance(_ep_r, (int,float)) and _ep_r > 0
+                                and isinstance(_xp_r, (int,float))):
+                                _realized_pnls.append((_xp_r - _ep_r) / _ep_r * 100)
+                            continue
+                        # Active P&L · only currently-active positions
+                        if not _o.is_active(): continue
+                        _ep = _parquet_close(_tk_s, mkt_key, _cd_s)
+                        if not (isinstance(_ep, (int,float)) and _ep > 0): continue
+                        _live = _parquet_close(_tk_s, mkt_key, _today_iso)
+                        if _live is None:
+                            _stale_positions += 1
+                            continue
+                        # Stale check · parquet's latest date must be recent
+                        from pathlib import Path as _P_s
+                        _tk_clean = _tk_s.upper().replace(".NS","").replace(".BO","")
+                        _p_path = (_ROOT / ("usa/data/raw/us" if mkt_key.lower()=="usa"
+                                            else "data/raw/india")
+                                   / f"{_tk_clean}_D1.parquet")
+                        if _p_path.exists():
+                            try:
+                                import pandas as _pd_s
+                                _df_s = _pd_s.read_parquet(_p_path)
+                                _last_date = str(_df_s.index.max())[:10]
+                                if _last_date < _stale_cutoff:
+                                    _stale_positions += 1
+                                    continue
+                            except Exception:
+                                pass
+                        _pnl = (_live - _ep) / _ep * 100
+                        _active_pnls.append(_pnl)
+                        _prev = _parquet_prev_close(_tk_s, mkt_key, _today_iso)
+                        if _prev and _prev > 0:
+                            _today_moves.append((_live - _prev) / _prev * 100)
+            except Exception as _e_sum:
+                print(f"[portfolio_summary:{mkt_key}] Registry aggregation failed · "
+                      f"{type(_e_sum).__name__}: {_e_sum} · falling back to XLSX rows")
+                # Fallback · but dedupe by ticker to avoid double-counting
+                _seen_tk: set = set()
+                for _r_a in keep_rows:
+                    _st_a = str(_r_a[c_st-1].value or "").upper()
+                    if _st_a == "EXIT": continue
+                    _tk_a = str(_r_a[c_tk-1].value or "").upper()
+                    if not _tk_a or _tk_a in _seen_tk: continue
+                    _seen_tk.add(_tk_a)
+                    _e_a  = _r_a[c_entry-1].value if c_entry else None
+                    _dt_a = str(_r_a[c_date-1].value or "")[:10] if c_date else ""
+                    if isinstance(_e_a, (int, float)) and _e_a > 0:
+                        _live_a = _parquet_close(_tk_a, mkt_key, _dt_a)
+                        if _live_a:
+                            _active_pnls.append((_live_a - _e_a) / _e_a * 100)
+                            _prev_a = _parquet_prev_close(_tk_a, mkt_key, _dt_a)
+                            if _prev_a and _prev_a > 0:
+                                _today_moves.append((_live_a - _prev_a) / _prev_a * 100)
 
             _n_active = len(_active_pnls)
             _avg_pnl  = (sum(_active_pnls) / _n_active) if _n_active else 0
             _today_avg = (sum(_today_moves) / len(_today_moves)) if _today_moves else 0
             _pos = [p for p in _active_pnls if p > 0]
             _neg = [p for p in _active_pnls if p < 0]
+            _n_realized = len(_realized_pnls)
+            _realized_sum = round(sum(_realized_pnls), 2) if _realized_pnls else 0.0
+            _realized_wr = (round(
+                sum(1 for p in _realized_pnls if p > 0.5) / _n_realized * 100, 1)
+                if _n_realized else 0.0)
 
-            # Row 2 · Active + Today's P&L
+            # Row 2 · Active + Today's P&L + Realized (90d)
             portfolio_ws.merge_cells("A2:L2")
+            _stale_note = f" · ⚠ {_stale_positions} stale" if _stale_positions else ""
             _r2 = portfolio_ws.cell(2, 1,
-                f"🟢 Active: {_n_active} positions  ·  "
+                f"🟢 Active: {_n_active} positions (unique Position IDs)  ·  "
                 f"Unrealized P&L: {_avg_pnl:+.2f}%  ·  "
-                f"Today's P&L: {_today_avg:+.2f}%")
+                f"Today's P&L: {_today_avg:+.2f}%  ·  "
+                f"Realized 90d: {_realized_sum:+.2f}% ({_n_realized} exits · "
+                f"WR {_realized_wr}%){_stale_note}")
             _r2.font = _Font(bold=True, size=11, color="1F4E78")
             _r2.alignment = _Align(horizontal="left", vertical="center")
             _r2.fill = _PF(start_color="E7EEF7", end_color="E7EEF7", fill_type="solid")
             portfolio_ws.row_dimensions[2].height = 20
 
-            # Row 3 · Positive + Negative
+            # Row 3 · Positive + Negative (equal-weight aggregate · no capital weights yet)
             portfolio_ws.merge_cells("A3:L3")
-            _pos_sum = sum(_pos) if _pos else 0
-            _neg_sum = sum(_neg) if _neg else 0
+            _pos_avg = round(sum(_pos) / len(_pos), 2) if _pos else 0
+            _neg_avg = round(sum(_neg) / len(_neg), 2) if _neg else 0
             _r3 = portfolio_ws.cell(3, 1,
-                f"✅ Positive: {len(_pos)} positions · +{_pos_sum:.2f}% total  ·  "
-                f"❌ Negative: {len(_neg)} positions · {_neg_sum:.2f}% total")
+                f"✅ Positive: {len(_pos)} pos · avg +{_pos_avg:.2f}%  ·  "
+                f"❌ Negative: {len(_neg)} pos · avg {_neg_avg:.2f}%  ·  "
+                f"(equal-weight · capital weights TBD)")
             _r3.font = _Font(bold=True, size=11, color="1F4E78")
             _r3.alignment = _Align(horizontal="left", vertical="center")
             _r3.fill = _PF(start_color="E7EEF7", end_color="E7EEF7", fill_type="solid")
@@ -2092,7 +2182,37 @@ def main() -> int:
                                 / f"investability_shadow_diagnostic_{mkt_key.lower()}.json")
                 if _sug_p.exists():
                     _sug_data = _jss.loads(_sug_p.read_text(encoding="utf-8"))
-                    _sug_picks = (_sug_data.get("top_discoveries") or [])[:5]
+                    _sug_picks_raw = (_sug_data.get("top_discoveries") or [])[:15]
+                    # 2026-08-26 · CEO NEW SUGGESTION · "yesterday's SUGGESTED
+                    # should move to ACTIVE today". Filter SUGGESTED picks to
+                    # exclude any ticker that is already ACTIVE in the Registry ·
+                    # so a ticker that was SUGGESTED yesterday and is now a real
+                    # active position shows only as ACTIVE (not double-listed).
+                    _active_tks_reg: set = set()
+                    try:
+                        from backend.research import opportunity_registry as _oreg_ded
+                        _reg_ded = _oreg_ded.load_all(_ROOT)
+                        for _opps_d in _reg_ded.values():
+                            for _o_d in _opps_d:
+                                if _o_d.market.lower() != mkt_key.lower(): continue
+                                if _o_d.is_active():
+                                    _active_tks_reg.add(
+                                        _o_d.ticker.upper().replace(".NS","").replace(".BO",""))
+                    except Exception:
+                        pass
+                    _sug_picks = []
+                    _sug_promoted = 0
+                    for _p_d in _sug_picks_raw:
+                        _tk_d = str(_p_d.get("ticker","")).upper().replace(".NS","").replace(".BO","")
+                        if _tk_d in _active_tks_reg:
+                            _sug_promoted += 1
+                            continue    # already active · show as ACTIVE only
+                        _sug_picks.append(_p_d)
+                        if len(_sug_picks) >= 5: break
+                    if _sug_promoted > 0:
+                        print(f"[xlsx:{mkt_key}] SUGGESTED dedup · "
+                              f"{_sug_promoted} picks promoted to ACTIVE · "
+                              f"not re-listed as SUGGESTED")
                     if _sug_picks:
                         # Shift ACTIVE rows down by len(_sug_picks) rows
                         _row_indexes = list(
