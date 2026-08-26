@@ -147,9 +147,14 @@ INVARIANTS: list = [
 
     # ── P&L correctness ───────────────────────────────────────
     Invariant(
-        code="I8", name="Portfolio summary count = unique Position IDs",
+        code="I8", name="Portfolio summary count = canonical INVESTMENT_ACTIVE",
         severity="BLOCK", scope="Portfolio",
-        detail="Active count in header must equal unique active Registry pids",
+        detail="Row 2 'Active: N positions' must equal the CANONICAL "
+               "INVESTMENT_ACTIVE population · Registry active PIDs minus "
+               "SHADOW/MOMENTUM/SUGGESTED runners minus positions mutated "
+               "to EXIT by binding risk signals. This is NOT the same as "
+               "raw Registry active count · risk-mutated + stale positions "
+               "are legitimately excluded.",
         check_fn_name="check_summary_count_matches_registry",
     ),
     Invariant(
@@ -249,6 +254,32 @@ INVARIANTS: list = [
         severity="BLOCK", scope="*",
         detail="Forbidden state values must never appear in Status column",
         check_fn_name="check_no_forbidden_states",
+    ),
+    Invariant(
+        code="I23", name="Runner column has canonical values",
+        severity="BLOCK", scope="Portfolio",
+        detail="Runner column may only contain R1/R2/SHADOW/MOMENTUM. "
+               "Country names (INDIA/USA) as Runner values indicate a "
+               "column-offset bug in the Portfolio writer.",
+        check_fn_name="check_runner_canonical",
+    ),
+    Invariant(
+        code="I24", name="Header active count matches visible rows",
+        severity="BLOCK", scope="Portfolio",
+        detail="Row 2 'Active: N positions' must equal the number of "
+               "visible ACTIVE + RE-ENTRY rows in the Portfolio table. "
+               "Discrepancy indicates Row 2 is counting from a different "
+               "source of truth than the table itself.",
+        check_fn_name="check_header_matches_visible_rows",
+    ),
+    Invariant(
+        code="I25", name="Realized 90d numbers reconcile to Exit History",
+        severity="BLOCK", scope="Portfolio",
+        detail="Portfolio Row 2 'Realized 90d ± X% (N exits · WR Y%)' "
+               "must match Exit History (90d) sheet row count, average P&L "
+               "and win rate. If they diverge, two different populations "
+               "are being used as source of truth.",
+        check_fn_name="check_realized_matches_exit_history",
     ),
 ]
 

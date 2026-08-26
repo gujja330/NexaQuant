@@ -244,11 +244,18 @@ def _load_history_first_seen(root) -> None:
         c_date = _col("Date")
         if not all([c_ctry, c_run, c_tk, c_date]):
             wb.close(); return
-        for r in range(2, ws.max_row + 1):
-            mk = str(ws.cell(r, c_ctry).value or "").lower()
-            rn = str(ws.cell(r, c_run).value or "").upper().replace("_NEW", "")
-            tk = str(ws.cell(r, c_tk).value or "").upper().replace(".NS", "").replace(".BO", "")
-            dt = str(ws.cell(r, c_date).value or "")[:10]
+        # 2026-08-26 · was ws.cell(r,c).value in a for-loop over max_row (1698+
+        # rows) · read_only mode makes ws.cell() O(n) per access → O(n^2) total
+        # → sender hung silently at build_unified_history. iter_rows streams
+        # sequentially · fixes the hang and preserves the same lookup semantics.
+        idx_ctry, idx_run, idx_tk, idx_date = c_ctry-1, c_run-1, c_tk-1, c_date-1
+        for row in ws.iter_rows(min_row=2, values_only=True):
+            if len(row) <= max(idx_ctry, idx_run, idx_tk, idx_date):
+                continue
+            mk = str(row[idx_ctry] or "").lower()
+            rn = str(row[idx_run] or "").upper().replace("_NEW", "")
+            tk = str(row[idx_tk] or "").upper().replace(".NS", "").replace(".BO", "")
+            dt = str(row[idx_date] or "")[:10]
             if not (mk and rn and tk and dt):
                 continue
             key = (mk, rn, tk)
@@ -275,10 +282,17 @@ def _opportunity_status(root, market: str, runner: str, ticker: str, asof: str) 
     2026-08-18 · Wave 2 · authoritative source is the Opportunity Registry.
     Falls back to workbook history if registry is empty (bootstrap case).
 
-    NEW      · registry has no ACTIVE opportunity OR created_date == asof
-    EXISTING · registry has ACTIVE opportunity with created_date < asof AND
-               no prior CLOSED opportunity for this (mkt,runner,ticker)
-    RE-ENTRY · registry has ACTIVE opportunity AND prior CLOSED exists
+    2026-08-26 · CEO NEW/RE-ENTRY unification · check prior_closed FIRST,
+    then decide NEW vs RE-ENTRY. Previously an active created_today
+    opportunity returned NEW even when a prior CLOSED opportunity existed
+    for the same (mkt, runner, ticker). Opportunity Engine already
+    classifies these as RE-ENTRY · Portfolio label must agree.
+
+    Rules:
+      RE-ENTRY · any prior CLOSED opportunity for (mkt,runner,ticker) exists
+      NEW      · active created today AND no prior CLOSED
+      EXISTING · active created before today AND no prior CLOSED
+      NEW      · fallback when nothing active in Registry (bootstrap)
     """
     tk_bare = (ticker or "").upper().replace(".NS", "").replace(".BO", "")
     rn = (runner or "").upper().replace("_NEW", "")
@@ -287,16 +301,17 @@ def _opportunity_status(root, market: str, runner: str, ticker: str, asof: str) 
         reg = _oreg.load_all(root)
         opps = reg.get((market.lower(), rn, tk_bare), [])
         active = [o for o in opps if o.is_active()]
+        # RE-ENTRY beats NEW · CEO rule: a ticker previously closed and
+        # returning with a fresh Position ID is RE-ENTRY not NEW.
+        prior_closed = [o for o in opps if o.status == "CLOSED"]
         if not active:
-            return "NEW"
+            return "RE-ENTRY" if prior_closed else "NEW"
         opp = active[0]
+        if prior_closed:
+            return "RE-ENTRY"
         if opp.created_date == asof[:10]:
             return "NEW"
-        # Prior CLOSED opportunities for same (mkt,runner,ticker) = RE-ENTRY
-        prior_closed = [o for o in opps
-                              if o.status == "CLOSED"
-                              and o.opportunity_id != opp.opportunity_id]
-        return "RE-ENTRY" if prior_closed else "EXISTING"
+        return "EXISTING"
     except Exception:
         # Fallback · legacy workbook-history-only logic
         earliest = _lookup_history_first_seen(root, market, runner, ticker)
@@ -604,6 +619,11 @@ def _rec_to_row(rec: Mapping, market: str, root: Path,
     exit_pnl_pct = ""
     if status == "EXIT" and cur_ret is not None:
         exit_pnl_pct = cur_ret
+        # 2026-08-26 · A9/I3 root cause · cur_ret was computed at line 583 for
+        # ALL statuses. For EXIT rows we transfer it to exit_pnl_pct then MUST
+        # blank cur_ret so it does not also populate Current Perf %. The A9
+        # gate at line 760 only recomputes for non-EXIT · doesn't null EXIT.
+        cur_ret = None
 
     # ── Prior Rank + Rank Δ (v5 · 2026-08-04) ──
     # Reads yesterday's rank from rank_history.jsonl so operator can judge
@@ -884,14 +904,17 @@ def _load_exited_set(root: Path, market: str) -> set:
         wb = load_workbook(xlsx, read_only=True)
         ws = wb["AEGIS Daily"] if "AEGIS Daily" in wb.sheetnames else wb.active
         h = [c.value for c in ws[1]]
-        i_ctry, i_rt, i_tk, i_st = (h.index(x)+1 for x in ["Country","Run_Type","Ticker","Status"])
+        i_ctry, i_rt, i_tk, i_st = (h.index(x) for x in ["Country","Run_Type","Ticker","Status"])
         exited = set()
         mkt_up = market.upper()
-        for r in range(2, ws.max_row + 1):
-            if str(ws.cell(r, i_ctry).value or "").upper() != mkt_up: continue
-            if ws.cell(r, i_st).value == "EXIT":
-                rt = str(ws.cell(r, i_rt).value or "").replace("_NEW","")
-                tk = str(ws.cell(r, i_tk).value or "").replace(".NS","").replace(".BO","").upper()
+        # 2026-08-26 · was ws.cell(r,i).value in for-loop over max_row · O(n^2)
+        # in read-only mode → sender hung. iter_rows streams sequentially.
+        for row in ws.iter_rows(min_row=2, values_only=True):
+            if len(row) <= max(i_ctry, i_rt, i_tk, i_st): continue
+            if str(row[i_ctry] or "").upper() != mkt_up: continue
+            if row[i_st] == "EXIT":
+                rt = str(row[i_rt] or "").replace("_NEW","")
+                tk = str(row[i_tk] or "").replace(".NS","").replace(".BO","").upper()
                 if rt and tk: exited.add((rt, tk))
         wb.close()
         return exited
@@ -1554,6 +1577,18 @@ def _validate_no_lifecycle_violations(rows: list) -> tuple[list, int]:
                 print(f"[validate:closed_reactivated] {pid} · date={date} · was CLOSED · now {status}")
 
     # 3. Binding risk signal in Alerts but Status not EXIT
+    # 2026-08-26 · was LOG-ONLY · now MUTATES rows to force Status=EXIT.
+    # CEO directive: "STOP LOSS / risk-triggered EXIT must result in EXIT/
+    # CLOSED-consistent Portfolio state. Never allow BUY + stop-loss-triggered
+    # risk state simultaneously." Fixing at lifecycle source · not the sink.
+    # NOTE: rows are lists · so we mutate in place. Status is at index 7.
+    # Also blank Current Perf % (Active P&L) and transfer to Exit P&L %
+    # so the mutated row respects I3 (EXIT rows must have no Active P&L).
+    _COL_NAMES = [n for (n, _w) in COLUMNS]
+    _idx_current_perf = (_COL_NAMES.index("Current Perf %")
+                         if "Current Perf %" in _COL_NAMES else None)
+    _idx_exit_pnl = (_COL_NAMES.index("Exit P&L %")
+                     if "Exit P&L %" in _COL_NAMES else None)
     for r in rows:
         alerts_up = ""
         for cell in r:
@@ -1568,7 +1603,27 @@ def _validate_no_lifecycle_violations(rows: list) -> tuple[list, int]:
             if status not in ("EXIT", "SELL"):
                 n_viol += 1
                 pid = r[0]; date = str(r[2])[:10]
-                print(f"[validate:risk_without_exit] {pid} · {date} · alerts has risk signal · Status={status}")
+                print(f"[validate:risk_forced_exit] {pid} · {date} · "
+                      f"alerts has binding risk signal · forcing Status "
+                      f"{status} → EXIT (was silent BUY/HOLD lifecycle bug)")
+                # Force canonical lifecycle: risk-signal → EXIT
+                if isinstance(r, list) and len(r) > 7:
+                    r[7] = "EXIT"
+                    # Transfer Current Perf % → Exit P&L % so the closed
+                    # trade's realized return is preserved, then blank the
+                    # active-side value (I3 requires EXIT rows to have no
+                    # Active P&L populated).
+                    if _idx_current_perf is not None and \
+                            _idx_current_perf < len(r):
+                        _cp = r[_idx_current_perf]
+                        if isinstance(_cp, (int, float)):
+                            if _idx_exit_pnl is not None and \
+                                    _idx_exit_pnl < len(r):
+                                # Preserve Exit P&L only if not already set
+                                if not isinstance(r[_idx_exit_pnl],
+                                                  (int, float)):
+                                    r[_idx_exit_pnl] = _cp
+                            r[_idx_current_perf] = None
 
     return rows, n_viol
 

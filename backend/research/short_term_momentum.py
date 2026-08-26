@@ -208,20 +208,32 @@ def _sector_for(root: Path, ticker: str, market: str) -> str:
 
 
 def _quality_band(root: Path, ticker: str, market: str) -> str:
-    p = root / "reports" / f"investability_{market.lower()}.json"
-    if not p.exists(): return "UNKNOWN"
-    try:
-        d = json.loads(p.read_text(encoding="utf-8"))
-        for r in (d.get("results") or []):
-            if str(r.get("ticker","")).upper() == ticker.upper():
-                _v = str(r.get("verdict","")).upper()
-                if "QUALITY" in _v: return "QUALITY"
-                if "OK" in _v:      return "OK"
-                if "MARGINAL" in _v: return "MARGINAL"
-                if "AVOID" in _v:   return "AVOID"
-                return _v or "UNKNOWN"
-    except Exception:
-        pass
+    """Quality-band lookup for momentum candidates.
+
+    Momentum runs across the FULL parquet universe (India ~230 · USA ~900)
+    but plain `investability_{market}.json` only scores the narrow R1/R2
+    universe (~42 India · ~30 USA). Prefer `investability_shadow_{market}.json`
+    (full-universe scoring) with fallback to the narrow file. Prevents
+    100%-UNKNOWN misclassification that pushes every momentum candidate
+    to CHASE_RISK/NO_ACTION in the timing engine.
+    """
+    tk = ticker.upper()
+    for fname in (f"investability_shadow_{market.lower()}.json",
+                  f"investability_{market.lower()}.json"):
+        p = root / "reports" / fname
+        if not p.exists(): continue
+        try:
+            d = json.loads(p.read_text(encoding="utf-8"))
+            for r in (d.get("results") or []):
+                if str(r.get("ticker","")).upper() == tk:
+                    _v = str(r.get("verdict","")).upper()
+                    if "QUALITY" in _v: return "QUALITY"
+                    if "OK" in _v:      return "OK"
+                    if "MARGINAL" in _v: return "MARGINAL"
+                    if "AVOID" in _v:   return "AVOID"
+                    return _v or "UNKNOWN"
+        except Exception:
+            continue
     return "UNKNOWN"
 
 

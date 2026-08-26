@@ -145,26 +145,32 @@ def detect_rotations_today(root: Path, asof: str) -> int:
     existing = _load_ledger(root)
     existing_keys = {(r.asof, r.market, r.runner, r.old_ticker) for r in existing}
 
+    # 2026-08-26 · was ws.cell(row=r, column=c) in a loop over max_row
+    # (~1700 rows) · in read_only mode ws.cell() is O(n) per access →
+    # O(n^2) total → sender hung indefinitely at rotation_outcomes step.
+    # iter_rows streams sequentially · fixes the hang.
+    _idx = {n: ic[n] - 1 for n in ic}
     n_added = 0
-    for r in range(2, ws.max_row + 1):
-        d = str(ws.cell(row=r, column=ic["Date"]).value or "")
+    import re
+    for _r_tuple in ws.iter_rows(min_row=2, values_only=True):
+        if len(_r_tuple) <= max(_idx.values()): continue
+        d = str(_r_tuple[_idx["Date"]] or "")
         if not d.startswith(asof): continue
-        status = ws.cell(row=r, column=ic["Status"]).value
+        status = _r_tuple[_idx["Status"]]
         if status != "EXIT": continue
-        exit_reason = str(ws.cell(row=r, column=ic["Exit Reason"]).value or "")
+        exit_reason = str(_r_tuple[_idx["Exit Reason"]] or "")
         if "→" not in exit_reason: continue
 
         # Parse: "→ TCS.NS #1 · +12.2pp alpha" or "→ TCS.NS (+12.2pp)" or "Rotation → TCS.NS (+X.Xpp)"
-        import re
         m = re.search(r"→\s*([A-Z0-9\.-]+)", exit_reason)
         new_ticker = m.group(1).replace(".NS", "").replace(".BO", "") if m else ""
         alpha_m = re.search(r"\+?(-?\d+\.?\d*)\s*pp", exit_reason)
         expected_alpha = float(alpha_m.group(1)) if alpha_m else None
 
-        old_ticker = ws.cell(row=r, column=ic["Ticker"]).value
-        market = (ws.cell(row=r, column=ic["Country"]).value or "").lower()
-        runner = ws.cell(row=r, column=ic["Run_Type"]).value
-        exit_price = ws.cell(row=r, column=ic["Current Price"]).value
+        old_ticker = _r_tuple[_idx["Ticker"]]
+        market = (_r_tuple[_idx["Country"]] or "").lower()
+        runner = _r_tuple[_idx["Run_Type"]]
+        exit_price = _r_tuple[_idx["Current Price"]]
 
         key = (asof, market, runner, old_ticker)
         if key in existing_keys: continue

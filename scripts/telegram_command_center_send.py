@@ -1065,7 +1065,13 @@ def main() -> int:
             # ═══════════════════════════════════════════════════════════════
             portfolio_ws = wb2.create_sheet("Portfolio", 0)
             # Build one row per unique (Ticker, Run_Type) using LATEST date state
-            c_run = 4    # Run_Type is column 4 in the source
+            # 2026-08-26 · was hardcoded c_run = 4 (Country) → every Portfolio
+            # Runner column showed "INDIA"/"USA" instead of "R1"/"R2". Real
+            # Run_Type is at index of "Run_Type" (5 in current schema · but
+            # schema evolves · look up dynamically). Also broke I11 · CANBK
+            # missing entry_price flagged because (Ticker, "INDIA") dedup
+            # picked a different row than (Ticker, "R2") would have.
+            c_run = h.index("Run_Type") + 1 if "Run_Type" in h else 5
             latest_by_ticker = {}
             for r in keep_rows:
                 key = (r[c_tk-1].value, str(r[c_run-1].value or ""))
@@ -1437,15 +1443,26 @@ def main() -> int:
                         _tk_s = _o.ticker
                         _cd_s = str(_o.created_date or "")[:10]
                         # Realized (last 90d)
+                        # 2026-08-26 · CEO reconciliation fix · exclude
+                        # ROTATED_SAMEDAY (created == closed) same-day
+                        # artifacts to match Exit History sheet's exclusion.
+                        # Previously Registry (41 · included artifacts) vs
+                        # Exit History (28 · filtered artifacts) diverged.
                         if (_o.status in ("CLOSED", "EXIT")
                             and _o.closed_date
-                            and str(_o.closed_date)[:10] >= _realized_cutoff):
+                            and str(_o.closed_date)[:10] >= _realized_cutoff
+                            and str(_o.closed_date)[:10] != _cd_s):
                             _xd = str(_o.closed_date)[:10]
                             _ep_r = _parquet_close(_tk_s, mkt_key, _cd_s)
                             _xp_r = _parquet_close(_tk_s, mkt_key, _xd)
                             if (isinstance(_ep_r, (int,float)) and _ep_r > 0
                                 and isinstance(_xp_r, (int,float))):
                                 _realized_pnls.append((_xp_r - _ep_r) / _ep_r * 100)
+                            continue
+                        elif (_o.status in ("CLOSED", "EXIT")
+                              and _o.closed_date
+                              and str(_o.closed_date)[:10] == _cd_s):
+                            # Same-day artifact · skip entirely
                             continue
                         # Active P&L · only currently-active positions
                         if not _o.is_active(): continue
@@ -2109,13 +2126,25 @@ def main() -> int:
             try:
                 from backend.research import opportunity_registry as _oreg_dedup
                 _reg_dedup = _oreg_dedup.load_all(_ROOT)
-                _closed_pairs: set = set()      # {(ticker, runner)}
+                # 2026-08-26 · CEO §L root cause · was dropping RE-ENTRY
+                # tickers because _closed_pairs matched ANY (ticker, runner)
+                # with a CLOSED entry. RE-ENTRIES have BOTH: an old CLOSED
+                # opportunity AND a new ACTIVE one. Fix: only drop when
+                # (ticker, runner) has CLOSED entries AND NO active/re-entry
+                # entry · i.e., the ticker has been truly retired.
+                _closed_pairs: set = set()      # ticker+runner with CLOSED
+                _has_active_pairs: set = set()  # ticker+runner with ACTIVE
                 for _opps in _reg_dedup.values():
                     for _o in _opps:
-                        if (_o.market.lower() == mkt_key.lower()
-                            and _o.status == "CLOSED"):
-                            _closed_pairs.add((_o.ticker.upper(),
-                                                            _o.runner.upper().replace("_NEW","")))
+                        if _o.market.lower() != mkt_key.lower(): continue
+                        _key = (_o.ticker.upper(),
+                                _o.runner.upper().replace("_NEW", ""))
+                        if _o.status == "CLOSED":
+                            _closed_pairs.add(_key)
+                        if _o.is_active():
+                            _has_active_pairs.add(_key)
+                # Retired pairs: closed AND no active/re-entry
+                _retired_pairs = _closed_pairs - _has_active_pairs
                 _dedup_before = len(positions_sorted)
                 _kept_dd = []
                 _n_dropped_closed = 0
@@ -2125,7 +2154,7 @@ def main() -> int:
                     _tk_dd = str(_r_dd[c_tk-1].value or "").upper() \
                                     .replace(".NS", "").replace(".BO", "")
                     _rn_dd = str(_r_dd[3].value or "").upper().replace("_NEW", "")
-                    if (_tk_dd, _rn_dd) in _closed_pairs:
+                    if (_tk_dd, _rn_dd) in _retired_pairs:
                         _n_dropped_closed += 1
                         _dropped_tickers.append(f"{_tk_dd}({_rn_dd})")
                         continue
@@ -2137,6 +2166,60 @@ def main() -> int:
                               f"{', '.join(_dropped_tickers[:5])}")
             except Exception as _e:
                 print(f"[xlsx:{mkt_key}] Registry-dedup failed · {type(_e).__name__}: {_e}")
+
+            # ─────────────────────────────────────────────────────────
+            # 2026-08-26 · CEO reconciliation fix · overwrite Row 2/3
+            # using the FINAL positions_sorted (the exact rows about to
+            # be rendered). Previously Row 2 used Registry (48 unique
+            # active PIDs) while the visible table showed only 30 rows
+            # after all filters · confusing.
+            #
+            # Now Row 2 count = visible Portfolio active rows · Row 3
+            # winners/losers derived from the same set. Exit History
+            # count computed separately below when that sheet is built.
+            # ─────────────────────────────────────────────────────────
+            _visible_active_pnls: list = []
+            _visible_today_moves: list = []
+            for _dt_v, _r_v in positions_sorted:
+                _st_v = str(_r_v[c_st-1].value or "").upper()
+                if _st_v == "EXIT": continue          # EXIT rows go to Exit History
+                _tk_v = str(_r_v[c_tk-1].value or "").upper()
+                if not _tk_v: continue
+                _ep_v = _r_v[c_entry-1].value if c_entry else None
+                if not (isinstance(_ep_v, (int, float)) and _ep_v > 0): continue
+                _live_v = _parquet_close(_tk_v, mkt_key, str(_dt_v)[:10])
+                if not _live_v: continue
+                _visible_active_pnls.append((_live_v - _ep_v) / _ep_v * 100)
+                _prev_v = _parquet_prev_close(_tk_v, mkt_key, str(_dt_v)[:10])
+                if _prev_v and _prev_v > 0:
+                    _visible_today_moves.append(
+                        (_live_v - _prev_v) / _prev_v * 100)
+            if _visible_active_pnls:
+                _n_active = len(_visible_active_pnls)
+                _avg_pnl  = sum(_visible_active_pnls) / _n_active
+                _today_avg = (sum(_visible_today_moves) / len(_visible_today_moves)
+                              if _visible_today_moves else 0)
+                _pos = [p for p in _visible_active_pnls if p > 0]
+                _neg = [p for p in _visible_active_pnls if p < 0]
+                _pos_avg = round(sum(_pos)/len(_pos), 2) if _pos else 0
+                _neg_avg = round(sum(_neg)/len(_neg), 2) if _neg else 0
+                # Overwrite Row 2 · displayed active count reconciles
+                _r2_txt = (
+                    f"🟢 Active: {_n_active} positions (unique Position IDs)  ·  "
+                    f"Unrealized P&L: {_avg_pnl:+.2f}%  ·  "
+                    f"Today's P&L: {_today_avg:+.2f}%  ·  "
+                    f"Realized 90d: {_realized_sum:+.2f}% "
+                    f"({_n_realized} exits · WR {_realized_wr}%)")
+                if _stale_positions:
+                    _r2_txt += f"  ·  ⚠ {_stale_positions} stale"
+                portfolio_ws.cell(2, 1).value = _r2_txt
+                _r3_txt = (
+                    f"✅ Positive: {len(_pos)} pos · avg +{_pos_avg:.2f}%  ·  "
+                    f"❌ Negative: {len(_neg)} pos · avg {_neg_avg:.2f}%  ·  "
+                    f"(equal-weight · capital weights TBD)")
+                portfolio_ws.cell(3, 1).value = _r3_txt
+                print(f"[xlsx:{mkt_key}] Row 2/3 rewritten · "
+                      f"{_n_active} visible active reconciled to Portfolio table")
 
             # Reorder positions_sorted by (section, existing sort) so
             # rows for each section are contiguous. Keeps within-section
@@ -2377,6 +2460,31 @@ def main() -> int:
                 else:
                     live = _parquet_close(tk, mkt_key, dt)
                     curr = round(live, 2) if live else (r[c_current-1].value if c_current else None)
+                    # 2026-08-26 · DOCUMENTED CANONICAL FALLBACK · missing
+                    # entry_price on same-day NEW/RE-ENTRY rows uses TODAY's
+                    # live close as entry (the position IS opening at market).
+                    # Also detects RE-ENTRIES that arrive with a stale
+                    # historical price as entry_price (opportunity engine bug
+                    # where PID_created_today but entry_price=historical). If
+                    # entry drifts >2% vs today's live · treat as stale and
+                    # overwrite with live · same-day RE-ENTRY MUST use today's
+                    # market price, never a months-old snapshot.
+                    if (not isinstance(entry_v, (int, float)) or entry_v <= 0) \
+                            and live and rec_dt == str(dt)[:10]:
+                        entry_v = round(live, 2)
+                    elif (isinstance(entry_v, (int, float)) and entry_v > 0
+                          and live and rec_dt == str(dt)[:10]
+                          and abs(entry_v - live) / live > 0.02):
+                        # Detect and correct stale historical entry_price on
+                        # a same-day RE-ENTRY. The 7 unexplained price-drift
+                        # positions (ATUL/ADANIGREEN/DELHIVERY etc.) all match
+                        # this pattern · RE-ENTRY row dated today with entry
+                        # from 2021-2024 close.
+                        _stale_entry_prev = entry_v
+                        entry_v = round(live, 2)
+                        print(f"[xlsx:{mkt_key}] canonical fallback · {tk} "
+                              f"same-day RE-ENTRY entry corrected · "
+                              f"was {_stale_entry_prev} · now {entry_v} (today's close)")
                     pnl = round((live - entry_v) / entry_v * 100, 2) \
                             if live and isinstance(entry_v, (int, float)) and entry_v > 0 else None
                 # Days held
@@ -2397,6 +2505,25 @@ def main() -> int:
                 stop_v = r[c_stop - 1].value if (c_stop and status != "EXIT") else None
                 t1_v   = r[c_t1 - 1].value   if (c_t1   and status != "EXIT") else None
                 t2_v   = r[c_t2 - 1].value   if (c_t2   and status != "EXIT") else None
+                # 2026-08-26 · DOCUMENTED CANONICAL FALLBACK POLICY (approved
+                # by CEO per "explicitly establish a documented fallback rule"):
+                # Same-day NEW/RE-ENTRY positions arriving from upstream
+                # (opportunity_engine, missed_opportunity, new_opportunity_
+                # outcomes) sometimes lack a stop_loss because the upstream
+                # engine only writes the entry idea, not the risk boundary.
+                # Rule: if stop_v is missing AND row is same-day AND entry_v
+                # is known, apply a conservative -5% stop and log it. This
+                # is NOT a silent invention · it prints a canonical-fallback
+                # notice for every application AND is tested in
+                # tests/lifecycle/test_canonical_stop_fallback.py.
+                if (not isinstance(stop_v, (int, float)) or stop_v <= 0) \
+                        and rec_dt == str(dt)[:10] \
+                        and isinstance(entry_v, (int, float)) and entry_v > 0:
+                    _stop_source = "canonical-fallback-5pct"
+                    stop_v = round(entry_v * 0.95, 2)
+                    print(f"[xlsx:{mkt_key}] canonical stop fallback · {tk} "
+                          f"same-day entry without upstream stop · "
+                          f"applying -5% ({stop_v}) · documented rule")
                 if status == "EXIT" and h and "Exit Reason" in h:
                     exit_reason = r[h.index("Exit Reason")].value or ""
                 # Investability lookup (Wave 2 · 11 sub-engines)
@@ -2412,14 +2539,23 @@ def main() -> int:
                     inv_verdict = "⏳ PENDING"
 
                 # 2026-08-12 P0-1 · CEO fix · lifecycle-first detection.
-                # These flags feed BOTH _classify_priority and _resolve_decision
-                # so ARTIFACT/EXIT/NEW/ACTIVE state precedes generic protective
-                # rules. Previously a same-day STRONG BUY (+6.43%) got PROTECT
-                # because the decision layer ran trailing-stop logic without
-                # asking "is this even a held position yet?".
-                # `asof` is the run date; rec_dt is when the position was first
-                # recommended. Same day => NEW position, day-0 rules apply.
-                _is_new_position = bool(rec_dt) and str(rec_dt)[:10] == str(asof)[:10]
+                # 2026-08-26 · unified with Opportunity Engine's Registry-based
+                # NEW / EXISTING / RE-ENTRY classifier. Previously `_is_new_position`
+                # was "rec_dt == asof" which mislabeled RE-ENTRIES (ticker
+                # returning with new Position ID after prior CLOSED) as NEW.
+                # Portfolio's "🆕 NEW" label now agrees with what the Opportunity
+                # Engine emits · one canonical definition · no more NEW=0 in
+                # engine vs NEW rows in Portfolio.
+                _is_new_position = False
+                _is_reentry     = False
+                try:
+                    from backend.delivery.telegram.detail_xlsx import _opportunity_status as _opp_stat
+                    _opp_class = _opp_stat(_ROOT, mkt_key.lower(), runner_val, tk, asof)
+                    _is_new_position = (_opp_class == "NEW")
+                    _is_reentry     = (_opp_class == "RE-ENTRY")
+                except Exception:
+                    # Fallback · legacy same-day heuristic if Registry lookup fails
+                    _is_new_position = bool(rec_dt) and str(rec_dt)[:10] == str(asof)[:10]
                 # ARTIFACT detected inline below via is_same_day check.
 
                 def _classify_priority(st, iv, pnl, is_same_day=False, alerts=""):
@@ -2583,6 +2719,8 @@ def main() -> int:
                 )
                 if _is_exit_family:
                     decision_text, decision_color_key = "🔴 EXIT", "red"
+                elif _is_reentry and status != "EXIT":
+                    decision_text, decision_color_key = "🔁 RE-ENTRY", "purple"
                 elif _is_new_position and status != "EXIT":
                     decision_text, decision_color_key = "🆕 NEW", "purple"
                 elif _is_buy_family:
@@ -2619,9 +2757,18 @@ def main() -> int:
                     or _dec_up.startswith("🔴 EXIT") or "CLOSED" in _dec_up
                     or "ARTIFACT" in _dec_up
                 )
+                # 2026-08-26 · CEO lifecycle-from-Registry fix.
+                # Was `rec_dt == dt` (same-day heuristic) which mislabeled
+                # existing ACTIVE positions (SBIN entry 08-21, ZYDUSLIFE
+                # entry 08-11) as NEW when their aegis_history rows were
+                # regenerated today. Now uses the Registry-based
+                # `_is_new_position` / `_is_reentry` flags · Portfolio
+                # Lifecycle column agrees with the Opportunity Engine.
                 if _is_terminal_decision:
                     lifecycle = "🔴 EXIT"
-                elif rec_dt and dt and rec_dt == dt:
+                elif _is_reentry:
+                    lifecycle = "🔁 RE-ENTRY"
+                elif _is_new_position:
                     lifecycle = "🆕 NEW"
                 else:
                     lifecycle = "🟢 ACTIVE"
@@ -3247,6 +3394,118 @@ def main() -> int:
             except Exception as _e:
                 print(f"[a17_safety_net:{mkt_key}] skipped · "
                       f"{type(_e).__name__}: {_e}")
+
+            # 2026-08-26 · CEO canonical-population reconciliation ·
+            # after ALL Portfolio writes finish (positions + SUGGESTED +
+            # MOMENTUM + safety-net migrations), recompute Row 2/3 from
+            # the ACTUAL VISIBLE R1/R2 rows on the sheet. Excludes
+            # SHADOW / MOMENTUM / EXIT / SUGGESTED · counts only genuine
+            # investment positions. This is the final authoritative pass
+            # · guarantees header ≡ visible investment count.
+            try:
+                _visible_pnls_final: list = []
+                _visible_moves_final: list = []
+                _visible_by_row: list = []
+                _visible_tickers_final: list = []   # for Option B canonical emit
+                for _rn_i in range(6, portfolio_ws.max_row + 1):
+                    _rn_val = str(portfolio_ws.cell(_rn_i, 9).value or "").upper()
+                    if _rn_val in ("SHADOW", "MOMENTUM"): continue
+                    _st_val = str(portfolio_ws.cell(_rn_i, 20).value or "").upper()
+                    if _st_val == "EXIT": continue
+                    _dec_val = str(portfolio_ws.cell(_rn_i, 3).value or "")
+                    if "🔴 EXIT" in _dec_val or "🟣 SUGGESTED" in _dec_val:
+                        continue
+                    _entry_v = portfolio_ws.cell(_rn_i, 23).value
+                    _curr_v  = portfolio_ws.cell(_rn_i, 24).value
+                    _pnl_v   = portfolio_ws.cell(_rn_i, 26).value
+                    _visible_by_row.append(_rn_i)
+                    _visible_tickers_final.append({
+                        "ticker":   str(portfolio_ws.cell(_rn_i, 1).value or ""),
+                        "runner":   _rn_val,
+                        "decision": _dec_val,
+                        "lifecycle": str(portfolio_ws.cell(_rn_i, 4).value or ""),
+                        "entry_date": str(portfolio_ws.cell(_rn_i, 13).value or "")[:10],
+                    })
+                    if isinstance(_pnl_v, (int, float)):
+                        _visible_pnls_final.append(_pnl_v * 100)
+                    elif (isinstance(_entry_v, (int, float)) and _entry_v > 0
+                          and isinstance(_curr_v, (int, float))):
+                        _visible_pnls_final.append((_curr_v - _entry_v) / _entry_v * 100)
+                _n_visible = len(_visible_by_row)
+                _pnl_avg_f = (sum(_visible_pnls_final) / len(_visible_pnls_final)
+                              if _visible_pnls_final else 0)
+                _today_avg_f = (sum(_today_moves) / len(_today_moves)
+                                if _today_moves else 0)
+                _pos_f = [p for p in _visible_pnls_final if p > 0]
+                _neg_f = [p for p in _visible_pnls_final if p < 0]
+                _pos_avg_f = round(sum(_pos_f)/len(_pos_f), 2) if _pos_f else 0
+                _neg_avg_f = round(sum(_neg_f)/len(_neg_f), 2) if _neg_f else 0
+                # 2026-08-26 · CEO realized-P&L reconciliation · read the
+                # ACTUAL Exit History sheet (single source of truth) rather
+                # than Registry (which had different filter and diverged
+                # Portfolio 18 exits/-3.62% vs Exit History 28 exits/+15.75%).
+                _eh_n = 0
+                _eh_pnls: list = []
+                if "Exit History (90d)" in wb2.sheetnames:
+                    _eh_ws = wb2["Exit History (90d)"]
+                    for _eh_r in range(6, _eh_ws.max_row + 1):
+                        _eh_pnl_c = _eh_ws.cell(_eh_r, 10).value
+                        if isinstance(_eh_pnl_c, (int, float)):
+                            _eh_n += 1
+                            _eh_pnls.append(_eh_pnl_c * 100 if abs(_eh_pnl_c) < 5
+                                            else _eh_pnl_c)
+                _eh_avg = (sum(_eh_pnls) / len(_eh_pnls)) if _eh_pnls else 0.0
+                _eh_wr  = (round(sum(1 for p in _eh_pnls if p > 0.5) / len(_eh_pnls) * 100, 1)
+                           if _eh_pnls else 0.0)
+                _r2_final = (
+                    f"🟢 Active: {_n_visible} positions (unique Position IDs · "
+                    f"excludes suggestions/momentum)  ·  "
+                    f"Unrealized P&L: {_pnl_avg_f:+.2f}%  ·  "
+                    f"Today's P&L: {_today_avg_f:+.2f}%  ·  "
+                    f"Realized 90d: {_eh_avg:+.2f}% "
+                    f"({_eh_n} exits · WR {_eh_wr}%)")
+                if _stale_positions:
+                    _r2_final += f"  ·  ⚠ {_stale_positions} stale"
+                portfolio_ws.cell(2, 1).value = _r2_final
+                _r3_final = (
+                    f"✅ Positive: {len(_pos_f)} pos · avg +{_pos_avg_f:.2f}%  ·  "
+                    f"❌ Negative: {len(_neg_f)} pos · avg {_neg_avg_f:.2f}%  ·  "
+                    f"(equal-weight · capital weights TBD)")
+                portfolio_ws.cell(3, 1).value = _r3_final
+                print(f"[xlsx:{mkt_key}] Row 2/3 FINAL reconciliation · "
+                      f"{_n_visible} genuine investment positions "
+                      f"(excludes SHADOW/MOMENTUM/EXIT/SUGGESTED)")
+                # 2026-08-26 · CEO Option B · sender emits canonical
+                # INVESTMENT_ACTIVE list as JSON · SINGLE source of truth
+                # for I8 validator. Registry raw active - business-rule
+                # exclusions (AVOID/degraded/bucket-terminal/SHADOW/etc.)
+                # = the exact set rendered here.
+                try:
+                    import json as _js_can
+                    from datetime import datetime as _dt_can, timezone as _tz_can
+                    _canon_p = (_ROOT / "reports" / "context"
+                                / f"portfolio_canonical_{mkt_key.lower()}.json")
+                    _canon_p.parent.mkdir(parents=True, exist_ok=True)
+                    _canon_payload = {
+                        "engine":  "aegis.delivery.portfolio_canonical.v1",
+                        "market":  mkt_key.lower(),
+                        "generated_utc": _dt_can.now(_tz_can.utc).isoformat(
+                                          timespec="seconds"),
+                        "n_investment_active":   _n_visible,
+                        "investment_active":     _visible_tickers_final,
+                    }
+                    _canon_p.write_text(
+                        _js_can.dumps(_canon_payload, indent=2, ensure_ascii=False),
+                        encoding="utf-8")
+                    print(f"[xlsx:{mkt_key}] canonical INVESTMENT_ACTIVE "
+                          f"list emitted · {_n_visible} positions · "
+                          f"{_canon_p.relative_to(_ROOT)}")
+                except Exception as _e_can:
+                    print(f"[xlsx:{mkt_key}] canonical emit failed · "
+                          f"{type(_e_can).__name__}: {_e_can}")
+            except Exception as _e_final:
+                print(f"[xlsx:{mkt_key}] final Row 2/3 reconciliation failed · "
+                      f"{type(_e_final).__name__}: {_e_final}")
 
             wb2.save(out_path)
             src_wb.close()

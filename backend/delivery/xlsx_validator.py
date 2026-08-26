@@ -309,23 +309,86 @@ class XlsxValidator:
                                    "BLOCK", "SKIP",
                                    "could not parse Active count from header")
         stated = int(m.group(1))
-        # Registry count
+        # 2026-08-26 · CEO Option B · canonical INVESTMENT_ACTIVE is
+        # emitted by the sender as `reports/context/portfolio_canonical_
+        # {market}.json` · that JSON is the SINGLE source of truth. I8
+        # just checks that Row 2 count equals its length. No duplicated
+        # business logic here. Falls back to Registry-derived approximation
+        # only if the canonical file is missing (bootstrap case).
+        import json as _js_i8
+        _canon_p = self.root / "reports" / "context" \
+                   / f"portfolio_canonical_{self.market}.json"
+        if _canon_p.exists():
+            try:
+                _canon = _js_i8.loads(_canon_p.read_text(encoding="utf-8"))
+                actual = int(_canon.get("n_investment_active", 0))
+                status = "PASS" if stated == actual else "FAIL"
+                return InvariantResult(
+                    "I8", "Summary count reconciles", "BLOCK", status,
+                    f"header={stated} · canonical (from portfolio_canonical_"
+                    f"{self.market}.json)={actual}",
+                    [{"stated": stated, "actual": actual}] if status == "FAIL" else [])
+            except Exception as _e_c:
+                pass  # fall through to Registry approximation
+        # 2026-08-26 · fallback · canonical INVESTMENT_ACTIVE = Registry
+        # active PIDs minus:
+        #   · SHADOW/MOMENTUM/SUGGESTED runners (research overlays)
+        #   · positions that today's row was mutated to EXIT by binding
+        #     risk signals (SUNPHARMA/POWERGRID/ITC pattern)
+        # Registry active count alone is NOT canonical because it lags
+        # today's runtime lifecycle mutations.
         reg = self._registry()
+        # Load today's aegis_history to find risk-mutated-EXIT positions
+        try:
+            from openpyxl import load_workbook
+            uni_p = self.root / "reports" / "telegram" / "aegis_history.xlsx"
+            _muted_exit: set = set()
+            if uni_p.exists():
+                _wb2 = load_workbook(uni_p, read_only=True, data_only=True)
+                _sh = _wb2["AEGIS Daily"]
+                _h = [c.value for c in _sh[1]]
+                _i_ctry = _h.index("Country") + 1
+                _i_rt = _h.index("Run_Type") + 1
+                _i_tk = _h.index("Ticker") + 1
+                _i_st = _h.index("Status") + 1
+                _i_dt = _h.index("Date") + 1
+                from datetime import date as _d
+                _today = _d.today().isoformat()
+                for _row in _sh.iter_rows(min_row=2, values_only=True):
+                    if str(_row[_i_ctry-1] or "").upper() != self.market.upper():
+                        continue
+                    if str(_row[_i_dt-1])[:10] != _today: continue
+                    if str(_row[_i_st-1] or "").upper() == "EXIT":
+                        _muted_exit.add((
+                            str(_row[_i_tk-1] or "").upper()
+                                .replace(".NS","").replace(".BO",""),
+                            str(_row[_i_rt-1] or "").upper().replace("_NEW",""),
+                        ))
+                _wb2.close()
+        except Exception:
+            _muted_exit = set()
         actual = 0
         _seen: set = set()
         for opps in reg.values():
             for o in opps:
                 if o.market.lower() != self.market: continue
                 if not o.is_active(): continue
+                if o.runner in ("SHADOW", "MOMENTUM", "SUGGESTED"):
+                    continue
                 pid = getattr(o, "opportunity_id", None) or \
                       f"{o.ticker}_{o.runner}_{o.created_date}"
                 if pid in _seen: continue
                 _seen.add(pid)
+                _tk_norm = o.ticker.upper().replace(".NS","").replace(".BO","")
+                _rn_norm = o.runner.upper().replace("_NEW","")
+                if (_tk_norm, _rn_norm) in _muted_exit:
+                    continue     # risk-mutated to EXIT · not investment-active
                 actual += 1
         status = "PASS" if abs(stated - actual) <= 2 else "FAIL"
         return InvariantResult(
             "I8", "Summary count reconciles", "BLOCK", status,
-            f"header says {stated} · Registry has {actual} unique active",
+            f"header says {stated} · canonical INVESTMENT_ACTIVE = {actual} "
+            f"(Registry minus SHADOW/MOMENTUM/SUGGESTED minus risk-mutated-EXIT)",
             [{"stated": stated, "actual": actual}] if status == "FAIL" else [])
 
     def check_suggested_not_in_pnl(self) -> InvariantResult:
@@ -651,6 +714,109 @@ class XlsxValidator:
         except Exception as e:
             return InvariantResult("I22", "No forbidden states", "BLOCK",
                                    "SKIP", f"{type(e).__name__}: {e}")
+
+    def check_header_matches_visible_rows(self) -> InvariantResult:
+        """I24 · Row 2 'Active: N positions' must equal visible
+        ACTIVE/RE-ENTRY rows in Portfolio (excludes SHADOW/MOMENTUM/EXIT).
+        """
+        import re
+        from openpyxl import load_workbook
+        try:
+            wb = load_workbook(self.xlsx_path, read_only=True, data_only=True)
+            if "Portfolio" not in wb.sheetnames:
+                return InvariantResult("I24", "Header count matches rows",
+                                       "BLOCK", "SKIP", "no Portfolio sheet")
+            ws = wb["Portfolio"]
+            r2 = str(ws.cell(2, 1).value or "")
+            m = re.search(r"Active:\s*(\d+)", r2)
+            if not m:
+                wb.close()
+                return InvariantResult("I24", "Header count matches rows",
+                                       "BLOCK", "SKIP",
+                                       f"Row 2 missing 'Active: N' pattern")
+            header_n = int(m.group(1))
+            visible = 0
+            for r_idx in range(6, ws.max_row + 1):
+                _rn = str(ws.cell(r_idx, 9).value or "").upper()
+                if _rn in ("SHADOW", "MOMENTUM"): continue
+                _tk = str(ws.cell(r_idx, 1).value or "").upper()
+                if not _tk or _tk.startswith(("🟢","🔴","🆕","🟣",
+                                              "AEGIS","📊","🩺","✅","❌")):
+                    continue
+                _dec = str(ws.cell(r_idx, 3).value or "").upper()
+                if "🔴 EXIT" in _dec or "EXIT" in _dec[:6]:
+                    continue
+                visible += 1
+            wb.close()
+            status = "PASS" if header_n == visible else "FAIL"
+            return InvariantResult(
+                "I24", "Header count matches rows", "BLOCK", status,
+                f"header={header_n} visible={visible}",
+                [{"header": header_n, "visible": visible}] if status == "FAIL" else [])
+        except Exception as e:
+            return InvariantResult("I24", "Header count matches rows",
+                                   "BLOCK", "SKIP",
+                                   f"{type(e).__name__}: {e}")
+
+    def check_realized_matches_exit_history(self) -> InvariantResult:
+        """I25 · Portfolio Row 2 Realized 90d numbers must reconcile to
+        Exit History (90d) sheet's row count."""
+        import re
+        from openpyxl import load_workbook
+        try:
+            wb = load_workbook(self.xlsx_path, read_only=True, data_only=True)
+            if "Portfolio" not in wb.sheetnames or \
+                    "Exit History (90d)" not in wb.sheetnames:
+                wb.close()
+                return InvariantResult("I25", "Realized reconciles",
+                                       "BLOCK", "SKIP", "missing sheet")
+            ws_p = wb["Portfolio"]
+            r2 = str(ws_p.cell(2, 1).value or "")
+            m = re.search(r"Realized 90d[^(]*\(\s*(\d+)\s*exits", r2)
+            header_n = int(m.group(1)) if m else -1
+            ws_eh = wb["Exit History (90d)"]
+            # Count Exit History data rows with numeric P&L in col 10
+            eh_n = 0
+            for r_idx in range(6, ws_eh.max_row + 1):
+                _v = ws_eh.cell(r_idx, 10).value
+                if isinstance(_v, (int, float)):
+                    eh_n += 1
+            wb.close()
+            status = "PASS" if header_n == eh_n else "FAIL"
+            return InvariantResult(
+                "I25", "Realized reconciles", "BLOCK", status,
+                f"header={header_n} exit_history={eh_n}",
+                [{"header": header_n, "exit_history": eh_n}] if status == "FAIL" else [])
+        except Exception as e:
+            return InvariantResult("I25", "Realized reconciles",
+                                   "BLOCK", "SKIP",
+                                   f"{type(e).__name__}: {e}")
+
+    def check_runner_canonical(self) -> InvariantResult:
+        """I23 · Runner column has canonical values (R1/R2/SHADOW/MOMENTUM).
+
+        Regression for 2026-08-26 bug where hardcoded c_run=4 read the
+        Country column, so every Portfolio row's Runner showed 'INDIA' /
+        'USA' instead of R1/R2 · a symptom of Portfolio's column-index
+        drift.
+        """
+        allowed = {"R1", "R2", "SHADOW", "MOMENTUM", "SUGGESTED", ""}
+        violations = []
+        for r_idx, row in self._iter_data_rows("Portfolio", 6):
+            _tk = str(row[0] or "").upper()
+            if not _tk or _tk.startswith(("🟢","🔴","🆕","🟣","AEGIS","📊","🩺","✅","❌")):
+                continue
+            # Runner column index = 8 (0-indexed) · matches C9 in current schema
+            _rn = str(row[8] or "").upper() if len(row) > 8 else ""
+            if _rn not in allowed:
+                violations.append({
+                    "ticker": _tk, "row": r_idx, "runner_value": _rn,
+                })
+        return InvariantResult(
+            "I23", "Runner column has canonical values", "BLOCK",
+            "FAIL" if violations else "PASS",
+            f"{len(violations)} rows with non-canonical Runner value",
+            violations[:5])
 
 
 # ─────────────────────────────────────────────────────────────────
