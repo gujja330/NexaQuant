@@ -185,12 +185,19 @@ def close_orphans(root: Path, market: str,
             # fabricates an exit_date for tickers with NO market data
             # on asof (EA delisted 2026-08-10 was closed with
             # closed_date=2026-08-26 · I28 correctly refused it).
-            # Correct closed_date = last-known-evidence date for this
-            # specific ticker · never the ambient asof.
-            #   priority: ls (last aegis_history date)
-            #          →  cd (created_date · position birth)
-            #          →  asof_iso (fallback ONLY when neither exists)
-            legit_closed_date = ls or cd or asof_iso
+            # Correct closed_date = last-known-evidence date, subject
+            # to the invariant closed_date >= created_date (a position
+            # cannot close before it opened · I28 exit_before_entry
+            # would otherwise fire).
+            #   compute: last-known = ls (last aegis_history date)
+            #                       → cd (created_date · birth)
+            #                       → asof_iso (last resort)
+            #   enforce: closed_date = max(last-known, cd)
+            # For EA · cd=2026-08-11 · ls=2026-08-10 (last real close) →
+            # max = 2026-08-11 (same-day open+close · consistent) · I28
+            # parquet 5-day lookback catches Aug 10 close → PASS.
+            _last_known = ls or cd or asof_iso
+            legit_closed_date = max(_last_known, cd) if cd else _last_known
             action = "CLOSED" if not dry_run else "WOULD_CLOSE"
             if not dry_run:
                 try:
@@ -204,7 +211,7 @@ def close_orphans(root: Path, market: str,
                 last_seen_in_history=ls, action=action,
                 reason=(f"age {age}d >= stale_days ({stale_days}d) · "
                         f"not in canonical + last_seen_in_history={ls or 'never'} · "
-                        f"closed_date=last-known-evidence={legit_closed_date} · "
+                        f"closed_date=max(last-known,cd)={legit_closed_date} · "
                         f"orphaned R{rn_norm}-style bloat pattern"),
             ))
     return records

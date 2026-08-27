@@ -158,6 +158,36 @@ def test_orphan_close_falls_back_to_created_date_when_no_history(
         f"closed_date should be created_date 2026-08-05 · got {row.closed_date}"
 
 
+def test_orphan_close_enforces_closed_date_ge_created_date(
+        tmp_path, monkeypatch):
+    """CI run 33074829157 · Row 528 · EA · exit=2026-08-10 · entry=2026-08-11 ·
+    I28 exit_before_entry. The earlier fix (ls or cd) took ls when ls < cd ·
+    that violated the invariant closed_date >= created_date. Regression:
+    when last_seen_in_history < created_date, closed_date MUST fall back to
+    created_date (a same-day open+close · the position was born but the
+    ticker had no market data on the birth date)."""
+    from backend.research import mr_orphan_closer as m
+    from backend.research import opportunity_registry as oreg
+    # EA-like setup: cd (birth) = Aug 11 · ls (last real data) = Aug 10
+    pid = _bootstrap_orphan_registry(tmp_path, "EA", "R2", "2026-08-11")
+    _write_empty_canonical(tmp_path)
+    monkeypatch.setattr(m, "_last_seen_in_history",
+                        lambda root, mkt, days: {("EA", "R2"): "2026-08-10"})
+    recs = m.close_orphans(tmp_path, "usa", asof="2026-08-26",
+                            dry_run=False, stale_days=10)
+    closed = [r for r in recs if r.action == "CLOSED"]
+    assert len(closed) == 1
+    reg = oreg.load_all(tmp_path)
+    row = next(o for opps in reg.values() for o in opps
+                if o.opportunity_id == pid)
+    # THE FIX: closed_date >= created_date · never before birth
+    assert row.closed_date == "2026-08-11", \
+        (f"closed_date should be max(ls=Aug 10, cd=Aug 11) = Aug 11 · "
+         f"got {row.closed_date} · I28 exit_before_entry would fire in CI")
+    assert row.closed_date >= row.created_date, \
+        "invariant violated: closed_date must be >= created_date"
+
+
 def test_orphan_close_does_not_fabricate_dates_after_evidence(
         tmp_path, monkeypatch):
     """Property: closed_date <= max(created_date, last_seen_in_history).
@@ -193,7 +223,7 @@ def test_orphan_close_dry_run_still_reports_correct_closed_date(
     would_close = [r for r in recs if r.action == "WOULD_CLOSE"]
     assert len(would_close) == 1
     # The reason string exposes the target closed_date
-    assert "closed_date=last-known-evidence=2026-08-10" in would_close[0].reason
+    assert "closed_date=max(last-known,cd)=2026-08-10" in would_close[0].reason
 
 
 # ─────────────────────────────────────────────────────────────
