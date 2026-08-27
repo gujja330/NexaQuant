@@ -1,0 +1,64 @@
+{
+  "engine": "aegis.mr_fundamentals_gap_check.v0.1",
+  "market": "INDIA",
+  "generated_utc": "2026-08-27T08:58:44+00:00",
+  "n_fundamentals_tickers": 228,
+  "n_universe_tickers": 230,
+  "n_daily_pred_tickers": 41,
+  "coverage_of_universe_pct": 97.83,
+  "coverage_of_daily_preds_pct": 100.0,
+  "per_column_coverage": {
+    "returnOnEquity": {
+      "non_null": 197,
+      "coverage_pct": 86.4
+    },
+    "profitMargins": {
+      "non_null": 224,
+      "coverage_pct": 98.25
+    },
+    "earningsGrowth": {
+      "non_null": 210,
+      "coverage_pct": 92.11
+    },
+    "debtToEquity": {
+      "non_null": 203,
+      "coverage_pct": 89.04
+    },
+    "trailingPE": {
+      "non_null": 221,
+      "coverage_pct": 96.93
+    },
+    "priceToBook": {
+      "non_null": 224,
+      "coverage_pct": 98.25
+    },
+    "next_earnings": {
+      "non_null": 207,
+      "coverage_pct": 90.79
+    },
+    "quality_score": {
+      "non_null": 224,
+      "coverage_pct": 98.25
+    }
+  },
+  "sample_uncovered_daily": [],
+  "sample_uncovered_universe": [
+    "INDIAVIX",
+    "M&M",
+    "NSEBANK",
+    "NSEI",
+    "SP500"
+  ],
+  "closure_plan": {
+    "priority_tickers": [],
+    "n_priority": 0,
+    "sources_to_pull_from": [
+      "India: yfinance batch pull for uncovered NSE symbols (returnOnEquity, profitMargins, earningsGrowth, debtToEquity, trailingPE, priceToBook, quality_score) using .NS suffix",
+      "India: NSE bhavcopy for missing shares outstanding",
+      "USA: yfinance batch pull for uncovered S&P 500 tickers (same schema)",
+      "USA: Compustat quarterly (paid) if free sources insufficient"
+    ],
+    "target_coverage_pct": 95,
+    "verification": "Rerun mr_fundamentals_gap_check after each pull batch · block acceptance below 95%."
+  }
+}

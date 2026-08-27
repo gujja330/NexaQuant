@@ -1,0 +1,55 @@
+{
+  "experiment_id": "aegis_mr_experiment_20260827_x3_usa_mid_cap_tilt",
+  "source_tickets": [
+    "derived_from_mr_studies_Q3_cap_bucket"
+  ],
+  "market": "USA",
+  "title": "USA MID-cap tilt · cap-weighted selection experiment",
+  "hypothesis": "30D corpus shows USA MID cap n=622 · 5D WR=46.60% · avg=+0.10% (only USA positive-avg cohort) beats LARGE n=459 · 5D WR=35.96% · avg=-0.84% by 10.64pp WR. Tilting selection toward MID and away from LARGE in shadow should confirm this prospectively.",
+  "metric": "shadow_mid_5D_WR - shadow_large_5D_WR",
+  "secondary_metrics": [
+    "shadow_mid_avg",
+    "shadow_large_avg",
+    "cap_bucket_distribution_delta",
+    "MAE_by_cap"
+  ],
+  "min_sample_size": 100,
+  "observation_window_days": 30,
+  "null_hypothesis": "MID vs LARGE 5D WR gap is within +/-3pp forward · in which case the 30D signal was noise/regime-specific.",
+  "acceptance_criteria": "shadow MID 5D WR - LARGE 5D WR >= 8pp on n>=100 forward USA predictions AND MID avg > LARGE avg by >= 0.5%.",
+  "rejection_criteria": "MID - LARGE gap < 3pp forward OR MID catastrophic-loss rate > LARGE + 0.5pp.",
+  "shadow_wire_up": "Sandbox: reads today's canonical USA + LIVE parquet cap-bucket features · applies rule_X3_usa_mid_cap_tilt · emits shadow BOOST_TO_MID_TILT or DEMOTE_FROM_LARGE_TILT tags to reports/research/experiments/{id}/{date}/shadow.jsonl. Does NOT modify USA R1/R2, canonical, or Telegram.",
+  "safety_gate": [
+    "No production USA runner or universe changes.",
+    "Shadow tags MUST live under reports/research/experiments/.",
+    "Any regression in current delivery invariants (BLOCK != 0) aborts."
+  ],
+  "promotion_gate": [
+    "1. Research Ticket accepted by CEO",
+    "2. Walk-forward test on N >= 100 forward predictions",
+    "3. Full regression pass on locked delivery invariants (BLOCK == 0)",
+    "4. CEO explicit approval + lock-override phrase",
+    "5. Config-toggle OFF by default in a new SPRINT_ID branch",
+    "6. Paper-trading period >= 30 sessions with green metrics",
+    "7. Production promotion under new SPRINT_ID with L4 evidence"
+  ],
+  "do_not_touch": [
+    "R1 recommendation runner",
+    "R2 recommendation runner",
+    "Registry orphan-close",
+    "backend/delivery/xlsx_contract.py",
+    "backend/delivery/xlsx_validator.py",
+    "scripts/telegram_command_center_send.py canonical INVESTMENT_ACTIVE JSON",
+    "configs/ensemble_weights_adaptive.yaml",
+    "model_registry.jsonl"
+  ],
+  "risk": "MID vs LARGE gap may be regime-specific (drawdown-window artifact). Regularize with 5D + 10D + 20D acceptance. USA MID corpus depth may be volatility-driven.",
+  "current_status": "ARCHIVED_FOR_LATER",
+  "first_snapshot_date": "2026-08-27",
+  "days_of_evidence": 1,
+  "attempts": [],
+  "generated_utc": "2026-08-27T08:58:40+00:00",
+  "engine": "aegis.mr_experiment_consolidator.v0.1",
+  "experiment_id_family": "M-R.v0.1",
+  "v2_consolidator_stamp_utc": "2026-08-27T08:58:40+00:00"
+}

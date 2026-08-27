@@ -1,0 +1,49 @@
+{
+  "experiment_id": "aegis_mr_experiment_20260827_e1_india_r1_filter",
+  "source_evidence": [
+    "mr_studies_india.json:Q8_rank_slot.top3",
+    "mr_score_usefulness_india.json:audits.confidence_pct"
+  ],
+  "market": "INDIA",
+  "title": "E1 · India R1 negative filter (weakest cohorts)",
+  "hypothesis": "R1 top-3 with ma20_dist outside +1..+5 (n=82, 14.5% WR) AND R1 confidence 70-85 anti-signal (n=103, 13.16% WR) are the two weakest R1 cohorts. Filtering them should raise R1 5D WR toward R2 baseline 32.16%.",
+  "metric": "shadow_R1_5D_WR (after filter)",
+  "min_sample_size": 100,
+  "observation_window_days": 30,
+  "acceptance_criteria": "Filtered R1 5D WR >= production R1 + 5pp on n>=100",
+  "rejection_criteria": "Filtered R1 5D WR < production R1 - 3pp",
+  "promotion_gate": [
+    "1. Research Ticket accepted by CEO",
+    "2. Walk-forward test on N >= 100 forward predictions",
+    "3. Full regression pass on locked delivery invariants (BLOCK == 0)",
+    "4. CEO explicit approval + lock-override phrase",
+    "5. Config-toggle OFF by default in a new SPRINT_ID branch",
+    "6. Paper-trading period >= 30 sessions with green metrics",
+    "7. Production promotion under new SPRINT_ID with L4 evidence"
+  ],
+  "do_not_touch": [
+    "R1 recommendation runner",
+    "R2 recommendation runner",
+    "Registry orphan-close",
+    "backend/delivery/xlsx_contract.py",
+    "backend/delivery/xlsx_validator.py",
+    "scripts/telegram_command_center_send.py canonical INVESTMENT_ACTIVE JSON",
+    "configs/ensemble_weights_adaptive.yaml",
+    "model_registry.jsonl"
+  ],
+  "current_status": "ACTIVE_SHADOW",
+  "first_snapshot_date": "2026-08-27",
+  "days_of_evidence": 2,
+  "attempts": [
+    {
+      "iso": "2026-08-27",
+      "n_rows": 19,
+      "runner": "aegis.mr_experiment_runner.v0.1"
+    }
+  ],
+  "generated_utc": "2026-08-27T08:58:40+00:00",
+  "engine": "aegis.mr_experiment_consolidator.v0.1",
+  "experiment_id_family": "M-R.v0.1",
+  "ceo_final_status": "FROZEN in MR_V1_EXPERIMENTS_FROZEN.md",
+  "updated_utc": "2026-08-27T08:58:41+00:00"
+}

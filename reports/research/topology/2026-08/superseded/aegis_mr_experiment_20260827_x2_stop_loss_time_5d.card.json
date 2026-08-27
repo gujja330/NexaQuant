@@ -1,0 +1,63 @@
+{
+  "experiment_id": "aegis_mr_experiment_20260827_x2_stop_loss_time_5d",
+  "source_tickets": [
+    "aegis_mr_ticket_20260827_india_stop_policy"
+  ],
+  "market": "INDIA",
+  "title": "India TIME_STOP_5D advisory · loss-control experiment",
+  "hypothesis": "Historical sweep shows TIME_STOP_5D expectancy -0.613% vs CURRENT -0.886% (gap +0.273%) AND catastrophic-loss rate 0.00% vs 0.20%. Advisory-only shadow should confirm this gap prospectively before any stop policy change.",
+  "metric": "expectancy_gap_vs_current",
+  "secondary_metrics": [
+    "catastrophic_loss_rate",
+    "MFE_captured",
+    "profit_factor",
+    "stop_hit_rate"
+  ],
+  "min_sample_size": 100,
+  "observation_window_days": 30,
+  "null_hypothesis": "Advisory TIME_STOP_5D exit does not improve median forward-return from advisory date by more than +/-0.1%.",
+  "acceptance_criteria": "Median advisory return over next 5D >= median current-policy return + 0.3% AND catastrophic-loss rate <= current on n>=100 advisory events.",
+  "rejection_criteria": "MFE-captured drops by more than 0.5% vs current · signals that time-exit is forfeiting winners.",
+  "shadow_wire_up": "Sandbox: for every India ACTIVE position aged >=5 sessions from recommended_date/entry_date, emit TIME_EXIT_ADVISORY. Does NOT modify Registry, XLSX exit history, or Telegram.",
+  "safety_gate": [
+    "No production stop-policy or exit-decision changes.",
+    "Shadow advisory MUST live under reports/research/experiments/.",
+    "Any regression in current delivery invariants (BLOCK != 0) aborts."
+  ],
+  "promotion_gate": [
+    "1. Research Ticket accepted by CEO",
+    "2. Walk-forward test on N >= 100 forward predictions",
+    "3. Full regression pass on locked delivery invariants (BLOCK == 0)",
+    "4. CEO explicit approval + lock-override phrase",
+    "5. Config-toggle OFF by default in a new SPRINT_ID branch",
+    "6. Paper-trading period >= 30 sessions with green metrics",
+    "7. Production promotion under new SPRINT_ID with L4 evidence"
+  ],
+  "do_not_touch": [
+    "R1 recommendation runner",
+    "R2 recommendation runner",
+    "Registry orphan-close",
+    "backend/delivery/xlsx_contract.py",
+    "backend/delivery/xlsx_validator.py",
+    "scripts/telegram_command_center_send.py canonical INVESTMENT_ACTIVE JSON",
+    "configs/ensemble_weights_adaptive.yaml",
+    "model_registry.jsonl"
+  ],
+  "risk": "Time-exit forfeits longer-holding winners. Track MFE-captured.",
+  "current_status": "SUPERSEDED_BY",
+  "first_snapshot_date": "2026-08-27",
+  "days_of_evidence": 2,
+  "attempts": [
+    {
+      "iso": "2026-08-27",
+      "n_rows": 19,
+      "runner": "aegis.mr_experiment_runner.v0.1"
+    }
+  ],
+  "generated_utc": "2026-08-27T08:58:40+00:00",
+  "engine": "aegis.mr_experiment_consolidator.v0.1",
+  "experiment_id_family": "M-R.v0.1",
+  "superseded_by": "aegis_mr_experiment_20260827_e3_stop_loss_cross_market",
+  "v2_consolidator_stamp_utc": "2026-08-27T08:58:40+00:00",
+  "updated_utc": "2026-08-27T08:58:42+00:00"
+}

@@ -1,0 +1,65 @@
+{
+  "experiment_id": "aegis_mr_experiment_20260827_x1_india_r1_r2_ranking",
+  "source_tickets": [
+    "aegis_mr_ticket_20260827_india_confidence_anti_signal",
+    "aegis_mr_ticket_20260827_india_top3_rank_inversion",
+    "aegis_mr_ticket_20260827_india_negative_alpha"
+  ],
+  "market": "INDIA",
+  "title": "India R1/R2 Ranking · confidence + top-3 slot filter",
+  "hypothesis": "Two mechanisms compound to produce India's negative alpha vs universe: (a) R1 top-3 slot is anti-correlated with outcome when ma20_dist is outside +1..+5, and (b) confidence 70-85 band is an anti-signal. Applying both filters in shadow should raise India 5D WR toward or above universe baseline 32.25%.",
+  "metric": "shadow_5D_WR",
+  "secondary_metrics": [
+    "shadow_5D_avg_pct",
+    "shadow_top3_5D_WR",
+    "shadow_rank_4_7_5D_WR",
+    "daily_new_rec_count_delta"
+  ],
+  "min_sample_size": 100,
+  "observation_window_days": 30,
+  "null_hypothesis": "Applying the R1 top-3 + confidence filters does not change shadow 5D WR by more than +/-3pp vs production R1.",
+  "acceptance_criteria": "Shadow 5D WR >= production 5D WR + 5pp AND shadow avg > production avg + 0.3% on n>=100 forward India predictions.",
+  "rejection_criteria": "Shadow 5D WR < production - 3pp OR daily rec-count drops >30% for 5 consecutive days.",
+  "shadow_wire_up": "Sandbox: reads today's canonical India + LIVE parquet features · applies rule_X1_r1_r2_ranking · emits shadow rows to reports/research/experiments/{id}/{date}/shadow.jsonl. Never touches production R1.",
+  "safety_gate": [
+    "No production R1/R2/Registry/XLSX/ensemble/config changes.",
+    "Shadow output MUST live under reports/research/experiments/.",
+    "Any regression in current delivery invariants (BLOCK != 0) aborts."
+  ],
+  "promotion_gate": [
+    "1. Research Ticket accepted by CEO",
+    "2. Walk-forward test on N >= 100 forward predictions",
+    "3. Full regression pass on locked delivery invariants (BLOCK == 0)",
+    "4. CEO explicit approval + lock-override phrase",
+    "5. Config-toggle OFF by default in a new SPRINT_ID branch",
+    "6. Paper-trading period >= 30 sessions with green metrics",
+    "7. Production promotion under new SPRINT_ID with L4 evidence"
+  ],
+  "do_not_touch": [
+    "R1 recommendation runner",
+    "R2 recommendation runner",
+    "Registry orphan-close",
+    "backend/delivery/xlsx_contract.py",
+    "backend/delivery/xlsx_validator.py",
+    "scripts/telegram_command_center_send.py canonical INVESTMENT_ACTIVE JSON",
+    "configs/ensemble_weights_adaptive.yaml",
+    "model_registry.jsonl"
+  ],
+  "risk": "Confidence may be calibrated on a non-return objective. Top-3 slot changes could reduce daily new-rec count · monitor.",
+  "current_status": "SUPERSEDED_BY",
+  "first_snapshot_date": "2026-08-27",
+  "days_of_evidence": 2,
+  "attempts": [
+    {
+      "iso": "2026-08-27",
+      "n_rows": 19,
+      "runner": "aegis.mr_experiment_runner.v0.1"
+    }
+  ],
+  "generated_utc": "2026-08-27T08:58:40+00:00",
+  "engine": "aegis.mr_experiment_consolidator.v0.1",
+  "experiment_id_family": "M-R.v0.1",
+  "superseded_by": "aegis_mr_experiment_20260827_e1_india_r1_filter",
+  "v2_consolidator_stamp_utc": "2026-08-27T08:58:40+00:00",
+  "updated_utc": "2026-08-27T08:58:42+00:00"
+}

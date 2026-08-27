@@ -1,0 +1,61 @@
+{
+  "experiment_id": "aegis_mr_experiment_20260827_x3_technical_filter",
+  "source_tickets": [
+    "derived_from_mr_studies_technicals"
+  ],
+  "market": "INDIA",
+  "title": "Technical filter · RSI + MA20 evidence-backed edges",
+  "hypothesis": "India OVERSOLD_lt30 RSI has 43.75% 5D WR (+18pp vs baseline). India above_+1_+5 ma20_dist has 37.17% WR (+11pp). India WEAK 30-45 RSI has 18.25% WR (-7pp) and below_-5_-1 ma20_dist has 17.97% WR (-8pp). Positive-filter tag on the good buckets and negative-filter tag on the bad ones should predict forward outcomes prospectively.",
+  "metric": "positive_filter_5D_WR - negative_filter_5D_WR",
+  "secondary_metrics": [
+    "positive_filter_avg",
+    "negative_filter_avg",
+    "no_filter_baseline_5D_WR"
+  ],
+  "min_sample_size": 100,
+  "observation_window_days": 30,
+  "null_hypothesis": "Positive-filter and negative-filter tags produce forward 5D WR that differ by less than 5pp on N>=100 observations.",
+  "acceptance_criteria": "positive_filter_5D_WR - negative_filter_5D_WR >= 15pp on n>=100 total tagged observations.",
+  "rejection_criteria": "positive_filter_5D_WR - negative_filter_5D_WR < 3pp · signals that historical buckets don't survive out-of-sample.",
+  "shadow_wire_up": "Sandbox: apply rule_X3_technical_filter to today's snapshot · records POSITIVE_FILTER / NEGATIVE_FILTER / MIXED / NO_FILTER tag per position. Does NOT change R1/R2 output.",
+  "safety_gate": [
+    "No production ranker or selection changes.",
+    "Shadow tags MUST live under reports/research/experiments/.",
+    "Any regression in current delivery invariants (BLOCK != 0) aborts."
+  ],
+  "promotion_gate": [
+    "1. Research Ticket accepted by CEO",
+    "2. Walk-forward test on N >= 100 forward predictions",
+    "3. Full regression pass on locked delivery invariants (BLOCK == 0)",
+    "4. CEO explicit approval + lock-override phrase",
+    "5. Config-toggle OFF by default in a new SPRINT_ID branch",
+    "6. Paper-trading period >= 30 sessions with green metrics",
+    "7. Production promotion under new SPRINT_ID with L4 evidence"
+  ],
+  "do_not_touch": [
+    "R1 recommendation runner",
+    "R2 recommendation runner",
+    "Registry orphan-close",
+    "backend/delivery/xlsx_contract.py",
+    "backend/delivery/xlsx_validator.py",
+    "scripts/telegram_command_center_send.py canonical INVESTMENT_ACTIVE JSON",
+    "configs/ensemble_weights_adaptive.yaml",
+    "model_registry.jsonl"
+  ],
+  "risk": "Overfitting to 30-day corpus. Positive/negative buckets could reverse in a different regime · regularize with 5D + 10D + 20D acceptance.",
+  "current_status": "ARCHIVED_FOR_LATER",
+  "first_snapshot_date": "2026-08-27",
+  "days_of_evidence": 2,
+  "attempts": [
+    {
+      "iso": "2026-08-27",
+      "n_rows": 19,
+      "runner": "aegis.mr_experiment_runner.v0.1"
+    }
+  ],
+  "generated_utc": "2026-08-27T08:58:40+00:00",
+  "engine": "aegis.mr_experiment_consolidator.v0.1",
+  "experiment_id_family": "M-R.v0.1",
+  "v2_consolidator_stamp_utc": "2026-08-27T08:58:40+00:00",
+  "updated_utc": "2026-08-27T08:58:42+00:00"
+}
