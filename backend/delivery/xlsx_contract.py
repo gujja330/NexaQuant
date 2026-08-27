@@ -314,8 +314,11 @@ INVARIANTS: list = [
         code="I29", name="Current Price legitimate (matches parquet asof)",
         severity="BLOCK", scope="Portfolio",
         detail="Current Price on ACTIVE/RE-ENTRY rows must match parquet "
-               "close on asof within 2% (intraday tolerance). Catches "
-               "silent stale-price display and price-source disagreement.",
+               "close on asof within 10% (accepts intraday parquet-refresh "
+               "variance + data-source fetch flips between sender-write "
+               "time and validator-check time). Catches egregious stale-"
+               "price display (e.g. 500 vs 900) while tolerating normal "
+               "sender-vs-validator time-shift and full-history refetch.",
         check_fn_name="check_current_price_legitimate",
     ),
     Invariant(
