@@ -2272,26 +2272,44 @@ def main() -> int:
                     # so a ticker that was SUGGESTED yesterday and is now a real
                     # active position shows only as ACTIVE (not double-listed).
                     _active_tks_reg: set = set()
+                    _recent_closed_tks: set = set()   # 2026-08-27 · A22/A24 fix
                     try:
                         from backend.research import opportunity_registry as _oreg_ded
+                        from datetime import date as _d_ded, timedelta as _td_ded
                         _reg_ded = _oreg_ded.load_all(_ROOT)
+                        _recent_cutoff = (_d_ded.today() - _td_ded(days=30)).isoformat()
                         for _opps_d in _reg_ded.values():
                             for _o_d in _opps_d:
                                 if _o_d.market.lower() != mkt_key.lower(): continue
+                                _tk_norm = _o_d.ticker.upper().replace(".NS","").replace(".BO","")
                                 if _o_d.is_active():
-                                    _active_tks_reg.add(
-                                        _o_d.ticker.upper().replace(".NS","").replace(".BO",""))
+                                    _active_tks_reg.add(_tk_norm)
+                                elif _o_d.status == "CLOSED" and _o_d.closed_date \
+                                        and str(_o_d.closed_date)[:10] >= _recent_cutoff:
+                                    _recent_closed_tks.add(_tk_norm)
                     except Exception:
                         pass
                     _sug_picks = []
                     _sug_promoted = 0
+                    _sug_recent_closed_dropped = 0
                     for _p_d in _sug_picks_raw:
                         _tk_d = str(_p_d.get("ticker","")).upper().replace(".NS","").replace(".BO","")
                         if _tk_d in _active_tks_reg:
                             _sug_promoted += 1
                             continue    # already active · show as ACTIVE only
+                        # 2026-08-27 · A22/A24 fix · never SUGGEST a ticker that
+                        # was closed in the last 30 days (it's in Exit History).
+                        # Prevents contradictory "SUGGESTED new" + "recently EXITED"
+                        # for the same ticker · A22 duplicate + A24 CLOSED-in-active.
+                        if _tk_d in _recent_closed_tks:
+                            _sug_recent_closed_dropped += 1
+                            continue
                         _sug_picks.append(_p_d)
                         if len(_sug_picks) >= 5: break
+                    if _sug_recent_closed_dropped > 0:
+                        print(f"[xlsx:{mkt_key}] SUGGESTED filter · "
+                              f"{_sug_recent_closed_dropped} tickers dropped "
+                              f"(closed within 30d · would double-list with Exit History)")
                     if _sug_promoted > 0:
                         print(f"[xlsx:{mkt_key}] SUGGESTED dedup · "
                               f"{_sug_promoted} picks promoted to ACTIVE · "

@@ -1435,13 +1435,37 @@ def _append_to_workbook(path: Path, rows: list[list]) -> None:
         key = tuple(ws.cell(row=r_idx, column=k_idx + 1).value for k_idx in key_indices)
         existing_map[key] = r_idx
 
+    # 2026-08-27 · UPSTREAM IMMUTABILITY FIX (CEO trace-and-fix).
+    # Before: this loop overwrote EVERY column on the target row when
+    # dedup matched · causing 103 recommended_drift + 18 entry_price_drift
+    # warnings from guard10:integrity. Registry backfill would assign a
+    # newer Position ID or first_seen · then the daily writer would
+    # rewrite that day's `Recommended` + `Entry Price` fields.
+    #
+    # Fix: for a documented set of IMMUTABLE columns · preserve the
+    # existing value when the row already exists. Only fill blanks.
+    # Non-immutable columns (Status, Current Price, alerts, etc.)
+    # continue to update normally · that's expected daily behavior.
+    _IMMUTABLE_COL_NAMES = {
+        "Position ID", "Legacy Position ID", "Recommended", "Entry Price",
+    }
+    _immutable_idx = {headers.index(n) + 1 for n in _IMMUTABLE_COL_NAMES
+                      if n in headers}
+
     # For each new row · overwrite or append
     for row in rows:
         row_key = tuple(row[k_idx] for k_idx in key_indices)
         target_row = existing_map.get(row_key)
-        if target_row is None:
+        is_new_row = target_row is None
+        if is_new_row:
             target_row = ws.max_row + 1
         for c_idx, val in enumerate(row, start=1):
+            if not is_new_row and c_idx in _immutable_idx:
+                # Preserve existing value if it's already populated; only
+                # backfill if the historical cell was blank.
+                existing_val = ws.cell(row=target_row, column=c_idx).value
+                if existing_val not in (None, ""):
+                    continue
             cell = ws.cell(row=target_row, column=c_idx, value=val)
             cell.alignment = LEFT if c_idx <= 6 else RIGHT
         # 2026-08-07 · row-level color spread across ALL columns (operator directive)
