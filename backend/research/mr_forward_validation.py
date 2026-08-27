@@ -275,14 +275,109 @@ def compute(root: Path, market: str) -> dict:
             m["realized_win_rate_pct"] = round(wins / len(rvals) * 100, 2)
         return m
 
-    # Cohort segmentation
+    # Cohort segmentation + re-entry classification via Registry
+    _reentry_pids: set = set()
+    for opps in reg.values():
+        # A ticker+runner with more than one Position ID → later ones are RE-ENTRY
+        _by_tk_run = defaultdict(list)
+        for o in opps:
+            if o.market.lower() != market.lower(): continue
+            _key = (o.ticker.upper().replace(".NS","").replace(".BO",""),
+                    o.runner.upper().replace("_NEW",""))
+            _by_tk_run[_key].append(o)
+        for _k, _opps in _by_tk_run.items():
+            if len(_opps) <= 1: continue
+            _sorted = sorted(_opps, key=lambda x: str(x.created_date or ""))
+            for _o_r in _sorted[1:]:   # 2nd, 3rd occurrence = RE-ENTRY
+                _pid_r = getattr(_o_r, "opportunity_id", None) or \
+                         f"{_o_r.ticker}_{_o_r.runner}_{_o_r.created_date}"
+                _reentry_pids.add(_pid_r)
+
     by_runner = defaultdict(list)
     by_band = defaultdict(list)
     by_runner_band = defaultdict(list)
+    by_entry_type = defaultdict(list)   # FIRST vs RE-ENTRY
     for o in observations:
         by_runner[o.runner].append(o)
         by_band[o.investability_band].append(o)
         by_runner_band[(o.runner, o.investability_band)].append(o)
+        # Match observation pid to reentry set
+        _o_pid_candidates = [
+            f"{o.ticker}_{o.runner}_{o.entry_date}",
+            f"IND-{o.runner}-{o.ticker}-{o.entry_date.replace('-','')}",
+            f"USA-{o.runner}-{o.ticker}-{o.entry_date.replace('-','')}",
+        ]
+        _is_re = any(any(p in x for x in _reentry_pids) for p in _o_pid_candidates)
+        by_entry_type["RE-ENTRY" if _is_re else "FIRST-ENTRY"].append(o)
+
+    # Deep-loss recovery analysis · answers the LUPIN question
+    # For observations that reached MAE thresholds, what % subsequently
+    # recovered to 0, +5%, +10% (measured by MFE that followed the trough)?
+    # We approximate with realized_pct + MFE from the same window.
+    def _deep_loss_cohort(threshold: float) -> dict:
+        # Observations that had MAE <= -threshold%
+        pool = [o for o in observations
+                if o.max_adverse_pct is not None
+                and o.max_adverse_pct <= -threshold]
+        n = len(pool)
+        if n == 0:
+            return {"threshold_pct": threshold, "n": 0,
+                    "verdict": _statistical_verdict(0)}
+        # "Recovered to 0" means realized_pct or MFE > 0
+        n_recov_0   = sum(1 for o in pool
+                          if (o.realized_pct is not None and o.realized_pct > 0)
+                          or (o.max_favorable_pct is not None
+                              and o.max_favorable_pct > 0))
+        n_recov_5   = sum(1 for o in pool
+                          if (o.realized_pct is not None and o.realized_pct >= 5)
+                          or (o.max_favorable_pct is not None
+                              and o.max_favorable_pct >= 5))
+        n_eventual_stop = sum(1 for o in pool
+                              if o.realized_pct is not None
+                              and o.realized_pct <= -5)
+        avg_realized = None
+        rvals = [o.realized_pct for o in pool if o.realized_pct is not None]
+        if rvals:
+            avg_realized = round(sum(rvals) / len(rvals), 3)
+        return {
+            "threshold_pct":               threshold,
+            "n":                           n,
+            "n_recovered_to_0":            n_recov_0,
+            "pct_recovered_to_0":          round(n_recov_0 / n * 100, 2),
+            "n_recovered_to_plus5":        n_recov_5,
+            "pct_recovered_to_plus5":      round(n_recov_5 / n * 100, 2),
+            "n_eventually_stopped_leq_minus5": n_eventual_stop,
+            "pct_eventually_stopped":      round(n_eventual_stop / n * 100, 2),
+            "avg_realized_pct":            avg_realized,
+            "verdict":                     _statistical_verdict(n),
+        }
+
+    # Expectancy per cohort (helper)
+    def _expectancy(obs_list: list) -> Optional[float]:
+        rvals = [o.realized_pct for o in obs_list if o.realized_pct is not None]
+        if not rvals: return None
+        wins = [v for v in rvals if v > 0.5]
+        losses = [v for v in rvals if v < -0.5]
+        if not (wins and losses): return round(sum(rvals) / len(rvals), 3)
+        wr = len(wins) / len(rvals)
+        avg_win = sum(wins) / len(wins)
+        avg_loss = sum(losses) / len(losses)
+        return round(wr * avg_win + (1 - wr) * avg_loss, 3)
+
+    # MFE / MAE cohorts by runner
+    def _mfe_mae_summary(obs_list: list) -> dict:
+        mfe_vals = [o.max_favorable_pct for o in obs_list
+                    if o.max_favorable_pct is not None]
+        mae_vals = [o.max_adverse_pct for o in obs_list
+                    if o.max_adverse_pct is not None]
+        return {
+            "avg_mfe_pct":   round(sum(mfe_vals)/len(mfe_vals), 3) if mfe_vals else None,
+            "avg_mae_pct":   round(sum(mae_vals)/len(mae_vals), 3) if mae_vals else None,
+            "n_mfe":         len(mfe_vals),
+            "n_mae":         len(mae_vals),
+            "median_mfe":    round(sorted(mfe_vals)[len(mfe_vals)//2], 3) if mfe_vals else None,
+            "median_mae":    round(sorted(mae_vals)[len(mae_vals)//2], 3) if mae_vals else None,
+        }
 
     report = {
         "engine":                  ENGINE_ID,
@@ -295,13 +390,31 @@ def compute(root: Path, market: str) -> dict:
         "forward_horizons_days":   FORWARD_HORIZONS,
         "runner_distribution":     dict(Counter(o.runner for o in observations)),
         "band_distribution":       dict(Counter(o.investability_band for o in observations)),
-        "cohort_ALL":              _cohort_metrics("ALL", observations),
-        "cohort_by_runner":        {r: _cohort_metrics(r, obs)
+        "entry_type_distribution": dict(Counter(k for k, v in by_entry_type.items() for _ in v)),
+        "cohort_ALL":              {**_cohort_metrics("ALL", observations),
+                                    "expectancy_pct": _expectancy(observations),
+                                    "mfe_mae":        _mfe_mae_summary(observations)},
+        "cohort_by_runner":        {r: {**_cohort_metrics(r, obs),
+                                        "expectancy_pct": _expectancy(obs),
+                                        "mfe_mae":        _mfe_mae_summary(obs)}
                                     for r, obs in by_runner.items()},
-        "cohort_by_investability": {b: _cohort_metrics(b, obs)
+        "cohort_by_investability": {b: {**_cohort_metrics(b, obs),
+                                        "expectancy_pct": _expectancy(obs)}
                                     for b, obs in by_band.items()},
-        "cohort_by_runner_band":   {f"{r}·{b}": _cohort_metrics(f"{r}·{b}", obs)
+        "cohort_by_runner_band":   {f"{r}·{b}": {**_cohort_metrics(f"{r}·{b}", obs),
+                                                  "expectancy_pct": _expectancy(obs)}
                                     for (r, b), obs in by_runner_band.items()},
+        "cohort_by_entry_type":    {t: {**_cohort_metrics(t, obs),
+                                        "expectancy_pct": _expectancy(obs),
+                                        "mfe_mae":        _mfe_mae_summary(obs)}
+                                    for t, obs in by_entry_type.items()},
+        "deep_loss_recovery":      {
+            "minus_5_pct":   _deep_loss_cohort(5.0),
+            "minus_7_5_pct": _deep_loss_cohort(7.5),
+            "minus_10_pct":  _deep_loss_cohort(10.0),
+            "minus_12_pct":  _deep_loss_cohort(12.0),
+            "minus_15_pct":  _deep_loss_cohort(15.0),
+        },
     }
     return report
 
@@ -340,7 +453,7 @@ def emit_global(root: Path, per_market_reports: dict) -> Path:
 
 def render_console(reports: dict):
     print("=" * 90)
-    print("M-R1 · FORWARD VALIDATION · Sprint M Research Runner (M-R.v0.1)")
+    print("M-R1 · FORWARD VALIDATION v0.2 · Sprint M Research Runner (M-R.v0.1)")
     print("=" * 90)
     for mkt, rep in reports.items():
         print(f"\n[{mkt.upper()}] · n_observations={rep['n_observations']}")
@@ -364,6 +477,31 @@ def render_console(reports: dict):
                   f"fwd_5d avg={m.get('fwd_5d_avg')}% WR={m.get('fwd_5d_win_rate_pct')}% · "
                   f"realized_avg={m.get('realized_avg_pct')}% · "
                   f"[{m['statistical_verdict']}]")
+        print(f"\n  -- MFE/MAE by runner --")
+        for r, m in rep.get("cohort_by_runner", {}).items():
+            mm = m.get("mfe_mae", {})
+            print(f"  · {r:8s} · n={m['n']:3d} · "
+                  f"avg_MFE={mm.get('avg_mfe_pct')}% (med {mm.get('median_mfe')}) · "
+                  f"avg_MAE={mm.get('avg_mae_pct')}% (med {mm.get('median_mae')}) · "
+                  f"expectancy={m.get('expectancy_pct')}%")
+        print(f"\n  -- FIRST-ENTRY vs RE-ENTRY --")
+        for t, m in rep.get("cohort_by_entry_type", {}).items():
+            mm = m.get("mfe_mae", {})
+            print(f"  · {t:12s} · n={m['n']:3d} · "
+                  f"fwd_5d avg={m.get('fwd_5d_avg')}% WR={m.get('fwd_5d_win_rate_pct')}% · "
+                  f"realized_avg={m.get('realized_avg_pct')}% · "
+                  f"expectancy={m.get('expectancy_pct')}%")
+        print(f"\n  -- Deep-loss recovery (answers LUPIN question) --")
+        dl = rep.get("deep_loss_recovery", {})
+        for label, d in dl.items():
+            if d.get("n", 0) == 0:
+                print(f"  · {label:15s} · n=0"); continue
+            print(f"  · {label:15s} · n={d['n']:3d} · "
+                  f"recovered→0: {d.get('pct_recovered_to_0')}% · "
+                  f"recovered→+5%: {d.get('pct_recovered_to_plus5')}% · "
+                  f"eventually stopped (≤-5%): {d.get('pct_eventually_stopped')}% · "
+                  f"avg_realized={d.get('avg_realized_pct')}% · "
+                  f"[{d.get('verdict')}]")
 
 
 if __name__ == "__main__":
