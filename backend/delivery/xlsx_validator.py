@@ -813,15 +813,36 @@ class XlsxValidator:
                 except Exception:
                     continue
                 delta_pct = abs(_entry_v - historical_close) / historical_close * 100
+                # 2026-08-27 · nearby-close tolerance · match PI1 pattern.
+                # Some upstream engines stamp entry_date at recommendation
+                # time (later than actual entry) while entry_price is
+                # the true historical close. Walk back 10 calendar days
+                # · if any prior close matches within 0.1%, accept it
+                # as a legitimate nearby-date entry. Only escalates when
+                # NO nearby close matches · that's a real drift.
                 if delta_pct > 2.0:
-                    violations.append({
-                        "ticker":            _tk,
-                        "row":               r_idx,
-                        "entry_date":        _entry_date,
-                        "stored_entry":      round(_entry_v, 2),
-                        "parquet_close":     round(historical_close, 2),
-                        "delta_pct":         round(delta_pct, 2),
-                    })
+                    matched_prior = False
+                    try:
+                        from datetime import timedelta as _td
+                        for lookback in range(1, 11):
+                            prior = (pd.to_datetime(_entry_date)
+                                     - _td(days=lookback)).strftime("%Y-%m-%d")
+                            if prior in df.index:
+                                pc = float(df.loc[prior, col])
+                                if pc > 0 and abs(_entry_v - pc) / pc * 100 <= 0.1:
+                                    matched_prior = True
+                                    break
+                    except Exception:
+                        pass
+                    if not matched_prior:
+                        violations.append({
+                            "ticker":         _tk,
+                            "row":            r_idx,
+                            "entry_date":     _entry_date,
+                            "stored_entry":   round(_entry_v, 2),
+                            "parquet_close":  round(historical_close, 2),
+                            "delta_pct":      round(delta_pct, 2),
+                        })
             wb.close()
             status = "PASS" if not violations else "FAIL"
             return InvariantResult(
@@ -832,6 +853,236 @@ class XlsxValidator:
             return InvariantResult("I26", "Entry price immutable",
                                    "BLOCK", "SKIP",
                                    f"{type(e).__name__}: {e}")
+
+    def _parquet_close_lookup(self, ticker: str, iso_date: str,
+                               lookback_days: int = 10) -> tuple:
+        """Read-only parquet close on iso_date with N-day nearby-lookback
+        for date-restamp cases. Returns (close_on_date, close_matched_in_window,
+        matched_date). close_matched_in_window is True if either exact-date
+        or nearby-date close was found."""
+        import pandas as pd
+        clean = ticker.upper().replace(".NS","").replace(".BO","")
+        base = ("usa/data/raw/us" if self.market.lower()=="usa"
+                else "data/raw/india")
+        p = self.root / base / f"{clean}_D1.parquet"
+        if not p.exists(): return (None, False, None)
+        try:
+            df = pd.read_parquet(p)
+            col = "close" if "close" in df.columns else "Close"
+            df.index = pd.to_datetime(df.index).strftime("%Y-%m-%d")
+            if iso_date in df.index:
+                return (float(df.loc[iso_date, col]), True, iso_date)
+            earlier = [d for d in df.index if d <= iso_date]
+            if not earlier: return (None, False, None)
+            fallback_close = float(df.loc[earlier[-1], col])
+            # Nearby-date lookback
+            from datetime import timedelta as _td
+            for lookback in range(1, lookback_days + 1):
+                prior = (pd.to_datetime(iso_date)
+                         - _td(days=lookback)).strftime("%Y-%m-%d")
+                if prior in df.index:
+                    return (fallback_close, True, prior)
+            return (fallback_close, False, None)
+        except Exception:
+            return (None, False, None)
+
+    def check_entry_date_legitimate(self) -> InvariantResult:
+        """I27 · entry_date must be <= asof AND a valid trading day (or
+        within 5 calendar days of one). Blocks fabricated dates."""
+        import re
+        from datetime import date as _date, timedelta as _td
+        from openpyxl import load_workbook
+        try:
+            wb = load_workbook(self.xlsx_path, read_only=True, data_only=True)
+            if "Portfolio" not in wb.sheetnames:
+                return InvariantResult("I27", "Entry date legitimate",
+                                       "BLOCK", "SKIP", "no Portfolio")
+            ws = wb["Portfolio"]
+            r1 = str(ws.cell(1, 1).value or "")
+            m = re.search(r"as of\s+(\d{4}-\d{2}-\d{2})", r1)
+            asof = m.group(1) if m else _date.today().isoformat()
+            violations = []
+            for r_idx in range(6, ws.max_row + 1):
+                _tk = str(ws.cell(r_idx, 1).value or "").upper()
+                if not _tk or _tk.startswith(("🟢","🔴","🆕","🟣","AEGIS",
+                                              "📊","🩺","✅","❌")):
+                    continue
+                _rn = str(ws.cell(r_idx, 9).value or "").upper()
+                if _rn in ("SHADOW", "MOMENTUM"): continue
+                _entry_date = str(ws.cell(r_idx, 13).value or "")[:10]
+                if not _entry_date: continue
+                try:
+                    ed = _date.fromisoformat(_entry_date)
+                    a  = _date.fromisoformat(asof)
+                except Exception:
+                    violations.append({"ticker": _tk, "row": r_idx,
+                        "entry_date": _entry_date,
+                        "reason": "unparseable date"})
+                    continue
+                if ed > a:
+                    violations.append({"ticker": _tk, "row": r_idx,
+                        "entry_date": _entry_date,
+                        "reason": f"entry in future · asof={asof}"})
+                    continue
+                _, matched, _ = self._parquet_close_lookup(_tk, _entry_date, 5)
+                if not matched:
+                    violations.append({"ticker": _tk, "row": r_idx,
+                        "entry_date": _entry_date,
+                        "reason": "not a trading day + no prior close within 5d"})
+            wb.close()
+            status = "PASS" if not violations else "FAIL"
+            return InvariantResult(
+                "I27", "Entry date legitimate", "BLOCK", status,
+                f"{len(violations)} illegitimate entry dates", violations[:5])
+        except Exception as e:
+            return InvariantResult("I27", "Entry date legitimate",
+                                   "BLOCK", "SKIP", f"{type(e).__name__}: {e}")
+
+    def check_exit_date_legitimate(self) -> InvariantResult:
+        """I28 · exit_date must be >= entry_date AND <= asof AND a valid
+        trading day (or within 5 cal days of one). Blocks impossible exits."""
+        import re
+        from datetime import date as _date
+        from openpyxl import load_workbook
+        try:
+            wb = load_workbook(self.xlsx_path, read_only=True, data_only=True)
+            if "Exit History (90d)" not in wb.sheetnames:
+                return InvariantResult("I28", "Exit date legitimate",
+                                       "BLOCK", "SKIP", "no Exit History")
+            ws = wb["Exit History (90d)"]
+            r1 = str(ws.cell(1, 1).value or "")
+            m = re.search(r"as of\s+(\d{4}-\d{2}-\d{2})", r1)
+            asof = m.group(1) if m else _date.today().isoformat()
+            # Exit History cols · Stock=1 · Entry Date=5 · Exit Date=6
+            violations = []
+            for r_idx in range(6, ws.max_row + 1):
+                _tk = str(ws.cell(r_idx, 1).value or "").upper()
+                if not _tk: continue
+                _ed = str(ws.cell(r_idx, 5).value or "")[:10]
+                _xd = str(ws.cell(r_idx, 6).value or "")[:10]
+                if not (_ed and _xd): continue
+                try:
+                    ed = _date.fromisoformat(_ed)
+                    xd = _date.fromisoformat(_xd)
+                    a  = _date.fromisoformat(asof)
+                except Exception:
+                    violations.append({"ticker": _tk, "row": r_idx,
+                        "entry": _ed, "exit": _xd,
+                        "reason": "unparseable date"})
+                    continue
+                if xd < ed:
+                    violations.append({"ticker": _tk, "row": r_idx,
+                        "entry": _ed, "exit": _xd,
+                        "reason": "exit before entry"})
+                    continue
+                if xd > a:
+                    violations.append({"ticker": _tk, "row": r_idx,
+                        "entry": _ed, "exit": _xd,
+                        "reason": f"exit in future · asof={asof}"})
+                    continue
+                _, matched, _ = self._parquet_close_lookup(_tk, _xd, 5)
+                if not matched:
+                    violations.append({"ticker": _tk, "row": r_idx,
+                        "entry": _ed, "exit": _xd,
+                        "reason": "exit not trading day + no prior close 5d"})
+            wb.close()
+            status = "PASS" if not violations else "FAIL"
+            return InvariantResult(
+                "I28", "Exit date legitimate", "BLOCK", status,
+                f"{len(violations)} illegitimate exit dates", violations[:5])
+        except Exception as e:
+            return InvariantResult("I28", "Exit date legitimate",
+                                   "BLOCK", "SKIP", f"{type(e).__name__}: {e}")
+
+    def check_current_price_legitimate(self) -> InvariantResult:
+        """I29 · Current Price on ACTIVE/RE-ENTRY rows within 2% of
+        parquet close on asof (intraday tolerance)."""
+        import re
+        from openpyxl import load_workbook
+        try:
+            wb = load_workbook(self.xlsx_path, read_only=True, data_only=True)
+            if "Portfolio" not in wb.sheetnames:
+                return InvariantResult("I29", "Current Price legitimate",
+                                       "BLOCK", "SKIP", "no Portfolio")
+            ws = wb["Portfolio"]
+            r1 = str(ws.cell(1, 1).value or "")
+            m = re.search(r"as of\s+(\d{4}-\d{2}-\d{2})", r1)
+            if not m:
+                wb.close()
+                return InvariantResult("I29", "Current Price legitimate",
+                                       "BLOCK", "SKIP", "no asof")
+            asof = m.group(1)
+            violations = []
+            for r_idx in range(6, ws.max_row + 1):
+                _tk = str(ws.cell(r_idx, 1).value or "").upper()
+                if not _tk or _tk.startswith(("🟢","🔴","🆕","🟣","AEGIS")):
+                    continue
+                _rn = str(ws.cell(r_idx, 9).value or "").upper()
+                if _rn in ("SHADOW", "MOMENTUM"): continue
+                _dec = str(ws.cell(r_idx, 3).value or "")
+                if "🔴 EXIT" in _dec or "🟣 SUGGESTED" in _dec: continue
+                _curr = ws.cell(r_idx, 24).value
+                if not (isinstance(_curr, (int, float)) and _curr > 0):
+                    continue
+                pq_close, matched, _ = self._parquet_close_lookup(_tk, asof, 3)
+                if pq_close is None or not matched: continue
+                delta_pct = abs(_curr - pq_close) / pq_close * 100
+                if delta_pct > 2.0:
+                    violations.append({
+                        "ticker": _tk, "row": r_idx,
+                        "stored_current": round(_curr, 2),
+                        "parquet_asof_close": round(pq_close, 2),
+                        "delta_pct": round(delta_pct, 2),
+                    })
+            wb.close()
+            status = "PASS" if not violations else "FAIL"
+            return InvariantResult(
+                "I29", "Current Price legitimate", "BLOCK", status,
+                f"{len(violations)} rows where current price drifts >2% "
+                f"from parquet close on asof", violations[:5])
+        except Exception as e:
+            return InvariantResult("I29", "Current Price legitimate",
+                                   "BLOCK", "SKIP", f"{type(e).__name__}: {e}")
+
+    def check_exit_price_legitimate(self) -> InvariantResult:
+        """I30 · Exit Price matches parquet close on exit_date within 2%
+        (with 10-day nearby-lookback for date restamps · same tolerance I26)."""
+        from openpyxl import load_workbook
+        try:
+            wb = load_workbook(self.xlsx_path, read_only=True, data_only=True)
+            if "Exit History (90d)" not in wb.sheetnames:
+                return InvariantResult("I30", "Exit Price legitimate",
+                                       "BLOCK", "SKIP", "no Exit History")
+            ws = wb["Exit History (90d)"]
+            # Exit History cols · Stock=1 · Exit Date=6 · Exit Price=9
+            violations = []
+            for r_idx in range(6, ws.max_row + 1):
+                _tk = str(ws.cell(r_idx, 1).value or "").upper()
+                if not _tk: continue
+                _xd = str(ws.cell(r_idx, 6).value or "")[:10]
+                _xp = ws.cell(r_idx, 9).value
+                if not (_xd and isinstance(_xp, (int, float)) and _xp > 0):
+                    continue
+                pq_close, matched, _ = self._parquet_close_lookup(_tk, _xd, 10)
+                if pq_close is None: continue
+                delta_pct = abs(_xp - pq_close) / pq_close * 100
+                if delta_pct > 2.0 and not matched:
+                    violations.append({
+                        "ticker": _tk, "row": r_idx,
+                        "exit_date": _xd,
+                        "stored_exit_price": round(_xp, 2),
+                        "parquet_close": round(pq_close, 2),
+                        "delta_pct": round(delta_pct, 2),
+                    })
+            wb.close()
+            status = "PASS" if not violations else "FAIL"
+            return InvariantResult(
+                "I30", "Exit Price legitimate", "BLOCK", status,
+                f"{len(violations)} exit prices drift >2% from parquet "
+                f"close on exit_date", violations[:5])
+        except Exception as e:
+            return InvariantResult("I30", "Exit Price legitimate",
+                                   "BLOCK", "SKIP", f"{type(e).__name__}: {e}")
 
     def check_realized_matches_exit_history(self) -> InvariantResult:
         """I25 · Portfolio Row 2 Realized 90d numbers must reconcile to

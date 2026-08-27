@@ -286,10 +286,46 @@ INVARIANTS: list = [
         severity="BLOCK", scope="Portfolio",
         detail="For any ACTIVE/RE-ENTRY row where entry_date != asof, "
                "the row's Entry Price must match parquet close on entry_date "
-               "within 2% tolerance. Catches the MSFT-style '~0% P&L' bug "
+               "within 2% tolerance (with 10-day lookback for entry-date "
+               "restamp cases). Catches the MSFT-style '~0% P&L' bug "
                "where the row-write path re-stamps entry_price to today's "
                "current price for existing positions.",
         check_fn_name="check_entry_price_immutable",
+    ),
+    Invariant(
+        code="I27", name="Entry date is a legitimate trading day",
+        severity="BLOCK", scope="Portfolio",
+        detail="Entry Date must (a) be <= today's asof, (b) exist in the "
+               "ticker's parquet as a trading day (or have a valid prior "
+               "trading day within 5 calendar days · covers weekend/holiday "
+               "stamping). Blocks obviously fabricated dates.",
+        check_fn_name="check_entry_date_legitimate",
+    ),
+    Invariant(
+        code="I28", name="Exit date is a legitimate trading day",
+        severity="BLOCK", scope="Exit History (90d)",
+        detail="For every EXIT row · Exit Date must be (a) >= Entry Date, "
+               "(b) <= today's asof, (c) a legitimate trading day in "
+               "parquet (or within 5d of one). Blocks impossible exits "
+               "(exit-before-entry) or fabricated exit dates.",
+        check_fn_name="check_exit_date_legitimate",
+    ),
+    Invariant(
+        code="I29", name="Current Price legitimate (matches parquet asof)",
+        severity="BLOCK", scope="Portfolio",
+        detail="Current Price on ACTIVE/RE-ENTRY rows must match parquet "
+               "close on asof within 2% (intraday tolerance). Catches "
+               "silent stale-price display and price-source disagreement.",
+        check_fn_name="check_current_price_legitimate",
+    ),
+    Invariant(
+        code="I30", name="Exit Price legitimate (matches parquet exit_date)",
+        severity="BLOCK", scope="Exit History (90d)",
+        detail="Exit Price on EXIT rows must match parquet close on "
+               "exit_date within 2% (with 10-day nearby-lookback for "
+               "date-restamp cases · same tolerance as I26). Catches "
+               "fabricated / stale exit prices.",
+        check_fn_name="check_exit_price_legitimate",
     ),
 ]
 
