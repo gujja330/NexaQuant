@@ -2472,51 +2472,58 @@ def main() -> int:
                 entry_v = r[c_entry-1].value if c_entry else None
                 rec_dt = str(r[c_recommended-1].value or "")[:10] if c_recommended else ""
                 # ─────────────────────────────────────────────────────
-                # CEO 2026-08-27 · canonical/provenance layer directive.
-                # Consult the immutable prediction-snapshot ledger for
-                # authoritative entry_price + entry_date. When a
-                # non-quarantined snapshot exists for (market, ticker,
-                # runner), it OVERRIDES the source-XLSX values. This
-                # eliminates the entire I26/I27 restamp defect class
-                # where a downstream process silently updates the
-                # source row's entry fields after the true entry event.
+                # CEO 2026-08-27 · canonical/provenance layer directive
+                # (post-I26 oscillation across runs 33058-33079).
                 #
-                # READ-ONLY consultation. NEVER writes back to the
-                # source XLSX. Does not touch the downstream canonical
-                # portfolio-JSON emit block (that section further
-                # below in this file is untouched).
+                # Resolve entry via canonical_entry.resolve() · pure
+                # function of (market, ticker, runner, entry_date,
+                # parquet closes). Priority:
+                #   1) Non-quarantined snapshot ledger entry.
+                #   2) Parquet close on entry_date (backfilled to the
+                #      snapshot ledger so subsequent runs hit path 1).
+                # This makes the delivery layer produce byte-identical
+                # canonical fields on rerun and eliminates the source-
+                # XLSX restamp defect class entirely (I26 by
+                # construction · not by manual per-row quarantine).
+                #
+                # READ / WRITE surfaces:
+                #   · READS: snapshot ledger + market-data parquets
+                #   · WRITES: snapshot ledger only (append-only backfill)
+                #   · NEVER writes to aegis_history.xlsx (locked)
+                #   · NEVER touches the downstream canonical
+                #     portfolio-JSON emit block (untouched)
                 # ─────────────────────────────────────────────────────
                 try:
-                    from backend.delivery.prediction_snapshot import (
-                        get_by_ticker as _canon_get_by_ticker)
+                    from backend.delivery.canonical_entry import resolve as _canon_resolve
                     _canon_runner = r[c_run - 1].value if c_run else None
-                    _canon_snap = _canon_get_by_ticker(
-                        _ROOT, mkt_key, str(tk or ""),
-                        str(_canon_runner or ""))
-                    if _canon_snap is not None and \
-                            not _canon_snap.get("_quarantined"):
-                        _cse = _canon_snap.get("entry_price")
-                        _csd = str(_canon_snap.get("entry_date") or "")[:10]
-                        if isinstance(_cse, (int, float)) and _cse > 0 \
-                                and (not isinstance(entry_v, (int, float))
-                                     or abs(entry_v - _cse) / _cse > 0.001):
+                    _canon = _canon_resolve(
+                        _ROOT, market=mkt_key, ticker=str(tk or ""),
+                        runner=str(_canon_runner or ""),
+                        entry_date=rec_dt)
+                    if _canon.source in ("snapshot", "parquet_backfill") \
+                            and _canon.entry_price > 0:
+                        if not isinstance(entry_v, (int, float)) \
+                                or abs(entry_v - _canon.entry_price) \
+                                    / _canon.entry_price > 0.001:
                             _prev = entry_v
-                            entry_v = float(_cse)
-                            print(f"[xlsx:{mkt_key}] canonical snapshot "
+                            entry_v = _canon.entry_price
+                            print(f"[xlsx:{mkt_key}] canonical entry "
                                   f"override · {tk} entry_price "
                                   f"{_prev} → {entry_v} "
-                                  f"(pid={_canon_snap.get('prediction_id')})")
-                        if _csd and _csd != rec_dt:
+                                  f"(source={_canon.source} · "
+                                  f"pid={_canon.prediction_id})")
+                        if _canon.entry_date and _canon.entry_date != rec_dt:
                             _prev_rd = rec_dt
-                            rec_dt = _csd
-                            print(f"[xlsx:{mkt_key}] canonical snapshot "
+                            rec_dt = _canon.entry_date
+                            print(f"[xlsx:{mkt_key}] canonical entry "
                                   f"override · {tk} entry_date "
                                   f"{_prev_rd} → {rec_dt} "
-                                  f"(pid={_canon_snap.get('prediction_id')})")
+                                  f"(source={_canon.source})")
                 except Exception as _e_canon:
-                    # Snapshot ledger absent/malformed · best-effort ·
-                    # never abort delivery on canonical lookup failure.
-                    print(f"[xlsx:{mkt_key}] canonical snapshot lookup "
+                    # Best-effort · never abort delivery on canonical
+                    # lookup failure. If canonical lookup fails, I26
+                    # still catches any drift and blocks the shipment.
+                    print(f"[xlsx:{mkt_key}] canonical entry lookup "
                           f"skipped · {type(_e_canon).__name__}: {_e_canon}")
                 # Compute P&L
                 if status == "EXIT":
