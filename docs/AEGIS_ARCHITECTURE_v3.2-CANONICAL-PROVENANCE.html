@@ -1,0 +1,1313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AEGIS Architecture v3.2 · Canonical Provenance</title>
+<style>
+:root {
+  --bg:            #f6f5f0;
+  --bg-panel:      #ffffff;
+  --bg-panel-alt:  #fbf9f2;
+  --ink:           #1a2540;
+  --ink-soft:      #4a5875;
+  --ink-mute:      #7c8aa8;
+  --line:          #d8d3c2;
+  --line-soft:     #e6e2d3;
+  --accent:        #b8944d;
+  --accent-soft:   #d9b877;
+  --accent-ink:    #6d5220;
+  --green:         #2f7b4c;
+  --green-soft:    #d7ecdd;
+  --red:           #a63838;
+  --red-soft:      #f4dcdc;
+  --amber:         #b57a1f;
+  --amber-soft:    #f2e2c2;
+  --indigo:        #3a4e8a;
+  --indigo-soft:   #e0e4f2;
+  --shadow:        0 1px 2px rgba(26,37,64,0.04), 0 2px 8px rgba(26,37,64,0.06);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg:            #101725;
+    --bg-panel:      #182236;
+    --bg-panel-alt:  #1e293f;
+    --ink:           #ecebe4;
+    --ink-soft:      #b7c1d4;
+    --ink-mute:      #7c8aa8;
+    --line:          #2c3855;
+    --line-soft:     #202b45;
+    --accent:        #d9b877;
+    --accent-soft:   #b8944d;
+    --accent-ink:    #f0dcaa;
+    --green:         #6dc48f;
+    --green-soft:    #244436;
+    --red:           #e08a8a;
+    --red-soft:      #442a2a;
+    --amber:         #f0c072;
+    --amber-soft:    #4a3820;
+    --indigo:        #98abe6;
+    --indigo-soft:   #253055;
+    --shadow:        0 1px 2px rgba(0,0,0,0.35), 0 4px 16px rgba(0,0,0,0.25);
+  }
+}
+:root[data-theme="dark"] {
+  --bg:            #101725;
+  --bg-panel:      #182236;
+  --bg-panel-alt:  #1e293f;
+  --ink:           #ecebe4;
+  --ink-soft:      #b7c1d4;
+  --ink-mute:      #7c8aa8;
+  --line:          #2c3855;
+  --line-soft:     #202b45;
+  --accent:        #d9b877;
+  --accent-soft:   #b8944d;
+  --accent-ink:    #f0dcaa;
+  --green:         #6dc48f;
+  --green-soft:    #244436;
+  --red:           #e08a8a;
+  --red-soft:      #442a2a;
+  --amber:         #f0c072;
+  --amber-soft:    #4a3820;
+  --indigo:        #98abe6;
+  --indigo-soft:   #253055;
+  --shadow:        0 1px 2px rgba(0,0,0,0.35), 0 4px 16px rgba(0,0,0,0.25);
+}
+:root[data-theme="light"] {
+  --bg:            #f6f5f0;
+  --bg-panel:      #ffffff;
+  --bg-panel-alt:  #fbf9f2;
+  --ink:           #1a2540;
+  --ink-soft:      #4a5875;
+  --ink-mute:      #7c8aa8;
+  --line:          #d8d3c2;
+  --line-soft:     #e6e2d3;
+  --accent:        #b8944d;
+  --accent-soft:   #d9b877;
+  --accent-ink:    #6d5220;
+  --green:         #2f7b4c;
+  --green-soft:    #d7ecdd;
+  --red:           #a63838;
+  --red-soft:      #f4dcdc;
+  --amber:         #b57a1f;
+  --amber-soft:    #f2e2c2;
+  --indigo:        #3a4e8a;
+  --indigo-soft:   #e0e4f2;
+  --shadow:        0 1px 2px rgba(26,37,64,0.04), 0 2px 8px rgba(26,37,64,0.06);
+}
+* { box-sizing: border-box; }
+body {
+  font-family: 'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  margin: 0;
+  padding: 0;
+  line-height: 1.55;
+  font-size: 15px;
+  font-feature-settings: 'ss01', 'cv11';
+}
+.wrap {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 48px 32px 96px;
+}
+header.masthead {
+  padding: 40px 0 32px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 40px;
+}
+.eyebrow {
+  color: var(--accent-ink);
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+h1 {
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-weight: 400;
+  font-size: 44px;
+  line-height: 1.15;
+  margin: 12px 0 8px;
+  color: var(--ink);
+  text-wrap: balance;
+}
+.subtitle {
+  font-size: 17px;
+  color: var(--ink-soft);
+  margin: 0 0 20px;
+  max-width: 760px;
+}
+.masthead-meta {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  color: var(--ink-mute);
+  margin-top: 20px;
+}
+.masthead-meta span strong { color: var(--ink-soft); font-weight: 600; }
+
+section {
+  margin-bottom: 56px;
+  scroll-margin-top: 24px;
+}
+h2 {
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-weight: 400;
+  font-size: 30px;
+  line-height: 1.2;
+  margin: 0 0 8px;
+  color: var(--ink);
+  text-wrap: balance;
+}
+h2 .sec-num {
+  color: var(--accent);
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  vertical-align: middle;
+  margin-right: 10px;
+}
+h3 {
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-weight: 400;
+  font-size: 20px;
+  margin: 28px 0 12px;
+  color: var(--ink);
+}
+.lede { font-size: 16px; color: var(--ink-soft); margin: 0 0 24px; max-width: 780px; }
+
+.panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 28px 32px;
+  margin: 20px 0;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.panel-alt {
+  background: var(--bg-panel-alt);
+}
+.diagram {
+  background: var(--bg-panel);
+  border: 1px solid var(--line-soft);
+  border-radius: 4px;
+  padding: 20px;
+  margin: 16px 0 24px;
+  overflow-x: auto;
+}
+.diagram svg { display: block; margin: 0 auto; max-width: 100%; height: auto; }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0 20px;
+  font-size: 13.5px;
+  font-variant-numeric: tabular-nums;
+}
+th, td {
+  padding: 9px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--line-soft);
+  vertical-align: top;
+}
+th {
+  font-weight: 600;
+  color: var(--ink-soft);
+  font-size: 11.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-bottom: 1.5px solid var(--line);
+}
+td.num { text-align: right; font-variant-numeric: tabular-nums; }
+td.chk { text-align: center; }
+.pill {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 20px;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+.pill.green { background: var(--green-soft); color: var(--green); }
+.pill.red   { background: var(--red-soft);   color: var(--red); }
+.pill.amber { background: var(--amber-soft); color: var(--amber); }
+.pill.indigo{ background: var(--indigo-soft);color: var(--indigo); }
+.pill.gold  { background: rgba(184,148,77,0.15); color: var(--accent-ink); }
+
+.overflow-x { overflow-x: auto; }
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+  margin: 16px 0 24px;
+}
+.kpi {
+  background: var(--bg-panel);
+  border: 1px solid var(--line-soft);
+  border-left: 3px solid var(--accent);
+  border-radius: 3px;
+  padding: 14px 16px;
+}
+.kpi .k {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink-mute);
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.kpi .v {
+  font-size: 26px;
+  font-weight: 400;
+  color: var(--ink);
+  font-family: 'Georgia', serif;
+  font-variant-numeric: tabular-nums;
+}
+.kpi .sub { font-size: 12px; color: var(--ink-soft); margin-top: 3px; }
+.kpi.good { border-left-color: var(--green); }
+.kpi.warn { border-left-color: var(--amber); }
+.kpi.crit { border-left-color: var(--red); }
+
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+@media (max-width: 780px) {
+  .two-col { grid-template-columns: 1fr; }
+}
+
+code, .mono {
+  font-family: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+  font-size: 12.5px;
+  background: var(--bg-panel-alt);
+  padding: 1.5px 5px;
+  border-radius: 3px;
+  color: var(--accent-ink);
+  border: 1px solid var(--line-soft);
+}
+.callout {
+  border-left: 3px solid var(--accent);
+  background: var(--bg-panel-alt);
+  padding: 14px 18px;
+  margin: 18px 0;
+  border-radius: 3px;
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+.callout strong { color: var(--ink); }
+
+.toc {
+  background: var(--bg-panel-alt);
+  border: 1px solid var(--line-soft);
+  border-radius: 4px;
+  padding: 20px 24px;
+  margin-bottom: 40px;
+  font-size: 13px;
+  columns: 2;
+  column-gap: 32px;
+}
+@media (max-width: 780px) { .toc { columns: 1; } }
+.toc a {
+  display: block;
+  color: var(--ink-soft);
+  text-decoration: none;
+  padding: 3px 0;
+  border-bottom: 1px dotted transparent;
+}
+.toc a:hover { color: var(--accent-ink); border-bottom-color: var(--accent); }
+.toc a .n { color: var(--accent); font-weight: 700; margin-right: 8px; font-size: 11px; letter-spacing: 0.1em; }
+
+footer {
+  margin-top: 80px;
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+  color: var(--ink-mute);
+  font-size: 12px;
+  text-align: center;
+}
+
+.stage-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 8px 0; }
+.stage {
+  display: inline-block;
+  padding: 6px 12px;
+  background: var(--bg-panel-alt);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  font-size: 12px;
+  color: var(--ink-soft);
+  font-weight: 500;
+}
+.stage.new { background: rgba(184,148,77,0.12); border-color: var(--accent); color: var(--accent-ink); }
+.arrow { color: var(--ink-mute); font-size: 12px; }
+
+.provenance-flow {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  background: var(--bg-panel-alt);
+  border: 1px solid var(--line-soft);
+  padding: 16px 20px;
+  border-radius: 4px;
+  margin: 16px 0;
+}
+.provenance-flow .step { padding: 3px 0; }
+.provenance-flow .arrow { padding-left: 12px; color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="masthead">
+  <div class="eyebrow">AEGIS · NexaQuant · Advisory-Only Platform</div>
+  <h1>Architecture v3.2 — Canonical Provenance</h1>
+  <p class="subtitle">
+    Dual-market (India NSE 200 + USA S&amp;P 500 / MidCap 400) institutional advisory
+    intelligence. What we built, how the data flows, where the AI sits, and what
+    the evidence says on <strong>2026-08-27</strong>.
+  </p>
+  <div class="masthead-meta">
+    <span><strong>Version</strong> v3.2-CANONICAL-PROVENANCE</span>
+    <span><strong>Generated</strong> 2026-08-27</span>
+    <span><strong>Commit</strong> 56154227</span>
+    <span><strong>Universe</strong> 1,118 tickers (~200 IN + ~918 US)</span>
+    <span><strong>Advisory only</strong> · never executes trades</span>
+  </div>
+</header>
+
+<div class="toc">
+  <a href="#overview"><span class="n">01</span>What AEGIS is</a>
+  <a href="#versions"><span class="n">02</span>Version history</a>
+  <a href="#master"><span class="n">03</span>Master architecture</a>
+  <a href="#pipeline"><span class="n">04</span>Daily pipeline</a>
+  <a href="#ingest"><span class="n">05</span>Data sources</a>
+  <a href="#features"><span class="n">06</span>Feature store · 81 features</a>
+  <a href="#models"><span class="n">07</span>11 AI models · ensemble</a>
+  <a href="#narrators"><span class="n">08</span>AI narrators &amp; explainers</a>
+  <a href="#engines"><span class="n">09</span>Downstream engines</a>
+  <a href="#provenance"><span class="n">10</span>Canonical provenance (NEW)</a>
+  <a href="#delivery"><span class="n">11</span>Delivery &amp; validators</a>
+  <a href="#validation-india"><span class="n">12</span>India · forward validation</a>
+  <a href="#validation-usa"><span class="n">13</span>USA · forward validation</a>
+  <a href="#gates"><span class="n">14</span>Quality gates</a>
+  <a href="#locks"><span class="n">15</span>What's locked</a>
+  <a href="#timeline"><span class="n">16</span>Recent work timeline</a>
+</div>
+
+<!-- ═══════════════════════ 1 · WHAT AEGIS IS ═══════════════════════ -->
+<section id="overview">
+  <h2><span class="sec-num">01</span>What AEGIS is</h2>
+  <p class="lede">
+    AEGIS reads market data, runs 11 AI models daily, and produces one crisp
+    Telegram message per market telling the operator: what to buy, what to sell,
+    what to rotate, and why. It never executes trades.
+  </p>
+
+  <div class="kpi-grid">
+    <div class="kpi good"><div class="k">Markets</div><div class="v">2</div><div class="sub">India NSE 200 · USA S&amp;P 500 + MidCap 400</div></div>
+    <div class="kpi"><div class="k">Universe</div><div class="v">1,118</div><div class="sub">tickers scored daily</div></div>
+    <div class="kpi"><div class="k">AI models</div><div class="v">11</div><div class="sub">ensembled adaptively</div></div>
+    <div class="kpi"><div class="k">Features</div><div class="v">81</div><div class="sub">across 11 categories</div></div>
+    <div class="kpi"><div class="k">Engines downstream</div><div class="v">19</div><div class="sub">after the ensemble</div></div>
+    <div class="kpi"><div class="k">AI narrators</div><div class="v">6</div><div class="sub">locked by Article 37</div></div>
+    <div class="kpi"><div class="k">Delivery invariants</div><div class="v">30+</div><div class="sub">BLOCK-level validators</div></div>
+    <div class="kpi good"><div class="k">Tests passing</div><div class="v">418 / 1s</div><div class="sub">delivery + research</div></div>
+  </div>
+</section>
+
+<!-- ═══════════════════════ 2 · VERSION HISTORY ═══════════════════════ -->
+<section id="versions">
+  <h2><span class="sec-num">02</span>Version history</h2>
+  <div class="overflow-x">
+  <table>
+    <thead><tr><th>Version</th><th>Date</th><th>Highlights</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">v1.0</td><td>2026-07-18</td><td>Initial architecture (India only)</td></tr>
+      <tr><td class="mono">v2.0</td><td>2026-07-18</td><td>USA parallel deployment · dual-market</td></tr>
+      <tr><td class="mono">v2.3</td><td>2026-07-29</td><td>Snapshot persistence · CEO summary · Evolution</td></tr>
+      <tr><td class="mono">v3.1</td><td>2026-07-30</td><td>Research platform · Backtrack · AI Scorecard · Command Center</td></tr>
+      <tr><td class="mono"><strong>v3.2</strong></td><td><strong>2026-08-27</strong></td>
+          <td><strong>Canonical Provenance Layer · immutable prediction snapshots · Registry canonical-repair API · MR-v1 Forward Validation Engine · Opportunity Registry (Sprint K Part 30) · dual-snapshot attribution</strong></td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<!-- ═══════════════════════ 3 · MASTER ARCHITECTURE ═══════════════════════ -->
+<section id="master">
+  <h2><span class="sec-num">03</span>Master architecture</h2>
+  <p class="lede">Five stacked planes · every plane is idempotent per date · every output auditable.</p>
+
+  <div class="diagram">
+    <svg viewBox="0 0 1080 640" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="AEGIS master architecture">
+      <defs>
+        <marker id="arrM" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+          <polygon points="0 0, 8 4, 0 8" fill="var(--accent)"/>
+        </marker>
+        <style>
+          .b { fill: var(--bg-panel-alt); stroke: var(--line); }
+          .t { fill: var(--ink); font: 600 13px 'Inter', sans-serif; }
+          .st { fill: var(--ink-soft); font: 400 11px 'Inter', sans-serif; }
+          .lab { fill: var(--accent-ink); font: 700 11px 'Inter', sans-serif; letter-spacing: 0.1em; }
+          .box { fill: var(--bg-panel); stroke: var(--line); }
+          .accBox { fill: rgba(184,148,77,0.08); stroke: var(--accent); stroke-width: 1.5; }
+          .arrow { stroke: var(--accent); stroke-width: 1.5; fill: none; }
+          .h { fill: var(--indigo-soft); stroke: var(--indigo); }
+          .hL { fill: var(--indigo); font: 700 11px 'Inter'; letter-spacing: 0.08em; }
+        </style>
+      </defs>
+
+      <!-- planes -->
+      <rect x="30" y="20" width="1020" height="90" rx="4" class="b"/>
+      <text x="52" y="42" class="lab">PLANE 1 · DATA INGEST</text>
+      <text x="52" y="62" class="t">yfinance · SEC 13F · RSS · macro tickers · fundamentals</text>
+      <text x="52" y="82" class="st">10 category types · append-only per (date, ticker) · idempotent · degrades gracefully</text>
+
+      <rect x="30" y="130" width="1020" height="90" rx="4" class="b"/>
+      <text x="52" y="152" class="lab">PLANE 2 · FEATURE STORE</text>
+      <text x="52" y="172" class="t">81 features · 11 categories · schema-fingerprinted parquet</text>
+      <text x="52" y="192" class="st">technical · fundamental · macro · institutional · market-intel · news · sector · earnings · corp-actions · historical · identity</text>
+
+      <rect x="30" y="240" width="1020" height="140" rx="4" class="b"/>
+      <text x="52" y="262" class="lab">PLANE 3 · INTELLIGENCE</text>
+      <!-- 11 model chips -->
+      <g font-family="Inter" font-size="11" fill="var(--ink-soft)">
+        <rect x="52"  y="280" width="80" height="26" rx="3" class="box"/>
+        <text x="92"  y="297" text-anchor="middle">Momentum</text>
+        <rect x="140" y="280" width="80" height="26" rx="3" class="box"/>
+        <text x="180" y="297" text-anchor="middle">Trend</text>
+        <rect x="228" y="280" width="80" height="26" rx="3" class="box"/>
+        <text x="268" y="297" text-anchor="middle">Value</text>
+        <rect x="316" y="280" width="80" height="26" rx="3" class="box"/>
+        <text x="356" y="297" text-anchor="middle">Growth</text>
+        <rect x="404" y="280" width="80" height="26" rx="3" class="box"/>
+        <text x="444" y="297" text-anchor="middle">Quality</text>
+        <rect x="492" y="280" width="110" height="26" rx="3" class="box"/>
+        <text x="547" y="297" text-anchor="middle">MeanReversion</text>
+        <rect x="610" y="280" width="80" height="26" rx="3" class="box"/>
+        <text x="650" y="297" text-anchor="middle">News</text>
+        <rect x="698" y="280" width="80" height="26" rx="3" class="box"/>
+        <text x="738" y="297" text-anchor="middle">Macro</text>
+        <rect x="786" y="280" width="80" height="26" rx="3" class="box"/>
+        <text x="826" y="297" text-anchor="middle">Sector</text>
+        <rect x="874" y="280" width="80" height="26" rx="3" class="box"/>
+        <text x="914" y="297" text-anchor="middle">Event</text>
+        <rect x="962" y="280" width="80" height="26" rx="3" class="box"/>
+        <text x="1002" y="297" text-anchor="middle">AI-Hybrid</text>
+      </g>
+      <!-- Ensemble -->
+      <rect x="380" y="330" width="320" height="34" rx="3" class="accBox"/>
+      <text x="540" y="352" text-anchor="middle" class="t">Adaptive Ensemble · self-tuning weights</text>
+
+      <rect x="30" y="400" width="1020" height="140" rx="4" class="b"/>
+      <text x="52" y="422" class="lab">PLANE 4 · DECISION &amp; PORTFOLIO</text>
+      <!-- Downstream engines row -->
+      <g font-family="Inter" font-size="10.5" fill="var(--ink-soft)">
+        <rect x="52"  y="440" width="150" height="28" rx="3" class="box"/>
+        <text x="127" y="458" text-anchor="middle">Recommendation v3</text>
+        <rect x="210" y="440" width="140" height="28" rx="3" class="box"/>
+        <text x="280" y="458" text-anchor="middle">Rotation Intel</text>
+        <rect x="358" y="440" width="150" height="28" rx="3" class="box"/>
+        <text x="433" y="458" text-anchor="middle">Lifecycle State (9)</text>
+        <rect x="516" y="440" width="140" height="28" rx="3" class="box"/>
+        <text x="586" y="458" text-anchor="middle">Risk Engine</text>
+        <rect x="664" y="440" width="150" height="28" rx="3" class="box"/>
+        <text x="739" y="458" text-anchor="middle">Portfolio v3</text>
+        <rect x="822" y="440" width="220" height="28" rx="3" class="box"/>
+        <text x="932" y="458" text-anchor="middle">Learning · IC → adaptive weights</text>
+
+        <rect x="52"  y="482" width="200" height="28" rx="3" class="box"/>
+        <text x="152" y="500" text-anchor="middle">Opportunity Registry (event)</text>
+        <rect x="260" y="482" width="180" height="28" rx="3" class="box"/>
+        <text x="350" y="500" text-anchor="middle">Dual-Snapshot Attribution</text>
+        <rect x="448" y="482" width="200" height="28" rx="3" class="box"/>
+        <text x="548" y="500" text-anchor="middle">MR-v1 Forward Validation</text>
+        <rect x="656" y="482" width="200" height="28" rx="3" class="box"/>
+        <text x="756" y="500" text-anchor="middle">AI Scorecard (6 metrics)</text>
+        <rect x="864" y="482" width="180" height="28" rx="3" class="box"/>
+        <text x="954" y="500" text-anchor="middle">Backtrack Timeline</text>
+      </g>
+
+      <!-- PLANE 5 · PROVENANCE + DELIVERY  -->
+      <rect x="30" y="560" width="1020" height="60" rx="4" class="h"/>
+      <text x="52" y="582" class="hL">PLANE 5 · CANONICAL PROVENANCE &amp; DELIVERY  (v3.2)</text>
+      <text x="52" y="604" class="st">Snapshot ledger (immutable) · Registry canonical-repair · Quarantine audit · XLSX + Telegram · 30+ invariants (BLOCK)</text>
+
+      <!-- arrows between planes -->
+      <path class="arrow" marker-end="url(#arrM)" d="M540 111 L540 128"/>
+      <path class="arrow" marker-end="url(#arrM)" d="M540 221 L540 238"/>
+      <path class="arrow" marker-end="url(#arrM)" d="M540 381 L540 398"/>
+      <path class="arrow" marker-end="url(#arrM)" d="M540 541 L540 558"/>
+    </svg>
+  </div>
+</section>
+
+<!-- ═══════════════════════ 4 · DAILY PIPELINE ═══════════════════════ -->
+<section id="pipeline">
+  <h2><span class="sec-num">04</span>Daily pipeline</h2>
+  <p class="lede">
+    Every business day, both markets run the same deterministic flow. Snapshot →
+    features → 11 models → ensemble → decision → portfolio → provenance → delivery.
+    Every stage is idempotent per date; every output is auditable.
+  </p>
+
+  <div class="diagram">
+    <svg viewBox="0 0 1080 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Daily pipeline flow">
+      <defs>
+        <marker id="arrP" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+          <polygon points="0 0, 8 4, 0 8" fill="var(--accent)"/>
+        </marker>
+        <style>
+          .pB { fill: var(--bg-panel); stroke: var(--line); }
+          .pA { fill: rgba(184,148,77,0.08); stroke: var(--accent); stroke-width: 1.5; }
+          .pN { fill: var(--indigo-soft); stroke: var(--indigo); }
+          .pT { fill: var(--ink); font: 600 12px 'Inter'; }
+          .pS { fill: var(--ink-soft); font: 400 10.5px 'Inter'; }
+          .pArr { stroke: var(--accent); stroke-width: 1.5; fill: none; }
+        </style>
+      </defs>
+      <!-- Row 1 -->
+      <g>
+        <rect x="30"  y="30" width="140" height="60" rx="4" class="pB"/>
+        <text x="100" y="55" text-anchor="middle" class="pT">1 · Ingest</text>
+        <text x="100" y="72" text-anchor="middle" class="pS">yfinance · SEC · RSS</text>
+
+        <rect x="200" y="30" width="140" height="60" rx="4" class="pB"/>
+        <text x="270" y="55" text-anchor="middle" class="pT">2 · Feature build</text>
+        <text x="270" y="72" text-anchor="middle" class="pS">81 features · parquet</text>
+
+        <rect x="370" y="30" width="140" height="60" rx="4" class="pB"/>
+        <text x="440" y="55" text-anchor="middle" class="pT">3 · 11 AI models</text>
+        <text x="440" y="72" text-anchor="middle" class="pS">parallel · per-model score</text>
+
+        <rect x="540" y="30" width="140" height="60" rx="4" class="pA"/>
+        <text x="610" y="55" text-anchor="middle" class="pT">4 · Ensemble</text>
+        <text x="610" y="72" text-anchor="middle" class="pS">adaptive weights (IC)</text>
+
+        <rect x="710" y="30" width="150" height="60" rx="4" class="pB"/>
+        <text x="785" y="55" text-anchor="middle" class="pT">5 · Recommendation v3</text>
+        <text x="785" y="72" text-anchor="middle" class="pS">calibrate · regime · classify</text>
+
+        <rect x="890" y="30" width="150" height="60" rx="4" class="pB"/>
+        <text x="965" y="55" text-anchor="middle" class="pT">6 · Rotation Intel</text>
+        <text x="965" y="72" text-anchor="middle" class="pS">edge / keep_score</text>
+
+        <path class="pArr" marker-end="url(#arrP)" d="M170 60 L200 60"/>
+        <path class="pArr" marker-end="url(#arrP)" d="M340 60 L370 60"/>
+        <path class="pArr" marker-end="url(#arrP)" d="M510 60 L540 60"/>
+        <path class="pArr" marker-end="url(#arrP)" d="M680 60 L710 60"/>
+        <path class="pArr" marker-end="url(#arrP)" d="M860 60 L890 60"/>
+      </g>
+      <!-- Down-arrow bend -->
+      <path class="pArr" marker-end="url(#arrP)" d="M965 90 L965 120"/>
+
+      <!-- Row 2 (right-to-left)-->
+      <g>
+        <rect x="890" y="120" width="150" height="60" rx="4" class="pB"/>
+        <text x="965" y="145" text-anchor="middle" class="pT">7 · Lifecycle State</text>
+        <text x="965" y="162" text-anchor="middle" class="pS">9-state per-ticker FSM</text>
+
+        <rect x="710" y="120" width="150" height="60" rx="4" class="pB"/>
+        <text x="785" y="145" text-anchor="middle" class="pT">8 · Risk Engine</text>
+        <text x="785" y="162" text-anchor="middle" class="pS">Kelly · VIX-adj · VaR/CVaR</text>
+
+        <rect x="540" y="120" width="140" height="60" rx="4" class="pB"/>
+        <text x="610" y="145" text-anchor="middle" class="pT">9 · Portfolio v3</text>
+        <text x="610" y="162" text-anchor="middle" class="pS">N-name · cash policy</text>
+
+        <rect x="370" y="120" width="140" height="60" rx="4" class="pB"/>
+        <text x="440" y="145" text-anchor="middle" class="pT">10 · Learning</text>
+        <text x="440" y="162" text-anchor="middle" class="pS">closed → next-day IC</text>
+
+        <rect x="200" y="120" width="140" height="60" rx="4" class="pN"/>
+        <text x="270" y="145" text-anchor="middle" class="pT">11 · Snapshot Ledger</text>
+        <text x="270" y="162" text-anchor="middle" class="pS">immutable append (v3.2)</text>
+
+        <rect x="30"  y="120" width="140" height="60" rx="4" class="pN"/>
+        <text x="100" y="145" text-anchor="middle" class="pT">12 · Registry</text>
+        <text x="100" y="162" text-anchor="middle" class="pS">event-sourced JSONL</text>
+
+        <path class="pArr" marker-end="url(#arrP)" d="M890 150 L860 150"/>
+        <path class="pArr" marker-end="url(#arrP)" d="M710 150 L680 150"/>
+        <path class="pArr" marker-end="url(#arrP)" d="M540 150 L510 150"/>
+        <path class="pArr" marker-end="url(#arrP)" d="M370 150 L340 150"/>
+        <path class="pArr" marker-end="url(#arrP)" d="M200 150 L170 150"/>
+      </g>
+
+      <!-- Row 3 -->
+      <path class="pArr" marker-end="url(#arrP)" d="M100 180 L100 210"/>
+
+      <g>
+        <rect x="30"  y="210" width="140" height="60" rx="4" class="pB"/>
+        <text x="100" y="235" text-anchor="middle" class="pT">13 · XLSX build</text>
+        <text x="100" y="252" text-anchor="middle" class="pS">reads snapshot canonical</text>
+
+        <rect x="200" y="210" width="140" height="60" rx="4" class="pA"/>
+        <text x="270" y="235" text-anchor="middle" class="pT">14 · Validators</text>
+        <text x="270" y="252" text-anchor="middle" class="pS">I26/I27/I28 · 30+ BLOCK</text>
+
+        <rect x="370" y="210" width="140" height="60" rx="4" class="pB"/>
+        <text x="440" y="235" text-anchor="middle" class="pT">15 · Delivery gate</text>
+        <text x="440" y="252" text-anchor="middle" class="pS">PASS → ship · FAIL → block</text>
+
+        <rect x="540" y="210" width="140" height="60" rx="4" class="pB"/>
+        <text x="610" y="235" text-anchor="middle" class="pT">16 · Telegram</text>
+        <text x="610" y="252" text-anchor="middle" class="pS">per-market · advisory</text>
+
+        <rect x="710" y="210" width="330" height="60" rx="4" class="pN"/>
+        <text x="875" y="235" text-anchor="middle" class="pT">17 · MR-v1 Forward Validation (measurement-only sandbox)</text>
+        <text x="875" y="252" text-anchor="middle" class="pS">34 stages · shadow-mode E1/E2/E3 experiments · never touches production</text>
+
+        <path class="pArr" marker-end="url(#arrP)" d="M170 240 L200 240"/>
+        <path class="pArr" marker-end="url(#arrP)" d="M340 240 L370 240"/>
+        <path class="pArr" marker-end="url(#arrP)" d="M510 240 L540 240"/>
+        <path class="pArr" marker-end="url(#arrP)" d="M680 240 L710 240"/>
+      </g>
+    </svg>
+  </div>
+
+  <div class="callout">
+    <strong>New in v3.2 (highlighted in indigo):</strong> stages 11 (Snapshot Ledger),
+    12 (Registry event-sourced), and 17 (MR-v1 Forward Validation).
+    Stage 14 (Validators) is now driven by canonical-snapshot values instead of
+    source-XLSX values that could be silently restamped.
+  </div>
+</section>
+
+<!-- ═══════════════════════ 5 · DATA INGEST ═══════════════════════ -->
+<section id="ingest">
+  <h2><span class="sec-num">05</span>Data sources we ingest daily</h2>
+  <div class="overflow-x">
+  <table>
+    <thead><tr><th>Category</th><th>Source</th><th>What we extract</th><th>Refresh</th></tr></thead>
+    <tbody>
+      <tr><td>Universe</td><td class="mono">configs/universes/*.json</td><td>NSE 200 (IN) · S&amp;P 500 + MidCap 400 (US · 918 tickers)</td><td>config-driven</td></tr>
+      <tr><td>Market data</td><td>yfinance</td><td>OHLCV daily bars · adjusted closes</td><td>daily post-close</td></tr>
+      <tr><td>Fundamentals</td><td>yfinance info + statements</td><td>P/E · P/B · ROE · D/E · margins · growth · cashflow</td><td>daily</td></tr>
+      <tr><td>News</td><td>yfinance / RSS aggregator</td><td>headline sentiment · polarity · count</td><td>daily</td></tr>
+      <tr><td>Earnings</td><td>yfinance earnings</td><td>next date · last surprise · EPS actual vs est.</td><td>daily</td></tr>
+      <tr><td>Insider</td><td>yfinance transactions</td><td>insider net-buy / sell 90d · # transactions</td><td>daily</td></tr>
+      <tr><td>ETF flows</td><td>yfinance ETF holdings</td><td>sector-ETF net flow proxy · style tilts</td><td>daily</td></tr>
+      <tr><td>Macro</td><td>yfinance macro tickers</td><td>10y yield · DXY · gold · WTI · VIX · rate change</td><td>daily</td></tr>
+      <tr><td>Corporate actions</td><td>yfinance actions</td><td>dividends · splits · days-since-last</td><td>daily</td></tr>
+      <tr><td>SEC 13F (USA)</td><td>public filings</td><td>top institutional holders · % change QoQ</td><td>quarterly</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<!-- ═══════════════════════ 6 · FEATURE STORE ═══════════════════════ -->
+<section id="features">
+  <h2><span class="sec-num">06</span>Feature store · 81 features · 11 categories</h2>
+  <p class="lede">Every raw datum is transformed and stored in <span class="mono">features/{market}/YYYY-MM-DD.parquet</span>. Schema-fingerprinted. Every feature carries governance metadata: owner · business rationale · economic intuition · dependencies.</p>
+
+  <div class="overflow-x">
+  <table>
+    <thead><tr><th>Category</th><th style="text-align:right">Count</th><th>Captures</th><th>Examples</th></tr></thead>
+    <tbody>
+      <tr><td>Technical</td><td class="num">26</td><td>price · momentum · trend · volatility · drawdown</td><td class="mono">close · RSI · ATR · sma_50 · sma_200 · drawdown_60d</td></tr>
+      <tr><td>Fundamental</td><td class="num">8</td><td>profitability · leverage · valuation · growth · cashflow</td><td class="mono">fund_roe · fund_debt_to_equity · fund_trailing_pe</td></tr>
+      <tr><td>Macro</td><td class="num">8</td><td>rates · currency · commodities · risk</td><td class="mono">macro_10y · macro_dxy · macro_gold · macro_vix</td></tr>
+      <tr><td>Institutional</td><td class="num">7</td><td>insider · institutional ownership</td><td class="mono">insider_net_90d · inst_pct_owned · inst_top_holder_pct</td></tr>
+      <tr><td>Market intelligence</td><td class="num">7</td><td>regime · breadth · liquidity</td><td class="mono">mi_regime · mi_composite_score · mi_breadth_above_20ma_pct</td></tr>
+      <tr><td>News</td><td class="num">5</td><td>sentiment · polarity</td><td class="mono">news_sentiment · news_polarity_ratio</td></tr>
+      <tr><td>Identity</td><td class="num">5</td><td>market · ticker · sector · currency · date</td><td class="mono">market · ticker · sector · asof · currency</td></tr>
+      <tr><td>Sector</td><td class="num">4</td><td>sector rank · leadership</td><td class="mono">sector_return_1m_pct · sector_rank · sector_is_leader</td></tr>
+      <tr><td>Earnings</td><td class="num">4</td><td>next-earnings · surprise · EPS</td><td class="mono">earn_days_to_next · earn_last_surprise_pct</td></tr>
+      <tr><td>Corporate actions</td><td class="num">4</td><td>dividend · split · time-since</td><td class="mono">ca_days_since_last_dividend · ca_last_split_ratio</td></tr>
+      <tr><td>Historical</td><td class="num">3</td><td>per-ticker learning-corpus stats</td><td class="mono">hist_ticker_win_rate · hist_ticker_n_trades</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<!-- ═══════════════════════ 7 · 11 AI MODELS ═══════════════════════ -->
+<section id="models">
+  <h2><span class="sec-num">07</span>The 11 AI models · adaptive ensemble</h2>
+  <p class="lede">Eleven specialist models scored in parallel. Weights are adaptive — yesterday's information coefficient tunes tomorrow's weights. No manual retuning · no bias · no hidden intent.</p>
+
+  <div class="diagram">
+    <svg viewBox="0 0 1080 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Ensemble">
+      <defs>
+        <marker id="arrE" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+          <polygon points="0 0, 8 4, 0 8" fill="var(--accent)"/>
+        </marker>
+        <style>
+          .mB { fill: var(--bg-panel); stroke: var(--line); }
+          .mA { fill: rgba(184,148,77,0.10); stroke: var(--accent); stroke-width: 1.5; }
+          .mI { fill: var(--indigo-soft); stroke: var(--indigo); }
+          .mT { fill: var(--ink); font: 600 11.5px 'Inter'; }
+          .mS { fill: var(--ink-soft); font: 400 10px 'Inter'; }
+          .mArr { stroke: var(--accent); stroke-width: 1.4; fill: none; opacity: 0.7; }
+        </style>
+      </defs>
+      <!-- Left: features -->
+      <rect x="20" y="40" width="180" height="240" rx="4" class="mI"/>
+      <text x="110" y="65" text-anchor="middle" class="mT">FEATURES (81)</text>
+      <text x="110" y="85" text-anchor="middle" class="mS">technical · fundamental</text>
+      <text x="110" y="100" text-anchor="middle" class="mS">macro · news · earnings</text>
+      <text x="110" y="115" text-anchor="middle" class="mS">sector · institutional</text>
+      <text x="110" y="130" text-anchor="middle" class="mS">market-intel · corp-act</text>
+      <text x="110" y="145" text-anchor="middle" class="mS">historical · identity</text>
+      <text x="110" y="180" text-anchor="middle" class="mS">schema-fingerprinted</text>
+      <text x="110" y="195" text-anchor="middle" class="mS">walk-forward safe</text>
+      <text x="110" y="240" text-anchor="middle" class="mS">Feature Intelligence</text>
+      <text x="110" y="255" text-anchor="middle" class="mS">MLOps governs</text>
+
+      <!-- 11 models -->
+      <g>
+        <rect x="240" y="30" width="140" height="30" rx="3" class="mB"/><text x="310" y="50" text-anchor="middle" class="mT">Momentum</text>
+        <rect x="240" y="70" width="140" height="30" rx="3" class="mB"/><text x="310" y="90" text-anchor="middle" class="mT">Trend</text>
+        <rect x="240" y="110" width="140" height="30" rx="3" class="mB"/><text x="310" y="130" text-anchor="middle" class="mT">Value</text>
+        <rect x="240" y="150" width="140" height="30" rx="3" class="mB"/><text x="310" y="170" text-anchor="middle" class="mT">Growth</text>
+        <rect x="240" y="190" width="140" height="30" rx="3" class="mB"/><text x="310" y="210" text-anchor="middle" class="mT">Quality</text>
+        <rect x="240" y="230" width="140" height="30" rx="3" class="mB"/><text x="310" y="250" text-anchor="middle" class="mT">MeanReversion</text>
+
+        <rect x="410" y="30" width="140" height="30" rx="3" class="mB"/><text x="480" y="50" text-anchor="middle" class="mT">News</text>
+        <rect x="410" y="70" width="140" height="30" rx="3" class="mB"/><text x="480" y="90" text-anchor="middle" class="mT">Macro</text>
+        <rect x="410" y="110" width="140" height="30" rx="3" class="mB"/><text x="480" y="130" text-anchor="middle" class="mT">Sector</text>
+        <rect x="410" y="150" width="140" height="30" rx="3" class="mB"/><text x="480" y="170" text-anchor="middle" class="mT">Event</text>
+        <rect x="410" y="190" width="140" height="30" rx="3" class="mB"/><text x="480" y="210" text-anchor="middle" class="mT">AI-Hybrid</text>
+      </g>
+
+      <!-- Arrows features → models -->
+      <path class="mArr" d="M200 60 L240 45"/>
+      <path class="mArr" d="M200 100 L240 85"/>
+      <path class="mArr" d="M200 140 L240 125"/>
+      <path class="mArr" d="M200 180 L240 165"/>
+      <path class="mArr" d="M200 220 L240 205"/>
+      <path class="mArr" d="M200 260 L240 245"/>
+      <path class="mArr" d="M200 60 L410 45"/>
+      <path class="mArr" d="M200 100 L410 85"/>
+      <path class="mArr" d="M200 140 L410 125"/>
+      <path class="mArr" d="M200 180 L410 165"/>
+      <path class="mArr" d="M200 220 L410 205"/>
+
+      <!-- Ensemble -->
+      <rect x="600" y="110" width="200" height="70" rx="4" class="mA"/>
+      <text x="700" y="140" text-anchor="middle" class="mT">Adaptive Ensemble</text>
+      <text x="700" y="160" text-anchor="middle" class="mS">weights ← yesterday's IC</text>
+
+      <!-- Arrows models → ensemble -->
+      <path class="mArr" marker-end="url(#arrE)" d="M550 45 L600 130"/>
+      <path class="mArr" marker-end="url(#arrE)" d="M550 85 L600 138"/>
+      <path class="mArr" marker-end="url(#arrE)" d="M550 125 L600 145"/>
+      <path class="mArr" marker-end="url(#arrE)" d="M550 165 L600 150"/>
+      <path class="mArr" marker-end="url(#arrE)" d="M550 205 L600 155"/>
+      <path class="mArr" marker-end="url(#arrE)" d="M380 245 L600 160"/>
+
+      <!-- Ensemble → recommendation -->
+      <rect x="850" y="110" width="200" height="70" rx="4" class="mI"/>
+      <text x="950" y="140" text-anchor="middle" class="mT">Recommendation v3</text>
+      <text x="950" y="160" text-anchor="middle" class="mS">→ calibration · regime → decision</text>
+      <path class="mArr" marker-end="url(#arrE)" d="M800 145 L850 145"/>
+    </svg>
+  </div>
+
+  <div class="overflow-x">
+  <table>
+    <thead><tr><th>Model</th><th>Thesis in one line</th><th>Signal driven by</th></tr></thead>
+    <tbody>
+      <tr><td>Momentum</td><td>Buy what's already going up</td><td class="mono">1m / 3m / 6m returns · RSI</td></tr>
+      <tr><td>Trend</td><td>Buy what's above a rising trend line</td><td class="mono">sma_50 vs sma_200 · ADX</td></tr>
+      <tr><td>Value</td><td>Buy the cheap ones</td><td class="mono">P/E · P/B · EV/EBITDA</td></tr>
+      <tr><td>Growth</td><td>Buy the fast-growing</td><td class="mono">earnings_growth · revenue_growth</td></tr>
+      <tr><td>Quality</td><td>Buy the well-run</td><td class="mono">ROE · profit margin · low D/E</td></tr>
+      <tr><td>MeanReversion</td><td>Buy oversold, sell overbought</td><td class="mono">distance from MA · RSI extremes</td></tr>
+      <tr><td>News</td><td>Amplify by sentiment</td><td class="mono">news_sentiment · polarity ratio</td></tr>
+      <tr><td>Macro</td><td>Tilt with macro regime</td><td class="mono">VIX · DXY · yields · rate change</td></tr>
+      <tr><td>Sector</td><td>Prefer leaders, avoid laggards</td><td class="mono">sector_rank · sector return 1m</td></tr>
+      <tr><td>Event</td><td>Act around earnings, corp actions</td><td class="mono">days_to_earnings · last surprise</td></tr>
+      <tr><td>AI-Hybrid</td><td>Learns non-linear combinations</td><td class="mono">gradient-boosted composite</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<!-- ═══════════════════════ 8 · AI NARRATORS ═══════════════════════ -->
+<section id="narrators">
+  <h2><span class="sec-num">08</span>AI narrators &amp; explainers · LLM layer</h2>
+  <p class="lede">Six AI narrators locked by Constitutional Article 37 · one per intelligence domain. Each reads the day's numerical outputs and produces a human-readable explanation. Utility explainers (data-quality, feature-anomaly, feature-importance, evidence-summarizer, execution-analyst) run alongside but are not locked.</p>
+
+  <div class="overflow-x">
+  <table>
+    <thead><tr><th>Locked narrator</th><th>Explains</th><th>Reads from</th></tr></thead>
+    <tbody>
+      <tr><td>Market Analyst</td><td>regime · breadth · sector leadership</td><td class="mono">reports/market_intelligence.json</td></tr>
+      <tr><td>Macro Analyst</td><td>rates · currency · commodities · impact matrix</td><td class="mono">reports/macro_intelligence.json</td></tr>
+      <tr><td>Recommendation Analyst</td><td>why BUY / HOLD / SELL · what changed vs prior day</td><td class="mono">reports/recommendations.json</td></tr>
+      <tr><td>Portfolio Analyst</td><td>concentration · sector tilt · rebalance</td><td class="mono">reports/portfolio_v3.json</td></tr>
+      <tr><td>Risk Analyst</td><td>VaR / CVaR · stop-hit · drawdown risk</td><td class="mono">reports/risk_report.json</td></tr>
+      <tr><td>Learning Analyst</td><td>what recent wins &amp; losses teach us</td><td class="mono">reports/learning.parquet</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <div class="callout"><strong>Governance:</strong> AI narrators explain, they never decide.
+  Every LLM output is replayable for walk-forward. No AI signal reaches production without
+  operator promotion.</div>
+</section>
+
+<!-- ═══════════════════════ 9 · DOWNSTREAM ENGINES ═══════════════════════ -->
+<section id="engines">
+  <h2><span class="sec-num">09</span>Downstream engines · everything after the ensemble</h2>
+  <p class="lede">The ensemble score is the start, not the finish. 19 downstream engines refine it into a complete institutional decision.</p>
+
+  <div class="overflow-x">
+  <table>
+    <thead><tr><th>Engine</th><th>What it produces</th></tr></thead>
+    <tbody>
+      <tr><td>Recommendation Intelligence v3</td><td>raw BUY / HOLD / SELL from ensemble + regime + calibration</td></tr>
+      <tr><td>SSoT Bridge</td><td>unified <span class="mono">recommendations.json</span> for all consumers</td></tr>
+      <tr><td>Percentile Classifier</td><td>cross-sectional ranking · institutional pattern</td></tr>
+      <tr><td>Investor-Actionable Enricher</td><td>entry / if_holding / position_plan / why</td></tr>
+      <tr><td>Rotation Intelligence</td><td>should_rotate + replacement_ticker + expected alpha</td></tr>
+      <tr><td>Lifecycle State Machine</td><td>9 states: DISCOVERED → BUY → HOLD → ROTATED / CLOSED</td></tr>
+      <tr><td>Dynamic Holding</td><td>12-factor composite predicts holding period in days</td></tr>
+      <tr><td>Capital Rotation</td><td>keep_score vs candidate_score · edge threshold</td></tr>
+      <tr><td>Opportunity Cost</td><td>every HOLD justifies "why not rotate"</td></tr>
+      <tr><td>Risk Engine</td><td>fractional Kelly · sector cap · VIX-adjusted · VaR / CVaR</td></tr>
+      <tr><td>Portfolio Engine v3</td><td>N-name portfolio construction · cash policy</td></tr>
+      <tr><td>Learning Engine</td><td>closed trades → next-day IC → adaptive weights</td></tr>
+      <tr><td>Execution Simulator</td><td>paper-trade fills · slippage model</td></tr>
+      <tr><td>Position Store</td><td>per-ticker high_water + trailing stop + first_seen</td></tr>
+      <tr><td>Snapshot Persistence</td><td>daily archive · foundation for Backtrack</td></tr>
+      <tr><td>Backtrack Engine</td><td>per-ticker timeline across all snapshot dates</td></tr>
+      <tr><td>AI Performance Scorecard</td><td>6 institutional metrics · 84 / 100 live</td></tr>
+      <tr><td>Sector / Decision Attribution</td><td>per-model contribution to every rec's final score</td></tr>
+      <tr><td>Command Center</td><td>one crisp Telegram message · both markets</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>New in v3.2 · Opportunity Registry (Sprint K Part 30)</h3>
+  <p>Every unique investment idea gets ONE immutable record. Persistent per-opportunity
+  lifecycle store. Fixes: ZYDUSLIFE-showing-NEW-every-day · ONGC-restamping-Recommended ·
+  INDIGO-same-day-NEW-and-CLOSED · LUPIN-re-entry-collision.</p>
+
+  <h3>New in v3.2 · Dual-Snapshot Attribution (Sprint K+ Part 25)</h3>
+  <p>Winner + loser attribution · 6-category loss classifier · weekly rollup with
+  auto-flags · fed into Part 22 self-learning.</p>
+
+  <h3>Scope discipline · current vs historical (HARD RULE 2026-08-27)</h3>
+  <p>Every AEGIS report labels its counts by scope. A bare "Win Rate" never appears without a scope qualifier.</p>
+  <div class="overflow-x">
+  <table>
+    <thead><tr><th>Scope</th><th>Sheet</th><th>Contains</th><th>Today · USA</th><th>Today · India</th></tr></thead>
+    <tbody>
+      <tr><td><strong>current</strong></td><td class="mono">Portfolio</td><td>positions currently ACTIVE + SUGGESTED</td><td>25 positions</td><td>19 positions</td></tr>
+      <tr><td><strong>realized 90d</strong></td><td class="mono">Exit History (90d)</td><td>closed trades in the last 90 calendar days</td><td>504 exits (253 pos · 251 neg)</td><td>22 exits (10 pos · 12 neg)</td></tr>
+      <tr><td><strong>full audit</strong></td><td class="mono">AEGIS X History</td><td>per-position lifecycle across all snapshots</td><td>72 rows</td><td>597 rows</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <div class="callout"><strong>Never mix scopes:</strong>
+    504 USA "exits" is not 504 stocks currently held.
+    22 India "exits" is not 22 stocks about to close.
+    Cross-referencing is fine · but the label always names which scope.</div>
+</section>
+
+<!-- ═══════════════════════ 10 · CANONICAL PROVENANCE ═══════════════════════ -->
+<section id="provenance">
+  <h2><span class="sec-num">10</span>Canonical provenance layer · NEW in v3.2</h2>
+  <p class="lede">
+    <strong>Directive that shaped it:</strong> "One authoritative entry price and one
+    authoritative prediction / exit-date chain, rather than independently reconstructing
+    them downstream." All downstream consumers read from a single append-only canonical
+    source. Historical evidence is never silently restamped.
+  </p>
+
+  <div class="diagram">
+    <svg viewBox="0 0 1080 400" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Canonical provenance layer">
+      <defs>
+        <marker id="arrPr" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+          <polygon points="0 0, 8 4, 0 8" fill="var(--accent)"/>
+        </marker>
+        <style>
+          .prBox { fill: var(--bg-panel); stroke: var(--line); }
+          .prAcc { fill: rgba(184,148,77,0.12); stroke: var(--accent); stroke-width: 1.5; }
+          .prI { fill: var(--indigo-soft); stroke: var(--indigo); }
+          .prG { fill: var(--green-soft); stroke: var(--green); }
+          .prR { fill: var(--red-soft); stroke: var(--red); }
+          .prT { fill: var(--ink); font: 600 12px 'Inter'; }
+          .prS { fill: var(--ink-soft); font: 400 10.5px 'Inter'; }
+          .prLab { fill: var(--accent-ink); font: 700 10.5px 'Inter'; letter-spacing: 0.09em; }
+          .prArr { stroke: var(--accent); stroke-width: 1.5; fill: none; }
+          .prArrR { stroke: var(--red); stroke-width: 1.4; fill: none; stroke-dasharray: 4 3; }
+        </style>
+      </defs>
+
+      <!-- Source rail (top) -->
+      <rect x="40" y="20" width="200" height="60" rx="4" class="prBox"/>
+      <text x="140" y="42" text-anchor="middle" class="prT">Source XLSX</text>
+      <text x="140" y="60" text-anchor="middle" class="prS">aegis_history.xlsx</text>
+      <text x="140" y="74" text-anchor="middle" class="prS">daily row per (ticker,date)</text>
+
+      <!-- Registry -->
+      <rect x="290" y="20" width="220" height="60" rx="4" class="prI"/>
+      <text x="400" y="42" text-anchor="middle" class="prT">Opportunity Registry</text>
+      <text x="400" y="60" text-anchor="middle" class="prS">event-sourced JSONL · append-only</text>
+      <text x="400" y="74" text-anchor="middle" class="prS">latest-ts_utc wins</text>
+
+      <!-- Snapshot -->
+      <rect x="560" y="20" width="230" height="60" rx="4" class="prAcc"/>
+      <text x="675" y="42" text-anchor="middle" class="prT">Prediction Snapshot Ledger</text>
+      <text x="675" y="60" text-anchor="middle" class="prS">IMMUTABLE entry_price · entry_date</text>
+      <text x="675" y="74" text-anchor="middle" class="prS">source_close_date · signal</text>
+
+      <!-- Quarantine -->
+      <rect x="840" y="20" width="200" height="60" rx="4" class="prR"/>
+      <text x="940" y="42" text-anchor="middle" class="prT">Quarantine Audit</text>
+      <text x="940" y="60" text-anchor="middle" class="prS">QUARANTINE → RECONSTRUCT</text>
+      <text x="940" y="74" text-anchor="middle" class="prS">→ RESTORE (append-only)</text>
+
+      <!-- Trading Calendar row -->
+      <rect x="290" y="110" width="500" height="60" rx="4" class="prG"/>
+      <text x="540" y="132" text-anchor="middle" class="prT">Canonical Trading Calendar</text>
+      <text x="540" y="150" text-anchor="middle" class="prS">derived from index parquets (NSEI · GSPC) · zero external deps</text>
+      <text x="540" y="164" text-anchor="middle" class="prS">is_trading_session · nth_session_after · validate_exit_chain</text>
+
+      <!-- Delivery consumer -->
+      <rect x="290" y="200" width="500" height="70" rx="4" class="prAcc"/>
+      <text x="540" y="225" text-anchor="middle" class="prT">Delivery Consumer · Portfolio row emit</text>
+      <text x="540" y="243" text-anchor="middle" class="prS">READ-ONLY consultation of snapshot ledger</text>
+      <text x="540" y="257" text-anchor="middle" class="prS">override source-XLSX values whenever a canonical snapshot exists</text>
+
+      <!-- Validators -->
+      <rect x="290" y="300" width="500" height="70" rx="4" class="prBox"/>
+      <text x="540" y="325" text-anchor="middle" class="prT">Validators · I26 · I27 · I28 · 30+ BLOCK invariants</text>
+      <text x="540" y="343" text-anchor="middle" class="prS">entry_price ≤ 2% drift · entry_date legit · exit_date legit + on calendar</text>
+      <text x="540" y="357" text-anchor="middle" class="prS">FAIL → block delivery · PASS → ship</text>
+
+      <!-- flows -->
+      <path class="prArr" marker-end="url(#arrPr)" d="M240 50 L290 50"/>
+      <path class="prArr" marker-end="url(#arrPr)" d="M510 50 L560 50"/>
+      <path class="prArr" marker-end="url(#arrPr)" d="M790 50 L840 50"/>
+      <path class="prArr" marker-end="url(#arrPr)" d="M675 80 L540 105"/>
+      <path class="prArr" marker-end="url(#arrPr)" d="M540 170 L540 200"/>
+      <path class="prArr" marker-end="url(#arrPr)" d="M540 270 L540 300"/>
+
+      <!-- Repair loop -->
+      <path class="prArrR" d="M940 80 Q 940 130 800 130 Q 720 130 720 30 L 720 20" fill="none" marker-end="url(#arrPr)"/>
+      <text x="895" y="105" class="prLab">CANONICAL REPAIR</text>
+    </svg>
+  </div>
+
+  <div class="two-col">
+    <div>
+      <h3>What is canonical</h3>
+      <ul>
+        <li><strong>Snapshot ledger</strong> · <span class="mono">reports/delivery/prediction_snapshots.jsonl</span> · immutable fields: <span class="mono">prediction_id · market · ticker · prediction_date · entry_date · entry_price · source_close_date · source_dataset_version · canonical_signal</span></li>
+        <li><strong>Registry</strong> · <span class="mono">reports/research/opportunity_registry.jsonl</span> · event-sourced · loader takes latest by <span class="mono">ts_utc</span> per pid</li>
+        <li><strong>Trading calendar</strong> · derived from index parquets · <span class="mono">validate_exit_chain</span> enforces <span class="mono">prediction_date &lt; entry_date ≤ exit_date · exit_date ∈ calendar · exit_date ≤ asof</span></li>
+        <li><strong>Quarantine audit</strong> · <span class="mono">reports/delivery/quarantine_audit.jsonl</span> · 4 events: <span class="mono">QUARANTINE · RECONSTRUCT_PROPOSED · RESTORE · CANNOT_RECONSTRUCT</span></li>
+      </ul>
+    </div>
+    <div>
+      <h3>Permanent invariants (v3.2)</h3>
+      <ul>
+        <li>Entry price is copied from the immutable prediction snapshot. Downstream code cannot recompute or overwrite it.</li>
+        <li>Exit date must be an actual valid trading session after prediction date.</li>
+        <li>No weekend / holiday / backdated exit can enter the evidence layer.</li>
+        <li>Missing source data → quarantine, never substitution.</li>
+        <li>Re-running the pipeline must produce the same row.</li>
+        <li>Historical records are never silently restamped.</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>Canonical-repair APIs</h3>
+  <div class="overflow-x">
+  <table>
+    <thead><tr><th>API</th><th>File</th><th>What it does</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">apply_canonical_repair()</td><td class="mono">backend/research/opportunity_registry.py</td><td>Append-only maintenance event for already-CLOSED opportunities · corrects date fields · requires <span class="mono">authoritative_source</span> + <span class="mono">approval</span> · idempotent</td></tr>
+      <tr><td class="mono">apply_canonical_repair()</td><td class="mono">backend/delivery/prediction_snapshot.py</td><td>Append-only quarantine marker + fresh corrected snapshot · loader honors <span class="mono">_quarantined_pids</span> · idempotent</td></tr>
+      <tr><td class="mono">get_by_ticker()</td><td class="mono">backend/delivery/prediction_snapshot.py</td><td>Delivery consumer's canonical lookup by (market, ticker, runner) · returns the newest non-quarantined snapshot</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<!-- ═══════════════════════ 11 · DELIVERY ═══════════════════════ -->
+<section id="delivery">
+  <h2><span class="sec-num">11</span>Delivery &amp; validators</h2>
+  <p class="lede">30+ BLOCK-level invariants gate every XLSX. FAIL → no shipment. No manual patch. No silent tolerance change.</p>
+
+  <div class="overflow-x">
+  <table>
+    <thead><tr><th>Invariant</th><th>Level</th><th>What it enforces</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">I26 Entry price immutable</td><td><span class="pill red">BLOCK</span></td><td>stored entry within 2% of parquet close on entry_date (nearby 0.1% within 10-day lookback)</td></tr>
+      <tr><td class="mono">I27 Entry date legitimate</td><td><span class="pill red">BLOCK</span></td><td>entry_date ≤ asof AND on a real trading session (or within 5 days of one)</td></tr>
+      <tr><td class="mono">I28 Exit date legitimate</td><td><span class="pill red">BLOCK</span></td><td>entry ≤ exit ≤ asof AND on a real trading session</td></tr>
+      <tr><td class="mono">I29 Current price legitimate</td><td><span class="pill red">BLOCK</span></td><td>Current within 2% of parquet close on asof</td></tr>
+      <tr><td class="mono">I24 Header/rows match</td><td><span class="pill red">BLOCK</span></td><td>Portfolio header count == visible row count</td></tr>
+      <tr><td>…and 25+ others</td><td><span class="pill red">BLOCK</span></td><td>same-day EXIT · runner labels · sector column · price triggers · Investment Quality band</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="callout"><strong>v3.2 fix history:</strong>
+    Delivery consumer at Portfolio row-emit now READ-only consults the snapshot ledger for
+    <span class="mono">entry_date</span> and <span class="mono">entry_price</span>. Restamped source
+    values are overridden by the canonical snapshot. Logs every override.
+    Zero touches to <span class="mono">xlsx_contract.py</span>, <span class="mono">xlsx_validator.py</span>,
+    or the canonical INVESTMENT_ACTIVE JSON emit section
+    (byte-identity enforced by regression test).
+  </div>
+</section>
+
+<!-- ═══════════════════════ 12 · VALIDATION INDIA ═══════════════════════ -->
+<section id="validation-india">
+  <h2><span class="sec-num">12</span>Forward validation · India · M1</h2>
+  <p class="lede">MR-v1 Forward Validation Engine · measurement-only sandbox · locked layers untouched.
+  Snapshot 2026-08-27.</p>
+
+  <div class="kpi-grid">
+    <div class="kpi"><div class="k">Predictions</div><div class="v">551</div><div class="sub">R1: 314 · R2: 237</div></div>
+    <div class="kpi"><div class="k">Unique stocks</div><div class="v">41</div></div>
+    <div class="kpi"><div class="k">Trading days</div><div class="v">18</div></div>
+    <div class="kpi"><div class="k">Universe alpha 5D</div><div class="v" style="color:var(--red);">−6.48pp</div><div class="sub">under-performs baseline</div></div>
+  </div>
+
+  <h3>Overall (all runners)</h3>
+  <div class="overflow-x">
+  <table>
+    <thead><tr><th>Horizon</th><th class="num">Win rate</th><th class="num">n</th><th class="num">Avg return</th></tr></thead>
+    <tbody>
+      <tr><td>fwd_1d</td><td class="num">21.60%</td><td class="num">500</td><td class="num">−0.137%</td></tr>
+      <tr><td>fwd_5d</td><td class="num">25.77%</td><td class="num">392</td><td class="num">−0.729%</td></tr>
+      <tr><td>fwd_10d</td><td class="num">27.80%</td><td class="num">223</td><td class="num">−1.534%</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p><strong>MFE:</strong> +1.161% · <strong>MAE:</strong> −2.199% · <strong>Stop-hit rate:</strong> 17.19%</p>
+
+  <h3>By runner</h3>
+  <div class="overflow-x">
+  <table>
+    <thead><tr><th>Runner</th><th class="num">n</th><th class="num">5D WR</th><th class="num">5D avg</th><th class="num">10D avg</th><th class="num">MFE</th><th class="num">MAE</th></tr></thead>
+    <tbody>
+      <tr><td>R1</td><td class="num">314</td><td class="num">20.81%</td><td class="num">−0.984%</td><td class="num">−1.858%</td><td class="num">+0.726%</td><td class="num">−1.952%</td></tr>
+      <tr><td>R2</td><td class="num">237</td><td class="num">32.16%</td><td class="num">−0.399%</td><td class="num">−1.163%</td><td class="num">+1.737%</td><td class="num">−2.525%</td></tr>
+      <tr><td>Momentum</td><td class="num">0</td><td colspan="5" class="mono">forward capture starts fresh</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>Best predictors (WR-spread) · PRODUCTION_CANDIDATE</h3>
+  <div class="overflow-x">
+  <table>
+    <thead><tr><th>Feature</th><th class="num">Spread</th><th class="num">n</th><th>Verdict</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">rsi_14</td><td class="num">25.50pp</td><td class="num">551</td><td><span class="pill gold">PRODUCTION_CANDIDATE</span></td></tr>
+      <tr><td class="mono">confidence_pct</td><td class="num">23.88pp</td><td class="num">551</td><td><span class="pill gold">PRODUCTION_CANDIDATE</span></td></tr>
+      <tr><td class="mono">sector</td><td class="num">22.86pp</td><td class="num">193</td><td><span class="pill gold">PRODUCTION_CANDIDATE</span></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>RSI bucket · India</h3>
+  <div class="overflow-x">
+  <table>
+    <thead><tr><th>Bucket</th><th class="num">n</th><th class="num">WR</th><th class="num">Avg</th></tr></thead>
+    <tbody>
+      <tr><td>OVERSOLD (&lt;30)</td><td class="num">28</td><td class="num">43.75%</td><td class="num">+0.303%</td></tr>
+      <tr><td>STRONG (55–70)</td><td class="num">164</td><td class="num">32.54%</td><td class="num">−0.618%</td></tr>
+      <tr><td>NEUTRAL (45–55)</td><td class="num">139</td><td class="num">26.26%</td><td class="num">−0.547%</td></tr>
+      <tr><td>WEAK (30–45)</td><td class="num">206</td><td class="num">18.25%</td><td class="num">−1.017%</td></tr>
+      <tr><td>OVERBOUGHT (≥70)</td><td class="num">14</td><td class="num">14.29%</td><td class="num">−1.381%</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<!-- ═══════════════════════ 13 · VALIDATION USA ═══════════════════════ -->
+<section id="validation-usa">
+  <h2><span class="sec-num">13</span>Forward validation · USA · M1</h2>
+  <p class="lede">Snapshot 2026-08-27 · larger universe · fewer days · results are early &amp; positive alpha.</p>
+
+  <div class="kpi-grid">
+    <div class="kpi"><div class="k">Predictions</div><div class="v">1,088</div><div class="sub">R1: 80 · R2: 1008</div></div>
+    <div class="kpi"><div class="k">Unique stocks</div><div class="v">498</div></div>
+    <div class="kpi"><div class="k">Trading days</div><div class="v">7</div></div>
+    <div class="kpi good"><div class="k">Universe alpha 5D</div><div class="v" style="color:var(--green);">+2.83pp</div><div class="sub">beats baseline</div></div>
+  </div>
+
+  <h3>Overall (all runners)</h3>
+  <div class="overflow-x">
+  <table>
+    <thead><tr><th>Horizon</th><th class="num">Win rate</th><th class="num">n</th><th class="num">Avg return</th></tr></thead>
+    <tbody>
+      <tr><td>fwd_1d</td><td class="num">39.68%</td><td class="num">630</td><td class="num">+0.224%</td></tr>
+      <tr><td>fwd_5d</td><td class="num">42.35%</td><td class="num">196</td><td class="num">−0.265%</td></tr>
+      <tr><td>fwd_10d</td><td class="num">80.00%</td><td class="num">10</td><td class="num">+3.257%</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p><strong>MFE:</strong> +0.961% · <strong>MAE:</strong> −0.823% · <strong>Stop-hit rate:</strong> 14.12%</p>
+
+  <h3>By runner</h3>
+  <div class="overflow-x">
+  <table>
+    <thead><tr><th>Runner</th><th class="num">n</th><th class="num">5D WR</th><th class="num">5D avg</th><th class="num">10D avg</th><th class="num">MFE</th><th class="num">MAE</th></tr></thead>
+    <tbody>
+      <tr><td>R1</td><td class="num">80</td><td class="num">53.85%</td><td class="num">+0.286%</td><td class="num">+2.582%</td><td class="num">+1.009%</td><td class="num">−0.814%</td></tr>
+      <tr><td>R2</td><td class="num">1,008</td><td class="num">41.53%</td><td class="num">−0.304%</td><td class="num">+3.932%</td><td class="num">+0.957%</td><td class="num">−0.823%</td></tr>
+      <tr><td>Momentum</td><td class="num">0</td><td colspan="5" class="mono">forward capture starts fresh</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>Best predictors (WR-spread) · PRODUCTION_CANDIDATE</h3>
+  <div class="overflow-x">
+  <table>
+    <thead><tr><th>Feature</th><th class="num">Spread</th><th class="num">n</th><th>Verdict</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">rank_slot</td><td class="num">100.00pp</td><td class="num">113</td><td><span class="pill gold">PRODUCTION_CANDIDATE</span></td></tr>
+      <tr><td class="mono">ma20_dist_pct</td><td class="num">25.62pp</td><td class="num">1,087</td><td><span class="pill gold">PRODUCTION_CANDIDATE</span></td></tr>
+      <tr><td class="mono">rsi_14</td><td class="num">17.47pp</td><td class="num">1,083</td><td><span class="pill gold">PRODUCTION_CANDIDATE</span></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>Stop-loss policy sweep · 12 policies replayed · USA</h3>
+  <div class="overflow-x">
+  <table>
+    <thead><tr><th>Policy</th><th class="num">n</th><th class="num">WR</th><th class="num">Avg</th><th class="num">Profit factor</th><th class="num">Stop-hit</th></tr></thead>
+    <tbody>
+      <tr><td>CURRENT policy</td><td class="num">43</td><td class="num">37.21%</td><td class="num">−0.529%</td><td class="num">0.70</td><td class="num">27.91%</td></tr>
+      <tr><td><strong>BEST · TRAILING_10</strong></td><td class="num">—</td><td class="num">42.54%</td><td class="num">+0.328%</td><td class="num">1.35</td><td class="num">—</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p><strong>Expectancy gap:</strong> +0.857% vs current · <strong>Avg MAE:</strong> −0.823% (average dip before recovery or stop).</p>
+
+  <div class="callout"><strong>Interpretation:</strong> USA sample is early (7 days) — treat as
+  observation, not verdict. India sample (18 days · n=551) is closer to the n=100 gate for
+  PRODUCTION_CANDIDATE promotion. Nothing has been promoted. E1 / E2 / E3 experiments remain
+  frozen in shadow mode until forward evidence accumulates.</div>
+</section>
+
+<!-- ═══════════════════════ 14 · GATES ═══════════════════════ -->
+<section id="gates">
+  <h2><span class="sec-num">14</span>Quality gates · as of 2026-08-27</h2>
+  <div class="overflow-x">
+  <table>
+    <thead><tr><th>Gate</th><th>Status</th><th>Detail</th></tr></thead>
+    <tbody>
+      <tr><td>Delivery + research tests</td><td><span class="pill green">418 / 1 skip</span></td><td>0 failed · includes 10 canonical-repair regressions + 6 exact-row I26/I28 tests</td></tr>
+      <tr><td>MR-v1 pipeline stages</td><td><span class="pill green">34 / 34</span></td><td>foundation complete</td></tr>
+      <tr><td>Snapshot ledger idempotency</td><td><span class="pill green">0 drift</span></td><td>rerun produces identical row</td></tr>
+      <tr><td>Registry canonical-repair idempotency</td><td><span class="pill green">verified</span></td><td>rerun = no-op · original event preserved</td></tr>
+      <tr><td>Locked INVESTMENT_ACTIVE JSON emit</td><td><span class="pill green">byte-identical</span></td><td>test-enforced against HEAD</td></tr>
+      <tr><td>Hardcode guardrail</td><td><span class="pill green">0 hits</span></td><td>no hardcoded dates in production code</td></tr>
+      <tr><td>Sealed contract fingerprints</td><td><span class="pill green">stable</span></td><td>MON001 + FS schema + sealed research intact</td></tr>
+      <tr><td>Command Center · single sender</td><td><span class="pill green">live</span></td><td>legacy senders retired</td></tr>
+      <tr><td>Dual-market Telegram parity</td><td><span class="pill green">live</span></td><td>shared bot · India ₹ · USA $ · split XLSX</td></tr>
+      <tr><td>AI Scorecard</td><td><span class="pill gold">84 / 100</span></td><td>institutional grade on 1,060 closed trades</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>CI on <span class="mono">43995eed</span> (locked delivery commit)</h3>
+  <div class="overflow-x">
+  <table>
+    <thead><tr><th>Workflow</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td>AEGIS Daily</td><td><span class="pill green">SUCCESS</span></td></tr>
+      <tr><td>AEGIS CI</td><td><span class="pill green">SUCCESS</span></td></tr>
+      <tr><td>ENG001 Regression</td><td><span class="pill green">SUCCESS</span></td></tr>
+      <tr><td>AEGIS USA · full delivery pipeline (20/20 steps)</td><td><span class="pill green">SUCCESS</span></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>🔒 Delivery Layer LOCKED 2026-08-27 · commit <span class="mono">43995eed</span></h3>
+  <p>All CEO acceptance-gate criteria satisfied simultaneously on both markets:</p>
+  <div class="overflow-x">
+  <table>
+    <thead><tr><th>Gate</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td>Local tests (delivery + research)</td><td><span class="pill green">442 / 1 skip / 0 fail</span></td></tr>
+      <tr><td>GitHub CI · all 4 workflows</td><td><span class="pill green">SUCCESS</span></td></tr>
+      <tr><td>I26 Entry price immutable</td><td><span class="pill green">PASS</span></td></tr>
+      <tr><td>I28 Exit date legitimate</td><td><span class="pill green">PASS</span></td></tr>
+      <tr><td>India XLSX generated + shipped</td><td><span class="pill green">PASS</span></td></tr>
+      <tr><td>USA XLSX generated + shipped</td><td><span class="pill green">PASS</span></td></tr>
+      <tr><td>Banner reconciliation (current vs realized 90d)</td><td><span class="pill green">PASS</span></td></tr>
+      <tr><td>Definitions sheet present (both markets)</td><td><span class="pill green">PASS</span></td></tr>
+      <tr><td>Deterministic rebuild (10-rerun identity)</td><td><span class="pill green">PASS</span></td></tr>
+      <tr><td>Production decision logic changed</td><td><span class="pill gold">0</span></td></tr>
+      <tr><td>E1 / E2 / E3 changed</td><td><span class="pill gold">0</span></td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<!-- ═══════════════════════ 15 · LOCKS ═══════════════════════ -->
+<section id="locks">
+  <h2><span class="sec-num">15</span>What's locked (do not modify)</h2>
+  <div class="overflow-x">
+  <table>
+    <thead><tr><th>Layer</th><th>File / component</th><th>Reason</th></tr></thead>
+    <tbody>
+      <tr><td>Signal generation</td><td class="mono">R1 · R2 (Recommendation v3)</td><td>APEX rule 2 · production decision logic</td></tr>
+      <tr><td>Delivery contract</td><td class="mono">backend/delivery/xlsx_contract.py</td><td>row + column contract for both markets</td></tr>
+      <tr><td>Delivery validators</td><td class="mono">backend/delivery/xlsx_validator.py</td><td>30+ invariants · never demote BLOCK→WARN</td></tr>
+      <tr><td>Canonical JSON emit</td><td class="mono">scripts/telegram_command_center_send.py</td><td>INVESTMENT_ACTIVE section · byte-identity enforced</td></tr>
+      <tr><td>Ensemble weights</td><td class="mono">configs/ensemble_weights_adaptive.yaml</td><td>self-tuning · manual edit forbidden</td></tr>
+      <tr><td>Model registry</td><td class="mono">model_registry.jsonl</td><td>version pinning · walk-forward replay</td></tr>
+      <tr><td>Trade history archive</td><td class="mono">reports/telegram/aegis_history*.xlsx</td><td>historical evidence · never mutated</td></tr>
+      <tr><td>Research experiments</td><td class="mono">MR_V1 / E1 · E2 · E3</td><td>APEX rule 1 · frozen in shadow mode until n ≥ 100</td></tr>
+      <tr><td>Research promotion path</td><td class="mono">SUCCESSFUL_PROMOTION_CANDIDATE / validated/</td><td>AI never auto-promotes · operator decision only</td></tr>
+      <tr><td>Registry decision logic</td><td class="mono">get_or_create · close · reject · cooling</td><td>orthogonal from new maintenance API</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="callout"><strong>Unlock protocol:</strong> verbatim override phrase required.
+  <span class="mono">override the production lock</span> · <span class="mono">override the mr v1 lock</span> ·
+  <span class="mono">override the mr v1 experiments frozen lock</span>. Anything short of that
+  is treated as advisory and refused.</div>
+</section>
+
+<!-- ═══════════════════════ 16 · TIMELINE ═══════════════════════ -->
+<section id="timeline">
+  <h2><span class="sec-num">16</span>Recent work timeline · what shipped since v3.1</h2>
+  <div class="overflow-x">
+  <table>
+    <thead><tr><th>Date</th><th>Sprint / Layer</th><th>Shipped</th></tr></thead>
+    <tbody>
+      <tr><td>2026-08-05</td><td>CEO Decision</td><td>Context Intelligence Layer plan · promoted narrator rules</td></tr>
+      <tr><td>2026-08-08</td><td>Sprint K+ Part 25</td><td>Dual-Snapshot Attribution · winner + loser attribution · 6-category loss classifier</td></tr>
+      <tr><td>2026-08-08</td><td>Sprint L (locked)</td><td>Distillation Engine + Capital Preservation Engine specs · exec Dec 2026–Jan 2027</td></tr>
+      <tr><td>2026-08-13</td><td>Sprint K+ Parts 28/29 (deferred)</td><td>Risk↔Decision consistency · 60→15 min runtime · both under review</td></tr>
+      <tr><td>2026-08-18</td><td>Sprint K+ Part 30</td><td>Opportunity Registry SHIPPED · event-sourced JSONL · 3-section banners · slim 15-col view · INDIGO filter · Section 26 validation gate</td></tr>
+      <tr><td>2026-08-25</td><td>Sprint M</td><td>Architecture LOCKED · outcome collection · no new features approved</td></tr>
+      <tr><td>2026-08-26</td><td>Sprint M · Research Phase</td><td>Two-runner architecture · MR sandbox research runner (measurement-only)</td></tr>
+      <tr><td>2026-08-26</td><td>Orphan Closer v0.1</td><td>Registry ORPHAN_AUTO_CLOSE rule · 10-day stale threshold</td></tr>
+      <tr><td>2026-08-27</td><td>MR-v1 Forward Validation</td><td>34-stage pipeline · Wilson-95 CI · Bonferroni α · per-runner + per-sector cohorts</td></tr>
+      <tr><td>2026-08-27</td><td>Provenance layer (this commit)</td><td><strong>Canonical snapshot ledger · Registry canonical-repair API · orphan-closer root fix · delivery-consumer wiring · 30+ regression tests · I26 &amp; I28 canonically fixed</strong></td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<footer>
+  AEGIS · NexaQuant · Architecture v3.2-CANONICAL-PROVENANCE ·
+  generated 2026-08-27 · commit <span class="mono">56154227</span> ·
+  advisory only · never executes trades
+</footer>
+
+</div>
+</body>
+</html>
