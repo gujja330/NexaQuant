@@ -1,0 +1,62 @@
+{
+  "ticket_id": "aegis_mr_ticket_20260827_india_negative_alpha",
+  "status": "DRAFT",
+  "generated_utc": "2026-08-27T06:05:27+00:00",
+  "generated_date": "2026-08-27",
+  "market": "INDIA",
+  "engine": "aegis.mr_research_ticket.v0.1",
+  "experiment_id": "M-R.v0.1",
+  "title": "India AEGIS produces -6.48pp NEGATIVE alpha vs universe",
+  "hypothesis": "Over 18 days, NSE universe (n=2747) 5D WR=32.25% avg=-0.388%. AEGIS-India (n=392) 5D WR=25.77% avg=-0.729%. Alpha = WR-6.48pp · avg-0.341%. AEGIS-India currently DESTROYS value relative to random pick.",
+  "expected_effect": "This is the master finding · the fix is the combined effect of tickets T1 (confidence), T2 (rank), T3 (band), T4 (stop). Individual candidates each address ~1-2pp of the -6.48pp gap. Only in combination can alpha be restored above zero.",
+  "n_evidence": 2747,
+  "statistical_verdict": "PRODUCTION_CANDIDATE",
+  "evidence": [
+    {
+      "source": "mr_control_cohort_india.json",
+      "field": "aggregate.fwd_5d",
+      "value": {
+        "n": 2747,
+        "wr_pct": 32.25,
+        "avg_pct": -0.388,
+        "median_pct": -0.605,
+        "best_pct": 26.856,
+        "worst_pct": -14.005
+      }
+    },
+    {
+      "source": "mr_prediction_autopsy_india_summary.json",
+      "field": "cohort_ALL.fwd_5d",
+      "value": {
+        "n": 392,
+        "avg_pct": -0.729,
+        "median_pct": -1.188,
+        "win_rate_pct": 25.77,
+        "best_pct": 11.187,
+        "worst_pct": -9.069
+      }
+    }
+  ],
+  "proposed_rule": "Compound proposal: enable ALL of T1+T2+T3+T4 in a single shadow India runner instance. Compare compound-shadow vs production on identical days for 30 forward sessions.",
+  "validation_plan": "Walk-forward N=30 sessions. Acceptance: compound-shadow 5D WR >= universe WR + 3pp AND compound-shadow avg > universe avg. Reject if any single component regresses beyond -2pp WR.",
+  "promotion_gate": [
+    "1. Research Ticket accepted by CEO",
+    "2. Walk-forward test on N >= 100 forward predictions",
+    "3. Full regression pass on locked delivery invariants (BLOCK == 0)",
+    "4. CEO explicit approval + lock-override phrase",
+    "5. Config-toggle OFF by default in a new SPRINT_ID branch",
+    "6. Paper-trading period >= 30 sessions with green metrics",
+    "7. Production promotion under new SPRINT_ID with L4 evidence"
+  ],
+  "risk": "Compound experiments are hard to attribute. Run components in isolation FIRST for 10 days each · then combined for 20 days.",
+  "do_not_touch": [
+    "R1 recommendation runner",
+    "R2 recommendation runner",
+    "Registry orphan-close",
+    "backend/delivery/xlsx_contract.py",
+    "backend/delivery/xlsx_validator.py",
+    "scripts/telegram_command_center_send.py canonical INVESTMENT_ACTIVE JSON",
+    "configs/ensemble_weights_adaptive.yaml",
+    "model_registry.jsonl"
+  ]
+}

@@ -1,0 +1,422 @@
+{
+  "engine": "aegis.mr_v1_pipeline.v1.0",
+  "version_tag": "M-R.v1.0",
+  "experiment_id": "M-R.v0.1",
+  "run_started_utc": "2026-08-27T06:04:01+00:00",
+  "run_date": "2026-08-27",
+  "market": "both",
+  "stages": [
+    {
+      "stage": 1,
+      "stage_id": "STAGE_01_ingest_and_join",
+      "module": "backend.research.mr_prediction_autopsy",
+      "description": "Items 1-6 · ingest history, join to parquet, compute 1/3/5/10/20D + MFE/MAE + stop-hit + WIN/LOSS labels",
+      "args": [
+        "--market",
+        "both"
+      ],
+      "started_utc": "2026-08-27T06:04:01+00:00",
+      "ended_utc": "2026-08-27T06:04:14+00:00",
+      "rc": 0,
+      "ok": true,
+      "tail_stdout": [
+        "     top3         Â· n=  45 Â· fwd_5d WR=100.00% avg=+1.47%",
+        "     rank_4_7     Â· n=  43 Â· fwd_5d WR=50.00% avg=-0.43%",
+        "     rank_8_15    Â· n=  25 Â· fwd_5d WR= 0.00% avg=-2.55%"
+      ],
+      "tail_stderr": []
+    },
+    {
+      "stage": 2,
+      "stage_id": "STAGE_02_feature_enrich",
+      "module": "backend.research.mr_feature_enricher",
+      "description": "Item 9 · enrich each row with RSI/MA/vol/momentum/cap frozen at prediction time",
+      "args": [
+        "--market",
+        "both"
+      ],
+      "started_utc": "2026-08-27T06:04:14+00:00",
+      "ended_utc": "2026-08-27T06:04:23+00:00",
+      "rc": 0,
+      "ok": true,
+      "tail_stdout": [
+        "[enricher:india] rows=551 -> mr_prediction_autopsy_india_enriched.jsonl",
+        "[enricher:usa] rows=1088 -> mr_prediction_autopsy_usa_enriched.jsonl"
+      ],
+      "tail_stderr": []
+    },
+    {
+      "stage": 3,
+      "stage_id": "STAGE_03_market_regime",
+      "module": "backend.research.mr_market_regime",
+      "description": "Item 9 · index regime tag per historical day",
+      "args": [
+        "--market",
+        "both"
+      ],
+      "started_utc": "2026-08-27T06:04:23+00:00",
+      "ended_utc": "2026-08-27T06:04:48+00:00",
+      "rc": 0,
+      "ok": true,
+      "tail_stdout": [
+        "[regime:india] OK Â· n_days=1472 Â· dist={'BULL': 700, 'HIGH_VOL': 280, 'NEUTRAL': 176, 'BEAR': 316} -> mr_market_regime_india.json",
+        "[regime:usa] OK Â· n_days=1194 Â· dist={'BULL': 599, 'HIGH_VOL': 294, 'NEUTRAL': 99, 'BEAR': 202} -> mr_market_regime_usa.json"
+      ],
+      "tail_stderr": []
+    },
+    {
+      "stage": 4,
+      "stage_id": "STAGE_04_winner_loser",
+      "module": "backend.research.mr_winner_loser_genome",
+      "description": "Item 10 · winner vs loser attribution + ranker autopsy + band boundary",
+      "args": [
+        "--market",
+        "both"
+      ],
+      "started_utc": "2026-08-27T06:04:48+00:00",
+      "ended_utc": "2026-08-27T06:04:48+00:00",
+      "rc": 0,
+      "ok": true,
+      "tail_stdout": [
+        "  OK         n=  39  WR=44.44%  [CI 29.54-60.42]  avg=-0.549%  conf=70.32  runners=R2=79.49% Â· R1=20.51%  ranks(top3/47/815/16+)=2/9/0/0",
+        "  MARGINAL   n=  18  WR=44.44%  [CI 24.56-66.28]  avg=-0.353%  conf=83.44  runners=R2=100.0%  ranks(top3/47/815/16+)=0/0/0/0",
+        "  AVOID      n=   6  WR=83.33%  [CI 43.65-96.99]  avg=1.577%  conf=73.33  runners=R2=100.0%  ranks(top3/47/815/16+)=0/0/0/0"
+      ],
+      "tail_stderr": []
+    },
+    {
+      "stage": 5,
+      "stage_id": "STAGE_05_studies",
+      "module": "backend.research.mr_studies",
+      "description": "Items 7-9 · R1/R2 scoreboard + sector + cap + technicals + fundamentals + regime + rank slot",
+      "args": [
+        "--market",
+        "both"
+      ],
+      "started_utc": "2026-08-27T06:04:48+00:00",
+      "ended_utc": "2026-08-27T06:04:49+00:00",
+      "rc": 0,
+      "ok": true,
+      "tail_stdout": [
+        "  xhigh_ge85           n= 464  fwd_5d WR=40.22% [CI 30.78-50.43]  avg=+0.026%  MFE=0.841%  MAE=-0.774%  verdict=INSUFFICIENT_EVIDENCE",
+        "",
+        "[studies:usa] -> mr_studies_usa.json"
+      ],
+      "tail_stderr": []
+    },
+    {
+      "stage": 6,
+      "stage_id": "STAGE_06_stop_loss_sweep",
+      "module": "backend.research.mr_stop_loss_sweep",
+      "description": "Item 5 · 12 stop policies replayed with expectancy + PF + catastrophic-rate",
+      "args": [
+        "--market",
+        "both"
+      ],
+      "started_utc": "2026-08-27T06:04:49+00:00",
+      "ended_utc": "2026-08-27T06:05:02+00:00",
+      "rc": 0,
+      "ok": true,
+      "tail_stdout": [
+        "  TIME_STOP_10D   625  41.92  +0.267  +0.140 1.277   0.00  0.80 -13.910  3.35",
+        "",
+        "[stop_sweep:usa] -> mr_stop_loss_sweep_usa.json"
+      ],
+      "tail_stderr": []
+    },
+    {
+      "stage": 7,
+      "stage_id": "STAGE_07_missed_winners",
+      "module": "backend.research.mr_missed_winners",
+      "description": "Item 10b · false-negative discovery vs universe",
+      "args": [
+        "--market",
+        "both"
+      ],
+      "started_utc": "2026-08-27T06:05:02+00:00",
+      "ended_utc": "2026-08-27T06:05:10+00:00",
+      "rc": 0,
+      "ok": true,
+      "tail_stdout": [
+        "    2026-08-21 Â· rec=12 Â· caught=0 Â· missed=0 Â· top=",
+        "",
+        "[missed:usa] -> mr_missed_winners_usa.json"
+      ],
+      "tail_stderr": []
+    },
+    {
+      "stage": 8,
+      "stage_id": "STAGE_08_feature_ranking",
+      "module": "backend.research.mr_feature_ranking",
+      "description": "Item 9b · single ranked scoreboard of every feature by WR-spread",
+      "args": [
+        "--market",
+        "both"
+      ],
+      "started_utc": "2026-08-27T06:05:10+00:00",
+      "ended_utc": "2026-08-27T06:05:10+00:00",
+      "rc": 0,
+      "ok": true,
+      "tail_stdout": [
+        "  11  sector                          1.75         0.971  1055       2 WEAK_SIGNAL",
+        "",
+        "[feature_ranking:usa] -> mr_feature_ranking_usa.json"
+      ],
+      "tail_stderr": []
+    },
+    {
+      "stage": 9,
+      "stage_id": "STAGE_09_leakage_audit",
+      "module": "backend.research.mr_leakage_audit",
+      "description": "Item 13b · no-lookahead + data-quality audit on the emitted dataset",
+      "args": [
+        "--market",
+        "both"
+      ],
+      "started_utc": "2026-08-27T06:05:10+00:00",
+      "ended_utc": "2026-08-27T06:05:15+00:00",
+      "rc": 0,
+      "ok": true,
+      "tail_stdout": [
+        "  A8_universe_coverage_sample         {'sampled': 100, 'no_parquet_close': 0}",
+        "",
+        "[leakage_audit:usa] -> mr_leakage_audit_usa.json"
+      ],
+      "tail_stderr": []
+    },
+    {
+      "stage": 10,
+      "stage_id": "STAGE_10_loss_prevention",
+      "module": "backend.research.mr_loss_prevention",
+      "description": "Item 10c · per-loss avoidability classifier + anti-signal flags",
+      "args": [
+        "--market",
+        "both"
+      ],
+      "started_utc": "2026-08-27T06:05:15+00:00",
+      "ended_utc": "2026-08-27T06:05:15+00:00",
+      "rc": 0,
+      "ok": true,
+      "tail_stdout": [
+        "    2026-08-10 Â· IT           Â· R1  Â· rk=7 Â· conf=49.8 Â· band=PENDING Â· fwd5d=â€” Â· MAE=-7.097% Â· class=PREVENTABLE_MODERATE",
+        "",
+        "[loss_prevention:usa] -> mr_loss_prevention_usa.json"
+      ],
+      "tail_stderr": []
+    },
+    {
+      "stage": 11,
+      "stage_id": "STAGE_11_control_cohort",
+      "module": "backend.research.mr_control_cohort",
+      "description": "Item 11 · alpha vs universe baseline · null-hypothesis check",
+      "args": [
+        "--market",
+        "both"
+      ],
+      "started_utc": "2026-08-27T06:05:15+00:00",
+      "ended_utc": "2026-08-27T06:05:27+00:00",
+      "rc": 0,
+      "ok": true,
+      "tail_stdout": [
+        "  fwd_10d: n=93 Â· WR=46.24% Â· avg=+0.058% Â· median=+0.205% Â· worst=-15.066 Â· best=11.768",
+        "",
+        "[control_cohort:usa] -> mr_control_cohort_usa.json"
+      ],
+      "tail_stderr": []
+    },
+    {
+      "stage": 12,
+      "stage_id": "STAGE_12_score_usefulness",
+      "module": "backend.research.mr_score_usefulness",
+      "description": "Item 9c · KEEP / PRUNE verdict for Investability + Confidence scores",
+      "args": [
+        "--market",
+        "both"
+      ],
+      "started_utc": "2026-08-27T06:05:27+00:00",
+      "ended_utc": "2026-08-27T06:05:27+00:00",
+      "rc": 0,
+      "ok": true,
+      "tail_stdout": [
+        "    conf_ge85       n= 464  WR_5d=40.22%  avg_5d=0.026%",
+        "",
+        "[score_usefulness:usa] -> mr_score_usefulness_usa.json"
+      ],
+      "tail_stderr": []
+    },
+    {
+      "stage": 13,
+      "stage_id": "STAGE_13_research_tickets",
+      "module": "backend.research.mr_research_ticket",
+      "description": "Governance · DRAFT tickets · 7-step promotion gate · never auto-applied",
+      "args": [],
+      "started_utc": "2026-08-27T06:05:27+00:00",
+      "ended_utc": "2026-08-27T06:05:27+00:00",
+      "rc": 0,
+      "ok": true,
+      "tail_stdout": [
+        "    status:  DRAFT (never auto-promoted)",
+        "",
+        "[research_tickets] wrote 5 tickets + INDEX -> C:\\Users\\GPraveenKumar\\Downloads\\prism\\reports\\research\\tickets"
+      ],
+      "tail_stderr": []
+    },
+    {
+      "stage": 14,
+      "stage_id": "STAGE_14_ai_auditor",
+      "module": "backend.research.mr_ai_auditor",
+      "description": "Deterministic narrative synthesis · claim/evidence/caveat for review",
+      "args": [],
+      "started_utc": "2026-08-27T06:05:27+00:00",
+      "ended_utc": "2026-08-27T06:05:27+00:00",
+      "rc": 0,
+      "ok": true,
+      "tail_stdout": [
+        "    CAVEAT  : Non-fatal but tracks a real upstream write-order artifact.",
+        "",
+        "[ai_auditor] wrote 9 findings -> mr_ai_auditor_findings.jsonl"
+      ],
+      "tail_stderr": []
+    },
+    {
+      "stage": 15,
+      "stage_id": "STAGE_15_walkforward_capture",
+      "module": "backend.research.mr_walkforward_snapshot",
+      "description": "Item 12b · immutable day-0 snapshot for FUTURE walk-forward evidence",
+      "args": [
+        "--snapshot",
+        "--market",
+        "both"
+      ],
+      "started_utc": "2026-08-27T06:05:27+00:00",
+      "ended_utc": "2026-08-27T06:05:28+00:00",
+      "rc": 0,
+      "ok": true,
+      "tail_stdout": [
+        "[wf:snapshot:india] rows=19 status=OK -> india.jsonl",
+        "[wf:snapshot:usa] rows=0 status=CANONICAL_MISSING -> none"
+      ],
+      "tail_stderr": []
+    },
+    {
+      "stage": 16,
+      "stage_id": "STAGE_16_walkforward_daemon",
+      "module": "backend.research.mr_walkforward_daemon",
+      "description": "M2 · Automated daemon · canonical + Momentum capture + auto-score matured",
+      "args": [],
+      "started_utc": "2026-08-27T06:05:28+00:00",
+      "ended_utc": "2026-08-27T06:05:28+00:00",
+      "rc": 0,
+      "ok": true,
+      "tail_stdout": [
+        "  matured snapshots scored: 0",
+        "",
+        "[wf_daemon:usa] -> daemon_usa.json"
+      ],
+      "tail_stderr": []
+    },
+    {
+      "stage": 17,
+      "stage_id": "STAGE_17_conditional_cohorts",
+      "module": "backend.research.mr_conditional_cohorts",
+      "description": "M2 · 2-way + 3-way conditional feature cohorts (Bonferroni-aware)",
+      "args": [],
+      "started_utc": "2026-08-27T06:05:28+00:00",
+      "ended_utc": "2026-08-27T06:05:29+00:00",
+      "rc": 0,
+      "ok": true,
+      "tail_stdout": [
+        "      -21.67pp  n=  25  WR=20.0% *SIG*  sector=Large-Cap Â· rsi=STRONG Â· vol=2_3",
+        "",
+        "[conditional_cohorts:usa] -> mr_conditional_cohorts_usa.json"
+      ],
+      "tail_stderr": []
+    },
+    {
+      "stage": 18,
+      "stage_id": "STAGE_18_master_report",
+      "module": "backend.research.mr_master_report",
+      "description": "Item 12 · single consolidated research report · M_R_MASTER_REPORT.md",
+      "args": [],
+      "started_utc": "2026-08-27T06:05:29+00:00",
+      "ended_utc": "2026-08-27T06:05:29+00:00",
+      "rc": 0,
+      "ok": true,
+      "tail_stdout": [
+        "[master_report] wrote C:\\Users\\GPraveenKumar\\Downloads\\prism\\reports\\research\\M_R_MASTER_REPORT.md Â· 25935 bytes Â· 574 lines"
+      ],
+      "tail_stderr": []
+    },
+    {
+      "stage": 19,
+      "stage_id": "STAGE_19_hypothesis_ranker",
+      "module": "backend.research.mr_hypothesis_ranker",
+      "description": "Rank the DRAFT tickets into a top-N shortlist for walk-forward validation",
+      "args": [],
+      "started_utc": "2026-08-27T06:05:29+00:00",
+      "ended_utc": "2026-08-27T06:05:29+00:00",
+      "rc": 0,
+      "ok": true,
+      "tail_stdout": [
+        "  Rationale: Score = severity*3 + verdict*2 + evidence*1 + preventability*2. Preventability bumps mechanisms that reduce future losses. n>=500 gets max evidence points. Never breaks a tie by title or market Â· ties keep original order.",
+        "",
+        "[hypothesis_ranker] wrote -> mr_hypothesis_shortlist.json"
+      ],
+      "tail_stderr": []
+    },
+    {
+      "stage": 20,
+      "stage_id": "STAGE_20_walkforward_experiment",
+      "module": "backend.research.mr_walkforward_experiment",
+      "description": "Structure each shortlist hypothesis as a runnable walk-forward experiment",
+      "args": [],
+      "started_utc": "2026-08-27T06:05:29+00:00",
+      "ended_utc": "2026-08-27T06:05:30+00:00",
+      "rc": 0,
+      "ok": true,
+      "tail_stdout": [
+        "    rejection:  MFE-captured drops by more than 0.5% vs current Â· signals that time-exit is forfeiting winners.",
+        "",
+        "[walkforward_experiment] wrote 5 experiments + INDEX -> C:\\Users\\GPraveenKumar\\Downloads\\prism\\reports\\research\\experiments"
+      ],
+      "tail_stderr": []
+    },
+    {
+      "stage": 21,
+      "stage_id": "STAGE_21_forward_validation_report",
+      "module": "backend.research.mr_forward_validation_report",
+      "description": "AEGIS_FORWARD_VALIDATION_REPORT · CEO's 18-section master research report",
+      "args": [],
+      "started_utc": "2026-08-27T06:05:30+00:00",
+      "ended_utc": "2026-08-27T06:05:30+00:00",
+      "rc": 0,
+      "ok": true,
+      "tail_stdout": [
+        "[forward_validation_report] wrote C:\\Users\\GPraveenKumar\\Downloads\\prism\\reports\\research\\AEGIS_FORWARD_VALIDATION_REPORT.md Â· 18464 bytes Â· 505 lines"
+      ],
+      "tail_stderr": []
+    },
+    {
+      "stage": 22,
+      "stage_id": "STAGE_22_ceo_dashboard",
+      "module": "backend.research.mr_ceo_dashboard",
+      "description": "CEO Dashboard · Forward Validation M1 · single-page reference",
+      "args": [],
+      "started_utc": "2026-08-27T06:05:30+00:00",
+      "ended_utc": "2026-08-27T06:05:30+00:00",
+      "rc": 0,
+      "ok": true,
+      "tail_stdout": [],
+      "tail_stderr": []
+    }
+  ],
+  "policy": {
+    "locked_layers_touched": false,
+    "production_decisions_changed": false,
+    "writes_under": "reports/research"
+  },
+  "run_ended_utc": "2026-08-27T06:05:30+00:00",
+  "n_stages_ok": 22,
+  "n_stages_fail": 0,
+  "all_ok": true
+}

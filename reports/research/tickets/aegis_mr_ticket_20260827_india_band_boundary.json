@@ -1,0 +1,83 @@
+{
+  "ticket_id": "aegis_mr_ticket_20260827_india_band_boundary",
+  "status": "DRAFT",
+  "generated_utc": "2026-08-27T06:05:27+00:00",
+  "generated_date": "2026-08-27",
+  "market": "INDIA",
+  "engine": "aegis.mr_research_ticket.v0.1",
+  "experiment_id": "M-R.v0.1",
+  "title": "India OK band underperforms AVOID · boundary miscalibrated",
+  "hypothesis": "India investability_band ordering QUALITY > MARGINAL > AVOID > OK instead of expected QUALITY > OK > MARGINAL > AVOID. OK band (n=119) has 17.4% 5D WR · below AVOID (n=108) 19.2% · suggesting OK's internal calibration is broken.",
+  "expected_effect": "Re-tuning OK/MARGINAL thresholds using forward-return-optimized cutoffs should lift OK cohort WR from 17.4% to 24-28% (mid MARGINAL range).",
+  "n_evidence": 551,
+  "statistical_verdict": "PRODUCTION_CANDIDATE",
+  "evidence": [
+    {
+      "source": "mr_score_usefulness_india.json",
+      "field": "audits.investability_band",
+      "value": {
+        "name": "investability_band",
+        "expected_direction": "MONOTONIC_UP",
+        "buckets": {
+          "AVOID": {
+            "n": 108,
+            "wr_5d": 19.18,
+            "wr_10d": 16.22,
+            "avg_5d": -0.879,
+            "avg_10d": -1.617
+          },
+          "OK": {
+            "n": 119,
+            "wr_5d": 17.39,
+            "wr_10d": 24.56,
+            "avg_5d": -1.314,
+            "avg_10d": -2.132
+          },
+          "MARGINAL": {
+            "n": 224,
+            "wr_5d": 29.94,
+            "wr_10d": 27.78,
+            "avg_5d": -0.8,
+            "avg_10d": -2.129
+          },
+          "QUALITY": {
+            "n": 100,
+            "wr_5d": 34.29,
+            "wr_10d": 43.59,
+            "avg_5d": 0.357,
+            "avg_10d": 0.793
+          }
+        },
+        "wr_spread_pp": 16.9,
+        "monotonicity": "MIXED_UP",
+        "verdict": "KEEP_WARN"
+      }
+    },
+    {
+      "source": "mr_studies_india.json",
+      "field": "Q7_score_usefulness.band"
+    }
+  ],
+  "proposed_rule": "In a shadow Investability engine: re-derive OK/MARGINAL split by sorting all historical predictions by underlying investability score and picking the split point that maximizes forward WR spread. Emit under new investability_shadow_v2_india.json alongside existing shadow.",
+  "validation_plan": "Compare shadow_v2 5D WR by band on 20 forward days. Accept only if band ordering becomes strictly monotonic (QUALITY > OK > MARGINAL > AVOID) with n>=100 per band.",
+  "promotion_gate": [
+    "1. Research Ticket accepted by CEO",
+    "2. Walk-forward test on N >= 100 forward predictions",
+    "3. Full regression pass on locked delivery invariants (BLOCK == 0)",
+    "4. CEO explicit approval + lock-override phrase",
+    "5. Config-toggle OFF by default in a new SPRINT_ID branch",
+    "6. Paper-trading period >= 30 sessions with green metrics",
+    "7. Production promotion under new SPRINT_ID with L4 evidence"
+  ],
+  "risk": "Sorting purely by forward return risks overfitting to the 30-day backtest window. Regularize the split point against a walk-forward cross-validation.",
+  "do_not_touch": [
+    "R1 recommendation runner",
+    "R2 recommendation runner",
+    "Registry orphan-close",
+    "backend/delivery/xlsx_contract.py",
+    "backend/delivery/xlsx_validator.py",
+    "scripts/telegram_command_center_send.py canonical INVESTMENT_ACTIVE JSON",
+    "configs/ensemble_weights_adaptive.yaml",
+    "model_registry.jsonl"
+  ]
+}

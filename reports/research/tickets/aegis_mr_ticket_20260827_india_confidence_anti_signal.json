@@ -1,0 +1,91 @@
+{
+  "ticket_id": "aegis_mr_ticket_20260827_india_confidence_anti_signal",
+  "status": "DRAFT",
+  "generated_utc": "2026-08-27T06:05:27+00:00",
+  "generated_date": "2026-08-27",
+  "market": "INDIA",
+  "engine": "aegis.mr_research_ticket.v0.1",
+  "experiment_id": "M-R.v0.1",
+  "title": "India confidence_pct is anti-correlated with forward return",
+  "hypothesis": "In India, higher confidence_pct at prediction time predicts LOWER 5D forward win rate. Bucket audit shows WR spread of 23.88pp with monotonicity MIXED_DOWN.",
+  "expected_effect": "If we INVERT confidence's contribution to R1 ranking OR treat conf_70_85 as a WARN not GO signal in India, expected 5D WR lift of ~10pp on affected cohort (n>=180).",
+  "n_evidence": 551,
+  "statistical_verdict": "PRODUCTION_CANDIDATE",
+  "evidence": [
+    {
+      "source": "mr_score_usefulness_india.json",
+      "field": "audits.confidence_pct",
+      "value": {
+        "name": "confidence_pct",
+        "expected_direction": "MONOTONIC_UP",
+        "buckets": {
+          "conf_lt30": {
+            "n": 39,
+            "wr_5d": 37.04,
+            "wr_10d": 26.67,
+            "avg_5d": -0.385,
+            "avg_10d": -1.707
+          },
+          "conf_30_50": {
+            "n": 181,
+            "wr_5d": 33.83,
+            "wr_10d": 38.55,
+            "avg_5d": -0.187,
+            "avg_10d": -0.732
+          },
+          "conf_50_70": {
+            "n": 180,
+            "wr_5d": 22.95,
+            "wr_10d": 27.42,
+            "avg_5d": -1.079,
+            "avg_10d": -2.143
+          },
+          "conf_70_85": {
+            "n": 103,
+            "wr_5d": 13.16,
+            "wr_10d": 15.56,
+            "avg_5d": -1.193,
+            "avg_10d": -2.13
+          },
+          "conf_ge85": {
+            "n": 48,
+            "wr_5d": 23.53,
+            "wr_10d": 11.11,
+            "avg_5d": -0.825,
+            "avg_10d": -1.502
+          }
+        },
+        "wr_spread_pp": 23.88,
+        "monotonicity": "MIXED_DOWN",
+        "verdict": "KEEP_WARN"
+      }
+    },
+    {
+      "source": "mr_winner_loser_genome_india.json",
+      "field": "genome.genome_signals.confidence_diff",
+      "note": "winners avg=51.4% · losers avg=57.94% · delta=-6.54%"
+    }
+  ],
+  "proposed_rule": "Config-toggle in a shadow R1 ranker: multiply confidence contribution by -1 (or set to 0) in India-only. Requires new shadow R1 output stream · does NOT modify production R1.",
+  "validation_plan": "Capture 20 forward days of R1 predictions with the shadow confidence-inverted variant. Accept if 5D WR of shadow >= current + 5pp AND fwd_5d avg > current + 0.3% on n>=100.",
+  "promotion_gate": [
+    "1. Research Ticket accepted by CEO",
+    "2. Walk-forward test on N >= 100 forward predictions",
+    "3. Full regression pass on locked delivery invariants (BLOCK == 0)",
+    "4. CEO explicit approval + lock-override phrase",
+    "5. Config-toggle OFF by default in a new SPRINT_ID branch",
+    "6. Paper-trading period >= 30 sessions with green metrics",
+    "7. Production promotion under new SPRINT_ID with L4 evidence"
+  ],
+  "risk": "Confidence is calibrated on a different objective (thesis-strength). Inversion may destroy long-run signal even while helping short-term. MUST run in shadow only · never in production R1.",
+  "do_not_touch": [
+    "R1 recommendation runner",
+    "R2 recommendation runner",
+    "Registry orphan-close",
+    "backend/delivery/xlsx_contract.py",
+    "backend/delivery/xlsx_validator.py",
+    "scripts/telegram_command_center_send.py canonical INVESTMENT_ACTIVE JSON",
+    "configs/ensemble_weights_adaptive.yaml",
+    "model_registry.jsonl"
+  ]
+}

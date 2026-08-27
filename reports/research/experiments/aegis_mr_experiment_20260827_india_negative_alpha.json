@@ -1,0 +1,32 @@
+{
+  "experiment_id": "aegis_mr_experiment_20260827_india_negative_alpha",
+  "source_ticket_id": "aegis_mr_ticket_20260827_india_negative_alpha",
+  "market": "INDIA",
+  "hypothesis": "Over 18 days, NSE universe (n=2747) 5D WR=32.25% avg=-0.388%. AEGIS-India (n=392) 5D WR=25.77% avg=-0.729%. Alpha = WR-6.48pp · avg-0.341%. AEGIS-India currently DESTROYS value relative to random pick.",
+  "expected_effect": "This is the master finding · the fix is the combined effect of tickets T1 (confidence), T2 (rank), T3 (band), T4 (stop). Individual candidates each address ~1-2pp of the -6.48pp gap. Only in combination can alpha be restored above zero.",
+  "proposed_rule": "Compound proposal: enable ALL of T1+T2+T3+T4 in a single shadow India runner instance. Compare compound-shadow vs production on identical days for 30 forward sessions.",
+  "risk": "Compound experiments are hard to attribute. Run components in isolation FIRST for 10 days each · then combined for 20 days.",
+  "current_status": "NOT_STARTED",
+  "min_sample_size": 100,
+  "observation_window_days": 30,
+  "first_snapshot_date": null,
+  "days_of_evidence": 0,
+  "attempts": [],
+  "engine": "aegis.mr_walkforward_experiment.v0.1",
+  "experiment_id_family": "M-R.v0.1",
+  "generated_utc": "2026-08-27T06:05:30+00:00",
+  "shadow_wire_up": "Sandbox shadow output only · reads production R1/R2 canonical and applies the proposed rule OUTSIDE the delivery layer. Writes shadow rows to reports/research/walkforward/{date}/{exp_id}.jsonl. Never touches XLSX, canonical JSON, Registry, or Telegram.",
+  "safety_gate": [
+    "No production R1/R2/Registry/XLSX/ensemble/config changes.",
+    "Shadow output MUST live under reports/research/walkforward/.",
+    "Any regression in current delivery invariants (BLOCK != 0) aborts."
+  ],
+  "metric": "shadow_alpha_vs_universe",
+  "secondary_metrics": [
+    "compound_5D_WR",
+    "per_component_attribution"
+  ],
+  "null_hypothesis": "Compound shadow of T1+T2+T3+T4 does not lift AEGIS-India above 0-alpha vs universe.",
+  "acceptance_criteria": "Compound-shadow 5D WR >= universe-WR + 3pp AND compound-shadow avg > universe avg on n>=100 forward India predictions.",
+  "rejection_criteria": "Any single component regresses beyond -2pp WR when compared to production baseline · re-run components in isolation."
+}

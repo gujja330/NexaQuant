@@ -1,0 +1,76 @@
+{
+  "ticket_id": "aegis_mr_ticket_20260827_india_stop_policy",
+  "status": "DRAFT",
+  "generated_utc": "2026-08-27T06:05:27+00:00",
+  "generated_date": "2026-08-27",
+  "market": "INDIA",
+  "engine": "aegis.mr_research_ticket.v0.1",
+  "experiment_id": "M-R.v0.1",
+  "title": "India TIME_STOP_5D beats CURRENT by 0.273% expectancy",
+  "hypothesis": "Under 30-day historical replay, TIME_STOP_5D exit produces avg expectancy of -0.613% vs CURRENT -0.886%. TIME_STOP_5D also eliminates all catastrophic >10% losses (0.00% vs 0.20%).",
+  "expected_effect": "Gap = 0.273%. Applied to production: ~0.27% expectancy improvement per position, zero catastrophic losses in this sample.",
+  "n_evidence": 500,
+  "statistical_verdict": "PRODUCTION_CANDIDATE",
+  "evidence": [
+    {
+      "source": "mr_stop_loss_sweep_india.json",
+      "field": "by_policy.CURRENT",
+      "value": {
+        "n": 490,
+        "wr_pct": 26.53,
+        "avg_pct": -0.886,
+        "median_pct": -0.907,
+        "avg_winner_pct": 2.426,
+        "avg_loser_pct": -2.741,
+        "profit_factor": 0.429,
+        "stop_hit_rate_pct": 18.57,
+        "catastrophic_gt10pct_pct": 0.2,
+        "expectancy_pct": -0.886,
+        "worst_pct": -10.476,
+        "best_pct": 9.804,
+        "avg_days_held": 7.34
+      }
+    },
+    {
+      "source": "mr_stop_loss_sweep_india.json",
+      "field": "by_policy.TIME_STOP_5D",
+      "value": {
+        "n": 500,
+        "wr_pct": 24.8,
+        "avg_pct": -0.613,
+        "median_pct": -0.771,
+        "avg_winner_pct": 2.618,
+        "avg_loser_pct": -2.245,
+        "profit_factor": 0.523,
+        "stop_hit_rate_pct": 0.0,
+        "catastrophic_gt10pct_pct": 0.0,
+        "expectancy_pct": -0.613,
+        "worst_pct": -9.069,
+        "best_pct": 11.187,
+        "avg_days_held": 4.45
+      }
+    }
+  ],
+  "proposed_rule": "In a shadow exit engine: for every ACTIVE position beyond 5 trading days from entry, emit ADVISORY 'time-exit candidate'. Do NOT modify the production stop or exit. Config-flag OFF.",
+  "validation_plan": "For each ADVISORY produced, record the fwd_5d outcome from the advisory date. Accept if median advisory return over next 5D >= median current-policy return by 0.3% on n>=100.",
+  "promotion_gate": [
+    "1. Research Ticket accepted by CEO",
+    "2. Walk-forward test on N >= 100 forward predictions",
+    "3. Full regression pass on locked delivery invariants (BLOCK == 0)",
+    "4. CEO explicit approval + lock-override phrase",
+    "5. Config-toggle OFF by default in a new SPRINT_ID branch",
+    "6. Paper-trading period >= 30 sessions with green metrics",
+    "7. Production promotion under new SPRINT_ID with L4 evidence"
+  ],
+  "risk": "5-day time exit forfeits the tail of longer-holding winners. Track MFE-captured metric alongside expectancy.",
+  "do_not_touch": [
+    "R1 recommendation runner",
+    "R2 recommendation runner",
+    "Registry orphan-close",
+    "backend/delivery/xlsx_contract.py",
+    "backend/delivery/xlsx_validator.py",
+    "scripts/telegram_command_center_send.py canonical INVESTMENT_ACTIVE JSON",
+    "configs/ensemble_weights_adaptive.yaml",
+    "model_registry.jsonl"
+  ]
+}

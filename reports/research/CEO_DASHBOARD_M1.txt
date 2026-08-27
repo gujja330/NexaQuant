@@ -1,0 +1,410 @@
+
+=====================================================================
+       AEGIS · FORWARD VALIDATION ENGINE v1 · CEO DASHBOARD (M1)
+=====================================================================
+generated_utc: 2026-08-27T06:05:30+00:00
+engine:        aegis.mr_ceo_dashboard.v1.0
+status:        FOUNDATION COMPLETE · INTEGRATION DEFERRED
+locked layers: UNTOUCHED (R1, R2, XLSX contract, canonical JSON, ensemble weights)
+
+
+════════════════════════════════════════════════════════════════════
+  AEGIS FORWARD VALIDATION — M1 · INDIA
+════════════════════════════════════════════════════════════════════
+
+DATA
+  Predictions:      551
+  Unique stocks:    41
+  Trading days:     18
+
+OVERALL (all runners combined)
+  Win rate fwd_1d      21.60%  (n=500, avg=-0.137%)
+  Win rate fwd_5d      25.77%  (n=392, avg=-0.729%)
+  Win rate fwd_10d     27.80%  (n=223, avg=-1.534%)
+  Avg MFE:             1.161%
+  Avg MAE:             -2.199%
+  Stop-hit rate:       17.19%
+
+  ALPHA vs universe baseline (same days):
+    Universe   n=2747 WR=32.25%  avg=-0.388%
+    AEGIS      n=392 WR=25.77%  avg=-0.729%
+    ALPHA      WR-6.48pp  avg-0.341%
+
+STRATEGIES
+  R1         n= 314  5D WR=20.81% avg=-0.984%  10D avg=-1.858%  MFE=0.726%  MAE=-1.952%
+  R2         n= 237  5D WR=32.16% avg=-0.399%  10D avg=-1.163%  MFE=1.737%  MAE=-2.525%
+  MOMENTUM   n=0  · historical snapshots not captured · start forward capture from today
+
+SECTORS  (min n=15 to qualify)
+  Best:
+    Power            n= 31  WR=30.00%  avg=-0.297%
+    Pharma           n= 31  WR=15.79%  avg=-1.934%
+    FMCG             n= 33  WR=14.29%  avg=-1.586%
+  Worst:
+    Power            n= 31  WR=30.00%  avg=-0.297%
+    Pharma           n= 31  WR=15.79%  avg=-1.934%
+    FMCG             n= 33  WR=14.29%  avg=-1.586%
+
+MARKET CAP (avg-dollar-volume liquidity proxy)
+  LARGE    n= 459  WR=25.45%  avg=-0.697%
+  MID      n=  92  WR=27.42%  avg=-0.900%
+
+TECHNICAL · best predictors (WR-spread)
+  1. rsi_14                 spread=25.50pp  n= 551  verdict=PRODUCTION_CANDIDATE
+  2. confidence_pct         spread=23.88pp  n= 551  verdict=PRODUCTION_CANDIDATE
+  3. sector                 spread=22.86pp  n= 193  verdict=PRODUCTION_CANDIDATE
+
+TECHNICAL · bucket detail
+  ~ rsi_bucket ~
+    NEUTRAL_45_55        n= 139  WR=26.26%  avg=-0.547%
+    OVERBOUGHT_ge70      n=  14  WR=14.29%  avg=-1.381%
+    OVERSOLD_lt30        n=  28  WR=43.75%  avg=+0.303%
+    STRONG_55_70         n= 164  WR=32.54%  avg=-0.618%
+    WEAK_30_45           n= 206  WR=18.25%  avg=-1.017%
+  ~ trend ~
+    ABOVE_MA200          n= 204  WR=21.38%  avg=-0.905%
+    BELOW_MA200          n= 347  WR=28.34%  avg=-0.626%
+  ~ ma20_dist_bucket ~
+    above_+1_+5          n= 149  WR=37.17%  avg=-0.467%
+    below_-5_-1          n= 195  WR=17.97%  avg=-0.958%
+    deep_below_lt-5      n=  40  WR=21.43%  avg=-0.856%
+    far_above_ge+5       n=  48  WR=27.27%  avg=-0.806%
+    near_-1_+1           n= 119  WR=22.78%  avg=-0.644%
+  ~ momentum_20d_bucket ~
+    falling_lt-5         n=  97  WR=30.16%  avg=-0.575%
+    flat_0_+5            n= 145  WR=23.81%  avg=-1.007%
+    strong_+5_+10        n=  78  WR=34.33%  avg=+0.141%
+    surge_ge+10          n=  38  WR=23.33%  avg=-1.750%
+    weak_-5_0            n= 193  WR=21.26%  avg=-0.793%
+
+FUNDAMENTAL · bucket detail (current-snapshot · not historical)
+  (fundamentals parquet has INDIA-specific coverage gap · no bucket qualifies)
+
+STOP LOSS · policy sweep (12 policies replayed)
+  CURRENT policy   n=490  WR=26.53%  avg=-0.886%  PF=0.429  stop-hit=18.57%  cat>10%=0.2%
+  BEST policy      TIME_STOP_5D  expectancy=-0.613%  WR=24.8%  PF=0.523  cat>10%=0.0%
+  Expectancy gap:  +0.273% vs CURRENT
+  Avg MAE:         -2.199%  (the average dip before recovery or stop)
+
+WINNERS (fwd_5d > +0.5%)
+  n=101
+  Dominant runner: R2 (54.46%)
+  Dominant band:   MARGINAL (46.53%)
+  Avg confidence:  51.4%
+  Avg MFE:         4.175%
+  Avg MAE:         -0.962%
+
+LOSERS (fwd_5d < -0.5%)
+  n=247
+  Dominant runner: R1 (57.89%)
+  Dominant band:   MARGINAL (39.27%)
+  Avg confidence:  57.94%  (winners 51.4% · delta 6.54)
+  Avg MFE:         0.467%
+  Avg MAE:         -3.825%
+
+  Loss rate:       48.46%
+  Preventable %:   86.89%
+  Loss classification (avoidability):
+    PREVENTABLE_STOP_WIDE            17
+    PREVENTABLE_HIGH_CONF            43
+    PREVENTABLE_MODERATE             169
+    PREVENTABLE_TIMING               3
+    UNAVOIDABLE                      7
+    MARKET_WIDE                      28
+
+  Top anti-signals in loser cohort:
+    BELOW_MA200                              160
+    INDIA_TOP3_RANK_INVERSION                83
+    BAND_OK                                  75
+    INDIA_CONFIDENCE_ANTI_SIGNAL_70_85       58
+    BAND_AVOID                               48
+    DEEP_BELOW_MA20                          20
+
+MISSED WINNERS (universe scan, >=+5% fwd_5d)
+  Universe size:    230
+  Capture rate:     10.88%
+  Big winners missed: 131
+
+SCORE USEFULNESS (KEEP / PRUNE verdict)
+  investability_band     verdict=KEEP_WARN            spread=16.9pp  monotonicity=MIXED_UP
+  confidence_pct         verdict=KEEP_WARN            spread=23.88pp  monotonicity=MIXED_DOWN
+
+
+════════════════════════════════════════════════════════════════════
+  AEGIS FORWARD VALIDATION — M1 · USA
+════════════════════════════════════════════════════════════════════
+
+DATA
+  Predictions:      1088
+  Unique stocks:    498
+  Trading days:     7
+
+OVERALL (all runners combined)
+  Win rate fwd_1d      39.52%  (n=625, avg=+0.221%)
+  Win rate fwd_5d      41.67%  (n=192, avg=-0.338%)
+  Win rate fwd_10d     75.00%  (n=8, avg=+2.276%)
+  Avg MFE:             0.937%
+  Avg MAE:             -0.816%
+  Stop-hit rate:       11.76%
+
+  ALPHA vs universe baseline (same days):
+    Universe   n=372 WR=38.98%  avg=-0.476%
+    AEGIS      n=192 WR=41.67%  avg=-0.338%
+    ALPHA      WR+2.69pp  avg+0.138%
+
+STRATEGIES
+  R1         n=  80  5D WR=54.55% avg=+0.183%  10D avg=2.582%  MFE=0.870%  MAE=-0.729%
+  R2         n=1008  5D WR=40.88% avg=-0.370%  10D avg=1.766%  MFE=0.942%  MAE=-0.823%
+  MOMENTUM   n=0  · historical snapshots not captured · start forward capture from today
+
+SECTORS  (min n=15 to qualify)
+  Best:
+    Large-Cap        n=995  WR=41.11%  avg=-0.282%
+
+MARKET CAP (avg-dollar-volume liquidity proxy)
+  LARGE    n= 459  WR=35.96%  avg=-0.841%
+  MID      n= 622  WR=46.60%  avg=+0.096%
+
+TECHNICAL · best predictors (WR-spread)
+  1. rank_slot              spread=100.00pp  n= 113  verdict=PRODUCTION_CANDIDATE
+  2. ma20_dist_pct          spread=24.11pp  n=1087  verdict=PRODUCTION_CANDIDATE
+  3. trend                  spread=18.04pp  n=1088  verdict=PRODUCTION_CANDIDATE
+
+TECHNICAL · bucket detail
+  ~ rsi_bucket ~
+    NEUTRAL_45_55        n= 316  WR=47.54%  avg=+0.153%
+    OVERBOUGHT_ge70      n= 112  WR=41.38%  avg=+0.168%
+    OVERSOLD_lt30        n=  15  WR=50.00%  avg=-0.635%
+    STRONG_55_70         n= 453  WR=34.25%  avg=-1.062%
+    WEAK_30_45           n= 187  WR=48.15%  avg=-0.013%
+  ~ trend ~
+    ABOVE_MA200          n= 793  WR=37.06%  avg=-0.401%
+    BELOW_MA200          n= 290  WR=55.10%  avg=-0.154%
+  ~ ma20_dist_bucket ~
+    above_+1_+5          n= 306  WR=27.50%  avg=-1.111%
+    below_-5_-1          n= 217  WR=51.06%  avg=+0.527%
+    deep_below_lt-5      n=  67  WR=33.33%  avg=-0.700%
+    far_above_ge+5       n= 325  WR=39.71%  avg=-0.883%
+    near_-1_+1           n= 172  WR=51.61%  avg=+0.612%
+  ~ momentum_20d_bucket ~
+    falling_lt-5         n= 166  WR=41.67%  avg=-0.727%
+    flat_0_+5            n= 227  WR=43.18%  avg=+0.103%
+    strong_+5_+10        n= 191  WR=39.29%  avg=-0.842%
+    surge_ge+10          n= 315  WR=41.27%  avg=-0.376%
+    weak_-5_0            n= 186  WR=42.42%  avg=-0.144%
+
+FUNDAMENTAL · bucket detail (current-snapshot · not historical)
+  (fundamentals parquet has USA-specific coverage gap · no bucket qualifies)
+
+STOP LOSS · policy sweep (12 policies replayed)
+  CURRENT policy   n=39  WR=35.9%  avg=-0.63%  PF=0.645  stop-hit=25.64%  cat>10%=0.0%
+  BEST policy      TRAILING_10  expectancy=+0.291%  WR=42.08%  PF=1.309  cat>10%=0.64%
+  Expectancy gap:  +0.921% vs CURRENT
+  Avg MAE:         -0.816%  (the average dip before recovery or stop)
+
+WINNERS (fwd_5d > +0.5%)
+  n=80
+  Dominant runner: R2 (92.5%)
+  Dominant band:   PENDING (61.25%)
+  Avg confidence:  78.38%
+  Avg MFE:         5.143%
+  Avg MAE:         -1.465%
+
+LOSERS (fwd_5d < -0.5%)
+  n=86
+  Dominant runner: R2 (95.35%)
+  Dominant band:   PENDING (67.44%)
+  Avg confidence:  78.2%  (winners 78.38% · delta -0.18)
+  Avg MFE:         2.041%
+  Avg MAE:         -4.991%
+
+  Loss rate:       11.67%
+  Preventable %:   66.14%
+  Loss classification (avoidability):
+    UNAVOIDABLE                      43
+    PREVENTABLE_MODERATE             47
+    PREVENTABLE_HIGH_CONF            10
+    PREVENTABLE_TIMING               7
+    PREVENTABLE_STOP_WIDE            20
+
+  Top anti-signals in loser cohort:
+    HIGH_VOL_GE3PCT                          32
+    BELOW_MA200                              29
+    BAND_OK                                  24
+    RSI_OVERBOUGHT                           18
+    DEEP_BELOW_MA20                          4
+    BAND_AVOID                               2
+
+MISSED WINNERS (universe scan, >=+5% fwd_5d)
+  Universe size:    908
+  Capture rate:     40.0%
+  Big winners missed: 15
+
+SCORE USEFULNESS (KEEP / PRUNE verdict)
+  investability_band     verdict=NO_DATA              spread=Nonepp  monotonicity=UNDEFINED
+  confidence_pct         verdict=ANTI_SIGNAL_WEAK     spread=9.78pp  monotonicity=MONOTONIC_DOWN
+
+
+=====================================================================
+  AI HYPOTHESES (proposes only · never applies)
+=====================================================================
+
+  [F001_INDIA_ALPHA] CRITICAL INDIA
+    CLAIM  : Over the 18-day window, AEGIS-India 5D WR=25.77% and avg=-0.729%. Random NSE-universe pick over the SAME days achieved WR=32.25% and avg=-0.388%. Alpha = WR-6.48pp / avg-0.341%. AEGIS-India is currently BELOW baseline.
+    CAVEAT : Window is 18 days · dominated by a market drawdown context. Re-run monthly. Do NOT modify production based on this alone. See ticket_india_negative_alpha for compound-improvement plan.
+
+  [F002_USA_ALPHA] INFO     USA
+    CLAIM  : AEGIS-USA 5D WR=41.67% vs universe 38.98%. Alpha = WR+2.69pp / avg+0.138%. USA runner is above baseline · small positive edge.
+    CAVEAT : USA window has n_days=7 for control cohort · sample thin. Retest.
+
+  [F003_INDIA_CONFIDENCE_ANTI_SIGNAL] HIGH     INDIA
+    CLAIM  : India confidence_pct verdict = KEEP_WARN. WR spread 23.88pp with monotonicity MIXED_DOWN vs expected MONOTONIC_UP. High-confidence India predictions underperform low-confidence.
+    CAVEAT : Confidence may be calibrated on a non-return objective (thesis-strength). Consider re-labeling for CEO or documenting as 'thesis strength' not 'win probability'.
+
+  [F004_INDIA_TOP_FEATURES] MEDIUM   INDIA
+    CLAIM  : Top-3 predictive features for INDIA 5D WR: rsi_14(25.5pp), confidence_pct(23.88pp), sector(22.86pp).
+    CAVEAT : Feature ranking is descriptive · does not imply causation.
+
+  [F004_USA_TOP_FEATURES] MEDIUM   USA
+    CLAIM  : Top-3 predictive features for USA 5D WR: rank_slot(100.0pp), ma20_dist_pct(24.11pp), trend(18.04pp).
+    CAVEAT : Feature ranking is descriptive · does not imply causation.
+
+  [F005_INDIA_STOP_POLICY] MEDIUM   INDIA
+    CLAIM  : India TIME_STOP_5D expectancy -0.613% vs CURRENT -0.886%. Gap = 0.273%. TIME_STOP_5D also has 0.00% catastrophic loss rate vs 0.2% for CURRENT.
+    CAVEAT : Time-exit forfeits longer-run winners · track MFE-captured. Requires walk-forward before any change.
+
+  [F006_INDIA_LOSS_PREVENTABILITY] HIGH     INDIA
+    CLAIM  : Of 267 India losses (48.46% loss rate), 86.89% had at least one anti-signal at entry. Most common: BELOW_MA200(160), INDIA_TOP3_RANK_INVERSION(83), BAND_OK(75), INDIA_CONFIDENCE_ANTI_SIGNAL_70_85(58), BAND_AVOID(48).
+    CAVEAT : Anti-signal presence != causation. Same signals appear in some winners too. Bucket comparisons must control for this.
+
+  [F007_INDIA_CAPTURE_RATE] HIGH     INDIA
+    CLAIM  : India capture rate = 10.88%. Of 147 universe-wide >=+5% winners over 18 days, AEGIS captured only 16. Missed 131.
+    CAVEAT : Universe scan includes tickers AEGIS deliberately excludes (illiquid, non-investable). True capture rate on the investable universe will be higher.
+
+  [F008_USA_DATA_QUALITY] MEDIUM   USA
+    CLAIM  : USA leakage audit fails: A2_rec_date_le_pred_date(32 fails)
+    CAVEAT : Non-fatal but tracks a real upstream write-order artifact.
+
+
+=====================================================================
+  TOP HYPOTHESES · walk-forward candidates (n=5)
+=====================================================================
+
+  Ranked by: severity*3 + verdict*2 + evidence*1 + preventability*2
+  Considered: 5 DRAFT tickets
+
+  #1 · score 25  ·  INDIA  ·  HIGH
+    ticket:      aegis_mr_ticket_20260827_india_confidence_anti_signal
+    title:       India confidence_pct is anti-correlated with forward return
+    n_evidence:  551  ·  verdict: PRODUCTION_CANDIDATE
+    hypothesis:  In India, higher confidence_pct at prediction time predicts LOWER 5D forward win rate. Bucket audit shows WR spread of 23.88pp with monotonicity MIXED_DOWN.
+
+  #2 · score 24  ·  INDIA  ·  HIGH
+    ticket:      aegis_mr_ticket_20260827_india_top3_rank_inversion
+    title:       India top-3 rank slot underperforms rank_4_7 (ranker inversion)
+    n_evidence:  141  ·  verdict: PRODUCTION_CANDIDATE
+    hypothesis:  India R1 places QUALITY(57%) + OK(40%) high-confidence stocks in top-3 slots · these have 14.5% 5D WR. Meanwhile R2 rank_4_7 (n=56, 47% WR, +0.53% avg) is the only positive cohort. The ranker's top-3 
+
+  #3 · score 24  ·  INDIA  ·  CRITICAL
+    ticket:      aegis_mr_ticket_20260827_india_negative_alpha
+    title:       India AEGIS produces -6.48pp NEGATIVE alpha vs universe
+    n_evidence:  2747  ·  verdict: PRODUCTION_CANDIDATE
+    hypothesis:  Over 18 days, NSE universe (n=2747) 5D WR=32.25% avg=-0.388%. AEGIS-India (n=392) 5D WR=25.77% avg=-0.729%. Alpha = WR-6.48pp · avg-0.341%. AEGIS-India currently DESTROYS value relative to random pick
+
+  #4 · score 22  ·  INDIA  ·  MEDIUM
+    ticket:      aegis_mr_ticket_20260827_india_band_boundary
+    title:       India OK band underperforms AVOID · boundary miscalibrated
+    n_evidence:  551  ·  verdict: PRODUCTION_CANDIDATE
+    hypothesis:  India investability_band ordering QUALITY > MARGINAL > AVOID > OK instead of expected QUALITY > OK > MARGINAL > AVOID. OK band (n=119) has 17.4% 5D WR · below AVOID (n=108) 19.2% · suggesting OK's int
+
+  #5 · score 22  ·  INDIA  ·  MEDIUM
+    ticket:      aegis_mr_ticket_20260827_india_stop_policy
+    title:       India TIME_STOP_5D beats CURRENT by 0.273% expectancy
+    n_evidence:  500  ·  verdict: PRODUCTION_CANDIDATE
+    hypothesis:  Under 30-day historical replay, TIME_STOP_5D exit produces avg expectancy of -0.613% vs CURRENT -0.886%. TIME_STOP_5D also eliminates all catastrophic >10% losses (0.00% vs 0.20%).
+
+
+=====================================================================
+  WALK-FORWARD EXPERIMENTS · registry
+=====================================================================
+
+  · aegis_mr_experiment_20260827_india_confidence_anti_signal
+      market:    INDIA
+      metric:    shadow_5D_WR
+      min N:     100
+      window:    30 days
+      status:    NOT_STARTED (never auto-runs)
+
+  · aegis_mr_experiment_20260827_india_top3_rank_inversion
+      market:    INDIA
+      metric:    shadow_top3_5D_WR
+      min N:     100
+      window:    30 days
+      status:    NOT_STARTED (never auto-runs)
+
+  · aegis_mr_experiment_20260827_india_negative_alpha
+      market:    INDIA
+      metric:    shadow_alpha_vs_universe
+      min N:     100
+      window:    30 days
+      status:    NOT_STARTED (never auto-runs)
+
+  · aegis_mr_experiment_20260827_india_band_boundary
+      market:    INDIA
+      metric:    band_ordering_monotonicity
+      min N:     100
+      window:    30 days
+      status:    NOT_STARTED (never auto-runs)
+
+  · aegis_mr_experiment_20260827_india_stop_policy
+      market:    INDIA
+      metric:    expectancy_gap_vs_current
+      min N:     100
+      window:    30 days
+      status:    NOT_STARTED (never auto-runs)
+
+
+=====================================================================
+  VALIDATED CHANGES  (production-promoted proposals)
+=====================================================================
+
+  None yet.
+  5 DRAFT ticket(s) awaiting CEO review + walk-forward gate:
+    · aegis_mr_ticket_20260827_india_confidence_anti_signal
+      title:    India confidence_pct is anti-correlated with forward return
+      market:   INDIA
+      n_evid:   551
+      verdict:  PRODUCTION_CANDIDATE
+      status:   DRAFT (never auto-promoted)
+
+    · aegis_mr_ticket_20260827_india_top3_rank_inversion
+      title:    India top-3 rank slot underperforms rank_4_7 (ranker inversion)
+      market:   INDIA
+      n_evid:   141
+      verdict:  PRODUCTION_CANDIDATE
+      status:   DRAFT (never auto-promoted)
+
+    · aegis_mr_ticket_20260827_india_band_boundary
+      title:    India OK band underperforms AVOID · boundary miscalibrated
+      market:   INDIA
+      n_evid:   551
+      verdict:  PRODUCTION_CANDIDATE
+      status:   DRAFT (never auto-promoted)
+
+    · aegis_mr_ticket_20260827_india_stop_policy
+      title:    India TIME_STOP_5D beats CURRENT by 0.273% expectancy
+      market:   INDIA
+      n_evid:   500
+      verdict:  PRODUCTION_CANDIDATE
+      status:   DRAFT (never auto-promoted)
+
+    · aegis_mr_ticket_20260827_india_negative_alpha
+      title:    India AEGIS produces -6.48pp NEGATIVE alpha vs universe
+      market:   INDIA
+      n_evid:   2747
+      verdict:  PRODUCTION_CANDIDATE
+      status:   DRAFT (never auto-promoted)
+
+=====================================================================
+                            END OF DASHBOARD
+=====================================================================

@@ -1,0 +1,56 @@
+{
+  "ticket_id": "aegis_mr_ticket_20260827_india_top3_rank_inversion",
+  "status": "DRAFT",
+  "generated_utc": "2026-08-27T06:05:27+00:00",
+  "generated_date": "2026-08-27",
+  "market": "INDIA",
+  "engine": "aegis.mr_research_ticket.v0.1",
+  "experiment_id": "M-R.v0.1",
+  "title": "India top-3 rank slot underperforms rank_4_7 (ranker inversion)",
+  "hypothesis": "India R1 places QUALITY(57%) + OK(40%) high-confidence stocks in top-3 slots · these have 14.5% 5D WR. Meanwhile R2 rank_4_7 (n=56, 47% WR, +0.53% avg) is the only positive cohort. The ranker's top-3 selection is anti-correlated with outcome.",
+  "expected_effect": "Rank-slot filter test: 'reject R1 top-3 in India unless additional MA20-dist +1..+5 filter passes' should lift avg return by ~+0.5% on the affected 82-prediction cohort.",
+  "n_evidence": 141,
+  "statistical_verdict": "PRODUCTION_CANDIDATE",
+  "evidence": [
+    {
+      "source": "mr_studies_india.json",
+      "field": "Q8_rank_slot.top3.fwd_5d",
+      "note": "n=141 WR=17.43% avg=-0.905%"
+    },
+    {
+      "source": "mr_feature_ranking_india.json",
+      "field": "ranking[rank_slot]",
+      "value": {
+        "rank": 6,
+        "feature": "rank_slot",
+        "wr_spread_pp": 15.36,
+        "avg_spread_pct": 0.563,
+        "verdict": "PRODUCTION_CANDIDATE",
+        "n_used": 551,
+        "n_scoreable_buckets": 3
+      }
+    }
+  ],
+  "proposed_rule": "In a shadow India ranker: gate any rank-1-to-3 output through a 'ma20_dist_pct BETWEEN +1 AND +5' filter. Non-passing candidates demoted to rank_4_7. Config-flag OFF by default.",
+  "validation_plan": "Capture 20 forward days. Compare shadow-rank-1-3 5D WR vs current rank-1-3 on same day. Accept if shadow lifts WR by 10pp with n>=50 and does not degrade rank_4_7 quality.",
+  "promotion_gate": [
+    "1. Research Ticket accepted by CEO",
+    "2. Walk-forward test on N >= 100 forward predictions",
+    "3. Full regression pass on locked delivery invariants (BLOCK == 0)",
+    "4. CEO explicit approval + lock-override phrase",
+    "5. Config-toggle OFF by default in a new SPRINT_ID branch",
+    "6. Paper-trading period >= 30 sessions with green metrics",
+    "7. Production promotion under new SPRINT_ID with L4 evidence"
+  ],
+  "risk": "Filter may over-tighten and reduce total NEW recommendations. Track daily rec-count delta. If drop >30% for 5 consecutive days, roll back.",
+  "do_not_touch": [
+    "R1 recommendation runner",
+    "R2 recommendation runner",
+    "Registry orphan-close",
+    "backend/delivery/xlsx_contract.py",
+    "backend/delivery/xlsx_validator.py",
+    "scripts/telegram_command_center_send.py canonical INVESTMENT_ACTIVE JSON",
+    "configs/ensemble_weights_adaptive.yaml",
+    "model_registry.jsonl"
+  ]
+}
