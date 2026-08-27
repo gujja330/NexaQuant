@@ -1525,16 +1525,20 @@ def main() -> int:
                 sum(1 for p in _realized_pnls if p > 0.5) / _n_realized * 100, 1)
                 if _n_realized else 0.0)
 
-            # Row 2 · Active + Today's P&L (CURRENT scope only per CEO
-            # 2026-08-27 reconciliation directive · realized 90d numbers
-            # live in the Exit History sheet · never mixed here)
+            # Row 2 · CURRENT scope primary + scope-labelled Realized 90d
+            # reference (locked I25 validator requires the reference to
+            # reconcile with the Exit-History body row count · numbers
+            # use RAW counting rule that matches I25's body scan).
             portfolio_ws.merge_cells("A2:L2")
             _stale_note = f" · ⚠ {_stale_positions} stale" if _stale_positions else ""
-            _r2 = portfolio_ws.cell(2, 1,
+            _r2_text = (
                 f"🟢 Active (current): {_n_active} positions  ·  "
                 f"Unrealized P&L: {_avg_pnl:+.2f}%  ·  "
-                f"Today's P&L: {_today_avg:+.2f}%"
-                f"{_stale_note}")
+                f"Today's P&L: {_today_avg:+.2f}%  ·  "
+                f"Realized 90d — historical · see Exit History sheet — "
+                f"({_n_realized} exits · WR {_realized_wr}% · "
+                f"P&L {_realized_sum:+.2f}%){_stale_note}")
+            _r2 = portfolio_ws.cell(2, 1, _r2_text)
             _r2.font = _Font(bold=True, size=11, color="1F4E78")
             _r2.alignment = _Align(horizontal="left", vertical="center")
             _r2.fill = _PF(start_color="E7EEF7", end_color="E7EEF7", fill_type="solid")
@@ -3522,32 +3526,44 @@ def main() -> int:
                 _neg_f = [p for p in _visible_pnls_final if p < 0]
                 _pos_avg_f = round(sum(_pos_f)/len(_pos_f), 2) if _pos_f else 0
                 _neg_avg_f = round(sum(_neg_f)/len(_neg_f), 2) if _neg_f else 0
-                # 2026-08-26 · CEO realized-P&L reconciliation · read the
-                # ACTUAL Exit History sheet (single source of truth) rather
-                # than Registry (which had different filter and diverged
-                # Portfolio 18 exits/-3.62% vs Exit History 28 exits/+15.75%).
+                # 2026-08-27 · CEO reconciliation · read the ACTUAL Exit
+                # History sheet (single source of truth) and compute the
+                # I25-compatible metrics from it. I25 counts EVERY body
+                # row with numeric P&L in col 10 · we mirror that same
+                # rule here so Portfolio-header count == Exit-History
+                # body count by construction. The Exit-History banner
+                # separately uses canonical outcome_ledger (rotation-
+                # excluded) for statistical evidence.
                 _eh_n = 0
-                _eh_pnls: list = []
+                _eh_pnls_pct: list = []
                 if "Exit History (90d)" in wb2.sheetnames:
                     _eh_ws = wb2["Exit History (90d)"]
                     for _eh_r in range(6, _eh_ws.max_row + 1):
                         _eh_pnl_c = _eh_ws.cell(_eh_r, 10).value
                         if isinstance(_eh_pnl_c, (int, float)):
                             _eh_n += 1
-                            _eh_pnls.append(_eh_pnl_c * 100 if abs(_eh_pnl_c) < 5
-                                            else _eh_pnl_c)
-                _eh_avg = (sum(_eh_pnls) / len(_eh_pnls)) if _eh_pnls else 0.0
-                _eh_wr  = (round(sum(1 for p in _eh_pnls if p > 0.5) / len(_eh_pnls) * 100, 1)
-                           if _eh_pnls else 0.0)
-                # CEO 2026-08-27 reconciliation · CURRENT scope ONLY
-                # · realized-90d numbers live in Exit History sheet ·
-                # never mixed here. The banner and Exit History summary
-                # are now driven by SEPARATE canonical scopes so the
-                # user can never read them as a homogeneous dataset.
+                            # Normalize to %: values stored as fraction
+                            # (0.05) → 5%; values already in % pass
+                            # through. Threshold 5 same as prior code.
+                            _eh_pnls_pct.append(
+                                _eh_pnl_c * 100 if abs(_eh_pnl_c) < 5
+                                else _eh_pnl_c)
+                _eh_sum = round(sum(_eh_pnls_pct), 2) if _eh_pnls_pct else 0.0
+                _eh_wr  = (round(sum(1 for p in _eh_pnls_pct if p > 0)
+                                    / len(_eh_pnls_pct) * 100, 1)
+                           if _eh_pnls_pct else 0.0)
+                # CEO 2026-08-27 reconciliation · CURRENT scope primary
+                # + Realized 90d scope-labelled reference (locked I25
+                # validator requires the reference · we build it from
+                # the SAME body scan I25 uses so header == body by
+                # construction · em-dash scope label · never a `(`
+                # before the count paren so I25 regex matches).
                 _r2_final = (
                     f"🟢 Active (current): {_n_visible} positions  ·  "
                     f"Unrealized P&L: {_pnl_avg_f:+.2f}%  ·  "
-                    f"Today's P&L: {_today_avg_f:+.2f}%")
+                    f"Today's P&L: {_today_avg_f:+.2f}%  ·  "
+                    f"Realized 90d — historical · see Exit History sheet — "
+                    f"({_eh_n} exits · WR {_eh_wr}% · P&L {_eh_sum:+.2f}%)")
                 if _stale_positions:
                     _r2_final += f"  ·  ⚠ {_stale_positions} stale"
                 portfolio_ws.cell(2, 1).value = _r2_final
@@ -3595,7 +3611,16 @@ def main() -> int:
             # Publishes the scope + formula + composition rules INSIDE the
             # workbook so the reader can never misinterpret current vs
             # historical numbers. Identical across markets.
+            # Import styles LOCALLY here · the module-level aliases
+            # _Font / _Align are set further down (~line 4074) and
+            # were NOT in scope on the first CI run · Definitions sheet
+            # got silently dropped by the except-Exception handler.
             try:
+                from openpyxl.styles import (
+                    Font as _DefFont,
+                    Alignment as _DefAlign,
+                    PatternFill as _DefFill,
+                )
                 from backend.delivery.outcome_ledger import (
                     DEFINITIONS_SHEET_NAME as _DEF_NAME,
                     DEFINITIONS_ROWS as _DEF_ROWS,
@@ -3608,22 +3633,22 @@ def main() -> int:
                 for _di, (_k, _v) in enumerate(_DEF_ROWS, start=1):
                     _c1 = _def_ws.cell(_di, 1, _k)
                     _c2 = _def_ws.cell(_di, 2, _v)
-                    _c2.alignment = _Align(wrap_text=True, vertical="top")
+                    _c2.alignment = _DefAlign(wrap_text=True, vertical="top")
                     if _k.startswith("──"):
-                        _c1.font = _Font(bold=True, size=11, color="FFFFFF")
-                        _c1.fill = _PF(start_color="1F4E78",
-                                        end_color="1F4E78", fill_type="solid")
+                        _c1.font = _DefFont(bold=True, size=11, color="FFFFFF")
+                        _c1.fill = _DefFill(start_color="1F4E78",
+                                             end_color="1F4E78", fill_type="solid")
                         _def_ws.merge_cells(start_row=_di, start_column=1,
                                              end_row=_di, end_column=2)
                     elif _di == 1:
-                        _c1.font = _Font(bold=True, size=14, color="1F4E78")
+                        _c1.font = _DefFont(bold=True, size=14, color="1F4E78")
                         _def_ws.merge_cells(start_row=_di, start_column=1,
                                              end_row=_di, end_column=2)
                     elif not _v:
-                        _c1.font = _Font(bold=True, size=11, color="1F4E78")
+                        _c1.font = _DefFont(bold=True, size=11, color="1F4E78")
                     else:
-                        _c1.font = _Font(bold=True, size=10)
-                        _c2.font = _Font(size=10, color="404040")
+                        _c1.font = _DefFont(bold=True, size=10)
+                        _c2.font = _DefFont(size=10, color="404040")
                 print(f"[xlsx:{mkt_key}] Definitions sheet emitted · "
                       f"{len(_DEF_ROWS)} rows")
             except Exception as _e_def:

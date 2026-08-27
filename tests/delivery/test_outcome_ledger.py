@@ -235,6 +235,89 @@ def test_definitions_rows_disclose_composition_rule():
 # ── 8 · Historical exits cannot masquerade as current holdings ────────
 
 
+# ── 9 · I25 reconciliation regression (banner ↔ body row count) ───────
+
+
+def test_portfolio_banner_reconciles_to_i25_body_row_count():
+    """CEO 2026-08-28 post-mortem · CI run 33101999085 · I25 FAILED
+    header=-1 exit_history=534 because the scope-labelled Portfolio
+    banner used `(historical...)` parens that consumed I25 regex's
+    FIRST `(` before the count paren. Regression:
+    · Portfolio banner MUST contain the phrase `Realized 90d[^(]*(N exits`
+    · N MUST equal `raw_n_with_pnl` (matches I25's body scan · all
+      numeric-P&L rows including 0-P&L rotations)
+    · Scope label MUST use em-dashes not parens so I25 regex reaches
+      the count paren."""
+    import re
+    from backend.delivery.outcome_ledger import (
+        compute_realized_90d, format_portfolio_banner,
+        compute_current_portfolio,
+    )
+    # Simulate CI-scale exits · 500 with real P&L + 34 zero-rotations
+    rows = [{"pnl_pct": 5.0 * ((-1)**i), "exit_reason": ""} for i in range(500)]
+    rows += [{"pnl_pct": 0.0, "exit_reason": "Rotated to X"} for _ in range(34)]
+    r = compute_realized_90d(rows)
+    current = compute_current_portfolio([
+        {"unrealized_pnl_pct": 0.54, "today_pnl_pct": 1.69}
+    ])
+    banner = format_portfolio_banner(current, realized=r)
+    # This is I25's EXACT regex from backend/delivery/xlsx_validator.py:1128
+    i25_regex = r"Realized 90d[^(]*\(\s*(\d+)\s*exits"
+    m = re.search(i25_regex, banner)
+    assert m is not None, \
+        f"I25 regex fails on banner · would return header_n=-1 and " \
+        f"BLOCK delivery. Banner was: {banner!r}"
+    header_n = int(m.group(1))
+    assert header_n == r.raw_n_with_pnl, \
+        (f"I25 header count {header_n} does not match raw_n_with_pnl "
+         f"{r.raw_n_with_pnl} · I25 would FAIL body!=header check")
+
+
+def test_portfolio_banner_scope_label_uses_no_parens_before_count():
+    """Guard: no `(` may appear between 'Realized 90d' and the exits
+    count · that would break I25's `[^(]*\\(` regex."""
+    import re
+    from backend.delivery.outcome_ledger import (
+        format_portfolio_banner, compute_current_portfolio,
+        Realized90dMetrics,
+    )
+    r = Realized90dMetrics(n_exits=100, realized_pnl_pct=10.0, wr_pct=45.0,
+                            n_positive=45, n_negative=55,
+                            positive_total_pct=90.0, negative_total_pct=-80.0,
+                            n_orphan_auto_close=80, n_rotation=15, n_other=5,
+                            n_zero_pnl_excluded=10,
+                            raw_n_with_pnl=110, raw_pnl_sum_pct=10.0,
+                            raw_wr_pct=40.9)
+    current = compute_current_portfolio([])
+    banner = format_portfolio_banner(current, realized=r)
+    # Extract the substring between "Realized 90d" and the first "(":
+    idx = banner.find("Realized 90d")
+    assert idx >= 0
+    # Find next "(" · everything between must be non-`(`
+    tail = banner[idx:]
+    open_paren = tail.find("(")
+    assert open_paren >= 0, "no `(` after Realized 90d · I25 will fail"
+    between = tail[len("Realized 90d"):open_paren]
+    assert "(" not in between, \
+        f"scope label contains `(` between 'Realized 90d' and count · " \
+        f"breaks I25 regex · between: {between!r}"
+
+
+def test_raw_metrics_reconcile_with_canonical_and_zero_excluded():
+    """raw_n_with_pnl MUST equal n_exits + n_zero_pnl_excluded · this
+    guarantees I25 body count == raw_n_with_pnl."""
+    from backend.delivery.outcome_ledger import compute_realized_90d
+    rows = [
+        {"pnl_pct": 5.0, "exit_reason": ""},
+        {"pnl_pct": -2.0, "exit_reason": ""},
+        {"pnl_pct": 0.0, "exit_reason": "Rotated"},
+        {"pnl_pct": 0.005, "exit_reason": "Rotated"},
+    ]
+    r = compute_realized_90d(rows)
+    assert r.raw_n_with_pnl == r.n_exits + r.n_zero_pnl_excluded
+    assert r.raw_n_with_pnl == 4
+
+
 def test_historical_exits_count_never_matches_current_field_name():
     """Structural guard: no code path can label historical exits count
     as `n_active`. Type system prevents accidental swap."""

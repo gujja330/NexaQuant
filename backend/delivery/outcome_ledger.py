@@ -93,6 +93,19 @@ class Realized90dMetrics:
     n_rotation:           int     # composition disclosure
     n_other:              int
     n_zero_pnl_excluded:  int     # rotation artifacts filtered out
+    # Raw metrics · INCLUDE zero-P&L rotations · used ONLY for the
+    # Portfolio-banner "Realized 90d" reference so it reconciles with
+    # locked I25 validator (which counts every Exit-History row with a
+    # numeric P&L in col 10 · that count includes 0% rotations).
+    #   raw_n_with_pnl   = n_exits + n_zero_pnl_excluded
+    #   raw_pnl_sum_pct  = SUM including 0% rows (adds nothing but
+    #                      documents the sample)
+    #   raw_wr_pct       = n_positive / raw_n_with_pnl * 100 (dilutes
+    #                      the WR because 0% rows are in denominator)
+    # These match I25's counting rule so header/body reconcile.
+    raw_n_with_pnl:       int = 0
+    raw_pnl_sum_pct:      float = 0.0
+    raw_wr_pct:           float = 0.0
 
 
 @dataclass
@@ -153,6 +166,9 @@ def compute_realized_90d(exit_rows: List[dict]) -> Realized90dMetrics:
     n = len(included)
     pos = [p for p in included if p > WIN_THRESHOLD]
     neg = [p for p in included if p < WIN_THRESHOLD]
+    # Raw (I25-compatible) totals · same rows the locked I25 validator
+    # counts in the Exit-History body.
+    raw_n = n + excluded_zero
     return Realized90dMetrics(
         n_exits=n,
         realized_pnl_pct=round(sum(included), 2) if included else 0.0,
@@ -165,6 +181,9 @@ def compute_realized_90d(exit_rows: List[dict]) -> Realized90dMetrics:
         n_rotation=n_rotation,
         n_other=n_other,
         n_zero_pnl_excluded=excluded_zero,
+        raw_n_with_pnl=raw_n,
+        raw_pnl_sum_pct=round(sum(included), 2) if included else 0.0,
+        raw_wr_pct=round(len(pos) / raw_n * 100, 1) if raw_n else 0.0,
     )
 
 
@@ -297,12 +316,31 @@ def build_ledger(xlsx_path: Path, market: str, asof: str) -> OutcomeLedger:
 # ── Banner text formatters (SAME formula across both markets) ────────
 
 
-def format_portfolio_banner(metrics: CurrentPortfolioMetrics) -> str:
-    """Portfolio banner · CURRENT scope ONLY. No realized-90d numbers."""
-    return (
+def format_portfolio_banner(metrics: CurrentPortfolioMetrics,
+                             realized: Optional["Realized90dMetrics"] = None
+                             ) -> str:
+    """Portfolio banner · CURRENT scope primary + a scope-labelled
+    Realized 90d reference (locked I25 requires the reference to
+    reconcile with the Exit-History body row count · the numbers use
+    the RAW counting rule that matches I25's `isinstance(v, numeric)`
+    body scan · scope label makes it unambiguous)."""
+    base = (
         f"🟢 Active (current): {metrics.n_active} positions  ·  "
         f"Unrealized P&L: {metrics.unrealized_pnl_pct:+.2f}%  ·  "
         f"Today's P&L: {metrics.today_pnl_pct:+.2f}%")
+    if realized is not None:
+        # Format phrase MUST match I25's regex:
+        #   r"Realized 90d[^(]*\(\s*(\d+)\s*exits"
+        # I25 requires the FIRST `(` after "Realized 90d" to be the
+        # one immediately preceding the exit count · we use em-dashes
+        # for the scope label so no earlier `(` appears (and I25's
+        # `[^(]*` greedy match reaches all the way to the count paren).
+        base += (
+            f"  ·  Realized 90d — historical · see Exit History sheet — "
+            f"({realized.raw_n_with_pnl} exits · WR "
+            f"{realized.raw_wr_pct}% · P&L "
+            f"{realized.raw_pnl_sum_pct:+.2f}%)")
+    return base
 
 
 def format_portfolio_row3(metrics: CurrentPortfolioMetrics) -> str:
