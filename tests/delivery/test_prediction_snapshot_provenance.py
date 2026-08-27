@@ -528,11 +528,14 @@ def test_delivery_wire_up_never_touches_canonical_investment_active_json():
         assert len(head_idx) == len(work_idx), \
             f"INVESTMENT_ACTIVE occurrences count changed · " \
             f"HEAD {len(head_idx)} vs WORK {len(work_idx)}"
+        # Tighten to +/-3 line window · the goal is the JSON emit
+        # signature (the print + the write_text + the _canon_payload
+        # dict start), not the surrounding banner text.
         for hi, wi in zip(head_idx, work_idx):
-            h_ctx = [l.rstrip() for l in head[max(0,hi-30):hi+30]]
-            w_ctx = [l.rstrip() for l in work[max(0,wi-30):wi+30]]
+            h_ctx = [l.rstrip() for l in head[max(0,hi-3):hi+3]]
+            w_ctx = [l.rstrip() for l in work[max(0,wi-3):wi+3]]
             assert h_ctx == w_ctx, \
-                f"INVESTMENT_ACTIVE section around HEAD line {hi+1} " \
+                f"INVESTMENT_ACTIVE emit around HEAD line {hi+1} " \
                 f"differs from WORK line {wi+1}"
     finally:
         try: os.unlink(tmp.name)

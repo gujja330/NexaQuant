@@ -1525,15 +1525,16 @@ def main() -> int:
                 sum(1 for p in _realized_pnls if p > 0.5) / _n_realized * 100, 1)
                 if _n_realized else 0.0)
 
-            # Row 2 · Active + Today's P&L + Realized (90d)
+            # Row 2 · Active + Today's P&L (CURRENT scope only per CEO
+            # 2026-08-27 reconciliation directive · realized 90d numbers
+            # live in the Exit History sheet · never mixed here)
             portfolio_ws.merge_cells("A2:L2")
             _stale_note = f" · ⚠ {_stale_positions} stale" if _stale_positions else ""
             _r2 = portfolio_ws.cell(2, 1,
-                f"🟢 Active: {_n_active} positions (unique Position IDs)  ·  "
+                f"🟢 Active (current): {_n_active} positions  ·  "
                 f"Unrealized P&L: {_avg_pnl:+.2f}%  ·  "
-                f"Today's P&L: {_today_avg:+.2f}%  ·  "
-                f"Realized 90d: {_realized_sum:+.2f}% ({_n_realized} exits · "
-                f"WR {_realized_wr}%){_stale_note}")
+                f"Today's P&L: {_today_avg:+.2f}%"
+                f"{_stale_note}")
             _r2.font = _Font(bold=True, size=11, color="1F4E78")
             _r2.alignment = _Align(horizontal="left", vertical="center")
             _r2.fill = _PF(start_color="E7EEF7", end_color="E7EEF7", fill_type="solid")
@@ -2203,19 +2204,19 @@ def main() -> int:
                 _neg = [p for p in _visible_active_pnls if p < 0]
                 _pos_avg = round(sum(_pos)/len(_pos), 2) if _pos else 0
                 _neg_avg = round(sum(_neg)/len(_neg), 2) if _neg else 0
-                # Overwrite Row 2 · displayed active count reconciles
+                # Overwrite Row 2 · CURRENT scope ONLY (CEO 2026-08-27
+                # reconciliation directive · realized-90d numbers live
+                # in Exit History sheet · never mixed here)
                 _r2_txt = (
-                    f"🟢 Active: {_n_active} positions (unique Position IDs)  ·  "
+                    f"🟢 Active (current): {_n_active} positions  ·  "
                     f"Unrealized P&L: {_avg_pnl:+.2f}%  ·  "
-                    f"Today's P&L: {_today_avg:+.2f}%  ·  "
-                    f"Realized 90d: {_realized_sum:+.2f}% "
-                    f"({_n_realized} exits · WR {_realized_wr}%)")
+                    f"Today's P&L: {_today_avg:+.2f}%")
                 if _stale_positions:
                     _r2_txt += f"  ·  ⚠ {_stale_positions} stale"
                 portfolio_ws.cell(2, 1).value = _r2_txt
                 _r3_txt = (
-                    f"✅ Positive: {len(_pos)} pos · avg +{_pos_avg:.2f}%  ·  "
-                    f"❌ Negative: {len(_neg)} pos · avg {_neg_avg:.2f}%  ·  "
+                    f"✅ Positive (current): {len(_pos)} pos · avg +{_pos_avg:.2f}%  ·  "
+                    f"❌ Negative (current): {len(_neg)} pos · avg {_neg_avg:.2f}%  ·  "
                     f"(equal-weight · capital weights TBD)")
                 portfolio_ws.cell(3, 1).value = _r3_txt
                 print(f"[xlsx:{mkt_key}] Row 2/3 rewritten · "
@@ -3244,31 +3245,40 @@ def main() -> int:
             # _exit_rows is finalized. Row 2 · Total realized P&L +
             # exit count + win rate. Row 3 · Positive + Negative breakdown.
             try:
-                _exit_pnls = [x[9] for x in _exit_rows
-                              if isinstance(x[9], (int, float))
-                              and abs(x[9]) > 0.01]
-                _n_ex = len(_exit_pnls)
-                _pos_ex = [p for p in _exit_pnls if p > 0]
-                _neg_ex = [p for p in _exit_pnls if p < 0]
-                _tot_ex = sum(_exit_pnls) if _exit_pnls else 0
-                _wr_ex = (round(len(_pos_ex) / _n_ex * 100, 1)
-                          if _n_ex else 0)
-                _r2e = exit_ws.cell(2, 1,
-                    f"📊 Total: {_n_ex} exits · Realized P&L: {_tot_ex:+.2f}%  ·  "
-                    f"Win Rate: {_wr_ex}%")
+                # CEO 2026-08-27 reconciliation · REALIZED 90d scope
+                # ONLY · canonical outcome_ledger formulas · same
+                # across India + USA · never mixes current-portfolio
+                # numbers into this summary.
+                from backend.delivery.outcome_ledger import (
+                    compute_realized_90d as _oc_realized,
+                    format_exit_history_summary as _oc_r2,
+                    format_exit_history_row3 as _oc_r3,
+                )
+                _oc_rows = []
+                for _er in _exit_rows:
+                    _pnl_v = _er[9]
+                    _reason_v = _er[10] if len(_er) > 10 else ""
+                    _oc_rows.append({
+                        "pnl_pct":     _pnl_v if isinstance(_pnl_v, (int, float)) else None,
+                        "exit_reason": str(_reason_v or ""),
+                    })
+                _oc_m = _oc_realized(_oc_rows)
+                _r2e = exit_ws.cell(2, 1, _oc_r2(_oc_m))
                 _r2e.font = _Font(bold=True, size=11, color="1F4E78")
                 _r2e.alignment = _Align(horizontal="left", vertical="center")
                 _r2e.fill = _PF(start_color="E7EEF7",
                                 end_color="E7EEF7", fill_type="solid")
-                _pos_sum_e = sum(_pos_ex) if _pos_ex else 0
-                _neg_sum_e = sum(_neg_ex) if _neg_ex else 0
-                _r3e = exit_ws.cell(3, 1,
-                    f"✅ Positive: {len(_pos_ex)} exits · +{_pos_sum_e:.2f}% total  ·  "
-                    f"❌ Negative: {len(_neg_ex)} exits · {_neg_sum_e:.2f}% total")
+                _r3e = exit_ws.cell(3, 1, _oc_r3(_oc_m))
                 _r3e.font = _Font(bold=True, size=11, color="1F4E78")
                 _r3e.alignment = _Align(horizontal="left", vertical="center")
                 _r3e.fill = _PF(start_color="E7EEF7",
                                 end_color="E7EEF7", fill_type="solid")
+                print(f"[exit_history:{mkt_key}] realized-90d banner · "
+                      f"{_oc_m.n_exits} exits · WR {_oc_m.wr_pct}% · "
+                      f"P&L {_oc_m.realized_pnl_pct:+.2f}% · "
+                      f"comp: orphan={_oc_m.n_orphan_auto_close} "
+                      f"rot={_oc_m.n_rotation} other={_oc_m.n_other} "
+                      f"zero-excluded={_oc_m.n_zero_pnl_excluded}")
             except Exception as _e_top:
                 print(f"[exit_history:{mkt_key}] top analysis rows skipped · "
                       f"{type(_e_top).__name__}: {_e_top}")
@@ -3529,19 +3539,21 @@ def main() -> int:
                 _eh_avg = (sum(_eh_pnls) / len(_eh_pnls)) if _eh_pnls else 0.0
                 _eh_wr  = (round(sum(1 for p in _eh_pnls if p > 0.5) / len(_eh_pnls) * 100, 1)
                            if _eh_pnls else 0.0)
+                # CEO 2026-08-27 reconciliation · CURRENT scope ONLY
+                # · realized-90d numbers live in Exit History sheet ·
+                # never mixed here. The banner and Exit History summary
+                # are now driven by SEPARATE canonical scopes so the
+                # user can never read them as a homogeneous dataset.
                 _r2_final = (
-                    f"🟢 Active: {_n_visible} positions (unique Position IDs · "
-                    f"excludes suggestions/momentum)  ·  "
+                    f"🟢 Active (current): {_n_visible} positions  ·  "
                     f"Unrealized P&L: {_pnl_avg_f:+.2f}%  ·  "
-                    f"Today's P&L: {_today_avg_f:+.2f}%  ·  "
-                    f"Realized 90d: {_eh_avg:+.2f}% "
-                    f"({_eh_n} exits · WR {_eh_wr}%)")
+                    f"Today's P&L: {_today_avg_f:+.2f}%")
                 if _stale_positions:
                     _r2_final += f"  ·  ⚠ {_stale_positions} stale"
                 portfolio_ws.cell(2, 1).value = _r2_final
                 _r3_final = (
-                    f"✅ Positive: {len(_pos_f)} pos · avg +{_pos_avg_f:.2f}%  ·  "
-                    f"❌ Negative: {len(_neg_f)} pos · avg {_neg_avg_f:.2f}%  ·  "
+                    f"✅ Positive (current): {len(_pos_f)} pos · avg +{_pos_avg_f:.2f}%  ·  "
+                    f"❌ Negative (current): {len(_neg_f)} pos · avg {_neg_avg_f:.2f}%  ·  "
                     f"(equal-weight · capital weights TBD)")
                 portfolio_ws.cell(3, 1).value = _r3_final
                 print(f"[xlsx:{mkt_key}] Row 2/3 FINAL reconciliation · "
@@ -3578,6 +3590,45 @@ def main() -> int:
             except Exception as _e_final:
                 print(f"[xlsx:{mkt_key}] final Row 2/3 reconciliation failed · "
                       f"{type(_e_final).__name__}: {_e_final}")
+
+            # CEO 2026-08-27 reconciliation directive · Definitions sheet.
+            # Publishes the scope + formula + composition rules INSIDE the
+            # workbook so the reader can never misinterpret current vs
+            # historical numbers. Identical across markets.
+            try:
+                from backend.delivery.outcome_ledger import (
+                    DEFINITIONS_SHEET_NAME as _DEF_NAME,
+                    DEFINITIONS_ROWS as _DEF_ROWS,
+                )
+                if _DEF_NAME in wb2.sheetnames:
+                    del wb2[_DEF_NAME]
+                _def_ws = wb2.create_sheet(_DEF_NAME)
+                _def_ws.column_dimensions["A"].width = 42
+                _def_ws.column_dimensions["B"].width = 110
+                for _di, (_k, _v) in enumerate(_DEF_ROWS, start=1):
+                    _c1 = _def_ws.cell(_di, 1, _k)
+                    _c2 = _def_ws.cell(_di, 2, _v)
+                    _c2.alignment = _Align(wrap_text=True, vertical="top")
+                    if _k.startswith("──"):
+                        _c1.font = _Font(bold=True, size=11, color="FFFFFF")
+                        _c1.fill = _PF(start_color="1F4E78",
+                                        end_color="1F4E78", fill_type="solid")
+                        _def_ws.merge_cells(start_row=_di, start_column=1,
+                                             end_row=_di, end_column=2)
+                    elif _di == 1:
+                        _c1.font = _Font(bold=True, size=14, color="1F4E78")
+                        _def_ws.merge_cells(start_row=_di, start_column=1,
+                                             end_row=_di, end_column=2)
+                    elif not _v:
+                        _c1.font = _Font(bold=True, size=11, color="1F4E78")
+                    else:
+                        _c1.font = _Font(bold=True, size=10)
+                        _c2.font = _Font(size=10, color="404040")
+                print(f"[xlsx:{mkt_key}] Definitions sheet emitted · "
+                      f"{len(_DEF_ROWS)} rows")
+            except Exception as _e_def:
+                print(f"[xlsx:{mkt_key}] Definitions sheet skipped · "
+                      f"{type(_e_def).__name__}: {_e_def}")
 
             wb2.save(out_path)
             src_wb.close()
