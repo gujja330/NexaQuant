@@ -34,11 +34,16 @@ on:
     - cron: "0 1 * * 1-5"     # ~06:30 IST — backup 1
     - cron: "30 1 * * 1-5"    # ~07:00 IST — backup 2 (last of morning window)
   workflow_dispatch:
-  # 2026-08-18 · TEMPORARY · fire on next main push to force a fresh CI-built
-  # XLSX after the gujja330 account switch. REVERT this section in follow-up
-  # commit once Telegram delivery confirmed.
-  push:
-    branches: [main]
+  # 2026-08-28 · CEO directive · revert of 2026-08-18 temporary push
+  # trigger. That trigger was explicitly marked TEMPORARY and caused
+  # this workflow to fire on every main push · including pushes that
+  # land at IST midnight boundary · engine wrote GEN=YYYY-MM-DD-1
+  # while freshness check compared to TODAY_IST=YYYY-MM-DD · exit 1.
+  # Restoring the original schedule-only design (per line 22
+  # commentary: "All slots after 00:00 UTC so datetime.now().date()
+  # in the UTC runner and $(TZ=Asia/Kolkata date +%F) both return
+  # TODAY IST"). Pushes that need to test India delivery run via
+  # workflow_dispatch instead.
 
 # Wave Y · Constitution Article 45: workflows touching shared state MUST
 # declare concurrency. Fixes v2.2 T1/Sch1 (duplicate scheduler+Telegram sends).

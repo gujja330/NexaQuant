@@ -89,10 +89,18 @@ class Realized90dMetrics:
     n_negative:           int
     positive_total_pct:   float   # sum of positive pnls
     negative_total_pct:   float   # sum of negative pnls
-    n_orphan_auto_close:  int     # composition disclosure
-    n_rotation:           int     # composition disclosure
-    n_other:              int
-    n_zero_pnl_excluded:  int     # rotation artifacts filtered out
+    # Composition disclosure · 6 categories reconcile with Registry
+    # analyzer (`backend/research/opportunity_registry`) so counts
+    # agree when the same input population is scored both ways.
+    n_orphan_auto_close:  int     # ORPHAN_AUTO_CLOSE (Registry cleanup)
+    n_rotation:           int     # "Rotated to X · better setup" · → arrow
+    n_stop_loss:          int = 0 # stop loss hit
+    n_target_hit:         int = 0 # profit target / T1 / T2 hit
+    n_time_stop:          int = 0 # time-stop reached
+    n_signal_exit:        int = 0 # SIGNAL / EXIT / SELL from R1/R2 signal
+    n_other:              int = 0 # any residual · should be 0 when
+                                  # classifier is exhaustive
+    n_zero_pnl_excluded:  int = 0 # rotation artifacts filtered out
     # Raw metrics · INCLUDE zero-P&L rotations · used ONLY for the
     # Portfolio-banner "Realized 90d" reference so it reconciles with
     # locked I25 validator (which counts every Exit-History row with a
@@ -131,10 +139,22 @@ def _is_zero(v) -> bool:
 
 
 def _classify_reason(reason: str) -> str:
+    """CEO 2026-08-28 · 5-category classifier reconciles with Registry
+    analyzer (`backend/research/opportunity_registry`). Rows are
+    labelled by the sanitized display text in Exit History · the
+    Registry raw-reason classifier maps 1:1 to these buckets so counts
+    reconcile when the same input population is scored both ways.
+    """
     r = (reason or "").upper()
     if "ORPHAN_AUTO_CLOSE" in r:            return "orphan"
-    if r.startswith("ROTATED") or " ROTATED" in r or "ROTATION" in r:
+    if r.startswith("ROTATED") or " ROTATED" in r or "ROTATION" in r or "→" in reason:
         return "rotation"
+    if "STOP" in r and ("LOSS" in r or "HIT" in r):
+        return "stop_loss"
+    if "TARGET" in r or "PROFIT" in r:
+        return "target_hit"
+    if "TIME" in r and "STOP" in r:                       return "time_stop"
+    if "EXIT" in r or "SIGNAL" in r or "SELL" in r:       return "signal_exit"
     return "other"
 
 
@@ -147,9 +167,9 @@ def compute_realized_90d(exit_rows: List[dict]) -> Realized90dMetrics:
     """
     included: list = []
     excluded_zero = 0
-    n_orphan = 0
-    n_rotation = 0
-    n_other = 0
+    counts = {"orphan": 0, "rotation": 0, "stop_loss": 0,
+              "target_hit": 0, "time_stop": 0, "signal_exit": 0,
+              "other": 0}
     for row in exit_rows:
         pnl = row.get("pnl_pct")
         if not isinstance(pnl, (int, float)):
@@ -160,9 +180,10 @@ def compute_realized_90d(exit_rows: List[dict]) -> Realized90dMetrics:
             continue
         included.append(pnl)
         cls = _classify_reason(row.get("exit_reason", ""))
-        if   cls == "orphan":   n_orphan   += 1
-        elif cls == "rotation": n_rotation += 1
-        else:                   n_other    += 1
+        counts[cls] = counts.get(cls, 0) + 1
+    n_orphan = counts["orphan"]
+    n_rotation = counts["rotation"]
+    n_other = counts["other"]
     n = len(included)
     pos = [p for p in included if p > WIN_THRESHOLD]
     neg = [p for p in included if p < WIN_THRESHOLD]
@@ -179,6 +200,10 @@ def compute_realized_90d(exit_rows: List[dict]) -> Realized90dMetrics:
         negative_total_pct=round(sum(neg), 2) if neg else 0.0,
         n_orphan_auto_close=n_orphan,
         n_rotation=n_rotation,
+        n_stop_loss=counts["stop_loss"],
+        n_target_hit=counts["target_hit"],
+        n_time_stop=counts["time_stop"],
+        n_signal_exit=counts["signal_exit"],
         n_other=n_other,
         n_zero_pnl_excluded=excluded_zero,
         raw_n_with_pnl=raw_n,
@@ -354,10 +379,24 @@ def format_portfolio_row3(metrics: CurrentPortfolioMetrics) -> str:
 
 def format_exit_history_summary(metrics: Realized90dMetrics) -> str:
     """Exit History summary · REALIZED 90d scope ONLY. No current
-    portfolio numbers."""
-    comp = (f" · composition: {metrics.n_orphan_auto_close} orphan · "
-            f"{metrics.n_rotation} rotation · {metrics.n_other} clean"
-            if metrics.n_exits else "")
+    portfolio numbers. 6-category composition reconciles 1:1 with
+    Registry analyzer."""
+    if metrics.n_exits:
+        parts = []
+        for label, n in (
+            ("orphan",     metrics.n_orphan_auto_close),
+            ("rotation",   metrics.n_rotation),
+            ("stop_loss",  metrics.n_stop_loss),
+            ("target",     metrics.n_target_hit),
+            ("time_stop",  metrics.n_time_stop),
+            ("signal",     metrics.n_signal_exit),
+            ("other",      metrics.n_other),
+        ):
+            if n > 0:
+                parts.append(f"{n} {label}")
+        comp = " · composition: " + " · ".join(parts)
+    else:
+        comp = ""
     return (
         f"📊 Realized 90d: {metrics.n_exits} exits · "
         f"Total P&L: {metrics.realized_pnl_pct:+.2f}%  ·  "
@@ -402,8 +441,8 @@ DEFINITIONS_ROWS = [
      "SUM of pnl_pct across included exits (equal-weight · not capital-weighted)"),
     ("Win Rate (realized)",
      "n_positive / n_exits · positive means pnl_pct > 0 (strict)"),
-    ("Composition breakdown",
-     "Per-summary: ORPHAN_AUTO_CLOSE count · ROTATION count · clean-trade count · surfaced so evidence is not read as a homogeneous sample"),
+    ("Composition breakdown (6 categories)",
+     "Per-summary: orphan · rotation · stop_loss · target · time_stop · signal · other. Reconciles 1:1 with Registry analyzer (backend/research/opportunity_registry). Only categories with n > 0 are listed in the banner."),
     ("", ""),
     ("── AEGIS X History sheet (scope: FULL AUDIT) ──", ""),
     ("Population",

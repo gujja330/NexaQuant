@@ -64,9 +64,11 @@ def test_zero_pnl_rotations_are_excluded_from_realized_summary():
 # ── 2 · Composition disclosure ────────────────────────────────────────
 
 
-def test_composition_breakdown_labels_orphan_rotation_clean():
+def test_composition_breakdown_labels_orphan_rotation_and_others():
     """CEO: '91% of USA exits are ORPHAN_AUTO_CLOSE. The population is
-    not homogeneous. Compositions must be surfaced.'"""
+    not homogeneous. Compositions must be surfaced.'
+    Updated 2026-08-28: 6-category classifier · TARGET_1_HIT is now
+    counted in n_target_hit, not n_other."""
     from backend.delivery.outcome_ledger import compute_realized_90d
     rows = [
         {"pnl_pct": 1.0, "exit_reason": "ORPHAN_AUTO_CLOSE · repair"},
@@ -77,8 +79,12 @@ def test_composition_breakdown_labels_orphan_rotation_clean():
     m = compute_realized_90d(rows)
     assert m.n_orphan_auto_close == 2
     assert m.n_rotation == 1
-    assert m.n_other == 1
-    assert m.n_orphan_auto_close + m.n_rotation + m.n_other == m.n_exits
+    assert m.n_target_hit == 1
+    assert m.n_other == 0
+    # Exhaustiveness: every classified row lands in exactly one bucket
+    total = (m.n_orphan_auto_close + m.n_rotation + m.n_stop_loss +
+             m.n_target_hit + m.n_time_stop + m.n_signal_exit + m.n_other)
+    assert total == m.n_exits
 
 
 # ── 3 · Scope discipline: current ≠ historical ────────────────────────
@@ -301,6 +307,73 @@ def test_portfolio_banner_scope_label_uses_no_parens_before_count():
     assert "(" not in between, \
         f"scope label contains `(` between 'Realized 90d' and count · " \
         f"breaks I25 regex · between: {between!r}"
+
+
+def test_classifier_reconciles_with_registry_analyzer_6_categories():
+    """CEO 2026-08-28 · reconciliation directive: workbook composition
+    must break down into the same 6 categories the Registry analyzer
+    uses (orphan / rotation / stop_loss / target / time_stop / signal /
+    other). Old 3-category (orphan/rotation/clean) collapsed 34
+    non-orphan Registry events into "0 clean", hiding stop-loss and
+    target-hit distinctions."""
+    from backend.delivery.outcome_ledger import compute_realized_90d
+    rows = [
+        {"pnl_pct": 5.0,  "exit_reason": "ORPHAN_AUTO_CLOSE"},
+        {"pnl_pct": 2.0,  "exit_reason": "ORPHAN_AUTO_CLOSE · CANONICAL_REPAIR"},
+        {"pnl_pct": 3.0,  "exit_reason": "Rotated to X · better setup (+5pp)"},
+        {"pnl_pct": 1.0,  "exit_reason": "→ MU · +5.4pp alpha"},
+        {"pnl_pct": -2.0, "exit_reason": "Stop loss hit"},
+        {"pnl_pct": -1.5, "exit_reason": "STOP_LOSS_HIT"},
+        {"pnl_pct": 4.0,  "exit_reason": "Profit target hit"},
+        {"pnl_pct": 3.5,  "exit_reason": "TARGET_1_HIT"},
+        {"pnl_pct": 0.5,  "exit_reason": "Time stop reached"},
+        {"pnl_pct": 1.5,  "exit_reason": "Signal exit"},
+    ]
+    m = compute_realized_90d(rows)
+    assert m.n_orphan_auto_close == 2, f"orphan count wrong: {m.n_orphan_auto_close}"
+    assert m.n_rotation == 2, f"rotation count wrong: {m.n_rotation}"
+    assert m.n_stop_loss == 2, f"stop_loss count wrong: {m.n_stop_loss}"
+    assert m.n_target_hit == 2, f"target_hit count wrong: {m.n_target_hit}"
+    assert m.n_time_stop == 1, f"time_stop count wrong: {m.n_time_stop}"
+    assert m.n_signal_exit == 1, f"signal_exit count wrong: {m.n_signal_exit}"
+    assert m.n_other == 0, f"other should be 0 · unclassified: {m.n_other}"
+    # All classified · sum must equal n_exits
+    total = (m.n_orphan_auto_close + m.n_rotation + m.n_stop_loss +
+             m.n_target_hit + m.n_time_stop + m.n_signal_exit + m.n_other)
+    assert total == m.n_exits, \
+        f"category sum {total} != n_exits {m.n_exits} · classifier not exhaustive"
+
+
+def test_arrow_marker_classified_as_rotation():
+    """CEO caught: pre-sanitization `→ MU · +5.4pp alpha` was classified
+    as 'other' by the Registry analyzer but 'rotation' by the sanitizer
+    (which rewrites it to 'Rotated to MU · better setup'). New unified
+    classifier catches the arrow marker directly · Registry and workbook
+    now agree."""
+    from backend.delivery.outcome_ledger import _classify_reason
+    assert _classify_reason("→ MU · +5.4pp alpha") == "rotation"
+    assert _classify_reason("→ GOOGL") == "rotation"
+    assert _classify_reason("Rotated to MU · better setup") == "rotation"
+    assert _classify_reason("ROTATION") == "rotation"
+
+
+def test_composition_line_lists_only_non_zero_categories():
+    """Cosmetic: the composition breakdown lists only categories with
+    n > 0 · avoids visual clutter for markets with only 2 categories."""
+    from backend.delivery.outcome_ledger import (
+        compute_realized_90d, format_exit_history_summary,
+    )
+    rows = [
+        {"pnl_pct": 5.0,  "exit_reason": "ORPHAN_AUTO_CLOSE"},
+        {"pnl_pct": 3.0,  "exit_reason": "Rotated to X · better setup"},
+    ]
+    m = compute_realized_90d(rows)
+    banner = format_exit_history_summary(m)
+    assert "orphan" in banner and "rotation" in banner
+    assert "stop_loss" not in banner, \
+        "should not list zero-count categories in composition line"
+    assert "target" not in banner
+    assert "0 other" not in banner
 
 
 def test_raw_metrics_reconcile_with_canonical_and_zero_excluded():
