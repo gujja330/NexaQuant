@@ -3,7 +3,7 @@
 _Sprint M-R · Forward Validation Engine v1 · locked_
 
 **Date:** 2026-08-27  
-**Generated:** 2026-08-27T08:58:44+00:00  
+**Generated:** 2026-08-27T09:15:44+00:00  
 **Target sample size:** N ≥ 100
 
 

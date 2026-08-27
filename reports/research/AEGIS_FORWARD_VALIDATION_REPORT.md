@@ -2,7 +2,7 @@
 
 _Sprint M-R · Forward Validation Engine v1 · sandbox_
 
-**Generated:** 2026-08-27T06:05:30+00:00  
+**Generated:** 2026-08-27T09:15:39+00:00  
 **Engine:** `aegis.mr_forward_validation_report.v1.0`  
 **Status:** FOUNDATION COMPLETE · INTEGRATION DEFERRED  
 **Locked layers:** UNTOUCHED · zero production changes.
@@ -366,7 +366,7 @@ _(fundamentals parquet coverage gap · no bucket qualifies)_
 
 
 ### INDIA
-- Regime distribution across window: `{'BULL': 700, 'HIGH_VOL': 280, 'NEUTRAL': 176, 'BEAR': 316}`
+- Regime distribution across window: `{'BULL': 700, 'BEAR': 316, 'HIGH_VOL': 280, 'NEUTRAL': 176}`
 
 | Regime | n | 5D WR | 5D avg | 10D avg | MFE | MAE | stop-hit |
 |---|---:|---:|---:|---:|---:|---:|---:|
@@ -375,7 +375,7 @@ _(fundamentals parquet coverage gap · no bucket qualifies)_
 | UNKNOWN | 62 | 29.73% | -0.318% | — | 0.642% | -1.211% | 6.45% |
 
 ### USA
-- Regime distribution across window: `{'BULL': 599, 'HIGH_VOL': 294, 'NEUTRAL': 99, 'BEAR': 202}`
+- Regime distribution across window: `{'BULL': 599, 'BEAR': 202, 'HIGH_VOL': 294, 'NEUTRAL': 99}`
 
 | Regime | n | 5D WR | 5D avg | 10D avg | MFE | MAE | stop-hit |
 |---|---:|---:|---:|---:|---:|---:|---:|

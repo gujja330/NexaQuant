@@ -1,7 +1,7 @@
 # AEGIS · Sprint M-R · FORWARD VALIDATION ENGINE v1 · Master Report
 
 **Version tag:** M-R.v1.0 · **Experiment ID:** M-R.v0.1 · sandbox
-**Generated:** 2026-08-27T08:58:39+00:00
+**Generated:** 2026-08-27T09:15:38+00:00
 **Scope:** every daily prediction in aegis_history.xlsx over the last month.
 
 ## Status
@@ -269,7 +269,7 @@ Genome signals:
 
 
 ### INDIA
-Regime distribution across window: {'BEAR': 316, 'HIGH_VOL': 280, 'BULL': 700, 'NEUTRAL': 176}
+Regime distribution across window: {'BULL': 700, 'BEAR': 316, 'HIGH_VOL': 280, 'NEUTRAL': 176}
 
 | Regime | n | WR fwd_5d | avg fwd_5d | avg fwd_10d |
 |---|---:|---:|---:|---:|
@@ -278,7 +278,7 @@ Regime distribution across window: {'BEAR': 316, 'HIGH_VOL': 280, 'BULL': 700, '
 | UNKNOWN | 62 | 29.73% | -0.318% | — |
 
 ### USA
-Regime distribution across window: {'BEAR': 202, 'HIGH_VOL': 294, 'BULL': 599, 'NEUTRAL': 99}
+Regime distribution across window: {'BULL': 599, 'BEAR': 202, 'HIGH_VOL': 294, 'NEUTRAL': 99}
 
 | Regime | n | WR fwd_5d | avg fwd_5d | avg fwd_10d |
 |---|---:|---:|---:|---:|

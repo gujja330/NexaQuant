@@ -1,13 +1,13 @@
 # AEGIS · Forward Validation Engine v1 · CEO Dashboard (M1)
 
-_Generated 2026-08-27T08:58:40+00:00._
+_Generated 2026-08-27T09:15:39+00:00._
 
 ```
 
 =====================================================================
        AEGIS · FORWARD VALIDATION ENGINE v1 · CEO DASHBOARD (M1)
 =====================================================================
-generated_utc: 2026-08-27T08:58:40+00:00
+generated_utc: 2026-08-27T09:15:39+00:00
 engine:        aegis.mr_ceo_dashboard.v1.0
 status:        FOUNDATION COMPLETE · INTEGRATION DEFERRED
 locked layers: UNTOUCHED (R1, R2, XLSX contract, canonical JSON, ensemble weights)

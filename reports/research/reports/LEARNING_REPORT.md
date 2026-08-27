@@ -2,7 +2,7 @@
 
 _Sprint M-R Learning Report · consolidated from history + exit evidence_
 
-**Generated:** 2026-08-27T08:58:47+00:00
+**Generated:** 2026-08-27T09:15:46+00:00
 
 ---
 

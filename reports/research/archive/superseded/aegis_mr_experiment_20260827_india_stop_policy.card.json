@@ -1,0 +1,44 @@
+{
+  "experiment_id": "aegis_mr_experiment_20260827_india_stop_policy",
+  "source_ticket_id": "aegis_mr_ticket_20260827_india_stop_policy",
+  "market": "INDIA",
+  "hypothesis": "Under 30-day historical replay, TIME_STOP_5D exit produces avg expectancy of -0.613% vs CURRENT -0.886%. TIME_STOP_5D also eliminates all catastrophic >10% losses (0.00% vs 0.20%).",
+  "expected_effect": "Gap = 0.273%. Applied to production: ~0.27% expectancy improvement per position, zero catastrophic losses in this sample.",
+  "proposed_rule": "In a shadow exit engine: for every ACTIVE position beyond 5 trading days from entry, emit ADVISORY 'time-exit candidate'. Do NOT modify the production stop or exit. Config-flag OFF.",
+  "risk": "5-day time exit forfeits the tail of longer-holding winners. Track MFE-captured metric alongside expectancy.",
+  "current_status": "SUPERSEDED_BY",
+  "min_sample_size": 100,
+  "observation_window_days": 30,
+  "first_snapshot_date": "2026-08-27",
+  "days_of_evidence": 1,
+  "attempts": [
+    {
+      "iso": "2026-08-27",
+      "n_rows": 19,
+      "runner": "aegis.mr_experiment_runner.v0.1"
+    }
+  ],
+  "engine": "aegis.mr_walkforward_experiment.v0.1",
+  "experiment_id_family": "M-R.v0.1",
+  "generated_utc": "2026-08-27T09:15:39+00:00",
+  "shadow_wire_up": "Sandbox shadow output only · reads production R1/R2 canonical and applies the proposed rule OUTSIDE the delivery layer. Writes shadow rows to reports/research/walkforward/{date}/{exp_id}.jsonl. Never touches XLSX, canonical JSON, Registry, or Telegram.",
+  "safety_gate": [
+    "No production R1/R2/Registry/XLSX/ensemble/config changes.",
+    "Shadow output MUST live under reports/research/walkforward/.",
+    "Any regression in current delivery invariants (BLOCK != 0) aborts."
+  ],
+  "metric": "expectancy_gap_vs_current",
+  "secondary_metrics": [
+    "catastrophic_loss_rate",
+    "MFE_captured",
+    "profit_factor",
+    "stop_hit_rate"
+  ],
+  "null_hypothesis": "Advisory TIME_STOP_5D exit does not improve median forward-return from advisory date by more than +/-0.1%.",
+  "acceptance_criteria": "Median advisory return over next 5D >= median current-policy return + 0.3% AND catastrophic-loss rate <= current on n>=100 advisory events.",
+  "rejection_criteria": "MFE-captured drops by more than 0.5% vs current · signals that time-exit is forfeiting winners.",
+  "superseded_by": "aegis_mr_experiment_20260827_x2_stop_loss_time_5d",
+  "consolidator_stamp_utc": "2026-08-27T09:15:39+00:00",
+  "updated_utc": "2026-08-27T09:15:42+00:00",
+  "_route": "superseded"
+}

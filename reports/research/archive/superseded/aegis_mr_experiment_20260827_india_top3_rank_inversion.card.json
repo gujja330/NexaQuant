@@ -1,0 +1,44 @@
+{
+  "experiment_id": "aegis_mr_experiment_20260827_india_top3_rank_inversion",
+  "source_ticket_id": "aegis_mr_ticket_20260827_india_top3_rank_inversion",
+  "market": "INDIA",
+  "hypothesis": "India R1 places QUALITY(57%) + OK(40%) high-confidence stocks in top-3 slots · these have 14.5% 5D WR. Meanwhile R2 rank_4_7 (n=56, 47% WR, +0.53% avg) is the only positive cohort. The ranker's top-3 selection is anti-correlated with outcome.",
+  "expected_effect": "Rank-slot filter test: 'reject R1 top-3 in India unless additional MA20-dist +1..+5 filter passes' should lift avg return by ~+0.5% on the affected 82-prediction cohort.",
+  "proposed_rule": "In a shadow India ranker: gate any rank-1-to-3 output through a 'ma20_dist_pct BETWEEN +1 AND +5' filter. Non-passing candidates demoted to rank_4_7. Config-flag OFF by default.",
+  "risk": "Filter may over-tighten and reduce total NEW recommendations. Track daily rec-count delta. If drop >30% for 5 consecutive days, roll back.",
+  "current_status": "SUPERSEDED_BY",
+  "min_sample_size": 100,
+  "observation_window_days": 30,
+  "first_snapshot_date": "2026-08-27",
+  "days_of_evidence": 1,
+  "attempts": [
+    {
+      "iso": "2026-08-27",
+      "n_rows": 19,
+      "runner": "aegis.mr_experiment_runner.v0.1"
+    }
+  ],
+  "engine": "aegis.mr_walkforward_experiment.v0.1",
+  "experiment_id_family": "M-R.v0.1",
+  "generated_utc": "2026-08-27T09:15:39+00:00",
+  "shadow_wire_up": "Sandbox shadow output only · reads production R1/R2 canonical and applies the proposed rule OUTSIDE the delivery layer. Writes shadow rows to reports/research/walkforward/{date}/{exp_id}.jsonl. Never touches XLSX, canonical JSON, Registry, or Telegram.",
+  "safety_gate": [
+    "No production R1/R2/Registry/XLSX/ensemble/config changes.",
+    "Shadow output MUST live under reports/research/walkforward/.",
+    "Any regression in current delivery invariants (BLOCK != 0) aborts."
+  ],
+  "metric": "shadow_top3_5D_WR",
+  "secondary_metrics": [
+    "shadow_rank_4_7_5D_WR",
+    "universe_ma20_hit_rate",
+    "shadow_MAE_avg",
+    "daily_new_rec_count_delta"
+  ],
+  "null_hypothesis": "Gating R1 top-3 through MA20-dist +1..+5 does not change shadow top-3 5D WR by more than +/-3pp.",
+  "acceptance_criteria": "Shadow top-3 5D WR >= production top-3 5D WR + 10pp AND does NOT reduce rank_4_7 quality by more than 2pp on n>=50 top-3 candidates.",
+  "rejection_criteria": "Daily rec-count drop > 30% for 5 consecutive days OR shadow top-3 5D WR < production top-3 - 3pp.",
+  "superseded_by": "aegis_mr_experiment_20260827_x1_india_r1_r2_ranking",
+  "consolidator_stamp_utc": "2026-08-27T09:15:39+00:00",
+  "updated_utc": "2026-08-27T09:15:42+00:00",
+  "_route": "superseded"
+}

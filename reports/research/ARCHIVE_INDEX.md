@@ -1,6 +1,6 @@
 # AEGIS · Research Archive Index
 
-_Generated 2026-08-27T08:58:47+00:00_
+_Generated 2026-08-27T09:15:47+00:00_
 
 **Total findings tracked:** 15
 

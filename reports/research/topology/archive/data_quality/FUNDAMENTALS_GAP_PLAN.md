@@ -1,6 +1,6 @@
 # Fundamentals Coverage Gap · Closure Plan
 
-_Generated 2026-08-27T08:58:44+00:00_
+_Generated 2026-08-27T09:15:43+00:00_
 
 ## INDIA
 - Fundamentals parquet: **228** tickers
