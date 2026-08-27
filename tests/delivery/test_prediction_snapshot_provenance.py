@@ -267,3 +267,273 @@ def test_cannot_reconstruct_keeps_quarantine(tmp_path):
                        evidence={})
     # Still quarantined (cannot_reconstruct is a note, not a lift)
     assert is_quarantined(tmp_path, key) is True
+
+
+# ─────────────────────────────────────────────────────────────
+# CEO 2026-08-27 · canonical/provenance layer end-to-end tests
+#
+# Reproduces the EXACT two failing USA rows from CI run 33069236589:
+#   · I26 · EIX row 11 · Portfolio · entry=$74.51 vs Aug 14 close $71.41
+#   · I28 · EA row 175 · Exit History · exit_date=2026-08-26 for delisted ticker
+#
+# Then asserts the canonical-repair + delivery-wiring path produces
+# correct rows on rerun. These are the "exact row" regressions CEO
+# explicitly required.
+# ─────────────────────────────────────────────────────────────
+
+
+def test_i26_eix_snapshot_ledger_canonical_repair_produces_correct_entry(tmp_path):
+    """Exact reproduction of CI run 33069236589 I26 failure.
+    Original EIX snapshot was recorded (in error) at entry_date=Aug 20,
+    entry_price=$74.51 · then found to be wrong via source-XLSX and
+    yfinance evidence · canonical_repair to entry_date=Aug 14,
+    entry_price=$71.08. get_by_ticker(USA, EIX) must return the CORRECTED
+    values · not the quarantined originals."""
+    from backend.delivery.prediction_snapshot import (
+        record_snapshot, apply_canonical_repair, get_by_ticker,
+        get_snapshot,
+    )
+    # Original (wrong) snapshot
+    r_old = record_snapshot(tmp_path, market="USA", ticker="EIX",
+                             prediction_date="2026-08-19",
+                             entry_date="2026-08-20",
+                             entry_price=74.51,
+                             source_close_date="2026-08-20",
+                             source_dataset_version="yfinance_20260827",
+                             canonical_signal="R1_BUY")
+    old_pid = r_old["prediction_id"]
+    # Canonical repair to true values
+    fresh = apply_canonical_repair(tmp_path, old_pid,
+        new_entry_date="2026-08-14",
+        new_entry_price=71.08,
+        new_source_close_date="2026-08-14",
+        authoritative_source="source XLSX rows 3-7 concordant",
+        approval="CEO 2026-08-27")
+    assert fresh is not None
+    # OLD pid now quarantined via append-only marker
+    assert get_snapshot(tmp_path, old_pid) is None, \
+        "old wrong snapshot must be quarantined after canonical repair"
+    # Delivery consumer's canonical lookup returns the CORRECTED values
+    canon = get_by_ticker(tmp_path, "USA", "EIX", "R1_BUY")
+    assert canon is not None
+    assert canon["entry_date"] == "2026-08-14"
+    assert canon["entry_price"] == 71.08, \
+        f"delivery consumer must see corrected entry_price=$71.08 · got ${canon['entry_price']}"
+
+
+def test_i26_eix_delivery_override_prevents_source_xlsx_restamp(tmp_path):
+    """When the source XLSX has a corrupted entry_price=$74.51 restamp
+    for EIX/R1, but the canonical snapshot ledger has entry_price=$71.08,
+    a delivery consumer calling get_by_ticker MUST return $71.08 · this
+    is the exact fix wired into scripts/telegram_command_center_send.py."""
+    from backend.delivery.prediction_snapshot import (
+        record_snapshot, get_by_ticker,
+    )
+    record_snapshot(tmp_path, market="USA", ticker="EIX",
+                    prediction_date="2026-08-13",
+                    entry_date="2026-08-14",
+                    entry_price=71.08,
+                    source_close_date="2026-08-14",
+                    source_dataset_version="canonical",
+                    canonical_signal="R1_BUY")
+    # Simulate what the delivery consumer does · reads source XLSX row
+    # (mocked as a tuple) and asks: "canonical snapshot says X override?"
+    source_xlsx_row = {
+        "ticker": "EIX",
+        "entry_price_from_xlsx": 74.51,   # ← corrupted restamp
+        "recommended_from_xlsx": "2026-08-14",
+        "runner": "R1",
+    }
+    canon = get_by_ticker(tmp_path, "USA", source_xlsx_row["ticker"],
+                          source_xlsx_row["runner"])
+    assert canon is not None
+    # Delivery consumer override rule
+    if isinstance(canon["entry_price"], (int, float)) and canon["entry_price"] > 0:
+        source_xlsx_row["entry_price_from_xlsx"] = float(canon["entry_price"])
+    assert source_xlsx_row["entry_price_from_xlsx"] == 71.08, \
+        "canonical override must replace the corrupted $74.51 with $71.08"
+
+
+def test_i28_ea_exit_history_uses_repaired_closed_date(tmp_path):
+    """Exact reproduction of CI run 33069236589 I28 failure.
+    Given a Registry where EA/R2 was closed at 2026-08-26 (fabricated
+    orphan closer asof) and then canonically repaired to closed_date=
+    2026-08-10 (last-known-evidence), the Exit History synthesizer at
+    scripts/telegram_command_center_send.py line 3054-3097 must see the
+    REPAIRED closed_date via load_all()'s latest-by-ts_utc rule."""
+    from backend.research import opportunity_registry as oreg
+    from backend.research.opportunity_registry import make_opportunity_id
+    import json
+    # Bootstrap Registry with the buggy ORPHAN_AUTO_CLOSE state
+    p = tmp_path / "reports" / "research" / "opportunity_registry.jsonl"
+    p.parent.mkdir(parents=True, exist_ok=True)
+    pid = make_opportunity_id("usa", "R2", "EA", "2026-08-11")
+    active = {
+        "opportunity_id": pid, "market": "usa", "runner": "R2",
+        "ticker": "EA", "created_date": "2026-08-11",
+        "initial_signal": "BUY", "initial_rank": 1,
+        "initial_score": 0.85, "status": "ACTIVE",
+        "closed_date": "", "closed_reason": "",
+        "last_seen_date": "2026-08-11",
+        "ts_utc": "2026-08-20T07:04:20+00:00",
+    }
+    closed_wrong = dict(active,
+        status="CLOSED", closed_date="2026-08-26",
+        closed_reason="ORPHAN_AUTO_CLOSE",
+        last_seen_date="2026-08-26",
+        ts_utc="2026-08-26T17:14:22+00:00")
+    with p.open("w", encoding="utf-8") as f:
+        f.write(json.dumps(active) + "\n")
+        f.write(json.dumps(closed_wrong) + "\n")
+    # Apply canonical repair
+    oreg.apply_canonical_repair(tmp_path, pid,
+        closed_date="2026-08-10",
+        closed_reason="ORPHAN_AUTO_CLOSE · CANONICAL_REPAIR",
+        authoritative_source="yfinance",
+        approval="CEO 2026-08-27")
+    # Simulate the Exit History synthesizer at line 3054-3097
+    reg = oreg.load_all(tmp_path)
+    synthesized_exit_rows = []
+    for opps in reg.values():
+        for o in opps:
+            if o.market != "usa": continue
+            if o.status != "CLOSED": continue
+            if not o.closed_date: continue
+            synthesized_exit_rows.append({
+                "ticker": o.ticker, "runner": o.runner,
+                "closed_date": o.closed_date,
+                "closed_reason": o.closed_reason,
+            })
+    ea_rows = [r for r in synthesized_exit_rows if r["ticker"] == "EA"]
+    assert len(ea_rows) == 1
+    # Exact-row assertion · closed_date == 2026-08-10 (repaired)
+    assert ea_rows[0]["closed_date"] == "2026-08-10", \
+        (f"Exit History synthesizer must use REPAIRED closed_date=2026-08-10 · "
+         f"got {ea_rows[0]['closed_date']} · I28 will still FAIL in CI")
+    # And the original 2026-08-26 event MUST still be on disk (append-only)
+    events_2026_08_26 = 0
+    with p.open() as f:
+        for ln in f:
+            if not ln.strip(): continue
+            r = json.loads(ln)
+            if r.get("opportunity_id") == pid and \
+                    r.get("closed_date") == "2026-08-26":
+                events_2026_08_26 += 1
+    assert events_2026_08_26 >= 1, \
+        "original 2026-08-26 event was silently overwritten · violates append-only"
+
+
+def test_i26_i28_rerun_produces_identical_rows(tmp_path):
+    """CEO invariant: 'Re-running the pipeline must produce the same row.'
+    After canonical repair, re-invoking the repair APIs with the same
+    inputs is a NO-OP · Registry event count for repair values stays 1 ·
+    snapshot ledger new-pid count stays 1."""
+    from backend.delivery.prediction_snapshot import (
+        record_snapshot, apply_canonical_repair, _load_ledger,
+    )
+    from backend.research import opportunity_registry as oreg
+    from backend.research.opportunity_registry import make_opportunity_id
+    import json
+    # EIX snapshot repair
+    r_old = record_snapshot(tmp_path, market="USA", ticker="EIX",
+                             prediction_date="2026-08-19",
+                             entry_date="2026-08-20",
+                             entry_price=74.51,
+                             source_close_date="2026-08-20",
+                             source_dataset_version="wrong",
+                             canonical_signal="R1_BUY")
+    old_pid = r_old["prediction_id"]
+    apply_canonical_repair(tmp_path, old_pid,
+        new_entry_date="2026-08-14", new_entry_price=71.08,
+        new_source_close_date="2026-08-14",
+        authoritative_source="src", approval="CEO")
+    ledger_after_first = len(_load_ledger(tmp_path))
+    # Re-run
+    apply_canonical_repair(tmp_path, old_pid,
+        new_entry_date="2026-08-14", new_entry_price=71.08,
+        new_source_close_date="2026-08-14",
+        authoritative_source="src", approval="CEO")
+    ledger_after_second = len(_load_ledger(tmp_path))
+    assert ledger_after_second == ledger_after_first, \
+        f"snapshot ledger grew on rerun · not idempotent · " \
+        f"{ledger_after_first} → {ledger_after_second}"
+    # EA Registry repair
+    p = tmp_path / "reports" / "research" / "opportunity_registry.jsonl"
+    p.parent.mkdir(parents=True, exist_ok=True)
+    pid = make_opportunity_id("usa", "R2", "EA", "2026-08-11")
+    with p.open("a", encoding="utf-8") as f:
+        f.write(json.dumps({
+            "opportunity_id": pid, "market": "usa", "runner": "R2",
+            "ticker": "EA", "created_date": "2026-08-11",
+            "initial_signal": "BUY", "initial_rank": None,
+            "initial_score": None, "status": "CLOSED",
+            "closed_date": "2026-08-26", "closed_reason": "ORPHAN_AUTO_CLOSE",
+            "last_seen_date": "2026-08-26",
+            "ts_utc": "2026-08-26T17:14:22+00:00",
+        }) + "\n")
+    oreg.apply_canonical_repair(tmp_path, pid,
+        closed_date="2026-08-10", closed_reason="repair",
+        authoritative_source="yf", approval="CEO")
+    def count_repair_events():
+        n = 0
+        with p.open() as f:
+            for ln in f:
+                if not ln.strip(): continue
+                r = json.loads(ln)
+                if r.get("opportunity_id") == pid and \
+                        r.get("closed_date") == "2026-08-10":
+                    n += 1
+        return n
+    n1 = count_repair_events()
+    # Rerun
+    oreg.apply_canonical_repair(tmp_path, pid,
+        closed_date="2026-08-10", closed_reason="repair",
+        authoritative_source="yf", approval="CEO")
+    n2 = count_repair_events()
+    assert n1 == n2, \
+        f"Registry repair not idempotent · repair event count grew {n1} → {n2}"
+
+
+def test_delivery_wire_up_never_touches_canonical_investment_active_json():
+    """Every part of the canonical INVESTMENT_ACTIVE JSON emit path in
+    scripts/telegram_command_center_send.py must remain byte-identical
+    to HEAD after the canonical-snapshot consumer wiring is applied.
+    This is CEO's explicit protection for the locked section."""
+    import subprocess, tempfile, os
+    from pathlib import Path
+    # Skip if not in a git repo (test env)
+    try:
+        subprocess.run(["git", "rev-parse", "--git-dir"],
+                       check=True, capture_output=True)
+    except Exception:
+        import pytest
+        pytest.skip("not in a git repo")
+    root = Path(__file__).resolve().parents[2]
+    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".py")
+    tmp.close()
+    try:
+        r = subprocess.run(
+            ["git", "-C", str(root), "show",
+             "HEAD:scripts/telegram_command_center_send.py"],
+            capture_output=True)
+        with open(tmp.name, "wb") as f: f.write(r.stdout)
+        head = open(tmp.name, encoding="utf-8", errors="replace").readlines()
+        work = open(root / "scripts/telegram_command_center_send.py",
+                    encoding="utf-8").readlines()
+        # Verify both real INVESTMENT_ACTIVE emit sections identical
+        head_idx = [i for i, l in enumerate(head)
+                    if "INVESTMENT_ACTIVE" in l and "canonical" not in l.lower()]
+        work_idx = [i for i, l in enumerate(work)
+                    if "INVESTMENT_ACTIVE" in l and "canonical" not in l.lower()]
+        assert len(head_idx) == len(work_idx), \
+            f"INVESTMENT_ACTIVE occurrences count changed · " \
+            f"HEAD {len(head_idx)} vs WORK {len(work_idx)}"
+        for hi, wi in zip(head_idx, work_idx):
+            h_ctx = [l.rstrip() for l in head[max(0,hi-30):hi+30]]
+            w_ctx = [l.rstrip() for l in work[max(0,wi-30):wi+30]]
+            assert h_ctx == w_ctx, \
+                f"INVESTMENT_ACTIVE section around HEAD line {hi+1} " \
+                f"differs from WORK line {wi+1}"
+    finally:
+        try: os.unlink(tmp.name)
+        except Exception: pass

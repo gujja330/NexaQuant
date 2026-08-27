@@ -359,6 +359,59 @@ def reject(root: Path, opportunity_id: str, asof: str, reason: str,
     return None
 
 
+def apply_canonical_repair(root: Path, opportunity_id: str, *,
+                            closed_date: str | None = None,
+                            closed_reason: str | None = None,
+                            authoritative_source: str = "",
+                            approval: str = "",
+                            registry: dict | None = None
+                            ) -> Opportunity | None:
+    """Append a canonical-repair event for an already-CLOSED opportunity.
+
+    CEO 2026-08-27 · canonical/provenance layer directive · authorised
+    solely for data-integrity maintenance (e.g. a fabricated closed_date
+    caused by an upstream bug that has since been root-fixed). Preserves
+    append-only history · never mutates the original event on disk · the
+    loader's latest-by-ts_utc rule surfaces the corrected values to
+    downstream consumers.
+
+    NOT decision logic · does NOT alter status (only date fields may be
+    canonically corrected). MUST reference an authoritative_source and
+    approval string so the repair is auditable via the raw JSONL.
+
+    Idempotent · a repeat call with identical corrected values is a
+    no-op (returns the current opportunity unchanged)."""
+    if registry is None:
+        registry = load_all(root)
+    for opps in registry.values():
+        for opp in opps:
+            if opp.opportunity_id != opportunity_id: continue
+            if opp.status != "CLOSED":
+                # Repair path applies only to CLOSED · use close()/reject()
+                # for status transitions.
+                return None
+            new_cd = (closed_date or opp.closed_date)[:10]
+            new_reason = closed_reason if closed_reason is not None else opp.closed_reason
+            if new_cd == opp.closed_date and new_reason == opp.closed_reason:
+                return opp   # idempotent
+            if not authoritative_source or not approval:
+                # Canonical repairs must be attributed · refuse silent edits.
+                return None
+            opp.closed_date = new_cd
+            opp.closed_reason = str(new_reason or "")
+            opp.last_seen_date = new_cd
+            opp.ts_utc = datetime.now(timezone.utc).isoformat(timespec="seconds")
+            payload = asdict(opp)
+            payload["_canonical_repair"] = {
+                "authoritative_source": authoritative_source,
+                "approval":             approval,
+                "prior_closed_date":    opp.closed_date  # informational
+            }
+            _append(root, payload)
+            return opp
+    return None
+
+
 def touch(root: Path, opportunity_id: str, asof: str,
               registry: dict | None = None) -> Opportunity | None:
     """Update last_seen_date without mutating created_date or status.

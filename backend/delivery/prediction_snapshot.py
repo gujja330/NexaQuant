@@ -79,13 +79,150 @@ def _write_ledger(root: Path, rows: list):
             f.write(json.dumps(r, default=str, ensure_ascii=False) + "\n")
 
 
+def _quarantined_pids(rows: list) -> set:
+    """Collect the set of pids that have been quarantined via later
+    append-only marker rows (CEO 2026-08-27 canonical/provenance)."""
+    q = set()
+    for r in rows:
+        if r.get("_quarantined") and r.get("prediction_id"):
+            q.add(r["prediction_id"])
+    return q
+
+
 def get_snapshot(root: Path, prediction_id: str) -> Optional[dict]:
-    """Return the FIRST snapshot for a prediction_id · authoritative."""
-    for r in _load_ledger(root):
-        if r.get("prediction_id") == prediction_id and \
-           not r.get("_quarantined"):
+    """Return the authoritative (non-quarantined) snapshot for a
+    prediction_id. Scans the append-only ledger and honours later
+    `_quarantined` marker rows that supersede an earlier record."""
+    rows = _load_ledger(root)
+    q = _quarantined_pids(rows)
+    if prediction_id in q: return None
+    for r in rows:
+        if r.get("_quarantined"): continue
+        if r.get("prediction_id") == prediction_id:
             return r
     return None
+
+
+def get_by_ticker(root: Path, market: str, ticker: str,
+                    runner: Optional[str] = None) -> Optional[dict]:
+    """CEO 2026-08-27 · canonical/provenance layer directive: downstream
+    consumers query the snapshot ledger by (market, ticker[, runner]) to
+    get the CANONICAL immutable entry fields · used to override any
+    source-XLSX restamped values before the row leaves the delivery
+    boundary.
+
+    Returns the newest non-quarantined snapshot matching the query, or
+    None. Runner filter is optional so callers that only carry (market,
+    ticker) still get the canonical entry."""
+    mkt_u  = market.upper()
+    tk_u   = ticker.upper().replace(".NS", "").replace(".BO", "")
+    rn_u   = (runner or "").upper().replace("_NEW", "")
+    rows = _load_ledger(root)
+    q = _quarantined_pids(rows)
+    best   = None
+    for r in rows:
+        if r.get("_quarantined"): continue
+        if r.get("prediction_id") in q: continue
+        if r.get("market", "").upper() != mkt_u: continue
+        if r.get("ticker", "").upper() != tk_u: continue
+        if rn_u:
+            r_rn = r.get("runner", "") or r.get("canonical_signal", "")
+            r_rn = r_rn.upper().replace("_NEW", "")
+            if rn_u not in r_rn and r_rn not in rn_u: continue
+        # Pick the newest (by _created_utc, or by ordinal position if absent)
+        cutc = r.get("_created_utc", "")
+        if best is None or cutc > best.get("_created_utc", ""):
+            best = r
+    return best
+
+
+def apply_canonical_repair(root: Path, prediction_id: str, *,
+                            new_entry_date: Optional[str] = None,
+                            new_entry_price: Optional[float] = None,
+                            new_source_close_date: Optional[str] = None,
+                            authoritative_source: str = "",
+                            approval: str = "") -> Optional[dict]:
+    """CEO 2026-08-27 · canonical/provenance layer directive · append-only
+    repair path for an already-recorded snapshot whose immutable values
+    were WRONG (e.g. entry_date derived from a wrong source, later
+    reconciled against a more authoritative source).
+
+    APPEND-ONLY semantics (never rewrites older lines):
+      1. Append a `_quarantined=True` marker line for the OLD pid.
+      2. Compute a NEW pid from (market, ticker, new_entry_date) via
+         `_make_prediction_id`.
+      3. Append a fresh snapshot row for the new pid with the corrected
+         immutable fields.
+      4. Include a `_canonical_repair` block on the fresh row so the raw
+         JSONL carries full attribution.
+
+    Requires `authoritative_source` and `approval` · refuses silent
+    edits.
+    """
+    if not authoritative_source or not approval:
+        return None
+    rows = _load_ledger(root)
+    q = _quarantined_pids(rows)
+    # If the OLD pid was already quarantined by a prior canonical repair,
+    # this call is a no-op (idempotent · re-running the pipeline produces
+    # the same result).
+    if prediction_id in q:
+        return None
+    old = None
+    for r in rows:
+        if r.get("_quarantined"): continue
+        if r.get("prediction_id") == prediction_id:
+            old = r
+    if old is None:
+        return None
+    market = old["market"]
+    ticker = old["ticker"]
+    entry_date = new_entry_date or old["entry_date"]
+    entry_price = float(new_entry_price if new_entry_price is not None
+                         else old["entry_price"])
+    src_close = new_source_close_date or old["source_close_date"]
+    new_pid = _make_prediction_id(market, ticker, entry_date, entry_price)
+    if new_pid == prediction_id and \
+            entry_price == float(old["entry_price"]) and \
+            src_close == old["source_close_date"]:
+        return old   # idempotent · nothing changed
+    # 1. Append quarantine marker for OLD pid (does NOT rewrite the OLD row)
+    p = root / SNAPSHOT_LEDGER
+    p.parent.mkdir(parents=True, exist_ok=True)
+    marker = {
+        "prediction_id":       prediction_id,
+        "_quarantined":        True,
+        "_quarantine_reason":  ("canonical_repair · superseded by " + new_pid),
+        "_utc":                datetime.now(timezone.utc).isoformat(timespec="seconds"),
+    }
+    with p.open("a", encoding="utf-8") as f:
+        f.write(json.dumps(marker, default=str, ensure_ascii=False) + "\n")
+    # 2. Append the fresh CORRECTED snapshot
+    fresh = {
+        "prediction_id":            new_pid,
+        "market":                   market,
+        "ticker":                   ticker,
+        "prediction_date":          old["prediction_date"],
+        "entry_date":               entry_date,
+        "entry_price":              entry_price,
+        "source_close_date":        src_close,
+        "source_dataset_version":   old["source_dataset_version"],
+        "canonical_signal":         old["canonical_signal"],
+        "status":                   old.get("status", "ACTIVE"),
+        "closed_date":              old.get("closed_date", ""),
+        "closed_reason":            old.get("closed_reason", ""),
+        "last_seen_date":           old.get("last_seen_date", entry_date),
+        "notes":                    old.get("notes", ""),
+        "_created_utc":             datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "_canonical_repair":        {
+            "supersedes":            prediction_id,
+            "authoritative_source":  authoritative_source,
+            "approval":              approval,
+        },
+    }
+    with p.open("a", encoding="utf-8") as f:
+        f.write(json.dumps(fresh, default=str, ensure_ascii=False) + "\n")
+    return fresh
 
 
 def record_snapshot(root: Path, *, market: str, ticker: str,
@@ -104,11 +241,14 @@ def record_snapshot(root: Path, *, market: str, ticker: str,
     """
     pid = _make_prediction_id(market, ticker, entry_date, entry_price)
     ledger = _load_ledger(root)
+    q = _quarantined_pids(ledger)
     # Find existing NON-QUARANTINED snapshot for this pid
     existing = None
-    for r in ledger:
-        if r.get("prediction_id") == pid and not r.get("_quarantined"):
-            existing = r; break
+    if pid not in q:
+        for r in ledger:
+            if r.get("_quarantined"): continue
+            if r.get("prediction_id") == pid:
+                existing = r; break
     if existing is not None:
         # Check every immutable field
         candidate = {

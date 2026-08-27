@@ -180,10 +180,21 @@ def close_orphans(root: Path, market: str,
                 ))
                 continue
             # Orphan · close it
+            # CEO 2026-08-27 · root-cause fix for I28 EA regression.
+            # Previously used `asof_iso` as closed_date · that
+            # fabricates an exit_date for tickers with NO market data
+            # on asof (EA delisted 2026-08-10 was closed with
+            # closed_date=2026-08-26 · I28 correctly refused it).
+            # Correct closed_date = last-known-evidence date for this
+            # specific ticker · never the ambient asof.
+            #   priority: ls (last aegis_history date)
+            #          →  cd (created_date · position birth)
+            #          →  asof_iso (fallback ONLY when neither exists)
+            legit_closed_date = ls or cd or asof_iso
             action = "CLOSED" if not dry_run else "WOULD_CLOSE"
             if not dry_run:
                 try:
-                    _oreg.close(root, pid, asof_iso,
+                    _oreg.close(root, pid, legit_closed_date,
                                 reason="ORPHAN_AUTO_CLOSE")
                 except Exception as e:
                     action = f"CLOSE_FAILED · {type(e).__name__}"
@@ -193,6 +204,7 @@ def close_orphans(root: Path, market: str,
                 last_seen_in_history=ls, action=action,
                 reason=(f"age {age}d >= stale_days ({stale_days}d) · "
                         f"not in canonical + last_seen_in_history={ls or 'never'} · "
+                        f"closed_date=last-known-evidence={legit_closed_date} · "
                         f"orphaned R{rn_norm}-style bloat pattern"),
             ))
     return records
