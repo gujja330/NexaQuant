@@ -156,6 +156,11 @@ jobs:
       # fresh USA XLSX never reaches main · this uploads it as a workflow
       # artifact so operators can download it and diagnose I26/I28/etc rows.
       # Does NOT modify the validator or delivery layer.
+      #
+      # 2026-08-27 v2 · widened path list to include validator reports at
+      # every location they might land (delivery/ + generated JSON/MD around
+      # the send). Also captures the prediction-snapshot + quarantine
+      # ledgers if they exist. Enables faster root-cause of I26/I28.
       - name: Upload USA failing-XLSX diagnostic (on failure)
         if: failure() || steps.send_usa.outcome == 'failure'
         uses: actions/upload-artifact@v4
@@ -166,7 +171,12 @@ jobs:
             reports/telegram/aegis_history.xlsx
             reports/delivery/xlsx_validator_usa_*.json
             reports/delivery/xlsx_validator_usa_*.md
+            reports/delivery/xlsx_validator_report*.json
+            reports/delivery/xlsx_validator_report*.md
+            reports/delivery/prediction_snapshots.jsonl
+            reports/delivery/quarantine_audit.jsonl
             reports/context/portfolio_canonical_usa.json
+            reports/research/opportunity_registry.jsonl
           retention-days: 30
           if-no-files-found: warn
 
