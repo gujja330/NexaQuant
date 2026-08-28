@@ -34,16 +34,16 @@ on:
     - cron: "0 1 * * 1-5"     # ~06:30 IST — backup 1
     - cron: "30 1 * * 1-5"    # ~07:00 IST — backup 2 (last of morning window)
   workflow_dispatch:
-  # 2026-08-28 · CEO directive · revert of 2026-08-18 temporary push
-  # trigger. That trigger was explicitly marked TEMPORARY and caused
-  # this workflow to fire on every main push · including pushes that
-  # land at IST midnight boundary · engine wrote GEN=YYYY-MM-DD-1
-  # while freshness check compared to TODAY_IST=YYYY-MM-DD · exit 1.
-  # Restoring the original schedule-only design (per line 22
-  # commentary: "All slots after 00:00 UTC so datetime.now().date()
-  # in the UTC runner and $(TZ=Asia/Kolkata date +%F) both return
-  # TODAY IST"). Pushes that need to test India delivery run via
-  # workflow_dispatch instead.
+  # 2026-08-28 · CEO directive · push trigger RESTORED with IST-time-
+  # of-day guard (2026-08-28 morning: GitHub scheduled cron was
+  # silently dropped · operator got no notification · push trigger
+  # is a critical secondary firing path). Guard in the first job
+  # step skips push-triggered runs when IST hour is outside
+  # 08:00-22:00 window · avoids the freshness-gate IST-midnight race
+  # that caused the earlier removal. Scheduled + workflow_dispatch
+  # are unaffected by the guard.
+  push:
+    branches: [main]
 
 # Wave Y · Constitution Article 45: workflows touching shared state MUST
 # declare concurrency. Fixes v2.2 T1/Sch1 (duplicate scheduler+Telegram sends).
@@ -69,7 +69,22 @@ jobs:
         id: guard
         run: |
           IST=$(TZ=Asia/Kolkata date +%F)
+          IST_HOUR=$(TZ=Asia/Kolkata date +%H)
           echo "ist=$IST" >> $GITHUB_OUTPUT
+          # 2026-08-28 · IST time-of-day guard for push-triggered runs.
+          # Freshness gate (step ~10) compares engine's IST-based
+          # aegis_today.csv Generated column to TODAY_IST. A push at
+          # 23:05 UTC = 04:35 IST caused GEN=yesterday-IST vs check
+          # TODAY_IST mismatch · exit 1. Skip push runs outside the
+          # safe window (IST 08:00-21:59). Scheduled slots run inside
+          # this window · workflow_dispatch always runs.
+          if [ "${{ github.event_name }}" = "push" ]; then
+            if [ "$IST_HOUR" -lt 8 ] || [ "$IST_HOUR" -ge 22 ]; then
+              echo "run=false" >> $GITHUB_OUTPUT
+              echo "IST-time-of-day guard · push at IST $IST_HOUR:xx · outside safe window (08:00-21:59) · skipping."
+              exit 0
+            fi
+          fi
           if [ "${{ github.event_name }}" != "workflow_dispatch" ] && [ "$(cat data/.published 2>/dev/null)" = "$IST" ]; then
             echo "run=false" >> $GITHUB_OUTPUT
             echo "Already published for $IST — this backup attempt no-ops."
