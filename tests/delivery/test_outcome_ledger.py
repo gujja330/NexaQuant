@@ -232,10 +232,19 @@ def test_definitions_rows_declare_formulas_explicitly():
 
 
 def test_definitions_rows_disclose_composition_rule():
+    """Definitions must document at least the 3 primary composition
+    categories · orphan · rotation · one signal-derived (stop / target /
+    signal). 2026-08-28: relaxed from hard-coded 'ORPHAN_AUTO_CLOSE'
+    literal to case-insensitive 'orphan' anywhere (composition row
+    was shortened to lowercase category names when 6-category
+    classifier landed)."""
     from backend.delivery.outcome_ledger import DEFINITIONS_ROWS
-    body = "\n".join(v for _, v in DEFINITIONS_ROWS)
-    assert "ORPHAN_AUTO_CLOSE" in body.upper()
-    assert "ROTATION" in body.upper()
+    body = " ".join(k + " " + v for k, v in DEFINITIONS_ROWS).upper()
+    assert "ORPHAN" in body
+    assert "ROTATION" in body
+    # 6-category composition breakdown discoverable
+    assert "STOP_LOSS" in body or "STOP LOSS" in body
+    assert "TARGET" in body
 
 
 # ── 8 · Historical exits cannot masquerade as current holdings ────────
