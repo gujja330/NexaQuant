@@ -3358,10 +3358,14 @@ def main() -> int:
                 print(f"[exit_history:{mkt_key}] top analysis rows skipped · "
                       f"{type(_e_top).__name__}: {_e_top}")
 
-            # 2026-08-25 · operator: "also give total P&L , positive P&L,
-            # negative p&l. by month, anyhow we track for atleast 3 months.
-            # plan exit sheet with added information."
-            # Emit a per-month summary strip AFTER the exit rows.
+            # CEO 2026-08-28 · Monthly Summary moves to its OWN sheet ·
+            # contract rule C5 · lineage-population rows only in Exit History
+            # body · summary/decoration rows never inside a lineage
+            # population. Prior state · monthly-summary trailer written
+            # inline into Exit History body forced every validator (I28 ·
+            # A22 · A23) to teach itself to skip trailer strings. Fixed
+            # at source · Exit History body ends at the last lineage row ·
+            # summary lives on a separate sheet.
             try:
                 from collections import defaultdict as _dd
                 _by_month = _dd(list)
@@ -3372,27 +3376,33 @@ def main() -> int:
                     # they inflate the exit count without being real trades.
                     if isinstance(_pnl_v, (int, float)) and abs(_pnl_v) > 0.01:
                         _by_month[_dt_key].append(_pnl_v)
-                # Header
-                _summary_row = _rowptr + 2
-                exit_ws.merge_cells(start_row=_summary_row, start_column=1,
-                                                    end_row=_summary_row, end_column=len(_exit_hdr))
-                _sh = exit_ws.cell(_summary_row, 1,
-                                                "── MONTHLY P&L SUMMARY (last 3 months) ──")
-                _sh.font = _Font(bold=True, size=12, color="FFFFFF")
-                _sh.fill = _PF(start_color="1F4E78", end_color="1F4E78", fill_type="solid")
-                _sh.alignment = _Align(horizontal="center", vertical="center")
-                _summary_row += 1
-                # Column headers
+                # Create Monthly Summary as sheet position 2 · after Exit
+                # History but before the main History sheet.
+                _existing_pos = wb2.sheetnames.index("Exit History (90d)")
+                _monthly_ws = wb2.create_sheet("Monthly Summary", _existing_pos + 1)
+                _monthly_ws.merge_cells("A1:H1")
+                _monthly_ws["A1"] = (f"AEGIS {mkt_key} · MONTHLY P&L SUMMARY · "
+                                      f"last 3 months as of {latest_date or 'today'}")
+                _monthly_ws["A1"].font = _Font(bold=True, size=14, color="FFFFFF")
+                _monthly_ws["A1"].fill = _PF(start_color="1F4E78",
+                                              end_color="1F4E78", fill_type="solid")
+                _monthly_ws["A1"].alignment = _Align(horizontal="center",
+                                                      vertical="center")
+                _monthly_ws.row_dimensions[1].height = 28
+                # Column headers on row 3 · row 2 stays blank for readability
                 _sum_hdr = ["Month", "N Exits", "Wins", "Losses",
                                 "Total P&L %", "Positive P&L %", "Negative P&L %", "Win Rate"]
+                _widths_ms = [14, 10, 8, 8, 14, 16, 16, 12]
                 for _c, _n in enumerate(_sum_hdr, start=1):
-                    _sc = exit_ws.cell(_summary_row, _c, _n)
-                    _sc.font = _Font(bold=True, size=10, color="FFFFFF")
-                    _sc.fill = _PF(start_color="4472C4", end_color="4472C4", fill_type="solid")
+                    _sc = _monthly_ws.cell(3, _c, _n)
+                    _sc.font = _Font(bold=True, size=11, color="FFFFFF")
+                    _sc.fill = _PF(start_color="4472C4",
+                                    end_color="4472C4", fill_type="solid")
                     _sc.alignment = _Align(horizontal="center")
-                _summary_row += 1
-                # Rows sorted most-recent-month first · limit 3 months
+                    _monthly_ws.column_dimensions[_gcl_src(_c)].width = _widths_ms[_c-1]
+                # Body rows · most-recent-month first · limit 3 months
                 from datetime import datetime as _dt5
+                _ms_row = 4
                 for _month in sorted(_by_month.keys(), reverse=True)[:3]:
                     _vals_m = _by_month[_month]
                     _n_ex = len(_vals_m)
@@ -3411,20 +3421,23 @@ def main() -> int:
                                         f"{_total:+.2f}%", f"{_pos_sum:+.2f}%",
                                         f"{_neg_sum:+.2f}%", f"{_win_rate}%"]
                     for _c, _v in enumerate(_row_vals, start=1):
-                        _mc = exit_ws.cell(_summary_row, _c, _v)
+                        _mc = _monthly_ws.cell(_ms_row, _c, _v)
                         _mc.font = _Font(size=10, bold=(_c == 5))
                         _mc.alignment = _Align(horizontal="center")
-                        # Color total P&L cell
                         if _c == 5 and isinstance(_total, (int, float)):
                             if _total > 0:
                                 _mc.fill = _PF(start_color="C6EFCE",
-                                                        end_color="C6EFCE", fill_type="solid")
+                                                end_color="C6EFCE", fill_type="solid")
                             elif _total < 0:
                                 _mc.fill = _PF(start_color="F8CBAD",
-                                                        end_color="F8CBAD", fill_type="solid")
-                    _summary_row += 1
+                                                end_color="F8CBAD", fill_type="solid")
+                    _ms_row += 1
+                _monthly_ws.freeze_panes = "A4"
+                print(f"[monthly_summary:{mkt_key}] separate sheet · "
+                      f"{_ms_row - 4} months rendered (0% rotation artifacts excluded)")
             except Exception as _e:
-                print(f"[exit_history:{mkt_key}] monthly summary skipped · {_e}")
+                print(f"[monthly_summary:{mkt_key}] skipped · "
+                      f"{type(_e).__name__}: {_e}")
 
             # Rename Sheet 3 · full history stays last
             ws2.title = f"AEGIS {mkt_key} History"
@@ -3711,13 +3724,16 @@ def main() -> int:
                     )
                     _hold_fill = _PfFill(start_color="F0F4F8",
                                           end_color="F0F4F8", fill_type="solid")
+                    # CEO 2026-08-28 · missing-field semantics (rule C4):
+                    # holding-no-signal rows MUST NOT fabricate LOW / PENDING
+                    # / 0 · engine did not evaluate these positions today.
+                    # Emit explicit em-dash so the operator reads "not
+                    # evaluated" not "engine says LOW" (which is a real
+                    # signal-row value).
+                    _MISSING = "—"
                     for _pi, _p in enumerate(_missing):
                         _rr = _from_row + _pi
-                        # Only fill the CANONICAL columns · others left blank ·
-                        # Definitions sheet documents that Registry-sourced
-                        # rows have canonical entry + parquet current + P&L
-                        # but no today-signal fields (Health / Confidence /
-                        # Rank not fired for this ticker today).
+                        _sec_v = _p["sector"] if _p["sector"] else _MISSING
                         _cells = {
                             1:  _p["ticker"],
                             2:  f"🟢 ACTIVE (holding · no signal today)",
@@ -3726,16 +3742,17 @@ def main() -> int:
                             5:  _p["entry_date"][:7],
                             9:  _p["runner"],
                             10: "🔹 R1 ONLY" if _p["runner"] == "R1" else "🔸 R2 ONLY",
-                            11: _p["sector"],
+                            11: _sec_v,
                             13: _p["entry_date"],
                             15: _p["days_held"],
-                            16: "🟢 LOW",
+                            16: _MISSING,        # Urgency · not evaluated
                             17: "Registry-sourced · today's signal not fired",
                             20: "HOLD",
-                            21: "⏳ PENDING",
+                            21: _MISSING,        # Inv Quality · not evaluated
+                            22: _MISSING,        # Investability · not scored
                             23: _p["entry_price"],
                             24: _p["current_price"],
-                            26: _p["pnl_pct"] / 100.0,   # decimal for Excel SUM
+                            26: _p["pnl_pct"] / 100.0,   # decimal · % format applied below
                             30: (f"Hold · position from {_p['created_date']} · "
                                   f"today's signal did not fire"),
                         }
@@ -3743,6 +3760,10 @@ def main() -> int:
                             _sc = portfolio_ws.cell(_rr, _cc, _vv)
                             _sc.fill = _hold_fill
                             _sc.font = _PfFont(size=10)
+                            # Match signal-row P&L display · Excel-formats
+                            # decimal 0.0836 as "8.36%" · same as signal rows.
+                            if _cc == 26 and isinstance(_vv, (int, float)):
+                                _sc.number_format = "0.00%"
                     print(f"[xlsx:{mkt_key}] Portfolio completeness · "
                           f"appended {len(_missing)} Registry-ACTIVE positions "
                           f"not in today's source signals · "
