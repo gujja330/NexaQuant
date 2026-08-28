@@ -213,12 +213,18 @@ jobs:
               local pattern="$1"
               for f in $pattern; do
                   if [ ! -f "$f" ]; then continue; fi
-                  local sz=$(stat -c %s "$f" 2>/dev/null || echo 0)
+                  local sz=$(stat -c %s "$f" 2>/dev/null)
+                  if [ -z "$sz" ]; then
+                      echo "[commit-artifacts] stat failed for $f · skipping"
+                      continue
+                  fi
                   if [ "$sz" -gt 94371840 ]; then    # 90 MB in bytes
                       echo "[commit-artifacts] SKIP · $f is $(( sz / 1048576 )) MB · exceeds 90 MB safety limit (GitHub cap 100 MB)"
                       continue
                   fi
-                  git add "$f" 2>/dev/null || true
+                  if ! git add "$f"; then
+                      echo "::warning::git add failed for $f · continuing"
+                  fi
               done
           }
           _add_safe "usa/reports/*.json"
@@ -293,12 +299,18 @@ jobs:
               local pattern="$1"
               for f in $pattern; do
                   if [ ! -f "$f" ]; then continue; fi
-                  local sz=$(stat -c %s "$f" 2>/dev/null || echo 0)
+                  local sz=$(stat -c %s "$f" 2>/dev/null)
+                  if [ -z "$sz" ]; then
+                      echo "[research-commit] stat failed for $f · skipping"
+                      continue
+                  fi
                   if [ "$sz" -gt 94371840 ]; then
                       echo "[research-commit] SKIP · $f is $(( sz / 1048576 )) MB · exceeds 90 MB"
                       continue
                   fi
-                  git add "$f" 2>/dev/null || true
+                  if ! git add "$f"; then
+                      echo "::warning::git add failed for $f · continuing"
+                  fi
               done
           }
           _add_safe_research "reports/research/outcome_dataset.parquet"
