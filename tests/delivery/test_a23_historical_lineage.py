@@ -57,23 +57,33 @@ def _write_snapshot(root: Path, ticker: str, market: str, entry_date: str,
                     canonical_signal="R2_BUY")
 
 
-def _write_exit_history_xlsx(root: Path, market: str, tickers: list):
+def _write_exit_history_xlsx(root: Path, market: str, tickers: list,
+                              include_monthly_trailer: bool = True):
     """Write a minimal aegis_history_{market}.xlsx with Exit History body
-    containing the given tickers."""
+    containing the given tickers · plus the MONTHLY P&L SUMMARY trailer
+    section that follows the body (matches production layout · A23 must
+    skip these)."""
     from openpyxl import Workbook
     p = root / "reports" / "telegram" / f"aegis_history_{market}.xlsx"
     p.parent.mkdir(parents=True, exist_ok=True)
     wb = Workbook()
     ws = wb.active
-    ws.title = "Portfolio"     # A23 doesn't read this
+    ws.title = "Portfolio"
     ws2 = wb.create_sheet("Exit History (90d)")
     ws2.cell(1, 1, "AEGIS X · EXIT HISTORY · last 90 days as of 2026-08-27")
     ws2.cell(2, 1, "banner")
     ws2.cell(3, 1, "positive/negative")
-    ws2.cell(5, 1, "Stock")   # header row
+    ws2.cell(5, 1, "Stock")
     for i, tk in enumerate(tickers, start=6):
         ws2.cell(i, 1, tk)
-        ws2.cell(i, 10, 1.5)     # numeric P&L
+        ws2.cell(i, 10, 1.5)
+    if include_monthly_trailer:
+        # Blank spacer (production has 1-2) · then trailer
+        _trailer_row = 6 + len(tickers) + 2
+        ws2.cell(_trailer_row, 1, "── MONTHLY P&L SUMMARY (last 3 months) ──")
+        ws2.cell(_trailer_row + 1, 1, "Month")
+        ws2.cell(_trailer_row + 2, 1, "Aug 2026")
+        ws2.cell(_trailer_row + 3, 1, "TOTAL")
     wb.save(p)
 
 
@@ -216,6 +226,52 @@ def test_snapshot_ledger_provides_lineage(tmp_path):
 
 
 # ── Fixture 9 · idempotent · repeated runs produce same verdict ──
+
+
+def test_monthly_trailer_rows_are_skipped_not_flagged(tmp_path):
+    """CI run 33135998227 · A23 flagged 'AUG 2026', 'MONTH',
+    '── MONTHLY P&L SUMMARY (LAST 3 MONTHS) ──' as fabricated · they
+    are Exit History layout / trailer rows, not tickers. A23 read
+    must skip banner/summary rows using the same pattern I28 uses."""
+    _write_registry(tmp_path, [
+        {"ticker": "PLTR", "runner": "R2", "market": "usa",
+         "status": "CLOSED", "closed": "2026-08-15"},
+    ])
+    # include_monthly_trailer=True writes the trailer that caused the
+    # 33135998227 failure. If A23 correctly skips them, result = PASS.
+    _write_exit_history_xlsx(tmp_path, "usa", ["PLTR"],
+                              include_monthly_trailer=True)
+    r = _run_a23(tmp_path, "usa")
+    assert r["status"] == "PASS", \
+        (f"trailer rows should be skipped · got {r} · "
+         "if this fails, A23 reads trailer as ticker")
+
+
+def test_a23_stops_at_first_blank_row(tmp_path):
+    """Layout is body → blank → trailer. A23 must stop scanning at
+    the first blank row so trailer content never enters the ticker set."""
+    from openpyxl import Workbook
+    p = tmp_path / "reports" / "telegram" / "aegis_history_usa.xlsx"
+    p.parent.mkdir(parents=True, exist_ok=True)
+    wb = Workbook()
+    wb.active.title = "Portfolio"
+    ws = wb.create_sheet("Exit History (90d)")
+    ws.cell(1, 1, "title")
+    ws.cell(6, 1, "PLTR")
+    ws.cell(6, 10, 1.5)
+    # blank row 7 (deliberately)
+    ws.cell(9, 1, "GARBAGE_TICKER_AFTER_BLANK")   # must NOT be scanned
+    ws.cell(9, 10, 1.5)
+    wb.save(p)
+    _write_registry(tmp_path, [
+        {"ticker": "PLTR", "runner": "R2", "market": "usa",
+         "status": "CLOSED", "closed": "2026-08-15"},
+    ])
+    r = _run_a23(tmp_path, "usa")
+    assert r["status"] == "PASS", \
+        (f"A23 must stop at first blank row · got {r}. "
+         "If it scanned past the blank, GARBAGE_TICKER_AFTER_BLANK "
+         "would appear as fabricated.")
 
 
 def test_a23_deterministic_across_reruns(tmp_path):

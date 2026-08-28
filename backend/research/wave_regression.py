@@ -430,10 +430,31 @@ def compute(root: Path, market: str, asof: str) -> WaveRegressionReport:
                         if _tk and len(_tk) < 20:   # ticker sanity
                             _portfolio_tks.add(_tk.upper())
             if "Exit History (90d)" in wb.sheetnames:
-                for _row in wb["Exit History (90d)"].iter_rows(min_row=6, values_only=True):  # layout-aware · row6+
-                    _v = _row[0] if _row else None
-                    if _v:
-                        _exit_tks.add(str(_v).upper().strip())
+                # CEO 2026-08-28 · trailer-skip. Exit History has a
+                # MONTHLY P&L SUMMARY trailer after the body (row
+                # ~body_end+2 onwards · "── MONTHLY P&L SUMMARY ──" ·
+                # "Month" header · "Aug 2026" aggregates · "TOTAL"
+                # etc.). Prior population scanned trailer cells as
+                # tickers · caused A22/A23 to flag them fabricated.
+                # openpyxl read_only + iter_rows drops fully-empty
+                # rows so a break-on-blank never fires · reload the
+                # workbook non-read-only and use explicit cell scan
+                # matching the pattern I28 already uses in xlsx_
+                # validator.py:964-971.
+                from openpyxl import load_workbook as _lw_eh
+                _wb_eh = _lw_eh(xp, read_only=False, data_only=False)
+                _eh_ws = _wb_eh["Exit History (90d)"]
+                for _r_idx in range(6, _eh_ws.max_row + 1):
+                    _v = _eh_ws.cell(_r_idx, 1).value
+                    if _v is None or str(_v).strip() == "":
+                        break     # first blank · trailer starts after
+                    _tk_raw = str(_v).upper().strip()
+                    if _tk_raw.startswith(("──", "MONTH", "TOTAL", "---")):
+                        continue
+                    if " " in _tk_raw:      # multi-word · not a ticker
+                        continue
+                    _exit_tks.add(_tk_raw)
+                _wb_eh.close()
             _overlap = _portfolio_tks & _exit_tks
             # 2026-08-25 · A22 runner-aware · a ticker legitimately appears
             # in BOTH sheets when R1 is ACTIVE (Portfolio) and R2 is CLOSED
@@ -512,17 +533,39 @@ def compute(root: Path, market: str, asof: str) -> WaveRegressionReport:
                 if _tk_snap: _historical_tickers.add(_tk_snap)
         except Exception:
             pass
-        # Exit History body tickers
+        # Exit History body tickers · stop at first blank row · skip
+        # trailer rows ("── MONTHLY P&L SUMMARY ──", "Month" header,
+        # per-month aggregate rows) that follow the body. Matches the
+        # same skip pattern I28 uses in xlsx_validator.py:964-971.
         _in_eh = _exit_tks if 'FALLBACK' not in dir() and '_exit_tks' in dir() else set()
         if not _in_eh:
             from openpyxl import load_workbook as _lw
             xp = root / "reports" / "telegram" / f"aegis_history_{market}.xlsx"
             if xp.exists():
-                _wb2 = _lw(xp, read_only=True)
+                # Explicit-cell scan (NOT iter_rows) · openpyxl
+                # read_only + iter_rows silently drops empty rows so
+                # a `break-on-blank` never fires. Explicit ws.cell()
+                # gives us the row-by-row control I28 uses in
+                # xlsx_validator.py:964-971.
+                # data_only=False so fresh test workbooks (never opened
+                # in Excel) still return their literal cell values.
+                # Production workbooks work either way · CI's writer
+                # sets literal values, not formulas that need caching.
+                _wb2 = _lw(xp, read_only=False, data_only=False)
                 if "Exit History (90d)" in _wb2.sheetnames:
-                    for _row in _wb2["Exit History (90d)"].iter_rows(min_row=6, values_only=True):
-                        if _row and _row[0]:
-                            _in_eh.add(str(_row[0]).upper().strip())
+                    _eh_ws = _wb2["Exit History (90d)"]
+                    for _r_idx in range(6, _eh_ws.max_row + 1):
+                        _v0 = _eh_ws.cell(_r_idx, 1).value
+                        if _v0 is None or str(_v0).strip() == "":
+                            break     # first blank · trailer starts after
+                        _tk_raw = str(_v0).upper().strip()
+                        # Skip banner / summary / trailer rows · same
+                        # rule I28 uses in xlsx_validator.py
+                        if _tk_raw.startswith(("──", "MONTH", "TOTAL", "---")):
+                            continue
+                        if " " in _tk_raw:     # multi-word · not a ticker
+                            continue
+                        _in_eh.add(_tk_raw)
                 _wb2.close()
         # Orphan audit JSONL tickers (documented sink for Registry
         # ORPHAN_AUTO_CLOSE events filtered out of Exit History body)
