@@ -1,16 +1,16 @@
 # MON001 · Operator Dashboard — 2026-08-28
-_Auto-generated 2026-08-28T01:08:46+00:00_
+_Auto-generated 2026-08-28T21:49:45+00:00_
 ## Summary
 - **State**: `HALT_REVIEW_REQUIRED`
 - **HALT_REVIEW_REQUIRED**: `True`
 - **Forward boundary**: `2026-03-28`
-- **Forward trading days accumulated**: 45
+- **Forward trading days accumulated**: 47
 - **Days until first Sharpe reading (T30)**: 0
-- **Days until first MaxDD reading (T126)**: 81
-- **Latest forward recommendation asof**: `2026-08-26`
+- **Days until first MaxDD reading (T126)**: 79
+- **Latest forward recommendation asof**: `2026-08-28`
 - **Latest monitoring run**: `2026-08-28`
 ## Ledger health
-- **Rows ingested**: 585
+- **Rows ingested**: 600
 - **Chain integrity**: `True`  (chain intact)
 - **Duplicate rec_ids under same fingerprint**: 0
 - **Forward boundary breach**: no
@@ -28,15 +28,15 @@ _Auto-generated 2026-08-28T01:08:46+00:00_
 ## Metric evidence timeline
 | Metric | Forward | Status | Sample | Minimum |
 |---|---:|:-:|---:|---:|
-| sharpe_forward | -0.9111 | `PASS` | 45 | 30 |
-| max_dd_forward | — | `INSUFFICIENT_EVIDENCE` | 45 | 126 |
-| ulcer_forward | — | `INSUFFICIENT_EVIDENCE` | 45 | 126 |
+| sharpe_forward | -0.8646 | `PASS` | 47 | 30 |
+| max_dd_forward | — | `INSUFFICIENT_EVIDENCE` | 47 | 126 |
+| ulcer_forward | — | `INSUFFICIENT_EVIDENCE` | 47 | 126 |
 ## Recent monitoring runs
 - `mon001_diagnostics_2026-08-21.json` — state=`HALT_REVIEW_REQUIRED` halt=`True` recs=540
 - `mon001_diagnostics_2026-08-24.json` — state=`DIVERGED` halt=`False` recs=555
 - `mon001_diagnostics_2026-08-25.json` — state=`HALT_REVIEW_REQUIRED` halt=`True` recs=570
 - `mon001_diagnostics_2026-08-26.json` — state=`HALT_REVIEW_REQUIRED` halt=`True` recs=585
-- `mon001_diagnostics_2026-08-28.json` — state=`HALT_REVIEW_REQUIRED` halt=`True` recs=585
+- `mon001_diagnostics_2026-08-28.json` — state=`HALT_REVIEW_REQUIRED` halt=`True` recs=600
 ## Governance reminder
 - MON001 does NOT modify production.
 - HALT_REVIEW_REQUIRED is an operator-review signal only.
