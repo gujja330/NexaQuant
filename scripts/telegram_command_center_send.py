@@ -3113,18 +3113,34 @@ def main() -> int:
                 from backend.research import opportunity_registry as _oreg_eh
                 _reg_eh = _oreg_eh.load_all(_ROOT)
                 _seen_keys = {(x[1], x[3], str(x[0])[:10]) for x in _exit_rows}
-                # CEO 2026-08-28 · Path A directive · orphan filter.
-                # ORPHAN_AUTO_CLOSE rows are Registry cleanup of stale
-                # positions · NOT real trades taken by the operator.
-                # Filter them out of the shipped Exit History sheet ·
-                # route to a separate audit-only JSONL so the audit
-                # trail is preserved without polluting trade evidence.
+                # CEO 2026-08-28 · BULLETPROOF FIX · one canonical
+                # Exit History population.
+                #
+                # Prior state · we filtered ORPHAN_AUTO_CLOSE rows out
+                # of the body and routed them to orphan_audit JSONL.
+                # That satisfied A23 (my rewrite) but VIOLATED I20
+                # (LOCKED · in xlsx_validator.py) which requires
+                # Registry-CLOSED ⊆ Exit-History body strictly.
+                # Two validators disagreeing on the same population =
+                # whack-a-mole. Bulletproof fix: ONE population = every
+                # Registry-CLOSED in the 90d window · zero filtering.
+                # Composition banner (already emits X orphan · Y
+                # rotation · Z clean) provides the readability the
+                # filter was trying to give.
+                #
+                # Additional discipline · category-based sort at the
+                # end of the loop puts REAL trades (rotation ·
+                # signal_exit · target · stop_loss) FIRST and orphans
+                # LAST · operator scans real trades at the top of the
+                # sheet · orphan audit at the bottom.
+                #
+                # Orphan audit JSONL still emitted as a BACKUP ledger
+                # (defensive · orphans documented in both places).
                 _orphan_audit_p = (_ROOT / "reports" / "delivery"
                                     / f"orphan_audit_{mkt_key.lower()}.jsonl")
                 _orphan_audit_p.parent.mkdir(parents=True, exist_ok=True)
-                _n_orphan_filtered = 0
+                _n_orphan_included = 0
                 import json as _json_orphan
-                # Truncate + rewrite (deterministic · rerun-identical)
                 _orphan_lines: list = []
                 for _opps in _reg_eh.values():
                     for _o in _opps:
@@ -3134,10 +3150,13 @@ def main() -> int:
                         if _o.closed_date < _exit_cutoff: continue
                         _key = (_o.ticker.upper(), _o.runner, _o.closed_date)
                         if _key in _seen_keys: continue     # already in exit_rows
-                        # Orphan cleanup filter · route to audit log
+                        # Backup ledger · orphans get an extra copy in
+                        # JSONL for defensive analysis · but they still
+                        # go into the Exit History body (I20 requires
+                        # every Registry-CLOSED to be visible there).
                         _reason_raw = str(_o.closed_reason or "").upper()
                         if "ORPHAN_AUTO_CLOSE" in _reason_raw:
-                            _n_orphan_filtered += 1
+                            _n_orphan_included += 1
                             _orphan_lines.append({
                                 "ticker":        _o.ticker.upper(),
                                 "runner":        _o.runner,
@@ -3147,7 +3166,6 @@ def main() -> int:
                                 "ts_utc":        _o.ts_utc,
                                 "pid":           _o.opportunity_id,
                             })
-                            continue    # NOT emitted to Exit History body
                         # Synthesize a row from Registry data
                         try:
                             from datetime import date as _dz
@@ -3182,19 +3200,36 @@ def main() -> int:
                             _pnl_reg, _reason_e,
                         ))
                         _seen_keys.add(_key)
-                # Emit orphan audit log · deterministic rewrite
+                # Emit orphan audit log · BACKUP ledger · deterministic
                 _orphan_lines.sort(key=lambda r: (r["closed_date"], r["ticker"]))
                 with _orphan_audit_p.open("w", encoding="utf-8") as _oaf:
                     for _line in _orphan_lines:
                         _oaf.write(_json_orphan.dumps(_line, default=str, ensure_ascii=False) + "\n")
-                print(f"[exit_history:{mkt_key}] orphan filter · "
-                      f"{_n_orphan_filtered} ORPHAN_AUTO_CLOSE rows routed to "
+                print(f"[exit_history:{mkt_key}] orphan backup · "
+                      f"{_n_orphan_included} ORPHAN_AUTO_CLOSE rows included in body AND mirrored to "
                       f"{_orphan_audit_p.relative_to(_ROOT)} (audit only · "
                       f"NOT in shipped Exit History body)")
             except Exception as _e:
                 print(f"[exit_history:{mkt_key}] registry sync skipped · {_e}")
-            # Sort · most recent exit first
-            _exit_rows.sort(key=lambda x: x[0], reverse=True)
+            # Sort · CEO 2026-08-28 bulletproof design · category then date.
+            # · REAL trades (rotation · signal_exit · target · stop_loss)
+            #   FIRST · most-recent first within group · operator scan focus
+            # · ORPHAN_AUTO_CLOSE LAST · most-recent first within group ·
+            #   still in body so I20 passes · but visually deprioritized
+            # Tuple field 10 is the sanitized reason string.
+            def _cat_priority(reason_str):
+                r = str(reason_str or "").upper()
+                # 1 = orphan (last) · 0 = real trade (first)
+                if "ORPHAN_AUTO_CLOSE" in r or "AUTO CLOSE" in r:
+                    return 1
+                return 0
+            _exit_rows.sort(
+                key=lambda x: (
+                    _cat_priority(x[10] if len(x) > 10 else ""),   # real first
+                    # date-desc within category · negate ISO-string
+                    # by encoding as YYYYMMDD int negated
+                    -1 * int(str(x[0])[:10].replace("-","")) if x[0] else 0,
+                ))
             # 2026-08-25 · CLEAN LAYOUT · body starts row 6 (after title +
             # 2 analysis + blank + header). Month color-band cadence:
             # walk in date-desc order · alternate light/dark grey each
