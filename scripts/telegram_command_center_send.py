@@ -3113,6 +3113,19 @@ def main() -> int:
                 from backend.research import opportunity_registry as _oreg_eh
                 _reg_eh = _oreg_eh.load_all(_ROOT)
                 _seen_keys = {(x[1], x[3], str(x[0])[:10]) for x in _exit_rows}
+                # CEO 2026-08-28 · Path A directive · orphan filter.
+                # ORPHAN_AUTO_CLOSE rows are Registry cleanup of stale
+                # positions · NOT real trades taken by the operator.
+                # Filter them out of the shipped Exit History sheet ·
+                # route to a separate audit-only JSONL so the audit
+                # trail is preserved without polluting trade evidence.
+                _orphan_audit_p = (_ROOT / "reports" / "delivery"
+                                    / f"orphan_audit_{mkt_key.lower()}.jsonl")
+                _orphan_audit_p.parent.mkdir(parents=True, exist_ok=True)
+                _n_orphan_filtered = 0
+                import json as _json_orphan
+                # Truncate + rewrite (deterministic · rerun-identical)
+                _orphan_lines: list = []
                 for _opps in _reg_eh.values():
                     for _o in _opps:
                         if _o.market.lower() != mkt_key.lower(): continue
@@ -3121,6 +3134,20 @@ def main() -> int:
                         if _o.closed_date < _exit_cutoff: continue
                         _key = (_o.ticker.upper(), _o.runner, _o.closed_date)
                         if _key in _seen_keys: continue     # already in exit_rows
+                        # Orphan cleanup filter · route to audit log
+                        _reason_raw = str(_o.closed_reason or "").upper()
+                        if "ORPHAN_AUTO_CLOSE" in _reason_raw:
+                            _n_orphan_filtered += 1
+                            _orphan_lines.append({
+                                "ticker":        _o.ticker.upper(),
+                                "runner":        _o.runner,
+                                "created_date":  str(_o.created_date)[:10],
+                                "closed_date":   str(_o.closed_date)[:10],
+                                "closed_reason": str(_o.closed_reason),
+                                "ts_utc":        _o.ts_utc,
+                                "pid":           _o.opportunity_id,
+                            })
+                            continue    # NOT emitted to Exit History body
                         # Synthesize a row from Registry data
                         try:
                             from datetime import date as _dz
@@ -3155,6 +3182,15 @@ def main() -> int:
                             _pnl_reg, _reason_e,
                         ))
                         _seen_keys.add(_key)
+                # Emit orphan audit log · deterministic rewrite
+                _orphan_lines.sort(key=lambda r: (r["closed_date"], r["ticker"]))
+                with _orphan_audit_p.open("w", encoding="utf-8") as _oaf:
+                    for _line in _orphan_lines:
+                        _oaf.write(_json_orphan.dumps(_line, default=str, ensure_ascii=False) + "\n")
+                print(f"[exit_history:{mkt_key}] orphan filter · "
+                      f"{_n_orphan_filtered} ORPHAN_AUTO_CLOSE rows routed to "
+                      f"{_orphan_audit_p.relative_to(_ROOT)} (audit only · "
+                      f"NOT in shipped Exit History body)")
             except Exception as _e:
                 print(f"[exit_history:{mkt_key}] registry sync skipped · {_e}")
             # Sort · most recent exit first
@@ -3606,6 +3642,90 @@ def main() -> int:
             except Exception as _e_final:
                 print(f"[xlsx:{mkt_key}] final Row 2/3 reconciliation failed · "
                       f"{type(_e_final).__name__}: {_e_final}")
+
+            # CEO 2026-08-28 · Path A directive · Registry-ACTIVE completeness.
+            # Portfolio MUST show every Registry ACTIVE position · stable
+            # across CI runs. Prior state · Portfolio filters iterated
+            # today's source-XLSX signal fires and dropped positions that
+            # weren't signaled today (3-7 varying · 18 Registry ACTIVE).
+            # Fix · after the main row emit + reconciliation, append
+            # canonical rows for every Registry ACTIVE position not yet
+            # displayed. Uses backend/delivery/portfolio_source (Registry
+            # + snapshot ledger + parquet · pure function · deterministic).
+            try:
+                from backend.delivery.portfolio_source import (
+                    missing_tickers as _pf_missing,
+                )
+                # Snapshot which (runner, ticker) the main loop displayed
+                _displayed_rt: set = set()
+                for _r in range(6, portfolio_ws.max_row + 1):
+                    _tk = portfolio_ws.cell(_r, 1).value
+                    if not _tk: continue
+                    _tks = str(_tk).upper()
+                    if not _tks or ' ' in _tks or _tks.startswith(('🟢','🔴','🆕','🟣','📊','AEGIS','TICKER')):
+                        continue
+                    _rn = portfolio_ws.cell(_r, 9).value
+                    if _rn:
+                        _displayed_rt.add((str(_rn).upper().replace("_NEW",""), _tks))
+                _missing = _pf_missing(_ROOT, mkt_key, asof, _displayed_rt)
+                if _missing:
+                    _from_row = portfolio_ws.max_row + 1
+                    from openpyxl.styles import (
+                        Font as _PfFont, PatternFill as _PfFill,
+                        Alignment as _PfAlign,
+                    )
+                    _hold_fill = _PfFill(start_color="F0F4F8",
+                                          end_color="F0F4F8", fill_type="solid")
+                    for _pi, _p in enumerate(_missing):
+                        _rr = _from_row + _pi
+                        # Only fill the CANONICAL columns · others left blank ·
+                        # Definitions sheet documents that Registry-sourced
+                        # rows have canonical entry + parquet current + P&L
+                        # but no today-signal fields (Health / Confidence /
+                        # Rank not fired for this ticker today).
+                        _cells = {
+                            1:  _p["ticker"],
+                            2:  f"🟢 ACTIVE (holding · no signal today)",
+                            3:  "🟢 ACTIVE",
+                            4:  "🟢 ACTIVE",
+                            5:  _p["entry_date"][:7],
+                            9:  _p["runner"],
+                            10: "🔹 R1 ONLY" if _p["runner"] == "R1" else "🔸 R2 ONLY",
+                            11: _p["sector"],
+                            13: _p["entry_date"],
+                            15: _p["days_held"],
+                            16: "🟢 LOW",
+                            17: "Registry-sourced · today's signal not fired",
+                            20: "HOLD",
+                            21: "⏳ PENDING",
+                            23: _p["entry_price"],
+                            24: _p["current_price"],
+                            26: _p["pnl_pct"] / 100.0,   # decimal for Excel SUM
+                            30: (f"Hold · position from {_p['created_date']} · "
+                                  f"today's signal did not fire"),
+                        }
+                        for _cc, _vv in _cells.items():
+                            _sc = portfolio_ws.cell(_rr, _cc, _vv)
+                            _sc.fill = _hold_fill
+                            _sc.font = _PfFont(size=10)
+                    print(f"[xlsx:{mkt_key}] Portfolio completeness · "
+                          f"appended {len(_missing)} Registry-ACTIVE positions "
+                          f"not in today's source signals · "
+                          f"total Portfolio ACTIVE = "
+                          f"{len(_displayed_rt) + len(_missing)}")
+                    # Update Row 2 banner to reflect true count
+                    _r2_true = portfolio_ws.cell(2, 1).value or ""
+                    if _r2_true and "Active (current)" in str(_r2_true):
+                        import re as _re_up
+                        _new_n = len(_displayed_rt) + len(_missing)
+                        _r2_true = _re_up.sub(
+                            r"Active \(current\):\s*\d+",
+                            f"Active (current): {_new_n}",
+                            str(_r2_true))
+                        portfolio_ws.cell(2, 1).value = _r2_true
+            except Exception as _e_pf:
+                print(f"[xlsx:{mkt_key}] Portfolio completeness pass skipped · "
+                      f"{type(_e_pf).__name__}: {_e_pf}")
 
             # CEO 2026-08-27 reconciliation directive · Definitions sheet.
             # Publishes the scope + formula + composition rules INSIDE the
