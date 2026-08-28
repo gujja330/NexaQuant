@@ -20,11 +20,10 @@ on:
     - cron: "30 12 * * 1-5"   # 12:30 UTC = 6:00 PM IST (backup 1)
     - cron: "0 13 * * 1-5"    # 13:00 UTC = 6:30 PM IST (backup 2)
   workflow_dispatch:
-  # 2026-08-18 · TEMPORARY · fire on next main push to force a fresh CI-built
-  # XLSX after the gujja330 account switch. REVERT this section in follow-up
-  # commit once Telegram delivery confirmed.
-  push:
-    branches: [main]
+  # 2026-08-28 · CEO directive · revert of 2026-08-18 temporary push
+  # trigger. Same rationale as aegis-daily.yml removal: pushes should
+  # not trigger full 40-min USA orchestrator runs · use manual dispatch
+  # or wait for the scheduled slot.
 
 # Wave Y · Constitution Article 45: concurrency block prevents overlapping runs.
 concurrency:
@@ -95,10 +94,15 @@ jobs:
           "
 
       # 2026-08-25 · MANDATORY delivery-tests gate · mirrors India.
+      # 2026-08-28 · CEO directive · removed `continue-on-error: true`
+      # so a failing test suite becomes a workflow-level failure ·
+      # workflow.conclusion no longer misleadingly reports success
+      # when delivery tests fail. Downstream send/commit steps still
+      # gate on `outcome == 'success'` so behavior on failure is
+      # unchanged (Telegram send still blocked · alert still fires).
       - name: Delivery classifier tests (blocks Telegram if red)
         id: delivery_tests_usa
         if: always()
-        continue-on-error: true
         run: python -m pytest tests/delivery/ -v --tb=short
 
       - name: Telegram Command Center (USA · cycle 6 · single crisp message)
@@ -191,24 +195,68 @@ jobs:
 
       - name: Commit USA artifacts
         if: success()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
           git config user.name  "aegis-bot"
           git config user.email "aegis-bot@users.noreply.github.com"
-          git add usa/reports/*.json usa/reports/*.md usa/reports/*.html usa/reports/*.jsonl 2>/dev/null || true
-          # Unified daily XLSX (see aegis-daily.yml commit-back fix) · same
-          # file appended by both markets · India workflow commits first · USA
-          # commits after adding its rows. Without this, USA rows never reach
-          # main and next-day CI loses them (same bug as India Aug-3 gap).
-          git add reports/telegram/aegis_history.xlsx reports/telegram/aegis_daily_*.xlsx 2>/dev/null || true
-          # 2026-08-20 · Sprint K Part 30 · Registry MUST persist across CI runs
-          # or every fresh checkout treats every ticker as first-time NEW (bug).
-          git add reports/research/opportunity_registry.jsonl 2>/dev/null || true
-          git add reports/context/opportunity_violations.json reports/context/daily_opportunity_discovery.json 2>/dev/null || true
-          # 2026-08-20 · commit per-market XLSX too · so local devs pulling
-          # the repo get freshest India+USA delivered files (was Aug-14 stale).
-          git add reports/telegram/aegis_history_india.xlsx reports/telegram/aegis_history_usa.xlsx 2>/dev/null || true
-          git diff --cached --quiet || git commit -m "AEGIS USA daily: refresh reports [skip ci]"
-          git push || true
+          # 2026-08-28 · CEO directive · size guard.
+          # `usa/reports/recommendation_lifecycle_ledger.jsonl` grew to
+          # 117 MB · exceeds GitHub's 100 MB pre-receive limit ·
+          # causes `git push` to be REJECTED. Previously `git push ||
+          # true` swallowed the error silently · artifact-commit was
+          # failing invisibly. Explicitly skip any staged file over
+          # 90 MB (leaves headroom below the 100 MB limit) · print
+          # each skip so the CI log is honest.
+          _add_safe() {
+              local pattern="$1"
+              for f in $pattern; do
+                  if [ ! -f "$f" ]; then continue; fi
+                  local sz=$(stat -c %s "$f" 2>/dev/null || echo 0)
+                  if [ "$sz" -gt 94371840 ]; then    # 90 MB in bytes
+                      echo "[commit-artifacts] SKIP · $f is $(( sz / 1048576 )) MB · exceeds 90 MB safety limit (GitHub cap 100 MB)"
+                      continue
+                  fi
+                  git add "$f" 2>/dev/null || true
+              done
+          }
+          _add_safe "usa/reports/*.json"
+          _add_safe "usa/reports/*.md"
+          _add_safe "usa/reports/*.html"
+          _add_safe "usa/reports/*.jsonl"
+          _add_safe "reports/telegram/aegis_history.xlsx"
+          _add_safe "reports/telegram/aegis_daily_*.xlsx"
+          _add_safe "reports/research/opportunity_registry.jsonl"
+          _add_safe "reports/context/opportunity_violations.json"
+          _add_safe "reports/context/daily_opportunity_discovery.json"
+          _add_safe "reports/telegram/aegis_history_india.xlsx"
+          _add_safe "reports/telegram/aegis_history_usa.xlsx"
+          if git diff --cached --quiet; then
+              echo "[commit-artifacts] nothing new to commit"
+              exit 0
+          fi
+          git commit -m "AEGIS USA daily: refresh reports [skip ci]"
+          # 2026-08-28 · CEO directive · explicit push handling ·
+          # `git push || true` was silently discarding push failures
+          # (100 MB limit · concurrency race · auth). Now: retry once ·
+          # if still fails, print explicit error + Telegram alert · but
+          # do NOT fail the workflow step (delivery already succeeded ·
+          # this is an artifact-commit-back · non-critical).
+          if git push 2>&1; then
+              echo "[commit-artifacts] push OK"
+          elif git pull --rebase origin main 2>&1 && git push 2>&1; then
+              echo "[commit-artifacts] push OK (after rebase)"
+          else
+              echo "::error::[commit-artifacts] push FAILED after retry · artifacts stayed local"
+              if [ -n "$TELEGRAM_BOT_TOKEN" ] && [ -n "$TELEGRAM_CHAT_ID" ]; then
+                  MSG="🇺🇸 CI ARTIFACT PUSH FAILED · run ${{ github.run_id }}%0A · commit ${{ github.sha }}%0A · aegis-bot commit-back did NOT reach main · check for 100MB-file / concurrency issues"
+                  curl -sS -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
+                      -d "chat_id=$TELEGRAM_CHAT_ID" -d "text=$MSG" \
+                      -d "disable_web_page_preview=true" || true
+              fi
+              # Non-fatal · continue workflow (delivery already succeeded)
+          fi
 
       # ═══════════════════════════════════════════════════════════════════════
       # Research post-processing (2026-08-11 · CEO final wiring)
@@ -231,10 +279,47 @@ jobs:
       - name: Commit research post-processing outputs (USA)
         if: always()
         continue-on-error: true
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
           git config user.name  "aegis-bot"
           git config user.email "aegis-bot@users.noreply.github.com"
-          git add reports/research/outcome_dataset.parquet reports/research/outcome_dataset_summary.json 2>/dev/null || true
-          git add reports/research/attribution_analysis.json reports/research/attribution_report.md 2>/dev/null || true
-          git diff --cached --quiet || git commit -m "AEGIS research USA: refresh P0 + P1 [skip ci]"
-          git push || true
+          # 2026-08-28 · CEO directive · same size-guard + explicit
+          # push handling as Commit USA artifacts. Research post-
+          # processing files can also grow large (outcome_dataset
+          # parquets accumulate over time).
+          _add_safe_research() {
+              local pattern="$1"
+              for f in $pattern; do
+                  if [ ! -f "$f" ]; then continue; fi
+                  local sz=$(stat -c %s "$f" 2>/dev/null || echo 0)
+                  if [ "$sz" -gt 94371840 ]; then
+                      echo "[research-commit] SKIP · $f is $(( sz / 1048576 )) MB · exceeds 90 MB"
+                      continue
+                  fi
+                  git add "$f" 2>/dev/null || true
+              done
+          }
+          _add_safe_research "reports/research/outcome_dataset.parquet"
+          _add_safe_research "reports/research/outcome_dataset_summary.json"
+          _add_safe_research "reports/research/attribution_analysis.json"
+          _add_safe_research "reports/research/attribution_report.md"
+          if git diff --cached --quiet; then
+              echo "[research-commit] nothing to commit"
+              exit 0
+          fi
+          git commit -m "AEGIS research USA: refresh P0 + P1 [skip ci]"
+          if git push 2>&1; then
+              echo "[research-commit] push OK"
+          elif git pull --rebase origin main 2>&1 && git push 2>&1; then
+              echo "[research-commit] push OK (after rebase)"
+          else
+              echo "::error::[research-commit] push FAILED · research state stayed local"
+              if [ -n "$TELEGRAM_BOT_TOKEN" ] && [ -n "$TELEGRAM_CHAT_ID" ]; then
+                  MSG="🇺🇸 CI RESEARCH PUSH FAILED · run ${{ github.run_id }}%0A · commit ${{ github.sha }}%0A · research artifacts stayed local"
+                  curl -sS -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
+                      -d "chat_id=$TELEGRAM_CHAT_ID" -d "text=$MSG" \
+                      -d "disable_web_page_preview=true" || true
+              fi
+          fi
