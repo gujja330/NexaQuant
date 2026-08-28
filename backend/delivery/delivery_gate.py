@@ -34,7 +34,10 @@ BLOCKING_CODES: set = {
     "A19",   # Exit History has Sector column
     # 2026-08-25 · lifecycle sync + dedup (operator IEX-in-both bug)
     "A22",   # dedup · no ticker in both Portfolio + Exit History
-    "A23",   # sync · every Registry-CLOSED ticker in Exit History
+    "A23",   # historical-lineage validation for Exit History rows
+             # (2026-08-28 · was: sync · every Registry-CLOSED in EH ·
+             #  new: EH row → has Registry/snapshot lineage · AND every
+             #  Registry-CLOSED is in EH body OR orphan_audit JSONL)
     "A24",   # sync · no Registry-CLOSED ticker in Portfolio
 }
 

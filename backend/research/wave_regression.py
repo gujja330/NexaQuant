@@ -471,38 +471,100 @@ def compute(root: Path, market: str, asof: str) -> WaveRegressionReport:
         rep.add("A22", "No ticker in both Portfolio + Exit History", "WARN",
                     f"could not verify · {type(e).__name__}: {e}")
 
-    # A23 · Every Registry-CLOSED ticker must appear in Exit History
+    # A23 · Historical-lineage validation for Exit History rows
+    #
+    # CEO 2026-08-28 · Path A directive (post-orphan-filter):
+    # > "Current Registry state must not be used as the existence test
+    # >  for historical Exit History. If a ticker was legitimate when
+    # >  the trade existed and subsequently closed/rotated, its
+    # >  historical record should remain immutable. A23 should fail if
+    # >  an Exit History row has NO historical provenance whatsoever."
+    #
+    # OLD semantic (WRONG · asymmetric): current-Registry-CLOSED ⊆
+    #     Exit-History body. Fails on legitimate cleanup / rotation /
+    #     orphan-audit that routes Registry events to a separate sink.
+    # NEW semantic (correct · lineage-based): for each Exit-History
+    #     body row, verify historical provenance exists · Registry has
+    #     SOME event for that ticker at some point (any status, any
+    #     time) OR snapshot ledger has an entry. FAIL only if the row
+    #     is fabricated (no lineage anywhere).
+    #
+    # Also validates the reverse-scope invariant · Registry CLOSED that
+    # are not in Exit History body MUST be in orphan_audit_{market}.jsonl
+    # (the documented sink). Ensures nothing goes silently untracked.
     try:
         from backend.research import opportunity_registry as _oreg
         _reg = _oreg.load_all(root)
+        # Build the historical universe · every Registry-known ticker
+        _historical_tickers = set()
         _closed_reg = set()
         for _opps in _reg.values():
             for _o in _opps:
-                if _o.market.lower() == market and _o.status == "CLOSED":
+                if _o.market.lower() != market: continue
+                _historical_tickers.add(_o.ticker.upper())
+                if _o.status == "CLOSED":
                     _closed_reg.add(_o.ticker.upper())
-        # Compare vs Exit History tickers
+        # Snapshot ledger tickers (canonical entry records)
+        try:
+            from backend.delivery.prediction_snapshot import _load_ledger
+            for _sr in _load_ledger(root):
+                _tk_snap = str(_sr.get("ticker", "")).upper()
+                if _tk_snap: _historical_tickers.add(_tk_snap)
+        except Exception:
+            pass
+        # Exit History body tickers
         _in_eh = _exit_tks if 'FALLBACK' not in dir() and '_exit_tks' in dir() else set()
-        # If we don't have _exit_tks in scope, re-read
         if not _in_eh:
             from openpyxl import load_workbook as _lw
             xp = root / "reports" / "telegram" / f"aegis_history_{market}.xlsx"
             if xp.exists():
                 _wb2 = _lw(xp, read_only=True)
                 if "Exit History (90d)" in _wb2.sheetnames:
-                    for _row in _wb2["Exit History (90d)"].iter_rows(min_row=6, values_only=True):  # layout-aware
+                    for _row in _wb2["Exit History (90d)"].iter_rows(min_row=6, values_only=True):
                         if _row and _row[0]:
                             _in_eh.add(str(_row[0]).upper().strip())
                 _wb2.close()
-        _missing_from_eh = _closed_reg - _in_eh
-        if _missing_from_eh:
-            rep.add("A23", "Registry-CLOSED tickers appear in Exit History",
+        # Orphan audit JSONL tickers (documented sink for Registry
+        # ORPHAN_AUTO_CLOSE events filtered out of Exit History body)
+        _in_audit = set()
+        try:
+            import json as _json_a23
+            _aud_p = root / "reports" / "delivery" / f"orphan_audit_{market}.jsonl"
+            if _aud_p.exists():
+                for _ln in _aud_p.read_text(encoding="utf-8", errors="replace").splitlines():
+                    if not _ln.strip(): continue
+                    try:
+                        _e = _json_a23.loads(_ln)
+                        _tk_aud = str(_e.get("ticker","")).upper()
+                        if _tk_aud: _in_audit.add(_tk_aud)
+                    except Exception:
+                        pass
+        except Exception:
+            pass
+        # Check 1 · every Exit History row has historical lineage
+        _fabricated = _in_eh - _historical_tickers
+        # Check 2 · every Registry CLOSED is tracked SOMEWHERE (Exit
+        # History body OR orphan audit JSONL) · no silent loss
+        _silently_lost = _closed_reg - _in_eh - _in_audit
+        if _fabricated:
+            rep.add("A23", "Historical-lineage validation for Exit History",
                         "FAIL",
-                        f"{len(_missing_from_eh)} missing: {', '.join(sorted(_missing_from_eh)[:5])}")
+                        f"{len(_fabricated)} fabricated rows (no Registry / "
+                        f"snapshot lineage): {', '.join(sorted(_fabricated)[:5])}")
+        elif _silently_lost:
+            rep.add("A23", "Historical-lineage validation for Exit History",
+                        "FAIL",
+                        f"{len(_silently_lost)} Registry-CLOSED tickers silently "
+                        f"lost (not in Exit History body AND not in orphan audit "
+                        f"JSONL): {', '.join(sorted(_silently_lost)[:5])}")
         else:
-            rep.add("A23", "Registry-CLOSED tickers appear in Exit History",
-                        "PASS", f"{len(_closed_reg)} closed opps all synced")
+            rep.add("A23", "Historical-lineage validation for Exit History",
+                        "PASS",
+                        f"{len(_in_eh)} rows lineage-valid · "
+                        f"{len(_in_audit)} orphan-audit rows · "
+                        f"{len(_closed_reg)} Registry-CLOSED all tracked")
     except Exception as e:
-        rep.add("A23", "Registry-CLOSED tickers appear in Exit History",
+        rep.add("A23", "Historical-lineage validation for Exit History",
                     "WARN", f"could not verify · {type(e).__name__}: {e}")
 
     # A24 · Portfolio ACTION-section tickers not in Registry-CLOSED
