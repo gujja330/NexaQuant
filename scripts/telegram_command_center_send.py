@@ -3572,19 +3572,46 @@ def main() -> int:
             # SHADOW / MOMENTUM / EXIT / SUGGESTED · counts only genuine
             # investment positions. This is the final authoritative pass
             # · guarantees header ≡ visible investment count.
+            #
+            # CEO 2026-08-31 · population-contract fix · split the
+            # visible universe into ACTIVE / NEW / SUGGESTED counts so
+            # the banner never conflates them. Prior state (bug): banner
+            # said "Active (current): 36 positions" while body = 29
+            # ACTIVE + 3 NEW + 4 SUGGESTED. That violated the Definitions
+            # sheet's own rule: "Active count = unique Position IDs
+            # classified as ACTIVE, excluding SUGGESTED/EXIT".
             try:
                 _visible_pnls_final: list = []
                 _visible_moves_final: list = []
                 _visible_by_row: list = []
                 _visible_tickers_final: list = []   # for Option B canonical emit
+                # Population counters · separate ACTIVE / NEW / SUGGESTED
+                _n_active_only = 0     # Lifecycle==ACTIVE (and not SUGGESTED)
+                _n_new_only    = 0     # Lifecycle==NEW
+                _n_suggested   = 0     # DECISION contains SUGGESTED or Runner==SHADOW
                 for _rn_i in range(6, portfolio_ws.max_row + 1):
-                    _rn_val = str(portfolio_ws.cell(_rn_i, 9).value or "").upper()
-                    if _rn_val in ("SHADOW", "MOMENTUM"): continue
-                    _st_val = str(portfolio_ws.cell(_rn_i, 20).value or "").upper()
-                    if _st_val == "EXIT": continue
+                    _rn_val  = str(portfolio_ws.cell(_rn_i, 9).value or "").upper()
+                    _st_val  = str(portfolio_ws.cell(_rn_i, 20).value or "").upper()
                     _dec_val = str(portfolio_ws.cell(_rn_i, 3).value or "")
-                    if "🔴 EXIT" in _dec_val or "🟣 SUGGESTED" in _dec_val:
+                    _life_val = str(portfolio_ws.cell(_rn_i, 4).value or "").upper()
+                    _dec_upper = _dec_val.upper()
+                    # SUGGESTED / SHADOW · counted separately, excluded from
+                    # ACTIVE-P&L population but STILL visible in Portfolio.
+                    if _rn_val == "SHADOW" or "SUGGESTED" in _dec_upper:
+                        _n_suggested += 1
                         continue
+                    # MOMENTUM · research runner · excluded from visible universe
+                    if _rn_val == "MOMENTUM":
+                        continue
+                    # EXIT · not currently held · excluded from visible universe
+                    if _st_val == "EXIT" or "🔴 EXIT" in _dec_val or "EXIT" in _dec_upper.split():
+                        continue
+                    # Row is CURRENT HOLDING · categorize by lifecycle
+                    if "NEW" in _life_val:
+                        _n_new_only += 1
+                    else:
+                        # ACTIVE / ACTIVE+ / HOLD / etc. all count as ACTIVE
+                        _n_active_only += 1
                     _entry_v = portfolio_ws.cell(_rn_i, 23).value
                     _curr_v  = portfolio_ws.cell(_rn_i, 24).value
                     _pnl_v   = portfolio_ws.cell(_rn_i, 26).value
@@ -3601,7 +3628,7 @@ def main() -> int:
                     elif (isinstance(_entry_v, (int, float)) and _entry_v > 0
                           and isinstance(_curr_v, (int, float))):
                         _visible_pnls_final.append((_curr_v - _entry_v) / _entry_v * 100)
-                _n_visible = len(_visible_by_row)
+                _n_visible = len(_visible_by_row)   # ACTIVE + NEW (excludes SUGGESTED)
                 _pnl_avg_f = (sum(_visible_pnls_final) / len(_visible_pnls_final)
                               if _visible_pnls_final else 0)
                 _today_avg_f = (sum(_today_moves) / len(_today_moves)
@@ -3636,25 +3663,33 @@ def main() -> int:
                 _eh_wr  = (round(sum(1 for p in _eh_pnls_pct if p > 0)
                                     / len(_eh_pnls_pct) * 100, 1)
                            if _eh_pnls_pct else 0.0)
-                # CEO 2026-08-27 reconciliation · CURRENT scope primary
-                # + Realized 90d scope-labelled reference (locked I25
-                # validator requires the reference · we build it from
-                # the SAME body scan I25 uses so header == body by
-                # construction · em-dash scope label · never a `(`
-                # before the count paren so I25 regex matches).
+                # CEO 2026-08-31 · Portfolio banner population split ·
+                # separate ACTIVE / NEW / SUGGESTED counts so the banner
+                # can never conflate them. P&L numbers get explicit
+                # scope labels (ACTIVE holdings · equal-weight per
+                # position). Realized 90d reference paren stays
+                # untouched · locked I25 regex `Realized 90d[^(]*\(\s*
+                # (\d+)\s*exits` requires the FIRST `(` after
+                # "Realized 90d" to be the count paren, so scope labels
+                # for that segment must use em-dashes not parens.
+                # Adding "(equal-weight per trade)" INSIDE the count
+                # paren keeps I25 happy · the regex captures {_eh_n}
+                # before hitting our added phrase.
                 _r2_final = (
-                    f"🟢 Active (current): {_n_visible} positions  ·  "
-                    f"Unrealized P&L: {_pnl_avg_f:+.2f}%  ·  "
+                    f"🟢 Current Portfolio: {_n_active_only} ACTIVE · "
+                    f"{_n_new_only} NEW · {_n_suggested} SUGGESTED  ·  "
+                    f"Unrealized P&L — ACTIVE holdings, equal-weight per position — "
+                    f"{_pnl_avg_f:+.2f}%  ·  "
                     f"Today's P&L: {_today_avg_f:+.2f}%  ·  "
                     f"Realized 90d — historical · see Exit History sheet — "
-                    f"({_eh_n} exits · WR {_eh_wr}% · P&L {_eh_sum:+.2f}%)")
+                    f"({_eh_n} exits · WR {_eh_wr}% · P&L {_eh_sum:+.2f}% · equal-weight per trade)")
                 if _stale_positions:
                     _r2_final += f"  ·  ⚠ {_stale_positions} stale"
                 portfolio_ws.cell(2, 1).value = _r2_final
                 _r3_final = (
-                    f"✅ Positive (current): {len(_pos_f)} pos · avg +{_pos_avg_f:.2f}%  ·  "
-                    f"❌ Negative (current): {len(_neg_f)} pos · avg {_neg_avg_f:.2f}%  ·  "
-                    f"(equal-weight · capital weights TBD)")
+                    f"✅ ACTIVE holdings positive: {len(_pos_f)} pos · avg +{_pos_avg_f:.2f}%  ·  "
+                    f"❌ ACTIVE holdings negative: {len(_neg_f)} pos · avg {_neg_avg_f:.2f}%  ·  "
+                    f"(equal-weight per position · capital-weighted return TBD)")
                 portfolio_ws.cell(3, 1).value = _r3_final
                 print(f"[xlsx:{mkt_key}] Row 2/3 FINAL reconciliation · "
                       f"{_n_visible} genuine investment positions "

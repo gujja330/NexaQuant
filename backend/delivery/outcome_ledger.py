@@ -378,9 +378,19 @@ def format_portfolio_row3(metrics: CurrentPortfolioMetrics) -> str:
 
 
 def format_exit_history_summary(metrics: Realized90dMetrics) -> str:
-    """Exit History summary · REALIZED 90d scope ONLY. No current
-    portfolio numbers. 6-category composition reconciles 1:1 with
-    Registry analyzer."""
+    """Exit History summary · REALIZED 90d scope ONLY.
+
+    CEO 2026-08-31 · explicit 3-way population contract so the reader
+    never has to reverse-engineer which count is which:
+      · Canonical Lineage        = every Registry-CLOSED event in 90d
+      · Realized Performance     = eligible trades (|pnl| > 0.01%)
+      · Rotation artifacts       = 0% same-day rotations, EXCLUDED
+                                    from performance statistics but
+                                    still visible in body (I20 lineage).
+    Also labels every stat with its scope · Total P&L is equal-weight
+    per trade · sum of per-trade returns, NOT capital-weighted portfolio
+    return. Composition breakdown (6 categories) unchanged.
+    """
     if metrics.n_exits:
         parts = []
         for label, n in (
@@ -397,10 +407,13 @@ def format_exit_history_summary(metrics: Realized90dMetrics) -> str:
         comp = " · composition: " + " · ".join(parts)
     else:
         comp = ""
+    lineage_n = metrics.n_exits + metrics.n_zero_pnl_excluded
     return (
-        f"📊 Realized 90d: {metrics.n_exits} exits · "
-        f"Total P&L: {metrics.realized_pnl_pct:+.2f}%  ·  "
-        f"Win Rate (realized): {metrics.wr_pct}%"
+        f"📚 Canonical Lineage: {lineage_n} events  ·  "
+        f"📊 Realized Performance: {metrics.n_exits} eligible trades · "
+        f"Total P&L (equal-weight per trade): {metrics.realized_pnl_pct:+.2f}%  ·  "
+        f"Win Rate (realized): {metrics.wr_pct}%  ·  "
+        f"Rotation artifacts excluded from performance: {metrics.n_zero_pnl_excluded}"
         f"{comp}")
 
 
