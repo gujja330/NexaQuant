@@ -3804,19 +3804,107 @@ def main() -> int:
                           f"not in today's source signals · "
                           f"total Portfolio ACTIVE = "
                           f"{len(_displayed_rt) + len(_missing)}")
-                    # Update Row 2 banner to reflect true count
+                    # CEO 2026-08-31 · banner must reflect POST-PathA counts.
+                    # Prior bug (CEO deep-review 2026-08-31): banner said
+                    # "16 ACTIVE" but body had 29 ACTIVE (16 signal-enriched
+                    # + 13 Path-A holding rows). Definitions sheet declares
+                    # Portfolio source = Registry ACTIVE · so holding rows
+                    # MUST be counted. Support BOTH the current banner
+                    # format "Current Portfolio: N ACTIVE · M NEW · K
+                    # SUGGESTED" AND the legacy "Active (current): N".
                     _r2_true = portfolio_ws.cell(2, 1).value or ""
-                    if _r2_true and "Active (current)" in str(_r2_true):
+                    if _r2_true:
                         import re as _re_up
-                        _new_n = len(_displayed_rt) + len(_missing)
-                        _r2_true = _re_up.sub(
-                            r"Active \(current\):\s*\d+",
-                            f"Active (current): {_new_n}",
-                            str(_r2_true))
-                        portfolio_ws.cell(2, 1).value = _r2_true
+                        _n_added = len(_missing)
+                        _r2_str = str(_r2_true)
+                        # New format · bump the ACTIVE count only
+                        _m_new = _re_up.search(
+                            r"Current Portfolio:\s*(\d+)\s+ACTIVE", _r2_str)
+                        if _m_new:
+                            _old_active = int(_m_new.group(1))
+                            _new_active = _old_active + _n_added
+                            _r2_str = _re_up.sub(
+                                r"Current Portfolio:\s*\d+\s+ACTIVE",
+                                f"Current Portfolio: {_new_active} ACTIVE",
+                                _r2_str, count=1)
+                        elif "Active (current)" in _r2_str:
+                            # Legacy format · fall back to prior behavior
+                            _new_n = len(_displayed_rt) + len(_missing)
+                            _r2_str = _re_up.sub(
+                                r"Active \(current\):\s*\d+",
+                                f"Active (current): {_new_n}",
+                                _r2_str)
+                        portfolio_ws.cell(2, 1).value = _r2_str
             except Exception as _e_pf:
                 print(f"[xlsx:{mkt_key}] Portfolio completeness pass skipped · "
                       f"{type(_e_pf).__name__}: {_e_pf}")
+
+            # CEO 2026-08-31 · lifecycle freshness post-process.
+            # Prior bug (CEO deep-review 2026-08-31): MRF/BHARTIARTL/
+            # RELIANCE displayed as Lifecycle=NEW with entry_date=Aug 25
+            # and Days=0 on an Aug 31 workbook · temporally inconsistent.
+            # Root cause: is_new_position flag uses rec_date==asof (row
+            # was regenerated today) rather than actual entry event.
+            # Fix (delivery layer only · does NOT touch R1/R2/E1/E2/E3):
+            # after all rows are emitted, if entry_date < asof:
+            #   · Lifecycle=NEW → downgrade to ACTIVE (position is not
+            #     "new today" · it's a re-recommendation of a held pos)
+            #   · Days must equal (asof - entry_date) not 0
+            try:
+                from datetime import date as _lc_date
+                _asof_lc = _lc_date.fromisoformat(str(asof)[:10])
+                _n_lc_lifecycle = 0
+                _n_lc_days = 0
+                for _lr in range(6, portfolio_ws.max_row + 1):
+                    _life_cell = portfolio_ws.cell(_lr, 4)
+                    _life_v = str(_life_cell.value or "")
+                    _ent_v = portfolio_ws.cell(_lr, 13).value
+                    _ent_str = str(_ent_v)[:10] if _ent_v else ""
+                    try:
+                        _ent_d = _lc_date.fromisoformat(_ent_str)
+                    except Exception:
+                        continue
+                    _true_days = (_asof_lc - _ent_d).days
+                    # Fix Lifecycle: NEW → ACTIVE if position is not
+                    # actually born today.
+                    if "NEW" in _life_v.upper() and _true_days > 0:
+                        _life_cell.value = "🟢 ACTIVE"
+                        _n_lc_lifecycle += 1
+                    # Fix Days column · always trust entry_date-derived
+                    # value if a real date is present.
+                    _days_cell = portfolio_ws.cell(_lr, 15)
+                    if _days_cell.value != _true_days:
+                        _days_cell.value = _true_days
+                        _n_lc_days += 1
+                if _n_lc_lifecycle or _n_lc_days:
+                    print(f"[xlsx:{mkt_key}] lifecycle post-process · "
+                          f"{_n_lc_lifecycle} rows NEW→ACTIVE (entry_date<asof) · "
+                          f"{_n_lc_days} Days values corrected from entry_date")
+                # Re-sync banner counts · if the lifecycle promotion moved
+                # N rows from NEW to ACTIVE, the banner must reflect that
+                # (else banner "29 ACTIVE · 3 NEW" while body has 32 ACTIVE
+                # + 0 NEW). Read the current banner, subtract from NEW,
+                # add to ACTIVE.
+                if _n_lc_lifecycle > 0:
+                    import re as _re_lc2
+                    _bnr = str(portfolio_ws.cell(2, 1).value or "")
+                    _m_a = _re_lc2.search(
+                        r"Current Portfolio:\s*(\d+)\s+ACTIVE\s*·\s*(\d+)\s+NEW", _bnr)
+                    if _m_a:
+                        _cur_a = int(_m_a.group(1))
+                        _cur_n = int(_m_a.group(2))
+                        _new_a = _cur_a + _n_lc_lifecycle
+                        _new_n = max(0, _cur_n - _n_lc_lifecycle)
+                        _bnr = _re_lc2.sub(
+                            r"Current Portfolio:\s*\d+\s+ACTIVE\s*·\s*\d+\s+NEW",
+                            f"Current Portfolio: {_new_a} ACTIVE · {_new_n} NEW",
+                            _bnr, count=1)
+                        portfolio_ws.cell(2, 1).value = _bnr
+                        print(f"[xlsx:{mkt_key}] banner re-synced post-lifecycle · "
+                              f"ACTIVE {_cur_a}→{_new_a} · NEW {_cur_n}→{_new_n}")
+            except Exception as _e_lc:
+                print(f"[xlsx:{mkt_key}] lifecycle post-process skipped · "
+                      f"{type(_e_lc).__name__}: {_e_lc}")
 
             # CEO 2026-08-27 reconciliation directive · Definitions sheet.
             # Publishes the scope + formula + composition rules INSIDE the
