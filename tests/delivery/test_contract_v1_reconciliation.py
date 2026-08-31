@@ -293,17 +293,24 @@ def test_c5_no_trailer_strings_in_exit_history_body():
 
 
 def test_banner_active_current_reconciles_to_visible_body():
-    """Portfolio banner 'Active (current): N' must equal the number of
-    visible ACTIVE / ACTIVE+ / NEW body rows. Banner must not
-    independently invent a count."""
+    """Portfolio banner ACTIVE count must equal the number of visible
+    ACTIVE body rows. Banner must not independently invent a count.
+
+    Supports THREE banner formats (evolution of the delivery contract):
+      · 2026-08-27 "Active (current): N positions"
+      · 2026-08-31 "Current Portfolio: N ACTIVE · M NEW · K SUGGESTED"
+      · 2026-08-31 (post-B2) "Lifecycle: N ACTIVE · M NEW · K SUGGESTED"
+    """
     wb = _load_wb(_XLSX_INDIA)
     rows = _portfolio_rows(wb)
-    # Row 2 is the banner
     banner = str(rows[1][0]) if len(rows) > 1 and rows[1][0] else ""
     import re as _re
-    m = _re.search(r"Active \(current\):\s*(\d+)", banner)
+    m = _re.search(
+        r"(?:Lifecycle|Current Portfolio):\s*(\d+)\s+ACTIVE", banner)
     if not m:
-        pytest.skip(f"banner not in 'Active (current): N' shape · {banner[:80]}")
+        m = _re.search(r"Active \(current\):\s*(\d+)", banner)
+    if not m:
+        pytest.skip(f"banner not in recognized shape · {banner[:80]}")
     stated = int(m.group(1))
     # Count body rows (exclude SUGGESTED/SHADOW · they have own header text)
     hdr_idx = None
@@ -312,15 +319,24 @@ def test_banner_active_current_reconciles_to_visible_body():
             hdr_idx = i
             break
     body = rows[hdr_idx + 1:]
-    n_visible = 0
+    # B2 · banner "ACTIVE" count = rows whose Lifecycle column contains
+    # "ACTIVE" (not "NEW", not blank/SUGGESTED). Decision column can
+    # still say "NEW" for a fresh recommendation on an ACTIVE-lifecycle
+    # holding · those count as ACTIVE per lifecycle.
+    n_active_lifecycle = 0
     for r in body:
+        life = str(r[3]) if len(r) > 3 and r[3] else ""
         dec = str(r[2]) if len(r) > 2 and r[2] else ""
-        if any(k in dec.upper() for k in ("ACTIVE", "NEW")) and "SUGGESTED" not in dec.upper():
-            n_visible += 1
-    # Banner must equal visible count (banner reads what body shows)
-    assert stated == n_visible, (
-        f"Banner reconciliation failure · stated={stated} visible={n_visible} "
-        f"· C6 violation · banner must consume same population as body"
+        if "SUGGESTED" in dec.upper():
+            continue
+        life_up = life.upper()
+        # Count ACTIVE lifecycle strictly · exclude NEW (which is its own axis)
+        if "ACTIVE" in life_up and "NEW" not in life_up:
+            n_active_lifecycle += 1
+    assert stated == n_active_lifecycle, (
+        f"Banner reconciliation failure · stated={stated} "
+        f"lifecycle=ACTIVE={n_active_lifecycle} · C6 violation · "
+        f"banner must consume same population as body"
     )
     wb.close()
 

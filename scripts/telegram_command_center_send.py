@@ -3675,10 +3675,43 @@ def main() -> int:
                 # Adding "(equal-weight per trade)" INSIDE the count
                 # paren keeps I25 happy · the regex captures {_eh_n}
                 # before hitting our added phrase.
+                # CEO 2026-08-31 · B2 · Lifecycle and Decision are two
+                # distinct axes, not one. Banner must not label them the
+                # same way. Row 2 = Lifecycle (position state) · Row 3 =
+                # Decision (today's model call). Positive/negative moves
+                # to a labeled sub-section within Row 3.
+                #
+                # Compute Decision-axis counts from the body's Decision +
+                # Status columns (independent of Lifecycle counts).
+                _n_fresh_rec = 0    # Decision col 3 contains "NEW"
+                _n_strong_buy = 0
+                _n_buy = 0
+                _n_hold = 0
+                for _rd_i in range(6, portfolio_ws.max_row + 1):
+                    _rd_v = str(portfolio_ws.cell(_rd_i, 3).value or "").upper()
+                    _sd_v = str(portfolio_ws.cell(_rd_i, 20).value or "").upper()
+                    _rn_v = str(portfolio_ws.cell(_rd_i, 9).value or "").upper()
+                    if "SUGGESTED" in _rd_v or _rn_v == "SHADOW":
+                        continue
+                    if "NEW" in _rd_v:
+                        _n_fresh_rec += 1
+                    elif "STRONG BUY" in _sd_v:
+                        _n_strong_buy += 1
+                    elif "BUY" in _sd_v:
+                        _n_buy += 1
+                    elif "HOLD" in _sd_v:
+                        _n_hold += 1
+                # CEO 2026-08-31 clarification · three distinct axes:
+                #   Lifecycle  = position state (ACTIVE / NEW)
+                #   Decision   = today's model call (BUY / HOLD / NEW-REC / EXIT)
+                #   Suggested  = display category (recommendation surfaced · not held)
+                # Banner MUST label them separately · never conflate Suggested
+                # with Lifecycle=NEW · never conflate Decision=NEW with Lifecycle=NEW.
                 _r2_final = (
-                    f"🟢 Current Portfolio: {_n_active_only} ACTIVE · "
-                    f"{_n_new_only} NEW · {_n_suggested} SUGGESTED  ·  "
-                    f"Unrealized P&L — ACTIVE holdings, equal-weight per position — "
+                    f"🟢 Lifecycle: {_n_active_only} ACTIVE · "
+                    f"{_n_new_only} NEW  ·  "
+                    f"🟣 Suggested: {_n_suggested} (display category · not currently held)"
+                    f"  ·  Unrealized P&L — ACTIVE holdings, equal-weight per position — "
                     f"{_pnl_avg_f:+.2f}%  ·  "
                     f"Today's P&L: {_today_avg_f:+.2f}%  ·  "
                     f"Realized 90d — historical · see Exit History sheet — "
@@ -3687,8 +3720,11 @@ def main() -> int:
                     _r2_final += f"  ·  ⚠ {_stale_positions} stale"
                 portfolio_ws.cell(2, 1).value = _r2_final
                 _r3_final = (
-                    f"✅ ACTIVE holdings positive: {len(_pos_f)} pos · avg +{_pos_avg_f:.2f}%  ·  "
-                    f"❌ ACTIVE holdings negative: {len(_neg_f)} pos · avg {_neg_avg_f:.2f}%  ·  "
+                    f"📋 Today's decisions: {_n_strong_buy} STRONG-BUY · "
+                    f"{_n_buy} BUY · {_n_hold} HOLD · "
+                    f"{_n_fresh_rec} FRESH-REC  ·  "
+                    f"✅ ACTIVE positive: {len(_pos_f)} pos avg +{_pos_avg_f:.2f}%  ·  "
+                    f"❌ ACTIVE negative: {len(_neg_f)} pos avg {_neg_avg_f:.2f}%  ·  "
                     f"(equal-weight per position · capital-weighted return TBD)")
                 portfolio_ws.cell(3, 1).value = _r3_final
                 print(f"[xlsx:{mkt_key}] Row 2/3 FINAL reconciliation · "
@@ -3819,13 +3855,14 @@ def main() -> int:
                         _r2_str = str(_r2_true)
                         # New format · bump the ACTIVE count only
                         _m_new = _re_up.search(
-                            r"Current Portfolio:\s*(\d+)\s+ACTIVE", _r2_str)
+                            r"(?:Lifecycle|Current Portfolio):\s*(\d+)\s+ACTIVE",
+                            _r2_str)
                         if _m_new:
                             _old_active = int(_m_new.group(1))
                             _new_active = _old_active + _n_added
                             _r2_str = _re_up.sub(
-                                r"Current Portfolio:\s*\d+\s+ACTIVE",
-                                f"Current Portfolio: {_new_active} ACTIVE",
+                                r"(Lifecycle|Current Portfolio):\s*\d+\s+ACTIVE",
+                                lambda m: f"{m.group(1)}: {_new_active} ACTIVE",
                                 _r2_str, count=1)
                         elif "Active (current)" in _r2_str:
                             # Legacy format · fall back to prior behavior
@@ -3889,15 +3926,16 @@ def main() -> int:
                     import re as _re_lc2
                     _bnr = str(portfolio_ws.cell(2, 1).value or "")
                     _m_a = _re_lc2.search(
-                        r"Current Portfolio:\s*(\d+)\s+ACTIVE\s*·\s*(\d+)\s+NEW", _bnr)
+                        r"(?:Lifecycle|Current Portfolio):\s*(\d+)\s+ACTIVE\s*·\s*(\d+)\s+NEW",
+                        _bnr)
                     if _m_a:
                         _cur_a = int(_m_a.group(1))
                         _cur_n = int(_m_a.group(2))
                         _new_a = _cur_a + _n_lc_lifecycle
                         _new_n = max(0, _cur_n - _n_lc_lifecycle)
                         _bnr = _re_lc2.sub(
-                            r"Current Portfolio:\s*\d+\s+ACTIVE\s*·\s*\d+\s+NEW",
-                            f"Current Portfolio: {_new_a} ACTIVE · {_new_n} NEW",
+                            r"(Lifecycle|Current Portfolio):\s*\d+\s+ACTIVE\s*·\s*\d+\s+NEW",
+                            lambda m: f"{m.group(1)}: {_new_a} ACTIVE · {_new_n} NEW",
                             _bnr, count=1)
                         portfolio_ws.cell(2, 1).value = _bnr
                         print(f"[xlsx:{mkt_key}] banner re-synced post-lifecycle · "
