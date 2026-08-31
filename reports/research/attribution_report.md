@@ -1,8 +1,8 @@
 # AEGIS Attribution Report
 
-**Generated:** 2026-08-31T12:34:18+00:00
+**Generated:** 2026-08-31T13:04:18+00:00
 **Source:** `reports/research/outcome_dataset.parquet`
-**Positions:** 46 total · 28 closed · 18 open
+**Positions:** 47 total · 29 closed · 18 open
 
 ## Sample-size tiers
 | Tier | N range | Meaning |
@@ -17,14 +17,14 @@
 ### runner
 | Value | N | Win% | Avg P&L | Median | Profit Factor | Tier |
 |---|---|---|---|---|---|---|
-| R2 | 25 | 44.0% | -0.525% | -0.07% | 0.71 | SIG |
+| R2 | 26 | 42.3% | -0.863% | -0.09% | 0.59 | SIG |
 | R1 | 3 | 0.0% | -5.293% | -5.21% | 0.0 | OBS |
 
 ### cap
 | Value | N | Win% | Avg P&L | Median | Profit Factor | Tier |
 |---|---|---|---|---|---|---|
 | MidCap | 18 | 38.9% | -0.418% | -0.18% | 0.68 | SIG |
-| LargeCap | 10 | 40.0% | -2.147% | -1.1% | 0.42 | HYP |
+| LargeCap | 11 | 36.4% | -2.798% | -2.13% | 0.34 | HYP |
 
 ### sector
 | Value | N | Win% | Avg P&L | Median | Profit Factor | Tier |
@@ -38,7 +38,7 @@
 | Energy | 2 | 0.0% | -1.745% | -1.745% | 0.0 | OBS |
 | Utilities | 4 | 25.0% | -1.95% | -3.065% | 0.33 | OBS |
 | Healthcare | 4 | 0.0% | -4.227% | -3.09% | 0.0 | OBS |
-| Unclassified | 1 | 0.0% | -19.21% | -19.21% | 0.0 | OBS |
+| Unclassified | 2 | 0.0% | -14.26% | -14.26% | 0.0 | OBS |
 
 ### initial_investability_verdict
 | Value | N | Win% | Avg P&L | Median | Profit Factor | Tier |
@@ -47,14 +47,14 @@
 | ✓ OK | 8 | 50.0% | 0.419% | 0.44% | 1.34 | HYP |
 | 🏆 QUALITY | 5 | 40.0% | -2.664% | -0.27% | 0.17 | HYP |
 | ✗ AVOID | 3 | 0.0% | -4.37% | -5.21% | 0.0 | OBS |
-|  | 1 | 0.0% | -19.21% | -19.21% | 0.0 | OBS |
+|  | 2 | 0.0% | -14.26% | -14.26% | 0.0 | OBS |
 
 ## Interaction cross-tabs
 ### runner x cap
 | Combination | N | Win% | Avg P&L | Median | Tier |
 |---|---|---|---|---|---|
 | R2 x MidCap | 18 | 38.9% | -0.418% | -0.18% | SIG |
-| R2 x LargeCap | 7 | 57.1% | -0.799% | 2.07% | HYP |
+| R2 x LargeCap | 8 | 50.0% | -1.863% | 1.0% | HYP |
 | R1 x LargeCap | 3 | 0.0% | -5.293% | -5.21% | OBS |
 
 ### runner x sector
@@ -71,7 +71,7 @@
 | R2 x Healthcare | 3 | 0.0% | -3.937% | -1.08% | OBS |
 | R1 x Healthcare | 1 | 0.0% | -5.1% | -5.1% | OBS |
 | R1 x Utilities | 2 | 0.0% | -5.39% | -5.39% | OBS |
-| R2 x Unclassified | 1 | 0.0% | -19.21% | -19.21% | OBS |
+| R2 x Unclassified | 2 | 0.0% | -14.26% | -14.26% | OBS |
 
 ### cap x sector
 | Combination | N | Win% | Avg P&L | Median | Tier |
@@ -91,7 +91,7 @@
 | MidCap x Healthcare | 3 | 0.0% | -3.937% | -1.08% | OBS |
 | LargeCap x Healthcare | 1 | 0.0% | -5.1% | -5.1% | OBS |
 | LargeCap x Utilities | 2 | 0.0% | -5.39% | -5.39% | OBS |
-| LargeCap x Unclassified | 1 | 0.0% | -19.21% | -19.21% | OBS |
+| LargeCap x Unclassified | 2 | 0.0% | -14.26% | -14.26% | OBS |
 
 ### runner x cap x sector
 | Combination | N | Win% | Avg P&L | Median | Tier |
@@ -111,7 +111,7 @@
 | R2 x MidCap x Healthcare | 3 | 0.0% | -3.937% | -1.08% | OBS |
 | R1 x LargeCap x Healthcare | 1 | 0.0% | -5.1% | -5.1% | OBS |
 | R1 x LargeCap x Utilities | 2 | 0.0% | -5.39% | -5.39% | OBS |
-| R2 x LargeCap x Unclassified | 1 | 0.0% | -19.21% | -19.21% | OBS |
+| R2 x LargeCap x Unclassified | 2 | 0.0% | -14.26% | -14.26% | OBS |
 
 ### runner x initial_investability_verdict
 | Combination | N | Win% | Avg P&L | Median | Tier |
@@ -122,7 +122,7 @@
 | R2 x ✗ AVOID | 1 | 0.0% | -2.33% | -2.33% | OBS |
 | R1 x 🏆 QUALITY | 1 | 0.0% | -5.1% | -5.1% | OBS |
 | R1 x ✗ AVOID | 2 | 0.0% | -5.39% | -5.39% | OBS |
-| R2 x  | 1 | 0.0% | -19.21% | -19.21% | OBS |
+| R2 x  | 2 | 0.0% | -14.26% | -14.26% | OBS |
 
 ### cap x initial_investability_verdict
 | Combination | N | Win% | Avg P&L | Median | Tier |
@@ -135,7 +135,7 @@
 | MidCap x ✗ AVOID | 1 | 0.0% | -2.33% | -2.33% | OBS |
 | MidCap x 🏆 QUALITY | 3 | 33.3% | -3.43% | -0.27% | OBS |
 | LargeCap x ✗ AVOID | 2 | 0.0% | -5.39% | -5.39% | OBS |
-| LargeCap x  | 1 | 0.0% | -19.21% | -19.21% | OBS |
+| LargeCap x  | 2 | 0.0% | -14.26% | -14.26% | OBS |
 
 ### sector x initial_investability_verdict
 | Combination | N | Win% | Avg P&L | Median | Tier |
@@ -158,7 +158,7 @@
 | Financial Services x ✓ OK | 2 | 50.0% | -2.775% | -2.775% | OBS |
 | Utilities x ✗ AVOID | 2 | 0.0% | -5.39% | -5.39% | OBS |
 | Healthcare x 🏆 QUALITY | 2 | 0.0% | -7.86% | -7.86% | OBS |
-| Unclassified x  | 1 | 0.0% | -19.21% | -19.21% | OBS |
+| Unclassified x  | 2 | 0.0% | -14.26% | -14.26% | OBS |
 
 ## Winner profile (top 5 · Runner × Cap × Sector)
 | # | Runner | Cap | Sector | N | Win% | Avg P&L | Tier |
@@ -172,7 +172,7 @@
 ## Failure profile (bottom 5 · Runner × Cap × Sector)
 | # | Runner | Cap | Sector | N | Win% | Avg P&L | Tier |
 |---|---|---|---|---|---|---|---|
-| 1 | R2 | LargeCap | Unclassified | 1 | 0.0% | -19.21% | OBS |
+| 1 | R2 | LargeCap | Unclassified | 2 | 0.0% | -14.26% | OBS |
 | 2 | R1 | LargeCap | Utilities | 2 | 0.0% | -5.39% | OBS |
 | 3 | R1 | LargeCap | Healthcare | 1 | 0.0% | -5.1% | OBS |
 | 4 | R2 | MidCap | Healthcare | 3 | 0.0% | -3.94% | OBS |
