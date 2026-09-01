@@ -251,6 +251,82 @@ def reconcile(market: str, root: Path) -> dict:
               {"n_missing": len(missing_from_eh),
                "sample_missing": list(missing_from_eh)[:5]})
 
+    # ── C9 · Portfolio ↔ Exit History lifecycle-instance collision ─
+    # CEO 2026-09-01 · hard rule: a ticker may legitimately appear in
+    # BOTH Portfolio (ACTIVE) and Exit History (CLOSED) ONLY if they
+    # represent DIFFERENT lifecycle instances. Under A1 the runner-
+    # inclusive Position ID (with entry_date) is the true identity ·
+    # so the collision key is (ticker, runner, entry_date). Same
+    # (ticker, runner, entry_date) in both → FAIL. Different entry_date
+    # is EXPLAINED (position was closed then re-opened later · legit).
+    port_active_key = set()   # (ticker, runner, entry_date)
+    port_entry_by_tk_run = {}
+    for r in body:
+        life = str(r[3]) if len(r) > 3 and r[3] else ""
+        dec = str(r[2]) if len(r) > 2 and r[2] else ""
+        if "SUGGESTED" in dec.upper(): continue
+        if "ACTIVE" not in life.upper(): continue
+        tk = str(r[0]).upper().replace(".NS", "").replace(".BO", "")
+        run = str(r[8] or "").upper() if len(r) > 8 else ""
+        ent = str(r[12])[:10] if len(r) > 12 and r[12] else ""
+        if run in ("R1", "R2") and ent:
+            port_active_key.add((tk, run, ent))
+            port_entry_by_tk_run.setdefault((tk, run), set()).add(ent)
+    # Exit History body · (ticker, runner, entry_date) triples
+    eh_closed_key = set()
+    eh_by_tk_run = {}
+    if "Exit History (90d)" in wb.sheetnames:
+        ws_e2 = wb["Exit History (90d)"]
+        eh_all = list(ws_e2.iter_rows(values_only=True))
+        hdr_e = None
+        for r in eh_all:
+            if r[0] and "Stock" in str(r[0]):
+                hdr_e = r
+                break
+        if hdr_e:
+            r_col = None
+            ent_col = None
+            exit_col = None
+            for i, c in enumerate(hdr_e):
+                cl = str(c or "").lower()
+                if cl == "runner": r_col = i
+                elif cl == "entry date": ent_col = i
+                elif cl == "exit date": exit_col = i
+            for r in eh_all:
+                if not r[0]: continue
+                tk_e = str(r[0]).upper().replace(".NS", "").replace(".BO", "")
+                if not tk_e.replace("-", "").isalnum(): continue
+                if r_col is None or r_col >= len(r) or not r[r_col]: continue
+                run_e = str(r[r_col]).upper()
+                if run_e not in ("R1", "R2"): continue
+                ent_e = str(r[ent_col])[:10] if ent_col is not None and r[ent_col] else ""
+                exit_e = str(r[exit_col])[:10] if exit_col is not None and r[exit_col] else ""
+                if ent_e:
+                    eh_closed_key.add((tk_e, run_e, ent_e))
+                    eh_by_tk_run.setdefault((tk_e, run_e), []).append((ent_e, exit_e))
+    # True collision · same (ticker, runner, entry_date) in both
+    collisions = port_active_key & eh_closed_key
+    # Same ticker+runner but different entry_date is EXPLAINED
+    explained_overlap = []
+    for (tk, run) in set(port_entry_by_tk_run) & set(eh_by_tk_run):
+        p_ents = port_entry_by_tk_run[(tk, run)]
+        e_events = eh_by_tk_run[(tk, run)]
+        for e_ent, e_exit in e_events:
+            for p_ent in p_ents:
+                if p_ent != e_ent:
+                    explained_overlap.append((tk, run, p_ent, e_ent, e_exit))
+    _add("C9_portfolio_exit_no_lifecycle_collision",
+          len(collisions) == 0,
+          f"{len(collisions)} UNEXPLAINED lifecycle collisions "
+          f"(same ticker+runner+entry_date active AND closed) · "
+          f"{len(explained_overlap)} EXPLAINED overlaps (different entry_date · legit re-entry)",
+          {"n_unexplained": len(collisions),
+           "unexplained_collisions": sorted(list(collisions))[:10],
+           "n_explained_overlaps": len(explained_overlap),
+           "explained_samples": explained_overlap[:5],
+           "n_portfolio_active_keys": len(port_active_key),
+           "n_exit_closed_keys": len(eh_closed_key)})
+
     wb.close()
 
     # Overall verdict

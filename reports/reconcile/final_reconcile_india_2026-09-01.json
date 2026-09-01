@@ -1,0 +1,144 @@
+{
+  "engine": "aegis.reconcile.final.v1",
+  "asof": "2026-09-01",
+  "market": "india",
+  "xlsx_path": "reports\\telegram\\aegis_history_india.xlsx",
+  "verdict": "FAIL",
+  "n_checks": 11,
+  "n_pass": 10,
+  "n_fail": 1,
+  "checks": [
+    {
+      "name": "C1_required_sheets_present",
+      "ok": true,
+      "detail": "all 5 required sheets present",
+      "data": {
+        "present": [
+          "Portfolio",
+          "Exit History (90d)",
+          "Monthly Summary",
+          "AEGIS INDIA History",
+          "Definitions"
+        ],
+        "missing": []
+      }
+    },
+    {
+      "name": "C2_registry_load",
+      "ok": true,
+      "detail": "Registry india: 29 ACTIVE · 37 CLOSED-90d",
+      "data": {
+        "n_active": 29,
+        "n_closed_90d": 37
+      }
+    },
+    {
+      "name": "C3_history_new_format_pids",
+      "ok": true,
+      "detail": "671 new-format PIDs · 0 legacy",
+      "data": {
+        "new_ct": 671,
+        "legacy_ct": 0,
+        "legacy_samples": []
+      }
+    },
+    {
+      "name": "C4_banner_lifecycle_active",
+      "ok": true,
+      "detail": "banner=32 body=32",
+      "data": {
+        "banner": 32,
+        "body": 32
+      }
+    },
+    {
+      "name": "C4_banner_lifecycle_new",
+      "ok": true,
+      "detail": "banner=0 body=0",
+      "data": {
+        "banner": 0,
+        "body": 0
+      }
+    },
+    {
+      "name": "C4_banner_suggested",
+      "ok": true,
+      "detail": "banner=4 body=4",
+      "data": {
+        "banner": 4,
+        "body": 4
+      }
+    },
+    {
+      "name": "C5_exit_history_no_trailer",
+      "ok": true,
+      "detail": "clean",
+      "data": {
+        "trailer_found": false,
+        "trailer_row": null
+      }
+    },
+    {
+      "name": "C6_no_fabricated_low_pending",
+      "ok": true,
+      "detail": "0 holding rows with LOW/PENDING",
+      "data": {
+        "n": 0,
+        "samples": []
+      }
+    },
+    {
+      "name": "C7_history_canonical_uniqueness",
+      "ok": true,
+      "detail": "0 UNEXPLAINED dupes (bit-identical) · 56 EXPLAINED dupes (multi-observation same-day)",
+      "data": {
+        "n_unexplained": 0,
+        "n_explained": 56,
+        "unexplained_samples": []
+      }
+    },
+    {
+      "name": "C8_registry_closed_in_exit_history",
+      "ok": true,
+      "detail": "0 Registry-CLOSED tickers not in EH body",
+      "data": {
+        "n_missing": 0,
+        "sample_missing": []
+      }
+    },
+    {
+      "name": "C9_portfolio_exit_no_lifecycle_collision",
+      "ok": false,
+      "detail": "4 UNEXPLAINED lifecycle collisions (same ticker+runner+entry_date active AND closed) · 0 EXPLAINED overlaps (different entry_date · legit re-entry)",
+      "data": {
+        "n_unexplained": 4,
+        "unexplained_collisions": [
+          [
+            "ITC",
+            "R1",
+            "2026-08-05"
+          ],
+          [
+            "NTPC",
+            "R1",
+            "2026-08-04"
+          ],
+          [
+            "POWERGRID",
+            "R1",
+            "2026-08-05"
+          ],
+          [
+            "SUNPHARMA",
+            "R1",
+            "2026-08-04"
+          ]
+        ],
+        "n_explained_overlaps": 0,
+        "explained_samples": [],
+        "n_portfolio_active_keys": 32,
+        "n_exit_closed_keys": 41
+      }
+    }
+  ]
+}
