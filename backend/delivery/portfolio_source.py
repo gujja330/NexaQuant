@@ -88,13 +88,35 @@ def _parquet_close(root: Path, market: str, ticker: str,
 
 
 def _sector_lookup(root: Path, market: str, ticker: str) -> str:
-    """Best-effort sector lookup · returns empty string if unknown."""
+    """Best-effort sector lookup · returns empty string if unknown.
+
+    CEO 2026-09-01 · Path-A rows were showing Sector=— because this
+    function only checked configs/sector_map.json which does not
+    exist. The sender's `_sector_for` uses reports/sector_cache.json
+    (auto-populated by yfinance across the daily pipeline · 226+
+    tickers for India). Read that same cache so Path-A rows get the
+    real sector without duplicating the yfinance auto-fetch here.
+    """
+    tk = str(ticker or "").replace(".NS", "").replace(".BO", "").upper()
+    # 1 · sector_cache.json · shared with sender's _sector_for
+    try:
+        p = root / "reports" / "sector_cache.json"
+        if p.exists():
+            import json
+            d = json.loads(p.read_text(encoding="utf-8"))
+            bucket = d.get((market or "").lower(), {})
+            v = bucket.get(tk) or bucket.get(str(ticker).upper())
+            if v: return v
+    except Exception:
+        pass
+    # 2 · optional sector_map.json (legacy fallback)
     try:
         p = root / "configs" / "sector_map.json"
         if p.exists():
             import json
             d = json.loads(p.read_text(encoding="utf-8"))
-            return d.get(ticker.upper(), "")
+            v = d.get(tk) or d.get(str(ticker).upper())
+            if v: return v
     except Exception:
         pass
     return ""

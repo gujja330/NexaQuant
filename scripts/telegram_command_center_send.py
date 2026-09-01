@@ -1845,10 +1845,16 @@ def main() -> int:
             # sheet · no section banners between rows". Sections kept for
             # LOGICAL ordering only (no banner rows emitted). EXIT rows
             # excluded entirely · they live in Exit History (90d) sheet.
+            # CEO 2026-09-01 · NEW rows (fresh recommendations) must be
+            # visually distinct from SUGGESTED rows (research/shadow
+            # candidates). Prior state: both used purple hues (D5A6EA
+            # vs E9D5F5) · nearly identical to the eye. Fix: give NEW
+            # a distinct light-blue (BDD7EE) so operator can tell
+            # "fresh recommendation" apart from "research candidate".
             _SECTION_ORDER = [
-                ("suggested_new", None, "D5A6EA", "5B2A82"),   # purple rows
-                ("new_opps",      None, "E9D5F5", "5B2A82"),   # bright purple rows
-                ("existing",      None, "C6EFCE", "000000"),   # green rows
+                ("suggested_new", None, "D5A6EA", "5B2A82"),   # purple rows · research/shadow
+                ("new_opps",      None, "BDD7EE", "1F4E78"),   # light-blue rows · fresh rec
+                ("existing",      None, "C6EFCE", "000000"),   # green rows · held
                 # "action" removed · EXIT rows go to Exit History only
                 # "closed" retired · see Exit History sheet
             ]
@@ -3804,7 +3810,18 @@ def main() -> int:
                     _MISSING = "—"
                     for _pi, _p in enumerate(_missing):
                         _rr = _from_row + _pi
-                        _sec_v = _p["sector"] if _p["sector"] else _MISSING
+                        # CEO 2026-09-01 · Path-A rows were showing Sector=—
+                        # because portfolio_source._sector_lookup reads
+                        # configs/sector_map.json which does not exist.
+                        # Use the sender's own _sector_for helper (same
+                        # lookup used by signal rows) so Path-A rows get
+                        # a real sector when one is knowable. Only fall
+                        # back to "—" when truly unknown.
+                        try:
+                            _sec_v = _sector_for(_p["ticker"], mkt_key) or \
+                                     _p.get("sector") or _MISSING
+                        except Exception:
+                            _sec_v = _p.get("sector") or _MISSING
                         _cells = {
                             1:  _p["ticker"],
                             2:  f"🟢 ACTIVE (holding · no signal today)",
@@ -3907,6 +3924,33 @@ def main() -> int:
                     if "NEW" in _life_v.upper() and _true_days > 0:
                         _life_cell.value = "🟢 ACTIVE"
                         _n_lc_lifecycle += 1
+                    # CEO 2026-09-01 · row-background recolor for the
+                    # "held position that got a fresh rec today" class ·
+                    # any row where Lifecycle=ACTIVE but Decision=NEW
+                    # AND entry_date < asof · previously got the purple
+                    # NEW-tier fill from main emit · visually
+                    # indistinguishable from SUGGESTED. Recolor to
+                    # green ACTIVE tier so operator can tell them
+                    # apart. Runs on EVERY row that qualifies · not
+                    # only rows my post-process actively promoted.
+                    _dec_cell = portfolio_ws.cell(_lr, 3)
+                    _dec_v = str(_dec_cell.value or "").upper()
+                    _life_v_now = str(_life_cell.value or "").upper()
+                    _run_v = str(portfolio_ws.cell(_lr, 9).value or "").upper()
+                    _is_active_lifecycle = "ACTIVE" in _life_v_now and "NEW" not in _life_v_now
+                    _is_new_decision = "NEW" in _dec_v and "SUGGESTED" not in _dec_v
+                    _is_shadow_runner = _run_v == "SHADOW"
+                    if _is_active_lifecycle and _is_new_decision and \
+                            not _is_shadow_runner and _true_days > 0:
+                        try:
+                            from openpyxl.styles import PatternFill as _LcFill
+                            _new_active_fill = _LcFill(
+                                start_color="C6EFCE", end_color="C6EFCE",
+                                fill_type="solid")
+                            for _fill_c in range(1, portfolio_ws.max_column + 1):
+                                portfolio_ws.cell(_lr, _fill_c).fill = _new_active_fill
+                        except Exception:
+                            pass
                     # Fix Days column · always trust entry_date-derived
                     # value if a real date is present.
                     _days_cell = portfolio_ws.cell(_lr, 15)
