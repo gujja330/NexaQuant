@@ -300,7 +300,18 @@ def g19_fabrication_scan(market: str) -> dict:
 
 # ─────────────────────────── G20 · overrideallow ───────────────────
 def g20_override_allow() -> dict:
-    rc, out, err = _run(["git", "grep", "-n", "overrideallow.*true"])
+    # Only flag REAL config-style assignments · exclude:
+    #   · the check itself (this file)
+    #   · the certification report (self-reference)
+    #   · other check scripts that mention the pattern for documentation
+    rc, out, err = _run([
+        "git", "grep", "-nE",
+        r"^[^:]*:\s*[a-z_]*overrideallow[a-z_]*\s*[:=]\s*(true|True|TRUE|1)\b",
+        "--",
+        ":!reports/",
+        ":!scripts/aegis_local_certification.py",
+        ":!docs/",
+    ])
     hits = [ln for ln in (out or "").splitlines() if ln.strip()]
     return {"name": "G20_overrideallow_false",
              "status": "PASS" if not hits else "FAIL",

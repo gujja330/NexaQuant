@@ -740,6 +740,29 @@ def main() -> int:
             # Filter rows by market
             keep_rows = [row for row in src_ws.iter_rows(min_row=2, values_only=False)
                                     if str(row[c_ctry-1].value or "").upper() == mkt_key.upper()]
+            # CEO 2026-09-01 STRENGTHENED CONTRACT · R1 must be completely
+            # absent from delivered workbook · source-level filter so R1
+            # rows never reach the AEGIS History sheet in the first place.
+            # Historical R1 remains preserved in opportunity_registry.jsonl
+            # + reports/audit/r1_producer_audit_*.json for audit purposes.
+            try:
+                from backend.delivery.canonical.retirement import retired_runners as _r1_ret
+                _retired_set = _r1_ret(_ROOT)
+            except Exception:
+                _retired_set = set()
+            if _retired_set:
+                _c_run_src = h.index("Run_Type") + 1 if "Run_Type" in h else None
+                if _c_run_src is not None:
+                    _pre = len(keep_rows)
+                    keep_rows = [
+                        row for row in keep_rows
+                        if str(row[_c_run_src - 1].value or "").strip().upper()
+                            not in _retired_set
+                    ]
+                    _n_scrubbed = _pre - len(keep_rows)
+                    if _n_scrubbed > 0:
+                        print(f"[xlsx:{mkt_key}] R1-retirement source filter · "
+                              f"scrubbed {_n_scrubbed} rows (retired={sorted(_retired_set)})")
 
             # 2026-08-14 · operator directives:
             #   1. "usa list is very big still in xlsx"

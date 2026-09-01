@@ -4,8 +4,8 @@
   "market": "india",
   "xlsx_path": "reports\\telegram\\aegis_history_india.xlsx",
   "verdict": "PASS",
-  "n_checks": 20,
-  "n_pass": 20,
+  "n_checks": 21,
+  "n_pass": 21,
   "n_fail": 0,
   "checks": [
     {
@@ -50,9 +50,9 @@
     {
       "name": "C3_history_new_format_pids",
       "ok": true,
-      "detail": "671 new-format PIDs · 0 legacy",
+      "detail": "313 new-format PIDs · 0 legacy",
       "data": {
-        "new_ct": 671,
+        "new_ct": 313,
         "legacy_ct": 0,
         "legacy_samples": []
       }
@@ -105,20 +105,22 @@
     {
       "name": "C7_history_canonical_uniqueness",
       "ok": true,
-      "detail": "0 UNEXPLAINED dupes (bit-identical) · 56 EXPLAINED dupes (multi-observation same-day)",
+      "detail": "0 UNEXPLAINED dupes (bit-identical) · 0 EXPLAINED dupes (multi-observation same-day)",
       "data": {
         "n_unexplained": 0,
-        "n_explained": 56,
+        "n_explained": 0,
         "unexplained_samples": []
       }
     },
     {
       "name": "C8_registry_closed_in_exit_history",
       "ok": true,
-      "detail": "0 Registry-CLOSED tickers not in EH body",
+      "detail": "0 ACTIVE-runner non-carveout Registry-CLOSED missing from EH · 4 retired-runner · 0 carveout ignored (all expected)",
       "data": {
-        "n_missing": 0,
-        "sample_missing": []
+        "n_real_missing": 0,
+        "n_retired_ignored": 4,
+        "n_carveout_ignored": 0,
+        "sample_real_missing": []
       }
     },
     {
@@ -142,7 +144,21 @@
         "n_explained_overlaps": 0,
         "explained_samples": [],
         "n_portfolio_active_keys": 9,
-        "n_exit_closed_keys": 41
+        "n_exit_closed_keys": 37
+      }
+    },
+    {
+      "name": "C19_workbook_wide_r1_zero",
+      "ok": true,
+      "detail": "0 value hits · 0 hidden sheets · 0 formula hits · 0 defined-name hits · retired=['R1']",
+      "data": {
+        "n_value_hits": 0,
+        "n_hidden_sheets": 0,
+        "n_formula_hits": 0,
+        "n_defname_hits": 0,
+        "hidden_sample": [],
+        "value_sample": [],
+        "formula_sample": []
       }
     },
     {
@@ -209,10 +225,10 @@
     {
       "name": "C14_overlap_no_reconciliation_defects",
       "ok": true,
-      "detail": "1 overlap tickers · defects=0 · by_cat={'LEGITIMATE_DIFFERENT_LIFECYCLE': 0, 'LEGITIMATE_DIFFERENT_RUNNER': 1, 'LEGITIMATE_REENTRY': 0, 'STALE_DUPLICATE': 0, 'RECONCILIATION_DEFECT': 0}",
+      "detail": "0 overlap tickers · defects=0 · by_cat={'LEGITIMATE_DIFFERENT_LIFECYCLE': 0, 'LEGITIMATE_DIFFERENT_RUNNER': 0, 'LEGITIMATE_REENTRY': 0, 'STALE_DUPLICATE': 0, 'RECONCILIATION_DEFECT': 0}",
       "data": {
         "LEGITIMATE_DIFFERENT_LIFECYCLE": 0,
-        "LEGITIMATE_DIFFERENT_RUNNER": 1,
+        "LEGITIMATE_DIFFERENT_RUNNER": 0,
         "LEGITIMATE_REENTRY": 0,
         "STALE_DUPLICATE": 0,
         "RECONCILIATION_DEFECT": 0
@@ -244,10 +260,10 @@
     {
       "name": "C12_provenance_position_id_coverage",
       "ok": true,
-      "detail": "50/50 opened rows have Position ID (100.0%)",
+      "detail": "46/46 opened rows have Position ID (100.0%)",
       "data": {
-        "n_need_pid": 50,
-        "n_have_pid": 50,
+        "n_need_pid": 46,
+        "n_have_pid": 46,
         "coverage_pct": 100.0,
         "unresolved_samples": []
       }

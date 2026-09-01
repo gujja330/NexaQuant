@@ -258,21 +258,57 @@ def reconcile(market: str, root: Path) -> dict:
             if not first.isalnum() and not first.replace("-", "").isalnum():
                 continue
             eh_tickers.add(first)
-        # For I20-shape, we check Registry-CLOSED tickers appear in EH body
-        reg_closed_tickers = set()
+        # C8 · CEO 2026-09-01 STRENGTHENED: retirement-aware · carveout-aware.
+        # Registry CLOSED events for RETIRED runners are EXPECTED to be absent
+        # (retirement carveout · not a production exit). Registry CLOSED events
+        # with reasons ORPHAN_AUTO_CLOSE / SAME_DAY_ROTATION / CANCELLED /
+        # DATA_REPAIR are also carveouts. Only ACTIVE-runner · non-carveout
+        # CLOSED events without a matching Exit History row are real gaps.
+        try:
+            from backend.delivery.canonical.retirement import retired_runners as _c8_retired
+            _c8_ret = _c8_retired(_ROOT)
+        except Exception:
+            _c8_ret = set()
+        _CARVEOUT_KW = ("ORPHAN_AUTO_CLOSE", "SAME_DAY_ROTATION",
+                         "CANCELLED", "DATA_REPAIR")
+        reg_closed_by_ticker: dict[str, list] = {}
         for _pid, opps in reg.items():
             for o in opps:
-                if o.market.lower() == market_l and o.status == "CLOSED":
-                    reg_closed_tickers.add(o.ticker.upper().replace(".NS", "").replace(".BO", ""))
-        missing_from_eh = reg_closed_tickers - eh_tickers
-        # NOTE: I20 in the LOCKED validator has its own logic · here we
-        # just note whether the sets align. USA is expected to have
-        # discrepancies today because runner1_orphans is stale.
+                if o.market.lower() != market_l or o.status != "CLOSED":
+                    continue
+                _tk = o.ticker.upper().replace(".NS", "").replace(".BO", "")
+                reg_closed_by_ticker.setdefault(_tk, []).append(o)
+        real_missing = []
+        retired_ignored = []
+        carveout_ignored = []
+        for tk, closed_events in reg_closed_by_ticker.items():
+            if tk in eh_tickers: continue
+            # Check every CLOSED event for this ticker · only flag
+            # if AT LEAST ONE is production-active-runner + non-carveout
+            has_production_gap = False
+            for ev in closed_events:
+                runner_up = str(ev.runner or "").upper()
+                reason = str(getattr(ev, "closed_reason", "") or "").upper()
+                if runner_up in _c8_ret:
+                    retired_ignored.append((tk, runner_up))
+                    continue
+                if any(kw in reason for kw in _CARVEOUT_KW):
+                    carveout_ignored.append((tk, reason))
+                    continue
+                has_production_gap = True
+                real_missing.append({"ticker": tk, "runner": runner_up,
+                                       "reason": reason,
+                                       "closed_date": str(ev.closed_date or "")})
+                break
         _add("C8_registry_closed_in_exit_history",
-              len(missing_from_eh) < 20,   # tolerance for orphan-close backlog
-              f"{len(missing_from_eh)} Registry-CLOSED tickers not in EH body",
-              {"n_missing": len(missing_from_eh),
-               "sample_missing": list(missing_from_eh)[:5]})
+              len(real_missing) == 0,
+              (f"{len(real_missing)} ACTIVE-runner non-carveout Registry-CLOSED "
+                f"missing from EH · {len(retired_ignored)} retired-runner · "
+                f"{len(carveout_ignored)} carveout ignored (all expected)"),
+              {"n_real_missing": len(real_missing),
+               "n_retired_ignored": len(retired_ignored),
+               "n_carveout_ignored": len(carveout_ignored),
+               "sample_real_missing": real_missing[:5]})
 
     # ── C10 · Retired-runner contamination check ──────────────────
     # CEO 2026-09-01 · R1 retirement · Portfolio + banner + P&L must
@@ -377,6 +413,95 @@ def reconcile(market: str, root: Path) -> dict:
            "n_exit_closed_keys": len(eh_closed_key)})
 
     wb.close()
+
+    # ── C19 · Workbook-wide R1 = 0 (STRENGTHENED CONTRACT) ─────────
+    # CEO 2026-09-01 strengthened: R1 must be COMPLETELY absent from
+    # every visible sheet · every cell · except Definitions (which may
+    # name R1 as a reference explaining retirement). Cell-level scan.
+    try:
+        from backend.delivery.canonical.retirement import retired_runners as _c19_retired
+        _c19_ret = _c19_retired(root)
+        _c19_hits = []
+        _c19_wb_ro = load_workbook(xlsx, read_only=True, data_only=True)
+        # Also load formula-visible workbook (data_only=False) to catch
+        # cells whose STORED FORMULA references R1
+        _c19_wb_fx = load_workbook(xlsx, data_only=False)
+        _prefixes = tuple(
+            p + rr + "-" for rr in _c19_ret
+            for p in ("", "IND-", "USA-")
+        )
+        _defs_name = "Definitions"
+        # 1. Visible-value scan (all sheets except Definitions)
+        for _sh_name in _c19_wb_ro.sheetnames:
+            if _sh_name == _defs_name: continue
+            _ws = _c19_wb_ro[_sh_name]
+            _rn = 0
+            for _row in _ws.iter_rows(values_only=True):
+                _rn += 1
+                for _v in _row:
+                    if _v is None: continue
+                    _s = str(_v).strip().upper()
+                    if _s in _c19_ret or _s.startswith(_prefixes):
+                        _c19_hits.append({"scope": "value", "sheet": _sh_name,
+                                           "row": _rn, "value": _s[:30]})
+                        break
+        _c19_wb_ro.close()
+        # 2. Hidden / very-hidden sheet detection · every hidden sheet is
+        #    itself a violation regardless of content (production workbook
+        #    must have zero surprise sheets)
+        _c19_hidden = []
+        for _sh_name in _c19_wb_fx.sheetnames:
+            _sh = _c19_wb_fx[_sh_name]
+            _state = getattr(_sh, "sheet_state", "visible")
+            if _state != "visible":
+                _c19_hidden.append({"sheet": _sh_name, "state": _state})
+        # 3. Formula scan · any cell.data_type == 'f' with R1 in formula text
+        _c19_formula_hits = []
+        for _sh_name in _c19_wb_fx.sheetnames:
+            if _sh_name == _defs_name: continue
+            _sh = _c19_wb_fx[_sh_name]
+            for _row in _sh.iter_rows():
+                for _c in _row:
+                    if getattr(_c, "data_type", None) == "f":
+                        _fx = str(_c.value or "").upper()
+                        for _r in _c19_ret:
+                            if _r in _fx.split():   # word-boundary-ish
+                                _c19_formula_hits.append(
+                                    {"scope": "formula",
+                                      "sheet": _sh_name,
+                                      "coord": _c.coordinate,
+                                      "formula": _fx[:60]})
+                                break
+        # 4. Defined-name scan
+        _c19_defname_hits = []
+        try:
+            for _dn_name in list(_c19_wb_fx.defined_names):
+                _u = str(_dn_name).upper()
+                if any(_r in _u.split("_") or _r in _u.split("-")
+                        for _r in _c19_ret) or any(_u.startswith(p) for p in _prefixes):
+                    _c19_defname_hits.append(_dn_name)
+        except Exception:
+            pass
+        _c19_wb_fx.close()
+
+        _c19_total = (len(_c19_hits) + len(_c19_hidden)
+                       + len(_c19_formula_hits) + len(_c19_defname_hits))
+        _add("C19_workbook_wide_r1_zero",
+              _c19_total == 0,
+              (f"{len(_c19_hits)} value hits · {len(_c19_hidden)} hidden sheets · "
+                f"{len(_c19_formula_hits)} formula hits · "
+                f"{len(_c19_defname_hits)} defined-name hits · "
+                f"retired={sorted(_c19_ret)}"),
+              {"n_value_hits": len(_c19_hits),
+               "n_hidden_sheets": len(_c19_hidden),
+               "n_formula_hits": len(_c19_formula_hits),
+               "n_defname_hits": len(_c19_defname_hits),
+               "hidden_sample": _c19_hidden[:5],
+               "value_sample": _c19_hits[:5],
+               "formula_sample": _c19_formula_hits[:5]})
+    except Exception as _e19:
+        _add("C19_workbook_wide_r1_zero", False,
+              f"exception: {type(_e19).__name__}: {_e19}", None)
 
     # ── C18 · Crash-resilience research presence (§ Crash addendum) ─
     # Every certification pass must have current 5-state regime + per-regime

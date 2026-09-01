@@ -5,19 +5,32 @@
 R1 is formally retired from AEGIS production. R2 becomes the sole
 active production runner.
 
-## What "retirement" means (per CEO)
+## What "retirement" means (STRENGTHENED CONTRACT · CEO 2026-09-01)
 
-- Historical R1 records are **PRESERVED** — never deleted, never
-  deduplicated, never rewritten to hide the past
-- R1 does **not** appear in:
-  - production-facing Portfolio (`01_Portfolio`)
-  - production-facing Today's Decisions
-  - production-facing exposure / P&L aggregates
-  - production-facing Runner Performance metrics
-- R1 **does** remain in:
-  - `opportunity_registry.jsonl` (full audit lineage)
-  - `AEGIS History` sheet (immutable observation trail)
-  - historical `r1_retention_review_*.md` reports (evidence record)
+**R1 is COMPLETELY absent from the delivered production XLSX ·
+every sheet · every cell** (except the `Definitions` sheet which
+may name R1 as a reference explaining the retirement itself).
+
+**Historical R1 data is PRESERVED in canonical / audit sources ·
+never in the delivered workbook.**
+
+- R1 does **NOT** appear in:
+  - Portfolio (any row · any column · any Position ID)
+  - Today Decisions
+  - Exit History (90d) — R1 CLOSED events do not become production exits
+  - Monthly Summary — aggregates exclude R1
+  - AEGIS History sheet (workbook view · not canonical audit)
+  - Runner Performance
+  - Research Quality
+  - Research Timing
+- R1 **does** remain in (canonical / audit only · not delivered):
+  - `reports/research/opportunity_registry.jsonl` (full audit lineage)
+  - `reports/audit/r1_producer_audit_*.json` (retirement proof)
+  - `reports/audit/r1_retention_review_*.md` (historical evidence)
+  - `reports/research/runner1/history.jsonl` (dormancy event log)
+- The `Definitions` sheet may reference R1 as a reference sentence
+  explaining the retirement · this is metadata about the contract,
+  not runner-row data.
 
 ## What this commit changes (delivery-layer scope)
 

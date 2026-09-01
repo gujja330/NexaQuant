@@ -180,8 +180,14 @@ def _emit_runner_performance(wb, market: str, root: Path, asof: str) -> int:
     active = active_runners(root)
     out_row = 4
     n_written = 0
-    # Compute per-runner accounting for R1, R2, COMBINED
-    for runner_label in ("R1", "R2", "COMBINED"):
+    # CEO 2026-09-01 STRENGTHENED · retired runners MUST NOT appear in
+    # the delivered Runner Performance sheet. R1 stats remain in
+    # backend/delivery/canonical/runner_accountability for audit access,
+    # but the operator-facing workbook shows R2 only.
+    _labels_to_emit = tuple(
+        r for r in ("R1", "R2", "COMBINED") if r not in retired
+    )
+    for runner_label in _labels_to_emit:
         try:
             acc = compute_runner_accounting(
                 root, market.lower(),
@@ -258,8 +264,7 @@ def _emit_research_quality(wb, market: str, root: Path, asof: str) -> int:
 
 def _scrub_retired_from_portfolio(wb, root: Path) -> int:
     """CEO 2026-09-01 §1 hardening · in-place removal of retired-runner
-    rows from Portfolio sheet. Idempotent · safe if 0 rows to remove.
-    Prevents pre-retirement builds from leaking R1 into current production."""
+    rows from Portfolio sheet. Idempotent · safe if 0 rows to remove."""
     retired = retired_runners(root)
     if not retired or "Portfolio" not in wb.sheetnames: return 0
     ws = wb["Portfolio"]
@@ -276,7 +281,6 @@ def _scrub_retired_from_portfolio(wb, root: Path) -> int:
             ci_run = i
             break
     if ci_run is None: return 0
-    # Delete from bottom up to preserve indices
     n_stripped = 0
     for excel_row in range(ws.max_row, hdr_i + 1, -1):
         cell = ws.cell(excel_row, ci_run + 1).value
@@ -284,6 +288,64 @@ def _scrub_retired_from_portfolio(wb, root: Path) -> int:
             ws.delete_rows(excel_row, 1)
             n_stripped += 1
     return n_stripped
+
+
+def _scrub_retired_from_all_sheets(wb, root: Path) -> dict:
+    """CEO 2026-09-01 STRENGTHENED CONTRACT · R1 must be COMPLETELY
+    absent from the delivered workbook · every sheet · every cell.
+    Only Definitions may reference R1 in a fixed sentence explaining
+    the retirement (metadata · not runner-row data).
+
+    Scrubs by:
+      · Removing rows where Runner column value is a retired runner
+      · Removing rows where any cell contains R1-* prefixed Position ID
+        (canonical PID · e.g. USA-R1-TRV-20260810-6f873c)
+      · Removing rows where legacy Position ID (col if present) starts
+        with R1- or is XXX_R1_
+
+    Never modifies Definitions sheet · that sheet describes the
+    retirement contract itself and may name R1 as a reference.
+    """
+    retired = retired_runners(root)
+    if not retired:
+        return {"markets_scrubbed": {}, "total_rows_removed": 0}
+    per_sheet: dict[str, int] = {}
+    total = 0
+    for sh_name in list(wb.sheetnames):
+        if sh_name == "Definitions":
+            continue  # Definitions may name R1 as a reference
+        ws = wb[sh_name]
+        max_r = ws.max_row
+        max_c = ws.max_column
+        rows_to_delete: list[int] = []
+        for excel_row in range(1, max_r + 1):
+            row_is_retired = False
+            for c in range(1, max_c + 1):
+                v = ws.cell(excel_row, c).value
+                if v is None: continue
+                s = str(v).strip().upper()
+                # Direct runner value
+                if s in retired:
+                    row_is_retired = True
+                    break
+                # Canonical PID startswith
+                for retired_r in retired:
+                    if any(s.startswith(f"{prefix}-{retired_r}-") for prefix in ("USA", "IND")):
+                        row_is_retired = True
+                        break
+                    if s.startswith(f"{retired_r}-"):
+                        row_is_retired = True
+                        break
+                if row_is_retired: break
+            if row_is_retired:
+                rows_to_delete.append(excel_row)
+        # Delete bottom-up so earlier indices remain valid
+        for r in sorted(rows_to_delete, reverse=True):
+            ws.delete_rows(r, 1)
+        if rows_to_delete:
+            per_sheet[sh_name] = len(rows_to_delete)
+            total += len(rows_to_delete)
+    return {"per_sheet": per_sheet, "total_rows_removed": total}
 
 
 def _emit_research_timing(wb, market: str, root: Path, asof: str) -> int:
@@ -340,6 +402,8 @@ def augment(market: str, root: Path, asof: str) -> dict:
         return {"error": f"missing: {xlsx}"}
     wb = load_workbook(xlsx)
     n_scrubbed = _scrub_retired_from_portfolio(wb, root)
+    # CEO 2026-09-01 STRENGTHENED · R1 absent from EVERY sheet · not just Portfolio
+    workbook_scrub = _scrub_retired_from_all_sheets(wb, root)
     n_td = _emit_today_decisions(wb, market, root, asof)
     n_rp = _emit_runner_performance(wb, market, root, asof)
     n_rq = _emit_research_quality(wb, market, root, asof)
@@ -354,6 +418,7 @@ def augment(market: str, root: Path, asof: str) -> dict:
         "xlsx": str(xlsx.relative_to(root)),
         "dated": str(dated.relative_to(root)),
         "retired_rows_scrubbed_from_portfolio": n_scrubbed,
+        "workbook_wide_scrub": workbook_scrub,
         "today_decisions_rows": n_td,
         "runner_performance_rows": n_rp,
         "research_quality_rows": n_rq,

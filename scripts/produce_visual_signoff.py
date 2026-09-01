@@ -24,6 +24,7 @@ from pathlib import Path
 from openpyxl import load_workbook
 
 _ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(_ROOT))
 
 REQUIRED_SHEETS_9 = [
     "Portfolio", "Today Decisions", "Exit History (90d)",
@@ -182,6 +183,78 @@ def audit(market: str, asof: str) -> dict:
         r1_ok = r1_rows == 0
         r1_reason = f"r1_rows={r1_rows} · r2_rows={r2_rows}"
     checks.append(("portfolio_r2_only", r1_ok, r1_reason))
+
+    # CEO 2026-09-01 STRENGTHENED · workbook-wide R1 == 0 across every sheet
+    # except Definitions (which may reference R1 in retirement text)
+    from backend.delivery.canonical.retirement import retired_runners
+    retired = retired_runners(_ROOT)
+    prefixes = tuple(p + r + "-" for r in retired for p in ("", "IND-", "USA-"))
+    workbook_r1_hits = []
+    wb2 = load_workbook(xlsx, read_only=True, data_only=True)
+    for sh_name in wb2.sheetnames:
+        if sh_name == "Definitions": continue
+        wsx = wb2[sh_name]
+        rn = 0
+        for row_vals in wsx.iter_rows(values_only=True):
+            rn += 1
+            for v in row_vals:
+                if v is None: continue
+                s = str(v).strip().upper()
+                if s in retired or s.startswith(prefixes):
+                    workbook_r1_hits.append((sh_name, rn, s[:30]))
+                    break
+    wb2.close()
+    checks.append(("workbook_wide_r1_zero",
+                    len(workbook_r1_hits) == 0,
+                    (f"cells_hit={len(workbook_r1_hits)}"
+                      + (f" · samples={workbook_r1_hits[:3]}"
+                         if workbook_r1_hits else ""))))
+
+    # Hidden / very-hidden sheets · formulas referencing retired runners ·
+    # defined-name references
+    hidden_sheets = []
+    formula_hits = []
+    defname_hits = []
+    wb3 = load_workbook(xlsx, data_only=False)
+    for sh_name in wb3.sheetnames:
+        sh_obj = wb3[sh_name]
+        state = getattr(sh_obj, "sheet_state", "visible")
+        if state != "visible":
+            hidden_sheets.append({"sheet": sh_name, "state": state})
+        if sh_name == "Definitions": continue
+        for row_cells in sh_obj.iter_rows():
+            for cell in row_cells:
+                if getattr(cell, "data_type", None) == "f":
+                    fx = str(cell.value or "").upper()
+                    for r in retired:
+                        if r in fx.split() or (f"{r}-" in fx):
+                            formula_hits.append({"sheet": sh_name,
+                                                   "coord": cell.coordinate,
+                                                   "formula": fx[:60]})
+                            break
+    try:
+        for dn in list(wb3.defined_names):
+            u = str(dn).upper()
+            if any(r in u.replace("_", "-").split("-") for r in retired) or \
+                    any(u.startswith(p) for p in prefixes):
+                defname_hits.append(dn)
+    except Exception:
+        pass
+    wb3.close()
+
+    checks.append(("no_hidden_or_very_hidden_sheets",
+                    len(hidden_sheets) == 0,
+                    f"hidden={hidden_sheets}"))
+    checks.append(("no_formula_referencing_retired",
+                    len(formula_hits) == 0,
+                    (f"formula_hits={len(formula_hits)}"
+                      + (f" · samples={formula_hits[:3]}"
+                         if formula_hits else ""))))
+    checks.append(("no_defined_name_referencing_retired",
+                    len(defname_hits) == 0,
+                    (f"defname_hits={len(defname_hits)}"
+                      + (f" · samples={defname_hits[:3]}"
+                         if defname_hits else ""))))
 
     wb.close()
 

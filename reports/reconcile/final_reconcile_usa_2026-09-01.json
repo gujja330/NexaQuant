@@ -4,8 +4,8 @@
   "market": "usa",
   "xlsx_path": "reports\\telegram\\aegis_history_usa.xlsx",
   "verdict": "PASS",
-  "n_checks": 20,
-  "n_pass": 20,
+  "n_checks": 21,
+  "n_pass": 21,
   "n_fail": 0,
   "checks": [
     {
@@ -14,10 +14,10 @@
       "detail": "all 8 required sheets present",
       "data": {
         "present": [
-          "AEGIS USA History",
           "Portfolio",
           "Exit History (90d)",
           "Monthly Summary",
+          "AEGIS USA History",
           "Definitions",
           "Today Decisions",
           "Runner Performance",
@@ -50,9 +50,9 @@
     {
       "name": "C3_history_new_format_pids",
       "ok": true,
-      "detail": "37 new-format PIDs · 0 legacy",
+      "detail": "17 new-format PIDs · 0 legacy",
       "data": {
-        "new_ct": 37,
+        "new_ct": 17,
         "legacy_ct": 0,
         "legacy_samples": []
       }
@@ -115,13 +115,12 @@
     {
       "name": "C8_registry_closed_in_exit_history",
       "ok": true,
-      "detail": "2 Registry-CLOSED tickers not in EH body",
+      "detail": "0 ACTIVE-runner non-carveout Registry-CLOSED missing from EH · 2 retired-runner · 0 carveout ignored (all expected)",
       "data": {
-        "n_missing": 2,
-        "sample_missing": [
-          "TRV",
-          "V"
-        ]
+        "n_real_missing": 0,
+        "n_retired_ignored": 2,
+        "n_carveout_ignored": 0,
+        "sample_real_missing": []
       }
     },
     {
@@ -146,6 +145,20 @@
         "explained_samples": [],
         "n_portfolio_active_keys": 6,
         "n_exit_closed_keys": 502
+      }
+    },
+    {
+      "name": "C19_workbook_wide_r1_zero",
+      "ok": true,
+      "detail": "0 value hits · 0 hidden sheets · 0 formula hits · 0 defined-name hits · retired=['R1']",
+      "data": {
+        "n_value_hits": 0,
+        "n_hidden_sheets": 0,
+        "n_formula_hits": 0,
+        "n_defname_hits": 0,
+        "hidden_sample": [],
+        "value_sample": [],
+        "formula_sample": []
       }
     },
     {
