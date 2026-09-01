@@ -60,25 +60,23 @@ def reconcile(market: str, root: Path) -> dict:
     def _add(name: str, ok: bool, detail: str = "", data=None):
         checks.append({"name": name, "ok": ok, "detail": detail, "data": data})
 
-    # ── C1 · Sheets present · Section 11 fixed 8-sheet workbook ─────
-    # CEO 2026-09-01 · every daily workbook must ship the same 8 sheets.
-    # If any sheet is missing, delivery is not certifiable.
+    # ── C1 · Sheets present · CEO 2026-09-01 FINAL 3-sheet spec ─────
+    # Exactly 3 visible sheets · no more no less. Any extra sheet
+    # is a legacy-artifact violation.
     required_sheets = [
-        "Portfolio",                    # 1
-        "Today Decisions",              # 2 (Section 7 · separate sheet)
-        "Exit History (90d)",           # 3
-        "Monthly Summary",              # 4
-        f"AEGIS {market.upper()} History",  # 5
-        "Definitions",                  # 6
-        "Runner Performance",           # 7
-        "Research Quality",             # 8
-        "Research Timing",              # 9 (Momentum ledger · CEO Momentum correction)
+        "01_Portfolio",              # 1 · current active R2 holdings
+        "02_Today_Momentum",         # 2 · today's decisions/recommendations
+        "03_Exit_History",           # 3 · closed lifecycle only
     ]
     missing = [s for s in required_sheets if s not in wb.sheetnames]
-    _add("C1_required_sheets_present", not missing,
-          f"missing sheets: {missing}" if missing else "all 8 required sheets present",
+    extra = [s for s in wb.sheetnames if s not in required_sheets]
+    _add("C1_required_sheets_present",
+          (not missing) and (not extra),
+          (f"missing={missing} · extra={extra}"
+            if (missing or extra)
+            else "exactly 3 required sheets present · no legacy sheets"),
           {"present": wb.sheetnames, "required": required_sheets,
-           "missing": missing})
+           "missing": missing, "extra": extra})
 
     # ── C2 · Registry consistency ──────────────────────────────────
     reg = oreg.load_all(root)
@@ -100,78 +98,65 @@ def reconcile(market: str, root: Path) -> dict:
           f"Registry {market_l}: {n_reg_active} ACTIVE · {n_reg_closed} CLOSED-90d",
           {"n_active": n_reg_active, "n_closed_90d": n_reg_closed})
 
-    # ── C3 · AEGIS History · 100% new-format PID ────────────────────
-    ws_h = wb[f"AEGIS {market.upper()} History"]
-    rh = list(ws_h.iter_rows(values_only=True))
-    hdr_h = rh[0]
-    c_pid = _col(hdr_h, "Position ID")
-    c_date = _col(hdr_h, "Date")
-    c_run = _col(hdr_h, "Run_Type") or _col(hdr_h, "Runner")
-    if c_pid is None:
-        _add("C3_history_new_format_pids", False, "no Position ID column", None)
-    else:
-        n_new_pid = 0
-        n_legacy_pid = 0
-        legacy_samples = []
-        for r in rh[1:]:
-            if not r[c_pid]: continue
-            pid = str(r[c_pid])
-            if pid.startswith(_NEW_PID_PREFIXES):
+    # ── C3 · Canonical PID format 100% new-format ───────────────────
+    # CEO 2026-09-01 3-sheet spec · no raw AEGIS History sheet · so
+    # scan Registry directly for PID format compliance.
+    _NEW_PID_PATTERN_RE = None  # already-canonical regex from Phase 2
+    n_new_pid = 0
+    n_legacy_pid = 0
+    legacy_samples = []
+    for _pid, opps in reg.items():
+        for o in opps:
+            if o.market.lower() != market_l: continue
+            pid_up = str(o.opportunity_id).upper()
+            if pid_up.startswith(_NEW_PID_PREFIXES):
                 n_new_pid += 1
             else:
                 n_legacy_pid += 1
-                if len(legacy_samples) < 5: legacy_samples.append(pid)
-        _add("C3_history_new_format_pids", n_legacy_pid == 0,
-              f"{n_new_pid} new-format PIDs · {n_legacy_pid} legacy",
-              {"new_ct": n_new_pid, "legacy_ct": n_legacy_pid,
+                if len(legacy_samples) < 5:
+                    legacy_samples.append(o.opportunity_id)
+    _add("C3_history_new_format_pids", n_legacy_pid == 0,
+          f"{n_new_pid} new-format PIDs · {n_legacy_pid} legacy (source: Registry)",
+          {"new_ct": n_new_pid, "legacy_ct": n_legacy_pid,
                "legacy_samples": legacy_samples})
 
-    # ── C4 · Portfolio banner ≡ body (3 axes) ──────────────────────
-    ws_p = wb["Portfolio"]
+    # ── C4 · Portfolio banner ≡ body count (3-sheet spec) ───────────
+    # New banner format: "🟢 R2 ACTIVE: N · R1 retired · ..." — banner
+    # count of R2 ACTIVE must match the number of body rows.
+    ws_p = wb["01_Portfolio"]
     rows_p = list(ws_p.iter_rows(values_only=True))
     banner_r2 = str(rows_p[1][0]) if len(rows_p) > 1 and rows_p[1][0] else ""
-    banner_r3 = str(rows_p[2][0]) if len(rows_p) > 2 and rows_p[2][0] else ""
     import re as _re
-    m_life = _re.search(
-        r"(?:Lifecycle|Current Portfolio):\s*(\d+)\s+ACTIVE\s*·\s*(\d+)\s+NEW",
-        banner_r2)
-    m_sugg = _re.search(r"Suggested:\s*(\d+)", banner_r2)
-    banner_active = int(m_life.group(1)) if m_life else -1
-    banner_new = int(m_life.group(2)) if m_life else -1
-    banner_suggested = int(m_sugg.group(1)) if m_sugg else -1
-    # Body counts by axis · column-name lookup (India + USA layouts differ)
+    m_act = _re.search(r"R2\s+ACTIVE[:\s]+(\d+)", banner_r2, _re.IGNORECASE)
+    banner_active = int(m_act.group(1)) if m_act else -1
+    banner_new = 0        # new spec · no NEW rows in Portfolio (they go to sheet 2)
+    banner_suggested = 0  # no SUGGESTED bucket in new Portfolio
+    # Body count: rows below header with a Ticker
     hdr_p_idx = next((i for i, r in enumerate(rows_p)
-                        if r[0] and "Ticker" in str(r[0])), None)
+                        if r[0] and "Position ID" in str(r[0])), None)
     body = rows_p[hdr_p_idx + 1:] if hdr_p_idx is not None else []
     hdr_p = rows_p[hdr_p_idx] if hdr_p_idx is not None else ()
     def _pcol(name):
         for i, c in enumerate(hdr_p):
             if c and str(c).lower() == name.lower(): return i
         return None
-    ci_life = _pcol("Lifecycle")
-    ci_dec = None
-    for cand in ("🎯 DECISION", "DECISION", "Decision"):
-        ci_dec = _pcol(cand)
-        if ci_dec is not None: break
     ci_run = _pcol("Runner")
+    ci_tk = _pcol("Ticker")
     body_life_active = 0
+    for r in body:
+        if not r: continue
+        # A body row must have a canonical PID in col[0] AND a ticker in col[1]
+        pid = str(r[0] or "").strip() if len(r) > 0 else ""
+        tk = str(r[ci_tk] or "").strip() if ci_tk is not None and ci_tk < len(r) else ""
+        if not pid or not tk: continue
+        # Canonical PID starts with USA- or IND-
+        if not (pid.upper().startswith("USA-") or pid.upper().startswith("IND-")): continue
+        body_life_active += 1
     body_life_new = 0
     body_suggested = 0
-    for r in body:
-        life = str(r[ci_life]) if ci_life is not None and ci_life < len(r) and r[ci_life] else ""
-        dec = str(r[ci_dec]) if ci_dec is not None and ci_dec < len(r) and r[ci_dec] else ""
-        run = str(r[ci_run]) if ci_run is not None and ci_run < len(r) and r[ci_run] else ""
-        if "SUGGESTED" in dec.upper() or run.upper() == "SHADOW":
-            body_suggested += 1
-            continue
-        life_up = life.upper()
-        if "NEW" in life_up:
-            body_life_new += 1
-        elif "ACTIVE" in life_up:
-            body_life_active += 1
     ok_active = banner_active == body_life_active
-    ok_new = banner_new == body_life_new
-    ok_sugg = banner_suggested == body_suggested
+    ok_new = True     # no NEW rows expected in Portfolio
+    ok_sugg = True    # no SUGGESTED bucket in new spec
     _add("C4_banner_lifecycle_active", ok_active,
           f"banner={banner_active} body={body_life_active}",
           {"banner": banner_active, "body": body_life_active})
@@ -182,9 +167,9 @@ def reconcile(market: str, root: Path) -> dict:
           f"banner={banner_suggested} body={body_suggested}",
           {"banner": banner_suggested, "body": body_suggested})
 
-    # ── C5 · Exit History body has NO trailer rows ─────────────────
-    if "Exit History (90d)" in wb.sheetnames:
-        ws_e = wb["Exit History (90d)"]
+    # ── C5 · Combined ledger has NO trailer rows ───────────────────
+    if "03_Exit_History" in wb.sheetnames:
+        ws_e = wb["03_Exit_History"]
         eh_rows = [r for r in ws_e.iter_rows(values_only=True)
                      if any(c is not None for c in r)]
         # Last data row's first cell should be a ticker
@@ -218,46 +203,46 @@ def reconcile(market: str, root: Path) -> dict:
           f"{n_fabricated} holding rows with LOW/PENDING",
           {"n": n_fabricated, "samples": fabricated_samples})
 
-    # ── C7 · AEGIS History uniqueness at canonical grain ──────────
-    # Per CEO Plan section 4: "No UNEXPLAINED duplicate (market,
-    # position_id, runner, snapshot_date)". Same-day multi-observation
-    # (different Status OR different Rank/Confidence/Story) is EXPLAINED
-    # · legitimate pipeline behavior · not a violation. Only bit-identical
-    # duplicate rows (same key AND every cell identical) are UNEXPLAINED
-    # · they indicate a genuine pipeline stamping bug and must fail C7.
+    # ── C7 · Registry PID uniqueness (canonical grain) ──────────────
+    # 3-sheet spec has no raw AEGIS History sheet · uniqueness is asserted
+    # at the Registry (canonical PID authority) level directly. Registry
+    # is append-only by (opportunity_id, event) so per-PID latest state is
+    # unique by construction · check that no PID has two ACTIVE states
+    # simultaneously for the same market.
     from collections import defaultdict as _dd
-    grain_rows = _dd(list)
-    for _rh_i, r in enumerate(rh[1:], start=2):
-        if not r[c_pid]: continue
-        key = (market_l, str(r[c_pid]), str(r[c_run] or ""),
-                str(r[c_date])[:10] if r[c_date] else "")
-        grain_rows[key].append((_rh_i, r))
-    unexplained_dupes = []       # bit-identical duplicate rows
-    explained_dupes = []         # same key · different observation
-    for key, rd in grain_rows.items():
-        if len(rd) <= 1: continue
-        cell_sigs = [tuple(str(v) for v in r) for _, r in rd]
-        if len(set(cell_sigs)) == 1:
-            # Bit-identical · UNEXPLAINED · pipeline duplicate-emit bug
-            unexplained_dupes.append((key, [ri for ri, _ in rd]))
-        else:
-            explained_dupes.append((key, [ri for ri, _ in rd]))
+    latest_by_pid = {}
+    for _pid, opps in reg.items():
+        for o in opps:
+            if o.market.lower() != market_l: continue
+            latest_by_pid[o.opportunity_id] = o
+    _dup_active = _dd(list)
+    for pid, o in latest_by_pid.items():
+        if o.status == "ACTIVE":
+            key = (o.ticker.upper(), o.runner, o.created_date or "")
+            _dup_active[key].append(pid)
+    unexplained_dupes = [(k, v) for k, v in _dup_active.items() if len(v) > 1]
     _add("C7_history_canonical_uniqueness", len(unexplained_dupes) == 0,
-          f"{len(unexplained_dupes)} UNEXPLAINED dupes (bit-identical) · "
-          f"{len(explained_dupes)} EXPLAINED dupes (multi-observation same-day)",
+          f"{len(unexplained_dupes)} UNEXPLAINED PID duplicates at "
+          f"(ticker, runner, entry_date) grain · Registry authoritative",
           {"n_unexplained": len(unexplained_dupes),
-           "n_explained": len(explained_dupes),
            "unexplained_samples": unexplained_dupes[:5]})
 
-    # ── C8 · Registry-CLOSED ⊆ Exit History body (I20-shape) ───────
-    if "Exit History (90d)" in wb.sheetnames:
+    # ── C8 · Registry-CLOSED ⊆ 02_Decisions_Exit_History HISTORICAL rows ──
+    if "03_Exit_History" in wb.sheetnames:
         eh_tickers = set()
-        for r in eh_rows[1:]:   # skip title row
-            if not r[0]: continue
-            first = str(r[0]).upper()
-            if not first.isalnum() and not first.replace("-", "").isalnum():
-                continue
-            eh_tickers.add(first)
+        # 03_Exit_History layout: hdr [0]=Position ID [1]=Ticker [2]=Runner
+        # [3]=Market [4]=Entry Date [5]=Exit Date ...
+        # Header row has "Position ID" in col 0
+        _hdr_idx = next((i for i, r in enumerate(eh_rows)
+                          if r[0] and "Position ID" in str(r[0])), None)
+        if _hdr_idx is not None and _hdr_idx + 1 < len(eh_rows):
+            for r in eh_rows[_hdr_idx + 1:]:
+                if not r or not r[0]: continue
+                # Skip legend / summary rows (they don't have canonical PID)
+                if not (str(r[0]).upper().startswith("USA-") or
+                          str(r[0]).upper().startswith("IND-")): continue
+                if len(r) > 1 and r[1]:
+                    eh_tickers.add(str(r[1]).upper().split(".", 1)[0])
         # C8 · CEO 2026-09-01 STRENGTHENED: retirement-aware · carveout-aware.
         # Registry CLOSED events for RETIRED runners are EXPECTED to be absent
         # (retirement carveout · not a production exit). Registry CLOSED events
@@ -325,8 +310,6 @@ def reconcile(market: str, root: Path) -> dict:
         n_retired_in_portfolio = 0
         for r in body:
             run = str(r[ci_run]).upper() if ci_run is not None and ci_run < len(r) and r[ci_run] else ""
-            dec = str(r[ci_dec] or "").upper() if ci_dec is not None and ci_dec < len(r) else ""
-            if "SUGGESTED" in dec: continue
             if run in retired_set:
                 n_retired_in_portfolio += 1
         _add("C10_no_retired_in_production_portfolio",
@@ -337,58 +320,42 @@ def reconcile(market: str, root: Path) -> dict:
                "retired_runners": sorted(retired_set)})
 
     # ── C9 · Portfolio ↔ Exit History lifecycle-instance collision ─
-    # CEO 2026-09-01 · hard rule: a ticker may legitimately appear in
-    # BOTH Portfolio (ACTIVE) and Exit History (CLOSED) ONLY if they
-    # represent DIFFERENT lifecycle instances. Under A1 the runner-
-    # inclusive Position ID (with entry_date) is the true identity ·
-    # so the collision key is (ticker, runner, entry_date). Same
-    # (ticker, runner, entry_date) in both → FAIL. Different entry_date
-    # is EXPLAINED (position was closed then re-opened later · legit).
-    port_active_key = set()   # (ticker, runner, entry_date)
+    # 3-sheet spec: 01_Portfolio has columns (Position ID · Ticker · Runner
+    # · Entry Date · ...) and 02_Decisions_Exit_History has (Population ·
+    # Date · Position ID · Ticker · Runner · Entry Date · Exit Date · ...).
+    # Collision = same (ticker, runner, entry_date) appears as both an
+    # ACTIVE row in 01_Portfolio AND a HISTORICAL_EXIT row in sheet 2.
+    port_active_key = set()
     port_entry_by_tk_run = {}
+    # In new 01_Portfolio: hdr columns [0]=Position ID [1]=Ticker [2]=Runner
+    # [3]=Entry Date. Body rows have those indices.
     for r in body:
-        life = str(r[3]) if len(r) > 3 and r[3] else ""
-        dec = str(r[2]) if len(r) > 2 and r[2] else ""
-        if "SUGGESTED" in dec.upper(): continue
-        if "ACTIVE" not in life.upper(): continue
-        tk = str(r[0]).upper().replace(".NS", "").replace(".BO", "")
-        run = str(r[8] or "").upper() if len(r) > 8 else ""
-        ent = str(r[12])[:10] if len(r) > 12 and r[12] else ""
-        if run in ("R1", "R2") and ent:
+        if not r or not r[0]: continue
+        if str(r[0]).strip() == "" or str(r[0]).lower().startswith("no current"): continue
+        tk = str(r[1]).upper().replace(".NS", "").replace(".BO", "") if len(r) > 1 and r[1] else ""
+        run = str(r[2] or "").upper() if len(r) > 2 else ""
+        ent = str(r[3])[:10] if len(r) > 3 and r[3] and str(r[3]) != "—" else ""
+        if run in ("R1", "R2") and ent and tk:
             port_active_key.add((tk, run, ent))
             port_entry_by_tk_run.setdefault((tk, run), set()).add(ent)
-    # Exit History body · (ticker, runner, entry_date) triples
+    # 03_Exit_History · body rows have canonical PID in col 0
     eh_closed_key = set()
     eh_by_tk_run = {}
-    if "Exit History (90d)" in wb.sheetnames:
-        ws_e2 = wb["Exit History (90d)"]
+    if "03_Exit_History" in wb.sheetnames:
+        ws_e2 = wb["03_Exit_History"]
         eh_all = list(ws_e2.iter_rows(values_only=True))
-        hdr_e = None
         for r in eh_all:
-            if r[0] and "Stock" in str(r[0]):
-                hdr_e = r
-                break
-        if hdr_e:
-            r_col = None
-            ent_col = None
-            exit_col = None
-            for i, c in enumerate(hdr_e):
-                cl = str(c or "").lower()
-                if cl == "runner": r_col = i
-                elif cl == "entry date": ent_col = i
-                elif cl == "exit date": exit_col = i
-            for r in eh_all:
-                if not r[0]: continue
-                tk_e = str(r[0]).upper().replace(".NS", "").replace(".BO", "")
-                if not tk_e.replace("-", "").isalnum(): continue
-                if r_col is None or r_col >= len(r) or not r[r_col]: continue
-                run_e = str(r[r_col]).upper()
-                if run_e not in ("R1", "R2"): continue
-                ent_e = str(r[ent_col])[:10] if ent_col is not None and r[ent_col] else ""
-                exit_e = str(r[exit_col])[:10] if exit_col is not None and r[exit_col] else ""
-                if ent_e:
-                    eh_closed_key.add((tk_e, run_e, ent_e))
-                    eh_by_tk_run.setdefault((tk_e, run_e), []).append((ent_e, exit_e))
+            if not r or not r[0]: continue
+            pid = str(r[0]).upper()
+            if not (pid.startswith("USA-") or pid.startswith("IND-")): continue
+            # cols: 0=PID 1=Ticker 2=Runner 3=Market 4=EntryDate 5=ExitDate
+            tk_e = str(r[1]).upper().replace(".NS", "").replace(".BO", "") if len(r) > 1 and r[1] else ""
+            run_e = str(r[2] or "").upper() if len(r) > 2 else ""
+            ent_e = str(r[4])[:10] if len(r) > 4 and r[4] and str(r[4]) != "—" else ""
+            exit_e = str(r[5])[:10] if len(r) > 5 and r[5] and str(r[5]) != "—" else ""
+            if run_e in ("R1", "R2") and ent_e and tk_e:
+                eh_closed_key.add((tk_e, run_e, ent_e))
+                eh_by_tk_run.setdefault((tk_e, run_e), []).append((ent_e, exit_e))
     # True collision · same (ticker, runner, entry_date) in both
     collisions = port_active_key & eh_closed_key
     # Same ticker+runner but different entry_date is EXPLAINED
@@ -430,8 +397,15 @@ def reconcile(market: str, root: Path) -> dict:
             p + rr + "-" for rr in _c19_ret
             for p in ("", "IND-", "USA-")
         )
-        _defs_name = "Definitions"
-        # 1. Visible-value scan (all sheets except Definitions)
+        _defs_name = "___NO_DEFINITIONS_SHEET_IN_FINAL_SPEC___"  # every sheet scanned
+        # 1. Visible-value scan · CEO 2026-09-01 STRICT rule: the WORD R1
+        # (and any variant of a retired runner) must not appear anywhere
+        # in the workbook text · not just as an exact cell value.
+        import re as _re_c19
+        _wb_re = _re_c19.compile(
+            r"\b(" + "|".join(_re_c19.escape(r) for r in _c19_ret) + r")\b",
+            _re_c19.IGNORECASE,
+        )
         for _sh_name in _c19_wb_ro.sheetnames:
             if _sh_name == _defs_name: continue
             _ws = _c19_wb_ro[_sh_name]
@@ -440,10 +414,13 @@ def reconcile(market: str, root: Path) -> dict:
                 _rn += 1
                 for _v in _row:
                     if _v is None: continue
-                    _s = str(_v).strip().upper()
-                    if _s in _c19_ret or _s.startswith(_prefixes):
+                    _s = str(_v).strip()
+                    # Exact match, prefix match, OR word-boundary occurrence
+                    if (_s.upper() in _c19_ret
+                          or _s.upper().startswith(_prefixes)
+                          or _wb_re.search(_s)):
                         _c19_hits.append({"scope": "value", "sheet": _sh_name,
-                                           "row": _rn, "value": _s[:30]})
+                                           "row": _rn, "value": _s[:60]})
                         break
         _c19_wb_ro.close()
         # 2. Hidden / very-hidden sheet detection · every hidden sheet is

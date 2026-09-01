@@ -123,41 +123,38 @@ def _load_exit_history(root: Path, market: str) -> list:
     xlsx = root / "reports" / "telegram" / f"aegis_history_{market.lower()}.xlsx"
     if not xlsx.exists(): return []
     wb = load_workbook(xlsx, read_only=True, data_only=True)
-    if "Exit History (90d)" not in wb.sheetnames: return []
-    ws = wb["Exit History (90d)"]
+    # CEO 2026-09-01 FINAL 3-sheet spec · read from 03_Exit_History
+    _sheet = "03_Exit_History"
+    if _sheet not in wb.sheetnames: wb.close(); return []
+    ws = wb[_sheet]
     rows = list(ws.iter_rows(values_only=True))
-    hi = 0
-    for i, r in enumerate(rows[:10]):
-        if r and sum(1 for c in r if c is not None) >= 5:
-            hi = i; break
-    hdr = rows[hi]
-    def _col(*names):
-        for n in names:
-            for j, c in enumerate(hdr):
-                if c and str(c).lower() == n.lower(): return j
-        return None
-    c_tk = _col("Stock", "Ticker")
-    c_run = _col("Runner")
-    c_ext = _col("Exit Date")
-    c_ent = _col("Entry Date")
-    c_pnl = _col("P&L %")
-    c_days = _col("Days Held")
-    c_sec = _col("Sector")
     out = []
-    for r in rows[hi + 1:]:
-        if not r or c_tk is None or not r[c_tk]: continue
-        run = str(r[c_run] or "").upper() if c_run is not None else ""
+    for r in rows:
+        if not r or not r[0]: continue
+        pid = str(r[0])
+        if not (pid.upper().startswith("USA-") or pid.upper().startswith("IND-")):
+            continue
+        # cols: 0=PID 1=Ticker 2=Runner 3=Market 4=EntryDate 5=ExitDate
+        # 6=HoldingDays 7=EntryPrice 8=ExitPrice 9=RealizedPnL%
+        run = str(r[2] or "").upper() if len(r) > 2 else ""
         if run != "R2": continue
         try:
-            pnl = float(r[c_pnl]) if c_pnl is not None and r[c_pnl] not in (None, "") else 0.0
-        except (TypeError, ValueError): pnl = 0.0
+            pnl = float(r[9]) if len(r) > 9 and r[9] not in (None, "", "—") else 0.0
+        except (TypeError, ValueError):
+            pnl = 0.0
+        try:
+            from datetime import date as _d
+            days = (_d.fromisoformat(str(r[5])[:10])
+                     - _d.fromisoformat(str(r[4])[:10])).days
+        except Exception:
+            days = 0
         out.append({
-            "ticker": str(r[c_tk] or ""),
-            "sector": str(r[c_sec] or "") if c_sec is not None else "",
-            "entry_date": str(r[c_ent] or "")[:10] if c_ent is not None else "",
-            "exit_date": str(r[c_ext] or "")[:10] if c_ext is not None else "",
-            "pnl_pct": round(pnl * 100.0, 4) if abs(pnl) < 2.0 else round(pnl, 4),
-            "days": int(r[c_days]) if c_days is not None and str(r[c_days] or "").isdigit() else 0,
+            "ticker": str(r[1] or "") if len(r) > 1 else "",
+            "sector": "",
+            "entry_date": str(r[4] or "")[:10] if len(r) > 4 else "",
+            "exit_date": str(r[5] or "")[:10] if len(r) > 5 else "",
+            "pnl_pct": round(pnl, 4),
+            "days": days,
         })
     wb.close()
     return out

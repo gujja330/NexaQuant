@@ -89,40 +89,42 @@ def build(market: str, root: Path, asof: str) -> dict:
     reg_data = json.loads(regime_p.read_text(encoding="utf-8")) if regime_p.exists() else {}
     regimes_by_date = reg_data.get("regimes", {}) or {}
 
-    # 2. Load R2 historical exits from Exit History (90d) sheet
+    # 2. Load R2 historical exits from 03_Exit_History sheet
+    # (CEO 2026-09-01 FINAL 3-sheet spec · body rows have canonical PID)
     xlsx = root / "reports" / "telegram" / f"aegis_history_{market.lower()}.xlsx"
     r2_trades = []
-    if xlsx.exists() and "Exit History (90d)" in load_workbook(xlsx, read_only=True).sheetnames:
+    _sheet = "03_Exit_History"
+    if xlsx.exists() and _sheet in load_workbook(xlsx, read_only=True).sheetnames:
         wb = load_workbook(xlsx, read_only=True, data_only=True)
-        ws = wb["Exit History (90d)"]
+        ws = wb[_sheet]
         rows = list(ws.iter_rows(values_only=True))
-        hi = _find_hdr(rows)
-        hdr = rows[hi]
-        c_tk = _col(hdr, "Stock", "Ticker")
-        c_run = _col(hdr, "Runner")
-        c_ent = _col(hdr, "Entry Date")
-        c_ext = _col(hdr, "Exit Date")
-        c_days = _col(hdr, "Days Held")
-        c_pnl = _col(hdr, "P&L %")
-        for r in rows[hi + 1:]:
-            if not r or c_tk is None or not r[c_tk]: continue
-            run = str(r[c_run] or "").upper() if c_run is not None else ""
+        # cols: 0=PID 1=Ticker 2=Runner 3=Market 4=EntryDate 5=ExitDate
+        # 6=HoldingDays 7=EntryPrice 8=ExitPrice 9=RealizedPnL%
+        for r in rows:
+            if not r or not r[0]: continue
+            pid = str(r[0])
+            if not (pid.upper().startswith("USA-") or pid.upper().startswith("IND-")):
+                continue
+            run = str(r[2] or "").upper() if len(r) > 2 else ""
             if run != "R2": continue
-            exit_d = str(r[c_ext] or "")[:10] if c_ext is not None else ""
+            exit_d = str(r[5] or "")[:10] if len(r) > 5 and str(r[5] or "") != "—" else ""
             try:
-                pnl = float(r[c_pnl]) if c_pnl is not None and r[c_pnl] not in (None, "") else 0.0
+                pnl = float(r[9]) if len(r) > 9 and r[9] not in (None, "", "—") else 0.0
             except (TypeError, ValueError):
                 pnl = 0.0
+            days = 0
             try:
-                days = int(r[c_days]) if c_days is not None and r[c_days] not in (None, "") else 0
-            except (TypeError, ValueError):
-                days = 0
-            # P&L in Exit History is expressed as fraction (-0.1062 = -10.62%)
+                from datetime import date as _d
+                d1 = _d.fromisoformat(str(r[4])[:10])
+                d2 = _d.fromisoformat(str(r[5])[:10])
+                days = (d2 - d1).days
+            except Exception:
+                pass
             r2_trades.append({
-                "ticker": str(r[c_tk] or ""),
+                "ticker": str(r[1] or "") if len(r) > 1 else "",
                 "exit_date": exit_d,
-                "entry_date": str(r[c_ent] or "")[:10] if c_ent is not None else "",
-                "pnl_pct": round(pnl * 100.0, 4) if abs(pnl) < 2.0 else round(pnl, 4),
+                "entry_date": str(r[4] or "")[:10] if len(r) > 4 else "",
+                "pnl_pct": round(pnl, 4),   # already in % in new spec
                 "days_held": days,
             })
         wb.close()

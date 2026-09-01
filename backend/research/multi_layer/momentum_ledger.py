@@ -89,12 +89,43 @@ def _classify(candidate: dict) -> tuple[str, str, str]:
             + reason_txt[:80])
 
 
+def _production_universe(root: Path, market: str) -> set | None:
+    """Return the production universe ticker set from configs/aegis_universes.yaml.
+    None if no static source file for this market (e.g. India · derived)."""
+    try:
+        import yaml
+        cfg = yaml.safe_load(
+            (root / "configs" / "aegis_universes.yaml").read_text(encoding="utf-8")) or {}
+        m_cfg = (cfg.get("markets", {}) or {}).get(market.lower(), {})
+        src = m_cfg.get("source_file")
+        if not src: return None
+        p = root / src
+        if not p.exists(): return None
+        data = json.loads(p.read_text(encoding="utf-8"))
+        return {str(t.get("symbol") if isinstance(t, dict) else t).upper()
+                for t in (data.get("tickers") or []) if t}
+    except Exception:
+        return None
+
+
 def build(root: Path, market: str, asof: str) -> dict:
     src = root / "reports" / "research" / f"short_term_momentum_{market.lower()}.json"
     if not src.exists():
         return {"error": f"source missing: {src}", "market": market.lower()}
     raw = json.loads(src.read_text(encoding="utf-8"))
-    candidates = raw.get("candidates") or []
+    candidates_all = raw.get("candidates") or []
+    n_raw_scanned = raw.get("n_universe") or len(candidates_all)
+
+    # CEO 2026-09-01 · production universe filter · S&P 500 for USA
+    prod_universe = _production_universe(root, market)
+    n_prod = len(prod_universe) if prod_universe else None
+    if prod_universe:
+        candidates = [c for c in candidates_all
+                       if str(c.get("ticker", "")).split(".", 1)[0].upper() in prod_universe]
+        n_out_of_universe = len(candidates_all) - len(candidates)
+    else:
+        candidates = candidates_all
+        n_out_of_universe = 0
 
     entries = []
     counts = {STATE_ACCEPTED: 0, STATE_WATCH: 0,
@@ -137,7 +168,10 @@ def build(root: Path, market: str, asof: str) -> dict:
         "engine": "momentum_ledger.multi_layer.v1",
         "market": market.lower(),
         "asof": asof,
-        "n_universe_scanned": raw.get("n_universe"),
+        "n_universe_scanned_raw": n_raw_scanned,
+        "n_production_universe": n_prod,
+        "n_out_of_universe_dropped": n_out_of_universe,
+        "n_universe_scanned": len(candidates),  # kept for downstream compat · now = in-universe
         "n_candidates_source": len(candidates),
         "n_candidates_classified": sum(counts.values()),
         "n_silent_disappearances": len(candidates) - sum(counts.values()),

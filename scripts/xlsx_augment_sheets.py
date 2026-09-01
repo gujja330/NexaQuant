@@ -312,7 +312,7 @@ def _scrub_retired_from_all_sheets(wb, root: Path) -> dict:
     per_sheet: dict[str, int] = {}
     total = 0
     for sh_name in list(wb.sheetnames):
-        if sh_name == "Definitions":
+        if sh_name in ("Definitions", "03_Summary_Definitions"):
             continue  # Definitions may name R1 as a reference
         ws = wb[sh_name]
         max_r = ws.max_row

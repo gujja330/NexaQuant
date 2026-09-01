@@ -26,10 +26,10 @@ from openpyxl import load_workbook
 _ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_ROOT))
 
-REQUIRED_SHEETS_9 = [
-    "Portfolio", "Today Decisions", "Exit History (90d)",
-    "Monthly Summary", "{MARKET_HISTORY}", "Definitions",
-    "Runner Performance", "Research Quality", "Research Timing",
+REQUIRED_SHEETS_3 = [
+    "01_Portfolio",
+    "02_Today_Momentum",
+    "03_Exit_History",
 ]
 
 
@@ -53,128 +53,78 @@ def audit(market: str, asof: str) -> dict:
         return {"error": f"missing {xlsx}"}
     wb = load_workbook(xlsx, read_only=True, data_only=True)
     sheets = wb.sheetnames
-    required = [s.format(MARKET_HISTORY=f"AEGIS {market.upper()} History")
-                if "{MARKET_HISTORY}" in s else s
-                for s in REQUIRED_SHEETS_9]
-    missing = [s for s in required if s not in sheets]
+    missing = [s for s in REQUIRED_SHEETS_3 if s not in sheets]
+    extra = [s for s in sheets if s not in REQUIRED_SHEETS_3]
     checks = []
+    checks.append(("exactly_3_required_sheets_present",
+                    not missing and not extra,
+                    f"missing={missing} extra={extra}"
+                      if (missing or extra)
+                      else "3/3 sheets present · no legacy sheets"))
 
-    checks.append(("all_9_required_sheets_present", not missing,
-                    f"missing: {missing}" if missing else "9/9 sheets present"))
-
-    # Portfolio banner has date + lifecycle text
-    portfolio_ok = False
-    portfolio_reason = "sheet not found"
-    if "Portfolio" in sheets:
-        ws = wb["Portfolio"]
+    # 01_Portfolio banner
+    portfolio_ok = False; portfolio_reason = "sheet not found"
+    if "01_Portfolio" in sheets:
+        ws = wb["01_Portfolio"]
         rows = list(ws.iter_rows(values_only=True))
         title = str((rows[0] or [None])[0] or "")
         banner = str((rows[1] or [None])[0] or "") if len(rows) > 1 else ""
         has_date = asof in title
-        has_lifecycle = "Lifecycle:" in banner and "ACTIVE" in banner
-        portfolio_ok = has_date and has_lifecycle
-        portfolio_reason = f"title_asof={has_date} · banner_lifecycle={has_lifecycle}"
+        has_r2_count = "R2 ACTIVE" in banner.upper()
+        portfolio_ok = has_date and has_r2_count
+        portfolio_reason = f"title_asof={has_date} · banner_R2_active={has_r2_count}"
     checks.append(("portfolio_banner_correct", portfolio_ok, portfolio_reason))
 
-    # Exit History has ≥1 row of R2 exits
-    eh_ok = False
-    eh_reason = "sheet not found"
-    if "Exit History (90d)" in sheets:
-        ws = wb["Exit History (90d)"]
+    # 02_Today_Momentum · reporting date freshness
+    tm_ok = False; tm_reason = "sheet not found"
+    if "02_Today_Momentum" in sheets:
+        ws = wb["02_Today_Momentum"]
         rows = list(ws.iter_rows(values_only=True))
-        hi = _find_hdr(rows)
-        n = max(0, len(rows) - hi - 1)
-        eh_ok = n > 0
-        eh_reason = f"data_rows={n}"
-    checks.append(("exit_history_nonempty", eh_ok, eh_reason))
+        title = str((rows[0] or [None])[0] or "")
+        sub_line = str((rows[1] or [None])[0] or "") if len(rows) > 1 else ""
+        has_date = asof in title
+        is_fresh = "✓ ledger fresh" in sub_line or "no R2 decisions" in sub_line.lower()
+        tm_ok = has_date
+        tm_reason = f"title_asof={has_date} · fresh_ledger={is_fresh}"
+    checks.append(("today_momentum_reporting_date", tm_ok, tm_reason))
 
-    # AEGIS History has Position ID column
-    hist_ok = False
-    hist_reason = "sheet not found"
-    hist_sheet = f"AEGIS {market.upper()} History"
-    if hist_sheet in sheets:
-        ws = wb[hist_sheet]
+    # 03_Exit_History · closed positions sheet
+    eh_ok = False; eh_reason = "sheet not found"
+    if "03_Exit_History" in sheets:
+        ws = wb["03_Exit_History"]
         rows = list(ws.iter_rows(values_only=True))
-        hdr = rows[0] if rows else ()
-        has_pid = _col(hdr, "Position ID") is not None
-        hist_ok = has_pid
-        hist_reason = f"has_position_id={has_pid} · n_rows={max(0,len(rows)-1)}"
-    checks.append(("history_has_position_id", hist_ok, hist_reason))
+        # body rows have canonical PID in col 0
+        n_body = sum(1 for r in rows if r and r[0]
+                       and (str(r[0]).upper().startswith("USA-")
+                             or str(r[0]).upper().startswith("IND-")))
+        eh_ok = True   # OK to be zero if no exits in window
+        eh_reason = f"closed_positions={n_body}"
+    checks.append(("exit_history_sheet_present", eh_ok, eh_reason))
 
-    # Runner Performance has utilization_status column with expected values
-    rp_ok = False
-    rp_reason = "sheet not found"
-    if "Runner Performance" in sheets:
-        ws = wb["Runner Performance"]
-        rows = list(ws.iter_rows(values_only=True))
-        hi = _find_hdr(rows)
-        hdr = rows[hi] if hi < len(rows) else ()
-        c_us = _col(hdr, "Utilization Status")
-        found_states = set()
-        for r in rows[hi + 1:]:
-            if c_us is not None and c_us < len(r) and r[c_us]:
-                found_states.add(str(r[c_us]))
-        # Expect at least ACTIVE_PRODUCTION or RETIRED_DORMANT · never UNKNOWN
-        rp_ok = bool(found_states) and "UNKNOWN" not in found_states
-        rp_reason = f"states={sorted(found_states)}"
-    checks.append(("runner_performance_classified", rp_ok, rp_reason))
-
-    # Research Timing has terminal_state column with candidates classified
-    rt_ok = False
-    rt_reason = "sheet not found"
-    if "Research Timing" in sheets:
-        ws = wb["Research Timing"]
-        rows = list(ws.iter_rows(values_only=True))
-        hi = _find_hdr(rows)
-        hdr = rows[hi] if hi < len(rows) else ()
-        c_ts = _col(hdr, "Terminal State")
-        c_tk = _col(hdr, "Ticker")
-        found_states = set()
-        for r in rows[hi + 1:]:
-            # Only count body rows · summary/totals rows have Ticker = "TOTALS" or empty
-            if c_tk is None or c_tk >= len(r): continue
-            tk = str(r[c_tk] or "").strip()
-            if not tk or tk.upper() == "TOTALS": continue
-            if c_ts is not None and c_ts < len(r) and r[c_ts]:
-                found_states.add(str(r[c_ts]))
-        valid = {"ACCEPTED", "WATCH", "REJECTED", "NO_EVIDENCE"}
-        rt_ok = not found_states or found_states.issubset(valid)
-        rt_reason = f"states={sorted(found_states)}"
-    checks.append(("research_timing_conservation", rt_ok, rt_reason))
-
-    # No fabricated LOW/PENDING in Portfolio holding rows
-    fab_ok = True
-    fab_reason = "sheet not found"
-    if "Portfolio" in sheets:
-        ws = wb["Portfolio"]
-        rows = list(ws.iter_rows(values_only=True))
-        hi = _find_hdr(rows)
-        hdr = rows[hi] if hi < len(rows) else ()
-        c_inv = _col(hdr, "Investability")
-        c_life = _col(hdr, "Lifecycle")
+    # No fabricated LOW/PENDING in 01_Portfolio (new layout has no
+    # Investability column · check any cell)
+    fab_ok = True; fab_reason = "sheet not found"
+    if "01_Portfolio" in sheets:
+        ws = wb["01_Portfolio"]
         bad = 0
-        for r in rows[hi + 1:]:
-            if c_life is None or c_life >= len(r) or not r[c_life]: continue
-            life = str(r[c_life] or "")
-            if "ACTIVE" not in life.upper(): continue
-            inv = str(r[c_inv] or "") if c_inv is not None and c_inv < len(r) else ""
-            if inv in ("LOW", "PENDING"):
-                bad += 1
+        for row in ws.iter_rows(values_only=True):
+            for v in row:
+                if v and str(v).strip().upper() in ("LOW", "PENDING"):
+                    bad += 1
+                    break
         fab_ok = bad == 0
-        fab_reason = f"holdings_with_low_pending={bad}"
+        fab_reason = f"cells_with_LOW_or_PENDING={bad}"
     checks.append(("no_fabricated_low_pending", fab_ok, fab_reason))
 
-    # Runner column shows R2 (not R1) in Portfolio body
-    r1_ok = True
-    r1_reason = "sheet not found"
-    if "Portfolio" in sheets:
-        ws = wb["Portfolio"]
+    # Portfolio Runner column · R2 only · zero R1
+    r1_ok = True; r1_reason = "sheet not found"
+    if "01_Portfolio" in sheets:
+        ws = wb["01_Portfolio"]
         rows = list(ws.iter_rows(values_only=True))
         hi = _find_hdr(rows)
         hdr = rows[hi] if hi < len(rows) else ()
         c_run = _col(hdr, "Runner")
-        r1_rows = 0
-        r2_rows = 0
+        r1_rows = 0; r2_rows = 0
         for r in rows[hi + 1:]:
             if c_run is None or c_run >= len(r) or not r[c_run]: continue
             run = str(r[c_run] or "").upper()
@@ -187,21 +137,28 @@ def audit(market: str, asof: str) -> dict:
     # CEO 2026-09-01 STRENGTHENED · workbook-wide R1 == 0 across every sheet
     # except Definitions (which may reference R1 in retirement text)
     from backend.delivery.canonical.retirement import retired_runners
+    import re as _re_ss
     retired = retired_runners(_ROOT)
     prefixes = tuple(p + r + "-" for r in retired for p in ("", "IND-", "USA-"))
+    _wb_word_re = _re_ss.compile(
+        r"\b(" + "|".join(_re_ss.escape(r) for r in retired) + r")\b",
+        _re_ss.IGNORECASE,
+    )
     workbook_r1_hits = []
     wb2 = load_workbook(xlsx, read_only=True, data_only=True)
     for sh_name in wb2.sheetnames:
-        if sh_name == "Definitions": continue
         wsx = wb2[sh_name]
         rn = 0
         for row_vals in wsx.iter_rows(values_only=True):
             rn += 1
             for v in row_vals:
                 if v is None: continue
-                s = str(v).strip().upper()
-                if s in retired or s.startswith(prefixes):
-                    workbook_r1_hits.append((sh_name, rn, s[:30]))
+                s = str(v).strip()
+                # STRICT · exact match OR canonical prefix OR word-boundary token
+                if (s.upper() in retired
+                      or s.upper().startswith(prefixes)
+                      or _wb_word_re.search(s)):
+                    workbook_r1_hits.append((sh_name, rn, s[:60]))
                     break
     wb2.close()
     checks.append(("workbook_wide_r1_zero",
@@ -221,7 +178,7 @@ def audit(market: str, asof: str) -> dict:
         state = getattr(sh_obj, "sheet_state", "visible")
         if state != "visible":
             hidden_sheets.append({"sheet": sh_name, "state": state})
-        if sh_name == "Definitions": continue
+        # No Definitions sheet in final spec · every sheet scanned
         for row_cells in sh_obj.iter_rows():
             for cell in row_cells:
                 if getattr(cell, "data_type", None) == "f":

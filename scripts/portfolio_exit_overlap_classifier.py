@@ -58,47 +58,44 @@ def classify(market: str, root: Path, asof: str) -> dict:
         return {"error": f"missing xlsx: {xlsx}"}
     wb = load_workbook(xlsx, read_only=True, data_only=True)
 
-    # Load Portfolio rows
+    # CEO 2026-09-01 3-sheet spec · load from 01_Portfolio and
+    # 02_Decisions_Exit_History (Population = HISTORICAL_EXIT rows)
     portfolio_rows = []
-    if "Portfolio" in wb.sheetnames:
-        ws = wb["Portfolio"]
+    if "01_Portfolio" in wb.sheetnames:
+        ws = wb["01_Portfolio"]
         rows = list(ws.iter_rows(values_only=True))
         hi = _find_hdr(rows)
         hdr = rows[hi]
         c_tk = _col(hdr, "Ticker")
         c_run = _col(hdr, "Runner")
-        c_life = _col(hdr, "Lifecycle")
         c_ent = _col(hdr, "Entry Date")
-        c_dec = _col(hdr, "🎯 DECISION", "DECISION", "Decision")
         for r in rows[hi + 1:]:
             if not r or c_tk is None or not r[c_tk]: continue
-            dec = str(r[c_dec] or "") if c_dec is not None else ""
-            if "SUGGESTED" in dec.upper(): continue
+            tk = _norm(r[c_tk])
+            if not tk: continue
             portfolio_rows.append({
-                "ticker": _norm(r[c_tk]),
+                "ticker": tk,
                 "runner": _norm(r[c_run]) if c_run is not None else "",
-                "lifecycle": str(r[c_life] or "") if c_life is not None else "",
+                "lifecycle": "ACTIVE",
                 "entry_date": str(r[c_ent] or "")[:10] if c_ent is not None else "",
             })
 
     exit_rows = []
-    eh_sheet = "Exit History (90d)"
-    if eh_sheet in wb.sheetnames:
-        ws = wb[eh_sheet]
+    if "03_Exit_History" in wb.sheetnames:
+        ws = wb["03_Exit_History"]
         rows = list(ws.iter_rows(values_only=True))
-        hi = _find_hdr(rows)
-        hdr = rows[hi]
-        c_tk = _col(hdr, "Stock", "Ticker")
-        c_run = _col(hdr, "Runner")
-        c_ent = _col(hdr, "Entry Date")
-        c_ext = _col(hdr, "Exit Date")
-        for r in rows[hi + 1:]:
-            if not r or c_tk is None or not r[c_tk]: continue
+        # New layout · body rows have canonical PID in col 0
+        for r in rows:
+            if not r or not r[0]: continue
+            pid = str(r[0])
+            if not (pid.upper().startswith("USA-") or pid.upper().startswith("IND-")):
+                continue
+            # cols: 0=PID 1=Ticker 2=Runner 3=Market 4=EntryDate 5=ExitDate
             exit_rows.append({
-                "ticker": _norm(r[c_tk]),
-                "runner": _norm(r[c_run]) if c_run is not None else "",
-                "entry_date": str(r[c_ent] or "")[:10] if c_ent is not None else "",
-                "exit_date": str(r[c_ext] or "")[:10] if c_ext is not None else "",
+                "ticker": _norm(r[1]) if len(r) > 1 else "",
+                "runner": _norm(r[2]) if len(r) > 2 else "",
+                "entry_date": str(r[4] or "")[:10] if len(r) > 4 and str(r[4] or "") != "—" else "",
+                "exit_date": str(r[5] or "")[:10] if len(r) > 5 and str(r[5] or "") != "—" else "",
             })
     wb.close()
 

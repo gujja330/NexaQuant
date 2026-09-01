@@ -52,6 +52,32 @@ from pathlib import Path
 _XLSX_INDIA = Path("reports/telegram/aegis_history_india.xlsx")
 _XLSX_USA = Path("reports/telegram/aegis_history_usa.xlsx")
 
+# CEO 2026-09-01 · FINAL 3-sheet spec SUPERSEDES Contract v1's 8-sheet
+# invariants (Portfolio · Exit History (90d) · Monthly Summary ·
+# AEGIS History · Definitions as separate sheets · specific column
+# layouts). The new workbook has exactly 3 sheets: 01_Portfolio ·
+# 02_Decisions_Exit_History · 03_Summary_Definitions. Contract v1
+# tests remain in the repo as audit history but are skipped when the
+# workbook uses the 3-sheet spec (detected by presence of 01_Portfolio).
+def _is_3sheet_workbook() -> bool:
+    try:
+        from openpyxl import load_workbook
+        if not _XLSX_INDIA.exists(): return False
+        wb = load_workbook(_XLSX_INDIA, read_only=True)
+        result = "01_Portfolio" in wb.sheetnames
+        wb.close()
+        return result
+    except Exception:
+        return False
+
+pytestmark = pytest.mark.skipif(
+    _is_3sheet_workbook(),
+    reason="Contract v1 (8-sheet) superseded by CEO 2026-09-01 3-sheet spec. "
+             "See docs/AEGIS/R1_RETIREMENT_2026-09-01.md and "
+             "scripts/build_aegis_3sheet_workbook.py. Contract v1 checks are "
+             "preserved for audit history but do not apply to the 3-sheet workbook."
+)
+
 
 def _artifact_asof(wb) -> str:
     """Extract the asof-date stamp from Portfolio r1 (title row).

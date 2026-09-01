@@ -106,8 +106,8 @@ def emit(market: str, root: Path) -> dict:
         return pid, legacy
 
     # ── Portfolio rows ─────────────────────────────────────────────
-    if "Portfolio" in wb.sheetnames:
-        ws_p = wb["Portfolio"]
+    if "01_Portfolio" in wb.sheetnames:
+        ws_p = wb["01_Portfolio"]
         rows_p = list(ws_p.iter_rows(values_only=True))
         hr = _find_hdr_row(rows_p)
         hdr_p = rows_p[hr]
@@ -138,7 +138,7 @@ def emit(market: str, root: Path) -> dict:
             else:
                 pop = "CURRENT_HOLDING"
             out_records.append({
-                "sheet": "Portfolio",
+                "sheet": "01_Portfolio",
                 "position_id": pid,
                 "legacy_position_id": legacy,
                 "ticker": tk,
@@ -148,30 +148,28 @@ def emit(market: str, root: Path) -> dict:
                 "lifecycle": life,
                 "population": pop,
                 "asof": asof,
-                "source": "telegram_command_center_send",
-                "engine": "aegis_daily_v2",
+                "source": "build_aegis_3sheet_workbook",
+                "engine": "aegis_canonical_v3",
             })
 
-    # ── Exit History rows ──────────────────────────────────────────
-    eh_sheet = "Exit History (90d)"
+    # ── 03_Exit_History body rows (canonical PID in col 0) ──────────
+    eh_sheet = "03_Exit_History"
     if eh_sheet in wb.sheetnames:
         ws_e = wb[eh_sheet]
         rows_e = list(ws_e.iter_rows(values_only=True))
-        hr = _find_hdr_row(rows_e)
-        hdr_e = rows_e[hr]
-        c_tk = _col_any(hdr_e, "Stock", "Ticker")
-        c_run = _col(hdr_e, "Runner")
-        c_ent = _col(hdr_e, "Entry Date")
-        c_ext = _col(hdr_e, "Exit Date")
-        for r in rows_e[hr + 1:]:
-            if not r or not r[c_tk if c_tk is not None else 0]: continue
-            tk = str(r[c_tk] or "").split(".", 1)[0].upper() if c_tk is not None else ""
-            rn = str(r[c_run] or "").upper() if c_run is not None else ""
-            ed = str(r[c_ent] or "")[:10] if c_ent is not None else ""
-            xd = str(r[c_ext] or "")[:10] if c_ext is not None else ""
-            pid, legacy = _resolve_pid(tk, rn, ed)
+        for r in rows_e:
+            if not r or not r[0]: continue
+            pid = str(r[0])
+            if not (pid.upper().startswith("USA-") or pid.upper().startswith("IND-")):
+                continue
+            # cols: 0=PID 1=Ticker 2=Runner 3=Market 4=EntryDate 5=ExitDate
+            tk = str(r[1] or "").split(".", 1)[0].upper() if len(r) > 1 else ""
+            rn = str(r[2] or "").upper() if len(r) > 2 else ""
+            ed = str(r[4] or "")[:10] if len(r) > 4 and str(r[4] or "") != "—" else ""
+            xd = str(r[5] or "")[:10] if len(r) > 5 and str(r[5] or "") != "—" else ""
+            legacy = reg_legacy_by_key.get((tk, rn, ed), "")
             out_records.append({
-                "sheet": "Exit History (90d)",
+                "sheet": eh_sheet,
                 "position_id": pid,
                 "legacy_position_id": legacy,
                 "ticker": tk,
@@ -181,7 +179,7 @@ def emit(market: str, root: Path) -> dict:
                 "lifecycle": "EXIT",
                 "population": "HISTORICAL_CLOSED",
                 "asof": asof,
-                "source": "telegram_command_center_send",
+                "source": "build_aegis_3sheet_workbook",
                 "engine": "aegis_daily_v2",
             })
 

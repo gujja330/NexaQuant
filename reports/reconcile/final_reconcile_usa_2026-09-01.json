@@ -11,31 +11,20 @@
     {
       "name": "C1_required_sheets_present",
       "ok": true,
-      "detail": "all 8 required sheets present",
+      "detail": "exactly 3 required sheets present · no legacy sheets",
       "data": {
         "present": [
-          "Portfolio",
-          "Exit History (90d)",
-          "Monthly Summary",
-          "AEGIS USA History",
-          "Definitions",
-          "Today Decisions",
-          "Runner Performance",
-          "Research Quality",
-          "Research Timing"
+          "01_Portfolio",
+          "02_Today_Momentum",
+          "03_Exit_History"
         ],
         "required": [
-          "Portfolio",
-          "Today Decisions",
-          "Exit History (90d)",
-          "Monthly Summary",
-          "AEGIS USA History",
-          "Definitions",
-          "Runner Performance",
-          "Research Quality",
-          "Research Timing"
+          "01_Portfolio",
+          "02_Today_Momentum",
+          "03_Exit_History"
         ],
-        "missing": []
+        "missing": [],
+        "extra": []
       }
     },
     {
@@ -50,9 +39,9 @@
     {
       "name": "C3_history_new_format_pids",
       "ok": true,
-      "detail": "17 new-format PIDs · 0 legacy",
+      "detail": "546 new-format PIDs · 0 legacy (source: Registry)",
       "data": {
-        "new_ct": 17,
+        "new_ct": 546,
         "legacy_ct": 0,
         "legacy_samples": []
       }
@@ -105,10 +94,9 @@
     {
       "name": "C7_history_canonical_uniqueness",
       "ok": true,
-      "detail": "0 UNEXPLAINED dupes (bit-identical) · 0 EXPLAINED dupes (multi-observation same-day)",
+      "detail": "0 UNEXPLAINED PID duplicates at (ticker, runner, entry_date) grain · Registry authoritative",
       "data": {
         "n_unexplained": 0,
-        "n_explained": 0,
         "unexplained_samples": []
       }
     },
@@ -184,7 +172,7 @@
     {
       "name": "C17_momentum_conservation_zero_silent",
       "ok": true,
-      "detail": "conservation_ok=True · silent_disappearances=0 · by_state={'ACCEPTED': 0, 'WATCH': 4, 'REJECTED': 1, 'NO_EVIDENCE': 101}",
+      "detail": "conservation_ok=True · silent_disappearances=0 · by_state={'ACCEPTED': 0, 'WATCH': 4, 'REJECTED': 1, 'NO_EVIDENCE': 29}",
       "data": {
         "conservation_ok": true,
         "n_silent_disappearances": 0,
@@ -192,10 +180,10 @@
           "ACCEPTED": 0,
           "WATCH": 4,
           "REJECTED": 1,
-          "NO_EVIDENCE": 101
+          "NO_EVIDENCE": 29
         },
         "by_reason_code": {
-          "R_QUALITY_UNAVAILABLE": 101,
+          "R_QUALITY_UNAVAILABLE": 29,
           "R_QUALIFIES_WATCH": 4,
           "R_PUMP_RISK": 1
         }
