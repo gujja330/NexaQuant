@@ -1,8 +1,8 @@
 {
   "engine": "aegis.reconcile.final.v1",
   "asof": "2026-09-01",
-  "market": "india",
-  "xlsx_path": "reports\\telegram\\aegis_history_india.xlsx",
+  "market": "usa",
+  "xlsx_path": "reports\\telegram\\aegis_history_usa.xlsx",
   "verdict": "PASS",
   "n_checks": 20,
   "n_pass": 20,
@@ -14,10 +14,10 @@
       "detail": "all 8 required sheets present",
       "data": {
         "present": [
+          "AEGIS USA History",
           "Portfolio",
           "Exit History (90d)",
           "Monthly Summary",
-          "AEGIS INDIA History",
           "Definitions",
           "Today Decisions",
           "Runner Performance",
@@ -29,7 +29,7 @@
           "Today Decisions",
           "Exit History (90d)",
           "Monthly Summary",
-          "AEGIS INDIA History",
+          "AEGIS USA History",
           "Definitions",
           "Runner Performance",
           "Research Quality",
@@ -41,18 +41,18 @@
     {
       "name": "C2_registry_load",
       "ok": true,
-      "detail": "Registry india: 25 ACTIVE · 41 CLOSED-90d",
+      "detail": "Registry usa: 18 ACTIVE · 528 CLOSED-90d",
       "data": {
-        "n_active": 25,
-        "n_closed_90d": 41
+        "n_active": 18,
+        "n_closed_90d": 528
       }
     },
     {
       "name": "C3_history_new_format_pids",
       "ok": true,
-      "detail": "671 new-format PIDs · 0 legacy",
+      "detail": "37 new-format PIDs · 0 legacy",
       "data": {
-        "new_ct": 671,
+        "new_ct": 37,
         "legacy_ct": 0,
         "legacy_samples": []
       }
@@ -60,10 +60,10 @@
     {
       "name": "C4_banner_lifecycle_active",
       "ok": true,
-      "detail": "banner=9 body=9",
+      "detail": "banner=6 body=6",
       "data": {
-        "banner": 9,
-        "body": 9
+        "banner": 6,
+        "body": 6
       }
     },
     {
@@ -78,10 +78,10 @@
     {
       "name": "C4_banner_suggested",
       "ok": true,
-      "detail": "banner=4 body=4",
+      "detail": "banner=0 body=0",
       "data": {
-        "banner": 4,
-        "body": 4
+        "banner": 0,
+        "body": 0
       }
     },
     {
@@ -105,20 +105,23 @@
     {
       "name": "C7_history_canonical_uniqueness",
       "ok": true,
-      "detail": "0 UNEXPLAINED dupes (bit-identical) · 56 EXPLAINED dupes (multi-observation same-day)",
+      "detail": "0 UNEXPLAINED dupes (bit-identical) · 0 EXPLAINED dupes (multi-observation same-day)",
       "data": {
         "n_unexplained": 0,
-        "n_explained": 56,
+        "n_explained": 0,
         "unexplained_samples": []
       }
     },
     {
       "name": "C8_registry_closed_in_exit_history",
       "ok": true,
-      "detail": "0 Registry-CLOSED tickers not in EH body",
+      "detail": "2 Registry-CLOSED tickers not in EH body",
       "data": {
-        "n_missing": 0,
-        "sample_missing": []
+        "n_missing": 2,
+        "sample_missing": [
+          "TRV",
+          "V"
+        ]
       }
     },
     {
@@ -141,24 +144,24 @@
         "unexplained_collisions": [],
         "n_explained_overlaps": 0,
         "explained_samples": [],
-        "n_portfolio_active_keys": 9,
-        "n_exit_closed_keys": 41
+        "n_portfolio_active_keys": 6,
+        "n_exit_closed_keys": 502
       }
     },
     {
       "name": "C18_crash_resilience_present",
       "ok": true,
-      "detail": "today_regime=WEAKENING · n_r2_trades_tagged=37 · n_days_classified=1535 · dist={'UNAVAILABLE': 30, 'NORMAL': 622, 'WEAKENING': 476, 'RISK_OFF': 406, 'CRASH': 1}",
+      "detail": "today_regime=NORMAL · n_r2_trades_tagged=502 · n_days_classified=1254 · dist={'UNAVAILABLE': 30, 'NORMAL': 559, 'WEAKENING': 181, 'RISK_OFF': 427, 'CRASH': 57}",
       "data": {
-        "today_regime": "WEAKENING",
-        "n_r2_trades_tagged": 37,
-        "n_days_classified": 1535,
+        "today_regime": "NORMAL",
+        "n_r2_trades_tagged": 502,
+        "n_days_classified": 1254,
         "regime_distribution": {
           "UNAVAILABLE": 30,
-          "NORMAL": 622,
-          "WEAKENING": 476,
-          "RISK_OFF": 406,
-          "CRASH": 1
+          "NORMAL": 559,
+          "WEAKENING": 181,
+          "RISK_OFF": 427,
+          "CRASH": 57
         },
         "interpretation": [
           "INSUFFICIENT_STRESS_HISTORY_IN_R2_WINDOW"
@@ -168,17 +171,19 @@
     {
       "name": "C17_momentum_conservation_zero_silent",
       "ok": true,
-      "detail": "conservation_ok=True · silent_disappearances=0 · by_state={'ACCEPTED': 0, 'WATCH': 0, 'REJECTED': 1, 'NO_EVIDENCE': 0}",
+      "detail": "conservation_ok=True · silent_disappearances=0 · by_state={'ACCEPTED': 0, 'WATCH': 4, 'REJECTED': 1, 'NO_EVIDENCE': 101}",
       "data": {
         "conservation_ok": true,
         "n_silent_disappearances": 0,
         "by_terminal_state": {
           "ACCEPTED": 0,
-          "WATCH": 0,
+          "WATCH": 4,
           "REJECTED": 1,
-          "NO_EVIDENCE": 0
+          "NO_EVIDENCE": 101
         },
         "by_reason_code": {
+          "R_QUALITY_UNAVAILABLE": 101,
+          "R_QUALIFIES_WATCH": 4,
           "R_PUMP_RISK": 1
         }
       }
@@ -186,33 +191,31 @@
     {
       "name": "C16_stress_regime_research_present",
       "ok": true,
-      "detail": "R2 trades tagged=37 · regime_source=mr_market_regime · status=USED_CACHED · n_days_classified=1472",
+      "detail": "R2 trades tagged=502 · regime_source=mr_market_regime · status=USED_CACHED · n_days_classified=1194",
       "data": {
-        "n_trades": 37,
+        "n_trades": 502,
         "overall": {
-          "n": 37,
-          "win_rate_pct": 27.0,
-          "mean_pnl_pct": 0.152,
+          "n": 502,
+          "win_rate_pct": 49.8,
+          "mean_pnl_pct": 0.208,
           "median_pnl_pct": 0.0,
-          "sum_pnl_pct": 5.64,
-          "worst_trade_pct": -10.62,
-          "avg_holding_days": 8.5
+          "sum_pnl_pct": 104.26,
+          "worst_trade_pct": -13.78,
+          "avg_holding_days": 14.7
         },
         "per_regime_n": {
-          "UNKNOWN": 5,
-          "NEUTRAL": 7,
-          "BEAR": 3,
-          "BULL": 22
+          "UNKNOWN": 481,
+          "BULL": 21
         }
       }
     },
     {
       "name": "C14_overlap_no_reconciliation_defects",
       "ok": true,
-      "detail": "1 overlap tickers · defects=0 · by_cat={'LEGITIMATE_DIFFERENT_LIFECYCLE': 0, 'LEGITIMATE_DIFFERENT_RUNNER': 1, 'LEGITIMATE_REENTRY': 0, 'STALE_DUPLICATE': 0, 'RECONCILIATION_DEFECT': 0}",
+      "detail": "0 overlap tickers · defects=0 · by_cat={'LEGITIMATE_DIFFERENT_LIFECYCLE': 0, 'LEGITIMATE_DIFFERENT_RUNNER': 0, 'LEGITIMATE_REENTRY': 0, 'STALE_DUPLICATE': 0, 'RECONCILIATION_DEFECT': 0}",
       "data": {
         "LEGITIMATE_DIFFERENT_LIFECYCLE": 0,
-        "LEGITIMATE_DIFFERENT_RUNNER": 1,
+        "LEGITIMATE_DIFFERENT_RUNNER": 0,
         "LEGITIMATE_REENTRY": 0,
         "STALE_DUPLICATE": 0,
         "RECONCILIATION_DEFECT": 0
@@ -230,24 +233,24 @@
     {
       "name": "C13_universe_bounds",
       "ok": true,
-      "detail": "WARN · no static source file · derived universe · policy=WARN",
+      "detail": "OK · n=516 label=sp500 range=[480,550] expected=sp500",
       "data": {
-        "market": "india",
+        "market": "usa",
         "ok": true,
-        "verdict": "WARN",
-        "n_tickers": 0,
-        "active_label": "nse_curated",
-        "detail": "no static source file · derived universe · policy=WARN",
+        "verdict": "OK",
+        "n_tickers": 516,
+        "active_label": "sp500",
+        "detail": "n=516 label=sp500 range=[480,550] expected=sp500",
         "violations": []
       }
     },
     {
       "name": "C12_provenance_position_id_coverage",
       "ok": true,
-      "detail": "50/50 opened rows have Position ID (100.0%)",
+      "detail": "508/508 opened rows have Position ID (100.0%)",
       "data": {
-        "n_need_pid": 50,
-        "n_have_pid": 50,
+        "n_need_pid": 508,
+        "n_have_pid": 508,
         "coverage_pct": 100.0,
         "unresolved_samples": []
       }
@@ -255,11 +258,11 @@
     {
       "name": "C11_standard_dated_xlsx_present",
       "ok": true,
-      "detail": "dated=True byte_match=True · expected=aegis_india_2026-09-01.xlsx",
+      "detail": "dated=True byte_match=True · expected=aegis_usa_2026-09-01.xlsx",
       "data": {
         "dated_present": true,
         "byte_match": true,
-        "expected": "aegis_india_2026-09-01.xlsx"
+        "expected": "aegis_usa_2026-09-01.xlsx"
       }
     }
   ]

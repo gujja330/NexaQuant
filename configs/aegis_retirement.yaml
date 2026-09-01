@@ -1,0 +1,42 @@
+# AEGIS · Runner Retirement Configuration
+# CEO authorization 2026-09-01 · R1 formally retired · R2 sole active runner
+#
+# This file is authoritative for delivery-layer + reconciler behavior.
+# Every consumer (Portfolio emit, Path-A completeness, reconciler,
+# runner_accountability, R1-retention-review, banner) reads this to
+# determine which runners are ACTIVE in production and which are
+# RETIRED (historical audit only).
+#
+# Historical R1 records are PRESERVED · never deleted · but must not
+# appear in production-facing sheets or in current AEGIS production
+# performance aggregates.
+
+retired_runners:
+  - R1
+
+active_runners:
+  - R2
+
+retirement_events:
+  - runner: R1
+    retirement_date: 2026-09-01
+    retired_by: CEO
+    authorization_note: |
+      R1 formally retired from AEGIS production. R2 becomes sole active
+      production runner. Historical R1 records preserved in audit layer
+      but must never appear as current AEGIS performance. Existing R1
+      ACTIVE Registry positions are HIDDEN from Portfolio production
+      view · they remain in Registry for provenance · reconciler
+      surfaces them as RETIRED_HELD (audit-only) not CURRENT.
+      Engine-level disable of R1 generation is a SEPARATE change ·
+      requires explicit code modification in recommendation SSoT ·
+      not covered by this delivery-layer retirement flag.
+    scope:
+      - production_portfolio_view       # Portfolio sheet
+      - production_decisions_view       # Today's Decisions
+      - production_pnl_aggregate        # Combined AEGIS P&L
+      - production_runner_performance   # Runner Performance sheet
+    preserved_in:
+      - opportunity_registry_jsonl      # Full lifecycle audit
+      - aegis_history_xlsx              # AEGIS History sheet (full)
+      - r1_retention_review_reports     # Historical performance record

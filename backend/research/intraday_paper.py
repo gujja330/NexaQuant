@@ -114,6 +114,13 @@ def _snapshot(root: Path, runner_slug: str, picks: list[dict], as_of: str) -> di
 def ingest_runner1_intraday_picks_for_date(root: Path,
                                               as_of: str | None = None) -> dict:
     as_of = as_of or date.today().isoformat()
+    # CEO 2026-09-01 · R1 retirement · engine-level dormancy
+    try:
+        from backend.delivery.canonical.retirement import is_retired as _r1_is_retired
+        if _r1_is_retired(root, "R1"):
+            return _snapshot(root, "runner1_intraday", [], as_of)
+    except Exception:
+        pass
     src = root / "data" / "aegis_today.csv"
     picks: list[dict] = []
     if src.exists():

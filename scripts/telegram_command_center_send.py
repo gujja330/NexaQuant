@@ -3587,6 +3587,15 @@ def main() -> int:
             # sheet's own rule: "Active count = unique Position IDs
             # classified as ACTIVE, excluding SUGGESTED/EXIT".
             try:
+                # CEO 2026-09-01 · R1 retirement · load retired-runner set
+                # from configs/aegis_retirement.yaml · all delivery-layer
+                # consumers honor the same authority.
+                try:
+                    from backend.delivery.canonical.retirement import retired_runners as _retired_set
+                    _RETIRED = _retired_set(_ROOT)
+                except Exception:
+                    _RETIRED = set()
+                _n_r1_retired_hidden = 0
                 _visible_pnls_final: list = []
                 _visible_moves_final: list = []
                 _visible_by_row: list = []
@@ -3601,6 +3610,20 @@ def main() -> int:
                     _dec_val = str(portfolio_ws.cell(_rn_i, 3).value or "")
                     _life_val = str(portfolio_ws.cell(_rn_i, 4).value or "").upper()
                     _dec_upper = _dec_val.upper()
+                    # CEO 2026-09-01 · R1 retirement · hide retired-runner
+                    # rows from production Portfolio view · they remain in
+                    # AEGIS History sheet + Registry for provenance · never
+                    # deleted · just not counted as CURRENT production
+                    # exposure.
+                    if _rn_val in _RETIRED:
+                        _n_r1_retired_hidden += 1
+                        # Clear the row so it doesn't appear in the visible
+                        # Portfolio body · but preserve the row range so we
+                        # don't shift other data (openpyxl-safe: set values
+                        # to empty · fill grey · won't be counted below)
+                        for _cc in range(1, portfolio_ws.max_column + 1):
+                            portfolio_ws.cell(_rn_i, _cc).value = None
+                        continue
                     # SUGGESTED / SHADOW · counted separately, excluded from
                     # ACTIVE-P&L population but STILL visible in Portfolio.
                     if _rn_val == "SHADOW" or "SUGGESTED" in _dec_upper:
@@ -3793,6 +3816,24 @@ def main() -> int:
                     if _rn:
                         _displayed_rt.add((str(_rn).upper().replace("_NEW",""), _tks))
                 _missing = _pf_missing(_ROOT, mkt_key, asof, _displayed_rt)
+                # CEO 2026-09-01 · R1 retirement · Path-A must NOT append
+                # retired-runner Registry-ACTIVE rows to production
+                # Portfolio view · they remain in Registry/History for
+                # audit provenance · but never appear as current position.
+                try:
+                    from backend.delivery.canonical.retirement import retired_runners as _pa_retired
+                    _pa_retired_set = _pa_retired(_ROOT)
+                except Exception:
+                    _pa_retired_set = set()
+                _missing_before_ret = len(_missing) if _missing else 0
+                if _missing and _pa_retired_set:
+                    _missing = [_m for _m in _missing
+                                 if str(_m.get("runner", "")).upper() not in _pa_retired_set]
+                    _n_pa_hidden = _missing_before_ret - len(_missing)
+                    if _n_pa_hidden > 0:
+                        print(f"[xlsx:{mkt_key}] R1-retirement · Path-A hid "
+                              f"{_n_pa_hidden} retired-runner Registry-ACTIVE rows "
+                              f"from production Portfolio (audit trail preserved)")
                 if _missing:
                     _from_row = portfolio_ws.max_row + 1
                     from openpyxl.styles import (
@@ -4038,6 +4079,22 @@ def main() -> int:
 
             wb2.save(out_path)
             src_wb.close()
+            # ── Standard XLSX name · CEO 2026-09-01 · aegis_{market}_YYYY-MM-DD.xlsx
+            # The dated file is the authoritative daily snapshot per CEO directive.
+            # The undated aegis_history_{market}.xlsx remains as the "latest" alias
+            # for backwards compatibility while consumers migrate over. Both files
+            # are byte-identical at emission time.
+            try:
+                import shutil as _sh_std
+                _std_dated = out_path.parent / (
+                    f"aegis_{mkt_key.lower()}_{latest_date}.xlsx"
+                )
+                _sh_std.copyfile(out_path, _std_dated)
+                print(f"[xlsx:{mkt_key}] standard-name snapshot -> "
+                      f"{_std_dated.relative_to(_ROOT)}")
+            except Exception as _e_std:
+                print(f"[xlsx:{mkt_key}] standard-name snapshot failed · "
+                      f"{type(_e_std).__name__}: {_e_std}")
             # Skip send if market has 0 rows (e.g., USA freshly wiped for S&P 500 reset)
             if len(keep_rows) == 0:
                 print(f"[xlsx:{mkt_key}] SKIPPED · 0 rows for market (fresh start · awaiting next pipeline run)")

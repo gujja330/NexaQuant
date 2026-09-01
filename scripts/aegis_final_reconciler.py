@@ -60,13 +60,25 @@ def reconcile(market: str, root: Path) -> dict:
     def _add(name: str, ok: bool, detail: str = "", data=None):
         checks.append({"name": name, "ok": ok, "detail": detail, "data": data})
 
-    # ── C1 · Sheets present ─────────────────────────────────────────
-    required_sheets = ["Portfolio", "Exit History (90d)", "Monthly Summary",
-                        f"AEGIS {market.upper()} History", "Definitions"]
+    # ── C1 · Sheets present · Section 11 fixed 8-sheet workbook ─────
+    # CEO 2026-09-01 · every daily workbook must ship the same 8 sheets.
+    # If any sheet is missing, delivery is not certifiable.
+    required_sheets = [
+        "Portfolio",                    # 1
+        "Today Decisions",              # 2 (Section 7 · separate sheet)
+        "Exit History (90d)",           # 3
+        "Monthly Summary",              # 4
+        f"AEGIS {market.upper()} History",  # 5
+        "Definitions",                  # 6
+        "Runner Performance",           # 7
+        "Research Quality",             # 8
+        "Research Timing",              # 9 (Momentum ledger · CEO Momentum correction)
+    ]
     missing = [s for s in required_sheets if s not in wb.sheetnames]
     _add("C1_required_sheets_present", not missing,
-          f"missing sheets: {missing}" if missing else "all 5 required sheets present",
-          {"present": wb.sheetnames, "missing": missing})
+          f"missing sheets: {missing}" if missing else "all 8 required sheets present",
+          {"present": wb.sheetnames, "required": required_sheets,
+           "missing": missing})
 
     # ── C2 · Registry consistency ──────────────────────────────────
     reg = oreg.load_all(root)
@@ -127,17 +139,28 @@ def reconcile(market: str, root: Path) -> dict:
     banner_active = int(m_life.group(1)) if m_life else -1
     banner_new = int(m_life.group(2)) if m_life else -1
     banner_suggested = int(m_sugg.group(1)) if m_sugg else -1
-    # Body counts by axis
+    # Body counts by axis · column-name lookup (India + USA layouts differ)
     hdr_p_idx = next((i for i, r in enumerate(rows_p)
                         if r[0] and "Ticker" in str(r[0])), None)
     body = rows_p[hdr_p_idx + 1:] if hdr_p_idx is not None else []
+    hdr_p = rows_p[hdr_p_idx] if hdr_p_idx is not None else ()
+    def _pcol(name):
+        for i, c in enumerate(hdr_p):
+            if c and str(c).lower() == name.lower(): return i
+        return None
+    ci_life = _pcol("Lifecycle")
+    ci_dec = None
+    for cand in ("🎯 DECISION", "DECISION", "Decision"):
+        ci_dec = _pcol(cand)
+        if ci_dec is not None: break
+    ci_run = _pcol("Runner")
     body_life_active = 0
     body_life_new = 0
     body_suggested = 0
     for r in body:
-        life = str(r[3]) if len(r) > 3 and r[3] else ""
-        dec = str(r[2]) if len(r) > 2 and r[2] else ""
-        run = str(r[8]) if len(r) > 8 and r[8] else ""
+        life = str(r[ci_life]) if ci_life is not None and ci_life < len(r) and r[ci_life] else ""
+        dec = str(r[ci_dec]) if ci_dec is not None and ci_dec < len(r) and r[ci_dec] else ""
+        run = str(r[ci_run]) if ci_run is not None and ci_run < len(r) and r[ci_run] else ""
         if "SUGGESTED" in dec.upper() or run.upper() == "SHADOW":
             body_suggested += 1
             continue
@@ -251,6 +274,32 @@ def reconcile(market: str, root: Path) -> dict:
               {"n_missing": len(missing_from_eh),
                "sample_missing": list(missing_from_eh)[:5]})
 
+    # ── C10 · Retired-runner contamination check ──────────────────
+    # CEO 2026-09-01 · R1 retirement · Portfolio + banner + P&L must
+    # contain 0 retired-runner rows. Historical audit (AEGIS History
+    # sheet · Registry) still contains R1 rows · that is preserved
+    # by design. This check ensures the PRODUCTION-FACING view is
+    # clean.
+    try:
+        from backend.delivery.canonical.retirement import retired_runners as _c10_retired
+        retired_set = _c10_retired(_ROOT)
+    except Exception:
+        retired_set = set()
+    if retired_set:
+        n_retired_in_portfolio = 0
+        for r in body:
+            run = str(r[ci_run]).upper() if ci_run is not None and ci_run < len(r) and r[ci_run] else ""
+            dec = str(r[ci_dec] or "").upper() if ci_dec is not None and ci_dec < len(r) else ""
+            if "SUGGESTED" in dec: continue
+            if run in retired_set:
+                n_retired_in_portfolio += 1
+        _add("C10_no_retired_in_production_portfolio",
+              n_retired_in_portfolio == 0,
+              f"{n_retired_in_portfolio} retired-runner rows in Portfolio · "
+              f"retired={sorted(retired_set)}",
+              {"n_retired_rows": n_retired_in_portfolio,
+               "retired_runners": sorted(retired_set)})
+
     # ── C9 · Portfolio ↔ Exit History lifecycle-instance collision ─
     # CEO 2026-09-01 · hard rule: a ticker may legitimately appear in
     # BOTH Portfolio (ACTIVE) and Exit History (CLOSED) ONLY if they
@@ -329,6 +378,200 @@ def reconcile(market: str, root: Path) -> dict:
 
     wb.close()
 
+    # ── C18 · Crash-resilience research presence (§ Crash addendum) ─
+    # Every certification pass must have current 5-state regime + per-regime
+    # R2-vs-benchmark metrics computed · presence is mandatory · interpretation
+    # never claims success just because a report exists.
+    try:
+        _cr_p = root / "reports" / "research" / "multi_layer" / f"crash_resilience_{market_l}_{asof}.json"
+        if _cr_p.exists():
+            _cr = json.loads(_cr_p.read_text(encoding="utf-8"))
+            _tagged = int(_cr.get("n_r2_trades_tagged", 0) or 0)
+            _today = str(_cr.get("today_regime", "?"))
+            _dist = _cr.get("regime_distribution_alltime", {}) or {}
+            # Passes only if the CLASSIFIER ran (n_days_classified > 0)
+            _n_days = int(_cr.get("n_days_classified", 0) or 0)
+            _add("C18_crash_resilience_present",
+                  _n_days > 0,
+                  (f"today_regime={_today} · n_r2_trades_tagged={_tagged} · "
+                    f"n_days_classified={_n_days} · dist={_dist}"),
+                  {"today_regime": _today,
+                   "n_r2_trades_tagged": _tagged,
+                   "n_days_classified": _n_days,
+                   "regime_distribution": _dist,
+                   "interpretation": _cr.get("interpretation")})
+        else:
+            _add("C18_crash_resilience_present", False,
+                  f"crash-resilience report missing · run python -m backend.research.multi_layer.crash_resilience --market {market_l}",
+                  {"expected": str(_cr_p.name)})
+    except Exception as _e18:
+        _add("C18_crash_resilience_present", False,
+              f"exception: {type(_e18).__name__}: {_e18}", None)
+
+    # ── C17 · Momentum candidate conservation (Momentum correction) ─
+    # Every candidate emitted by the momentum engine must be classified
+    # into one of 4 terminal states · zero silent disappearances.
+    try:
+        _ml_p = root / "reports" / "research" / "multi_layer" / f"momentum_ledger_{market_l}_{asof}.json"
+        if _ml_p.exists():
+            _ml = json.loads(_ml_p.read_text(encoding="utf-8"))
+            _cons = bool(_ml.get("conservation_ok", False))
+            _n_disappear = int(_ml.get("n_silent_disappearances", 0) or 0)
+            _add("C17_momentum_conservation_zero_silent",
+                  _cons and _n_disappear == 0,
+                  (f"conservation_ok={_cons} · silent_disappearances={_n_disappear} · "
+                    f"by_state={_ml.get('by_terminal_state', {})}"),
+                  {"conservation_ok": _cons,
+                   "n_silent_disappearances": _n_disappear,
+                   "by_terminal_state": _ml.get("by_terminal_state"),
+                   "by_reason_code": _ml.get("by_reason_code")})
+        else:
+            _add("C17_momentum_conservation_zero_silent", False,
+                  f"momentum ledger missing · run python -m backend.research.multi_layer.momentum_ledger --market {market_l}",
+                  {"expected": str(_ml_p.name)})
+    except Exception as _e17:
+        _add("C17_momentum_conservation_zero_silent", False,
+              f"exception: {type(_e17).__name__}: {_e17}", None)
+
+    # ── C16 · Stress-regime research presence (§8) ──────────────────
+    try:
+        _sr_p = root / "reports" / "research" / "multi_layer" / f"stress_regime_{market_l}_{asof}.json"
+        if _sr_p.exists():
+            _sr = json.loads(_sr_p.read_text(encoding="utf-8"))
+            _n_tagged = int(_sr.get("n_r2_trades_tagged", 0) or 0)
+            _add("C16_stress_regime_research_present",
+                  _n_tagged > 0,
+                  (f"R2 trades tagged={_n_tagged} · regime_source="
+                    f"{_sr.get('regime_source', 'missing')}"),
+                  {"n_trades": _n_tagged,
+                   "overall": _sr.get("overall"),
+                   "per_regime_n": {k: v.get("n") for k, v
+                                     in (_sr.get("per_regime") or {}).items()}})
+        else:
+            _add("C16_stress_regime_research_present", False,
+                  f"stress-regime report missing · run python -m backend.research.multi_layer.stress_regime --market {market_l}",
+                  {"expected": str(_sr_p.name)})
+    except Exception as _e16:
+        _add("C16_stress_regime_research_present", False,
+              f"exception: {type(_e16).__name__}: {_e16}", None)
+
+    # ── C14 · Portfolio↔Exit overlap classification (§11) ───────────
+    # Every same-ticker overlap must be explained · RECONCILIATION_DEFECT = 0
+    try:
+        _ov_p = root / "reports" / "audit" / f"portfolio_exit_overlap_{market_l}_{asof}.json"
+        if _ov_p.exists():
+            _ov = json.loads(_ov_p.read_text(encoding="utf-8"))
+            _defects = int(_ov.get("n_reconciliation_defects", 0) or 0)
+            _add("C14_overlap_no_reconciliation_defects",
+                  _defects == 0,
+                  (f"{_ov.get('n_overlap_tickers', 0)} overlap tickers · "
+                    f"defects={_defects} · "
+                    f"by_cat={_ov.get('by_category', {})}"),
+                  _ov.get("by_category", {}))
+        else:
+            _add("C14_overlap_no_reconciliation_defects", False,
+                  f"overlap report missing · run scripts/portfolio_exit_overlap_classifier.py --market {market_l}",
+                  {"expected": str(_ov_p.name)})
+    except Exception as _e14:
+        _add("C14_overlap_no_reconciliation_defects", False,
+              f"exception: {type(_e14).__name__}: {_e14}", None)
+
+    # ── C15 · R1 producer-wide retirement proof (§1 hardening) ──────
+    try:
+        _pa_p = root / "reports" / "audit" / f"r1_producer_audit_{market_l}_{asof}.json"
+        if _pa_p.exists():
+            _pa = json.loads(_pa_p.read_text(encoding="utf-8"))
+            _viol = int(_pa.get("total_violations", 0) or 0)
+            _add("C15_r1_producer_wide_retirement",
+                  _viol == 0,
+                  (f"{_pa.get('verdict', 'UNKNOWN')} · total_violations={_viol} · "
+                    f"n_producers={len(_pa.get('producers', []))}"),
+                  {"verdict": _pa.get("verdict"),
+                   "total_violations": _viol})
+        else:
+            _add("C15_r1_producer_wide_retirement", False,
+                  f"audit missing · run scripts/r1_producer_audit.py --market {market_l}",
+                  {"expected": str(_pa_p.name)})
+    except Exception as _e15:
+        _add("C15_r1_producer_wide_retirement", False,
+              f"exception: {type(_e15).__name__}: {_e15}", None)
+
+    # ── C13 · Universe bounds ───────────────────────────────────────
+    # CEO 2026-09-01 Section 2 · USA must be S&P 500 · India retains
+    # current bounds · silent widening beyond configs/aegis_universes.yaml
+    # is a contract violation.
+    try:
+        from backend.canonical.universe_validator import validate as _uv_validate
+        _uv = _uv_validate(root, market_l)
+        _add(
+            "C13_universe_bounds",
+            _uv.ok,
+            (f"{_uv.verdict} · {_uv.detail} · violations={_uv.violations}"
+              if _uv.violations else f"{_uv.verdict} · {_uv.detail}"),
+            _uv.as_dict(),
+        )
+    except Exception as _e13:
+        _add("C13_universe_bounds", False,
+              f"exception: {type(_e13).__name__}: {_e13}", None)
+
+    # ── C12 · Provenance companion coverage ─────────────────────────
+    # CEO 2026-09-01 · Every VISIBLE, OPENED position row must resolve
+    # to a Position ID. SUGGESTED rows (population=FRESH_RECOMMENDATION,
+    # runner=SHADOW) are exempt because they are not opened positions.
+    try:
+        _prov_path = root / "reports" / "telegram" / f"aegis_history_{market_l}_provenance.jsonl"
+        if _prov_path.exists():
+            _prov = [json.loads(l) for l in _prov_path.read_text(encoding="utf-8").splitlines() if l.strip()]
+            _need_pid = [r for r in _prov if r.get("population") not in ("FRESH_RECOMMENDATION",)]
+            _n_need = len(_need_pid)
+            _n_have = sum(1 for r in _need_pid if r.get("position_id"))
+            _cov = round(_n_have / max(1, _n_need) * 100, 1)
+            _add("C12_provenance_position_id_coverage",
+                  _n_have == _n_need,
+                  f"{_n_have}/{_n_need} opened rows have Position ID ({_cov}%)",
+                  {"n_need_pid": _n_need, "n_have_pid": _n_have,
+                   "coverage_pct": _cov,
+                   "unresolved_samples": [
+                       {"sheet": r["sheet"], "ticker": r["ticker"],
+                        "runner": r["runner"], "entry_date": r.get("entry_date", "")}
+                       for r in _need_pid if not r.get("position_id")
+                   ][:5]})
+        else:
+            _add("C12_provenance_position_id_coverage", False,
+                  f"provenance companion missing · run emit_provenance_companion.py --market {market_l}",
+                  {"expected_path": str(_prov_path.name)})
+    except Exception as _e12:
+        _add("C12_provenance_position_id_coverage", False,
+              f"exception: {type(_e12).__name__}: {_e12}", None)
+
+    # ── C11 · Standard-name dated XLSX snapshot ─────────────────────
+    # CEO 2026-09-01 · Standard XLSX name is `aegis_{market}_YYYY-MM-DD.xlsx`.
+    # The undated file `aegis_history_{market}.xlsx` remains the "latest"
+    # alias but the DATED file is the authoritative daily snapshot. Both
+    # must exist for today's asof and be byte-identical.
+    try:
+        import hashlib as _h11
+        _std_dated = root / "reports" / "telegram" / f"aegis_{market_l}_{asof}.xlsx"
+        _undated = root / "reports" / "telegram" / f"aegis_history_{market_l}.xlsx"
+        _dated_ok = _std_dated.exists()
+        _byte_match = False
+        if _dated_ok and _undated.exists():
+            _byte_match = (
+                _h11.md5(_std_dated.read_bytes()).hexdigest()
+                == _h11.md5(_undated.read_bytes()).hexdigest()
+            )
+        _add("C11_standard_dated_xlsx_present",
+              _dated_ok and _byte_match,
+              (
+                f"dated={_dated_ok} byte_match={_byte_match} · "
+                f"expected={_std_dated.name}"
+              ),
+              {"dated_present": _dated_ok, "byte_match": _byte_match,
+               "expected": str(_std_dated.name)})
+    except Exception as _e11:
+        _add("C11_standard_dated_xlsx_present", False,
+              f"exception: {type(_e11).__name__}: {_e11}", None)
+
     # Overall verdict
     fails = [c for c in checks if not c["ok"]]
     verdict = "PASS" if not fails else "FAIL"
@@ -368,7 +611,8 @@ def main() -> int:
         if rep["verdict"] != "PASS":
             for c in rep["checks"]:
                 if not c["ok"]:
-                    print(f"  ✗ {c['name']} · {c['detail']}")
+                    _line = f"  [FAIL] {c['name']} :: {c['detail']}"
+                    print(_line.encode("ascii", errors="replace").decode("ascii"))
             any_fail = True
     return 2 if any_fail else 0
 

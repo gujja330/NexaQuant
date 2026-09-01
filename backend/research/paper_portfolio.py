@@ -137,7 +137,36 @@ def ingest_runner1_picks_for_date(root: Path, asof: str) -> dict:
       · Entry price = Runner 1 CSV 'Current Price' on first-seen day (locked)
       · On subsequent days, that ticker's last_seen_price is MARKED-TO-MARKET
         from today's daily bar close · so cumulative returns are real, not zero
+
+    CEO 2026-09-01 · R1 retirement · engine-level dormancy
+    If R1 is listed as retired in `configs/aegis_retirement.yaml`, this
+    function becomes a no-op that returns a DORMANT_BY_DESIGN event.
+    Existing R1 positions in the paper portfolio remain unchanged (frozen
+    · not dropped) so historical audit is preserved. No new R1 positions
+    are created, no marks-to-market are recomputed for R1.
     """
+    try:
+        from backend.delivery.canonical.retirement import is_retired as _r1_is_retired
+        if _r1_is_retired(root, "R1"):
+            event = {
+                "ts_utc":    datetime.now(timezone.utc).isoformat(),
+                "asof":      asof,
+                "n_active":  0,
+                "n_opened":  0,
+                "n_updated": 0,
+                "n_dropped": 0,
+                "n_closed":  0,
+                "status":    "DORMANT_BY_DESIGN",
+                "reason":    ("R1 retired per configs/aegis_retirement.yaml "
+                              "(CEO 2026-09-01) · engine-level dormancy · "
+                              "existing R1 positions preserved untouched"),
+            }
+            _append_history(root, "runner1", event)
+            return event
+    except Exception:
+        # Never let retirement lookup break the pipeline · fall through to
+        # normal ingest if config unreadable
+        pass
     csv_path = root / "data" / "aegis_today.csv"
     positions = _load_positions(root, "runner1")
     active_today: set[str] = set()

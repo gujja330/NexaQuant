@@ -85,8 +85,12 @@ def test_E3_compound_fires_when_any_component_fires():
 
 
 def test_E3_compound_silent_when_no_component_fires():
+    # Use today's date so the time-based E5 rule never fires · this test's
+    # intent is that the compound stays silent when no component rule fires ·
+    # the hardcoded 2026-08-25 was time-brittle (E5 fires at ~7 calendar days).
+    from datetime import date as _d
     r = {"runner":"R2","confidence_pct":50,"rank":10,
-         "investability_band":"QUALITY","recommended_date":"2026-08-25"}
+         "investability_band":"QUALITY","recommended_date": _d.today().isoformat()}
     d, fired, _ = rule_E3_negative_alpha_compound(r)
     assert fired is False
 

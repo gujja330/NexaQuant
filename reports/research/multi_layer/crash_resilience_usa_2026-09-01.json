@@ -1,0 +1,94 @@
+{
+  "engine": "crash_resilience.multi_layer.v1",
+  "market": "usa",
+  "asof": "2026-09-01",
+  "today_regime": "NORMAL",
+  "regime_source": "mr_market_regime coarse + drawdown 5-state derivation",
+  "n_days_classified": 1254,
+  "regime_distribution_alltime": {
+    "UNAVAILABLE": 30,
+    "NORMAL": 559,
+    "WEAKENING": 181,
+    "RISK_OFF": 427,
+    "CRASH": 57
+  },
+  "n_r2_trades_tagged": 502,
+  "per_regime": {
+    "NORMAL": {
+      "n": 21,
+      "mean_pnl_pct": 0.0,
+      "sum_pnl_pct": 0.0,
+      "win_rate_pct": 0.0,
+      "max_dd_per_trade_pct": 0.0,
+      "avg_holding_days": null,
+      "sector_concentration_top3_pct": 100.0,
+      "downside_capture_vs_bench": null,
+      "benchmark_relative_pnl_pct": 0.0
+    },
+    "WEAKENING": {
+      "n": 0,
+      "mean_pnl_pct": null,
+      "sum_pnl_pct": 0.0,
+      "win_rate_pct": null,
+      "max_dd_per_trade_pct": null,
+      "avg_holding_days": null,
+      "sector_concentration_top3_pct": null,
+      "downside_capture_vs_bench": null,
+      "benchmark_relative_pnl_pct": null
+    },
+    "RISK_OFF": {
+      "n": 0,
+      "mean_pnl_pct": null,
+      "sum_pnl_pct": 0.0,
+      "win_rate_pct": null,
+      "max_dd_per_trade_pct": null,
+      "avg_holding_days": null,
+      "sector_concentration_top3_pct": null,
+      "downside_capture_vs_bench": null,
+      "benchmark_relative_pnl_pct": null
+    },
+    "CRASH": {
+      "n": 0,
+      "mean_pnl_pct": null,
+      "sum_pnl_pct": 0.0,
+      "win_rate_pct": null,
+      "max_dd_per_trade_pct": null,
+      "avg_holding_days": null,
+      "sector_concentration_top3_pct": null,
+      "downside_capture_vs_bench": null,
+      "benchmark_relative_pnl_pct": null
+    },
+    "RECOVERY": {
+      "n": 0,
+      "mean_pnl_pct": null,
+      "sum_pnl_pct": 0.0,
+      "win_rate_pct": null,
+      "max_dd_per_trade_pct": null,
+      "avg_holding_days": null,
+      "sector_concentration_top3_pct": null,
+      "downside_capture_vs_bench": null,
+      "benchmark_relative_pnl_pct": null
+    },
+    "UNAVAILABLE": {
+      "n": 481,
+      "mean_pnl_pct": 0.217,
+      "sum_pnl_pct": 104.26,
+      "win_rate_pct": 52.0,
+      "max_dd_per_trade_pct": -13.78,
+      "avg_holding_days": 14.7,
+      "sector_concentration_top3_pct": 100.0,
+      "downside_capture_vs_bench": null,
+      "benchmark_relative_pnl_pct": null
+    }
+  },
+  "interpretation": [
+    "INSUFFICIENT_STRESS_HISTORY_IN_R2_WINDOW"
+  ],
+  "notes": [
+    "REUSES mr_market_regime · no parallel regime engine created",
+    "Point-in-time: 5-state classifier uses only benchmark data at or before each date",
+    "Downside capture computed only on trades where benchmark return over holding period is negative",
+    "R1 retired · R2 only",
+    "UNAVAILABLE when classifier lacks sufficient trailing history (<30d)"
+  ]
+}

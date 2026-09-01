@@ -1,0 +1,55 @@
+# AEGIS · Production Universe Configuration
+# CEO 2026-09-01 · authoritative universe declaration per market
+#
+# Section 2 of Final Execution Prompt · USA universe reduction to S&P 500.
+# India retains its current intended production universe until evidence-
+# driven reduction/expansion is proposed.
+#
+# Any future expansion beyond these limits requires explicit CEO
+# authorization + evidence · production must never silently process a
+# wider universe than declared here.
+#
+# The universe validator (`backend/canonical/universe_validator.py`)
+# enforces these constraints on every daily build. Reconciler gate
+# `C13_universe_bounds` fails if the built universe drifts outside the
+# declared range or changes label.
+
+markets:
+  usa:
+    active_universe_label: sp500
+    description: "S&P 500 · US large-cap · Wikipedia canonical (refresh weekly)"
+    n_tickers_min: 480
+    n_tickers_max: 550         # 500 constituents + Class A/B/C dual-listings
+    source_file: usa/reports/universe.json
+    disallowed_labels:
+      - russell1000
+      - russell2000
+      - nasdaq_composite
+      - nyse_composite
+      - full_us_equity
+    change_policy: |
+      Only CEO-authorized change events documented in this file's
+      `change_events` list may alter these bounds. Silent widening of
+      n_tickers_max is a contract violation and must be blocked by the
+      reconciler.
+
+  india:
+    active_universe_label: nse_curated
+    description: "NSE curated large/mid-cap · currently held intentionally"
+    n_tickers_min: 10
+    n_tickers_max: 500
+    source_file: null           # India universe is derived · no static file yet
+    disallowed_labels: []
+    change_policy: |
+      Retained as-is pending evidence-based reduction study. Applying the
+      same research methodology as USA before any further tightening.
+
+change_events:
+  - date: 2026-08-14
+    market: usa
+    change: "Reduced from ~900-ticker extended universe to S&P 500"
+    authorized_by: CEO
+  - date: 2026-09-01
+    market: usa
+    change: "Universe constraint formalized in configs/aegis_universes.yaml"
+    authorized_by: CEO
