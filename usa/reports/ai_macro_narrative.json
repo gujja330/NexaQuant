@@ -2,48 +2,47 @@
   "engine": "ai_macro_narrative",
   "version": "v1.0",
   "market": "usa",
-  "run_utc": "2026-08-21T05:39:18+00:00",
-  "asof": "2026-08-21",
+  "run_utc": "2026-09-01T12:32:15+00:00",
+  "asof": "2026-09-01",
   "output": {
     "agent": "macro_analyst",
     "version": "v1.0",
     "market": "usa",
-    "asof": "2026-08-21",
-    "headline": "regime=unknown \u00b7 vol=normal \u00b7 active_impacts=3 \u00b7 macro_score=-0.25",
-    "narrative": "regime=unknown \u00b7 vol=normal \u00b7 active_impacts=3 \u00b7 macro_score=-0.25.\n\nAEGIS Macro & Intermarket Intelligence audit. Combines commodity moves, currency pressures, yield curve, VIX regime, and sector rotation into a single macro regime call. Emits an impact matrix + knowledge graph that downstream engines (Recommendation, Risk, Portfolio, Learning, AI Auditor) will consume from Sprint 8 onward.\n\nDoes NOT approve or promote \u2014 every commodity impact, sector rotation call, and regime label is DESCRIPTIVE and requires operator interpretation. AI never trades on macro alone.",
+    "asof": "2026-09-01",
+    "headline": "regime=unknown \u00b7 vol=normal \u00b7 active_impacts=3 \u00b7 macro_score=+0.10",
+    "narrative": "regime=unknown \u00b7 vol=normal \u00b7 active_impacts=3 \u00b7 macro_score=+0.10.\n\nAEGIS Macro & Intermarket Intelligence audit. Combines commodity moves, currency pressures, yield curve, VIX regime, and sector rotation into a single macro regime call. Emits an impact matrix + knowledge graph that downstream engines (Recommendation, Risk, Portfolio, Learning, AI Auditor) will consume from Sprint 8 onward.\n\nDoes NOT approve or promote \u2014 every commodity impact, sector rotation call, and regime label is DESCRIPTIVE and requires operator interpretation. AI never trades on macro alone.",
     "findings": [
       {
         "type": "macro_regime",
         "primary": "unknown",
-        "secondary": "inflationary",
+        "secondary": null,
         "confidence": 0.9,
-        "macro_score": -0.25,
+        "macro_score": 0.1,
         "evidence": {
           "vol_regime": "normal",
-          "oil_1w_pct": 5.49,
-          "gold_1w_pct": 4.778,
-          "gold_flight_to_safety": true,
-          "usd_1w_pct": -0.958,
+          "oil_1w_pct": 3.827,
+          "gold_1w_pct": -4.7,
+          "usd_1w_pct": 0.789,
           "yield_curve_inversion": false,
-          "ten_year_1m_bps": 13.054879999999999
+          "ten_year_1m_bps": 16.55784
         }
       },
       {
         "type": "volatility",
         "symbol": "^VIX",
-        "level": 16.01,
+        "level": 15.88,
         "regime": "normal",
-        "chg_1m_pct": -0.744
+        "chg_1m_pct": -6.862
       },
       {
         "type": "central_bank_state",
         "bank": "Fed",
         "rate_cycle": "neutral",
-        "yield_curve_slope": 30.9,
+        "yield_curve_slope": 25.1,
         "inversion": false,
         "liquidity_score": 0.0,
         "notes": [
-          "Fed: cycle=neutral \u00b7 short_1m=-9.453759bps"
+          "Fed: cycle=neutral \u00b7 short_1m=2.720628bps"
         ]
       },
       {
@@ -88,57 +87,60 @@
       {
         "type": "commodity_impact",
         "commodity": "Gold",
-        "direction": "up",
+        "direction": "down",
         "positive_sectors": [
-          "Gold Miners",
-          "Precious Metals"
+          "Jewelry Retailers"
         ],
-        "negative_sectors": [],
-        "confidence": 0.75,
-        "rationale": "Gold rally often coincides with risk-off equity sentiment; gold miners benefit directly. Historically inverse-correlated with USD."
+        "negative_sectors": [
+          "Gold Miners"
+        ],
+        "confidence": 0.7,
+        "rationale": "Gold weakness usually risk-on; jewelry demand recovers."
       },
       {
         "type": "sector_rotation",
         "leaders": [
           {
             "sector": "Energy",
-            "return_pct": 15.74
+            "return_pct": 9.33
           },
           {
             "sector": "Healthcare",
-            "return_pct": 7.18
+            "return_pct": 6.42
           },
           {
-            "sector": "Materials",
-            "return_pct": 4.51
+            "sector": "Technology",
+            "return_pct": 6.14
           }
         ],
         "laggards": [
           {
             "sector": "Utilities",
-            "return_pct": -3.61
+            "return_pct": -6.03
           },
           {
-            "sector": "Technology",
-            "return_pct": -1.44
+            "sector": "Real Estate",
+            "return_pct": -2.41
           },
           {
             "sector": "Industrials",
-            "return_pct": -1.43
+            "return_pct": -1.68
           }
         ],
-        "rotation_strength": 0.382
+        "rotation_strength": 0.388
       },
       {
         "type": "knowledge_graph_summary",
-        "n_entries": 3,
+        "n_entries": 4,
         "factor_kinds": [
-          "commodity"
+          "commodity",
+          "rate"
         ],
         "top_factors": [
           "Brent Crude",
           "WTI Crude",
-          "Gold"
+          "Gold",
+          "10Y Treasury Yield"
         ]
       },
       {
@@ -147,14 +149,14 @@
         "n_currencies": 1,
         "n_bonds": 4,
         "n_active_impacts": 3,
-        "n_kg_entries": 3
+        "n_kg_entries": 4
       }
     ],
     "evidence": {
       "primary_regime": "unknown",
       "vol_regime": "normal",
       "n_active_impacts": 3,
-      "macro_score": -0.25
+      "macro_score": 0.1
     },
     "citations": [
       "backend/macro_intel/engine.py",

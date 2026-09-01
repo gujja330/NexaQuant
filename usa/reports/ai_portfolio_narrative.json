@@ -2,65 +2,63 @@
   "engine": "ai_portfolio_narrative",
   "version": "v1.0",
   "market": "usa",
-  "run_utc": "2026-08-21T05:39:38+00:00",
-  "asof": "2026-08-21",
+  "run_utc": "2026-09-01T12:32:28+00:00",
+  "asof": "2026-09-01",
   "output": {
     "agent": "portfolio_analyst",
     "version": "v1.0",
     "market": "usa",
-    "asof": "2026-08-21",
-    "headline": "5 positions \u00b7 gross 95.0% \u00b7 cash 5.0% \u00b7 HHI 0.208 \u00b7 effN 4.8 \u00b7 turnover 31.9% \u00b7 regime=neutral",
-    "narrative": "5 positions \u00b7 gross 95.0% \u00b7 cash 5.0% \u00b7 HHI 0.208 \u00b7 effN 4.8 \u00b7 turnover 31.9% \u00b7 regime=neutral.\n\nDescriptive portfolio audit. Highlights diversification quality, concentration risks, cash policy compliance, and rebalance turnover. Does NOT approve or promote \u2014 every portfolio snapshot is EXPERIMENTAL until promoted via backend.promotion.promotion_gate. Trades in portfolio_diff.json are candidate instructions for Sprint 7 Execution Simulator.",
+    "asof": "2026-09-01",
+    "headline": "1 positions \u00b7 gross 95.0% \u00b7 cash 5.0% \u00b7 HHI 1.000 \u00b7 effN 1.0 \u00b7 turnover 95.0% \u00b7 regime=neutral",
+    "narrative": "1 positions \u00b7 gross 95.0% \u00b7 cash 5.0% \u00b7 HHI 1.000 \u00b7 effN 1.0 \u00b7 turnover 95.0% \u00b7 regime=neutral.\n\nDescriptive portfolio audit. Highlights diversification quality, concentration risks, cash policy compliance, and rebalance turnover. Does NOT approve or promote \u2014 every portfolio snapshot is EXPERIMENTAL until promoted via backend.promotion.promotion_gate. Trades in portfolio_diff.json are candidate instructions for Sprint 7 Execution Simulator.",
     "findings": [
       {
         "type": "composition",
-        "n_positions": 5,
-        "n_long": 5,
+        "n_positions": 1,
+        "n_long": 1,
         "n_short": 0,
-        "total_weight": 0.950001,
-        "cash_pct": 0.049999,
+        "total_weight": 0.95,
+        "cash_pct": 0.05,
         "cash_reserve_target": 0.05
       },
       {
         "type": "diversification",
-        "hhi": 0.2082,
-        "effective_n": 4.8,
+        "hhi": 1.0,
+        "effective_n": 1.0,
         "top_5_pct": 1.0,
-        "n_sectors": 1,
-        "per_sector_pct": {
-          "Tech": 0.1458
-        }
+        "n_sectors": 0,
+        "per_sector_pct": {}
       },
       {
         "type": "concentration_warning",
-        "effective_n": 4.8,
+        "effective_n": 1.0,
         "threshold": 8.0,
-        "note": "effective N (4.8) below policy floor (8.0) \u2014 portfolio too concentrated"
+        "note": "effective N (1.0) below policy floor (8.0) \u2014 portfolio too concentrated"
       },
       {
         "type": "rebalance_summary",
-        "turnover_pct": 0.31947,
+        "turnover_pct": 0.95,
         "turnover_warning_threshold": 0.3,
-        "prior_asof": "2026-08-20",
-        "n_open": 2,
-        "n_close": 2,
+        "prior_asof": "2026-08-21",
+        "n_open": 1,
+        "n_close": 5,
         "n_increase": 0,
         "n_decrease": 0,
-        "n_hold": 3
+        "n_hold": 0
       },
       {
         "type": "high_turnover_warning",
-        "turnover_pct": 0.31947,
+        "turnover_pct": 0.95,
         "threshold": 0.3,
         "note": "high daily turnover \u2014 consider raising rebalance_threshold_bps or reducing sizing sensitivity"
       }
     ],
     "evidence": {
-      "n_positions": 5,
-      "cash_pct": 0.049999,
-      "hhi": 0.2082,
-      "effective_n": 4.8,
-      "turnover_pct": 0.31947
+      "n_positions": 1,
+      "cash_pct": 0.05,
+      "hhi": 1.0,
+      "effective_n": 1.0,
+      "turnover_pct": 0.95
     },
     "citations": [
       "backend/portfolio/engine.py",

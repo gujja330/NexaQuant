@@ -4,8 +4,8 @@
   "schema_version": "1.0.0",
   "schema_fingerprint": "aegis.recommendation_ssot.v1.20260727",
   "market": "usa",
-  "asof": "2026-08-21",
-  "run_utc": "2026-08-21T05:39:45.616655+00:00",
+  "asof": "2026-09-01",
+  "run_utc": "2026-09-01T12:32:34.146722+00:00",
   "source": "recommendations_v3.json",
   "universe_role": "selected_candidates",
   "universe_role_note": "Canonical selected recommendation set (Sprint 3 v3 SSoT). Actionable. Consumed by delivery + portfolio construction. Distinct from USA's usa/reports/recommendations.json which is a universe_scan (~507 tickers, technical scoring only).",
@@ -20,311 +20,38 @@
     "INSUFFICIENT": 0
   },
   "action_distribution": {
-    "BUY": 8,
-    "HOLD": 7
+    "HOLD": 14,
+    "BUY": 1
   },
   "recommendations": [
     {
-      "ticker": "GOOGL",
+      "ticker": "PLTR",
       "sector": "",
       "industry": "",
-      "recommendation": "BUY",
-      "action": "BUY",
-      "composite_decision_score": 66.735,
-      "confidence": 0.5892,
+      "recommendation": "HOLD",
+      "action": "HOLD",
+      "composite_decision_score": 71.15,
+      "confidence": 0.4892,
       "rank": 1,
-      "ensemble_score": 0.3347,
-      "raw_confidence": 0.7561,
-      "calibrated_confidence": 0.5892,
-      "regime_adjusted_confidence": 0.5597,
+      "ensemble_score": 0.423,
+      "raw_confidence": 0.6663,
+      "calibrated_confidence": 0.4892,
+      "regime_adjusted_confidence": 0.4647,
       "model_agreement": 0.6364,
       "disagreement_flag": false,
       "n_models_scoring": 11,
       "top_models": [
         {
-          "model_id": "aegis.mean_reversion.v1",
-          "score": 0.8963
-        },
-        {
-          "model_id": "aegis.growth.v1",
-          "score": 0.8473
-        },
-        {
-          "model_id": "aegis.event_driven.v1",
-          "score": 0.8107
-        }
-      ],
-      "top_features": [
-        "adx_14",
-        "atr_14_pct",
-        "ca_days_since_last_dividend",
-        "ca_last_dividend_amount",
-        "distance_from_52w_high_pct",
-        "distance_from_52w_low_pct",
-        "earn_days_to_next",
-        "earn_last_eps_reported"
-      ],
-      "bull_case": "1-month momentum +7.23%; high ROE (+48.68%); positive news sentiment (0.250).",
-      "bear_case": "high leverage (D/E 18.859).",
-      "key_risks": [
-        "leverage above 1x amplifies downside if fundamentals slip"
-      ],
-      "suggested_holding_period_days": 60,
-      "entry_zone": {
-        "low": 333.857,
-        "high": 347.483,
-        "current": 340.67,
-        "note": "±2% band around current price"
-      },
-      "exit_conditions": [
-        "time-based: review after 60 days if action still holds",
-        "price-based: 8% stop-loss from entry",
-        "price-based: consider trimming +15% from entry",
-        "thesis-based: exit if bull case signals invert (any 2 of them)"
-      ],
-      "model_stamp": {
-        "model_id": "aegis.recommendation.v3",
-        "version": "1.0.0",
-        "engine": "recommendation_intelligence",
-        "market": "usa",
-        "feature_set_version": "b65ceb49a83a",
-        "schema_version": "b65ceb49a83a",
-        "calibration_version": "",
-        "approval_status": "experimental",
-        "approved_by": "",
-        "approved_on": ""
-      },
-      "provenance": "aegis.recommendation.ssot.v1 (bridged from Runner 2 v3)",
-      "explainability": {
-        "top_features_count": 8,
-        "n_models_scoring": 11,
-        "model_agreement": 0.6364,
-        "disagreement": false,
-        "confidence_reason": "confidence 0.589 · agreement 0.64",
-        "action_reason": "BUY · ensemble score +0.335"
-      },
-      "signal_quality": "STRONG",
-      "entry_exit": {
-        "entry_zone": {
-          "low": 333.857,
-          "high": 347.483,
-          "current": 340.67,
-          "note": "±2% band around current price"
-        },
-        "if_holding": null,
-        "entry": null,
-        "exit_reason": "time-based: review after 60 days if action still holds"
-      },
-      "investor_action": {
-        "entry": "BUY",
-        "if_holding": "ADD",
-        "user_facing_label": "🟢 Strong Buy · Add if already holding",
-        "is_actionable_entry": true,
-        "is_actionable_if_holding": true,
-        "source_action": "STRONG_BUY"
-      },
-      "position_plan": {
-        "suggested_allocation_pct": 5.0,
-        "risk_level": "moderate",
-        "max_capital_exposure_pct": 6.0,
-        "time_horizon_days": 17,
-        "time_horizon_bucket": "swing",
-        "time_horizon_desc": "Days-to-weeks · exit near target or on stop",
-        "entry_zone": {
-          "current_price": 340.67,
-          "ideal_buy_low": 337.26,
-          "ideal_buy_high": 344.08,
-          "stop_loss": 320.23,
-          "target_1": 381.55,
-          "target_2": 422.43,
-          "risk_reward_ratio": "1:2 (T1) · 1:4 (T2)",
-          "risk_per_share_pct": 6.0
-        },
-        "sizing_note": "preview allocation · real position size determined by risk engine (fractional Kelly · half-Kelly cap · per-sector cap · VIX-adjusted)",
-        "dynamic_holding_reason": "dynamic holding 17d = base 21 × composite 0.816 · drivers: risk trim (0.80x)"
-      },
-      "why": {
-        "top_reasons": [
-          "1-month momentum +7.23%",
-          "high ROE (+48.68%)",
-          "positive news sentiment (0.250)",
-          "ensemble score +0.3347 (top-percentile signal)"
-        ],
-        "top_risks": [
-          "high leverage (D/E 18.859)",
-          "leverage above 1x amplifies downside if fundamentals slip"
-        ],
-        "signal_quality": "STRONG"
-      },
-      "rotation_intelligence": {
-        "should_rotate": false,
-        "replacement_ticker": null,
-        "edge": -0.0045,
-        "expected_alpha_delta_pct": 0.0,
-        "keep_score": 0.3347,
-        "candidate_score": 0.3302,
-        "reason": "keep · already in top bucket · candidate edge -0.0045 insufficient to justify churn"
-      },
-      "lifecycle_state": {
-        "current_state": "BUY",
-        "previous_state": "HOLD",
-        "ts_last_transition": "2026-08-20T08:12:08.513193+00:00",
-        "n_events": 166
-      },
-      "evolution": {
-        "is_new": true,
-        "days_recommended": 1,
-        "previous_asof": null,
-        "rank_change": null,
-        "score_change": null,
-        "action_change": null,
-        "confidence_change": null,
-        "lifecycle_change": null,
-        "allocation_change_pct": null,
-        "narrative": "NEW recommendation · no prior snapshot"
-      },
-      "discipline": {
-        "is_winner_exit": false,
-        "is_low_conviction_buy": false,
-        "sector_gate_violation": false,
-        "weight_score_inversion": false,
-        "notes": []
-      },
-      "attribution": {
-        "per_model": [
-          {
-            "model_id": "aegis.mean_reversion.v1",
-            "label": "MeanReversion",
-            "raw_score": 0.8963,
-            "weight": 0.1267,
-            "weighted_contribution": 0.113561,
-            "share_pct": 24.77
-          },
-          {
-            "model_id": "aegis.quality.v1",
-            "label": "Quality",
-            "raw_score": 0.7797,
-            "weight": 0.1345,
-            "weighted_contribution": 0.10487,
-            "share_pct": 22.87
-          },
-          {
-            "model_id": "aegis.event_driven.v1",
-            "label": "Event",
-            "raw_score": 0.8107,
-            "weight": 0.1185,
-            "weighted_contribution": 0.096068,
-            "share_pct": 20.95
-          },
-          {
-            "model_id": "aegis.growth.v1",
-            "label": "Growth",
-            "raw_score": 0.8473,
-            "weight": 0.0508,
-            "weighted_contribution": 0.043043,
-            "share_pct": 9.39
-          },
-          {
-            "model_id": "aegis.ai_hybrid.v1",
-            "label": "AI-Hybrid",
-            "raw_score": 0.4241,
-            "weight": 0.0508,
-            "weighted_contribution": 0.021544,
-            "share_pct": 4.7
-          },
-          {
-            "model_id": "aegis.value.v1",
-            "label": "Value",
-            "raw_score": 0.205,
-            "weight": 0.0508,
-            "weighted_contribution": 0.010414,
-            "share_pct": 2.27
-          },
-          {
-            "model_id": "aegis.news.v1",
-            "label": "News",
-            "raw_score": 0.1386,
-            "weight": 0.0508,
-            "weighted_contribution": 0.007041,
-            "share_pct": 1.54
-          },
-          {
-            "model_id": "aegis.macro.v1",
-            "label": "Macro",
-            "raw_score": 0.0,
-            "weight": 0.0508,
-            "weighted_contribution": 0.0,
-            "share_pct": 0.0
-          },
-          {
-            "model_id": "aegis.sector_rotation.v1",
-            "label": "Sector",
-            "raw_score": 0.0,
-            "weight": 0.1357,
-            "weighted_contribution": 0.0,
-            "share_pct": 0.0
-          },
-          {
-            "model_id": "aegis.momentum.v1",
-            "label": "Momentum",
-            "raw_score": -0.206,
-            "weight": 0.1105,
-            "weighted_contribution": -0.022763,
-            "share_pct": 4.97
-          },
-          {
-            "model_id": "aegis.trend.v1",
-            "label": "Trend",
-            "raw_score": -0.3268,
-            "weight": 0.1198,
-            "weighted_contribution": -0.039151,
-            "share_pct": 8.54
-          }
-        ],
-        "dominant_driver": {
-          "label": "MeanReversion",
-          "contribution": 0.113561
-        },
-        "opposition": {
-          "label": "Trend",
-          "contribution": -0.039151
-        },
-        "sector_engine_contribution_pct": 0.0,
-        "total_positive": 0.3965,
-        "total_negative": -0.0619
-      },
-      "percentile_action": "STRONG_BUY",
-      "score_percentile": 1.0,
-      "percentile_reason": "score +0.3347 in top 10% (percentile 1.00)"
-    },
-    {
-      "ticker": "UBER",
-      "sector": "",
-      "industry": "",
-      "recommendation": "BUY",
-      "action": "BUY",
-      "composite_decision_score": 66.51,
-      "confidence": 0.5908,
-      "rank": 2,
-      "ensemble_score": 0.3302,
-      "raw_confidence": 0.7561,
-      "calibrated_confidence": 0.5908,
-      "regime_adjusted_confidence": 0.5613,
-      "model_agreement": 0.7273,
-      "disagreement_flag": false,
-      "n_models_scoring": 11,
-      "top_models": [
-        {
-          "model_id": "aegis.event_driven.v1",
-          "score": 0.7369
-        },
-        {
-          "model_id": "aegis.growth.v1",
-          "score": 0.6683
+          "model_id": "aegis.value.v1",
+          "score": -0.8954
         },
         {
           "model_id": "aegis.quality.v1",
-          "score": 0.5721
+          "score": 0.8688
+        },
+        {
+          "model_id": "aegis.momentum.v1",
+          "score": 0.781
         }
       ],
       "top_features": [
@@ -337,285 +64,12 @@
         "earn_last_surprise_pct",
         "fund_debt_to_equity"
       ],
-      "bull_case": "1-month momentum +13.99%; 3-month momentum +12.02%; high ROE (+37.16%).",
-      "bear_case": "high leverage (D/E 51.872).",
-      "key_risks": [
-        "leverage above 1x amplifies downside if fundamentals slip"
-      ],
-      "suggested_holding_period_days": 60,
-      "entry_zone": {
-        "low": 76.979,
-        "high": 80.121,
-        "current": 78.55,
-        "note": "±2% band around current price"
-      },
-      "exit_conditions": [
-        "time-based: review after 60 days if action still holds",
-        "price-based: 8% stop-loss from entry",
-        "price-based: consider trimming +15% from entry",
-        "thesis-based: exit if bull case signals invert (any 2 of them)"
-      ],
-      "model_stamp": {
-        "model_id": "aegis.recommendation.v3",
-        "version": "1.0.0",
-        "engine": "recommendation_intelligence",
-        "market": "usa",
-        "feature_set_version": "b65ceb49a83a",
-        "schema_version": "b65ceb49a83a",
-        "calibration_version": "",
-        "approval_status": "experimental",
-        "approved_by": "",
-        "approved_on": ""
-      },
-      "provenance": "aegis.recommendation.ssot.v1 (bridged from Runner 2 v3)",
-      "explainability": {
-        "top_features_count": 8,
-        "n_models_scoring": 11,
-        "model_agreement": 0.7273,
-        "disagreement": false,
-        "confidence_reason": "confidence 0.591 · agreement 0.73",
-        "action_reason": "BUY · ensemble score +0.330"
-      },
-      "signal_quality": "STRONG",
-      "entry_exit": {
-        "entry_zone": {
-          "low": 76.979,
-          "high": 80.121,
-          "current": 78.55,
-          "note": "±2% band around current price"
-        },
-        "if_holding": null,
-        "entry": null,
-        "exit_reason": "time-based: review after 60 days if action still holds"
-      },
-      "investor_action": {
-        "entry": "BUY",
-        "if_holding": "ADD",
-        "user_facing_label": "🟢 Strong Buy · Add if already holding",
-        "is_actionable_entry": true,
-        "is_actionable_if_holding": true,
-        "source_action": "STRONG_BUY"
-      },
-      "position_plan": {
-        "suggested_allocation_pct": 5.0,
-        "risk_level": "moderate",
-        "max_capital_exposure_pct": 6.0,
-        "time_horizon_days": 17,
-        "time_horizon_bucket": "swing",
-        "time_horizon_desc": "Days-to-weeks · exit near target or on stop",
-        "entry_zone": {
-          "current_price": 78.55,
-          "ideal_buy_low": 77.76,
-          "ideal_buy_high": 79.34,
-          "stop_loss": 73.84,
-          "target_1": 87.98,
-          "target_2": 97.4,
-          "risk_reward_ratio": "1:2 (T1) · 1:4 (T2)",
-          "risk_per_share_pct": 6.0
-        },
-        "sizing_note": "preview allocation · real position size determined by risk engine (fractional Kelly · half-Kelly cap · per-sector cap · VIX-adjusted)",
-        "dynamic_holding_reason": "dynamic holding 17d = base 21 × composite 0.816 · drivers: risk trim (0.80x)"
-      },
-      "why": {
-        "top_reasons": [
-          "1-month momentum +13.99%",
-          "3-month momentum +12.02%",
-          "high ROE (+37.16%)",
-          "ensemble score +0.3302 (top-percentile signal)"
-        ],
-        "top_risks": [
-          "high leverage (D/E 51.872)",
-          "leverage above 1x amplifies downside if fundamentals slip"
-        ],
-        "signal_quality": "STRONG"
-      },
-      "rotation_intelligence": {
-        "should_rotate": false,
-        "replacement_ticker": null,
-        "edge": 0.0045,
-        "expected_alpha_delta_pct": 0.0,
-        "keep_score": 0.3302,
-        "candidate_score": 0.3347,
-        "reason": "keep · already in top bucket · candidate edge +0.0045 insufficient to justify churn"
-      },
-      "lifecycle_state": {
-        "current_state": "BUY",
-        "previous_state": "HOLD",
-        "ts_last_transition": "2026-08-14T13:15:46.605168+00:00",
-        "n_events": 368
-      },
-      "evolution": {
-        "is_new": true,
-        "days_recommended": 1,
-        "previous_asof": null,
-        "rank_change": null,
-        "score_change": null,
-        "action_change": null,
-        "confidence_change": null,
-        "lifecycle_change": null,
-        "allocation_change_pct": null,
-        "narrative": "NEW recommendation · no prior snapshot"
-      },
-      "discipline": {
-        "is_winner_exit": false,
-        "is_low_conviction_buy": false,
-        "sector_gate_violation": false,
-        "weight_score_inversion": false,
-        "notes": []
-      },
-      "attribution": {
-        "per_model": [
-          {
-            "model_id": "aegis.event_driven.v1",
-            "label": "Event",
-            "raw_score": 0.7369,
-            "weight": 0.1185,
-            "weighted_contribution": 0.087323,
-            "share_pct": 23.56
-          },
-          {
-            "model_id": "aegis.quality.v1",
-            "label": "Quality",
-            "raw_score": 0.5721,
-            "weight": 0.1345,
-            "weighted_contribution": 0.076947,
-            "share_pct": 20.76
-          },
-          {
-            "model_id": "aegis.momentum.v1",
-            "label": "Momentum",
-            "raw_score": 0.5225,
-            "weight": 0.1105,
-            "weighted_contribution": 0.057736,
-            "share_pct": 15.57
-          },
-          {
-            "model_id": "aegis.mean_reversion.v1",
-            "label": "MeanReversion",
-            "raw_score": 0.2793,
-            "weight": 0.1267,
-            "weighted_contribution": 0.035387,
-            "share_pct": 9.55
-          },
-          {
-            "model_id": "aegis.growth.v1",
-            "label": "Growth",
-            "raw_score": 0.6683,
-            "weight": 0.0508,
-            "weighted_contribution": 0.03395,
-            "share_pct": 9.16
-          },
-          {
-            "model_id": "aegis.trend.v1",
-            "label": "Trend",
-            "raw_score": 0.215,
-            "weight": 0.1198,
-            "weighted_contribution": 0.025757,
-            "share_pct": 6.95
-          },
-          {
-            "model_id": "aegis.ai_hybrid.v1",
-            "label": "AI-Hybrid",
-            "raw_score": 0.4035,
-            "weight": 0.0508,
-            "weighted_contribution": 0.020498,
-            "share_pct": 5.53
-          },
-          {
-            "model_id": "aegis.value.v1",
-            "label": "Value",
-            "raw_score": 0.2519,
-            "weight": 0.0508,
-            "weighted_contribution": 0.012797,
-            "share_pct": 3.45
-          },
-          {
-            "model_id": "aegis.macro.v1",
-            "label": "Macro",
-            "raw_score": 0.0,
-            "weight": 0.0508,
-            "weighted_contribution": 0.0,
-            "share_pct": 0.0
-          },
-          {
-            "model_id": "aegis.sector_rotation.v1",
-            "label": "Sector",
-            "raw_score": 0.0,
-            "weight": 0.1357,
-            "weighted_contribution": 0.0,
-            "share_pct": 0.0
-          },
-          {
-            "model_id": "aegis.news.v1",
-            "label": "News",
-            "raw_score": -0.3998,
-            "weight": 0.0508,
-            "weighted_contribution": -0.02031,
-            "share_pct": 5.48
-          }
-        ],
-        "dominant_driver": {
-          "label": "Event",
-          "contribution": 0.087323
-        },
-        "opposition": {
-          "label": "News",
-          "contribution": -0.02031
-        },
-        "sector_engine_contribution_pct": 0.0,
-        "total_positive": 0.3504,
-        "total_negative": -0.0203
-      },
-      "percentile_action": "STRONG_BUY",
-      "score_percentile": 0.9286,
-      "percentile_reason": "score +0.3302 in top 10% (percentile 0.93)"
-    },
-    {
-      "ticker": "IT",
-      "sector": "",
-      "industry": "",
-      "recommendation": "HOLD",
-      "action": "HOLD",
-      "composite_decision_score": 66.035,
-      "confidence": 0.5199,
-      "rank": 3,
-      "ensemble_score": 0.3207,
-      "raw_confidence": 0.7212,
-      "calibrated_confidence": 0.5199,
-      "regime_adjusted_confidence": 0.4939,
-      "model_agreement": 0.6364,
-      "disagreement_flag": false,
-      "n_models_scoring": 11,
-      "top_models": [
-        {
-          "model_id": "aegis.trend.v1",
-          "score": 0.7361
-        },
-        {
-          "model_id": "aegis.momentum.v1",
-          "score": 0.7105
-        },
-        {
-          "model_id": "aegis.growth.v1",
-          "score": 0.5852
-        }
-      ],
-      "top_features": [
-        "adx_14",
-        "atr_14_pct",
-        "distance_from_52w_high_pct",
-        "distance_from_52w_low_pct",
-        "earn_days_to_next",
-        "earn_last_eps_reported",
-        "earn_last_surprise_pct",
-        "fund_earnings_growth"
-      ],
-      "bull_case": "1-month momentum +37.30%; 3-month momentum +22.23%; high ROE (+1.14%).",
-      "bear_case": "deep 60d drawdown (-29.99%).",
+      "bull_case": "1-month momentum +48.33%; 3-month momentum +31.53%; strong fundamental quality (84.210); high ROE (+38.10%).",
+      "bear_case": "stretched valuation (P/E 159.299); high leverage (D/E 2.139); net insider selling ($-123,892,021, 90d); deep 60d drawdown (-21.40%).",
       "key_risks": [],
       "suggested_holding_period_days": 60,
       "entry_zone": {
-        "current": 193.68,
+        "current": 186.38,
         "note": "hold — no entry"
       },
       "exit_conditions": [
@@ -639,17 +93,17 @@
         "n_models_scoring": 11,
         "model_agreement": 0.6364,
         "disagreement": false,
-        "confidence_reason": "confidence 0.520 · agreement 0.64",
-        "action_reason": "HOLD · score +0.321 inside neutral band"
+        "confidence_reason": "confidence 0.489 · agreement 0.64",
+        "action_reason": "HOLD · score +0.423 inside neutral band"
       },
       "signal_quality": "STRONG",
-      "oc_next_best_ticker": "GOOGL",
-      "oc_next_best_score": 66.735,
-      "oc_expected_alpha_delta": 0.7,
-      "oc_reason_not_to_rotate": "opportunity_cost_high · GOOGL score 66.735 vs hold 66.035 (edge 0.7000 > rotate threshold 0.25) — recommend Capital Rotation review",
+      "oc_next_best_ticker": "HON",
+      "oc_next_best_score": 63.095,
+      "oc_expected_alpha_delta": -8.055,
+      "oc_reason_not_to_rotate": "no better candidate available (best HON edge -8.0550) — hold optimal",
       "entry_exit": {
         "entry_zone": {
-          "current": 193.68,
+          "current": 186.38,
           "note": "hold — no entry"
         },
         "if_holding": null,
@@ -658,26 +112,26 @@
       },
       "investor_action": {
         "entry": "BUY",
-        "if_holding": "HOLD",
-        "user_facing_label": "🟢 Buy · Hold if already holding",
+        "if_holding": "ADD",
+        "user_facing_label": "🟢 Strong Buy · Add if already holding",
         "is_actionable_entry": true,
-        "is_actionable_if_holding": false,
-        "source_action": "BUY"
+        "is_actionable_if_holding": true,
+        "source_action": "STRONG_BUY"
       },
       "position_plan": {
-        "suggested_allocation_pct": 3.0,
+        "suggested_allocation_pct": 5.0,
         "risk_level": "moderate",
         "max_capital_exposure_pct": 6.0,
         "time_horizon_days": 17,
         "time_horizon_bucket": "swing",
         "time_horizon_desc": "Days-to-weeks · exit near target or on stop",
         "entry_zone": {
-          "current_price": 193.68,
-          "ideal_buy_low": 191.74,
-          "ideal_buy_high": 195.62,
-          "stop_loss": 182.06,
-          "target_1": 216.92,
-          "target_2": 240.16,
+          "current_price": 186.38,
+          "ideal_buy_low": 184.52,
+          "ideal_buy_high": 188.24,
+          "stop_loss": 175.2,
+          "target_1": 208.75,
+          "target_2": 231.11,
           "risk_reward_ratio": "1:2 (T1) · 1:4 (T2)",
           "risk_per_share_pct": 6.0
         },
@@ -686,301 +140,34 @@
       },
       "why": {
         "top_reasons": [
-          "1-month momentum +37.30%",
-          "3-month momentum +22.23%",
-          "high ROE (+1.14%)",
-          "ensemble score +0.3207 (top-percentile signal)"
+          "1-month momentum +48.33%",
+          "3-month momentum +31.53%",
+          "strong fundamental quality (84.210)",
+          "high ROE (+38.10%)",
+          "ensemble score +0.4230 (top-percentile signal)"
         ],
         "top_risks": [
-          "deep 60d drawdown (-29.99%)"
+          "stretched valuation (P/E 159.299)",
+          "high leverage (D/E 2.139)",
+          "net insider selling ($-123,892,021, 90d)",
+          "deep 60d drawdown (-21.40%)"
         ],
         "signal_quality": "STRONG"
       },
       "rotation_intelligence": {
         "should_rotate": false,
         "replacement_ticker": null,
-        "edge": 0.014,
+        "edge": -0.116,
         "expected_alpha_delta_pct": 0.0,
-        "keep_score": 0.3207,
-        "candidate_score": 0.3347,
-        "reason": "keep · already in top bucket · candidate edge +0.0140 insufficient to justify churn"
+        "keep_score": 0.423,
+        "candidate_score": 0.307,
+        "reason": "keep · already in top bucket · candidate edge -0.1160 insufficient to justify churn"
       },
       "lifecycle_state": {
         "current_state": "HOLD",
         "previous_state": "BUY",
-        "ts_last_transition": "2026-08-21T05:39:49.035454+00:00",
-        "n_events": 359
-      },
-      "evolution": {
-        "is_new": true,
-        "days_recommended": 1,
-        "previous_asof": null,
-        "rank_change": null,
-        "score_change": null,
-        "action_change": null,
-        "confidence_change": null,
-        "lifecycle_change": null,
-        "allocation_change_pct": null,
-        "narrative": "NEW recommendation · no prior snapshot"
-      },
-      "discipline": {
-        "is_winner_exit": false,
-        "is_low_conviction_buy": false,
-        "sector_gate_violation": false,
-        "weight_score_inversion": false,
-        "notes": []
-      },
-      "attribution": {
-        "per_model": [
-          {
-            "model_id": "aegis.trend.v1",
-            "label": "Trend",
-            "raw_score": 0.7361,
-            "weight": 0.1198,
-            "weighted_contribution": 0.088185,
-            "share_pct": 24.16
-          },
-          {
-            "model_id": "aegis.momentum.v1",
-            "label": "Momentum",
-            "raw_score": 0.7105,
-            "weight": 0.1105,
-            "weighted_contribution": 0.07851,
-            "share_pct": 21.51
-          },
-          {
-            "model_id": "aegis.event_driven.v1",
-            "label": "Event",
-            "raw_score": 0.376,
-            "weight": 0.1185,
-            "weighted_contribution": 0.044556,
-            "share_pct": 12.21
-          },
-          {
-            "model_id": "aegis.mean_reversion.v1",
-            "label": "MeanReversion",
-            "raw_score": 0.3369,
-            "weight": 0.1267,
-            "weighted_contribution": 0.042685,
-            "share_pct": 11.69
-          },
-          {
-            "model_id": "aegis.quality.v1",
-            "label": "Quality",
-            "raw_score": 0.3002,
-            "weight": 0.1345,
-            "weighted_contribution": 0.040377,
-            "share_pct": 11.06
-          },
-          {
-            "model_id": "aegis.growth.v1",
-            "label": "Growth",
-            "raw_score": 0.5852,
-            "weight": 0.0508,
-            "weighted_contribution": 0.029728,
-            "share_pct": 8.14
-          },
-          {
-            "model_id": "aegis.ai_hybrid.v1",
-            "label": "AI-Hybrid",
-            "raw_score": 0.369,
-            "weight": 0.0508,
-            "weighted_contribution": 0.018745,
-            "share_pct": 5.14
-          },
-          {
-            "model_id": "aegis.macro.v1",
-            "label": "Macro",
-            "raw_score": 0.0,
-            "weight": 0.0508,
-            "weighted_contribution": 0.0,
-            "share_pct": 0.0
-          },
-          {
-            "model_id": "aegis.sector_rotation.v1",
-            "label": "Sector",
-            "raw_score": 0.0,
-            "weight": 0.1357,
-            "weighted_contribution": 0.0,
-            "share_pct": 0.0
-          },
-          {
-            "model_id": "aegis.value.v1",
-            "label": "Value",
-            "raw_score": -0.0375,
-            "weight": 0.0508,
-            "weighted_contribution": -0.001905,
-            "share_pct": 0.52
-          },
-          {
-            "model_id": "aegis.news.v1",
-            "label": "News",
-            "raw_score": -0.3998,
-            "weight": 0.0508,
-            "weighted_contribution": -0.02031,
-            "share_pct": 5.56
-          }
-        ],
-        "dominant_driver": {
-          "label": "Trend",
-          "contribution": 0.088185
-        },
-        "opposition": {
-          "label": "News",
-          "contribution": -0.02031
-        },
-        "sector_engine_contribution_pct": 0.0,
-        "total_positive": 0.3428,
-        "total_negative": -0.0222
-      },
-      "percentile_action": "BUY",
-      "score_percentile": 0.8571,
-      "percentile_reason": "score +0.3207 in top 20% (percentile 0.86)"
-    },
-    {
-      "ticker": "PLTR",
-      "sector": "",
-      "industry": "",
-      "recommendation": "BUY",
-      "action": "BUY",
-      "composite_decision_score": 65.9,
-      "confidence": 0.5597,
-      "rank": 4,
-      "ensemble_score": 0.318,
-      "raw_confidence": 0.7561,
-      "calibrated_confidence": 0.5597,
-      "regime_adjusted_confidence": 0.5317,
-      "model_agreement": 0.6364,
-      "disagreement_flag": false,
-      "n_models_scoring": 11,
-      "top_models": [
-        {
-          "model_id": "aegis.value.v1",
-          "score": -0.8972
-        },
-        {
-          "model_id": "aegis.quality.v1",
-          "score": 0.8706
-        },
-        {
-          "model_id": "aegis.growth.v1",
-          "score": 0.7743
-        }
-      ],
-      "top_features": [
-        "adx_14",
-        "atr_14_pct",
-        "distance_from_52w_high_pct",
-        "distance_from_52w_low_pct",
-        "earn_days_to_next",
-        "earn_last_eps_reported",
-        "earn_last_surprise_pct",
-        "fund_debt_to_equity"
-      ],
-      "bull_case": "1-month momentum +41.01%; 3-month momentum +27.35%; strong fundamental quality (84.210); high ROE (+38.10%).",
-      "bear_case": "overbought RSI (78.228); stretched valuation (P/E 148.684); high leverage (D/E 2.139); net insider selling ($-37,763,145, 90d); deep 60d drawdown (-33.23%).",
-      "key_risks": [
-        "leverage above 1x amplifies downside if fundamentals slip"
-      ],
-      "suggested_holding_period_days": 60,
-      "entry_zone": {
-        "low": 170.481,
-        "high": 177.439,
-        "current": 173.96,
-        "note": "±2% band around current price"
-      },
-      "exit_conditions": [
-        "time-based: review after 60 days if action still holds",
-        "price-based: 8% stop-loss from entry",
-        "price-based: consider trimming +15% from entry",
-        "thesis-based: exit if bull case signals invert (any 2 of them)"
-      ],
-      "model_stamp": {
-        "model_id": "aegis.recommendation.v3",
-        "version": "1.0.0",
-        "engine": "recommendation_intelligence",
-        "market": "usa",
-        "feature_set_version": "b65ceb49a83a",
-        "schema_version": "b65ceb49a83a",
-        "calibration_version": "",
-        "approval_status": "experimental",
-        "approved_by": "",
-        "approved_on": ""
-      },
-      "provenance": "aegis.recommendation.ssot.v1 (bridged from Runner 2 v3)",
-      "explainability": {
-        "top_features_count": 8,
-        "n_models_scoring": 11,
-        "model_agreement": 0.6364,
-        "disagreement": false,
-        "confidence_reason": "confidence 0.560 · agreement 0.64",
-        "action_reason": "BUY · ensemble score +0.318"
-      },
-      "signal_quality": "STRONG",
-      "entry_exit": {
-        "entry_zone": {
-          "low": 170.481,
-          "high": 177.439,
-          "current": 173.96,
-          "note": "±2% band around current price"
-        },
-        "if_holding": null,
-        "entry": null,
-        "exit_reason": "time-based: review after 60 days if action still holds"
-      },
-      "investor_action": {
-        "entry": "WAIT",
-        "if_holding": "HOLD",
-        "user_facing_label": "🟡 Watchlist · Keep holding if you own it",
-        "is_actionable_entry": false,
-        "is_actionable_if_holding": false,
-        "source_action": "HOLD"
-      },
-      "position_plan": {
-        "suggested_allocation_pct": 0.0,
-        "risk_level": "moderate",
-        "max_capital_exposure_pct": 6.0,
-        "time_horizon_days": 17,
-        "time_horizon_bucket": "swing",
-        "time_horizon_desc": "Days-to-weeks · exit near target or on stop",
-        "entry_zone": {
-          "current_price": 173.96,
-          "note": "watchlist · re-check when signal strengthens"
-        },
-        "sizing_note": "preview allocation · real position size determined by risk engine (fractional Kelly · half-Kelly cap · per-sector cap · VIX-adjusted)",
-        "dynamic_holding_reason": "dynamic holding 17d = base 21 × composite 0.816 · drivers: risk trim (0.80x)"
-      },
-      "why": {
-        "top_reasons": [
-          "1-month momentum +41.01%",
-          "3-month momentum +27.35%",
-          "strong fundamental quality (84.210)",
-          "high ROE (+38.10%)",
-          "ensemble score +0.3180 (top-percentile signal)"
-        ],
-        "top_risks": [
-          "overbought RSI (78.228)",
-          "stretched valuation (P/E 148.684)",
-          "high leverage (D/E 2.139)",
-          "net insider selling ($-37,763,145, 90d)",
-          "deep 60d drawdown (-33.23%)"
-        ],
-        "signal_quality": "STRONG"
-      },
-      "rotation_intelligence": {
-        "should_rotate": false,
-        "replacement_ticker": null,
-        "edge": 0.0167,
-        "expected_alpha_delta_pct": 0.0,
-        "keep_score": 0.318,
-        "candidate_score": 0.3347,
-        "reason": "keep · candidate edge +0.0167 ≤ threshold 0.05 · rotation would not add expected alpha"
-      },
-      "lifecycle_state": {
-        "current_state": "BUY",
-        "previous_state": "HOLD",
-        "ts_last_transition": "2026-08-19T14:33:47.467694+00:00",
-        "n_events": 380
+        "ts_last_transition": "2026-09-01T12:32:36.918444+00:00",
+        "n_events": 761
       },
       "evolution": {
         "is_new": true,
@@ -1006,58 +193,66 @@
           {
             "model_id": "aegis.quality.v1",
             "label": "Quality",
-            "raw_score": 0.8706,
+            "raw_score": 0.8688,
             "weight": 0.1345,
-            "weighted_contribution": 0.117096,
-            "share_pct": 26.04
-          },
-          {
-            "model_id": "aegis.mean_reversion.v1",
-            "label": "MeanReversion",
-            "raw_score": 0.718,
-            "weight": 0.1267,
-            "weighted_contribution": 0.090971,
-            "share_pct": 20.23
+            "weighted_contribution": 0.116854,
+            "share_pct": 22.74
           },
           {
             "model_id": "aegis.trend.v1",
             "label": "Trend",
-            "raw_score": 0.6403,
+            "raw_score": 0.7758,
             "weight": 0.1198,
-            "weighted_contribution": 0.076708,
-            "share_pct": 17.06
-          },
-          {
-            "model_id": "aegis.growth.v1",
-            "label": "Growth",
-            "raw_score": 0.7743,
-            "weight": 0.0508,
-            "weighted_contribution": 0.039334,
-            "share_pct": 8.75
+            "weighted_contribution": 0.092941,
+            "share_pct": 18.09
           },
           {
             "model_id": "aegis.momentum.v1",
             "label": "Momentum",
-            "raw_score": 0.3302,
+            "raw_score": 0.781,
             "weight": 0.1105,
-            "weighted_contribution": 0.036487,
-            "share_pct": 8.11
+            "weighted_contribution": 0.086301,
+            "share_pct": 16.8
           },
           {
-            "model_id": "aegis.ai_hybrid.v1",
-            "label": "AI-Hybrid",
-            "raw_score": 0.3062,
-            "weight": 0.0508,
-            "weighted_contribution": 0.015555,
-            "share_pct": 3.46
+            "model_id": "aegis.mean_reversion.v1",
+            "label": "MeanReversion",
+            "raw_score": 0.5123,
+            "weight": 0.1267,
+            "weighted_contribution": 0.064908,
+            "share_pct": 12.63
           },
           {
             "model_id": "aegis.event_driven.v1",
             "label": "Event",
-            "raw_score": 0.0641,
+            "raw_score": 0.3777,
             "weight": 0.1185,
-            "weighted_contribution": 0.007596,
-            "share_pct": 1.69
+            "weighted_contribution": 0.044757,
+            "share_pct": 8.71
+          },
+          {
+            "model_id": "aegis.growth.v1",
+            "label": "Growth",
+            "raw_score": 0.7768,
+            "weight": 0.0508,
+            "weighted_contribution": 0.039461,
+            "share_pct": 7.68
+          },
+          {
+            "model_id": "aegis.ai_hybrid.v1",
+            "label": "AI-Hybrid",
+            "raw_score": 0.4544,
+            "weight": 0.0508,
+            "weighted_contribution": 0.023084,
+            "share_pct": 4.49
+          },
+          {
+            "model_id": "aegis.news.v1",
+            "label": "News",
+            "raw_score": 0.0002,
+            "weight": 0.0508,
+            "weighted_contribution": 1e-05,
+            "share_pct": 0.0
           },
           {
             "model_id": "aegis.macro.v1",
@@ -1076,866 +271,58 @@
             "share_pct": 0.0
           },
           {
-            "model_id": "aegis.news.v1",
-            "label": "News",
-            "raw_score": -0.3998,
-            "weight": 0.0508,
-            "weighted_contribution": -0.02031,
-            "share_pct": 4.52
-          },
-          {
             "model_id": "aegis.value.v1",
             "label": "Value",
-            "raw_score": -0.8972,
+            "raw_score": -0.8954,
             "weight": 0.0508,
-            "weighted_contribution": -0.045578,
-            "share_pct": 10.14
+            "weighted_contribution": -0.045486,
+            "share_pct": 8.85
           }
         ],
         "dominant_driver": {
           "label": "Quality",
-          "contribution": 0.117096
+          "contribution": 0.116854
         },
         "opposition": {
           "label": "Value",
-          "contribution": -0.045578
+          "contribution": -0.045486
         },
         "sector_engine_contribution_pct": 0.0,
-        "total_positive": 0.3837,
-        "total_negative": -0.0659
+        "total_positive": 0.4683,
+        "total_negative": -0.0455
       },
-      "percentile_action": "HOLD",
-      "score_percentile": 0.7857,
-      "percentile_reason": "score +0.3180 in middle 60% (percentile 0.79)"
+      "percentile_action": "STRONG_BUY",
+      "score_percentile": 1.0,
+      "percentile_reason": "score +0.4230 in top 10% (percentile 1.00)"
     },
     {
-      "ticker": "SAIC",
-      "sector": "",
-      "industry": "",
-      "recommendation": "BUY",
-      "action": "BUY",
-      "composite_decision_score": 65.65,
-      "confidence": 0.5908,
-      "rank": 5,
-      "ensemble_score": 0.313,
-      "raw_confidence": 0.7561,
-      "calibrated_confidence": 0.5908,
-      "regime_adjusted_confidence": 0.5613,
-      "model_agreement": 0.7273,
-      "disagreement_flag": false,
-      "n_models_scoring": 11,
-      "top_models": [
-        {
-          "model_id": "aegis.event_driven.v1",
-          "score": 0.7393
-        },
-        {
-          "model_id": "aegis.growth.v1",
-          "score": 0.5898
-        },
-        {
-          "model_id": "aegis.trend.v1",
-          "score": 0.5871
-        }
-      ],
-      "top_features": [
-        "adx_14",
-        "atr_14_pct",
-        "distance_from_52w_high_pct",
-        "distance_from_52w_low_pct",
-        "earn_days_to_next",
-        "earn_last_eps_reported",
-        "earn_last_surprise_pct",
-        "fund_debt_to_equity"
-      ],
-      "bull_case": "1-month momentum +12.10%; 3-month momentum +31.24%; high ROE (+27.66%); positive news sentiment (0.250).",
-      "bear_case": "high leverage (D/E 187.983).",
-      "key_risks": [
-        "earnings in 10 days — reduce position size ahead of print",
-        "leverage above 1x amplifies downside if fundamentals slip"
-      ],
-      "suggested_holding_period_days": 60,
-      "entry_zone": {
-        "low": 123.764,
-        "high": 128.816,
-        "current": 126.29,
-        "note": "±2% band around current price"
-      },
-      "exit_conditions": [
-        "time-based: review after 60 days if action still holds",
-        "price-based: 8% stop-loss from entry",
-        "price-based: consider trimming +15% from entry",
-        "thesis-based: exit if bull case signals invert (any 2 of them)"
-      ],
-      "model_stamp": {
-        "model_id": "aegis.recommendation.v3",
-        "version": "1.0.0",
-        "engine": "recommendation_intelligence",
-        "market": "usa",
-        "feature_set_version": "b65ceb49a83a",
-        "schema_version": "b65ceb49a83a",
-        "calibration_version": "",
-        "approval_status": "experimental",
-        "approved_by": "",
-        "approved_on": ""
-      },
-      "provenance": "aegis.recommendation.ssot.v1 (bridged from Runner 2 v3)",
-      "explainability": {
-        "top_features_count": 8,
-        "n_models_scoring": 11,
-        "model_agreement": 0.7273,
-        "disagreement": false,
-        "confidence_reason": "confidence 0.591 · agreement 0.73",
-        "action_reason": "BUY · ensemble score +0.313"
-      },
-      "signal_quality": "STRONG",
-      "entry_exit": {
-        "entry_zone": {
-          "low": 123.764,
-          "high": 128.816,
-          "current": 126.29,
-          "note": "±2% band around current price"
-        },
-        "if_holding": null,
-        "entry": null,
-        "exit_reason": "time-based: review after 60 days if action still holds"
-      },
-      "investor_action": {
-        "entry": "WAIT",
-        "if_holding": "HOLD",
-        "user_facing_label": "🟡 Watchlist · Keep holding if you own it",
-        "is_actionable_entry": false,
-        "is_actionable_if_holding": false,
-        "source_action": "HOLD"
-      },
-      "position_plan": {
-        "suggested_allocation_pct": 0.0,
-        "risk_level": "moderate",
-        "max_capital_exposure_pct": 6.0,
-        "time_horizon_days": 17,
-        "time_horizon_bucket": "swing",
-        "time_horizon_desc": "Days-to-weeks · exit near target or on stop",
-        "entry_zone": {
-          "current_price": 126.29,
-          "note": "watchlist · re-check when signal strengthens"
-        },
-        "sizing_note": "preview allocation · real position size determined by risk engine (fractional Kelly · half-Kelly cap · per-sector cap · VIX-adjusted)",
-        "dynamic_holding_reason": "dynamic holding 17d = base 21 × composite 0.816 · drivers: risk trim (0.80x)"
-      },
-      "why": {
-        "top_reasons": [
-          "1-month momentum +12.10%",
-          "3-month momentum +31.24%",
-          "high ROE (+27.66%)",
-          "positive news sentiment (0.250)",
-          "ensemble score +0.3130 (top-percentile signal)"
-        ],
-        "top_risks": [
-          "high leverage (D/E 187.983)",
-          "earnings in 10 days — reduce position size ahead of print",
-          "leverage above 1x amplifies downside if fundamentals slip"
-        ],
-        "signal_quality": "STRONG"
-      },
-      "rotation_intelligence": {
-        "should_rotate": false,
-        "replacement_ticker": null,
-        "edge": 0.0217,
-        "expected_alpha_delta_pct": 0.0,
-        "keep_score": 0.313,
-        "candidate_score": 0.3347,
-        "reason": "keep · candidate edge +0.0217 ≤ threshold 0.05 · rotation would not add expected alpha"
-      },
-      "lifecycle_state": {
-        "current_state": "BUY",
-        "previous_state": "HOLD",
-        "ts_last_transition": "2026-08-14T13:15:46.605168+00:00",
-        "n_events": 176
-      },
-      "evolution": {
-        "is_new": true,
-        "days_recommended": 1,
-        "previous_asof": null,
-        "rank_change": null,
-        "score_change": null,
-        "action_change": null,
-        "confidence_change": null,
-        "lifecycle_change": null,
-        "allocation_change_pct": null,
-        "narrative": "NEW recommendation · no prior snapshot"
-      },
-      "discipline": {
-        "is_winner_exit": false,
-        "is_low_conviction_buy": false,
-        "sector_gate_violation": false,
-        "weight_score_inversion": false,
-        "notes": []
-      },
-      "attribution": {
-        "per_model": [
-          {
-            "model_id": "aegis.event_driven.v1",
-            "label": "Event",
-            "raw_score": 0.7393,
-            "weight": 0.1185,
-            "weighted_contribution": 0.087607,
-            "share_pct": 28.0
-          },
-          {
-            "model_id": "aegis.trend.v1",
-            "label": "Trend",
-            "raw_score": 0.5871,
-            "weight": 0.1198,
-            "weighted_contribution": 0.070335,
-            "share_pct": 22.48
-          },
-          {
-            "model_id": "aegis.momentum.v1",
-            "label": "Momentum",
-            "raw_score": 0.5357,
-            "weight": 0.1105,
-            "weighted_contribution": 0.059195,
-            "share_pct": 18.92
-          },
-          {
-            "model_id": "aegis.growth.v1",
-            "label": "Growth",
-            "raw_score": 0.5898,
-            "weight": 0.0508,
-            "weighted_contribution": 0.029962,
-            "share_pct": 9.58
-          },
-          {
-            "model_id": "aegis.value.v1",
-            "label": "Value",
-            "raw_score": 0.4504,
-            "weight": 0.0508,
-            "weighted_contribution": 0.02288,
-            "share_pct": 7.31
-          },
-          {
-            "model_id": "aegis.ai_hybrid.v1",
-            "label": "AI-Hybrid",
-            "raw_score": 0.4092,
-            "weight": 0.0508,
-            "weighted_contribution": 0.020787,
-            "share_pct": 6.64
-          },
-          {
-            "model_id": "aegis.mean_reversion.v1",
-            "label": "MeanReversion",
-            "raw_score": 0.1118,
-            "weight": 0.1267,
-            "weighted_contribution": 0.014165,
-            "share_pct": 4.53
-          },
-          {
-            "model_id": "aegis.news.v1",
-            "label": "News",
-            "raw_score": 0.1386,
-            "weight": 0.0508,
-            "weighted_contribution": 0.007041,
-            "share_pct": 2.25
-          },
-          {
-            "model_id": "aegis.quality.v1",
-            "label": "Quality",
-            "raw_score": 0.0068,
-            "weight": 0.1345,
-            "weighted_contribution": 0.000915,
-            "share_pct": 0.29
-          },
-          {
-            "model_id": "aegis.macro.v1",
-            "label": "Macro",
-            "raw_score": 0.0,
-            "weight": 0.0508,
-            "weighted_contribution": 0.0,
-            "share_pct": 0.0
-          },
-          {
-            "model_id": "aegis.sector_rotation.v1",
-            "label": "Sector",
-            "raw_score": 0.0,
-            "weight": 0.1357,
-            "weighted_contribution": 0.0,
-            "share_pct": 0.0
-          }
-        ],
-        "dominant_driver": {
-          "label": "Event",
-          "contribution": 0.087607
-        },
-        "opposition": null,
-        "sector_engine_contribution_pct": 0.0,
-        "total_positive": 0.3129,
-        "total_negative": 0.0
-      },
-      "percentile_action": "HOLD",
-      "score_percentile": 0.7143,
-      "percentile_reason": "score +0.3130 in middle 60% (percentile 0.71)"
-    },
-    {
-      "ticker": "EIX",
-      "sector": "",
-      "industry": "",
-      "recommendation": "BUY",
-      "action": "BUY",
-      "composite_decision_score": 65.22,
-      "confidence": 0.6219,
-      "rank": 6,
-      "ensemble_score": 0.3044,
-      "raw_confidence": 0.7561,
-      "calibrated_confidence": 0.6219,
-      "regime_adjusted_confidence": 0.5908,
-      "model_agreement": 0.7273,
-      "disagreement_flag": false,
-      "n_models_scoring": 11,
-      "top_models": [
-        {
-          "model_id": "aegis.value.v1",
-          "score": 0.8886
-        },
-        {
-          "model_id": "aegis.event_driven.v1",
-          "score": 0.5463
-        },
-        {
-          "model_id": "aegis.news.v1",
-          "score": 0.5014
-        }
-      ],
-      "top_features": [
-        "adx_14",
-        "atr_14_pct",
-        "ca_days_since_last_dividend",
-        "ca_last_dividend_amount",
-        "distance_from_52w_high_pct",
-        "distance_from_52w_low_pct",
-        "earn_days_to_next",
-        "earn_last_eps_reported"
-      ],
-      "bull_case": "strong fundamental quality (66.390); high ROE (+19.73%); positive news sentiment (0.500).",
-      "bear_case": "1-month drawdown -6.25%; high leverage (D/E 228.042).",
-      "key_risks": [
-        "leverage above 1x amplifies downside if fundamentals slip"
-      ],
-      "suggested_holding_period_days": 60,
-      "entry_zone": {
-        "low": 73.167,
-        "high": 76.153,
-        "current": 74.66,
-        "note": "±2% band around current price"
-      },
-      "exit_conditions": [
-        "time-based: review after 60 days if action still holds",
-        "price-based: 8% stop-loss from entry",
-        "price-based: consider trimming +15% from entry",
-        "thesis-based: exit if bull case signals invert (any 2 of them)"
-      ],
-      "model_stamp": {
-        "model_id": "aegis.recommendation.v3",
-        "version": "1.0.0",
-        "engine": "recommendation_intelligence",
-        "market": "usa",
-        "feature_set_version": "b65ceb49a83a",
-        "schema_version": "b65ceb49a83a",
-        "calibration_version": "",
-        "approval_status": "experimental",
-        "approved_by": "",
-        "approved_on": ""
-      },
-      "provenance": "aegis.recommendation.ssot.v1 (bridged from Runner 2 v3)",
-      "explainability": {
-        "top_features_count": 8,
-        "n_models_scoring": 11,
-        "model_agreement": 0.7273,
-        "disagreement": false,
-        "confidence_reason": "confidence 0.622 · agreement 0.73",
-        "action_reason": "BUY · ensemble score +0.304"
-      },
-      "signal_quality": "STRONG",
-      "entry_exit": {
-        "entry_zone": {
-          "low": 73.167,
-          "high": 76.153,
-          "current": 74.66,
-          "note": "±2% band around current price"
-        },
-        "if_holding": null,
-        "entry": null,
-        "exit_reason": "time-based: review after 60 days if action still holds"
-      },
-      "investor_action": {
-        "entry": "WAIT",
-        "if_holding": "HOLD",
-        "user_facing_label": "🟡 Watchlist · Keep holding if you own it",
-        "is_actionable_entry": false,
-        "is_actionable_if_holding": false,
-        "source_action": "HOLD"
-      },
-      "position_plan": {
-        "suggested_allocation_pct": 0.0,
-        "risk_level": "moderate",
-        "max_capital_exposure_pct": 6.0,
-        "time_horizon_days": 17,
-        "time_horizon_bucket": "swing",
-        "time_horizon_desc": "Days-to-weeks · exit near target or on stop",
-        "entry_zone": {
-          "current_price": 74.66,
-          "note": "watchlist · re-check when signal strengthens"
-        },
-        "sizing_note": "preview allocation · real position size determined by risk engine (fractional Kelly · half-Kelly cap · per-sector cap · VIX-adjusted)",
-        "dynamic_holding_reason": "dynamic holding 17d = base 21 × composite 0.816 · drivers: risk trim (0.80x)"
-      },
-      "why": {
-        "top_reasons": [
-          "strong fundamental quality (66.390)",
-          "high ROE (+19.73%)",
-          "positive news sentiment (0.500)",
-          "ensemble score +0.3044 (top-percentile signal)"
-        ],
-        "top_risks": [
-          "1-month drawdown -6.25%",
-          "high leverage (D/E 228.042)",
-          "leverage above 1x amplifies downside if fundamentals slip"
-        ],
-        "signal_quality": "STRONG"
-      },
-      "rotation_intelligence": {
-        "should_rotate": false,
-        "replacement_ticker": null,
-        "edge": 0.0303,
-        "expected_alpha_delta_pct": 0.0,
-        "keep_score": 0.3044,
-        "candidate_score": 0.3347,
-        "reason": "keep · candidate edge +0.0303 ≤ threshold 0.05 · rotation would not add expected alpha"
-      },
-      "lifecycle_state": {
-        "current_state": "BUY",
-        "previous_state": "HOLD",
-        "ts_last_transition": "2026-08-14T13:15:46.605168+00:00",
-        "n_events": 176
-      },
-      "evolution": {
-        "is_new": true,
-        "days_recommended": 1,
-        "previous_asof": null,
-        "rank_change": null,
-        "score_change": null,
-        "action_change": null,
-        "confidence_change": null,
-        "lifecycle_change": null,
-        "allocation_change_pct": null,
-        "narrative": "NEW recommendation · no prior snapshot"
-      },
-      "discipline": {
-        "is_winner_exit": false,
-        "is_low_conviction_buy": false,
-        "sector_gate_violation": false,
-        "weight_score_inversion": false,
-        "notes": []
-      },
-      "attribution": {
-        "per_model": [
-          {
-            "model_id": "aegis.event_driven.v1",
-            "label": "Event",
-            "raw_score": 0.5463,
-            "weight": 0.1185,
-            "weighted_contribution": 0.064737,
-            "share_pct": 21.28
-          },
-          {
-            "model_id": "aegis.mean_reversion.v1",
-            "label": "MeanReversion",
-            "raw_score": 0.3903,
-            "weight": 0.1267,
-            "weighted_contribution": 0.049451,
-            "share_pct": 16.25
-          },
-          {
-            "model_id": "aegis.value.v1",
-            "label": "Value",
-            "raw_score": 0.8886,
-            "weight": 0.0508,
-            "weighted_contribution": 0.045141,
-            "share_pct": 14.84
-          },
-          {
-            "model_id": "aegis.trend.v1",
-            "label": "Trend",
-            "raw_score": 0.3367,
-            "weight": 0.1198,
-            "weighted_contribution": 0.040337,
-            "share_pct": 13.26
-          },
-          {
-            "model_id": "aegis.quality.v1",
-            "label": "Quality",
-            "raw_score": 0.2546,
-            "weight": 0.1345,
-            "weighted_contribution": 0.034244,
-            "share_pct": 11.25
-          },
-          {
-            "model_id": "aegis.news.v1",
-            "label": "News",
-            "raw_score": 0.5014,
-            "weight": 0.0508,
-            "weighted_contribution": 0.025471,
-            "share_pct": 8.37
-          },
-          {
-            "model_id": "aegis.ai_hybrid.v1",
-            "label": "AI-Hybrid",
-            "raw_score": 0.4226,
-            "weight": 0.0508,
-            "weighted_contribution": 0.021468,
-            "share_pct": 7.06
-          },
-          {
-            "model_id": "aegis.growth.v1",
-            "label": "Growth",
-            "raw_score": 0.4142,
-            "weight": 0.0508,
-            "weighted_contribution": 0.021041,
-            "share_pct": 6.92
-          },
-          {
-            "model_id": "aegis.momentum.v1",
-            "label": "Momentum",
-            "raw_score": 0.0215,
-            "weight": 0.1105,
-            "weighted_contribution": 0.002376,
-            "share_pct": 0.78
-          },
-          {
-            "model_id": "aegis.macro.v1",
-            "label": "Macro",
-            "raw_score": 0.0,
-            "weight": 0.0508,
-            "weighted_contribution": 0.0,
-            "share_pct": 0.0
-          },
-          {
-            "model_id": "aegis.sector_rotation.v1",
-            "label": "Sector",
-            "raw_score": 0.0,
-            "weight": 0.1357,
-            "weighted_contribution": 0.0,
-            "share_pct": 0.0
-          }
-        ],
-        "dominant_driver": {
-          "label": "Event",
-          "contribution": 0.064737
-        },
-        "opposition": null,
-        "sector_engine_contribution_pct": 0.0,
-        "total_positive": 0.3043,
-        "total_negative": 0.0
-      },
-      "percentile_action": "HOLD",
-      "score_percentile": 0.6429,
-      "percentile_reason": "score +0.3044 in middle 60% (percentile 0.64)"
-    },
-    {
-      "ticker": "BMY",
-      "sector": "",
-      "industry": "",
-      "recommendation": "BUY",
-      "action": "BUY",
-      "composite_decision_score": 65.095,
-      "confidence": 0.6219,
-      "rank": 7,
-      "ensemble_score": 0.3019,
-      "raw_confidence": 0.7561,
-      "calibrated_confidence": 0.6219,
-      "regime_adjusted_confidence": 0.5908,
-      "model_agreement": 0.7273,
-      "disagreement_flag": false,
-      "n_models_scoring": 11,
-      "top_models": [
-        {
-          "model_id": "aegis.growth.v1",
-          "score": 0.7913
-        },
-        {
-          "model_id": "aegis.event_driven.v1",
-          "score": 0.6822
-        },
-        {
-          "model_id": "aegis.trend.v1",
-          "score": 0.6794
-        }
-      ],
-      "top_features": [
-        "adx_14",
-        "atr_14_pct",
-        "ca_days_since_last_dividend",
-        "ca_last_dividend_amount",
-        "distance_from_52w_high_pct",
-        "distance_from_52w_low_pct",
-        "earn_days_to_next",
-        "earn_last_eps_reported"
-      ],
-      "bull_case": "1-month momentum +6.44%; 3-month momentum +11.35%; high ROE (+46.60%); positive news sentiment (0.250).",
-      "bear_case": "high leverage (D/E 201.859).",
-      "key_risks": [
-        "leverage above 1x amplifies downside if fundamentals slip"
-      ],
-      "suggested_holding_period_days": 60,
-      "entry_zone": {
-        "low": 64.161,
-        "high": 66.779,
-        "current": 65.47,
-        "note": "±2% band around current price"
-      },
-      "exit_conditions": [
-        "time-based: review after 60 days if action still holds",
-        "price-based: 8% stop-loss from entry",
-        "price-based: consider trimming +15% from entry",
-        "thesis-based: exit if bull case signals invert (any 2 of them)"
-      ],
-      "model_stamp": {
-        "model_id": "aegis.recommendation.v3",
-        "version": "1.0.0",
-        "engine": "recommendation_intelligence",
-        "market": "usa",
-        "feature_set_version": "b65ceb49a83a",
-        "schema_version": "b65ceb49a83a",
-        "calibration_version": "",
-        "approval_status": "experimental",
-        "approved_by": "",
-        "approved_on": ""
-      },
-      "provenance": "aegis.recommendation.ssot.v1 (bridged from Runner 2 v3)",
-      "explainability": {
-        "top_features_count": 8,
-        "n_models_scoring": 11,
-        "model_agreement": 0.7273,
-        "disagreement": false,
-        "confidence_reason": "confidence 0.622 · agreement 0.73",
-        "action_reason": "BUY · ensemble score +0.302"
-      },
-      "signal_quality": "STRONG",
-      "entry_exit": {
-        "entry_zone": {
-          "low": 64.161,
-          "high": 66.779,
-          "current": 65.47,
-          "note": "±2% band around current price"
-        },
-        "if_holding": null,
-        "entry": null,
-        "exit_reason": "time-based: review after 60 days if action still holds"
-      },
-      "investor_action": {
-        "entry": "WAIT",
-        "if_holding": "HOLD",
-        "user_facing_label": "🟡 Watchlist · Keep holding if you own it",
-        "is_actionable_entry": false,
-        "is_actionable_if_holding": false,
-        "source_action": "HOLD"
-      },
-      "position_plan": {
-        "suggested_allocation_pct": 0.0,
-        "risk_level": "moderate",
-        "max_capital_exposure_pct": 6.0,
-        "time_horizon_days": 17,
-        "time_horizon_bucket": "swing",
-        "time_horizon_desc": "Days-to-weeks · exit near target or on stop",
-        "entry_zone": {
-          "current_price": 65.47,
-          "note": "watchlist · re-check when signal strengthens"
-        },
-        "sizing_note": "preview allocation · real position size determined by risk engine (fractional Kelly · half-Kelly cap · per-sector cap · VIX-adjusted)",
-        "dynamic_holding_reason": "dynamic holding 17d = base 21 × composite 0.816 · drivers: risk trim (0.80x)"
-      },
-      "why": {
-        "top_reasons": [
-          "1-month momentum +6.44%",
-          "3-month momentum +11.35%",
-          "high ROE (+46.60%)",
-          "positive news sentiment (0.250)",
-          "ensemble score +0.3019 (top-percentile signal)"
-        ],
-        "top_risks": [
-          "high leverage (D/E 201.859)",
-          "leverage above 1x amplifies downside if fundamentals slip"
-        ],
-        "signal_quality": "STRONG"
-      },
-      "rotation_intelligence": {
-        "should_rotate": false,
-        "replacement_ticker": null,
-        "edge": 0.0328,
-        "expected_alpha_delta_pct": 0.0,
-        "keep_score": 0.3019,
-        "candidate_score": 0.3347,
-        "reason": "keep · candidate edge +0.0328 ≤ threshold 0.05 · rotation would not add expected alpha"
-      },
-      "lifecycle_state": {
-        "current_state": "BUY",
-        "previous_state": "HOLD",
-        "ts_last_transition": "2026-08-14T13:15:46.605168+00:00",
-        "n_events": 176
-      },
-      "evolution": {
-        "is_new": true,
-        "days_recommended": 1,
-        "previous_asof": null,
-        "rank_change": null,
-        "score_change": null,
-        "action_change": null,
-        "confidence_change": null,
-        "lifecycle_change": null,
-        "allocation_change_pct": null,
-        "narrative": "NEW recommendation · no prior snapshot"
-      },
-      "discipline": {
-        "is_winner_exit": false,
-        "is_low_conviction_buy": false,
-        "sector_gate_violation": false,
-        "weight_score_inversion": false,
-        "notes": []
-      },
-      "attribution": {
-        "per_model": [
-          {
-            "model_id": "aegis.trend.v1",
-            "label": "Trend",
-            "raw_score": 0.6794,
-            "weight": 0.1198,
-            "weighted_contribution": 0.081392,
-            "share_pct": 21.87
-          },
-          {
-            "model_id": "aegis.event_driven.v1",
-            "label": "Event",
-            "raw_score": 0.6822,
-            "weight": 0.1185,
-            "weighted_contribution": 0.080841,
-            "share_pct": 21.72
-          },
-          {
-            "model_id": "aegis.quality.v1",
-            "label": "Quality",
-            "raw_score": 0.3902,
-            "weight": 0.1345,
-            "weighted_contribution": 0.052482,
-            "share_pct": 14.1
-          },
-          {
-            "model_id": "aegis.growth.v1",
-            "label": "Growth",
-            "raw_score": 0.7913,
-            "weight": 0.0508,
-            "weighted_contribution": 0.040198,
-            "share_pct": 10.8
-          },
-          {
-            "model_id": "aegis.momentum.v1",
-            "label": "Momentum",
-            "raw_score": 0.3471,
-            "weight": 0.1105,
-            "weighted_contribution": 0.038355,
-            "share_pct": 10.31
-          },
-          {
-            "model_id": "aegis.ai_hybrid.v1",
-            "label": "AI-Hybrid",
-            "raw_score": 0.4014,
-            "weight": 0.0508,
-            "weighted_contribution": 0.020391,
-            "share_pct": 5.48
-          },
-          {
-            "model_id": "aegis.value.v1",
-            "label": "Value",
-            "raw_score": 0.32,
-            "weight": 0.0508,
-            "weighted_contribution": 0.016256,
-            "share_pct": 4.37
-          },
-          {
-            "model_id": "aegis.news.v1",
-            "label": "News",
-            "raw_score": 0.1386,
-            "weight": 0.0508,
-            "weighted_contribution": 0.007041,
-            "share_pct": 1.89
-          },
-          {
-            "model_id": "aegis.macro.v1",
-            "label": "Macro",
-            "raw_score": 0.0,
-            "weight": 0.0508,
-            "weighted_contribution": 0.0,
-            "share_pct": 0.0
-          },
-          {
-            "model_id": "aegis.sector_rotation.v1",
-            "label": "Sector",
-            "raw_score": 0.0,
-            "weight": 0.1357,
-            "weighted_contribution": 0.0,
-            "share_pct": 0.0
-          },
-          {
-            "model_id": "aegis.mean_reversion.v1",
-            "label": "MeanReversion",
-            "raw_score": -0.2777,
-            "weight": 0.1267,
-            "weighted_contribution": -0.035185,
-            "share_pct": 9.45
-          }
-        ],
-        "dominant_driver": {
-          "label": "Trend",
-          "contribution": 0.081392
-        },
-        "opposition": {
-          "label": "MeanReversion",
-          "contribution": -0.035185
-        },
-        "sector_engine_contribution_pct": 0.0,
-        "total_positive": 0.337,
-        "total_negative": -0.0352
-      },
-      "percentile_action": "HOLD",
-      "score_percentile": 0.5714,
-      "percentile_reason": "score +0.3019 in middle 60% (percentile 0.57)"
-    },
-    {
-      "ticker": "MSFT",
+      "ticker": "MU",
       "sector": "",
       "industry": "",
       "recommendation": "HOLD",
       "action": "HOLD",
-      "composite_decision_score": 64.61,
-      "confidence": 0.5565,
-      "rank": 8,
-      "ensemble_score": 0.2922,
-      "raw_confidence": 0.7561,
-      "calibrated_confidence": 0.5565,
-      "regime_adjusted_confidence": 0.5287,
+      "composite_decision_score": 65.35,
+      "confidence": 0.4885,
+      "rank": 2,
+      "ensemble_score": 0.307,
+      "raw_confidence": 0.6663,
+      "calibrated_confidence": 0.4885,
+      "regime_adjusted_confidence": 0.4641,
       "model_agreement": 0.5455,
       "disagreement_flag": true,
       "n_models_scoring": 11,
       "top_models": [
         {
-          "model_id": "aegis.quality.v1",
-          "score": 0.6758
+          "model_id": "aegis.growth.v1",
+          "score": 0.9285
         },
         {
-          "model_id": "aegis.trend.v1",
-          "score": 0.6358
+          "model_id": "aegis.quality.v1",
+          "score": 0.8968
         },
         {
           "model_id": "aegis.mean_reversion.v1",
-          "score": 0.4733
+          "score": 0.6364
         }
       ],
       "top_features": [
@@ -1948,12 +335,14 @@
         "earn_days_to_next",
         "earn_last_eps_reported"
       ],
-      "bull_case": "1-month momentum +26.33%; 3-month momentum +15.87%; high ROE (+34.04%).",
-      "bear_case": "high leverage (D/E 29.118); net insider selling ($-17,256,393, 90d); deep 60d drawdown (-23.38%).",
-      "key_risks": [],
+      "bull_case": "1-month momentum +15.58%; high ROE (+66.64%).",
+      "bear_case": "high leverage (D/E 6.330); net insider selling ($-182,156,235, 90d); deep 60d drawdown (-39.09%).",
+      "key_risks": [
+        "weak trend strength (ADX 16.572) — call may be premature"
+      ],
       "suggested_holding_period_days": 60,
       "entry_zone": {
-        "current": 481.15,
+        "current": 958.73,
         "note": "hold — no entry"
       },
       "exit_conditions": [
@@ -1977,17 +366,17 @@
         "n_models_scoring": 11,
         "model_agreement": 0.5455,
         "disagreement": true,
-        "confidence_reason": "models disagree · calibrated confidence 0.556 dampened",
-        "action_reason": "HOLD · score +0.292 inside neutral band · plus disagreement"
+        "confidence_reason": "models disagree · calibrated confidence 0.488 dampened",
+        "action_reason": "HOLD · score +0.307 inside neutral band · plus disagreement"
       },
       "signal_quality": "STRONG",
-      "oc_next_best_ticker": "GOOGL",
-      "oc_next_best_score": 66.735,
-      "oc_expected_alpha_delta": 2.125,
-      "oc_reason_not_to_rotate": "opportunity_cost_high · GOOGL score 66.735 vs hold 64.61 (edge 2.1250 > rotate threshold 0.25) — recommend Capital Rotation review",
+      "oc_next_best_ticker": "HON",
+      "oc_next_best_score": 63.095,
+      "oc_expected_alpha_delta": -2.255,
+      "oc_reason_not_to_rotate": "no better candidate available (best HON edge -2.2550) — hold optimal",
       "entry_exit": {
         "entry_zone": {
-          "current": 481.15,
+          "current": 958.73,
           "note": "hold — no entry"
         },
         "if_holding": null,
@@ -1995,68 +384,73 @@
         "exit_reason": "no active exit trigger — HOLD position"
       },
       "investor_action": {
-        "entry": "WAIT",
-        "if_holding": "HOLD",
-        "user_facing_label": "🟡 Watchlist · Keep holding if you own it",
-        "is_actionable_entry": false,
-        "is_actionable_if_holding": false,
-        "source_action": "HOLD"
+        "entry": "BUY",
+        "if_holding": "ADD",
+        "user_facing_label": "🟢 Strong Buy · Add if already holding",
+        "is_actionable_entry": true,
+        "is_actionable_if_holding": true,
+        "source_action": "STRONG_BUY"
       },
       "position_plan": {
-        "suggested_allocation_pct": 0.0,
+        "suggested_allocation_pct": 5.0,
         "risk_level": "moderate",
         "max_capital_exposure_pct": 6.0,
-        "time_horizon_days": 9,
-        "time_horizon_bucket": "swing",
-        "time_horizon_desc": "Days-to-weeks · exit near target or on stop",
+        "time_horizon_days": 60,
+        "time_horizon_bucket": "position",
+        "time_horizon_desc": "Weeks-to-months · trend-following",
         "entry_zone": {
-          "current_price": 481.15,
-          "note": "watchlist · re-check when signal strengthens"
+          "current_price": 958.73,
+          "ideal_buy_low": 949.14,
+          "ideal_buy_high": 968.32,
+          "stop_loss": 901.21,
+          "target_1": 1073.78,
+          "target_2": 1188.83,
+          "risk_reward_ratio": "1:2 (T1) · 1:4 (T2)",
+          "risk_per_share_pct": 6.0
         },
-        "sizing_note": "preview allocation · real position size determined by risk engine (fractional Kelly · half-Kelly cap · per-sector cap · VIX-adjusted)",
-        "dynamic_holding_reason": "dynamic holding 9d = base 21 × composite 0.408 · drivers: risk trim (0.80x)"
+        "sizing_note": "preview allocation · real position size determined by risk engine (fractional Kelly · half-Kelly cap · per-sector cap · VIX-adjusted)"
       },
       "why": {
         "top_reasons": [
-          "1-month momentum +26.33%",
-          "3-month momentum +15.87%",
-          "high ROE (+34.04%)",
-          "ensemble score +0.2922 (top-percentile signal)"
+          "1-month momentum +15.58%",
+          "high ROE (+66.64%)",
+          "ensemble score +0.3070 (top-percentile signal)"
         ],
         "top_risks": [
-          "high leverage (D/E 29.118)",
-          "net insider selling ($-17,256,393, 90d)",
-          "deep 60d drawdown (-23.38%)",
+          "high leverage (D/E 6.330)",
+          "net insider selling ($-182,156,235, 90d)",
+          "deep 60d drawdown (-39.09%)",
+          "weak trend strength (ADX 16.572) — call may be premature",
           "model disagreement · signal not unanimous"
         ],
         "signal_quality": "STRONG"
       },
       "rotation_intelligence": {
-        "should_rotate": false,
-        "replacement_ticker": null,
-        "edge": 0.0425,
-        "expected_alpha_delta_pct": 0.0,
-        "keep_score": 0.2922,
-        "candidate_score": 0.3347,
-        "reason": "keep · candidate edge +0.0425 ≤ threshold 0.05 · rotation would not add expected alpha"
+        "should_rotate": true,
+        "replacement_ticker": "PLTR",
+        "edge": 0.116,
+        "expected_alpha_delta_pct": 11.6,
+        "keep_score": 0.307,
+        "candidate_score": 0.423,
+        "reason": "rotate → PLTR · candidate_score +0.4230 vs current +0.3070 · edge +0.1160 > threshold 0.05 · expected alpha +11.60%"
       },
       "lifecycle_state": {
         "current_state": "HOLD",
         "previous_state": "HOLD",
-        "ts_last_transition": "2026-08-21T05:39:49.035454+00:00",
-        "n_events": 360
+        "ts_last_transition": "2026-09-01T12:32:36.918444+00:00",
+        "n_events": 337
       },
       "evolution": {
-        "is_new": false,
-        "days_recommended": 2,
+        "is_new": true,
+        "days_recommended": 1,
         "previous_asof": null,
-        "rank_change": 0.0,
-        "score_change": 0.1518,
-        "confidence_change": 0.02,
-        "allocation_change_pct": 0.0,
+        "rank_change": null,
+        "score_change": null,
         "action_change": null,
-        "lifecycle_change": "UNTRACKED → HOLD",
-        "narrative": "lifecycle UNTRACKED → HOLD · confidence +0.0200 · score +0.1518"
+        "confidence_change": null,
+        "lifecycle_change": null,
+        "allocation_change_pct": null,
+        "narrative": "NEW recommendation · no prior snapshot"
       },
       "discipline": {
         "is_winner_exit": false,
@@ -2070,50 +464,58 @@
           {
             "model_id": "aegis.quality.v1",
             "label": "Quality",
-            "raw_score": 0.6758,
+            "raw_score": 0.8968,
             "weight": 0.1345,
-            "weighted_contribution": 0.090895,
-            "share_pct": 27.06
-          },
-          {
-            "model_id": "aegis.trend.v1",
-            "label": "Trend",
-            "raw_score": 0.6358,
-            "weight": 0.1198,
-            "weighted_contribution": 0.076169,
-            "share_pct": 22.68
+            "weighted_contribution": 0.12062,
+            "share_pct": 29.41
           },
           {
             "model_id": "aegis.mean_reversion.v1",
             "label": "MeanReversion",
-            "raw_score": 0.4733,
+            "raw_score": 0.6364,
             "weight": 0.1267,
-            "weighted_contribution": 0.059967,
-            "share_pct": 17.85
+            "weighted_contribution": 0.080632,
+            "share_pct": 19.66
           },
           {
-            "model_id": "aegis.momentum.v1",
-            "label": "Momentum",
-            "raw_score": 0.4548,
-            "weight": 0.1105,
-            "weighted_contribution": 0.050255,
-            "share_pct": 14.96
+            "model_id": "aegis.event_driven.v1",
+            "label": "Event",
+            "raw_score": 0.4064,
+            "weight": 0.1185,
+            "weighted_contribution": 0.048158,
+            "share_pct": 11.74
           },
           {
             "model_id": "aegis.growth.v1",
             "label": "Growth",
-            "raw_score": 0.4146,
+            "raw_score": 0.9285,
             "weight": 0.0508,
-            "weighted_contribution": 0.021062,
-            "share_pct": 6.27
+            "weighted_contribution": 0.047168,
+            "share_pct": 11.5
+          },
+          {
+            "model_id": "aegis.momentum.v1",
+            "label": "Momentum",
+            "raw_score": 0.3791,
+            "weight": 0.1105,
+            "weighted_contribution": 0.041891,
+            "share_pct": 10.22
           },
           {
             "model_id": "aegis.ai_hybrid.v1",
             "label": "AI-Hybrid",
-            "raw_score": 0.3078,
+            "raw_score": 0.3943,
             "weight": 0.0508,
-            "weighted_contribution": 0.015636,
-            "share_pct": 4.66
+            "weighted_contribution": 0.02003,
+            "share_pct": 4.88
+          },
+          {
+            "model_id": "aegis.news.v1",
+            "label": "News",
+            "raw_score": 0.0002,
+            "weight": 0.0508,
+            "weighted_contribution": 1e-05,
+            "share_pct": 0.0
           },
           {
             "model_id": "aegis.macro.v1",
@@ -2132,103 +534,88 @@
             "share_pct": 0.0
           },
           {
-            "model_id": "aegis.event_driven.v1",
-            "label": "Event",
-            "raw_score": -0.0229,
-            "weight": 0.1185,
-            "weighted_contribution": -0.002714,
-            "share_pct": 0.81
-          },
-          {
-            "model_id": "aegis.news.v1",
-            "label": "News",
-            "raw_score": -0.1579,
-            "weight": 0.0508,
-            "weighted_contribution": -0.008021,
-            "share_pct": 2.39
-          },
-          {
             "model_id": "aegis.value.v1",
             "label": "Value",
-            "raw_score": -0.2196,
+            "raw_score": -0.0921,
             "weight": 0.0508,
-            "weighted_contribution": -0.011156,
-            "share_pct": 3.32
+            "weighted_contribution": -0.004679,
+            "share_pct": 1.14
+          },
+          {
+            "model_id": "aegis.trend.v1",
+            "label": "Trend",
+            "raw_score": -0.3915,
+            "weight": 0.1198,
+            "weighted_contribution": -0.046902,
+            "share_pct": 11.44
           }
         ],
         "dominant_driver": {
           "label": "Quality",
-          "contribution": 0.090895
+          "contribution": 0.12062
         },
         "opposition": {
-          "label": "Value",
-          "contribution": -0.011156
+          "label": "Trend",
+          "contribution": -0.046902
         },
         "sector_engine_contribution_pct": 0.0,
-        "total_positive": 0.314,
-        "total_negative": -0.0219
+        "total_positive": 0.3585,
+        "total_negative": -0.0516
       },
-      "percentile_action": "HOLD",
-      "score_percentile": 0.5,
-      "percentile_reason": "score +0.2922 in middle 60% (percentile 0.50)"
+      "percentile_action": "STRONG_BUY",
+      "score_percentile": 0.9286,
+      "percentile_reason": "score +0.3070 in top 10% (percentile 0.93)"
     },
     {
-      "ticker": "DXCM",
+      "ticker": "MSFT",
       "sector": "",
       "industry": "",
-      "recommendation": "BUY",
-      "action": "BUY",
-      "composite_decision_score": 64.515,
-      "confidence": 0.5908,
-      "rank": 9,
-      "ensemble_score": 0.2903,
-      "raw_confidence": 0.7561,
-      "calibrated_confidence": 0.5908,
-      "regime_adjusted_confidence": 0.5613,
-      "model_agreement": 0.7273,
+      "recommendation": "HOLD",
+      "action": "HOLD",
+      "composite_decision_score": 64.445,
+      "confidence": 0.5172,
+      "rank": 3,
+      "ensemble_score": 0.2889,
+      "raw_confidence": 0.6663,
+      "calibrated_confidence": 0.5172,
+      "regime_adjusted_confidence": 0.4913,
+      "model_agreement": 0.6364,
       "disagreement_flag": false,
       "n_models_scoring": 11,
       "top_models": [
         {
+          "model_id": "aegis.quality.v1",
+          "score": 0.6732
+        },
+        {
           "model_id": "aegis.trend.v1",
-          "score": 0.6588
+          "score": 0.5281
         },
         {
           "model_id": "aegis.momentum.v1",
-          "score": 0.5651
-        },
-        {
-          "model_id": "aegis.news.v1",
-          "score": 0.563
+          "score": 0.5209
         }
       ],
       "top_features": [
         "adx_14",
         "atr_14_pct",
+        "ca_days_since_last_dividend",
+        "ca_last_dividend_amount",
         "distance_from_52w_high_pct",
         "distance_from_52w_low_pct",
         "earn_days_to_next",
-        "earn_last_eps_reported",
-        "earn_last_surprise_pct",
-        "fund_debt_to_equity"
+        "earn_last_eps_reported"
       ],
-      "bull_case": "1-month momentum +28.01%; 3-month momentum +25.29%; high ROE (+38.49%); positive news sentiment (0.625).",
-      "bear_case": "high leverage (D/E 53.346).",
-      "key_risks": [
-        "leverage above 1x amplifies downside if fundamentals slip"
-      ],
+      "bull_case": "3-month momentum +18.73%; high ROE (+34.04%).",
+      "bear_case": "high leverage (D/E 29.118); net insider selling ($-10,111,079, 90d).",
+      "key_risks": [],
       "suggested_holding_period_days": 60,
       "entry_zone": {
-        "low": 88.416,
-        "high": 92.024,
-        "current": 90.22,
-        "note": "±2% band around current price"
+        "current": 507.29,
+        "note": "hold — no entry"
       },
       "exit_conditions": [
-        "time-based: review after 60 days if action still holds",
-        "price-based: 8% stop-loss from entry",
-        "price-based: consider trimming +15% from entry",
-        "thesis-based: exit if bull case signals invert (any 2 of them)"
+        "no active exit trigger — HOLD position"
       ],
       "model_stamp": {
         "model_id": "aegis.recommendation.v3",
@@ -2246,22 +633,291 @@
       "explainability": {
         "top_features_count": 8,
         "n_models_scoring": 11,
-        "model_agreement": 0.7273,
+        "model_agreement": 0.6364,
         "disagreement": false,
-        "confidence_reason": "confidence 0.591 · agreement 0.73",
-        "action_reason": "BUY · ensemble score +0.290"
+        "confidence_reason": "confidence 0.517 · agreement 0.64",
+        "action_reason": "HOLD · score +0.289 inside neutral band"
       },
       "signal_quality": "STRONG",
+      "oc_next_best_ticker": "HON",
+      "oc_next_best_score": 63.095,
+      "oc_expected_alpha_delta": -1.35,
+      "oc_reason_not_to_rotate": "no better candidate available (best HON edge -1.3500) — hold optimal",
       "entry_exit": {
         "entry_zone": {
-          "low": 88.416,
-          "high": 92.024,
-          "current": 90.22,
-          "note": "±2% band around current price"
+          "current": 507.29,
+          "note": "hold — no entry"
         },
         "if_holding": null,
         "entry": null,
-        "exit_reason": "time-based: review after 60 days if action still holds"
+        "exit_reason": "no active exit trigger — HOLD position"
+      },
+      "investor_action": {
+        "entry": "BUY",
+        "if_holding": "HOLD",
+        "user_facing_label": "🟢 Buy · Hold if already holding",
+        "is_actionable_entry": true,
+        "is_actionable_if_holding": false,
+        "source_action": "BUY"
+      },
+      "position_plan": {
+        "suggested_allocation_pct": 3.0,
+        "risk_level": "moderate",
+        "max_capital_exposure_pct": 6.0,
+        "time_horizon_days": 9,
+        "time_horizon_bucket": "swing",
+        "time_horizon_desc": "Days-to-weeks · exit near target or on stop",
+        "entry_zone": {
+          "current_price": 507.29,
+          "ideal_buy_low": 502.22,
+          "ideal_buy_high": 512.36,
+          "stop_loss": 476.85,
+          "target_1": 568.16,
+          "target_2": 629.04,
+          "risk_reward_ratio": "1:2 (T1) · 1:4 (T2)",
+          "risk_per_share_pct": 6.0
+        },
+        "sizing_note": "preview allocation · real position size determined by risk engine (fractional Kelly · half-Kelly cap · per-sector cap · VIX-adjusted)",
+        "dynamic_holding_reason": "dynamic holding 9d = base 21 × composite 0.408 · drivers: risk trim (0.80x)"
+      },
+      "why": {
+        "top_reasons": [
+          "3-month momentum +18.73%",
+          "high ROE (+34.04%)",
+          "ensemble score +0.2889 (top-percentile signal)"
+        ],
+        "top_risks": [
+          "high leverage (D/E 29.118)",
+          "net insider selling ($-10,111,079, 90d)"
+        ],
+        "signal_quality": "STRONG"
+      },
+      "rotation_intelligence": {
+        "should_rotate": true,
+        "replacement_ticker": "PLTR",
+        "edge": 0.1341,
+        "expected_alpha_delta_pct": 13.41,
+        "keep_score": 0.2889,
+        "candidate_score": 0.423,
+        "reason": "rotate → PLTR · candidate_score +0.4230 vs current +0.2889 · edge +0.1341 > threshold 0.05 · expected alpha +13.41%"
+      },
+      "lifecycle_state": {
+        "current_state": "HOLD",
+        "previous_state": "HOLD",
+        "ts_last_transition": "2026-09-01T12:32:36.918444+00:00",
+        "n_events": 720
+      },
+      "evolution": {
+        "is_new": false,
+        "days_recommended": 2,
+        "previous_asof": null,
+        "rank_change": -5.0,
+        "score_change": 0.1485,
+        "confidence_change": -0.0193,
+        "allocation_change_pct": 3.0,
+        "action_change": "HOLD → BUY",
+        "lifecycle_change": "UNTRACKED → HOLD",
+        "narrative": "action HOLD → BUY · lifecycle UNTRACKED → HOLD · rank ↑5 · allocation 0.0% → 3.0% (+3.00pp) · confidence -0.0193 · score +0.1485"
+      },
+      "discipline": {
+        "is_winner_exit": false,
+        "is_low_conviction_buy": false,
+        "sector_gate_violation": false,
+        "weight_score_inversion": false,
+        "notes": []
+      },
+      "attribution": {
+        "per_model": [
+          {
+            "model_id": "aegis.quality.v1",
+            "label": "Quality",
+            "raw_score": 0.6732,
+            "weight": 0.1345,
+            "weighted_contribution": 0.090545,
+            "share_pct": 28.56
+          },
+          {
+            "model_id": "aegis.trend.v1",
+            "label": "Trend",
+            "raw_score": 0.5281,
+            "weight": 0.1198,
+            "weighted_contribution": 0.063266,
+            "share_pct": 19.96
+          },
+          {
+            "model_id": "aegis.momentum.v1",
+            "label": "Momentum",
+            "raw_score": 0.5209,
+            "weight": 0.1105,
+            "weighted_contribution": 0.057559,
+            "share_pct": 18.16
+          },
+          {
+            "model_id": "aegis.event_driven.v1",
+            "label": "Event",
+            "raw_score": 0.2462,
+            "weight": 0.1185,
+            "weighted_contribution": 0.029175,
+            "share_pct": 9.2
+          },
+          {
+            "model_id": "aegis.mean_reversion.v1",
+            "label": "MeanReversion",
+            "raw_score": 0.2,
+            "weight": 0.1267,
+            "weighted_contribution": 0.02534,
+            "share_pct": 7.99
+          },
+          {
+            "model_id": "aegis.growth.v1",
+            "label": "Growth",
+            "raw_score": 0.3998,
+            "weight": 0.0508,
+            "weighted_contribution": 0.02031,
+            "share_pct": 6.41
+          },
+          {
+            "model_id": "aegis.ai_hybrid.v1",
+            "label": "AI-Hybrid",
+            "raw_score": 0.3286,
+            "weight": 0.0508,
+            "weighted_contribution": 0.016693,
+            "share_pct": 5.27
+          },
+          {
+            "model_id": "aegis.news.v1",
+            "label": "News",
+            "raw_score": 0.0002,
+            "weight": 0.0508,
+            "weighted_contribution": 1e-05,
+            "share_pct": 0.0
+          },
+          {
+            "model_id": "aegis.macro.v1",
+            "label": "Macro",
+            "raw_score": 0.0,
+            "weight": 0.0508,
+            "weighted_contribution": 0.0,
+            "share_pct": 0.0
+          },
+          {
+            "model_id": "aegis.sector_rotation.v1",
+            "label": "Sector",
+            "raw_score": 0.0,
+            "weight": 0.1357,
+            "weighted_contribution": 0.0,
+            "share_pct": 0.0
+          },
+          {
+            "model_id": "aegis.value.v1",
+            "label": "Value",
+            "raw_score": -0.2775,
+            "weight": 0.0508,
+            "weighted_contribution": -0.014097,
+            "share_pct": 4.45
+          }
+        ],
+        "dominant_driver": {
+          "label": "Quality",
+          "contribution": 0.090545
+        },
+        "opposition": {
+          "label": "Value",
+          "contribution": -0.014097
+        },
+        "sector_engine_contribution_pct": 0.0,
+        "total_positive": 0.3029,
+        "total_negative": -0.0141
+      },
+      "percentile_action": "BUY",
+      "score_percentile": 0.8571,
+      "percentile_reason": "score +0.2889 in top 20% (percentile 0.86)"
+    },
+    {
+      "ticker": "HOOD",
+      "sector": "",
+      "industry": "",
+      "recommendation": "HOLD",
+      "action": "HOLD",
+      "composite_decision_score": 64.015,
+      "confidence": 0.4892,
+      "rank": 4,
+      "ensemble_score": 0.2803,
+      "raw_confidence": 0.6663,
+      "calibrated_confidence": 0.4892,
+      "regime_adjusted_confidence": 0.4647,
+      "model_agreement": 0.6364,
+      "disagreement_flag": false,
+      "n_models_scoring": 11,
+      "top_models": [
+        {
+          "model_id": "aegis.momentum.v1",
+          "score": 0.631
+        },
+        {
+          "model_id": "aegis.value.v1",
+          "score": -0.6206
+        },
+        {
+          "model_id": "aegis.mean_reversion.v1",
+          "score": 0.5303
+        }
+      ],
+      "top_features": [
+        "adx_14",
+        "atr_14_pct",
+        "distance_from_52w_high_pct",
+        "distance_from_52w_low_pct",
+        "earn_days_to_next",
+        "earn_last_eps_reported",
+        "earn_last_surprise_pct",
+        "fund_debt_to_equity"
+      ],
+      "bull_case": "1-month momentum +16.02%; 3-month momentum +18.66%; high ROE (+23.62%).",
+      "bear_case": "stretched valuation (P/E 46.376); high leverage (D/E 240.279); net insider selling ($-45,179,011, 90d); deep 60d drawdown (-26.36%).",
+      "key_risks": [],
+      "suggested_holding_period_days": 60,
+      "entry_zone": {
+        "current": 104.81,
+        "note": "hold — no entry"
+      },
+      "exit_conditions": [
+        "no active exit trigger — HOLD position"
+      ],
+      "model_stamp": {
+        "model_id": "aegis.recommendation.v3",
+        "version": "1.0.0",
+        "engine": "recommendation_intelligence",
+        "market": "usa",
+        "feature_set_version": "b65ceb49a83a",
+        "schema_version": "b65ceb49a83a",
+        "calibration_version": "",
+        "approval_status": "experimental",
+        "approved_by": "",
+        "approved_on": ""
+      },
+      "provenance": "aegis.recommendation.ssot.v1 (bridged from Runner 2 v3)",
+      "explainability": {
+        "top_features_count": 8,
+        "n_models_scoring": 11,
+        "model_agreement": 0.6364,
+        "disagreement": false,
+        "confidence_reason": "confidence 0.489 · agreement 0.64",
+        "action_reason": "HOLD · score +0.280 inside neutral band"
+      },
+      "signal_quality": "STRONG",
+      "oc_next_best_ticker": "HON",
+      "oc_next_best_score": 63.095,
+      "oc_expected_alpha_delta": -0.92,
+      "oc_reason_not_to_rotate": "no better candidate available (best HON edge -0.9200) — hold optimal",
+      "entry_exit": {
+        "entry_zone": {
+          "current": 104.81,
+          "note": "hold — no entry"
+        },
+        "if_holding": null,
+        "entry": null,
+        "exit_reason": "no active exit trigger — HOLD position"
       },
       "investor_action": {
         "entry": "WAIT",
@@ -2275,44 +931,566 @@
         "suggested_allocation_pct": 0.0,
         "risk_level": "moderate",
         "max_capital_exposure_pct": 6.0,
-        "time_horizon_days": 17,
-        "time_horizon_bucket": "swing",
-        "time_horizon_desc": "Days-to-weeks · exit near target or on stop",
+        "time_horizon_days": 60,
+        "time_horizon_bucket": "position",
+        "time_horizon_desc": "Weeks-to-months · trend-following",
         "entry_zone": {
-          "current_price": 90.22,
+          "current_price": 104.81,
           "note": "watchlist · re-check when signal strengthens"
         },
-        "sizing_note": "preview allocation · real position size determined by risk engine (fractional Kelly · half-Kelly cap · per-sector cap · VIX-adjusted)",
-        "dynamic_holding_reason": "dynamic holding 17d = base 21 × composite 0.816 · drivers: risk trim (0.80x)"
+        "sizing_note": "preview allocation · real position size determined by risk engine (fractional Kelly · half-Kelly cap · per-sector cap · VIX-adjusted)"
       },
       "why": {
         "top_reasons": [
-          "1-month momentum +28.01%",
-          "3-month momentum +25.29%",
-          "high ROE (+38.49%)",
-          "positive news sentiment (0.625)",
-          "ensemble score +0.2903 (top-percentile signal)"
+          "1-month momentum +16.02%",
+          "3-month momentum +18.66%",
+          "high ROE (+23.62%)",
+          "ensemble score +0.2803 (top-percentile signal)"
         ],
         "top_risks": [
-          "high leverage (D/E 53.346)",
-          "leverage above 1x amplifies downside if fundamentals slip"
+          "stretched valuation (P/E 46.376)",
+          "high leverage (D/E 240.279)",
+          "net insider selling ($-45,179,011, 90d)",
+          "deep 60d drawdown (-26.36%)"
         ],
         "signal_quality": "STRONG"
       },
       "rotation_intelligence": {
-        "should_rotate": false,
-        "replacement_ticker": null,
-        "edge": 0.0444,
-        "expected_alpha_delta_pct": 0.0,
-        "keep_score": 0.2903,
-        "candidate_score": 0.3347,
-        "reason": "keep · candidate edge +0.0444 ≤ threshold 0.05 · rotation would not add expected alpha"
+        "should_rotate": true,
+        "replacement_ticker": "PLTR",
+        "edge": 0.1427,
+        "expected_alpha_delta_pct": 14.27,
+        "keep_score": 0.2803,
+        "candidate_score": 0.423,
+        "reason": "rotate → PLTR · candidate_score +0.4230 vs current +0.2803 · edge +0.1427 > threshold 0.05 · expected alpha +14.27%"
       },
       "lifecycle_state": {
-        "current_state": "BUY",
+        "current_state": "HOLD",
         "previous_state": "HOLD",
-        "ts_last_transition": "2026-08-20T14:34:25.359855+00:00",
-        "n_events": 161
+        "ts_last_transition": "2026-09-01T12:32:36.918444+00:00",
+        "n_events": 321
+      },
+      "evolution": {
+        "is_new": true,
+        "days_recommended": 1,
+        "previous_asof": null,
+        "rank_change": null,
+        "score_change": null,
+        "action_change": null,
+        "confidence_change": null,
+        "lifecycle_change": null,
+        "allocation_change_pct": null,
+        "narrative": "NEW recommendation · no prior snapshot"
+      },
+      "discipline": {
+        "is_winner_exit": false,
+        "is_low_conviction_buy": false,
+        "sector_gate_violation": false,
+        "weight_score_inversion": false,
+        "notes": []
+      },
+      "attribution": {
+        "per_model": [
+          {
+            "model_id": "aegis.momentum.v1",
+            "label": "Momentum",
+            "raw_score": 0.631,
+            "weight": 0.1105,
+            "weighted_contribution": 0.069725,
+            "share_pct": 20.31
+          },
+          {
+            "model_id": "aegis.mean_reversion.v1",
+            "label": "MeanReversion",
+            "raw_score": 0.5303,
+            "weight": 0.1267,
+            "weighted_contribution": 0.067189,
+            "share_pct": 19.57
+          },
+          {
+            "model_id": "aegis.event_driven.v1",
+            "label": "Event",
+            "raw_score": 0.5187,
+            "weight": 0.1185,
+            "weighted_contribution": 0.061466,
+            "share_pct": 17.9
+          },
+          {
+            "model_id": "aegis.quality.v1",
+            "label": "Quality",
+            "raw_score": 0.3732,
+            "weight": 0.1345,
+            "weighted_contribution": 0.050195,
+            "share_pct": 14.62
+          },
+          {
+            "model_id": "aegis.trend.v1",
+            "label": "Trend",
+            "raw_score": 0.2298,
+            "weight": 0.1198,
+            "weighted_contribution": 0.02753,
+            "share_pct": 8.02
+          },
+          {
+            "model_id": "aegis.growth.v1",
+            "label": "Growth",
+            "raw_score": 0.4292,
+            "weight": 0.0508,
+            "weighted_contribution": 0.021803,
+            "share_pct": 6.35
+          },
+          {
+            "model_id": "aegis.ai_hybrid.v1",
+            "label": "AI-Hybrid",
+            "raw_score": 0.2727,
+            "weight": 0.0508,
+            "weighted_contribution": 0.013853,
+            "share_pct": 4.04
+          },
+          {
+            "model_id": "aegis.news.v1",
+            "label": "News",
+            "raw_score": 0.0002,
+            "weight": 0.0508,
+            "weighted_contribution": 1e-05,
+            "share_pct": 0.0
+          },
+          {
+            "model_id": "aegis.macro.v1",
+            "label": "Macro",
+            "raw_score": 0.0,
+            "weight": 0.0508,
+            "weighted_contribution": 0.0,
+            "share_pct": 0.0
+          },
+          {
+            "model_id": "aegis.sector_rotation.v1",
+            "label": "Sector",
+            "raw_score": 0.0,
+            "weight": 0.1357,
+            "weighted_contribution": 0.0,
+            "share_pct": 0.0
+          },
+          {
+            "model_id": "aegis.value.v1",
+            "label": "Value",
+            "raw_score": -0.6206,
+            "weight": 0.0508,
+            "weighted_contribution": -0.031526,
+            "share_pct": 9.18
+          }
+        ],
+        "dominant_driver": {
+          "label": "Momentum",
+          "contribution": 0.069725
+        },
+        "opposition": {
+          "label": "Value",
+          "contribution": -0.031526
+        },
+        "sector_engine_contribution_pct": 0.0,
+        "total_positive": 0.3118,
+        "total_negative": -0.0315
+      },
+      "percentile_action": "HOLD",
+      "score_percentile": 0.7857,
+      "percentile_reason": "score +0.2803 in middle 60% (percentile 0.79)"
+    },
+    {
+      "ticker": "GRMN",
+      "sector": "",
+      "industry": "",
+      "recommendation": "HOLD",
+      "action": "HOLD",
+      "composite_decision_score": 63.71,
+      "confidence": 0.4885,
+      "rank": 5,
+      "ensemble_score": 0.2742,
+      "raw_confidence": 0.6663,
+      "calibrated_confidence": 0.4885,
+      "regime_adjusted_confidence": 0.4641,
+      "model_agreement": 0.5455,
+      "disagreement_flag": true,
+      "n_models_scoring": 11,
+      "top_models": [
+        {
+          "model_id": "aegis.quality.v1",
+          "score": 0.6567
+        },
+        {
+          "model_id": "aegis.mean_reversion.v1",
+          "score": 0.5464
+        },
+        {
+          "model_id": "aegis.trend.v1",
+          "score": 0.437
+        }
+      ],
+      "top_features": [
+        "adx_14",
+        "atr_14_pct",
+        "ca_days_since_last_dividend",
+        "ca_last_dividend_amount",
+        "distance_from_52w_high_pct",
+        "distance_from_52w_low_pct",
+        "earn_days_to_next",
+        "earn_last_eps_reported"
+      ],
+      "bull_case": "3-month momentum +19.93%; high ROE (+21.89%).",
+      "bear_case": "oversold RSI (13.660) — momentum broken; high leverage (D/E 2.513).",
+      "key_risks": [],
+      "suggested_holding_period_days": 60,
+      "entry_zone": {
+        "current": 284.11,
+        "note": "hold — no entry"
+      },
+      "exit_conditions": [
+        "no active exit trigger — HOLD position"
+      ],
+      "model_stamp": {
+        "model_id": "aegis.recommendation.v3",
+        "version": "1.0.0",
+        "engine": "recommendation_intelligence",
+        "market": "usa",
+        "feature_set_version": "b65ceb49a83a",
+        "schema_version": "b65ceb49a83a",
+        "calibration_version": "",
+        "approval_status": "experimental",
+        "approved_by": "",
+        "approved_on": ""
+      },
+      "provenance": "aegis.recommendation.ssot.v1 (bridged from Runner 2 v3)",
+      "explainability": {
+        "top_features_count": 8,
+        "n_models_scoring": 11,
+        "model_agreement": 0.5455,
+        "disagreement": true,
+        "confidence_reason": "models disagree · calibrated confidence 0.488 dampened",
+        "action_reason": "HOLD · score +0.274 inside neutral band · plus disagreement"
+      },
+      "signal_quality": "STRONG",
+      "oc_next_best_ticker": "HON",
+      "oc_next_best_score": 63.095,
+      "oc_expected_alpha_delta": -0.615,
+      "oc_reason_not_to_rotate": "no better candidate available (best HON edge -0.6150) — hold optimal",
+      "entry_exit": {
+        "entry_zone": {
+          "current": 284.11,
+          "note": "hold — no entry"
+        },
+        "if_holding": null,
+        "entry": null,
+        "exit_reason": "no active exit trigger — HOLD position"
+      },
+      "investor_action": {
+        "entry": "WAIT",
+        "if_holding": "HOLD",
+        "user_facing_label": "🟡 Watchlist · Keep holding if you own it",
+        "is_actionable_entry": false,
+        "is_actionable_if_holding": false,
+        "source_action": "HOLD"
+      },
+      "position_plan": {
+        "suggested_allocation_pct": 0.0,
+        "risk_level": "moderate",
+        "max_capital_exposure_pct": 6.0,
+        "time_horizon_days": 60,
+        "time_horizon_bucket": "position",
+        "time_horizon_desc": "Weeks-to-months · trend-following",
+        "entry_zone": {
+          "current_price": 284.11,
+          "note": "watchlist · re-check when signal strengthens"
+        },
+        "sizing_note": "preview allocation · real position size determined by risk engine (fractional Kelly · half-Kelly cap · per-sector cap · VIX-adjusted)"
+      },
+      "why": {
+        "top_reasons": [
+          "3-month momentum +19.93%",
+          "high ROE (+21.89%)",
+          "ensemble score +0.2742 (top-percentile signal)"
+        ],
+        "top_risks": [
+          "oversold RSI (13.660) — momentum broken",
+          "high leverage (D/E 2.513)",
+          "model disagreement · signal not unanimous"
+        ],
+        "signal_quality": "STRONG"
+      },
+      "rotation_intelligence": {
+        "should_rotate": true,
+        "replacement_ticker": "PLTR",
+        "edge": 0.1488,
+        "expected_alpha_delta_pct": 14.88,
+        "keep_score": 0.2742,
+        "candidate_score": 0.423,
+        "reason": "rotate → PLTR · candidate_score +0.4230 vs current +0.2742 · edge +0.1488 > threshold 0.05 · expected alpha +14.88%"
+      },
+      "lifecycle_state": {
+        "current_state": "HOLD",
+        "previous_state": "HOLD",
+        "ts_last_transition": "2026-09-01T12:32:36.918444+00:00",
+        "n_events": 321
+      },
+      "evolution": {
+        "is_new": true,
+        "days_recommended": 1,
+        "previous_asof": null,
+        "rank_change": null,
+        "score_change": null,
+        "action_change": null,
+        "confidence_change": null,
+        "lifecycle_change": null,
+        "allocation_change_pct": null,
+        "narrative": "NEW recommendation · no prior snapshot"
+      },
+      "discipline": {
+        "is_winner_exit": false,
+        "is_low_conviction_buy": false,
+        "sector_gate_violation": false,
+        "weight_score_inversion": false,
+        "notes": []
+      },
+      "attribution": {
+        "per_model": [
+          {
+            "model_id": "aegis.quality.v1",
+            "label": "Quality",
+            "raw_score": 0.6567,
+            "weight": 0.1345,
+            "weighted_contribution": 0.088326,
+            "share_pct": 28.8
+          },
+          {
+            "model_id": "aegis.mean_reversion.v1",
+            "label": "MeanReversion",
+            "raw_score": 0.5464,
+            "weight": 0.1267,
+            "weighted_contribution": 0.069229,
+            "share_pct": 22.57
+          },
+          {
+            "model_id": "aegis.trend.v1",
+            "label": "Trend",
+            "raw_score": 0.437,
+            "weight": 0.1198,
+            "weighted_contribution": 0.052353,
+            "share_pct": 17.07
+          },
+          {
+            "model_id": "aegis.event_driven.v1",
+            "label": "Event",
+            "raw_score": 0.4135,
+            "weight": 0.1185,
+            "weighted_contribution": 0.049,
+            "share_pct": 15.98
+          },
+          {
+            "model_id": "aegis.growth.v1",
+            "label": "Growth",
+            "raw_score": 0.3191,
+            "weight": 0.0508,
+            "weighted_contribution": 0.01621,
+            "share_pct": 5.29
+          },
+          {
+            "model_id": "aegis.ai_hybrid.v1",
+            "label": "AI-Hybrid",
+            "raw_score": 0.3009,
+            "weight": 0.0508,
+            "weighted_contribution": 0.015286,
+            "share_pct": 4.98
+          },
+          {
+            "model_id": "aegis.news.v1",
+            "label": "News",
+            "raw_score": 0.0002,
+            "weight": 0.0508,
+            "weighted_contribution": 1e-05,
+            "share_pct": 0.0
+          },
+          {
+            "model_id": "aegis.macro.v1",
+            "label": "Macro",
+            "raw_score": 0.0,
+            "weight": 0.0508,
+            "weighted_contribution": 0.0,
+            "share_pct": 0.0
+          },
+          {
+            "model_id": "aegis.sector_rotation.v1",
+            "label": "Sector",
+            "raw_score": 0.0,
+            "weight": 0.1357,
+            "weighted_contribution": 0.0,
+            "share_pct": 0.0
+          },
+          {
+            "model_id": "aegis.momentum.v1",
+            "label": "Momentum",
+            "raw_score": -0.045,
+            "weight": 0.1105,
+            "weighted_contribution": -0.004972,
+            "share_pct": 1.62
+          },
+          {
+            "model_id": "aegis.value.v1",
+            "label": "Value",
+            "raw_score": -0.2227,
+            "weight": 0.0508,
+            "weighted_contribution": -0.011313,
+            "share_pct": 3.69
+          }
+        ],
+        "dominant_driver": {
+          "label": "Quality",
+          "contribution": 0.088326
+        },
+        "opposition": {
+          "label": "Value",
+          "contribution": -0.011313
+        },
+        "sector_engine_contribution_pct": 0.0,
+        "total_positive": 0.2904,
+        "total_negative": -0.0163
+      },
+      "percentile_action": "HOLD",
+      "score_percentile": 0.7143,
+      "percentile_reason": "score +0.2742 in middle 60% (percentile 0.71)"
+    },
+    {
+      "ticker": "EXPD",
+      "sector": "",
+      "industry": "",
+      "recommendation": "HOLD",
+      "action": "HOLD",
+      "composite_decision_score": 63.68,
+      "confidence": 0.4885,
+      "rank": 6,
+      "ensemble_score": 0.2736,
+      "raw_confidence": 0.6663,
+      "calibrated_confidence": 0.4885,
+      "regime_adjusted_confidence": 0.4641,
+      "model_agreement": 0.5455,
+      "disagreement_flag": true,
+      "n_models_scoring": 11,
+      "top_models": [
+        {
+          "model_id": "aegis.trend.v1",
+          "score": 0.7563
+        },
+        {
+          "model_id": "aegis.momentum.v1",
+          "score": 0.6016
+        },
+        {
+          "model_id": "aegis.growth.v1",
+          "score": 0.5875
+        }
+      ],
+      "top_features": [
+        "adx_14",
+        "atr_14_pct",
+        "ca_days_since_last_dividend",
+        "ca_last_dividend_amount",
+        "distance_from_52w_high_pct",
+        "distance_from_52w_low_pct",
+        "earn_days_to_next",
+        "earn_last_eps_reported"
+      ],
+      "bull_case": "1-month momentum +12.96%; 3-month momentum +19.50%; high ROE (+42.67%).",
+      "bear_case": "high leverage (D/E 26.745).",
+      "key_risks": [],
+      "suggested_holding_period_days": 60,
+      "entry_zone": {
+        "current": 189.65,
+        "note": "hold — no entry"
+      },
+      "exit_conditions": [
+        "no active exit trigger — HOLD position"
+      ],
+      "model_stamp": {
+        "model_id": "aegis.recommendation.v3",
+        "version": "1.0.0",
+        "engine": "recommendation_intelligence",
+        "market": "usa",
+        "feature_set_version": "b65ceb49a83a",
+        "schema_version": "b65ceb49a83a",
+        "calibration_version": "",
+        "approval_status": "experimental",
+        "approved_by": "",
+        "approved_on": ""
+      },
+      "provenance": "aegis.recommendation.ssot.v1 (bridged from Runner 2 v3)",
+      "explainability": {
+        "top_features_count": 8,
+        "n_models_scoring": 11,
+        "model_agreement": 0.5455,
+        "disagreement": true,
+        "confidence_reason": "models disagree · calibrated confidence 0.488 dampened",
+        "action_reason": "HOLD · score +0.274 inside neutral band · plus disagreement"
+      },
+      "signal_quality": "STRONG",
+      "oc_next_best_ticker": "HON",
+      "oc_next_best_score": 63.095,
+      "oc_expected_alpha_delta": -0.585,
+      "oc_reason_not_to_rotate": "no better candidate available (best HON edge -0.5850) — hold optimal",
+      "entry_exit": {
+        "entry_zone": {
+          "current": 189.65,
+          "note": "hold — no entry"
+        },
+        "if_holding": null,
+        "entry": null,
+        "exit_reason": "no active exit trigger — HOLD position"
+      },
+      "investor_action": {
+        "entry": "WAIT",
+        "if_holding": "HOLD",
+        "user_facing_label": "🟡 Watchlist · Keep holding if you own it",
+        "is_actionable_entry": false,
+        "is_actionable_if_holding": false,
+        "source_action": "HOLD"
+      },
+      "position_plan": {
+        "suggested_allocation_pct": 0.0,
+        "risk_level": "moderate",
+        "max_capital_exposure_pct": 6.0,
+        "time_horizon_days": 60,
+        "time_horizon_bucket": "position",
+        "time_horizon_desc": "Weeks-to-months · trend-following",
+        "entry_zone": {
+          "current_price": 189.65,
+          "note": "watchlist · re-check when signal strengthens"
+        },
+        "sizing_note": "preview allocation · real position size determined by risk engine (fractional Kelly · half-Kelly cap · per-sector cap · VIX-adjusted)"
+      },
+      "why": {
+        "top_reasons": [
+          "1-month momentum +12.96%",
+          "3-month momentum +19.50%",
+          "high ROE (+42.67%)",
+          "ensemble score +0.2736 (top-percentile signal)"
+        ],
+        "top_risks": [
+          "high leverage (D/E 26.745)",
+          "model disagreement · signal not unanimous"
+        ],
+        "signal_quality": "STRONG"
+      },
+      "rotation_intelligence": {
+        "should_rotate": true,
+        "replacement_ticker": "PLTR",
+        "edge": 0.1494,
+        "expected_alpha_delta_pct": 14.94,
+        "keep_score": 0.2736,
+        "candidate_score": 0.423,
+        "reason": "rotate → PLTR · candidate_score +0.4230 vs current +0.2736 · edge +0.1494 > threshold 0.05 · expected alpha +14.94%"
+      },
+      "lifecycle_state": {
+        "current_state": "HOLD",
+        "previous_state": "HOLD",
+        "ts_last_transition": "2026-09-01T12:32:36.918444+00:00",
+        "n_events": 321
       },
       "evolution": {
         "is_new": true,
@@ -2338,66 +1516,58 @@
           {
             "model_id": "aegis.trend.v1",
             "label": "Trend",
-            "raw_score": 0.6588,
+            "raw_score": 0.7563,
             "weight": 0.1198,
-            "weighted_contribution": 0.078924,
-            "share_pct": 23.07
+            "weighted_contribution": 0.090605,
+            "share_pct": 25.13
           },
           {
             "model_id": "aegis.quality.v1",
             "label": "Quality",
-            "raw_score": 0.4906,
+            "raw_score": 0.5056,
             "weight": 0.1345,
-            "weighted_contribution": 0.065986,
-            "share_pct": 19.29
+            "weighted_contribution": 0.068003,
+            "share_pct": 18.86
           },
           {
             "model_id": "aegis.momentum.v1",
             "label": "Momentum",
-            "raw_score": 0.5651,
+            "raw_score": 0.6016,
             "weight": 0.1105,
-            "weighted_contribution": 0.062444,
-            "share_pct": 18.25
-          },
-          {
-            "model_id": "aegis.news.v1",
-            "label": "News",
-            "raw_score": 0.563,
-            "weight": 0.0508,
-            "weighted_contribution": 0.0286,
-            "share_pct": 8.36
-          },
-          {
-            "model_id": "aegis.growth.v1",
-            "label": "Growth",
-            "raw_score": 0.5444,
-            "weight": 0.0508,
-            "weighted_contribution": 0.027656,
-            "share_pct": 8.08
+            "weighted_contribution": 0.066477,
+            "share_pct": 18.44
           },
           {
             "model_id": "aegis.event_driven.v1",
             "label": "Event",
-            "raw_score": 0.1568,
+            "raw_score": 0.3873,
             "weight": 0.1185,
-            "weighted_contribution": 0.018581,
-            "share_pct": 5.43
+            "weighted_contribution": 0.045895,
+            "share_pct": 12.73
           },
           {
-            "model_id": "aegis.mean_reversion.v1",
-            "label": "MeanReversion",
-            "raw_score": 0.1458,
-            "weight": 0.1267,
-            "weighted_contribution": 0.018473,
-            "share_pct": 5.4
+            "model_id": "aegis.growth.v1",
+            "label": "Growth",
+            "raw_score": 0.5875,
+            "weight": 0.0508,
+            "weighted_contribution": 0.029845,
+            "share_pct": 8.28
           },
           {
             "model_id": "aegis.ai_hybrid.v1",
             "label": "AI-Hybrid",
-            "raw_score": 0.3051,
+            "raw_score": 0.3184,
             "weight": 0.0508,
-            "weighted_contribution": 0.015499,
-            "share_pct": 4.53
+            "weighted_contribution": 0.016175,
+            "share_pct": 4.49
+          },
+          {
+            "model_id": "aegis.news.v1",
+            "label": "News",
+            "raw_score": 0.0002,
+            "weight": 0.0508,
+            "weighted_contribution": 1e-05,
+            "share_pct": 0.0
           },
           {
             "model_id": "aegis.macro.v1",
@@ -2418,56 +1588,64 @@
           {
             "model_id": "aegis.value.v1",
             "label": "Value",
-            "raw_score": -0.5113,
+            "raw_score": -0.308,
             "weight": 0.0508,
-            "weighted_contribution": -0.025974,
-            "share_pct": 7.59
+            "weighted_contribution": -0.015646,
+            "share_pct": 4.34
+          },
+          {
+            "model_id": "aegis.mean_reversion.v1",
+            "label": "MeanReversion",
+            "raw_score": -0.22,
+            "weight": 0.1267,
+            "weighted_contribution": -0.027874,
+            "share_pct": 7.73
           }
         ],
         "dominant_driver": {
           "label": "Trend",
-          "contribution": 0.078924
+          "contribution": 0.090605
         },
         "opposition": {
-          "label": "Value",
-          "contribution": -0.025974
+          "label": "MeanReversion",
+          "contribution": -0.027874
         },
         "sector_engine_contribution_pct": 0.0,
-        "total_positive": 0.3162,
-        "total_negative": -0.026
+        "total_positive": 0.317,
+        "total_negative": -0.0435
       },
       "percentile_action": "HOLD",
-      "score_percentile": 0.4286,
-      "percentile_reason": "score +0.2903 in middle 60% (percentile 0.43)"
+      "score_percentile": 0.6429,
+      "percentile_reason": "score +0.2736 in middle 60% (percentile 0.64)"
     },
     {
-      "ticker": "ADBE",
+      "ticker": "FTNT",
       "sector": "",
       "industry": "",
-      "recommendation": "BUY",
-      "action": "BUY",
-      "composite_decision_score": 64.375,
-      "confidence": 0.6219,
-      "rank": 10,
-      "ensemble_score": 0.2875,
-      "raw_confidence": 0.7561,
-      "calibrated_confidence": 0.6219,
-      "regime_adjusted_confidence": 0.5908,
-      "model_agreement": 0.8182,
-      "disagreement_flag": false,
+      "recommendation": "HOLD",
+      "action": "HOLD",
+      "composite_decision_score": 63.62,
+      "confidence": 0.4621,
+      "rank": 7,
+      "ensemble_score": 0.2724,
+      "raw_confidence": 0.6663,
+      "calibrated_confidence": 0.4621,
+      "regime_adjusted_confidence": 0.439,
+      "model_agreement": 0.5455,
+      "disagreement_flag": true,
       "n_models_scoring": 11,
       "top_models": [
         {
-          "model_id": "aegis.momentum.v1",
-          "score": 0.5483
+          "model_id": "aegis.quality.v1",
+          "score": 0.8222
         },
         {
-          "model_id": "aegis.news.v1",
-          "score": 0.5014
+          "model_id": "aegis.value.v1",
+          "score": -0.8198
         },
         {
-          "model_id": "aegis.trend.v1",
-          "score": 0.4901
+          "model_id": "aegis.growth.v1",
+          "score": 0.6578
         }
       ],
       "top_features": [
@@ -2480,17 +1658,798 @@
         "earn_last_surprise_pct",
         "fund_debt_to_equity"
       ],
-      "bull_case": "1-month momentum +28.30%; 3-month momentum +13.19%; high ROE (+62.95%); positive news sentiment (0.500).",
-      "bear_case": "high leverage (D/E 61.443); deep 60d drawdown (-29.42%).",
+      "bull_case": "1-month momentum +5.54%; 3-month momentum +16.69%; strong fundamental quality (72.910); high ROE (+1.17%).",
+      "bear_case": "stretched valuation (P/E 60.187); high leverage (D/E 36.194); net insider selling ($-26,838,148, 90d).",
+      "key_risks": [],
+      "suggested_holding_period_days": 60,
+      "entry_zone": {
+        "current": 170.93,
+        "note": "hold — no entry"
+      },
+      "exit_conditions": [
+        "no active exit trigger — HOLD position"
+      ],
+      "model_stamp": {
+        "model_id": "aegis.recommendation.v3",
+        "version": "1.0.0",
+        "engine": "recommendation_intelligence",
+        "market": "usa",
+        "feature_set_version": "b65ceb49a83a",
+        "schema_version": "b65ceb49a83a",
+        "calibration_version": "",
+        "approval_status": "experimental",
+        "approved_by": "",
+        "approved_on": ""
+      },
+      "provenance": "aegis.recommendation.ssot.v1 (bridged from Runner 2 v3)",
+      "explainability": {
+        "top_features_count": 8,
+        "n_models_scoring": 11,
+        "model_agreement": 0.5455,
+        "disagreement": true,
+        "confidence_reason": "models disagree · calibrated confidence 0.462 dampened",
+        "action_reason": "HOLD · score +0.272 inside neutral band · plus disagreement"
+      },
+      "signal_quality": "STRONG",
+      "oc_next_best_ticker": "HON",
+      "oc_next_best_score": 63.095,
+      "oc_expected_alpha_delta": -0.525,
+      "oc_reason_not_to_rotate": "no better candidate available (best HON edge -0.5250) — hold optimal",
+      "entry_exit": {
+        "entry_zone": {
+          "current": 170.93,
+          "note": "hold — no entry"
+        },
+        "if_holding": null,
+        "entry": null,
+        "exit_reason": "no active exit trigger — HOLD position"
+      },
+      "investor_action": {
+        "entry": "WAIT",
+        "if_holding": "HOLD",
+        "user_facing_label": "🟡 Watchlist · Keep holding if you own it",
+        "is_actionable_entry": false,
+        "is_actionable_if_holding": false,
+        "source_action": "HOLD"
+      },
+      "position_plan": {
+        "suggested_allocation_pct": 0.0,
+        "risk_level": "moderate",
+        "max_capital_exposure_pct": 6.0,
+        "time_horizon_days": 60,
+        "time_horizon_bucket": "position",
+        "time_horizon_desc": "Weeks-to-months · trend-following",
+        "entry_zone": {
+          "current_price": 170.93,
+          "note": "watchlist · re-check when signal strengthens"
+        },
+        "sizing_note": "preview allocation · real position size determined by risk engine (fractional Kelly · half-Kelly cap · per-sector cap · VIX-adjusted)"
+      },
+      "why": {
+        "top_reasons": [
+          "1-month momentum +5.54%",
+          "3-month momentum +16.69%",
+          "strong fundamental quality (72.910)",
+          "high ROE (+1.17%)",
+          "ensemble score +0.2724 (top-percentile signal)"
+        ],
+        "top_risks": [
+          "stretched valuation (P/E 60.187)",
+          "high leverage (D/E 36.194)",
+          "net insider selling ($-26,838,148, 90d)",
+          "model disagreement · signal not unanimous"
+        ],
+        "signal_quality": "STRONG"
+      },
+      "rotation_intelligence": {
+        "should_rotate": true,
+        "replacement_ticker": "PLTR",
+        "edge": 0.1506,
+        "expected_alpha_delta_pct": 15.06,
+        "keep_score": 0.2724,
+        "candidate_score": 0.423,
+        "reason": "rotate → PLTR · candidate_score +0.4230 vs current +0.2724 · edge +0.1506 > threshold 0.05 · expected alpha +15.06%"
+      },
+      "lifecycle_state": {
+        "current_state": "HOLD",
+        "previous_state": "HOLD",
+        "ts_last_transition": "2026-09-01T12:32:36.918444+00:00",
+        "n_events": 321
+      },
+      "evolution": {
+        "is_new": true,
+        "days_recommended": 1,
+        "previous_asof": null,
+        "rank_change": null,
+        "score_change": null,
+        "action_change": null,
+        "confidence_change": null,
+        "lifecycle_change": null,
+        "allocation_change_pct": null,
+        "narrative": "NEW recommendation · no prior snapshot"
+      },
+      "discipline": {
+        "is_winner_exit": false,
+        "is_low_conviction_buy": false,
+        "sector_gate_violation": false,
+        "weight_score_inversion": false,
+        "notes": []
+      },
+      "attribution": {
+        "per_model": [
+          {
+            "model_id": "aegis.quality.v1",
+            "label": "Quality",
+            "raw_score": 0.8222,
+            "weight": 0.1345,
+            "weighted_contribution": 0.110586,
+            "share_pct": 31.1
+          },
+          {
+            "model_id": "aegis.momentum.v1",
+            "label": "Momentum",
+            "raw_score": 0.5529,
+            "weight": 0.1105,
+            "weighted_contribution": 0.061095,
+            "share_pct": 17.18
+          },
+          {
+            "model_id": "aegis.event_driven.v1",
+            "label": "Event",
+            "raw_score": 0.3968,
+            "weight": 0.1185,
+            "weighted_contribution": 0.047021,
+            "share_pct": 13.22
+          },
+          {
+            "model_id": "aegis.trend.v1",
+            "label": "Trend",
+            "raw_score": 0.3844,
+            "weight": 0.1198,
+            "weighted_contribution": 0.046051,
+            "share_pct": 12.95
+          },
+          {
+            "model_id": "aegis.growth.v1",
+            "label": "Growth",
+            "raw_score": 0.6578,
+            "weight": 0.0508,
+            "weighted_contribution": 0.033416,
+            "share_pct": 9.4
+          },
+          {
+            "model_id": "aegis.ai_hybrid.v1",
+            "label": "AI-Hybrid",
+            "raw_score": 0.2714,
+            "weight": 0.0508,
+            "weighted_contribution": 0.013787,
+            "share_pct": 3.88
+          },
+          {
+            "model_id": "aegis.mean_reversion.v1",
+            "label": "MeanReversion",
+            "raw_score": 0.0153,
+            "weight": 0.1267,
+            "weighted_contribution": 0.001939,
+            "share_pct": 0.55
+          },
+          {
+            "model_id": "aegis.news.v1",
+            "label": "News",
+            "raw_score": 0.0002,
+            "weight": 0.0508,
+            "weighted_contribution": 1e-05,
+            "share_pct": 0.0
+          },
+          {
+            "model_id": "aegis.macro.v1",
+            "label": "Macro",
+            "raw_score": 0.0,
+            "weight": 0.0508,
+            "weighted_contribution": 0.0,
+            "share_pct": 0.0
+          },
+          {
+            "model_id": "aegis.sector_rotation.v1",
+            "label": "Sector",
+            "raw_score": 0.0,
+            "weight": 0.1357,
+            "weighted_contribution": 0.0,
+            "share_pct": 0.0
+          },
+          {
+            "model_id": "aegis.value.v1",
+            "label": "Value",
+            "raw_score": -0.8198,
+            "weight": 0.0508,
+            "weighted_contribution": -0.041646,
+            "share_pct": 11.71
+          }
+        ],
+        "dominant_driver": {
+          "label": "Quality",
+          "contribution": 0.110586
+        },
+        "opposition": {
+          "label": "Value",
+          "contribution": -0.041646
+        },
+        "sector_engine_contribution_pct": 0.0,
+        "total_positive": 0.3139,
+        "total_negative": -0.0416
+      },
+      "percentile_action": "HOLD",
+      "score_percentile": 0.5714,
+      "percentile_reason": "score +0.2724 in middle 60% (percentile 0.57)"
+    },
+    {
+      "ticker": "VLO",
+      "sector": "",
+      "industry": "",
+      "recommendation": "HOLD",
+      "action": "HOLD",
+      "composite_decision_score": 63.36,
+      "confidence": 0.5172,
+      "rank": 8,
+      "ensemble_score": 0.2672,
+      "raw_confidence": 0.6663,
+      "calibrated_confidence": 0.5172,
+      "regime_adjusted_confidence": 0.4913,
+      "model_agreement": 0.6364,
+      "disagreement_flag": false,
+      "n_models_scoring": 11,
+      "top_models": [
+        {
+          "model_id": "aegis.growth.v1",
+          "score": 0.7538
+        },
+        {
+          "model_id": "aegis.trend.v1",
+          "score": 0.6742
+        },
+        {
+          "model_id": "aegis.momentum.v1",
+          "score": 0.4341
+        }
+      ],
+      "top_features": [
+        "adx_14",
+        "atr_14_pct",
+        "ca_days_since_last_dividend",
+        "ca_last_dividend_amount",
+        "distance_from_52w_high_pct",
+        "distance_from_52w_low_pct",
+        "earn_days_to_next",
+        "earn_last_eps_reported"
+      ],
+      "bull_case": "1-month momentum +14.71%; 3-month momentum +37.81%; high ROE (+27.64%).",
+      "bear_case": "overbought RSI (76.383); high leverage (D/E 40.148).",
+      "key_risks": [],
+      "suggested_holding_period_days": 60,
+      "entry_zone": {
+        "current": 358.92,
+        "note": "hold — no entry"
+      },
+      "exit_conditions": [
+        "no active exit trigger — HOLD position"
+      ],
+      "model_stamp": {
+        "model_id": "aegis.recommendation.v3",
+        "version": "1.0.0",
+        "engine": "recommendation_intelligence",
+        "market": "usa",
+        "feature_set_version": "b65ceb49a83a",
+        "schema_version": "b65ceb49a83a",
+        "calibration_version": "",
+        "approval_status": "experimental",
+        "approved_by": "",
+        "approved_on": ""
+      },
+      "provenance": "aegis.recommendation.ssot.v1 (bridged from Runner 2 v3)",
+      "explainability": {
+        "top_features_count": 8,
+        "n_models_scoring": 11,
+        "model_agreement": 0.6364,
+        "disagreement": false,
+        "confidence_reason": "confidence 0.517 · agreement 0.64",
+        "action_reason": "HOLD · score +0.267 inside neutral band"
+      },
+      "signal_quality": "STRONG",
+      "oc_next_best_ticker": "HON",
+      "oc_next_best_score": 63.095,
+      "oc_expected_alpha_delta": -0.265,
+      "oc_reason_not_to_rotate": "no better candidate available (best HON edge -0.2650) — hold optimal",
+      "entry_exit": {
+        "entry_zone": {
+          "current": 358.92,
+          "note": "hold — no entry"
+        },
+        "if_holding": null,
+        "entry": null,
+        "exit_reason": "no active exit trigger — HOLD position"
+      },
+      "investor_action": {
+        "entry": "WAIT",
+        "if_holding": "HOLD",
+        "user_facing_label": "🟡 Watchlist · Keep holding if you own it",
+        "is_actionable_entry": false,
+        "is_actionable_if_holding": false,
+        "source_action": "HOLD"
+      },
+      "position_plan": {
+        "suggested_allocation_pct": 0.0,
+        "risk_level": "moderate",
+        "max_capital_exposure_pct": 6.0,
+        "time_horizon_days": 60,
+        "time_horizon_bucket": "position",
+        "time_horizon_desc": "Weeks-to-months · trend-following",
+        "entry_zone": {
+          "current_price": 358.92,
+          "note": "watchlist · re-check when signal strengthens"
+        },
+        "sizing_note": "preview allocation · real position size determined by risk engine (fractional Kelly · half-Kelly cap · per-sector cap · VIX-adjusted)"
+      },
+      "why": {
+        "top_reasons": [
+          "1-month momentum +14.71%",
+          "3-month momentum +37.81%",
+          "high ROE (+27.64%)",
+          "ensemble score +0.2672 (top-percentile signal)"
+        ],
+        "top_risks": [
+          "overbought RSI (76.383)",
+          "high leverage (D/E 40.148)"
+        ],
+        "signal_quality": "STRONG"
+      },
+      "rotation_intelligence": {
+        "should_rotate": true,
+        "replacement_ticker": "PLTR",
+        "edge": 0.1558,
+        "expected_alpha_delta_pct": 15.58,
+        "keep_score": 0.2672,
+        "candidate_score": 0.423,
+        "reason": "rotate → PLTR · candidate_score +0.4230 vs current +0.2672 · edge +0.1558 > threshold 0.05 · expected alpha +15.58%"
+      },
+      "lifecycle_state": {
+        "current_state": "HOLD",
+        "previous_state": "HOLD",
+        "ts_last_transition": "2026-09-01T12:32:36.918444+00:00",
+        "n_events": 321
+      },
+      "evolution": {
+        "is_new": true,
+        "days_recommended": 1,
+        "previous_asof": null,
+        "rank_change": null,
+        "score_change": null,
+        "action_change": null,
+        "confidence_change": null,
+        "lifecycle_change": null,
+        "allocation_change_pct": null,
+        "narrative": "NEW recommendation · no prior snapshot"
+      },
+      "discipline": {
+        "is_winner_exit": false,
+        "is_low_conviction_buy": false,
+        "sector_gate_violation": false,
+        "weight_score_inversion": false,
+        "notes": []
+      },
+      "attribution": {
+        "per_model": [
+          {
+            "model_id": "aegis.trend.v1",
+            "label": "Trend",
+            "raw_score": 0.6742,
+            "weight": 0.1198,
+            "weighted_contribution": 0.080769,
+            "share_pct": 23.99
+          },
+          {
+            "model_id": "aegis.event_driven.v1",
+            "label": "Event",
+            "raw_score": 0.4303,
+            "weight": 0.1185,
+            "weighted_contribution": 0.050991,
+            "share_pct": 15.14
+          },
+          {
+            "model_id": "aegis.momentum.v1",
+            "label": "Momentum",
+            "raw_score": 0.4341,
+            "weight": 0.1105,
+            "weighted_contribution": 0.047968,
+            "share_pct": 14.24
+          },
+          {
+            "model_id": "aegis.quality.v1",
+            "label": "Quality",
+            "raw_score": 0.3204,
+            "weight": 0.1345,
+            "weighted_contribution": 0.043094,
+            "share_pct": 12.8
+          },
+          {
+            "model_id": "aegis.growth.v1",
+            "label": "Growth",
+            "raw_score": 0.7538,
+            "weight": 0.0508,
+            "weighted_contribution": 0.038293,
+            "share_pct": 11.37
+          },
+          {
+            "model_id": "aegis.value.v1",
+            "label": "Value",
+            "raw_score": 0.4142,
+            "weight": 0.0508,
+            "weighted_contribution": 0.021041,
+            "share_pct": 6.25
+          },
+          {
+            "model_id": "aegis.ai_hybrid.v1",
+            "label": "AI-Hybrid",
+            "raw_score": 0.3892,
+            "weight": 0.0508,
+            "weighted_contribution": 0.019771,
+            "share_pct": 5.87
+          },
+          {
+            "model_id": "aegis.news.v1",
+            "label": "News",
+            "raw_score": 0.0002,
+            "weight": 0.0508,
+            "weighted_contribution": 1e-05,
+            "share_pct": 0.0
+          },
+          {
+            "model_id": "aegis.macro.v1",
+            "label": "Macro",
+            "raw_score": 0.0,
+            "weight": 0.0508,
+            "weighted_contribution": 0.0,
+            "share_pct": 0.0
+          },
+          {
+            "model_id": "aegis.sector_rotation.v1",
+            "label": "Sector",
+            "raw_score": 0.0,
+            "weight": 0.1357,
+            "weighted_contribution": 0.0,
+            "share_pct": 0.0
+          },
+          {
+            "model_id": "aegis.mean_reversion.v1",
+            "label": "MeanReversion",
+            "raw_score": -0.2747,
+            "weight": 0.1267,
+            "weighted_contribution": -0.034804,
+            "share_pct": 10.34
+          }
+        ],
+        "dominant_driver": {
+          "label": "Trend",
+          "contribution": 0.080769
+        },
+        "opposition": {
+          "label": "MeanReversion",
+          "contribution": -0.034804
+        },
+        "sector_engine_contribution_pct": 0.0,
+        "total_positive": 0.3019,
+        "total_negative": -0.0348
+      },
+      "percentile_action": "HOLD",
+      "score_percentile": 0.5,
+      "percentile_reason": "score +0.2672 in middle 60% (percentile 0.50)"
+    },
+    {
+      "ticker": "UBER",
+      "sector": "",
+      "industry": "",
+      "recommendation": "HOLD",
+      "action": "HOLD",
+      "composite_decision_score": 63.15,
+      "confidence": 0.5164,
+      "rank": 9,
+      "ensemble_score": 0.263,
+      "raw_confidence": 0.6663,
+      "calibrated_confidence": 0.5164,
+      "regime_adjusted_confidence": 0.4906,
+      "model_agreement": 0.7273,
+      "disagreement_flag": false,
+      "n_models_scoring": 11,
+      "top_models": [
+        {
+          "model_id": "aegis.growth.v1",
+          "score": 0.6599
+        },
+        {
+          "model_id": "aegis.quality.v1",
+          "score": 0.5715
+        },
+        {
+          "model_id": "aegis.event_driven.v1",
+          "score": 0.5139
+        }
+      ],
+      "top_features": [
+        "adx_14",
+        "atr_14_pct",
+        "distance_from_52w_high_pct",
+        "distance_from_52w_low_pct",
+        "earn_days_to_next",
+        "earn_last_eps_reported",
+        "earn_last_surprise_pct",
+        "fund_debt_to_equity"
+      ],
+      "bull_case": "1-month momentum +7.52%; high ROE (+37.16%).",
+      "bear_case": "high leverage (D/E 51.872).",
+      "key_risks": [],
+      "suggested_holding_period_days": 60,
+      "entry_zone": {
+        "current": 75.65,
+        "note": "hold — no entry"
+      },
+      "exit_conditions": [
+        "no active exit trigger — HOLD position"
+      ],
+      "model_stamp": {
+        "model_id": "aegis.recommendation.v3",
+        "version": "1.0.0",
+        "engine": "recommendation_intelligence",
+        "market": "usa",
+        "feature_set_version": "b65ceb49a83a",
+        "schema_version": "b65ceb49a83a",
+        "calibration_version": "",
+        "approval_status": "experimental",
+        "approved_by": "",
+        "approved_on": ""
+      },
+      "provenance": "aegis.recommendation.ssot.v1 (bridged from Runner 2 v3)",
+      "explainability": {
+        "top_features_count": 8,
+        "n_models_scoring": 11,
+        "model_agreement": 0.7273,
+        "disagreement": false,
+        "confidence_reason": "confidence 0.516 · agreement 0.73",
+        "action_reason": "HOLD · score +0.263 inside neutral band"
+      },
+      "signal_quality": "STRONG",
+      "oc_next_best_ticker": "HON",
+      "oc_next_best_score": 63.095,
+      "oc_expected_alpha_delta": -0.055,
+      "oc_reason_not_to_rotate": "no better candidate available (best HON edge -0.0550) — hold optimal",
+      "entry_exit": {
+        "entry_zone": {
+          "current": 75.65,
+          "note": "hold — no entry"
+        },
+        "if_holding": null,
+        "entry": null,
+        "exit_reason": "no active exit trigger — HOLD position"
+      },
+      "investor_action": {
+        "entry": "WAIT",
+        "if_holding": "HOLD",
+        "user_facing_label": "🟡 Watchlist · Keep holding if you own it",
+        "is_actionable_entry": false,
+        "is_actionable_if_holding": false,
+        "source_action": "HOLD"
+      },
+      "position_plan": {
+        "suggested_allocation_pct": 0.0,
+        "risk_level": "moderate",
+        "max_capital_exposure_pct": 6.0,
+        "time_horizon_days": 17,
+        "time_horizon_bucket": "swing",
+        "time_horizon_desc": "Days-to-weeks · exit near target or on stop",
+        "entry_zone": {
+          "current_price": 75.65,
+          "note": "watchlist · re-check when signal strengthens"
+        },
+        "sizing_note": "preview allocation · real position size determined by risk engine (fractional Kelly · half-Kelly cap · per-sector cap · VIX-adjusted)",
+        "dynamic_holding_reason": "dynamic holding 17d = base 21 × composite 0.816 · drivers: risk trim (0.80x)"
+      },
+      "why": {
+        "top_reasons": [
+          "1-month momentum +7.52%",
+          "high ROE (+37.16%)",
+          "ensemble score +0.2630 (top-percentile signal)"
+        ],
+        "top_risks": [
+          "high leverage (D/E 51.872)"
+        ],
+        "signal_quality": "STRONG"
+      },
+      "rotation_intelligence": {
+        "should_rotate": true,
+        "replacement_ticker": "PLTR",
+        "edge": 0.16,
+        "expected_alpha_delta_pct": 16.0,
+        "keep_score": 0.263,
+        "candidate_score": 0.423,
+        "reason": "rotate → PLTR · candidate_score +0.4230 vs current +0.2630 · edge +0.1600 > threshold 0.05 · expected alpha +16.00%"
+      },
+      "lifecycle_state": {
+        "current_state": "HOLD",
+        "previous_state": "BUY",
+        "ts_last_transition": "2026-09-01T12:32:36.918444+00:00",
+        "n_events": 737
+      },
+      "evolution": {
+        "is_new": true,
+        "days_recommended": 1,
+        "previous_asof": null,
+        "rank_change": null,
+        "score_change": null,
+        "action_change": null,
+        "confidence_change": null,
+        "lifecycle_change": null,
+        "allocation_change_pct": null,
+        "narrative": "NEW recommendation · no prior snapshot"
+      },
+      "discipline": {
+        "is_winner_exit": false,
+        "is_low_conviction_buy": false,
+        "sector_gate_violation": false,
+        "weight_score_inversion": false,
+        "notes": []
+      },
+      "attribution": {
+        "per_model": [
+          {
+            "model_id": "aegis.quality.v1",
+            "label": "Quality",
+            "raw_score": 0.5715,
+            "weight": 0.1345,
+            "weighted_contribution": 0.076867,
+            "share_pct": 29.23
+          },
+          {
+            "model_id": "aegis.event_driven.v1",
+            "label": "Event",
+            "raw_score": 0.5139,
+            "weight": 0.1185,
+            "weighted_contribution": 0.060897,
+            "share_pct": 23.16
+          },
+          {
+            "model_id": "aegis.growth.v1",
+            "label": "Growth",
+            "raw_score": 0.6599,
+            "weight": 0.0508,
+            "weighted_contribution": 0.033523,
+            "share_pct": 12.75
+          },
+          {
+            "model_id": "aegis.mean_reversion.v1",
+            "label": "MeanReversion",
+            "raw_score": 0.1943,
+            "weight": 0.1267,
+            "weighted_contribution": 0.024618,
+            "share_pct": 9.36
+          },
+          {
+            "model_id": "aegis.trend.v1",
+            "label": "Trend",
+            "raw_score": 0.2051,
+            "weight": 0.1198,
+            "weighted_contribution": 0.024571,
+            "share_pct": 9.34
+          },
+          {
+            "model_id": "aegis.ai_hybrid.v1",
+            "label": "AI-Hybrid",
+            "raw_score": 0.3533,
+            "weight": 0.0508,
+            "weighted_contribution": 0.017948,
+            "share_pct": 6.83
+          },
+          {
+            "model_id": "aegis.value.v1",
+            "label": "Value",
+            "raw_score": 0.2671,
+            "weight": 0.0508,
+            "weighted_contribution": 0.013569,
+            "share_pct": 5.16
+          },
+          {
+            "model_id": "aegis.momentum.v1",
+            "label": "Momentum",
+            "raw_score": 0.099,
+            "weight": 0.1105,
+            "weighted_contribution": 0.01094,
+            "share_pct": 4.16
+          },
+          {
+            "model_id": "aegis.news.v1",
+            "label": "News",
+            "raw_score": 0.0002,
+            "weight": 0.0508,
+            "weighted_contribution": 1e-05,
+            "share_pct": 0.0
+          },
+          {
+            "model_id": "aegis.macro.v1",
+            "label": "Macro",
+            "raw_score": 0.0,
+            "weight": 0.0508,
+            "weighted_contribution": 0.0,
+            "share_pct": 0.0
+          },
+          {
+            "model_id": "aegis.sector_rotation.v1",
+            "label": "Sector",
+            "raw_score": 0.0,
+            "weight": 0.1357,
+            "weighted_contribution": 0.0,
+            "share_pct": 0.0
+          }
+        ],
+        "dominant_driver": {
+          "label": "Quality",
+          "contribution": 0.076867
+        },
+        "opposition": null,
+        "sector_engine_contribution_pct": 0.0,
+        "total_positive": 0.2629,
+        "total_negative": 0.0
+      },
+      "percentile_action": "HOLD",
+      "score_percentile": 0.4286,
+      "percentile_reason": "score +0.2630 in middle 60% (percentile 0.43)"
+    },
+    {
+      "ticker": "HON",
+      "sector": "",
+      "industry": "",
+      "recommendation": "BUY",
+      "action": "BUY",
+      "composite_decision_score": 63.095,
+      "confidence": 0.5452,
+      "rank": 10,
+      "ensemble_score": 0.2619,
+      "raw_confidence": 0.6663,
+      "calibrated_confidence": 0.5452,
+      "regime_adjusted_confidence": 0.5179,
+      "model_agreement": 0.6364,
+      "disagreement_flag": false,
+      "n_models_scoring": 11,
+      "top_models": [
+        {
+          "model_id": "aegis.mean_reversion.v1",
+          "score": 1.0
+        },
+        {
+          "model_id": "aegis.growth.v1",
+          "score": 0.8298
+        },
+        {
+          "model_id": "aegis.value.v1",
+          "score": 0.6133
+        }
+      ],
+      "top_features": [
+        "adx_14",
+        "atr_14_pct",
+        "ca_days_since_last_dividend",
+        "ca_days_since_last_split",
+        "ca_last_dividend_amount",
+        "ca_last_split_ratio",
+        "distance_from_52w_high_pct",
+        "distance_from_52w_low_pct"
+      ],
+      "bull_case": "high ROE (+46.58%).",
+      "bear_case": "1-month drawdown -13.21%; oversold RSI (29.846) — momentum broken; high leverage (D/E 185.369).",
       "key_risks": [
-        "earnings in 20 days — reduce position size ahead of print",
         "leverage above 1x amplifies downside if fundamentals slip"
       ],
       "suggested_holding_period_days": 60,
       "entry_zone": {
-        "low": 266.776,
-        "high": 277.664,
-        "current": 272.22,
+        "low": 209.259,
+        "high": 217.801,
+        "current": 213.53,
         "note": "±2% band around current price"
       },
       "exit_conditions": [
@@ -2515,17 +2474,17 @@
       "explainability": {
         "top_features_count": 8,
         "n_models_scoring": 11,
-        "model_agreement": 0.8182,
+        "model_agreement": 0.6364,
         "disagreement": false,
-        "confidence_reason": "confidence 0.622 · agreement 0.82",
-        "action_reason": "BUY · ensemble score +0.287"
+        "confidence_reason": "confidence 0.545 · agreement 0.64",
+        "action_reason": "BUY · ensemble score +0.262"
       },
       "signal_quality": "STRONG",
       "entry_exit": {
         "entry_zone": {
-          "low": 266.776,
-          "high": 277.664,
-          "current": 272.22,
+          "low": 209.259,
+          "high": 217.801,
+          "current": 213.53,
           "note": "±2% band around current price"
         },
         "if_holding": null,
@@ -2548,53 +2507,50 @@
         "time_horizon_bucket": "position",
         "time_horizon_desc": "Weeks-to-months · trend-following",
         "entry_zone": {
-          "current_price": 272.22,
+          "current_price": 213.53,
           "note": "watchlist · re-check when signal strengthens"
         },
         "sizing_note": "preview allocation · real position size determined by risk engine (fractional Kelly · half-Kelly cap · per-sector cap · VIX-adjusted)"
       },
       "why": {
         "top_reasons": [
-          "1-month momentum +28.30%",
-          "3-month momentum +13.19%",
-          "high ROE (+62.95%)",
-          "positive news sentiment (0.500)",
-          "ensemble score +0.2875 (top-percentile signal)"
+          "high ROE (+46.58%)",
+          "ensemble score +0.2619 (top-percentile signal)"
         ],
         "top_risks": [
-          "high leverage (D/E 61.443)",
-          "deep 60d drawdown (-29.42%)",
-          "earnings in 20 days — reduce position size ahead of print",
+          "1-month drawdown -13.21%",
+          "oversold RSI (29.846) — momentum broken",
+          "high leverage (D/E 185.369)",
           "leverage above 1x amplifies downside if fundamentals slip"
         ],
         "signal_quality": "STRONG"
       },
       "rotation_intelligence": {
-        "should_rotate": false,
-        "replacement_ticker": null,
-        "edge": 0.0472,
-        "expected_alpha_delta_pct": 0.0,
-        "keep_score": 0.2875,
-        "candidate_score": 0.3347,
-        "reason": "keep · candidate edge +0.0472 ≤ threshold 0.05 · rotation would not add expected alpha"
+        "should_rotate": true,
+        "replacement_ticker": "PLTR",
+        "edge": 0.1611,
+        "expected_alpha_delta_pct": 16.11,
+        "keep_score": 0.2619,
+        "candidate_score": 0.423,
+        "reason": "rotate → PLTR · candidate_score +0.4230 vs current +0.2619 · edge +0.1611 > threshold 0.05 · expected alpha +16.11%"
       },
       "lifecycle_state": {
         "current_state": "BUY",
         "previous_state": "HOLD",
-        "ts_last_transition": "2026-08-19T14:33:47.467694+00:00",
-        "n_events": 356
+        "ts_last_transition": "2026-09-01T12:32:36.918444+00:00",
+        "n_events": 12225
       },
       "evolution": {
-        "is_new": true,
-        "days_recommended": 1,
+        "is_new": false,
+        "days_recommended": 2,
         "previous_asof": null,
-        "rank_change": null,
-        "score_change": null,
+        "rank_change": 5.0,
+        "score_change": 0.1139,
+        "confidence_change": 0.0403,
+        "allocation_change_pct": 0.0,
         "action_change": null,
-        "confidence_change": null,
-        "lifecycle_change": null,
-        "allocation_change_pct": null,
-        "narrative": "NEW recommendation · no prior snapshot"
+        "lifecycle_change": "HOLD → BUY",
+        "narrative": "lifecycle HOLD → BUY · rank ↓5 · confidence +0.0403 · score +0.1139"
       },
       "discipline": {
         "is_winner_exit": false,
@@ -2606,76 +2562,68 @@
       "attribution": {
         "per_model": [
           {
-            "model_id": "aegis.momentum.v1",
-            "label": "Momentum",
-            "raw_score": 0.5483,
-            "weight": 0.1105,
-            "weighted_contribution": 0.060587,
-            "share_pct": 21.08
-          },
-          {
-            "model_id": "aegis.trend.v1",
-            "label": "Trend",
-            "raw_score": 0.4901,
-            "weight": 0.1198,
-            "weighted_contribution": 0.058714,
-            "share_pct": 20.43
+            "model_id": "aegis.mean_reversion.v1",
+            "label": "MeanReversion",
+            "raw_score": 1.0,
+            "weight": 0.1267,
+            "weighted_contribution": 0.1267,
+            "share_pct": 34.0
           },
           {
             "model_id": "aegis.quality.v1",
             "label": "Quality",
-            "raw_score": 0.423,
+            "raw_score": 0.4469,
             "weight": 0.1345,
-            "weighted_contribution": 0.056893,
-            "share_pct": 19.79
-          },
-          {
-            "model_id": "aegis.mean_reversion.v1",
-            "label": "MeanReversion",
-            "raw_score": 0.2768,
-            "weight": 0.1267,
-            "weighted_contribution": 0.035071,
-            "share_pct": 12.2
-          },
-          {
-            "model_id": "aegis.news.v1",
-            "label": "News",
-            "raw_score": 0.5014,
-            "weight": 0.0508,
-            "weighted_contribution": 0.025471,
-            "share_pct": 8.86
-          },
-          {
-            "model_id": "aegis.ai_hybrid.v1",
-            "label": "AI-Hybrid",
-            "raw_score": 0.3277,
-            "weight": 0.0508,
-            "weighted_contribution": 0.016647,
-            "share_pct": 5.79
-          },
-          {
-            "model_id": "aegis.event_driven.v1",
-            "label": "Event",
-            "raw_score": 0.1234,
-            "weight": 0.1185,
-            "weighted_contribution": 0.014623,
-            "share_pct": 5.09
-          },
-          {
-            "model_id": "aegis.value.v1",
-            "label": "Value",
-            "raw_score": 0.2077,
-            "weight": 0.0508,
-            "weighted_contribution": 0.010551,
-            "share_pct": 3.67
+            "weighted_contribution": 0.060108,
+            "share_pct": 16.13
           },
           {
             "model_id": "aegis.growth.v1",
             "label": "Growth",
-            "raw_score": 0.1745,
+            "raw_score": 0.8298,
             "weight": 0.0508,
-            "weighted_contribution": 0.008865,
-            "share_pct": 3.08
+            "weighted_contribution": 0.042154,
+            "share_pct": 11.31
+          },
+          {
+            "model_id": "aegis.value.v1",
+            "label": "Value",
+            "raw_score": 0.6133,
+            "weight": 0.0508,
+            "weighted_contribution": 0.031156,
+            "share_pct": 8.36
+          },
+          {
+            "model_id": "aegis.trend.v1",
+            "label": "Trend",
+            "raw_score": 0.2352,
+            "weight": 0.1198,
+            "weighted_contribution": 0.028177,
+            "share_pct": 7.56
+          },
+          {
+            "model_id": "aegis.ai_hybrid.v1",
+            "label": "AI-Hybrid",
+            "raw_score": 0.4321,
+            "weight": 0.0508,
+            "weighted_contribution": 0.021951,
+            "share_pct": 5.89
+          },
+          {
+            "model_id": "aegis.event_driven.v1",
+            "label": "Event",
+            "raw_score": 0.0586,
+            "weight": 0.1185,
+            "weighted_contribution": 0.006944,
+            "share_pct": 1.86
+          },
+          {
+            "model_id": "aegis.news.v1",
+            "label": "News",
+            "raw_score": 0.0002,
+            "weight": 0.0508,
+            "weighted_contribution": 1e-05,
+            "share_pct": 0.0
           },
           {
             "model_id": "aegis.macro.v1",
@@ -2692,34 +2640,45 @@
             "weight": 0.1357,
             "weighted_contribution": 0.0,
             "share_pct": 0.0
+          },
+          {
+            "model_id": "aegis.momentum.v1",
+            "label": "Momentum",
+            "raw_score": -0.5014,
+            "weight": 0.1105,
+            "weighted_contribution": -0.055405,
+            "share_pct": 14.87
           }
         ],
         "dominant_driver": {
-          "label": "Momentum",
-          "contribution": 0.060587
+          "label": "MeanReversion",
+          "contribution": 0.1267
         },
-        "opposition": null,
+        "opposition": {
+          "label": "Momentum",
+          "contribution": -0.055405
+        },
         "sector_engine_contribution_pct": 0.0,
-        "total_positive": 0.2874,
-        "total_negative": 0.0
+        "total_positive": 0.3172,
+        "total_negative": -0.0554
       },
       "percentile_action": "HOLD",
       "score_percentile": 0.3571,
-      "percentile_reason": "score +0.2875 in middle 60% (percentile 0.36)"
+      "percentile_reason": "score +0.2619 in middle 60% (percentile 0.36)"
     },
     {
-      "ticker": "ES",
+      "ticker": "KVUE",
       "sector": "",
       "industry": "",
       "recommendation": "HOLD",
       "action": "HOLD",
-      "composite_decision_score": 38.06,
-      "confidence": 0.3421,
+      "composite_decision_score": 37.2,
+      "confidence": 0.299,
       "rank": 11,
-      "ensemble_score": -0.2388,
-      "raw_confidence": 0.7561,
-      "calibrated_confidence": 0.3421,
-      "regime_adjusted_confidence": 0.325,
+      "ensemble_score": -0.256,
+      "raw_confidence": 0.6663,
+      "calibrated_confidence": 0.299,
+      "regime_adjusted_confidence": 0.284,
       "model_agreement": 0.0,
       "disagreement_flag": false,
       "n_models_scoring": 0,
@@ -2734,12 +2693,14 @@
         "earn_last_surprise_pct",
         "fund_debt_to_equity"
       ],
-      "bull_case": "no strong positive signals in the current feature snapshot.",
-      "bear_case": "high leverage (D/E 180.700).",
-      "key_risks": [],
+      "bull_case": "3-month momentum +13.43%.",
+      "bear_case": "high leverage (D/E 81.617).",
+      "key_risks": [
+        "weak trend strength (ADX 17.078) — call may be premature"
+      ],
       "suggested_holding_period_days": 60,
       "entry_zone": {
-        "current": 72.15,
+        "current": 18.88,
         "note": "hold — no entry"
       },
       "exit_conditions": [
@@ -2763,17 +2724,17 @@
         "n_models_scoring": 0,
         "model_agreement": 0.0,
         "disagreement": false,
-        "confidence_reason": "confidence 0.342 · agreement 0.00",
-        "action_reason": "HOLD · score -0.239 inside neutral band"
+        "confidence_reason": "confidence 0.299 · agreement 0.00",
+        "action_reason": "HOLD · score -0.256 inside neutral band"
       },
       "signal_quality": "MODERATE",
-      "oc_next_best_ticker": "GOOGL",
-      "oc_next_best_score": 66.735,
-      "oc_expected_alpha_delta": 28.675,
-      "oc_reason_not_to_rotate": "opportunity_cost_high · GOOGL score 66.735 vs hold 38.06 (edge 28.6750 > rotate threshold 0.25) — recommend Capital Rotation review",
+      "oc_next_best_ticker": "HON",
+      "oc_next_best_score": 63.095,
+      "oc_expected_alpha_delta": 25.895,
+      "oc_reason_not_to_rotate": "opportunity_cost_high · HON score 63.095 vs hold 37.2 (edge 25.8950 > rotate threshold 0.25) — recommend Capital Rotation review",
       "entry_exit": {
         "entry_zone": {
-          "current": 72.15,
+          "current": 18.88,
           "note": "hold — no entry"
         },
         "if_holding": null,
@@ -2796,35 +2757,36 @@
         "time_horizon_bucket": "position",
         "time_horizon_desc": "Weeks-to-months · trend-following",
         "entry_zone": {
-          "current_price": 72.15,
+          "current_price": 18.88,
           "note": "watchlist · re-check when signal strengthens"
         },
         "sizing_note": "preview allocation · real position size determined by risk engine (fractional Kelly · half-Kelly cap · per-sector cap · VIX-adjusted)"
       },
       "why": {
         "top_reasons": [
-          "no strong positive signals in the current feature snapshot",
-          "ensemble score -0.2388 (top-percentile signal)"
+          "3-month momentum +13.43%",
+          "ensemble score -0.2560 (top-percentile signal)"
         ],
         "top_risks": [
-          "high leverage (D/E 180.700)"
+          "high leverage (D/E 81.617)",
+          "weak trend strength (ADX 17.078) — call may be premature"
         ],
         "signal_quality": "MODERATE"
       },
       "rotation_intelligence": {
         "should_rotate": true,
-        "replacement_ticker": "GOOGL",
-        "edge": 0.5735,
-        "expected_alpha_delta_pct": 57.35,
-        "keep_score": -0.2388,
-        "candidate_score": 0.3347,
-        "reason": "rotate → GOOGL · candidate_score +0.3347 vs current -0.2388 · edge +0.5735 > threshold 0.05 · expected alpha +57.35%"
+        "replacement_ticker": "PLTR",
+        "edge": 0.679,
+        "expected_alpha_delta_pct": 67.9,
+        "keep_score": -0.256,
+        "candidate_score": 0.423,
+        "reason": "rotate → PLTR · candidate_score +0.4230 vs current -0.2560 · edge +0.6790 > threshold 0.05 · expected alpha +67.90%"
       },
       "lifecycle_state": {
         "current_state": "HOLD",
         "previous_state": "HOLD",
-        "ts_last_transition": "2026-08-21T05:39:49.035454+00:00",
-        "n_events": 161
+        "ts_last_transition": "2026-09-01T12:32:36.918444+00:00",
+        "n_events": 321
       },
       "evolution": {
         "is_new": true,
@@ -2856,21 +2818,21 @@
       },
       "percentile_action": "HOLD",
       "score_percentile": 0.2857,
-      "percentile_reason": "score -0.2388 in middle 60% (percentile 0.29)"
+      "percentile_reason": "score -0.2560 in middle 60% (percentile 0.29)"
     },
     {
-      "ticker": "TTWO",
+      "ticker": "CBRE",
       "sector": "",
       "industry": "",
       "recommendation": "HOLD",
       "action": "HOLD",
-      "composite_decision_score": 37.77,
-      "confidence": 0.3001,
+      "composite_decision_score": 37.135,
+      "confidence": 0.299,
       "rank": 12,
-      "ensemble_score": -0.2446,
-      "raw_confidence": 0.7002,
-      "calibrated_confidence": 0.3001,
-      "regime_adjusted_confidence": 0.2851,
+      "ensemble_score": -0.2573,
+      "raw_confidence": 0.6663,
+      "calibrated_confidence": 0.299,
+      "regime_adjusted_confidence": 0.284,
       "model_agreement": 0.0,
       "disagreement_flag": false,
       "n_models_scoring": 0,
@@ -2885,14 +2847,12 @@
         "earn_last_surprise_pct",
         "fund_debt_to_equity"
       ],
-      "bull_case": "no strong positive signals in the current feature snapshot.",
-      "bear_case": "high leverage (D/E 81.607); net insider selling ($-91,260,396, 90d).",
-      "key_risks": [
-        "weak trend strength (ADX 13.777) — call may be premature"
-      ],
+      "bull_case": "3-month momentum +11.35%.",
+      "bear_case": "high leverage (D/E 117.789).",
+      "key_risks": [],
       "suggested_holding_period_days": 60,
       "entry_zone": {
-        "current": 240.15,
+        "current": 145.81,
         "note": "hold — no entry"
       },
       "exit_conditions": [
@@ -2916,17 +2876,17 @@
         "n_models_scoring": 0,
         "model_agreement": 0.0,
         "disagreement": false,
-        "confidence_reason": "confidence 0.300 · agreement 0.00",
-        "action_reason": "HOLD · score -0.245 inside neutral band"
+        "confidence_reason": "confidence 0.299 · agreement 0.00",
+        "action_reason": "HOLD · score -0.257 inside neutral band"
       },
       "signal_quality": "MODERATE",
-      "oc_next_best_ticker": "GOOGL",
-      "oc_next_best_score": 66.735,
-      "oc_expected_alpha_delta": 28.965,
-      "oc_reason_not_to_rotate": "opportunity_cost_high · GOOGL score 66.735 vs hold 37.77 (edge 28.9650 > rotate threshold 0.25) — recommend Capital Rotation review",
+      "oc_next_best_ticker": "HON",
+      "oc_next_best_score": 63.095,
+      "oc_expected_alpha_delta": 25.96,
+      "oc_reason_not_to_rotate": "opportunity_cost_high · HON score 63.095 vs hold 37.135 (edge 25.9600 > rotate threshold 0.25) — recommend Capital Rotation review",
       "entry_exit": {
         "entry_zone": {
-          "current": 240.15,
+          "current": 145.81,
           "note": "hold — no entry"
         },
         "if_holding": null,
@@ -2945,42 +2905,39 @@
         "suggested_allocation_pct": 0.0,
         "risk_level": "moderate",
         "max_capital_exposure_pct": 6.0,
-        "time_horizon_days": 9,
-        "time_horizon_bucket": "swing",
-        "time_horizon_desc": "Days-to-weeks · exit near target or on stop",
+        "time_horizon_days": 60,
+        "time_horizon_bucket": "position",
+        "time_horizon_desc": "Weeks-to-months · trend-following",
         "entry_zone": {
-          "current_price": 240.15,
+          "current_price": 145.81,
           "note": "watchlist · re-check when signal strengthens"
         },
-        "sizing_note": "preview allocation · real position size determined by risk engine (fractional Kelly · half-Kelly cap · per-sector cap · VIX-adjusted)",
-        "dynamic_holding_reason": "dynamic holding 9d = base 21 × composite 0.408 · drivers: risk trim (0.80x)"
+        "sizing_note": "preview allocation · real position size determined by risk engine (fractional Kelly · half-Kelly cap · per-sector cap · VIX-adjusted)"
       },
       "why": {
         "top_reasons": [
-          "no strong positive signals in the current feature snapshot",
-          "ensemble score -0.2446 (top-percentile signal)"
+          "3-month momentum +11.35%",
+          "ensemble score -0.2573 (top-percentile signal)"
         ],
         "top_risks": [
-          "high leverage (D/E 81.607)",
-          "net insider selling ($-91,260,396, 90d)",
-          "weak trend strength (ADX 13.777) — call may be premature"
+          "high leverage (D/E 117.789)"
         ],
         "signal_quality": "MODERATE"
       },
       "rotation_intelligence": {
         "should_rotate": true,
-        "replacement_ticker": "GOOGL",
-        "edge": 0.5793,
-        "expected_alpha_delta_pct": 57.93,
-        "keep_score": -0.2446,
-        "candidate_score": 0.3347,
-        "reason": "rotate → GOOGL · candidate_score +0.3347 vs current -0.2446 · edge +0.5793 > threshold 0.05 · expected alpha +57.93%"
+        "replacement_ticker": "PLTR",
+        "edge": 0.6803,
+        "expected_alpha_delta_pct": 68.03,
+        "keep_score": -0.2573,
+        "candidate_score": 0.423,
+        "reason": "rotate → PLTR · candidate_score +0.4230 vs current -0.2573 · edge +0.6803 > threshold 0.05 · expected alpha +68.03%"
       },
       "lifecycle_state": {
         "current_state": "HOLD",
         "previous_state": "HOLD",
-        "ts_last_transition": "2026-08-21T05:39:49.035454+00:00",
-        "n_events": 180
+        "ts_last_transition": "2026-09-01T12:32:36.918444+00:00",
+        "n_events": 321
       },
       "evolution": {
         "is_new": true,
@@ -3012,21 +2969,21 @@
       },
       "percentile_action": "HOLD",
       "score_percentile": 0.2143,
-      "percentile_reason": "score -0.2446 in middle 60% (percentile 0.21)"
+      "percentile_reason": "score -0.2573 in middle 60% (percentile 0.21)"
     },
     {
-      "ticker": "MCK",
+      "ticker": "HONA",
       "sector": "",
       "industry": "",
       "recommendation": "HOLD",
       "action": "HOLD",
-      "composite_decision_score": 36.5,
-      "confidence": 0.2978,
+      "composite_decision_score": 34.835,
+      "confidence": 0.2041,
       "rank": 13,
-      "ensemble_score": -0.27,
-      "raw_confidence": 0.6583,
-      "calibrated_confidence": 0.2978,
-      "regime_adjusted_confidence": 0.2829,
+      "ensemble_score": -0.3033,
+      "raw_confidence": 0.5685,
+      "calibrated_confidence": 0.2041,
+      "regime_adjusted_confidence": 0.1939,
       "model_agreement": 0.0,
       "disagreement_flag": false,
       "n_models_scoring": 0,
@@ -3034,19 +2991,19 @@
       "top_features": [
         "adx_14",
         "atr_14_pct",
-        "ca_days_since_last_dividend",
-        "ca_last_dividend_amount",
-        "distance_from_52w_high_pct",
-        "distance_from_52w_low_pct",
         "earn_days_to_next",
-        "earn_last_eps_reported"
+        "earn_last_eps_reported",
+        "earn_last_surprise_pct",
+        "fund_earnings_growth",
+        "fund_market_cap_log",
+        "fund_price_to_book"
       ],
-      "bull_case": "3-month momentum +12.18%; positive news sentiment (0.250).",
-      "bear_case": "net insider selling ($-23,861,880, 90d).",
+      "bull_case": "no strong positive signals in the current feature snapshot.",
+      "bear_case": "1-month drawdown -24.08%; stretched valuation (P/E 48.352).",
       "key_risks": [],
       "suggested_holding_period_days": 60,
       "entry_zone": {
-        "current": 853.71,
+        "current": 158.11,
         "note": "hold — no entry"
       },
       "exit_conditions": [
@@ -3070,17 +3027,17 @@
         "n_models_scoring": 0,
         "model_agreement": 0.0,
         "disagreement": false,
-        "confidence_reason": "confidence 0.298 · agreement 0.00",
-        "action_reason": "HOLD · score -0.270 inside neutral band"
+        "confidence_reason": "confidence 0.204 · agreement 0.00",
+        "action_reason": "HOLD · score -0.303 inside neutral band"
       },
       "signal_quality": "MODERATE",
-      "oc_next_best_ticker": "GOOGL",
-      "oc_next_best_score": 66.735,
-      "oc_expected_alpha_delta": 30.235,
-      "oc_reason_not_to_rotate": "opportunity_cost_high · GOOGL score 66.735 vs hold 36.5 (edge 30.2350 > rotate threshold 0.25) — recommend Capital Rotation review",
+      "oc_next_best_ticker": "HON",
+      "oc_next_best_score": 63.095,
+      "oc_expected_alpha_delta": 28.26,
+      "oc_reason_not_to_rotate": "opportunity_cost_high · HON score 63.095 vs hold 34.835 (edge 28.2600 > rotate threshold 0.25) — recommend Capital Rotation review",
       "entry_exit": {
         "entry_zone": {
-          "current": 853.71,
+          "current": 158.11,
           "note": "hold — no entry"
         },
         "if_holding": null,
@@ -3099,43 +3056,42 @@
         "suggested_allocation_pct": 0.0,
         "risk_level": "moderate",
         "max_capital_exposure_pct": 6.0,
-        "time_horizon_days": 9,
-        "time_horizon_bucket": "swing",
-        "time_horizon_desc": "Days-to-weeks · exit near target or on stop",
+        "time_horizon_days": 60,
+        "time_horizon_bucket": "position",
+        "time_horizon_desc": "Weeks-to-months · trend-following",
         "entry_zone": {
-          "current_price": 853.71,
-          "exit_range_low": 845.17,
-          "exit_range_high": 862.25,
+          "current_price": 158.11,
+          "exit_range_low": 156.53,
+          "exit_range_high": 159.69,
           "note": "exit if holding · no new entry recommended"
         },
-        "sizing_note": "preview allocation · real position size determined by risk engine (fractional Kelly · half-Kelly cap · per-sector cap · VIX-adjusted)",
-        "dynamic_holding_reason": "dynamic holding 9d = base 21 × composite 0.408 · drivers: risk trim (0.80x)"
+        "sizing_note": "preview allocation · real position size determined by risk engine (fractional Kelly · half-Kelly cap · per-sector cap · VIX-adjusted)"
       },
       "why": {
         "top_reasons": [
-          "3-month momentum +12.18%",
-          "positive news sentiment (0.250)",
-          "ensemble score -0.2700 (top-percentile signal)"
+          "no strong positive signals in the current feature snapshot",
+          "ensemble score -0.3033 (top-percentile signal)"
         ],
         "top_risks": [
-          "net insider selling ($-23,861,880, 90d)"
+          "1-month drawdown -24.08%",
+          "stretched valuation (P/E 48.352)"
         ],
         "signal_quality": "MODERATE"
       },
       "rotation_intelligence": {
         "should_rotate": true,
-        "replacement_ticker": "GOOGL",
-        "edge": 0.6047,
-        "expected_alpha_delta_pct": 60.47,
-        "keep_score": -0.27,
-        "candidate_score": 0.3347,
-        "reason": "rotate → GOOGL · candidate_score +0.3347 vs current -0.2700 · edge +0.6047 > threshold 0.05 · expected alpha +60.47%"
+        "replacement_ticker": "PLTR",
+        "edge": 0.7263,
+        "expected_alpha_delta_pct": 72.63,
+        "keep_score": -0.3033,
+        "candidate_score": 0.423,
+        "reason": "rotate → PLTR · candidate_score +0.4230 vs current -0.3033 · edge +0.7263 > threshold 0.05 · expected alpha +72.63%"
       },
       "lifecycle_state": {
         "current_state": "HOLD",
         "previous_state": "HOLD",
-        "ts_last_transition": "2026-08-21T05:39:49.035454+00:00",
-        "n_events": 184
+        "ts_last_transition": "2026-09-01T12:32:36.918444+00:00",
+        "n_events": 709
       },
       "evolution": {
         "is_new": true,
@@ -3167,21 +3123,21 @@
       },
       "percentile_action": "SELL",
       "score_percentile": 0.1429,
-      "percentile_reason": "score -0.2700 in bottom 20% (percentile 0.14)"
+      "percentile_reason": "score -0.3033 in bottom 20% (percentile 0.14)"
     },
     {
-      "ticker": "CL",
+      "ticker": "AKAM",
       "sector": "",
       "industry": "",
       "recommendation": "HOLD",
       "action": "HOLD",
-      "composite_decision_score": 35.265,
-      "confidence": 0.3601,
+      "composite_decision_score": 33.94,
+      "confidence": 0.299,
       "rank": 14,
-      "ensemble_score": -0.2947,
-      "raw_confidence": 0.7561,
-      "calibrated_confidence": 0.3601,
-      "regime_adjusted_confidence": 0.3421,
+      "ensemble_score": -0.3212,
+      "raw_confidence": 0.6663,
+      "calibrated_confidence": 0.299,
+      "regime_adjusted_confidence": 0.284,
       "model_agreement": 0.0,
       "disagreement_flag": false,
       "n_models_scoring": 0,
@@ -3189,21 +3145,19 @@
       "top_features": [
         "adx_14",
         "atr_14_pct",
-        "ca_days_since_last_dividend",
-        "ca_last_dividend_amount",
         "distance_from_52w_high_pct",
         "distance_from_52w_low_pct",
         "earn_days_to_next",
-        "earn_last_eps_reported"
+        "earn_last_eps_reported",
+        "earn_last_surprise_pct",
+        "fund_debt_to_equity"
       ],
-      "bull_case": "high ROE (+2.67%).",
-      "bear_case": "high leverage (D/E 1388.163); negative news sentiment (-0.250); net insider selling ($-30,087,975, 90d).",
-      "key_risks": [
-        "weak trend strength (ADX 13.618) — call may be premature"
-      ],
+      "bull_case": "no strong positive signals in the current feature snapshot.",
+      "bear_case": "1-month drawdown -5.70%; high leverage (D/E 196.672); deep 60d drawdown (-33.54%).",
+      "key_risks": [],
       "suggested_holding_period_days": 60,
       "entry_zone": {
-        "current": 89.7,
+        "current": 108.62,
         "note": "hold — no entry"
       },
       "exit_conditions": [
@@ -3227,17 +3181,17 @@
         "n_models_scoring": 0,
         "model_agreement": 0.0,
         "disagreement": false,
-        "confidence_reason": "confidence 0.360 · agreement 0.00",
-        "action_reason": "HOLD · score -0.295 inside neutral band"
+        "confidence_reason": "confidence 0.299 · agreement 0.00",
+        "action_reason": "HOLD · score -0.321 inside neutral band"
       },
       "signal_quality": "MODERATE",
-      "oc_next_best_ticker": "GOOGL",
-      "oc_next_best_score": 66.735,
-      "oc_expected_alpha_delta": 31.47,
-      "oc_reason_not_to_rotate": "opportunity_cost_high · GOOGL score 66.735 vs hold 35.265 (edge 31.4700 > rotate threshold 0.25) — recommend Capital Rotation review",
+      "oc_next_best_ticker": "HON",
+      "oc_next_best_score": 63.095,
+      "oc_expected_alpha_delta": 29.155,
+      "oc_reason_not_to_rotate": "opportunity_cost_high · HON score 63.095 vs hold 33.94 (edge 29.1550 > rotate threshold 0.25) — recommend Capital Rotation review",
       "entry_exit": {
         "entry_zone": {
-          "current": 89.7,
+          "current": 108.62,
           "note": "hold — no entry"
         },
         "if_holding": null,
@@ -3260,9 +3214,9 @@
         "time_horizon_bucket": "swing",
         "time_horizon_desc": "Days-to-weeks · exit near target or on stop",
         "entry_zone": {
-          "current_price": 89.7,
-          "exit_range_low": 88.8,
-          "exit_range_high": 90.6,
+          "current_price": 108.62,
+          "exit_range_low": 107.53,
+          "exit_range_high": 109.71,
           "note": "exit if holding · no new entry recommended"
         },
         "sizing_note": "preview allocation · real position size determined by risk engine (fractional Kelly · half-Kelly cap · per-sector cap · VIX-adjusted)",
@@ -3270,31 +3224,30 @@
       },
       "why": {
         "top_reasons": [
-          "high ROE (+2.67%)",
-          "ensemble score -0.2947 (top-percentile signal)"
+          "no strong positive signals in the current feature snapshot",
+          "ensemble score -0.3212 (top-percentile signal)"
         ],
         "top_risks": [
-          "high leverage (D/E 1388.163)",
-          "negative news sentiment (-0.250)",
-          "net insider selling ($-30,087,975, 90d)",
-          "weak trend strength (ADX 13.618) — call may be premature"
+          "1-month drawdown -5.70%",
+          "high leverage (D/E 196.672)",
+          "deep 60d drawdown (-33.54%)"
         ],
         "signal_quality": "MODERATE"
       },
       "rotation_intelligence": {
         "should_rotate": true,
-        "replacement_ticker": "GOOGL",
-        "edge": 0.6294,
-        "expected_alpha_delta_pct": 62.94,
-        "keep_score": -0.2947,
-        "candidate_score": 0.3347,
-        "reason": "rotate → GOOGL · candidate_score +0.3347 vs current -0.2947 · edge +0.6294 > threshold 0.05 · expected alpha +62.94%"
+        "replacement_ticker": "PLTR",
+        "edge": 0.7442,
+        "expected_alpha_delta_pct": 74.42,
+        "keep_score": -0.3212,
+        "candidate_score": 0.423,
+        "reason": "rotate → PLTR · candidate_score +0.4230 vs current -0.3212 · edge +0.7442 > threshold 0.05 · expected alpha +74.42%"
       },
       "lifecycle_state": {
         "current_state": "HOLD",
         "previous_state": "HOLD",
-        "ts_last_transition": "2026-08-21T05:39:49.035454+00:00",
-        "n_events": 162
+        "ts_last_transition": "2026-09-01T12:32:36.918444+00:00",
+        "n_events": 720
       },
       "evolution": {
         "is_new": true,
@@ -3326,21 +3279,21 @@
       },
       "percentile_action": "STRONG_SELL",
       "score_percentile": 0.0714,
-      "percentile_reason": "score -0.2947 in bottom 10% (percentile 0.07)"
+      "percentile_reason": "score -0.3212 in bottom 10% (percentile 0.07)"
     },
     {
-      "ticker": "AKAM",
+      "ticker": "ESS",
       "sector": "",
       "industry": "",
       "recommendation": "HOLD",
       "action": "HOLD",
-      "composite_decision_score": 30.88,
-      "confidence": 0.3421,
+      "composite_decision_score": 33.355,
+      "confidence": 0.299,
       "rank": 15,
-      "ensemble_score": -0.3824,
-      "raw_confidence": 0.7561,
-      "calibrated_confidence": 0.3421,
-      "regime_adjusted_confidence": 0.325,
+      "ensemble_score": -0.3329,
+      "raw_confidence": 0.6663,
+      "calibrated_confidence": 0.299,
+      "regime_adjusted_confidence": 0.284,
       "model_agreement": 0.0,
       "disagreement_flag": false,
       "n_models_scoring": 0,
@@ -3356,11 +3309,11 @@
         "fund_debt_to_equity"
       ],
       "bull_case": "no strong positive signals in the current feature snapshot.",
-      "bear_case": "1-month drawdown -11.86%; stretched valuation (P/E 40.774); high leverage (D/E 196.672); deep 60d drawdown (-33.02%).",
+      "bear_case": "stretched valuation (P/E 44.075); high leverage (D/E 122.409).",
       "key_risks": [],
       "suggested_holding_period_days": 60,
       "entry_zone": {
-        "current": 110.09,
+        "current": 282.96,
         "note": "hold — no entry"
       },
       "exit_conditions": [
@@ -3384,17 +3337,17 @@
         "n_models_scoring": 0,
         "model_agreement": 0.0,
         "disagreement": false,
-        "confidence_reason": "confidence 0.342 · agreement 0.00",
-        "action_reason": "HOLD · score -0.382 inside neutral band"
+        "confidence_reason": "confidence 0.299 · agreement 0.00",
+        "action_reason": "HOLD · score -0.333 inside neutral band"
       },
       "signal_quality": "MODERATE",
-      "oc_next_best_ticker": "GOOGL",
-      "oc_next_best_score": 66.735,
-      "oc_expected_alpha_delta": 35.855,
-      "oc_reason_not_to_rotate": "opportunity_cost_high · GOOGL score 66.735 vs hold 30.88 (edge 35.8550 > rotate threshold 0.25) — recommend Capital Rotation review",
+      "oc_next_best_ticker": "HON",
+      "oc_next_best_score": 63.095,
+      "oc_expected_alpha_delta": 29.74,
+      "oc_reason_not_to_rotate": "opportunity_cost_high · HON score 63.095 vs hold 33.355 (edge 29.7400 > rotate threshold 0.25) — recommend Capital Rotation review",
       "entry_exit": {
         "entry_zone": {
-          "current": 110.09,
+          "current": 282.96,
           "note": "hold — no entry"
         },
         "if_holding": null,
@@ -3413,45 +3366,42 @@
         "suggested_allocation_pct": 0.0,
         "risk_level": "moderate",
         "max_capital_exposure_pct": 6.0,
-        "time_horizon_days": 9,
-        "time_horizon_bucket": "swing",
-        "time_horizon_desc": "Days-to-weeks · exit near target or on stop",
+        "time_horizon_days": 60,
+        "time_horizon_bucket": "position",
+        "time_horizon_desc": "Weeks-to-months · trend-following",
         "entry_zone": {
-          "current_price": 110.09,
-          "exit_range_low": 108.99,
-          "exit_range_high": 111.19,
+          "current_price": 282.96,
+          "exit_range_low": 280.13,
+          "exit_range_high": 285.79,
           "note": "exit if holding · no new entry recommended"
         },
-        "sizing_note": "preview allocation · real position size determined by risk engine (fractional Kelly · half-Kelly cap · per-sector cap · VIX-adjusted)",
-        "dynamic_holding_reason": "dynamic holding 9d = base 21 × composite 0.408 · drivers: risk trim (0.80x)"
+        "sizing_note": "preview allocation · real position size determined by risk engine (fractional Kelly · half-Kelly cap · per-sector cap · VIX-adjusted)"
       },
       "why": {
         "top_reasons": [
           "no strong positive signals in the current feature snapshot",
-          "ensemble score -0.3824 (top-percentile signal)"
+          "ensemble score -0.3329 (top-percentile signal)"
         ],
         "top_risks": [
-          "1-month drawdown -11.86%",
-          "stretched valuation (P/E 40.774)",
-          "high leverage (D/E 196.672)",
-          "deep 60d drawdown (-33.02%)"
+          "stretched valuation (P/E 44.075)",
+          "high leverage (D/E 122.409)"
         ],
         "signal_quality": "MODERATE"
       },
       "rotation_intelligence": {
         "should_rotate": true,
-        "replacement_ticker": "GOOGL",
-        "edge": 0.7171,
-        "expected_alpha_delta_pct": 71.71,
-        "keep_score": -0.3824,
-        "candidate_score": 0.3347,
-        "reason": "rotate → GOOGL · candidate_score +0.3347 vs current -0.3824 · edge +0.7171 > threshold 0.05 · expected alpha +71.71%"
+        "replacement_ticker": "PLTR",
+        "edge": 0.7559,
+        "expected_alpha_delta_pct": 75.59,
+        "keep_score": -0.3329,
+        "candidate_score": 0.423,
+        "reason": "rotate → PLTR · candidate_score +0.4230 vs current -0.3329 · edge +0.7559 > threshold 0.05 · expected alpha +75.59%"
       },
       "lifecycle_state": {
         "current_state": "HOLD",
         "previous_state": "HOLD",
-        "ts_last_transition": "2026-08-21T05:39:49.035454+00:00",
-        "n_events": 360
+        "ts_last_transition": "2026-09-01T12:32:36.918444+00:00",
+        "n_events": 321
       },
       "evolution": {
         "is_new": true,
@@ -3483,7 +3433,7 @@
       },
       "percentile_action": "STRONG_SELL",
       "score_percentile": 0.0,
-      "percentile_reason": "score -0.3824 in bottom 10% (percentile 0.00)"
+      "percentile_reason": "score -0.3329 in bottom 10% (percentile 0.00)"
     }
   ],
   "ceo_summary": {
@@ -3493,24 +3443,22 @@
     "portfolio_health": null,
     "cash_pct": null,
     "top_opportunity": {
-      "ticker": "GOOGL",
+      "ticker": "PLTR",
       "action": "BUY",
       "allocation_pct": 5.0,
       "expected_alpha_note": "STRONG"
     },
     "top_risk": {
-      "ticker": "AKAM",
+      "ticker": "ESS",
       "if_holding": "EXIT",
       "reason": [
-        "1-month drawdown -11.86%",
-        "stretched valuation (P/E 40.774)",
-        "high leverage (D/E 196.672)",
-        "deep 60d drawdown (-33.02%)"
+        "stretched valuation (P/E 44.075)",
+        "high leverage (D/E 122.409)"
       ]
     },
-    "recommended_action": "Rotate AKAM -> GOOGL (expected alpha +71.71%)",
+    "recommended_action": "Rotate ESS -> PLTR (expected alpha +75.59%)",
     "actionable_count": 6,
-    "rotations_count": 5,
+    "rotations_count": 14,
     "entry_decision_dist": {
       "BUY": 3,
       "WAIT": 9,
@@ -3537,17 +3485,16 @@
     "schema_fingerprint": "aegis.analytics.attribution.v1.20260729",
     "n_recs": 15,
     "dominant_drivers": {
-      "Event": 3,
-      "Trend": 3,
-      "Quality": 2,
-      "MeanReversion": 1,
-      "Momentum": 1
+      "Quality": 6,
+      "Trend": 2,
+      "Momentum": 1,
+      "MeanReversion": 1
     },
     "persistent_opposition": {
-      "Value": 3,
-      "News": 2,
+      "Value": 5,
+      "MeanReversion": 2,
       "Trend": 1,
-      "MeanReversion": 1
+      "Momentum": 1
     },
     "avg_sector_share_pct": 0.0,
     "sector_engine_measurably_active": false
