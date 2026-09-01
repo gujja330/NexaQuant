@@ -6,7 +6,7 @@
 
 | Gate | Status | Detail |
 |------|--------|--------|
-| G01_full_test_suite | PASS | 537 passed · 0 failed · 11 skipped |
+| G01_full_test_suite | PASS | 557 passed · 0 failed · 11 skipped |
 | G02_e2e_build_india | PASS | xlsx.asof=2026-09-01 · dated=True |
 | G03_e2e_build_usa | PASS | xlsx.asof=2026-09-01 · dated=True |
 | G04_canonical_identity_india | PASS | 66 new-format PIDs · 0 legacy (source: Registry) |
@@ -23,7 +23,7 @@
 | G15_xlsx_structural_india | PASS | exactly 3 required sheets present · no legacy sheets |
 | G16_visual_inspection_india | PASS | auto-audit PASS · sign-off: visual_signoff_india_2026-09-01.md |
 | G17_standard_filename_india | PASS | dated=True byte_match=True · expected=aegis_india_2026-09-01.xlsx |
-| G18_three_run_determinism_india | PASS | 3-run data-only hash: 17afd62b / 17afd62b / 17afd62b |
+| G18_three_run_determinism_india | PASS | 3-run data-only hash: c03cd29e / c03cd29e / c03cd29e |
 | G19_fabrication_scan_india | PASS | 0 holding rows with LOW/PENDING |
 | G22_research_pit_india | PASS | 136 evidence rows · 68 AVAILABLE |
 | G04_canonical_identity_usa | PASS | 546 new-format PIDs · 0 legacy (source: Registry) |
@@ -40,7 +40,7 @@
 | G15_xlsx_structural_usa | PASS | exactly 3 required sheets present · no legacy sheets |
 | G16_visual_inspection_usa | PASS | auto-audit PASS · sign-off: visual_signoff_usa_2026-09-01.md |
 | G17_standard_filename_usa | PASS | dated=True byte_match=True · expected=aegis_usa_2026-09-01.xlsx |
-| G18_three_run_determinism_usa | PASS | 3-run data-only hash: f1aa0044 / f1aa0044 / f1aa0044 |
+| G18_three_run_determinism_usa | PASS | 3-run data-only hash: 17a6e78e / 17a6e78e / 17a6e78e |
 | G19_fabrication_scan_usa | PASS | 0 holding rows with LOW/PENDING |
 | G22_research_pit_usa | PASS | 136 evidence rows · 68 AVAILABLE |
 | G20_overrideallow_false | PASS | no overrideallow=true |

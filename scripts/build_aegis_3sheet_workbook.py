@@ -142,19 +142,32 @@ def _canonical_ticker(t):
 # ── SHEET 01 · Portfolio · CURRENT ACTIVE R2 HOLDINGS ONLY ──────────
 def _emit_portfolio(wb, market, root, asof, reg_data):
     ws = wb.create_sheet("01_Portfolio")
-    ncols = 11
+    ncols = 13
     _banner(ws, f"AEGIS {market.upper()} · PORTFOLIO · current active holdings as of {asof}", ncols)
     active = sorted(reg_data["active"], key=lambda o: o.created_date or "", reverse=True)
     _sub(ws, (f"🟢 R2 ACTIVE: {len(active)} · production runner is R2 · "
                 "sorted latest entry first · rebuilt daily from canonical Registry"),
           ncols, 2)
 
+    # Load bridge decisions for counterfactual columns
+    dyn_p = root / "reports" / "audit" / f"dynamic_exit_decisions_{market.lower()}_{asof}.json"
+    dyn_by_pid = {}
+    if dyn_p.exists():
+        try:
+            dyn = json.loads(dyn_p.read_text(encoding="utf-8"))
+            for d in (dyn.get("decisions") or []):
+                if d.get("opportunity_id"):
+                    dyn_by_pid[d["opportunity_id"]] = d
+        except Exception:
+            pass
+
     hdr = ["Position ID", "Ticker", "Runner",
              "Entry Date", "Entry Price", "Current Price",
              "Unrealized P&L %", "Holding Days",
-             "As-Of", "Provenance", "Notes"]
+             "Dynamic Stop", "Engine Verdict", "Would-Have-Exited-On",
+             "As-Of", "Provenance"]
     _header(ws, hdr, 4)
-    for i, w in enumerate([28, 10, 8, 12, 12, 14, 16, 12, 12, 20, 30], start=1):
+    for i, w in enumerate([28, 10, 8, 12, 12, 14, 16, 12, 14, 22, 20, 12, 22], start=1):
         ws.column_dimensions[get_column_letter(i)].width = w
     r = 5
     for o in active:
@@ -168,6 +181,15 @@ def _emit_portfolio(wb, market, root, asof, reg_data):
             days = (date.fromisoformat(asof) - date.fromisoformat(o.created_date)).days
         except Exception:
             pass
+        # Counterfactual columns · from bridge audit output
+        dyn_d = dyn_by_pid.get(o.opportunity_id)
+        dyn_stop = "—"
+        engine_verdict = "HOLD (no trigger)"
+        would_exit_on = "—"
+        if dyn_d:
+            dyn_stop = round(dyn_d["stop_price"], 4) if dyn_d.get("stop_price") else "—"
+            engine_verdict = f"{dyn_d['event']} (audit-only)"
+            would_exit_on = dyn_d.get("trigger_date") or "—"
         _write_row(ws, [
             o.opportunity_id, _canonical_ticker(o.ticker), o.runner,
             o.created_date or "—",
@@ -175,7 +197,8 @@ def _emit_portfolio(wb, market, root, asof, reg_data):
             round(curr_p, 4) if curr_p else "UNAVAILABLE",
             pnl_pct if pnl_pct is not None else "—",
             days if days is not None else "—",
-            asof, "canonical:Registry+prices", "held",
+            dyn_stop, engine_verdict, would_exit_on,
+            asof, "canonical:Registry+prices+dynamic_exit_bridge",
         ], r, pnl_col_idx=7)
         r += 1
     if not active:
@@ -188,6 +211,9 @@ def _emit_portfolio(wb, market, root, asof, reg_data):
         "Unrealized P&L % · (Current − Entry) / Entry · positive=green · negative=red · zero/N/A=neutral.",
         "'—' = not applicable. 'UNAVAILABLE' = canonical source did not return a value. 0 is never used to mean missing.",
         "Daily rollover: this sheet is rebuilt from canonical Registry at the reporting date · never carried over from prior day's XLSX.",
+        "Dynamic Stop = today's stop level from the coded exit engine (dynamic_risk_v2 ATR-based, else recommendation entry_zone.stop_loss, else entry × 0.94).",
+        "Engine Verdict = what the coded lifecycle engine (evaluate_position) says today. HOLD if no trigger. EXIT_STOP / EXIT_TARGET / EXIT_HORIZON if triggered.",
+        "Would-Have-Exited-On = if the engine says exit today, this is the first date the position crossed the trigger. Positions are NOT retroactively closed in the current release · this is audit-only until the wiring is enforced.",
     ], r, ncols)
     return len(active)
 

@@ -1,0 +1,57 @@
+{
+  "engine": "r2_stop_rule_audit.v1",
+  "market": "india",
+  "asof": "2026-09-01",
+  "stop_rule_pct": 6.0,
+  "stop_rule_source": "backend/recommendation/investor_actionable/engine.py::DEFAULT_STOP_PCT",
+  "n_r2_active_total": 9,
+  "n_unpriced": 0,
+  "n_findings": 2,
+  "findings": [
+    {
+      "position_id": "IND-R2-CHAMBLFERT-20260804-893fdf",
+      "ticker": "CHAMBLFERT",
+      "runner": "R2",
+      "entry_date": "2026-08-04",
+      "entry_price": 452.35,
+      "current_price": 413.55,
+      "min_close": 413.55,
+      "current_pnl_pct": -8.58,
+      "max_dd_pct": -8.58,
+      "stop_price_6pct": 425.209,
+      "crossed_stop": true,
+      "still_below_stop": true,
+      "stop_cross_date": "2026-08-28",
+      "days_since_stop_cross": 4,
+      "expected": "EXIT triggered on stop_cross_date if R2 stop rule is live-monitored",
+      "actual": "STILL ACTIVE"
+    },
+    {
+      "position_id": "IND-R2-ITC-20260804-e0ebbb",
+      "ticker": "ITC",
+      "runner": "R2",
+      "entry_date": "2026-08-04",
+      "entry_price": 284.85,
+      "current_price": 264.9,
+      "min_close": 264.9,
+      "current_pnl_pct": -7.0,
+      "max_dd_pct": -7.0,
+      "stop_price_6pct": 267.759,
+      "crossed_stop": true,
+      "still_below_stop": true,
+      "stop_cross_date": "2026-08-19",
+      "days_since_stop_cross": 13,
+      "expected": "EXIT triggered on stop_cross_date if R2 stop rule is live-monitored",
+      "actual": "STILL ACTIVE"
+    }
+  ],
+  "verdict": "STOP_RULE_VIOLATIONS_FOUND · engine-lifecycle audit required",
+  "notes": [
+    "R2 stop rule is documented at signal-generation time (6% below entry).",
+    "This audit does NOT prove the exit engine is broken · it flags positions whose price crossed the documented threshold while still ACTIVE.",
+    "Two valid interpretations for a finding:",
+    "  A) Stop rule is soft (advisory) · not hard-enforced by exit engine",
+    "  B) Stop rule is hard · exit engine failed to fire → production defect",
+    "Either way, if findings exist, the workbook must SURFACE the stop info explicitly so the operator is not misled about R2's exit contract."
+  ]
+}

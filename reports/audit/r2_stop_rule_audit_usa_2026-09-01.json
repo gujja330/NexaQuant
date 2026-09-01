@@ -1,0 +1,39 @@
+{
+  "engine": "r2_stop_rule_audit.v1",
+  "market": "usa",
+  "asof": "2026-09-01",
+  "stop_rule_pct": 6.0,
+  "stop_rule_source": "backend/recommendation/investor_actionable/engine.py::DEFAULT_STOP_PCT",
+  "n_r2_active_total": 6,
+  "n_unpriced": 0,
+  "n_findings": 1,
+  "findings": [
+    {
+      "position_id": "USA-R2-IT-20260810-b5fd37",
+      "ticker": "IT",
+      "runner": "R2",
+      "entry_date": "2026-08-10",
+      "entry_price": 193.17,
+      "current_price": 179.46,
+      "min_close": 179.46,
+      "current_pnl_pct": -7.1,
+      "max_dd_pct": -7.1,
+      "stop_price_6pct": 181.5798,
+      "crossed_stop": true,
+      "still_below_stop": true,
+      "stop_cross_date": "2026-08-12",
+      "days_since_stop_cross": 20,
+      "expected": "EXIT triggered on stop_cross_date if R2 stop rule is live-monitored",
+      "actual": "STILL ACTIVE"
+    }
+  ],
+  "verdict": "STOP_RULE_VIOLATIONS_FOUND · engine-lifecycle audit required",
+  "notes": [
+    "R2 stop rule is documented at signal-generation time (6% below entry).",
+    "This audit does NOT prove the exit engine is broken · it flags positions whose price crossed the documented threshold while still ACTIVE.",
+    "Two valid interpretations for a finding:",
+    "  A) Stop rule is soft (advisory) · not hard-enforced by exit engine",
+    "  B) Stop rule is hard · exit engine failed to fire → production defect",
+    "Either way, if findings exist, the workbook must SURFACE the stop info explicitly so the operator is not misled about R2's exit contract."
+  ]
+}

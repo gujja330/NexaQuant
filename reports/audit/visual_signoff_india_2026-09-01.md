@@ -8,7 +8,7 @@
 
 | Sheet | Rows x Cols |
 |---|---|
-| 01_Portfolio | 19 x 11 |
+| 01_Portfolio | 22 x 13 |
 | 02_Today_Momentum | 12 x 11 |
 | 03_Exit_History | 47 x 12 |
 
