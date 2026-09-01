@@ -82,7 +82,7 @@ def _sample_payload(market: str = "india") -> dict:
 
 def test_command_center_renders_all_required_sections():
     msg = render_command_center_message(_sample_payload(), "india")
-    assert "CEO CALL TODAY" in msg
+    assert "CEO ACTION TODAY" in msg
     assert "Rotate BADCO -> GOODCO" in msg
     assert "NEW BUY IDEAS" in msg   # v3.0 label ("NEW BUYS" → "NEW BUY IDEAS")
     assert "GOODCO" in msg
@@ -121,7 +121,7 @@ def test_command_center_handles_empty_recs_gracefully():
     empty = {"asof": "2026-07-29", "market": "india", "recommendations": [],
               "ceo_summary": {"recommended_action": "no signal"}, "run_utc": ""}
     msg = render_command_center_message(empty, "india")
-    assert "CEO CALL TODAY" in msg
+    assert "CEO ACTION TODAY" in msg
     assert "no signal" in msg
 
 

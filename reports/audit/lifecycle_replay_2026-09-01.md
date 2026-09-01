@@ -1,17 +1,33 @@
 # R2 Lifecycle Replay · 2026-09-01
 
+Full E2E lifecycle trace for the 3 CEO-flagged R2 positions:
+**entry → daily evaluation → engine verdict → Registry → Portfolio sheet → Exit History**
+
 Reconstructed using the SAME rules as production dynamic engine:
 - ATR-14 · atr_mult=2.0 · high_vol_scale=1.5 · high_vol_threshold=3.0%
 - evaluate_position priority: STOP > T2 > T1 > HORIZON > HOLD
 - No hardcoded 5%/6% stop · dynamic engine is authoritative
+- Cross-referenced against SHIPPED 3-sheet workbook (Portfolio row · Exit History absence)
 
 ## IND-R2-CHAMBLFERT-20260804-893fdf
 - ticker: **CHAMBLFERT** (INDIA R2)
 - entry: 2026-08-04 @ 452.3500
 - days replayed: 19
-- Registry: ACTIVE
-- overall: **A · engine HOLD throughout · Registry ACTIVE · consistent**
-- engine verdict was HOLD every day · Registry state consistent
+- Registry: **ACTIVE**
+- shipped workbook: `reports\telegram\aegis_india_2026-09-01.xlsx`
+- 01_Portfolio row: **R11**
+  - shipped snapshot (from XLSX):
+    - Entry Date: 2026-08-04
+    - Entry Price: 452.35
+    - Current Price: 413.55
+    - Unrealized P&L %: -8.58
+    - Holding Days: 28
+    - Dynamic Stop: 400.8
+    - Engine Verdict: HOLD (audit-only)
+    - Would-Have-Exited-On: —
+- 03_Exit_History: ABSENT (correct · position ACTIVE)
+- overall: **A · engine HOLD throughout · Registry ACTIVE · Portfolio row present · Exit History absent · CONSISTENT**
+- engine verdict was HOLD every day · Registry state consistent · workbook consistent
 
 | Date | Days | Close | Dyn Stop | Stop Type | ATR% | P&L % | Engine |
 |---|---|---|---|---|---|---|---|
@@ -39,9 +55,21 @@ Reconstructed using the SAME rules as production dynamic engine:
 - ticker: **ITC** (INDIA R2)
 - entry: 2026-08-04 @ 284.8500
 - days replayed: 20
-- Registry: ACTIVE
-- overall: **A · engine HOLD throughout · Registry ACTIVE · consistent**
-- engine verdict was HOLD every day · Registry state consistent
+- Registry: **ACTIVE**
+- shipped workbook: `reports\telegram\aegis_india_2026-09-01.xlsx`
+- 01_Portfolio row: **R12**
+  - shipped snapshot (from XLSX):
+    - Entry Date: 2026-08-04
+    - Entry Price: 284.85
+    - Current Price: 264.9
+    - Unrealized P&L %: -7
+    - Holding Days: 28
+    - Dynamic Stop: 258.25
+    - Engine Verdict: HOLD (audit-only)
+    - Would-Have-Exited-On: —
+- 03_Exit_History: ABSENT (correct · position ACTIVE)
+- overall: **A · engine HOLD throughout · Registry ACTIVE · Portfolio row present · Exit History absent · CONSISTENT**
+- engine verdict was HOLD every day · Registry state consistent · workbook consistent
 
 | Date | Days | Close | Dyn Stop | Stop Type | ATR% | P&L % | Engine |
 |---|---|---|---|---|---|---|---|
@@ -70,9 +98,21 @@ Reconstructed using the SAME rules as production dynamic engine:
 - ticker: **IT** (USA R2)
 - entry: 2026-08-10 @ 193.1700
 - days replayed: 3
-- Registry: ACTIVE
-- overall: **A · engine HOLD throughout · Registry ACTIVE · consistent**
-- engine verdict was HOLD every day · Registry state consistent
+- Registry: **ACTIVE**
+- shipped workbook: `reports\telegram\aegis_usa_2026-09-01.xlsx`
+- 01_Portfolio row: **R7**
+  - shipped snapshot (from XLSX):
+    - Entry Date: 2026-08-10
+    - Entry Price: 193.17
+    - Current Price: 179.46
+    - Unrealized P&L %: -7.1
+    - Holding Days: 22
+    - Dynamic Stop: 161.7654
+    - Engine Verdict: HOLD (audit-only)
+    - Would-Have-Exited-On: —
+- 03_Exit_History: ABSENT (correct · position ACTIVE)
+- overall: **A · engine HOLD throughout · Registry ACTIVE · Portfolio row present · Exit History absent · CONSISTENT**
+- engine verdict was HOLD every day · Registry state consistent · workbook consistent
 
 | Date | Days | Close | Dyn Stop | Stop Type | ATR% | P&L % | Engine |
 |---|---|---|---|---|---|---|---|

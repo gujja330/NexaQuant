@@ -34,7 +34,7 @@
 | G13_pnl_reconciliation_usa | PASS | 0 UNEXPLAINED PID duplicates at (ticker, runner, entry_date) grain · Registry authoritative |
 | G14_provenance_validation_usa | PASS | 508/508 opened rows have Position ID (100.0%) |
 | G09_population_counts_usa | PASS | HISTORICAL_CLOSED=502 · CURRENT_HOLDING=6 |
-| G10_runner_counts_usa | PASS | R1(RETIRED_DORMANT·opened=38·active=12) · R2(ACTIVE_PRODUCTION·opened=508·active=6) · COMBINED(ACTIVE_PRODUCTION·opened= |
+| G10_runner_counts_usa | PASS | R1(RETIRED_DORMANT·opened=43·active=17) · R2(ACTIVE_PRODUCTION·opened=508·active=6) · COMBINED(ACTIVE_PRODUCTION·opened= |
 | G11_r1_production_absence_usa | PASS | 0 retired-runner rows in Portfolio · retired=['R1'] |
 | G12_r2_integrity_usa | PASS | status=ACTIVE_PRODUCTION · signals=508 · opened=508 · closed=502 |
 | G15_xlsx_structural_usa | PASS | exactly 3 required sheets present · no legacy sheets |

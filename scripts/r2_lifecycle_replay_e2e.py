@@ -118,6 +118,59 @@ def _load_registry_position(root: Path, pid: str):
     return None
 
 
+def _workbook_cross_reference(root: Path, pid: str, ticker: str, market: str):
+    """Look up the position in the shipped 3-sheet workbook.
+    Returns dict with:
+        portfolio_row (row_number or None)
+        portfolio_snapshot (dict of column-name → value)
+        exit_history_present (bool · should be False for ACTIVE positions)
+    """
+    from openpyxl import load_workbook
+    p = root / "reports" / "telegram" / f"aegis_{market}_2026-09-01.xlsx"
+    if not p.exists():
+        return {"error": f"workbook not found: {p}"}
+    wb = load_workbook(p, data_only=True)
+    result = {"workbook": str(p.relative_to(root)),
+              "portfolio_row": None, "portfolio_snapshot": None,
+              "exit_history_present": None, "exit_history_rows": []}
+
+    if "01_Portfolio" in wb.sheetnames:
+        ws = wb["01_Portfolio"]
+        headers = None
+        for r in range(1, ws.max_row + 1):
+            v0 = ws.cell(row=r, column=1).value
+            if v0 == "Position ID":
+                headers = [ws.cell(row=r, column=c).value
+                           for c in range(1, ws.max_column + 1)]
+                header_row = r
+                break
+        if headers:
+            for r in range(header_row + 1, ws.max_row + 1):
+                cell_pid = ws.cell(row=r, column=1).value
+                if cell_pid and str(cell_pid).strip() == pid:
+                    row_vals = [ws.cell(row=r, column=c).value
+                                for c in range(1, ws.max_column + 1)]
+                    result["portfolio_row"] = r
+                    result["portfolio_snapshot"] = dict(zip(headers, row_vals))
+                    break
+
+    if "03_Exit_History" in wb.sheetnames:
+        ws = wb["03_Exit_History"]
+        found_rows = []
+        for r in range(1, ws.max_row + 1):
+            for c in range(1, min(ws.max_column + 1, 5)):
+                v = ws.cell(row=r, column=c).value
+                if v is None: continue
+                v_str = str(v).strip()
+                if v_str == pid or v_str.upper() == ticker.upper():
+                    found_rows.append(r)
+                    break
+        result["exit_history_present"] = len(found_rows) > 0
+        result["exit_history_rows"] = found_rows
+
+    return result
+
+
 def replay_position(root: Path, pid: str, ticker: str, market: str,
                        entry_date: str, asof: str,
                        horizon_days: int = 60) -> dict:
@@ -180,9 +233,23 @@ def replay_position(root: Path, pid: str, ticker: str, market: str,
         "closed_reason": (getattr(opp, "closed_reason", None) if opp else None),
     }
 
-    # Final verdict
+    # Workbook cross-reference · confirms Portfolio row + Exit History absence
+    wb_xref = _workbook_cross_reference(root, pid, ticker, market)
+
+    # Final verdict (Registry + workbook cross-reference)
+    portfolio_ok = wb_xref.get("portfolio_row") is not None
+    exit_hist_ok = wb_xref.get("exit_history_present") is False
+    consistent = (portfolio_ok and exit_hist_ok
+                  and reg_state["status"] in ("ACTIVE", "ACTIVE_PLUS"))
+
     if exit_fired_by_engine is None:
-        overall = "A · engine HOLD throughout · Registry ACTIVE · consistent"
+        if consistent:
+            overall = ("A · engine HOLD throughout · Registry ACTIVE · "
+                       "Portfolio row present · Exit History absent · CONSISTENT")
+        else:
+            overall = ("A? · engine HOLD but cross-ref failed · "
+                       f"portfolio_ok={portfolio_ok} exit_hist_ok={exit_hist_ok} "
+                       f"reg={reg_state['status']}")
     else:
         if reg_state["status"] == "CLOSED":
             overall = "correct · engine said EXIT · Registry CLOSED"
@@ -202,6 +269,7 @@ def replay_position(root: Path, pid: str, ticker: str, market: str,
         "n_trading_days": len(daily),
         "engine_exit_signal_fired": exit_fired_by_engine,
         "registry_state": reg_state,
+        "workbook_cross_reference": wb_xref,
         "overall_verdict": overall,
         "daily": daily,
     }
@@ -231,10 +299,14 @@ def main() -> int:
 
     # Markdown summary
     md = [f"# R2 Lifecycle Replay · {args.asof}", ""]
+    md.append("Full E2E lifecycle trace for the 3 CEO-flagged R2 positions:")
+    md.append("**entry → daily evaluation → engine verdict → Registry → Portfolio sheet → Exit History**")
+    md.append("")
     md.append("Reconstructed using the SAME rules as production dynamic engine:")
     md.append("- ATR-14 · atr_mult=2.0 · high_vol_scale=1.5 · high_vol_threshold=3.0%")
     md.append("- evaluate_position priority: STOP > T2 > T1 > HORIZON > HOLD")
     md.append("- No hardcoded 5%/6% stop · dynamic engine is authoritative")
+    md.append("- Cross-referenced against SHIPPED 3-sheet workbook (Portfolio row · Exit History absence)")
     md.append("")
     for c in out["cases"]:
         if "error" in c:
@@ -244,7 +316,21 @@ def main() -> int:
         md.append(f"- ticker: **{c['ticker']}** ({c['market'].upper()} R2)")
         md.append(f"- entry: {c['entry_date']} @ {c['entry_price']:.4f}")
         md.append(f"- days replayed: {c['n_trading_days']}")
-        md.append(f"- Registry: {c['registry_state']['status']}")
+        md.append(f"- Registry: **{c['registry_state']['status']}**")
+        wb_x = c.get("workbook_cross_reference", {})
+        md.append(f"- shipped workbook: `{wb_x.get('workbook','?')}`")
+        pr = wb_x.get("portfolio_row")
+        md.append(f"- 01_Portfolio row: **R{pr}**" if pr else "- 01_Portfolio row: NOT FOUND")
+        snap = wb_x.get("portfolio_snapshot") or {}
+        if snap:
+            fields = ["Entry Date","Entry Price","Current Price","Unrealized P&L %",
+                      "Holding Days","Dynamic Stop","Engine Verdict","Would-Have-Exited-On"]
+            md.append("  - shipped snapshot (from XLSX):")
+            for f in fields:
+                if f in snap:
+                    md.append(f"    - {f}: {snap[f]}")
+        eh_present = wb_x.get("exit_history_present")
+        md.append(f"- 03_Exit_History: {'PRESENT (INCORRECT)' if eh_present else 'ABSENT (correct · position ACTIVE)'}")
         md.append(f"- overall: **{c['overall_verdict']}**")
         if c.get("engine_exit_signal_fired"):
             e = c["engine_exit_signal_fired"]
@@ -252,7 +338,7 @@ def main() -> int:
                         f"close={e['close']:.4f} · stop={e['stop']:.4f} · type={e['stop_type']} · "
                         f"pnl={e['pnl_pct']}%")
         else:
-            md.append(f"- engine verdict was HOLD every day · Registry state consistent")
+            md.append(f"- engine verdict was HOLD every day · Registry state consistent · workbook consistent")
         md.append("")
         md.append("| Date | Days | Close | Dyn Stop | Stop Type | ATR% | P&L % | Engine |")
         md.append("|---|---|---|---|---|---|---|---|")
