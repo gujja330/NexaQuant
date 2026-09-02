@@ -20,10 +20,10 @@
 | G10_runner_counts_india | PASS | R1(RETIRED_DORMANT·opened=21·active=16) · R2(ACTIVE_PRODUCTION·opened=47·active=9) · COMBINED(ACTIVE_PRODUCTION·opened=6 |
 | G11_r1_production_absence_india | PASS | 0 retired-runner rows in Portfolio · retired=['R1'] |
 | G12_r2_integrity_india | PASS | status=ACTIVE_PRODUCTION · signals=47 · opened=47 · closed=38 |
-| G15_xlsx_structural_india | PASS | exactly 3 required sheets present · no legacy sheets |
+| G15_xlsx_structural_india | PASS | exactly 4 required sheets present · no legacy sheets |
 | G16_visual_inspection_india | PASS | auto-audit PASS · sign-off: visual_signoff_india_2026-09-02.md |
 | G17_standard_filename_india | PASS | dated=True byte_match=True · expected=aegis_india_2026-09-02.xlsx |
-| G18_three_run_determinism_india | PASS | 3-run data-only hash: 00a26b7a / 00a26b7a / 00a26b7a |
+| G18_three_run_determinism_india | PASS | 3-run data-only hash: 2f9a155d / 2f9a155d / 2f9a155d |
 | G19_fabrication_scan_india | PASS | 0 holding rows with LOW/PENDING |
 | G22_research_pit_india | PASS | 112 evidence rows · 56 AVAILABLE |
 | G04_canonical_identity_usa | PASS | 551 new-format PIDs · 0 legacy (source: Registry) |
@@ -37,10 +37,10 @@
 | G10_runner_counts_usa | PASS | R1(RETIRED_DORMANT·opened=43·active=17) · R2(ACTIVE_PRODUCTION·opened=508·active=6) · COMBINED(ACTIVE_PRODUCTION·opened= |
 | G11_r1_production_absence_usa | PASS | 0 retired-runner rows in Portfolio · retired=['R1'] |
 | G12_r2_integrity_usa | PASS | status=ACTIVE_PRODUCTION · signals=508 · opened=508 · closed=502 |
-| G15_xlsx_structural_usa | PASS | exactly 3 required sheets present · no legacy sheets |
+| G15_xlsx_structural_usa | PASS | exactly 4 required sheets present · no legacy sheets |
 | G16_visual_inspection_usa | PASS | auto-audit PASS · sign-off: visual_signoff_usa_2026-09-02.md |
 | G17_standard_filename_usa | PASS | dated=True byte_match=True · expected=aegis_usa_2026-09-02.xlsx |
-| G18_three_run_determinism_usa | PASS | 3-run data-only hash: af4b6648 / af4b6648 / af4b6648 |
+| G18_three_run_determinism_usa | PASS | 3-run data-only hash: ae5c37ce / ae5c37ce / ae5c37ce |
 | G19_fabrication_scan_usa | PASS | 0 holding rows with LOW/PENDING |
 | G22_research_pit_usa | PASS | 112 evidence rows · 56 AVAILABLE |
 | G20_overrideallow_false | PASS | no overrideallow=true |

@@ -60,13 +60,15 @@ def reconcile(market: str, root: Path) -> dict:
     def _add(name: str, ok: bool, detail: str = "", data=None):
         checks.append({"name": name, "ok": ok, "detail": detail, "data": data})
 
-    # ── C1 · Sheets present · CEO 2026-09-01 FINAL 3-sheet spec ─────
-    # Exactly 3 visible sheets · no more no less. Any extra sheet
-    # is a legacy-artifact violation.
+    # ── C1 · Sheets present · CEO 2026-09-03 FINAL 4-sheet spec ─────
+    # Exactly 4 visible sheets · no more no less. Sheet 04 is the
+    # historical reconstruction from canonical Registry (CEO added
+    # to answer "what did AEGIS hold on date X?").
     required_sheets = [
-        "01_Portfolio",              # 1 · current active R2 holdings
-        "02_Today_Momentum",         # 2 · today's decisions/recommendations
-        "03_Exit_History",           # 3 · closed lifecycle only
+        "01_Portfolio",                    # 1 · current active R2 holdings
+        "02_Today_Momentum",               # 2 · today's decisions/recommendations
+        "03_Exit_History",                 # 3 · realized production exits only
+        "04_Daily_Portfolio_History",      # 4 · daily active reconstruction
     ]
     missing = [s for s in required_sheets if s not in wb.sheetnames]
     extra = [s for s in wb.sheetnames if s not in required_sheets]
@@ -74,7 +76,7 @@ def reconcile(market: str, root: Path) -> dict:
           (not missing) and (not extra),
           (f"missing={missing} · extra={extra}"
             if (missing or extra)
-            else "exactly 3 required sheets present · no legacy sheets"),
+            else "exactly 4 required sheets present · no legacy sheets"),
           {"present": wb.sheetnames, "required": required_sheets,
            "missing": missing, "extra": extra})
 

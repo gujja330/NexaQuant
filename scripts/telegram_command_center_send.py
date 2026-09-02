@@ -4553,8 +4553,17 @@ def main() -> int:
             # Suppress heartbeat banner + Monday operator guide from Telegram
             # caption (kept in stdout logs · zero UI clutter for operator)
             full_caption = caption_body
-            ok, msg = _send_document(token, chat_id, out_path, caption=full_caption)
-            print(f"[xlsx:{mkt_key}] file={out_path.name} · rows={len(keep_rows)} · sent={ok}")
+            # CEO 2026-09-03 · Telegram must attach the DATED per-market file
+            # (aegis_{market}_YYYY-MM-DD.xlsx) not the undated latest-alias
+            # (aegis_history_{market}.xlsx) · so the operator can archive daily
+            # snapshots by filename. Fall back to out_path only if the dated
+            # snapshot is missing (should never happen after the 3-sheet builder).
+            from datetime import date as _dt_send
+            _asof_send = _dt_send.today().isoformat()
+            _dated_path = out_path.parent / f"aegis_{mkt_key.lower()}_{_asof_send}.xlsx"
+            _attach_path = _dated_path if _dated_path.exists() else out_path
+            ok, msg = _send_document(token, chat_id, _attach_path, caption=full_caption)
+            print(f"[xlsx:{mkt_key}] file={_attach_path.name} · rows={len(keep_rows)} · sent={ok}")
             if not ok:
                 print(f"  detail: {msg[:180]}")
             # 2026-08-25 · PI3 · seed parquet fingerprints on successful

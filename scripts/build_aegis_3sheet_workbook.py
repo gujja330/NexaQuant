@@ -343,9 +343,24 @@ def _target_from_registry(o):
     return None
 
 
+def _horizon_from_registry(o):
+    """Extract exit horizon in days from Registry initial_signal · returns
+    int (days) or None. Never fabricated."""
+    sig = getattr(o, "initial_signal", "") or ""
+    if isinstance(sig, str):
+        import re
+        m = re.search(r"horizon[^\d]*(\d+)\s*d", sig, re.IGNORECASE)
+        if m:
+            try:
+                v = int(m.group(1))
+                if v > 0: return v
+            except Exception: pass
+    return None
+
+
 def _emit_portfolio(wb, market, root, asof, reg_data):
     ws = wb.create_sheet("01_Portfolio")
-    ncols = 14
+    ncols = 20
     _banner(ws, f"AEGIS {market.upper()} · PORTFOLIO · current active holdings as of {asof}", ncols)
     active = sorted(reg_data["active"], key=lambda o: o.created_date or "", reverse=True)
     _sub(ws, (f"🟢 R2 ACTIVE: {len(active)} · production runner is R2 · "
@@ -366,18 +381,21 @@ def _emit_portfolio(wb, market, root, asof, reg_data):
                     dyn_by_pid[d["opportunity_id"]] = d
         except Exception:
             pass
+    sector_cache = _load_sector_cache(root)
 
-    # CEO 2026-09-02 · Portfolio answers "I own these · what do I do now?"
-    # New Action column · derived from actual engine verdict (HOLD / EXIT).
-    # Target column added · from Registry if present · else UNAVAILABLE.
-    hdr = ["Position ID", "Ticker", "Runner",
+    # CEO 2026-09-03 · full decision-transparency columns.
+    # Sector · Stop Distance % · Target Distance % · Exit Horizon ·
+    # Would-Have-Exited-On · Risk/Reward · Provenance added as first-class fields.
+    hdr = ["Position ID", "Ticker", "Sector", "Runner",
              "Entry Date", "Entry Price", "Current Price",
              "Unrealized P&L %", "Holding Days",
-             "Dynamic Stop", "Stop Type", "Target",
-             "Engine Verdict", "Action",
-             "As-Of"]
+             "Dynamic Stop", "Stop Distance %", "Stop Type",
+             "Target", "Target Distance %", "Exit Horizon",
+             "Engine Verdict", "Action", "Would-Have-Exited-On",
+             "Risk/Reward", "Provenance"]
     _header(ws, hdr, 4)
-    for i, w in enumerate([28, 10, 8, 12, 12, 14, 16, 12, 14, 12, 12, 20, 10, 12], start=1):
+    widths = [28, 10, 18, 8, 12, 12, 14, 16, 12, 14, 14, 12, 12, 16, 12, 20, 10, 20, 12, 22]
+    for i, w in enumerate(widths, start=1):
         ws.column_dimensions[get_column_letter(i)].width = w
     r = 5
     for o in active:
@@ -391,41 +409,63 @@ def _emit_portfolio(wb, market, root, asof, reg_data):
             days = (date.fromisoformat(asof) - date.fromisoformat(o.created_date)).days
         except Exception:
             pass
-        # PRIMARY stop from dynamic_risk_v2 canonical output
         dr = dr_by_pid.get(o.opportunity_id) or {}
         dyn_stop = dr.get("stop")
         stop_type = dr.get("type") or "UNAVAILABLE"
-        # Derived engine verdict from stop vs current
+        # Stop Distance % · numeric first-class column (not buried in verdict)
+        stop_dist_pct = None
+        if dyn_stop and curr_p and curr_p > 0:
+            stop_dist_pct = round((curr_p - dyn_stop) / curr_p * 100, 2)
+        # Engine Verdict from canonical stop vs current
         if dyn_stop and curr_p:
-            if curr_p <= dyn_stop:
-                engine_verdict = "EXIT_STOP"
-            else:
-                dist_pct = (curr_p - dyn_stop) / curr_p * 100
-                engine_verdict = f"HOLD · stop {dist_pct:.1f}% below"
+            engine_verdict = "EXIT_STOP" if curr_p <= dyn_stop else f"HOLD · stop {stop_dist_pct}% below"
         else:
             engine_verdict = "UNAVAILABLE · no canonical stop"
-        # Action derived from engine verdict + bridge context
         dyn_d = dyn_by_pid.get(o.opportunity_id)
+        # Action from verdict
         if engine_verdict.startswith("EXIT_"):
             action = "EXIT"
         elif dyn_stop is None:
-            action = "REVIEW"     # cannot compute risk
+            action = "REVIEW"
         else:
             action = "HOLD"
+        # Would-Have-Exited-On from bridge audit (counterfactual)
+        would_exit_on = "UNAVAILABLE"
+        if dyn_d:
+            trigger = dyn_d.get("trigger_date")
+            if trigger: would_exit_on = trigger
+        # Target · from Registry if canonically present
         target = _target_from_registry(o)
+        target_dist_pct = None
+        if target and curr_p and target > 0:
+            target_dist_pct = round((target - curr_p) / curr_p * 100, 2)
+        # Exit Horizon from Registry initial_signal
+        horizon = _horizon_from_registry(o)
+        # Risk/Reward · only when BOTH dyn_stop and target available
+        rr = None
+        if dyn_stop and target and curr_p:
+            risk = curr_p - dyn_stop
+            reward = target - curr_p
+            if risk > 0 and reward > 0:
+                rr = round(reward / risk, 2)
+        sector = _sector_for(sector_cache, market, o.ticker)
         _write_row(ws, [
-            o.opportunity_id, _canonical_ticker(o.ticker), o.runner,
+            o.opportunity_id, _canonical_ticker(o.ticker), sector, o.runner,
             o.created_date or "—",
             round(entry_p, 4) if entry_p else "UNAVAILABLE",
             round(curr_p, 4) if curr_p else "UNAVAILABLE",
             pnl_pct if pnl_pct is not None else "UNAVAILABLE",
             days if days is not None else "UNAVAILABLE",
             round(dyn_stop, 4) if dyn_stop else "UNAVAILABLE",
+            stop_dist_pct if stop_dist_pct is not None else "UNAVAILABLE",
             stop_type,
             round(target, 4) if target else "UNAVAILABLE",
-            engine_verdict, action,
-            asof,
-        ], r, pnl_col_idx=7)
+            target_dist_pct if target_dist_pct is not None else "UNAVAILABLE",
+            horizon if horizon is not None else "UNAVAILABLE",
+            engine_verdict, action, would_exit_on,
+            rr if rr is not None else "UNAVAILABLE",
+            "canonical:Registry+dynamic_risk_v2+prices+sector_cache",
+        ], r, pnl_col_idx=8)
         r += 1
     if not active:
         ws.cell(r, 1, "No current R2 ACTIVE holdings.").font = FONT_BODY
@@ -434,12 +474,16 @@ def _emit_portfolio(wb, market, root, asof, reg_data):
     r += 2
     r = _legend(ws, [
         "This sheet shows CURRENT R2 active holdings ONLY. Closed positions live in 03_Exit_History.",
-        "Unrealized P&L % · (Current − Entry) / Entry · positive=green · negative=red · zero/N/A=neutral.",
-        "'—' = not applicable. 'UNAVAILABLE' = canonical source did not return a value. 0 is never used to mean missing.",
-        "Daily rollover: this sheet is rebuilt from canonical Registry at the reporting date · never carried over from prior day's XLSX.",
-        "Dynamic Stop = today's stop level from the coded exit engine (dynamic_risk_v2 ATR-based, else recommendation entry_zone.stop_loss, else entry × 0.94).",
-        "Engine Verdict = what the coded lifecycle engine (evaluate_position) says today. HOLD if no trigger. EXIT_STOP / EXIT_TARGET / EXIT_HORIZON if triggered.",
-        "Would-Have-Exited-On = if the engine says exit today, this is the first date the position crossed the trigger. Positions are NOT retroactively closed in the current release · this is audit-only until the wiring is enforced.",
+        "Unrealized P&L % · (Current − Entry) / Entry · positive=green · negative=red.",
+        "Dynamic Stop · canonical dynamic_risk_v2 output · authoritative production value.",
+        "Stop Distance % · (Current − Stop) / Current · numeric so operator can sort by risk buffer.",
+        "Target · from Registry initial_signal · UNAVAILABLE means source has no structural target field.",
+        "Target Distance % · (Target − Current) / Current · shows upside gap.",
+        "Exit Horizon · days from Registry initial_signal · UNAVAILABLE means source has no horizon.",
+        "Would-Have-Exited-On · bridge audit counterfactual trigger date · UNAVAILABLE = no trigger today.",
+        "Risk/Reward · Reward / Risk = (Target−Current) / (Current−Stop) · only when both Target and Stop present.",
+        "Action · HOLD (above stop) · EXIT (at/below stop) · REVIEW (no canonical stop available).",
+        "UNAVAILABLE = canonical source returned no value · never fabricated.",
     ], r, ncols)
     return len(active)
 
@@ -476,14 +520,17 @@ def _emit_today_momentum(wb, market, root, asof, momentum_ledger):
                 f"{freshness_note} · scanned universe={(momentum_ledger or {}).get('n_universe_scanned', 0)} · "
                 f"Actions: {action_counts}"), ncols, 2)
 
-    # CEO 2026-09-02 · Action is the first decision column · operator can
-    # read INVEST/WATCH/AVOID at a glance without translating terminal states.
-    hdr = ["Action", "Ticker", "Category", "Quality",
-             "Current Price", "Entry Zone", "Stop", "Confidence",
+    # CEO 2026-09-03 · full decision context · Action first · Sector +
+    # Target + Risk/Reward + Provenance added · UNAVAILABLE where the
+    # canonical momentum_ledger source does not structurally provide the value.
+    hdr = ["Action", "Ticker", "Sector", "Category", "Quality Band",
+             "Current Price", "Entry Zone", "Stop", "Target", "Confidence",
+             "Risk/Reward",
              "Return 1d %", "Return 5d %", "Return 20d %",
-             "Reason", "As-Of"]
+             "Reason", "As-Of", "Provenance"]
     _header(ws, hdr, 4)
-    for i, w in enumerate([12, 10, 14, 10, 14, 14, 12, 12, 12, 12, 12, 40, 12], start=1):
+    widths = [12, 10, 18, 14, 12, 14, 14, 12, 12, 12, 12, 12, 12, 12, 40, 12, 22]
+    for i, w in enumerate(widths, start=1):
         ws.column_dimensions[get_column_letter(i)].width = w
 
     if stale:
@@ -497,29 +544,39 @@ def _emit_today_momentum(wb, market, root, asof, momentum_ledger):
         action_order.get(_terminal_state_to_action(e.get("terminal_state", "")), 9),
         e.get("ticker", "") or ""
     ))
+    sector_cache_m = _load_sector_cache(root)
     r = 5
     for e in entries_sorted[:200]:
         ticker = _canonical_ticker(e.get("ticker"))
         action = _terminal_state_to_action(e.get("terminal_state", ""))
-        # Current price from parquet (canonical) · never fabricated
         curr_p = _close_on_or_before(root, e.get("ticker") or "", market, asof)
-        # Fields sourced from the momentum ledger record where the canonical
-        # decision engine provided them. If absent → UNAVAILABLE (never fabricated).
         entry_zone = e.get("entry_zone") or e.get("entry_zone_str") or "UNAVAILABLE"
         stop = e.get("stop") or e.get("suggested_stop")
+        target = e.get("target") or e.get("t1") or e.get("target_price")
         conf = e.get("confidence") or e.get("confidence_pct")
         reason = str(e.get("reason_text", "") or "")[:80] or "UNAVAILABLE"
+        sector = _sector_for(sector_cache_m, market, e.get("ticker") or "")
+        # Risk/Reward · only when BOTH stop and target and curr present canonically
+        rr = None
+        if (isinstance(stop, (int, float)) and stop > 0
+             and isinstance(target, (int, float)) and target > 0 and curr_p):
+            risk = curr_p - stop
+            reward = target - curr_p
+            if risk > 0 and reward > 0:
+                rr = round(reward / risk, 2)
         _write_row(ws, [
-            action, ticker,
+            action, ticker, sector,
             e.get("category", "UNAVAILABLE"), e.get("quality_band", "UNAVAILABLE"),
             round(curr_p, 4) if curr_p else "UNAVAILABLE",
             entry_zone if entry_zone != "—" else "UNAVAILABLE",
             round(stop, 4) if isinstance(stop, (int, float)) and stop > 0 else "UNAVAILABLE",
+            round(target, 4) if isinstance(target, (int, float)) and target > 0 else "UNAVAILABLE",
             f"{conf}%" if isinstance(conf, (int, float)) else "UNAVAILABLE",
+            rr if rr is not None else "UNAVAILABLE",
             e.get("return_1d_pct") if e.get("return_1d_pct") is not None else "UNAVAILABLE",
             e.get("return_5d_pct") if e.get("return_5d_pct") is not None else "UNAVAILABLE",
             e.get("return_20d_pct") if e.get("return_20d_pct") is not None else "UNAVAILABLE",
-            reason, asof,
+            reason, asof, "canonical:momentum_ledger+prices+sector_cache",
         ], r)
         r += 1
     if not entries_sorted:
@@ -571,7 +628,7 @@ def _emit_exit_history(wb, market, root, asof, reg_data):
     hdr = ["Position ID", "Stock", "Sector", "Runner", "Market",
              "Entry Date", "Exit Date", "Holding Days",
              "Entry Price", "Exit Price", "Realized P&L %",
-             "Exit Reason", "Relative Opportunity pp",
+             "Exit Reason", "Relative Opportunity vs Rotation (pp)",
              "Provenance"]
     _header(ws, hdr, 4)
     for i, w in enumerate([28, 10, 18, 8, 8, 12, 12, 12, 12, 12, 16, 22, 20, 22], start=1):
@@ -631,6 +688,129 @@ def _emit_exit_history(wb, market, root, asof, reg_data):
     return len(closed)
 
 
+# ── SHEET 04 · Daily Portfolio History · CEO 2026-09-03 ─────────────
+def _emit_daily_history(wb, market, root, asof, reg_data):
+    """Reconstruct historical daily active portfolio from canonical Registry.
+
+    For every trading day from the earliest R2 entry through as-of:
+      · one row per position while that position was genuinely active
+      · same-day admin events excluded (they never had an "active" state)
+      · Dynamic Stop populated only where dynamic_risk_v2 has canonical data
+      · UNAVAILABLE for historical dates that have no canonical stop record
+
+    This sheet answers "what did AEGIS hold on date X?" for any prior date.
+    Registry is the sole source of truth · never carries forward from XLSX."""
+    from datetime import date as _date, timedelta as _td
+    ws = wb.create_sheet("04_Daily_Portfolio_History")
+    ncols = 13
+    _banner(ws, f"AEGIS {market.upper()} · DAILY PORTFOLIO HISTORY · reconstructed from canonical Registry as of {asof}", ncols)
+
+    # Combine active + closed to find full R2 universe
+    all_positions = list(reg_data.get("active", [])) + list(reg_data.get("closed_90d", []))
+    if not all_positions:
+        _sub(ws, "No R2 positions in canonical Registry", ncols, 2)
+        hdr = ["As-Of Date", "Position ID", "Ticker", "Runner", "Status",
+                 "Entry Date", "Entry Price", "Close Price", "P&L %",
+                 "Dynamic Stop", "Engine Verdict", "Action", "Provenance"]
+        _header(ws, hdr, 4)
+        return 0
+
+    # Find earliest genuine (non-admin) entry date
+    genuine = []
+    for o in all_positions:
+        cd = str(o.created_date or "")[:10]
+        xd = str(o.closed_date or "")[:10]
+        if o.status == "CLOSED" and cd and xd and cd == xd:
+            ep = _close_on_or_before(root, o.ticker, market, cd)
+            xp = _close_on_or_before(root, o.ticker, market, xd)
+            if _is_administrative_exit(o, ep, xp):
+                continue
+        if cd:
+            genuine.append(o)
+    if not genuine:
+        _sub(ws, "No genuine R2 positions to reconstruct", ncols, 2)
+        return 0
+
+    earliest = min(str(o.created_date or "9999-99-99")[:10] for o in genuine)
+    try:
+        start_d = _date.fromisoformat(earliest)
+        end_d = _date.fromisoformat(asof)
+    except Exception:
+        _sub(ws, "Cannot reconstruct · invalid date range", ncols, 2)
+        return 0
+
+    _sub(ws, (f"📅 Reconstructed from Registry · {len(genuine)} genuine R2 positions · "
+                f"trading days {earliest} → {asof} · excludes same-day admin events"),
+          ncols, 2)
+
+    hdr = ["As-Of Date", "Position ID", "Ticker", "Runner", "Status",
+             "Entry Date", "Entry Price", "Close Price", "P&L %",
+             "Dynamic Stop", "Engine Verdict", "Action", "Provenance"]
+    _header(ws, hdr, 4)
+    widths = [12, 28, 10, 8, 10, 12, 12, 12, 12, 14, 22, 10, 22]
+    for i, w in enumerate(widths, start=1):
+        ws.column_dimensions[get_column_letter(i)].width = w
+
+    # Cache dynamic_risk history · only current snapshot is canonical ·
+    # historical dynamic stops are UNAVAILABLE (never fabricated).
+    dr_today = _load_dynamic_risk(root, market)
+
+    r = 5
+    n_rows = 0
+    d = start_d
+    while d <= end_d:
+        if d.weekday() >= 5:
+            d += _td(days=1); continue
+        d_iso = d.isoformat()
+        for o in genuine:
+            cd = str(o.created_date or "")[:10]
+            xd = str(o.closed_date or "")[:10] if o.status == "CLOSED" else ""
+            if not cd or cd > d_iso: continue
+            if xd and xd <= d_iso: continue
+            close_p = _close_on_or_before(root, o.ticker, market, d_iso)
+            entry_p = _close_on_or_before(root, o.ticker, market, cd)
+            pnl = None
+            if entry_p and close_p and entry_p > 0:
+                pnl = round((close_p - entry_p) / entry_p * 100, 2)
+            # Dynamic stop: only current snapshot is canonical
+            if d_iso == asof:
+                dr = dr_today.get(o.opportunity_id) or {}
+                dyn_stop = dr.get("stop")
+            else:
+                dyn_stop = None
+            if dyn_stop and close_p:
+                verdict = "EXIT_STOP" if close_p <= dyn_stop else "HOLD"
+                action = "EXIT" if close_p <= dyn_stop else "HOLD"
+            else:
+                verdict = "UNAVAILABLE" if d_iso != asof else "UNAVAILABLE · no canonical stop"
+                action = "REVIEW" if d_iso == asof else "UNAVAILABLE"
+            _write_row(ws, [
+                d_iso, o.opportunity_id, _canonical_ticker(o.ticker), o.runner,
+                "ACTIVE",
+                cd,
+                round(entry_p, 4) if entry_p else "UNAVAILABLE",
+                round(close_p, 4) if close_p else "UNAVAILABLE",
+                pnl if pnl is not None else "UNAVAILABLE",
+                round(dyn_stop, 4) if dyn_stop else "UNAVAILABLE",
+                verdict, action,
+                "canonical:Registry+prices" + ("+dynamic_risk_v2" if dyn_stop else ""),
+            ], r, pnl_col_idx=9)
+            r += 1
+            n_rows += 1
+        d += _td(days=1)
+
+    r += 2
+    r = _legend(ws, [
+        "Reconstructed daily active-portfolio history from canonical Registry.",
+        "One row per position per trading day while the position was genuinely active.",
+        "Excludes same-day administrative Registry records (entry_date == exit_date).",
+        "Dynamic Stop is populated ONLY for the current as-of date · historical dynamic "
+        "stops are UNAVAILABLE because dynamic_risk_v2 stores only the current snapshot.",
+        "Never fabricated · UNAVAILABLE means the canonical source has no value for that day.",
+    ], r, ncols)
+    return n_rows
+
+
 def build_workbook(market: str, root: Path, asof: str) -> dict:
     from backend.delivery.canonical.retirement import retired_runners
     retired = retired_runners(root)
@@ -648,6 +828,7 @@ def build_workbook(market: str, root: Path, asof: str) -> dict:
     n_active = _emit_portfolio(wb, market, root, asof, reg_data)
     today_stats = _emit_today_momentum(wb, market, root, asof, momentum_ledger)
     n_closed = _emit_exit_history(wb, market, root, asof, reg_data)
+    n_history_rows = _emit_daily_history(wb, market, root, asof, reg_data)
 
     xlsx_dated = root / "reports" / "telegram" / f"aegis_{market.lower()}_{asof}.xlsx"
     xlsx_undated = root / "reports" / "telegram" / f"aegis_history_{market.lower()}.xlsx"
@@ -658,10 +839,12 @@ def build_workbook(market: str, root: Path, asof: str) -> dict:
     return {
         "market": market.lower(),
         "asof": asof,
-        "sheets": ["01_Portfolio", "02_Today_Momentum", "03_Exit_History"],
+        "sheets": ["01_Portfolio", "02_Today_Momentum",
+                     "03_Exit_History", "04_Daily_Portfolio_History"],
         "active_holdings": n_active,
         "today_stats": today_stats,
         "closed_positions": n_closed,
+        "daily_history_rows": n_history_rows,
         "xlsx_dated": str(xlsx_dated.relative_to(root)),
         "xlsx_undated": str(xlsx_undated.relative_to(root)),
     }
