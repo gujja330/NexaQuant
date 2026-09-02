@@ -53,33 +53,42 @@ class SheetContract:
     min_visible_columns: int = 8        # sanity check
 
 
+# CEO 2026-09-02 · aligned with LOCKED 3-sheet contract
+# (01_Portfolio · 02_Today_Momentum · 03_Exit_History)
+# Old aliases ("Portfolio", "Exit History (90d)") remain as fallbacks
+# below for pre-cutover workbooks.
 PORTFOLIO_CONTRACT = SheetContract(
-    name="Portfolio",
+    name="01_Portfolio",
     title_row=1,
     title_pattern="AEGIS",
-    analysis_rows=[2, 3],
-    header_row=5,
+    analysis_rows=[2],
+    header_row=4,
     required_header_cells=[
-        "Ticker", "🎯 DECISION", "Month", "Runner", "Sector",
-        "Entry Date", "Days", "Entry", "Current", "P&L %", "Stop Loss",
+        "Ticker", "Runner",
+        "Entry Date", "Entry Price", "Current Price",
     ],
-    first_data_row=6,
+    first_data_row=5,
     min_visible_columns=8,
 )
 
 EXIT_HISTORY_CONTRACT = SheetContract(
-    name="Exit History (90d)",
+    name="03_Exit_History",
     title_row=1,
     title_pattern="EXIT HISTORY",
-    analysis_rows=[2, 3],
-    header_row=5,
+    analysis_rows=[2],
+    header_row=4,
     required_header_cells=[
-        "Stock", "Sector", "Month", "Runner",
-        "Entry Date", "Exit Date", "Days Held",
-        "Entry Price", "Exit Price", "P&L %", "Exit Reason",
+        "Stock", "Sector", "Runner",
+        "Entry Date", "Exit Date",
+        "Entry Price", "Exit Price", "Exit Reason",
     ],
-    first_data_row=6,
+    first_data_row=5,
 )
+
+# Legacy aliases · gates that need to accept both old and new sheet
+# names during rollout should check these tuples with `any()`.
+PORTFOLIO_SHEET_ALIASES = ("01_Portfolio", "Portfolio")
+EXIT_HISTORY_SHEET_ALIASES = ("03_Exit_History", "Exit History (90d)")
 
 
 # ─────────────────────────────────────────────────────────────────

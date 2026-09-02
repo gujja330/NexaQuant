@@ -98,10 +98,61 @@ class XlsxValidator:
             return self._registry_cache
 
     # ─── Helpers ───────────────────────────────────────
+    # CEO 2026-09-02 · dual-layout resolver: accept both legacy
+    # ("Portfolio", "Exit History (90d)") and 3-sheet LOCKED
+    # ("01_Portfolio", "03_Exit_History") sheet names transparently ·
+    # auto-adjust row offsets (legacy header@5/data@6 · 3-sheet header@4/data@5).
+    def _resolve_sheet(self, logical_name: str) -> Optional[str]:
+        """Map a logical sheet name to whichever physical name exists."""
+        try:
+            from backend.delivery.xlsx_contract import (
+                PORTFOLIO_SHEET_ALIASES, EXIT_HISTORY_SHEET_ALIASES)
+        except Exception:
+            PORTFOLIO_SHEET_ALIASES = ("01_Portfolio", "Portfolio")
+            EXIT_HISTORY_SHEET_ALIASES = ("03_Exit_History", "Exit History (90d)")
+        wb = self._wb_load()
+        if wb is None: return None
+        if logical_name in PORTFOLIO_SHEET_ALIASES:
+            aliases = PORTFOLIO_SHEET_ALIASES
+        elif logical_name in EXIT_HISTORY_SHEET_ALIASES:
+            aliases = EXIT_HISTORY_SHEET_ALIASES
+        else:
+            return logical_name if logical_name in wb.sheetnames else None
+        for name in aliases:
+            if name in wb.sheetnames: return name
+        return None
+
+    def _row_offset(self, physical_sheet_name: str, kind: str) -> int:
+        """kind: 'header' or 'data' · 3-sheet layout uses header=4 data=5,
+        legacy uses header=5 data=6."""
+        is_new = physical_sheet_name in ("01_Portfolio", "02_Today_Momentum",
+                                            "03_Exit_History")
+        if kind == "header":
+            return 4 if is_new else 5
+        return 5 if is_new else 6
+
+    def _has_sheet(self, logical_name: str) -> bool:
+        return self._resolve_sheet(logical_name) is not None
+
+    def _ws(self, logical_name: str):
+        """Return the openpyxl sheet for logical_name (or None)."""
+        wb = self._wb_load()
+        if wb is None: return None
+        phys = self._resolve_sheet(logical_name)
+        return wb[phys] if phys else None
+
     def _iter_data_rows(self, sheet_name: str, first_data_row: int = 6):
         wb = self._wb_load()
-        if wb is None or sheet_name not in wb.sheetnames: return
-        ws = wb[sheet_name]
+        if wb is None: return
+        phys = self._resolve_sheet(sheet_name)
+        if phys is None: return
+        # Auto-adjust for 3-sheet layout · caller's `first_data_row` is
+        # respected but if the physical sheet is 3-sheet and caller
+        # passed the legacy default (6), remap to 5.
+        auto_row = self._row_offset(phys, "data")
+        if first_data_row == 6 and auto_row == 5:
+            first_data_row = 5
+        ws = wb[phys]
         for r_idx in range(first_data_row, ws.max_row + 1):
             row = [ws.cell(r_idx, c).value
                    for c in range(1, ws.max_column + 1)]
@@ -109,8 +160,13 @@ class XlsxValidator:
 
     def _sheet_headers(self, sheet_name: str, header_row: int = 5) -> list:
         wb = self._wb_load()
-        if wb is None or sheet_name not in wb.sheetnames: return []
-        ws = wb[sheet_name]
+        if wb is None: return []
+        phys = self._resolve_sheet(sheet_name)
+        if phys is None: return []
+        auto_hdr = self._row_offset(phys, "header")
+        if header_row == 5 and auto_hdr == 4:
+            header_row = 4
+        ws = wb[phys]
         return [ws.cell(header_row, c).value
                 for c in range(1, ws.max_column + 1)]
 
@@ -125,10 +181,10 @@ class XlsxValidator:
     def check_no_exit_in_active(self) -> InvariantResult:
         """I1 · No 🔴 EXIT action in ACTIVE (green) section."""
         wb = self._wb_load()
-        if wb is None or "Portfolio" not in wb.sheetnames:
+        if wb is None or not self._has_sheet("Portfolio"):
             return InvariantResult("I1", "EXIT rows not in ACTIVE",
                                    "BLOCK", "SKIP", "Portfolio sheet missing")
-        ws = wb["Portfolio"]
+        ws = self._ws("Portfolio")
         _in_active = False
         violations = []
         for r_idx in range(1, ws.max_row + 1):
@@ -296,10 +352,10 @@ class XlsxValidator:
         """I8 · Portfolio header 'Active: N positions' must equal
         unique Registry active pids."""
         wb = self._wb_load()
-        if wb is None or "Portfolio" not in wb.sheetnames:
+        if wb is None or not self._has_sheet("Portfolio"):
             return InvariantResult("I8", "Summary count reconciles",
                                    "BLOCK", "SKIP", "Portfolio missing")
-        ws = wb["Portfolio"]
+        ws = self._ws("Portfolio")
         _summary_text = str(ws.cell(2, 1).value or "")
         # Extract "Active: N"
         import re
@@ -405,7 +461,8 @@ class XlsxValidator:
                                    "BLOCK", "SKIP", "workbook missing")
         # Verify Registry-based P&L computation was used (heuristic:
         # header contains "unique Position IDs" or similar marker)
-        _hdr = str(wb["Portfolio"].cell(2, 1).value or "").lower()
+        _ws_p = self._ws("Portfolio")
+        _hdr = str(_ws_p.cell(2, 1).value if _ws_p else "" or "").lower()
         if "unique position ids" in _hdr or "registry" in _hdr:
             return InvariantResult("I9", "SUGGESTED not in P&L",
                                    "BLOCK", "PASS",
@@ -496,7 +553,8 @@ class XlsxValidator:
         if wb is None:
             return InvariantResult("I14", "No silent stale", "BLOCK", "SKIP",
                                    "workbook missing")
-        _hdr = str(wb["Portfolio"].cell(2, 1).value or "")
+        _ws_p = self._ws("Portfolio")
+        _hdr = str(_ws_p.cell(2, 1).value if _ws_p else "" or "")
         # If stale mentioned, PASS (operator sees it)
         if "stale" in _hdr.lower() or "⚠" in _hdr:
             return InvariantResult("I14", "No silent stale", "BLOCK",
@@ -551,19 +609,20 @@ class XlsxValidator:
             f"{len(violations)} headers missing", violations[:10])
 
     def check_analysis_rows_populated(self) -> InvariantResult:
-        """I17 · Rows 2 + 3 have non-empty analysis text."""
+        """I17 · Analysis row (2 · sub-header) populated.
+        Legacy layout used 2 analysis rows (2 + 3). 3-sheet LOCKED layout
+        uses ONE analysis row (2) with row 3 intentionally blank."""
         wb = self._wb_load()
-        if wb is None or "Portfolio" not in wb.sheetnames:
+        if wb is None or not self._has_sheet("Portfolio"):
             return InvariantResult("I17", "Analysis rows", "WARN", "SKIP",
                                    "Portfolio missing")
-        ws = wb["Portfolio"]
+        ws = self._ws("Portfolio")
         r2 = str(ws.cell(2, 1).value or "").strip()
-        r3 = str(ws.cell(3, 1).value or "").strip()
-        if not r2 or not r3:
+        if not r2:
             return InvariantResult("I17", "Analysis rows populated", "WARN",
-                                   "WARN", f"row2={len(r2)}c row3={len(r3)}c")
+                                   "WARN", f"row2 empty")
         return InvariantResult("I17", "Analysis rows populated", "WARN",
-                               "PASS", "both analysis rows populated")
+                               "PASS", "analysis row 2 populated")
 
     def check_no_jargon_in_exit_reasons(self) -> InvariantResult:
         """I18 · Exit Reason column has no → jargon."""
@@ -636,10 +695,27 @@ class XlsxValidator:
                 if not o.closed_date or str(o.closed_date)[:10] < cutoff: continue
                 closed_tks.add(o.ticker.upper().replace(".NS","").replace(".BO",""))
         # Exit History tickers
+        # CEO 2026-09-02 · dual-layout: 3-sheet uses "03_Exit_History"
+        # (data row 5 · ticker/stock at col B since col A is Position ID) ·
+        # legacy uses "Exit History (90d)" (data row 6 · ticker at col A)
+        from backend.delivery.xlsx_contract import EXIT_HISTORY_SHEET_ALIASES
         exit_tks: set = set()
-        for r_idx, row in self._iter_data_rows("Exit History (90d)", 6):
-            _tk = str(row[0] or "").upper().replace(".NS","").replace(".BO","")
-            if _tk: exit_tks.add(_tk)
+        wb = self._wb_load()
+        if wb is not None:
+            for _sn in EXIT_HISTORY_SHEET_ALIASES:
+                if _sn not in wb.sheetnames: continue
+                _ws = wb[_sn]
+                _first_row = 5 if _sn == "03_Exit_History" else 6
+                _tk_col_idx = 2 if _sn == "03_Exit_History" else 1
+                for _r in range(_first_row, _ws.max_row + 1):
+                    _first_val = _ws.cell(_r, 1).value
+                    if _first_val is None or str(_first_val).strip() == "":
+                        break
+                    _tk = str(_ws.cell(_r, _tk_col_idx).value or "").upper()
+                    _tk = _tk.replace(".NS","").replace(".BO","")
+                    if _tk and not _tk.startswith(("──", "MONTH", "TOTAL", "---")):
+                        exit_tks.add(_tk)
+                break
         missing = closed_tks - exit_tks
         return InvariantResult(
             "I20", "Registry-CLOSED tickers in Exit History", "BLOCK",
@@ -723,10 +799,10 @@ class XlsxValidator:
         from openpyxl import load_workbook
         try:
             wb = load_workbook(self.xlsx_path, read_only=True, data_only=True)
-            if "Portfolio" not in wb.sheetnames:
+            if not self._has_sheet("Portfolio"):
                 return InvariantResult("I24", "Header count matches rows",
                                        "BLOCK", "SKIP", "no Portfolio sheet")
-            ws = wb["Portfolio"]
+            ws = self._ws("Portfolio")
             r2 = str(ws.cell(2, 1).value or "")
             m = re.search(r"Active:\s*(\d+)", r2)
             if not m:
@@ -766,10 +842,10 @@ class XlsxValidator:
         import pandas as pd
         try:
             wb = load_workbook(self.xlsx_path, read_only=True, data_only=True)
-            if "Portfolio" not in wb.sheetnames:
+            if not self._has_sheet("Portfolio"):
                 return InvariantResult("I26", "Entry price immutable",
                                        "BLOCK", "SKIP", "no Portfolio")
-            ws = wb["Portfolio"]
+            ws = self._ws("Portfolio")
             r1 = str(ws.cell(1, 1).value or "")
             # Extract asof from title · "AEGIS INDIA PORTFOLIO · as of 2026-08-26"
             import re
@@ -894,10 +970,10 @@ class XlsxValidator:
         from openpyxl import load_workbook
         try:
             wb = load_workbook(self.xlsx_path, read_only=True, data_only=True)
-            if "Portfolio" not in wb.sheetnames:
+            if not self._has_sheet("Portfolio"):
                 return InvariantResult("I27", "Entry date legitimate",
                                        "BLOCK", "SKIP", "no Portfolio")
-            ws = wb["Portfolio"]
+            ws = self._ws("Portfolio")
             r1 = str(ws.cell(1, 1).value or "")
             m = re.search(r"as of\s+(\d{4}-\d{2}-\d{2})", r1)
             asof = m.group(1) if m else _date.today().isoformat()
@@ -946,10 +1022,10 @@ class XlsxValidator:
         from openpyxl import load_workbook
         try:
             wb = load_workbook(self.xlsx_path, read_only=True, data_only=True)
-            if "Exit History (90d)" not in wb.sheetnames:
+            if not self._has_sheet("Exit History (90d)"):
                 return InvariantResult("I28", "Exit date legitimate",
                                        "BLOCK", "SKIP", "no Exit History")
-            ws = wb["Exit History (90d)"]
+            ws = self._ws("Exit History (90d)")
             r1 = str(ws.cell(1, 1).value or "")
             m = re.search(r"as of\s+(\d{4}-\d{2}-\d{2})", r1)
             asof = m.group(1) if m else _date.today().isoformat()
@@ -1014,10 +1090,10 @@ class XlsxValidator:
         from openpyxl import load_workbook
         try:
             wb = load_workbook(self.xlsx_path, read_only=True, data_only=True)
-            if "Portfolio" not in wb.sheetnames:
+            if not self._has_sheet("Portfolio"):
                 return InvariantResult("I29", "Current Price legitimate",
                                        "BLOCK", "SKIP", "no Portfolio")
-            ws = wb["Portfolio"]
+            ws = self._ws("Portfolio")
             r1 = str(ws.cell(1, 1).value or "")
             m = re.search(r"as of\s+(\d{4}-\d{2}-\d{2})", r1)
             if not m:
@@ -1077,10 +1153,10 @@ class XlsxValidator:
         from openpyxl import load_workbook
         try:
             wb = load_workbook(self.xlsx_path, read_only=True, data_only=True)
-            if "Exit History (90d)" not in wb.sheetnames:
+            if not self._has_sheet("Exit History (90d)"):
                 return InvariantResult("I30", "Exit Price legitimate",
                                        "BLOCK", "SKIP", "no Exit History")
-            ws = wb["Exit History (90d)"]
+            ws = self._ws("Exit History (90d)")
             # Exit History cols · Stock=1 · Exit Date=6 · Exit Price=9
             violations = []
             for r_idx in range(6, ws.max_row + 1):

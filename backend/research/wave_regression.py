@@ -362,8 +362,14 @@ def compute(root: Path, market: str, asof: str) -> WaveRegressionReport:
         if xp.exists():
             wb = load_workbook(xp, read_only=True)
             _has_sector = False
-            if "Exit History (90d)" in wb.sheetnames:
-                _ws = wb["Exit History (90d)"]
+            # CEO 2026-09-02 · sheet-name-agnostic · accept legacy
+            # "Exit History (90d)" AND 3-sheet contract "03_Exit_History"
+            _eh_name = None
+            for _cand in ("03_Exit_History", "Exit History (90d)"):
+                if _cand in wb.sheetnames:
+                    _eh_name = _cand; break
+            if _eh_name:
+                _ws = wb[_eh_name]
                 # Search first 10 rows for a header row · one that
                 # contains "Stock" AND "Sector" together identifies it.
                 for _rr in range(1, min(11, _ws.max_row + 1)):
@@ -552,13 +558,30 @@ def compute(root: Path, market: str, asof: str) -> WaveRegressionReport:
                 # Production workbooks work either way · CI's writer
                 # sets literal values, not formulas that need caching.
                 _wb2 = _lw(xp, read_only=False, data_only=False)
-                if "Exit History (90d)" in _wb2.sheetnames:
-                    _eh_ws = _wb2["Exit History (90d)"]
-                    for _r_idx in range(6, _eh_ws.max_row + 1):
-                        _v0 = _eh_ws.cell(_r_idx, 1).value
-                        if _v0 is None or str(_v0).strip() == "":
+                # CEO 2026-09-02 · sheet-name-agnostic · accept legacy
+                # "Exit History (90d)" AND 3-sheet contract "03_Exit_History"
+                # 3-sheet layout: col A is Position ID (PID) · col B is Ticker/Stock
+                # legacy layout: col A is Ticker directly
+                _eh_sheet_name = None
+                _pid_col = False
+                for _cand in ("03_Exit_History", "Exit History (90d)"):
+                    if _cand in _wb2.sheetnames:
+                        _eh_sheet_name = _cand
+                        _pid_col = (_cand == "03_Exit_History")
+                        break
+                if _eh_sheet_name:
+                    _eh_ws = _wb2[_eh_sheet_name]
+                    # 3-sheet header is row 4 · body starts row 5
+                    # legacy header is row 5 · body starts row 6
+                    _start = 5 if _pid_col else 6
+                    _tk_col = 2 if _pid_col else 1   # PID at A · Ticker at B for 3-sheet
+                    for _r_idx in range(_start, _eh_ws.max_row + 1):
+                        _v_first = _eh_ws.cell(_r_idx, 1).value
+                        if _v_first is None or str(_v_first).strip() == "":
                             break     # first blank · trailer starts after
-                        _tk_raw = str(_v0).upper().strip()
+                        _v_tk = _eh_ws.cell(_r_idx, _tk_col).value
+                        if _v_tk is None: continue
+                        _tk_raw = str(_v_tk).upper().strip()
                         # Skip banner / summary / trailer rows · same
                         # rule I28 uses in xlsx_validator.py
                         if _tk_raw.startswith(("──", "MONTH", "TOTAL", "---")):

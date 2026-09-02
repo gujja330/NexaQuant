@@ -66,60 +66,60 @@ def synthetic_xlsx(tmp_path):
     p = tmp_path / "reports" / "telegram" / "aegis_history_india.xlsx"
     p.parent.mkdir(parents=True, exist_ok=True)
     wb = Workbook()
-    # Portfolio sheet
+    # CEO 2026-09-02 · LOCKED 3-sheet contract:
+    #   01_Portfolio · 02_Today_Momentum · 03_Exit_History
+    # title=row1 · analysis=row2 · blank=row3 · header=row4 · data=row5
+    # Portfolio sheet · new name + row offsets
     ws = wb.active
-    ws.title = "Portfolio"
-    # Row 1 · title
-    ws.cell(1, 1, "AEGIS INDIA PORTFOLIO · as of 2026-08-26")
-    # Row 2 · analysis
-    ws.cell(2, 1, "🟢 Active: 2 positions (unique Position IDs)  ·  "
-                   "Unrealized P&L: +1.50%  ·  Today's P&L: +0.20%")
-    # Row 3 · analysis
-    ws.cell(3, 1, "✅ Positive: 1 pos · avg +2.50%  ·  "
-                   "❌ Negative: 1 pos · avg -1.00%")
-    # Row 5 · header
-    headers = ["Ticker", "🎯 ACTION", "🎯 DECISION", "Lifecycle", "Month",
-               "Trigger", "Review", "Window",
-               "Runner", "R1/R2 Consensus", "Sector", "Cap",
-               "Entry Date", "Exit Date", "Days",
-               "Urgency", "Reason", "Action", "Review",
-               "Status", "Inv Quality", "Investability",
-               "Entry", "Current", "Exit Price", "P&L %",
-               "Stop Loss", "Target 1", "Target 2",
-               "Action Note", "Alerts", "Exit Reason",
-               "Post-Exit", "Basis"]
+    ws.title = "01_Portfolio"
+    ws.cell(1, 1, "AEGIS INDIA · PORTFOLIO · current active holdings as of 2026-08-26")
+    ws.cell(2, 1, "🟢 R2 ACTIVE: 2 · production runner is R2")
+    # Row 4 · header (was row 5)
+    headers = ["Position ID", "Ticker", "Runner", "Entry Date",
+               "Entry Price", "Current Price", "Unrealized P&L %",
+               "Holding Days", "Dynamic Stop", "Engine Verdict",
+               "Would-Have-Exited-On", "As-Of", "Provenance"]
     for c, h in enumerate(headers, start=1):
-        ws.cell(5, c, h)
-    # Row 6 · valid ACTIVE row (TCS)
-    row6 = ["TCS", "🟢 ACTIVE · stop ₹3300", "🟢 ACTIVE", "ACTIVE",
-            "Aug 2026", "", "", "",
-            "R2", "R1+R2", "Technology", "LARGE",
-            "2026-08-01", "", 25,
-            "HIGH", "", "", "",
-            "HOLD", "🏆 QUALITY", 85.0,
-            3500.0, 3550.0, None, 0.0143,
-            3300.0, 3800.0, 4000.0,
-            "", "", "", "", ""]
-    for c, v in enumerate(row6, start=1):
-        ws.cell(6, c, v)
-    # Exit History sheet
-    eh = wb.create_sheet("Exit History (90d)")
-    eh.cell(1, 1, "AEGIS INDIA · EXIT HISTORY · last 90 days as of 2026-08-26")
-    eh.cell(2, 1, "📊 Total: 5 exits · Realized P&L: +12.5%  ·  Win Rate: 60%")
-    eh.cell(3, 1, "✅ Positive: 3 · +18.5%  ·  ❌ Negative: 2 · -6.0%")
-    eh_hdr = ["Stock", "Sector", "Month", "Runner",
-              "Entry Date", "Exit Date", "Days Held",
-              "Entry Price", "Exit Price", "P&L %", "Confidence",
-              "Verdict", "Exit Reason"]
+        ws.cell(4, c, h)
+    # Row 5 · valid ACTIVE row (TCS)
+    ws.cell(5, 1, "IND-R2-TCS-20260801-abc123")
+    ws.cell(5, 2, "TCS")
+    ws.cell(5, 3, "R2")
+    ws.cell(5, 4, "2026-08-01")
+    ws.cell(5, 5, 3500.0)
+    ws.cell(5, 6, 3550.0)
+    ws.cell(5, 7, 1.43)
+    ws.cell(5, 8, 25)
+    ws.cell(5, 9, 3300.0)
+    ws.cell(5, 10, "HOLD (audit-only)")
+    ws.cell(5, 11, "—")
+    ws.cell(5, 12, "2026-08-26")
+    ws.cell(5, 13, "canonical:Registry+prices")
+    # Exit History sheet · new name + row offsets
+    eh = wb.create_sheet("03_Exit_History")
+    eh.cell(1, 1, "AEGIS INDIA · EXIT HISTORY · realized · as of 2026-08-26")
+    eh.cell(2, 1, "📕 Closed positions (last 90d): 1 · latest exit first")
+    # Row 4 · header (was row 5)
+    eh_hdr = ["Position ID", "Stock", "Sector", "Runner", "Market",
+              "Entry Date", "Exit Date", "Holding Days",
+              "Entry Price", "Exit Price", "Realized P&L %",
+              "Exit Reason", "Provenance"]
     for c, h in enumerate(eh_hdr, start=1):
-        eh.cell(5, c, h)
-    eh.cell(6, 1, "HDFC")
-    eh.cell(6, 2, "Financial Services")
-    eh.cell(6, 3, "Aug 2026")
-    eh.cell(6, 4, "R2")
-    eh.cell(6, 5, "2026-07-15")
-    eh.cell(6, 6, "2026-08-10")
-    eh.cell(6, 13, "Profit target hit")
+        eh.cell(4, c, h)
+    # Row 5 · HDFC exit
+    eh.cell(5, 1, "IND-R2-HDFC-20260715-def456")
+    eh.cell(5, 2, "HDFC")
+    eh.cell(5, 3, "Financial Services")
+    eh.cell(5, 4, "R2")
+    eh.cell(5, 5, "INDIA")
+    eh.cell(5, 6, "2026-07-15")
+    eh.cell(5, 7, "2026-08-10")
+    eh.cell(5, 8, 26)
+    eh.cell(5, 9, 1500.0)
+    eh.cell(5, 10, 1620.0)
+    eh.cell(5, 11, 8.0)
+    eh.cell(5, 12, "Profit target hit")
+    eh.cell(5, 13, "canonical:Registry+prices")
     wb.save(p)
     return tmp_path
 

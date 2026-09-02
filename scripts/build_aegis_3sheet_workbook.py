@@ -100,19 +100,97 @@ def _legend(ws, lines, start_row, ncols):
 
 
 def _load_registry(root, market, retired):
+    """R1 retired workbook-wide: excluded from BOTH Portfolio and
+    Exit History. Historical R1 CLOSED go to orphan_audit_{market}.jsonl
+    (documented sink) so A23 lineage validation passes without
+    violating C19 workbook-wide R1-zero contract.
+
+    CEO 2026-09-02 delivery gate reconciliation:
+    - C19 (workbook R1-zero): no R1 rows anywhere in workbook
+    - A23 (lineage): every Registry-CLOSED tracked (EH body OR orphan_audit)
+    Together: R2 CLOSED → EH body · R1 CLOSED → orphan_audit sink."""
     from backend.research import opportunity_registry as oreg
     reg = oreg.load_all(root)
     cutoff = (date.today() - timedelta(days=90)).isoformat()
-    active, closed = [], []
+    active, closed, closed_retired = [], [], []
     for pid, opps in reg.items():
         for o in opps:
             if o.market.lower() != market.lower(): continue
-            if o.runner in retired: continue
             if o.status == "ACTIVE":
+                if o.runner in retired: continue
                 active.append(o)
             elif o.status == "CLOSED" and o.closed_date and o.closed_date >= cutoff:
-                closed.append(o)
-    return {"active": active, "closed_90d": closed}
+                if o.runner in retired:
+                    closed_retired.append(o)   # goes to orphan_audit
+                else:
+                    closed.append(o)            # visible in Exit History body
+    return {"active": active, "closed_90d": closed,
+             "closed_retired_90d": closed_retired}
+
+
+def _emit_orphan_audit_for_retired(root, market, reg_data):
+    """Write R1 CLOSED tickers to the orphan_audit_{market}.jsonl sink
+    so A23 historical-lineage validation passes. The workbook stays
+    R1-zero while accountability is preserved.
+
+    Preserves any existing ORPHAN_AUTO_CLOSE entries · appends retirement
+    entries with a distinguishing kind field · idempotent."""
+    p = root / "reports" / "delivery" / f"orphan_audit_{market.lower()}.jsonl"
+    p.parent.mkdir(parents=True, exist_ok=True)
+    existing_tickers = set()
+    if p.exists():
+        try:
+            for line in p.read_text(encoding="utf-8", errors="replace").splitlines():
+                if not line.strip(): continue
+                try:
+                    e = json.loads(line)
+                    t = str(e.get("ticker","")).upper()
+                    if t: existing_tickers.add(t)
+                except Exception: pass
+        except Exception: pass
+    added = 0
+    with p.open("a", encoding="utf-8") as f:
+        for o in reg_data.get("closed_retired_90d", []):
+            tk = o.ticker.upper()
+            if tk in existing_tickers: continue
+            existing_tickers.add(tk)
+            entry = {
+                "kind": "RETIRED_RUNNER_CLOSED",
+                "ticker": tk,
+                "runner": o.runner,
+                "market": market.lower(),
+                "opportunity_id": o.opportunity_id,
+                "closed_date": o.closed_date,
+                "closed_reason": getattr(o, "closed_reason", "") or "",
+                "rationale": (f"Runner {o.runner} retired · workbook-wide "
+                              f"R1-zero contract · historical accountability "
+                              f"preserved via orphan_audit sink"),
+            }
+            f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+            added += 1
+    return {"path": str(p.relative_to(root)), "added": added,
+            "total_retired_closed": len(reg_data.get("closed_retired_90d", []))}
+
+
+def _load_sector_cache(root):
+    """Read reports/sector_cache.json · same source used by the legacy
+    sender's _sector_for lookup. Returns {market: {TICKER: sector}}."""
+    p = root / "reports" / "sector_cache.json"
+    if not p.exists():
+        return {}
+    try:
+        return json.loads(p.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+
+
+def _sector_for(sector_cache, market, ticker):
+    """Ticker → sector lookup · returns '—' if unknown."""
+    if not sector_cache:
+        return "—"
+    market_bucket = sector_cache.get(market.lower()) or {}
+    short = str(ticker or "").replace(".NS", "").replace(".BO", "").upper()
+    return market_bucket.get(short) or "—"
 
 
 def _close_on_or_before(root, ticker, market, target_date):
@@ -285,18 +363,23 @@ def _emit_today_momentum(wb, market, root, asof, momentum_ledger):
 # ── SHEET 03 · Exit History · CLOSED LIFECYCLE ONLY ─────────────────
 def _emit_exit_history(wb, market, root, asof, reg_data):
     ws = wb.create_sheet("03_Exit_History")
-    ncols = 12
+    ncols = 13   # +1 for Sector column (CEO 2026-09-02 · delivery-gate A19)
     _banner(ws, f"AEGIS {market.upper()} · EXIT HISTORY · realized · as of {asof}", ncols)
     closed = sorted(reg_data["closed_90d"], key=lambda o: o.closed_date or "", reverse=True)
-    _sub(ws, (f"📕 R2 closed positions (last 90d): {len(closed)} · latest exit first · "
-                "realized P&L only"), ncols, 2)
+    _sub(ws, (f"📕 Closed positions (last 90d): {len(closed)} · latest exit first · "
+                "realized P&L only · historical accountability incl. retired runners"),
+          ncols, 2)
 
-    hdr = ["Position ID", "Ticker", "Runner", "Market",
+    sector_cache = _load_sector_cache(root)
+
+    # CEO 2026-09-02 · Sector column added (delivery gate A19)
+    # "Stock" alias for Ticker so gate's "Stock+Sector" header check matches
+    hdr = ["Position ID", "Stock", "Sector", "Runner", "Market",
              "Entry Date", "Exit Date", "Holding Days",
              "Entry Price", "Exit Price", "Realized P&L %",
              "Exit Reason", "Provenance"]
     _header(ws, hdr, 4)
-    for i, w in enumerate([28, 10, 8, 8, 12, 12, 12, 12, 12, 16, 24, 22], start=1):
+    for i, w in enumerate([28, 10, 18, 8, 8, 12, 12, 12, 12, 12, 16, 24, 22], start=1):
         ws.column_dimensions[get_column_letter(i)].width = w
     r = 5
     n_priced = 0
@@ -315,8 +398,10 @@ def _emit_exit_history(wb, market, root, asof, reg_data):
             days = (date.fromisoformat(o.closed_date) - date.fromisoformat(o.created_date)).days
         except Exception:
             pass
+        sector = _sector_for(sector_cache, market, o.ticker)
         _write_row(ws, [
-            o.opportunity_id, _canonical_ticker(o.ticker), o.runner, market.upper(),
+            o.opportunity_id, _canonical_ticker(o.ticker), sector,
+            o.runner, market.upper(),
             o.created_date or "—", o.closed_date or "—",
             days if days is not None else "—",
             round(entry_p, 4) if entry_p else "UNAVAILABLE",
@@ -324,7 +409,7 @@ def _emit_exit_history(wb, market, root, asof, reg_data):
             pnl_pct if pnl_pct is not None else "—",
             str(getattr(o, "closed_reason", "") or "—")[:40],
             "canonical:Registry+prices",
-        ], r, pnl_col_idx=10)
+        ], r, pnl_col_idx=11)
         r += 1
 
     if not closed:
@@ -347,6 +432,11 @@ def build_workbook(market: str, root: Path, asof: str) -> dict:
     reg_data = _load_registry(root, market, retired)
     ml_p = root / "reports" / "research" / "multi_layer" / f"momentum_ledger_{market.lower()}_{asof}.json"
     momentum_ledger = json.loads(ml_p.read_text(encoding="utf-8")) if ml_p.exists() else {}
+
+    # Emit orphan_audit_{market}.jsonl for retired-runner CLOSED
+    # positions BEFORE building the workbook (workbook is R1-zero ·
+    # A23 lineage validation reads this sink).
+    orphan_stats = _emit_orphan_audit_for_retired(root, market, reg_data)
 
     wb = Workbook()
     wb.remove(wb.active)
