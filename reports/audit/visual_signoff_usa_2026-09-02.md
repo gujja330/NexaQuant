@@ -9,8 +9,8 @@
 | Sheet | Rows x Cols |
 |---|---|
 | 01_Portfolio | 19 x 13 |
-| 02_Today_Momentum | 12 x 11 |
-| 03_Exit_History | 512 x 12 |
+| 02_Today_Momentum | 45 x 11 |
+| 03_Exit_History | 512 x 13 |
 
 ## Objective checks
 

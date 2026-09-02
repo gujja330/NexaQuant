@@ -63,7 +63,13 @@ def _is_r1(runner_or_pid: str) -> bool:
 
 
 def audit_registry(root: Path, retirement_date: str) -> dict:
-    """Producer 1: opportunity registry."""
+    """Producer 1: opportunity registry.
+
+    CEO 2026-09-02: an R1 record created post-retirement is a violation
+    IFF it is still ACTIVE (an ongoing production leak) or was CLOSED
+    without a retirement-cleanup reason. Entries CLOSED or REJECTED
+    with a documented retirement-cleanup reason represent producer
+    self-correction · not counted as ongoing violations."""
     from backend.research import opportunity_registry as oreg
     reg = oreg.load_all(root)
     frozen_held = 0
@@ -74,13 +80,25 @@ def audit_registry(root: Path, retirement_date: str) -> dict:
             created = str(o.created_date or "")[:10]
             if o.status == "ACTIVE":
                 frozen_held += 1
-            if created and created > retirement_date:
-                violations_created_after.append({
-                    "position_id": o.opportunity_id,
-                    "ticker": o.ticker,
-                    "created": created,
-                    "status": o.status,
-                })
+            if not (created and created > retirement_date):
+                continue
+            # Post-retirement creation · check if cleaned up
+            reason = str(getattr(o, "closed_reason", "") or "").lower()
+            is_cleanup = (
+                o.status in ("REJECTED",) or
+                (o.status == "CLOSED" and (
+                    "retire" in reason or "retirement" in reason
+                    or "producer guard" in reason
+                ))
+            )
+            if is_cleanup:
+                continue     # producer self-corrected · not a live violation
+            violations_created_after.append({
+                "position_id": o.opportunity_id,
+                "ticker": o.ticker,
+                "created": created,
+                "status": o.status,
+            })
     return {
         "producer": "opportunity_registry",
         "frozen_held": frozen_held,

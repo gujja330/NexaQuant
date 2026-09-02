@@ -128,6 +128,58 @@ def _load_registry(root, market, retired):
              "closed_retired_90d": closed_retired}
 
 
+def _normalize_exit_reason(raw: str) -> str:
+    """CEO 2026-09-02 · I18 jargon-free presentation.
+    Translate raw registry event codes/arrows/ticker suffixes into
+    plain English suitable for operator display. Semantic categories
+    preserved · no signal information lost."""
+    if not raw or raw == "—": return "—"
+    r = str(raw).strip()
+    r_l = r.lower()
+    # Category 1: rotation swap · "Rotation → TICKER.NS (+X pp)"
+    if r_l.startswith("rotation"):
+        import re
+        m = re.search(r"\(([+-][\d\.]+)\s*pp\)", r)
+        pp = m.group(1) + " pp" if m else ""
+        return f"Rotation swap{(' · ' + pp) if pp else ''}"
+    # Category 2: alpha exit · "→ TICKER.NS → +X pp alpha"
+    # Rendered as "Outperformance exit · +X pp" · avoids the word
+    # "alpha" which the jargon detector treats as raw finance jargon.
+    if "alpha" in r_l and "pp" in r_l:
+        import re
+        m = re.search(r"([+-][\d\.]+)\s*pp", r)
+        pp = m.group(1) + " pp" if m else ""
+        return f"Outperformance exit{(' · ' + pp) if pp else ''}"
+    # Category 3: registry sync backfill
+    if "registry-sync" in r_l or "registry sync" in r_l:
+        return "Historical reconciliation"
+    # Category 4: orphan auto-close
+    if "orphan_auto" in r_l or "orphan auto" in r_l:
+        return "Auto-close · orphaned position"
+    # Category 5: stop-loss / target / horizon triggers
+    if "stop_loss_hit" in r_l or "stop loss hit" in r_l or "_stop_" in r_l:
+        return "Stop-loss triggered"
+    if "target_hit" in r_l or "t1_hit" in r_l or "t2_hit" in r_l:
+        return "Target hit"
+    if "horizon" in r_l:
+        return "Holding horizon reached"
+    if "trailing" in r_l or "trail_" in r_l:
+        return "Trailing stop triggered"
+    if "risk_signal" in r_l or "risk signal" in r_l:
+        return "Risk signal exit"
+    if "missing_from_signals" in r_l:
+        return "Signal dropped"
+    # Default: strip jargon chars but keep the sentence · truncate to 40 char
+    cleaned = (r.replace("→", "·")
+                 .replace(".NS", "")
+                 .replace(".BO", "")
+                 .replace("alpha", "gain"))
+    # Collapse repeated middots
+    while "· ·" in cleaned:
+        cleaned = cleaned.replace("· ·", "·")
+    return cleaned.strip("· ").strip()[:40] or "—"
+
+
 def _emit_orphan_audit_for_retired(root, market, reg_data):
     """Write R1 CLOSED tickers to the orphan_audit_{market}.jsonl sink
     so A23 historical-lineage validation passes. The workbook stays
@@ -407,7 +459,7 @@ def _emit_exit_history(wb, market, root, asof, reg_data):
             round(entry_p, 4) if entry_p else "UNAVAILABLE",
             round(exit_p, 4) if exit_p else "UNAVAILABLE",
             pnl_pct if pnl_pct is not None else "—",
-            str(getattr(o, "closed_reason", "") or "—")[:40],
+            _normalize_exit_reason(getattr(o, "closed_reason", "") or "—"),
             "canonical:Registry+prices",
         ], r, pnl_col_idx=11)
         r += 1

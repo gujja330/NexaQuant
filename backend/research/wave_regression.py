@@ -300,11 +300,39 @@ def compute(root: Path, market: str, asof: str) -> WaveRegressionReport:
             rep.add("A17", "No EXIT rows leak into ACTIVE section", "WARN",
                         f"per-market XLSX not built yet at {xp}")
         else:
+            # CEO 2026-09-02 · sheet-name + header-name agnostic.
+            # 3-sheet layout: Portfolio contains ONLY ACTIVE positions ·
+            # any row with a Verdict starting EXIT_ or 🔴 EXIT = leak.
+            # Legacy layout: emoji-banner section detection.
             wb = load_workbook(xp, read_only=True)
             leaks = []
-            for _sn in wb.sheetnames:
-                if _sn.lower() != "portfolio": continue
-                _ws = wb[_sn]
+            _portfolio_sheet = None
+            for _cand in ("01_Portfolio", "Portfolio"):
+                if _cand in wb.sheetnames:
+                    _portfolio_sheet = _cand; break
+            if _portfolio_sheet == "01_Portfolio":
+                _ws = wb[_portfolio_sheet]
+                # Find Ticker + Verdict column indexes by header name (row 4)
+                _hdr = [str(_ws.cell(4, c).value or "").strip()
+                         for c in range(1, _ws.max_column + 1)]
+                _tk_idx = None
+                for _cand_tk in ("Ticker", "Stock"):
+                    if _cand_tk in _hdr:
+                        _tk_idx = _hdr.index(_cand_tk) + 1; break
+                _v_idx = None
+                for _cand_v in ("Engine Verdict", "Decision", "Action"):
+                    if _cand_v in _hdr:
+                        _v_idx = _hdr.index(_cand_v) + 1; break
+                if _tk_idx and _v_idx:
+                    for _r in range(5, _ws.max_row + 1):
+                        _tk = _ws.cell(_r, _tk_idx).value
+                        if _tk is None or not str(_tk).strip(): continue
+                        _v = str(_ws.cell(_r, _v_idx).value or "").upper()
+                        if _v.startswith("🔴 EXIT") or _v.startswith("EXIT_"):
+                            leaks.append(str(_tk))
+            elif _portfolio_sheet == "Portfolio":
+                # Legacy emoji-banner section detection
+                _ws = wb[_portfolio_sheet]
                 _in_active = False
                 for _row in _ws.iter_rows(values_only=True):
                     _first = str(_row[0] or "")
@@ -313,7 +341,6 @@ def compute(root: Path, market: str, asof: str) -> WaveRegressionReport:
                     if _first.startswith("🔴") or _first.startswith("🆕"):
                         _in_active = False; continue
                     if not _in_active or not _row[0]: continue
-                    # ACTION column (col 2) should not say EXIT in ACTIVE section
                     _act = str(_row[1] or "")
                     if "EXIT" in _act.upper() and "🔴" in _act:
                         leaks.append(str(_row[0]))
@@ -328,23 +355,45 @@ def compute(root: Path, market: str, asof: str) -> WaveRegressionReport:
         rep.add("A17", "No EXIT rows leak into ACTIVE section", "WARN",
                     f"could not verify · {type(e).__name__}: {e}")
 
-    # A18 · Exit reasons in plain English · no "→ .NS · alpha" jargon.
+    # A18 · Exit reasons in plain English · no jargon.
+    # CEO 2026-09-02 · sheet-name + header-name agnostic ·
+    # 3-sheet layout: "03_Exit_History" · Exit Reason at header-lookup col
     try:
         from openpyxl import load_workbook
         xp = root / "reports" / "telegram" / f"aegis_history_{market}.xlsx"
         if xp.exists():
             wb = load_workbook(xp, read_only=True)
             _jargon = 0
-            if "Exit History (90d)" in wb.sheetnames:
-                _ws = wb["Exit History (90d)"]
-                for _row in _ws.iter_rows(min_row=6, values_only=True):  # 2026-08-25 · layout · header row5 · data row6+
-                    _reason = str(_row[-1] or "")
-                    if "→" in _reason and ("alpha" in _reason.lower() or ".NS" in _reason):
-                        _jargon += 1
+            _eh_sheet = None
+            _hdr_row = 5
+            for _cand in ("03_Exit_History", "Exit History (90d)"):
+                if _cand in wb.sheetnames:
+                    _eh_sheet = _cand
+                    _hdr_row = 4 if _cand == "03_Exit_History" else 5
+                    break
+            if _eh_sheet:
+                _ws = wb[_eh_sheet]
+                _hdr = [str(_ws.cell(_hdr_row, c).value or "").strip()
+                         for c in range(1, _ws.max_column + 1)]
+                _reason_col = None
+                for _cand_r in ("Exit Reason", "Reason"):
+                    if _cand_r in _hdr:
+                        _reason_col = _hdr.index(_cand_r) + 1; break
+                if _reason_col:
+                    _data_start = _hdr_row + 1
+                    for _r in range(_data_start, _ws.max_row + 1):
+                        _v_first = _ws.cell(_r, 1).value
+                        if _v_first is None or str(_v_first).strip() == "":
+                            break
+                        _reason = str(_ws.cell(_r, _reason_col).value or "")
+                        # Jargon patterns
+                        if ("→" in _reason and (
+                             "alpha" in _reason.lower() or ".NS" in _reason)):
+                            _jargon += 1
             wb.close()
             if _jargon > 0:
                 rep.add("A18", "Exit reasons plain-English", "FAIL",
-                            f"{_jargon} rows still show '→ TK.NS · Xpp alpha' jargon")
+                            f"{_jargon} rows still show jargon")
             else:
                 rep.add("A18", "Exit reasons plain-English", "PASS",
                             "no jargon in Exit History sheet")
@@ -427,39 +476,62 @@ def compute(root: Path, market: str, asof: str) -> WaveRegressionReport:
             wb = load_workbook(xp, read_only=True)
             _portfolio_tks: set = set()
             _exit_tks: set = set()
-            if "Portfolio" in wb.sheetnames:
-                for _row in wb["Portfolio"].iter_rows(values_only=True):
-                    _v = _row[0] if _row else None
-                    if _v and str(_v).replace(".NS", "").replace(".BO", "").isupper():
-                        # First-column values in ACTIVE section are tickers
-                        _tk = str(_v).replace(".NS","").replace(".BO","").strip()
-                        if _tk and len(_tk) < 20:   # ticker sanity
-                            _portfolio_tks.add(_tk.upper())
-            if "Exit History (90d)" in wb.sheetnames:
-                # CEO 2026-08-28 · trailer-skip. Exit History has a
-                # MONTHLY P&L SUMMARY trailer after the body (row
-                # ~body_end+2 onwards · "── MONTHLY P&L SUMMARY ──" ·
-                # "Month" header · "Aug 2026" aggregates · "TOTAL"
-                # etc.). Prior population scanned trailer cells as
-                # tickers · caused A22/A23 to flag them fabricated.
-                # openpyxl read_only + iter_rows drops fully-empty
-                # rows so a break-on-blank never fires · reload the
-                # workbook non-read-only and use explicit cell scan
-                # matching the pattern I28 already uses in xlsx_
-                # validator.py:964-971.
+            # CEO 2026-09-02 · sheet-name + header-name agnostic
+            _portfolio_sheet = None
+            _hdr_row_p = 5
+            for _cand in ("01_Portfolio", "Portfolio"):
+                if _cand in wb.sheetnames:
+                    _portfolio_sheet = _cand
+                    _hdr_row_p = 4 if _cand == "01_Portfolio" else 5
+                    break
+            if _portfolio_sheet:
+                _ws_p = wb[_portfolio_sheet]
+                _hdr_p = [str(_ws_p.cell(_hdr_row_p, c).value or "").strip()
+                           for c in range(1, _ws_p.max_column + 1)]
+                _tk_col_p = None
+                for _cand_tk in ("Ticker", "Stock"):
+                    if _cand_tk in _hdr_p:
+                        _tk_col_p = _hdr_p.index(_cand_tk) + 1; break
+                if _tk_col_p:
+                    for _r in range(_hdr_row_p + 1, _ws_p.max_row + 1):
+                        _tk_raw = _ws_p.cell(_r, _tk_col_p).value
+                        if _tk_raw is None or not str(_tk_raw).strip(): continue
+                        _tk_v = str(_tk_raw).replace(".NS","").replace(".BO","").strip().upper()
+                        if _tk_v and len(_tk_v) < 20 and _tk_v.isalpha():
+                            _portfolio_tks.add(_tk_v)
+            # CEO 2026-09-02 · sheet-name + header-name agnostic ·
+            # 3-sheet layout: 03_Exit_History · Ticker at header-lookup
+            # legacy layout: Exit History (90d) · Ticker at col A
+            _eh_sheet_a22 = None
+            _hdr_row_eh = 5
+            for _cand in ("03_Exit_History", "Exit History (90d)"):
+                if _cand in wb.sheetnames:
+                    _eh_sheet_a22 = _cand
+                    _hdr_row_eh = 4 if _cand == "03_Exit_History" else 5
+                    break
+            if _eh_sheet_a22:
                 from openpyxl import load_workbook as _lw_eh
                 _wb_eh = _lw_eh(xp, read_only=False, data_only=False)
-                _eh_ws = _wb_eh["Exit History (90d)"]
-                for _r_idx in range(6, _eh_ws.max_row + 1):
-                    _v = _eh_ws.cell(_r_idx, 1).value
-                    if _v is None or str(_v).strip() == "":
-                        break     # first blank · trailer starts after
-                    _tk_raw = str(_v).upper().strip()
-                    if _tk_raw.startswith(("──", "MONTH", "TOTAL", "---")):
-                        continue
-                    if " " in _tk_raw:      # multi-word · not a ticker
-                        continue
-                    _exit_tks.add(_tk_raw)
+                _eh_ws = _wb_eh[_eh_sheet_a22]
+                _hdr_eh = [str(_eh_ws.cell(_hdr_row_eh, c).value or "").strip()
+                            for c in range(1, _eh_ws.max_column + 1)]
+                _tk_col_eh = None
+                for _cand_tk in ("Stock", "Ticker"):
+                    if _cand_tk in _hdr_eh:
+                        _tk_col_eh = _hdr_eh.index(_cand_tk) + 1; break
+                if _tk_col_eh:
+                    _data_start = _hdr_row_eh + 1
+                    for _r_idx in range(_data_start, _eh_ws.max_row + 1):
+                        _v_first = _eh_ws.cell(_r_idx, 1).value
+                        if _v_first is None or str(_v_first).strip() == "":
+                            break
+                        _v_tk = _eh_ws.cell(_r_idx, _tk_col_eh).value
+                        if _v_tk is None: continue
+                        _tk_raw = str(_v_tk).upper().strip().replace(".NS","").replace(".BO","")
+                        if _tk_raw.startswith(("──", "MONTH", "TOTAL", "---")):
+                            continue
+                        if " " in _tk_raw: continue
+                        _exit_tks.add(_tk_raw)
                 _wb_eh.close()
             _overlap = _portfolio_tks & _exit_tks
             # 2026-08-25 · A22 runner-aware · a ticker legitimately appears
@@ -521,15 +593,20 @@ def compute(root: Path, market: str, asof: str) -> WaveRegressionReport:
     # (the documented sink). Ensures nothing goes silently untracked.
     try:
         from backend.research import opportunity_registry as _oreg
+        from backend.delivery.canonical.retirement import retired_runners as _rr
         _reg = _oreg.load_all(root)
+        _retired = _rr(root)
         # Build the historical universe · every Registry-known ticker
+        # CEO 2026-09-02 · scope Check 2 to PRODUCTION runners only ·
+        # retired-runner CLOSED positions are excluded from workbook by
+        # contract · they live in orphan_audit sink (also checked below).
         _historical_tickers = set()
         _closed_reg = set()
         for _opps in _reg.values():
             for _o in _opps:
                 if _o.market.lower() != market: continue
                 _historical_tickers.add(_o.ticker.upper())
-                if _o.status == "CLOSED":
+                if _o.status == "CLOSED" and _o.runner not in _retired:
                     _closed_reg.add(_o.ticker.upper())
         # Snapshot ledger tickers (canonical entry records)
         try:

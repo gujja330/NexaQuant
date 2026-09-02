@@ -267,6 +267,17 @@ def get_or_create(root: Path, market: str, runner: str, ticker: str,
     market = market.lower()
     runner = (runner or "").upper().replace("_NEW", "")
     tk = _bare_ticker(ticker)
+    # CEO 2026-09-02 · retired-runner producer guard.
+    # Forward-only retirement: no NEW opportunity may be created for a
+    # retired runner (existing ACTIVE / CLOSED records untouched).
+    # Blocks the post-retirement R1 leak surfaced by r1_producer_audit.
+    try:
+        from backend.delivery.canonical.retirement import is_retired
+        if is_retired(root, runner):
+            _log_retirement_block(root, market, runner, tk, asof)
+            return None
+    except Exception:
+        pass
     key = (market, runner, tk)
     existing = registry.get(key, [])
     # If any existing is ACTIVE · return it (immutable created_date preserved)
@@ -296,6 +307,25 @@ def get_or_create(root: Path, market: str, runner: str, ticker: str,
     _append(root, asdict(opp))
     registry.setdefault(key, []).append(opp)
     return opp
+
+
+def _log_retirement_block(root: Path, market: str, runner: str,
+                                    ticker: str, asof: str) -> None:
+    """Append one retirement-block entry so daily diagnostic can explain
+    why a retired-runner ticker was not created."""
+    p = root / "reports" / "context" / "opportunity_retirement_blocks.jsonl"
+    p.parent.mkdir(parents=True, exist_ok=True)
+    entry = {
+        "asof":   asof[:10],
+        "market": market, "runner": runner, "ticker": ticker,
+        "reason": f"runner {runner} is retired · producer refused to create new opportunity",
+        "ts_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+    }
+    try:
+        with p.open("a", encoding="utf-8") as fh:
+            fh.write(json.dumps(entry, ensure_ascii=False) + "\n")
+    except Exception:
+        pass
 
 
 def _log_cooling_block(root: Path, market: str, runner: str,

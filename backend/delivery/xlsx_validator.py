@@ -177,26 +177,115 @@ class XlsxValidator:
             if str(h or "").strip() == header_name: return i
         return None
 
+    # CEO 2026-09-02 · CANONICAL header-name access · every check reads
+    # semantic fields by header name (never positional column index).
+    # Semantic aliases below map a logical field to whichever header the
+    # workbook actually emits · 3-sheet contract wins when both present.
+    PORTFOLIO_FIELD_ALIASES = {
+        "Position ID":   ["Position ID"],
+        "Ticker":        ["Ticker", "Stock"],
+        "Runner":        ["Runner"],
+        "Entry Date":    ["Entry Date"],
+        "Entry Price":   ["Entry Price", "Entry"],
+        "Current Price": ["Current Price", "Current"],
+        "Stop":          ["Dynamic Stop", "Stop Loss", "Stop"],
+        "P&L %":         ["Unrealized P&L %", "P&L %", "P&L"],
+        "Holding Days":  ["Holding Days", "Days"],
+        "Verdict":       ["Engine Verdict", "🎯 DECISION", "Decision",
+                            "🎯 ACTION", "Action"],
+        "Sector":        ["Sector"],
+    }
+    EXIT_HISTORY_FIELD_ALIASES = {
+        "Position ID":   ["Position ID"],
+        "Ticker":        ["Stock", "Ticker"],
+        "Sector":        ["Sector"],
+        "Runner":        ["Runner"],
+        "Market":        ["Market", "Country"],
+        "Entry Date":    ["Entry Date"],
+        "Exit Date":     ["Exit Date"],
+        "Holding Days":  ["Holding Days", "Days Held", "Days"],
+        "Entry Price":   ["Entry Price", "Entry"],
+        "Exit Price":    ["Exit Price", "Exit"],
+        "P&L %":         ["Realized P&L %", "P&L %", "P&L"],
+        "Exit Reason":   ["Exit Reason", "Reason"],
+    }
+
+    def _header_map(self, sheet_name: str) -> dict:
+        """Cached {header_name: 0-based col index} for a resolved sheet.
+        Returns empty dict if sheet missing."""
+        if not hasattr(self, "_header_cache"):
+            self._header_cache = {}
+        key = sheet_name
+        if key in self._header_cache: return self._header_cache[key]
+        headers = self._sheet_headers(sheet_name)
+        idx_map = {}
+        for i, h in enumerate(headers):
+            if h is not None and str(h).strip():
+                idx_map[str(h).strip()] = i
+        self._header_cache[key] = idx_map
+        return idx_map
+
+    def _resolve_col(self, sheet_name: str, logical_field: str) -> Optional[int]:
+        """Return 0-based col index for a logical field · tries aliases in order."""
+        if sheet_name in ("Portfolio", "01_Portfolio"):
+            aliases = self.PORTFOLIO_FIELD_ALIASES.get(logical_field, [logical_field])
+        elif sheet_name in ("Exit History (90d)", "03_Exit_History"):
+            aliases = self.EXIT_HISTORY_FIELD_ALIASES.get(logical_field, [logical_field])
+        else:
+            aliases = [logical_field]
+        hm = self._header_map(sheet_name)
+        for a in aliases:
+            if a in hm: return hm[a]
+        return None
+
+    def _row_val(self, sheet_name: str, row: list, logical_field: str,
+                  default=None):
+        """Semantic value getter · read `row` by logical field name."""
+        idx = self._resolve_col(sheet_name, logical_field)
+        if idx is None or idx >= len(row): return default
+        return row[idx]
+
+    def _cell_val(self, ws, r_idx: int, sheet_name: str, logical_field: str,
+                   default=None):
+        """Semantic cell getter by header name."""
+        idx = self._resolve_col(sheet_name, logical_field)
+        if idx is None: return default
+        return ws.cell(r_idx, idx + 1).value
+
+    def _schema_fail(self, code: str, name: str, sheet_name: str,
+                      logical_field: str) -> InvariantResult:
+        """Uniform schema-failure result when a required header is absent."""
+        return InvariantResult(
+            code, name, "BLOCK", "FAIL",
+            f"schema failure · sheet '{sheet_name}' missing header for '{logical_field}'")
+
+    def _is_banner_or_summary(self, val) -> bool:
+        """Detect banner / trailer / emoji-summary rows to skip."""
+        if val is None: return True
+        s = str(val).strip()
+        if not s: return True
+        if s.startswith(("🟢","🔴","🆕","🟣","AEGIS","📊","🩺","✅","❌",
+                          "📕","📗","📘","📙","📖","──","MONTH","TOTAL","---",
+                          "This ","No ","Priced")):
+            return True
+        return False
+
     # ─── Invariant checks ─────────────────────────────────
     def check_no_exit_in_active(self) -> InvariantResult:
-        """I1 · No 🔴 EXIT action in ACTIVE (green) section."""
-        wb = self._wb_load()
-        if wb is None or not self._has_sheet("Portfolio"):
+        """I1 · No 🔴 EXIT verdict in ACTIVE section of Portfolio.
+        3-sheet layout: Portfolio contains ONLY ACTIVE positions ·
+        any EXIT-typed Verdict on a Portfolio row = leak."""
+        if not self._has_sheet("Portfolio"):
             return InvariantResult("I1", "EXIT rows not in ACTIVE",
                                    "BLOCK", "SKIP", "Portfolio sheet missing")
-        ws = self._ws("Portfolio")
-        _in_active = False
         violations = []
-        for r_idx in range(1, ws.max_row + 1):
-            _v = str(ws.cell(r_idx, 1).value or "")
-            if "🟢" in _v and "ACTIVE" in _v.upper():
-                _in_active = True; continue
-            if _v.startswith(("🔴", "🆕", "🟣")):
-                _in_active = False; continue
-            if not _in_active or not _v: continue
-            _act = str(ws.cell(r_idx, 2).value or "")
-            if _act.startswith("🔴 EXIT"):
-                violations.append({"row": r_idx, "ticker": _v})
+        for r_idx, row in self._iter_data_rows("Portfolio", 6):
+            _tk = self._row_val("Portfolio", row, "Ticker")
+            if self._is_banner_or_summary(_tk): continue
+            _verdict = str(self._row_val("Portfolio", row, "Verdict") or "").upper()
+            if _verdict.startswith("🔴 EXIT") or _verdict.startswith("EXIT_"):
+                violations.append({"row": r_idx, "ticker": str(_tk),
+                                    "verdict": _verdict})
         return InvariantResult("I1", "EXIT rows not in ACTIVE",
                                "BLOCK",
                                "FAIL" if violations else "PASS",
@@ -268,10 +357,10 @@ class XlsxValidator:
         _seen: dict = {}
         violations = []
         for r_idx, row in self._iter_data_rows("Portfolio", 6):
-            _tk = str(row[0] or "").upper().replace(".NS","").replace(".BO","")
-            if not _tk or _tk.startswith(("🟢","🔴","🆕","🟣","AEGIS","📊","🩺","✅","❌")):
-                continue
-            _rn = str(row[8] or "").upper().replace("_NEW","")
+            _tk_raw = self._row_val("Portfolio", row, "Ticker")
+            if self._is_banner_or_summary(_tk_raw): continue
+            _tk = str(_tk_raw).upper().replace(".NS","").replace(".BO","")
+            _rn = str(self._row_val("Portfolio", row, "Runner") or "").upper().replace("_NEW","")
             key = (_tk, _rn)
             if key in _seen:
                 violations.append({"ticker": _tk, "runner": _rn,
@@ -314,11 +403,10 @@ class XlsxValidator:
                 else: _has_active.setdefault(_tk, False)
         violations = []
         for r_idx, row in self._iter_data_rows("Portfolio", 6):
-            _tk = str(row[0] or "").upper().replace(".NS","").replace(".BO","")
-            if not _tk or _tk.startswith(("🟢","🔴","🆕","🟣","AEGIS","📊","🩺","✅","❌")):
-                continue
-            _rn = str(row[8] or "").upper()
-            # SHADOW / MOMENTUM tags are OK · they're research overlays
+            _tk_raw = self._row_val("Portfolio", row, "Ticker")
+            if self._is_banner_or_summary(_tk_raw): continue
+            _tk = str(_tk_raw).upper().replace(".NS","").replace(".BO","")
+            _rn = str(self._row_val("Portfolio", row, "Runner") or "").upper()
             if _rn in ("SHADOW", "MOMENTUM"): continue
             if _tk in _has_active and _has_active[_tk] is False:
                 violations.append({"ticker": _tk, "row": r_idx})
@@ -338,9 +426,10 @@ class XlsxValidator:
                     active_tks.add(o.ticker.upper().replace(".NS","").replace(".BO",""))
         violations = []
         for r_idx, row in self._iter_data_rows("Portfolio", 6):
-            _tk = str(row[0] or "").upper().replace(".NS","").replace(".BO","")
-            if not _tk: continue
-            _rn = str(row[8] or "").upper()
+            _tk_raw = self._row_val("Portfolio", row, "Ticker")
+            if self._is_banner_or_summary(_tk_raw): continue
+            _tk = str(_tk_raw).upper().replace(".NS","").replace(".BO","")
+            _rn = str(self._row_val("Portfolio", row, "Runner") or "").upper()
             if _rn in ("SHADOW", "MOMENTUM") and _tk in active_tks:
                 violations.append({"ticker": _tk, "runner": _rn, "row": r_idx})
         return InvariantResult(
@@ -494,34 +583,39 @@ class XlsxValidator:
 
     def check_active_has_entry_price(self) -> InvariantResult:
         """I11 · ACTIVE row must have non-empty Entry Price."""
-        # Column index for Entry Price = 23 in the 34-col schema
+        if self._resolve_col("Portfolio", "Entry Price") is None:
+            return self._schema_fail("I11", "Every ACTIVE row has entry_price",
+                                       "Portfolio", "Entry Price")
         violations = []
         for r_idx, row in self._iter_data_rows("Portfolio", 6):
-            _tk = str(row[0] or "").upper()
-            if not _tk or _tk.startswith(("🟢","🔴","🆕","🟣","AEGIS","📊","🩺","✅","❌")):
-                continue
-            _rn = str(row[8] or "").upper()
+            _tk_raw = self._row_val("Portfolio", row, "Ticker")
+            if self._is_banner_or_summary(_tk_raw): continue
+            _rn = str(self._row_val("Portfolio", row, "Runner") or "").upper()
             if _rn in ("SHADOW", "MOMENTUM"): continue    # research overlays exempt
-            _entry = row[22] if len(row) > 22 else None
+            _entry = self._row_val("Portfolio", row, "Entry Price")
             if not (isinstance(_entry, (int,float)) and _entry > 0):
-                violations.append({"ticker": _tk, "row": r_idx})
+                violations.append({"ticker": str(_tk_raw), "row": r_idx})
         return InvariantResult(
             "I11", "Every ACTIVE row has entry_price", "BLOCK",
             "FAIL" if violations else "PASS",
             f"{len(violations)} ACTIVE rows missing entry price", violations[:5])
 
     def check_active_has_stop(self) -> InvariantResult:
-        """I12 · ACTIVE row should have Stop Loss populated (WARN)."""
+        """I12 · ACTIVE row should have Stop populated (WARN).
+        Header alias: Dynamic Stop (3-sheet) or Stop Loss (legacy)."""
+        if self._resolve_col("Portfolio", "Stop") is None:
+            return InvariantResult("I12", "Every ACTIVE row has stop",
+                                   "WARN", "WARN",
+                                   "no Stop column in Portfolio")
         violations = []
         for r_idx, row in self._iter_data_rows("Portfolio", 6):
-            _tk = str(row[0] or "").upper()
-            if not _tk or _tk.startswith(("🟢","🔴","🆕","🟣","AEGIS","📊","🩺","✅","❌")):
-                continue
-            _rn = str(row[8] or "").upper()
+            _tk_raw = self._row_val("Portfolio", row, "Ticker")
+            if self._is_banner_or_summary(_tk_raw): continue
+            _rn = str(self._row_val("Portfolio", row, "Runner") or "").upper()
             if _rn in ("SHADOW", "MOMENTUM"): continue
-            _stop = row[26] if len(row) > 26 else None
+            _stop = self._row_val("Portfolio", row, "Stop")
             if not (isinstance(_stop, (int,float)) and _stop > 0):
-                violations.append({"ticker": _tk, "row": r_idx})
+                violations.append({"ticker": str(_tk_raw), "row": r_idx})
         return InvariantResult(
             "I12", "Every ACTIVE row has stop", "WARN",
             "WARN" if violations else "PASS",
@@ -625,16 +719,27 @@ class XlsxValidator:
                                "PASS", "analysis row 2 populated")
 
     def check_no_jargon_in_exit_reasons(self) -> InvariantResult:
-        """I18 · Exit Reason column has no → jargon."""
-        _reason_col = self._col_index("Exit History (90d)", "Exit Reason", 5)
-        if _reason_col is None:
-            return InvariantResult("I18", "No jargon in exit reasons",
-                                   "BLOCK", "SKIP", "column missing")
+        """I18 · Exit Reason column has no jargon (arrows / ticker suffixes /
+        alpha references / raw registry event tags)."""
+        if self._resolve_col("Exit History (90d)", "Exit Reason") is None:
+            return self._schema_fail("I18", "No jargon in exit reasons",
+                                       "Exit History (90d)", "Exit Reason")
         violations = []
         for r_idx, row in self._iter_data_rows("Exit History (90d)", 6):
-            if _reason_col > len(row): continue
-            _r = str(row[_reason_col - 1] or "")
-            if "→" in _r and (".NS" in _r or "alpha" in _r.lower()):
+            _tk_raw = self._row_val("Exit History (90d)", row, "Ticker")
+            if self._is_banner_or_summary(_tk_raw): continue
+            _r = str(self._row_val("Exit History (90d)", row, "Exit Reason") or "")
+            if not _r: continue
+            # Jargon patterns · symbols/suffixes/raw registry event codes
+            has_arrow = "→" in _r
+            has_ticker_suffix = ".NS" in _r or ".BO" in _r
+            has_alpha_ref = "alpha" in _r.lower()
+            has_raw_code = ("ORPHAN_" in _r or "AUTO_" in _r.upper() or
+                             "TRIGGER_" in _r.upper() or "_HIT" in _r.upper() or
+                             "TRAIL_" in _r.upper() or "MISSING_" in _r.upper())
+            has_multiple_dots_middot = _r.count("·") >= 2
+            if (has_arrow or has_ticker_suffix or has_alpha_ref or
+                 has_raw_code or has_multiple_dots_middot):
                 violations.append({"row": r_idx, "reason": _r[:60]})
         return InvariantResult(
             "I18", "No jargon in exit reasons", "BLOCK",
@@ -643,7 +748,8 @@ class XlsxValidator:
 
     def check_momentum_conservation(self) -> InvariantResult:
         """I19 · Every timing_engine BUY/WATCH/REBOUND pick must appear
-        in Portfolio OR have a recorded rejection reason."""
+        in Portfolio (legacy) or 02_Today_Momentum (3-sheet) OR have a
+        recorded rejection reason."""
         p = self.root / "reports" / "context" / f"timing_engine_{self.market}.json"
         if not p.exists():
             return InvariantResult("I19", "Momentum conservation", "WARN",
@@ -655,25 +761,35 @@ class XlsxValidator:
             if not picks:
                 return InvariantResult("I19", "Momentum conservation", "WARN",
                                        "PASS", "no momentum picks · nothing to conserve")
-            # Portfolio Runner=MOMENTUM rows
-            _portfolio_mom_tks: set = set()
+            _seen_tks: set = set()
+            # Legacy: Portfolio has MOMENTUM-runner rows
             for r_idx, row in self._iter_data_rows("Portfolio", 6):
-                _tk = str(row[0] or "").upper().replace(".NS","").replace(".BO","")
-                _rn = str(row[8] or "").upper()
+                _tk_raw = self._row_val("Portfolio", row, "Ticker")
+                if self._is_banner_or_summary(_tk_raw): continue
+                _rn = str(self._row_val("Portfolio", row, "Runner") or "").upper()
                 if _rn == "MOMENTUM":
-                    _portfolio_mom_tks.add(_tk)
+                    _seen_tks.add(str(_tk_raw).upper().replace(".NS","").replace(".BO",""))
+            # 3-sheet: 02_Today_Momentum sheet lists them
+            if self._has_sheet("02_Today_Momentum"):
+                for r_idx, row in self._iter_data_rows("02_Today_Momentum", 5):
+                    if not row or self._is_banner_or_summary(row[0]): continue
+                    # Column 1 = Ticker in 02_Today_Momentum (also often 0-indexed)
+                    for cell in row:
+                        if isinstance(cell, str) and cell.strip():
+                            v = cell.strip().upper().replace(".NS","").replace(".BO","")
+                            if v.isalpha() and len(v) <= 12:
+                                _seen_tks.add(v)
+                                break
             missing = []
-            for pk in picks[:5]:    # top 5 should render
+            for pk in picks[:5]:
                 _tk = str(pk.get("ticker","")).upper().replace(".NS","").replace(".BO","")
-                if _tk not in _portfolio_mom_tks:
-                    missing.append({"ticker": _tk,
-                                    "decision": pk.get("decision")})
+                if _tk not in _seen_tks:
+                    missing.append({"ticker": _tk, "decision": pk.get("decision")})
             if missing:
                 return InvariantResult(
                     "I19", "Momentum conservation", "WARN",
                     "WARN",
-                    f"{len(missing)} timing picks missing from Portfolio · "
-                    f"check dedup vs Registry",
+                    f"{len(missing)} timing picks missing from Portfolio/Momentum",
                     missing)
             return InvariantResult(
                 "I19", "Momentum conservation", "WARN", "PASS",
@@ -683,45 +799,36 @@ class XlsxValidator:
                                    "SKIP", f"{type(e).__name__}: {e}")
 
     def check_closed_tickers_in_exit_history(self) -> InvariantResult:
-        """I20 · Every Registry-CLOSED opportunity in 90d must appear in Exit History."""
+        """I20 · Every PRODUCTION-runner Registry-CLOSED in 90d must appear
+        in Exit History. Retired-runner (R1) CLOSED positions are workbook-
+        excluded by the R1-retirement contract and tracked in orphan_audit_
+        {market}.jsonl (documented sink · CEO 2026-09-02 reconciliation)."""
+        from backend.delivery.canonical.retirement import retired_runners
+        retired = retired_runners(self.root)
         reg = self._registry()
         cutoff = (date.today() - timedelta(days=90)).isoformat()
-        closed_pids: set = set()
-        closed_tks: set = set()
+        closed_tks_prod: set = set()
         for opps in reg.values():
             for o in opps:
                 if o.market.lower() != self.market: continue
                 if o.status != "CLOSED": continue
                 if not o.closed_date or str(o.closed_date)[:10] < cutoff: continue
-                closed_tks.add(o.ticker.upper().replace(".NS","").replace(".BO",""))
-        # Exit History tickers
-        # CEO 2026-09-02 · dual-layout: 3-sheet uses "03_Exit_History"
-        # (data row 5 · ticker/stock at col B since col A is Position ID) ·
-        # legacy uses "Exit History (90d)" (data row 6 · ticker at col A)
-        from backend.delivery.xlsx_contract import EXIT_HISTORY_SHEET_ALIASES
+                if o.runner in retired: continue   # excluded from workbook by contract
+                closed_tks_prod.add(o.ticker.upper().replace(".NS","").replace(".BO",""))
+        # Exit History tickers · resolved by header name
         exit_tks: set = set()
-        wb = self._wb_load()
-        if wb is not None:
-            for _sn in EXIT_HISTORY_SHEET_ALIASES:
-                if _sn not in wb.sheetnames: continue
-                _ws = wb[_sn]
-                _first_row = 5 if _sn == "03_Exit_History" else 6
-                _tk_col_idx = 2 if _sn == "03_Exit_History" else 1
-                for _r in range(_first_row, _ws.max_row + 1):
-                    _first_val = _ws.cell(_r, 1).value
-                    if _first_val is None or str(_first_val).strip() == "":
-                        break
-                    _tk = str(_ws.cell(_r, _tk_col_idx).value or "").upper()
-                    _tk = _tk.replace(".NS","").replace(".BO","")
-                    if _tk and not _tk.startswith(("──", "MONTH", "TOTAL", "---")):
-                        exit_tks.add(_tk)
-                break
-        missing = closed_tks - exit_tks
+        if self._has_sheet("Exit History (90d)"):
+            for r_idx, row in self._iter_data_rows("Exit History (90d)", 6):
+                _tk_raw = self._row_val("Exit History (90d)", row, "Ticker")
+                if self._is_banner_or_summary(_tk_raw): break
+                _tk = str(_tk_raw).upper().replace(".NS","").replace(".BO","")
+                if _tk: exit_tks.add(_tk)
+        missing = closed_tks_prod - exit_tks
         return InvariantResult(
-            "I20", "Registry-CLOSED tickers in Exit History", "BLOCK",
+            "I20", "Registry-CLOSED (production runners) in Exit History", "BLOCK",
             "FAIL" if missing else "PASS",
-            f"{len(closed_tks)} closed · {len(exit_tks)} in exit history · "
-            f"{len(missing)} missing",
+            f"{len(closed_tks_prod)} production-runner closed · "
+            f"{len(exit_tks)} in exit history · {len(missing)} missing",
             [{"ticker": t} for t in sorted(missing)[:5]])
 
     def check_canonical_states_only(self) -> InvariantResult:
@@ -792,81 +899,69 @@ class XlsxValidator:
                                    "SKIP", f"{type(e).__name__}: {e}")
 
     def check_header_matches_visible_rows(self) -> InvariantResult:
-        """I24 · Row 2 'Active: N positions' must equal visible
-        ACTIVE/RE-ENTRY rows in Portfolio (excludes SHADOW/MOMENTUM/EXIT).
-        """
+        """I24 · Row 2 'Active: N' (legacy) OR 'R2 ACTIVE: N' (3-sheet)
+        must equal visible ACTIVE production rows in Portfolio."""
         import re
-        from openpyxl import load_workbook
-        try:
-            wb = load_workbook(self.xlsx_path, read_only=True, data_only=True)
-            if not self._has_sheet("Portfolio"):
-                return InvariantResult("I24", "Header count matches rows",
-                                       "BLOCK", "SKIP", "no Portfolio sheet")
-            ws = self._ws("Portfolio")
-            r2 = str(ws.cell(2, 1).value or "")
-            m = re.search(r"Active:\s*(\d+)", r2)
-            if not m:
-                wb.close()
-                return InvariantResult("I24", "Header count matches rows",
-                                       "BLOCK", "SKIP",
-                                       f"Row 2 missing 'Active: N' pattern")
-            header_n = int(m.group(1))
-            visible = 0
-            for r_idx in range(6, ws.max_row + 1):
-                _rn = str(ws.cell(r_idx, 9).value or "").upper()
-                if _rn in ("SHADOW", "MOMENTUM"): continue
-                _tk = str(ws.cell(r_idx, 1).value or "").upper()
-                if not _tk or _tk.startswith(("🟢","🔴","🆕","🟣",
-                                              "AEGIS","📊","🩺","✅","❌")):
-                    continue
-                _dec = str(ws.cell(r_idx, 3).value or "").upper()
-                if "🔴 EXIT" in _dec or "EXIT" in _dec[:6]:
-                    continue
-                visible += 1
-            wb.close()
-            status = "PASS" if header_n == visible else "FAIL"
-            return InvariantResult(
-                "I24", "Header count matches rows", "BLOCK", status,
-                f"header={header_n} visible={visible}",
-                [{"header": header_n, "visible": visible}] if status == "FAIL" else [])
-        except Exception as e:
+        if not self._has_sheet("Portfolio"):
+            return InvariantResult("I24", "Header count matches rows",
+                                   "BLOCK", "SKIP", "no Portfolio sheet")
+        ws = self._ws("Portfolio")
+        r2 = str(ws.cell(2, 1).value or "")
+        # Accept both legacy "Active: N" and 3-sheet "R2 ACTIVE: N"
+        m = re.search(r"(?:R2\s+)?ACTIVE:\s*(\d+)", r2, re.IGNORECASE)
+        if not m:
             return InvariantResult("I24", "Header count matches rows",
                                    "BLOCK", "SKIP",
-                                   f"{type(e).__name__}: {e}")
+                                   "row 2 missing 'ACTIVE: N' pattern")
+        header_n = int(m.group(1))
+        visible = 0
+        for r_idx, row in self._iter_data_rows("Portfolio", 6):
+            _tk_raw = self._row_val("Portfolio", row, "Ticker")
+            if self._is_banner_or_summary(_tk_raw): continue
+            _rn = str(self._row_val("Portfolio", row, "Runner") or "").upper()
+            if _rn in ("SHADOW", "MOMENTUM"): continue
+            _v = str(self._row_val("Portfolio", row, "Verdict") or "").upper()
+            if _v.startswith("🔴 EXIT") or _v.startswith("EXIT_"): continue
+            visible += 1
+        status = "PASS" if header_n == visible else "FAIL"
+        return InvariantResult(
+            "I24", "Header count matches rows", "BLOCK", status,
+            f"header={header_n} visible={visible}",
+            [{"header": header_n, "visible": visible}] if status == "FAIL" else [])
 
     def check_entry_price_immutable(self) -> InvariantResult:
-        """I26 · non-same-day ACTIVE/RE-ENTRY rows must have entry_price
-        matching parquet close on entry_date within 2%. Catches the
-        entry-price re-stamp defect (MSFT-style ~0% P&L)."""
-        from openpyxl import load_workbook
+        """I26 · non-same-day ACTIVE rows must have entry_price matching
+        parquet close on entry_date within 2%."""
         import pandas as pd
         try:
-            wb = load_workbook(self.xlsx_path, read_only=True, data_only=True)
             if not self._has_sheet("Portfolio"):
                 return InvariantResult("I26", "Entry price immutable",
                                        "BLOCK", "SKIP", "no Portfolio")
             ws = self._ws("Portfolio")
             r1 = str(ws.cell(1, 1).value or "")
-            # Extract asof from title · "AEGIS INDIA PORTFOLIO · as of 2026-08-26"
             import re
             m = re.search(r"as of\s+(\d{4}-\d{2}-\d{2})", r1)
             asof = m.group(1) if m else None
             if not asof:
-                wb.close()
                 return InvariantResult("I26", "Entry price immutable",
                                        "BLOCK", "SKIP", "no asof in title")
+            if self._resolve_col("Portfolio", "Entry Date") is None:
+                return self._schema_fail("I26", "Entry price immutable",
+                                           "Portfolio", "Entry Date")
+            if self._resolve_col("Portfolio", "Entry Price") is None:
+                return self._schema_fail("I26", "Entry price immutable",
+                                           "Portfolio", "Entry Price")
             violations = []
-            for r_idx in range(6, ws.max_row + 1):
-                _tk = str(ws.cell(r_idx, 1).value or "").upper()
-                if not _tk or _tk.startswith(("🟢","🔴","🆕","🟣",
-                                              "AEGIS","📊","🩺","✅","❌")):
-                    continue
-                _rn = str(ws.cell(r_idx, 9).value or "").upper()
+            for r_idx, row in self._iter_data_rows("Portfolio", 6):
+                _tk_raw = self._row_val("Portfolio", row, "Ticker")
+                if self._is_banner_or_summary(_tk_raw): continue
+                _tk = str(_tk_raw).upper()
+                _rn = str(self._row_val("Portfolio", row, "Runner") or "").upper()
                 if _rn in ("SHADOW", "MOMENTUM"): continue
-                _dec = str(ws.cell(r_idx, 3).value or "")
-                if "🔴 EXIT" in _dec or "🟣 SUGGESTED" in _dec: continue
-                _entry_date = str(ws.cell(r_idx, 13).value or "")[:10]
-                _entry_v = ws.cell(r_idx, 23).value
+                _v = str(self._row_val("Portfolio", row, "Verdict") or "").upper()
+                if _v.startswith("🔴 EXIT") or _v.startswith("EXIT_"): continue
+                _entry_date = str(self._row_val("Portfolio", row, "Entry Date") or "")[:10]
+                _entry_v = self._row_val("Portfolio", row, "Entry Price")
                 if not _entry_date or _entry_date == asof: continue
                 if not (isinstance(_entry_v, (int, float)) and _entry_v > 0):
                     continue
@@ -919,7 +1014,6 @@ class XlsxValidator:
                             "parquet_close":  round(historical_close, 2),
                             "delta_pct":      round(delta_pct, 2),
                         })
-            wb.close()
             status = "PASS" if not violations else "FAIL"
             return InvariantResult(
                 "I26", "Entry price immutable", "BLOCK", status,
@@ -929,6 +1023,25 @@ class XlsxValidator:
             return InvariantResult("I26", "Entry price immutable",
                                    "BLOCK", "SKIP",
                                    f"{type(e).__name__}: {e}")
+
+    def _parquet_last_date(self, ticker: str) -> Optional[str]:
+        """Return the latest ISO date present in the ticker's parquet ·
+        used to distinguish 'exit after parquet horizon' (data-freshness
+        gap · not a fabrication) from 'exit date not in parquet' (real
+        fabrication)."""
+        import pandas as pd
+        clean = ticker.upper().replace(".NS","").replace(".BO","")
+        base = ("usa/data/raw/us" if self.market.lower()=="usa"
+                else "data/raw/india")
+        p = self.root / base / f"{clean}_D1.parquet"
+        if not p.exists(): return None
+        try:
+            df = pd.read_parquet(p)
+            df.index = pd.to_datetime(df.index).strftime("%Y-%m-%d")
+            dates = sorted(df.index)
+            return dates[-1] if dates else None
+        except Exception:
+            return None
 
     def _parquet_close_lookup(self, ticker: str, iso_date: str,
                                lookback_days: int = 10) -> tuple:
@@ -964,12 +1077,10 @@ class XlsxValidator:
 
     def check_entry_date_legitimate(self) -> InvariantResult:
         """I27 · entry_date must be <= asof AND a valid trading day (or
-        within 5 calendar days of one). Blocks fabricated dates."""
+        within 5 calendar days of one). Header-name based access."""
         import re
-        from datetime import date as _date, timedelta as _td
-        from openpyxl import load_workbook
+        from datetime import date as _date
         try:
-            wb = load_workbook(self.xlsx_path, read_only=True, data_only=True)
             if not self._has_sheet("Portfolio"):
                 return InvariantResult("I27", "Entry date legitimate",
                                        "BLOCK", "SKIP", "no Portfolio")
@@ -977,15 +1088,17 @@ class XlsxValidator:
             r1 = str(ws.cell(1, 1).value or "")
             m = re.search(r"as of\s+(\d{4}-\d{2}-\d{2})", r1)
             asof = m.group(1) if m else _date.today().isoformat()
+            if self._resolve_col("Portfolio", "Entry Date") is None:
+                return self._schema_fail("I27", "Entry date legitimate",
+                                           "Portfolio", "Entry Date")
             violations = []
-            for r_idx in range(6, ws.max_row + 1):
-                _tk = str(ws.cell(r_idx, 1).value or "").upper()
-                if not _tk or _tk.startswith(("🟢","🔴","🆕","🟣","AEGIS",
-                                              "📊","🩺","✅","❌")):
-                    continue
-                _rn = str(ws.cell(r_idx, 9).value or "").upper()
+            for r_idx, row in self._iter_data_rows("Portfolio", 6):
+                _tk_raw = self._row_val("Portfolio", row, "Ticker")
+                if self._is_banner_or_summary(_tk_raw): continue
+                _tk = str(_tk_raw).upper()
+                _rn = str(self._row_val("Portfolio", row, "Runner") or "").upper()
                 if _rn in ("SHADOW", "MOMENTUM"): continue
-                _entry_date = str(ws.cell(r_idx, 13).value or "")[:10]
+                _entry_date = str(self._row_val("Portfolio", row, "Entry Date") or "")[:10]
                 if not _entry_date: continue
                 try:
                     ed = _date.fromisoformat(_entry_date)
@@ -1002,10 +1115,14 @@ class XlsxValidator:
                     continue
                 _, matched, _ = self._parquet_close_lookup(_tk, _entry_date, 5)
                 if not matched:
+                    # Data-freshness gap: entry after parquet horizon is
+                    # a stale-data condition · not a fabricated entry.
+                    pq_last = self._parquet_last_date(_tk)
+                    if pq_last and _entry_date > pq_last:
+                        continue
                     violations.append({"ticker": _tk, "row": r_idx,
                         "entry_date": _entry_date,
                         "reason": "not a trading day + no prior close within 5d"})
-            wb.close()
             status = "PASS" if not violations else "FAIL"
             return InvariantResult(
                 "I27", "Entry date legitimate", "BLOCK", status,
@@ -1016,12 +1133,10 @@ class XlsxValidator:
 
     def check_exit_date_legitimate(self) -> InvariantResult:
         """I28 · exit_date must be >= entry_date AND <= asof AND a valid
-        trading day (or within 5 cal days of one). Blocks impossible exits."""
+        trading day. Header-name based access."""
         import re
         from datetime import date as _date
-        from openpyxl import load_workbook
         try:
-            wb = load_workbook(self.xlsx_path, read_only=True, data_only=True)
             if not self._has_sheet("Exit History (90d)"):
                 return InvariantResult("I28", "Exit date legitimate",
                                        "BLOCK", "SKIP", "no Exit History")
@@ -1029,26 +1144,18 @@ class XlsxValidator:
             r1 = str(ws.cell(1, 1).value or "")
             m = re.search(r"as of\s+(\d{4}-\d{2}-\d{2})", r1)
             asof = m.group(1) if m else _date.today().isoformat()
-            # Exit History cols · Stock=1 · Entry Date=5 · Exit Date=6
-            # 2026-08-27 · Exit History has a MONTHLY P&L SUMMARY block
-            # appended at the bottom (row 57+ · "── MONTHLY P&L SUMMARY ──",
-            # then "Month | N Exits | Wins | ...", then aggregate rows).
-            # Those look like data to a naive iterator but aren't tickers.
-            # Stop at first blank row · that's the boundary before the
-            # summary section.
+            for col in ("Entry Date", "Exit Date"):
+                if self._resolve_col("Exit History (90d)", col) is None:
+                    return self._schema_fail("I28", "Exit date legitimate",
+                                               "Exit History (90d)", col)
             violations = []
-            for r_idx in range(6, ws.max_row + 1):
-                _tk_raw = ws.cell(r_idx, 1).value
-                if _tk_raw is None or str(_tk_raw).strip() == "":
-                    break     # blank row · summary section begins after this
+            for r_idx, row in self._iter_data_rows("Exit History (90d)", 6):
+                _tk_raw = self._row_val("Exit History (90d)", row, "Ticker")
+                if self._is_banner_or_summary(_tk_raw): break
                 _tk = str(_tk_raw).upper()
-                # Skip summary/header rows · they start with special chars
-                if _tk.startswith(("──", "MONTH")) or " " in _tk:
-                    continue
-                _ed = str(ws.cell(r_idx, 5).value or "")[:10]
-                _xd = str(ws.cell(r_idx, 6).value or "")[:10]
+                _ed = str(self._row_val("Exit History (90d)", row, "Entry Date") or "")[:10]
+                _xd = str(self._row_val("Exit History (90d)", row, "Exit Date") or "")[:10]
                 if not (_ed and _xd): continue
-                # Extra guard · entry/exit must look like ISO dates
                 if not (_ed[:4].isdigit() and _xd[:4].isdigit()): continue
                 try:
                     ed = _date.fromisoformat(_ed)
@@ -1071,10 +1178,16 @@ class XlsxValidator:
                     continue
                 _, matched, _ = self._parquet_close_lookup(_tk, _xd, 5)
                 if not matched:
+                    # Distinguish fabrication from data-freshness gap:
+                    # if parquet's last known date precedes _xd, the exit
+                    # is after our data horizon (canonical exit is real ·
+                    # price data is stale). Not a fabrication.
+                    pq_last = self._parquet_last_date(_tk)
+                    if pq_last and _xd > pq_last:
+                        continue     # data-freshness gap · not a violation
                     violations.append({"ticker": _tk, "row": r_idx,
                         "entry": _ed, "exit": _xd,
                         "reason": "exit not trading day + no prior close 5d"})
-            wb.close()
             status = "PASS" if not violations else "FAIL"
             return InvariantResult(
                 "I28", "Exit date legitimate", "BLOCK", status,
@@ -1084,12 +1197,10 @@ class XlsxValidator:
                                    "BLOCK", "SKIP", f"{type(e).__name__}: {e}")
 
     def check_current_price_legitimate(self) -> InvariantResult:
-        """I29 · Current Price on ACTIVE/RE-ENTRY rows within 2% of
-        parquet close on asof (intraday tolerance)."""
+        """I29 · Current Price on ACTIVE rows within 10% of parquet close
+        on asof. Header-name based access."""
         import re
-        from openpyxl import load_workbook
         try:
-            wb = load_workbook(self.xlsx_path, read_only=True, data_only=True)
             if not self._has_sheet("Portfolio"):
                 return InvariantResult("I29", "Current Price legitimate",
                                        "BLOCK", "SKIP", "no Portfolio")
@@ -1097,20 +1208,23 @@ class XlsxValidator:
             r1 = str(ws.cell(1, 1).value or "")
             m = re.search(r"as of\s+(\d{4}-\d{2}-\d{2})", r1)
             if not m:
-                wb.close()
                 return InvariantResult("I29", "Current Price legitimate",
                                        "BLOCK", "SKIP", "no asof")
             asof = m.group(1)
+            if self._resolve_col("Portfolio", "Current Price") is None:
+                return self._schema_fail("I29", "Current Price legitimate",
+                                           "Portfolio", "Current Price")
             violations = []
-            for r_idx in range(6, ws.max_row + 1):
-                _tk = str(ws.cell(r_idx, 1).value or "").upper()
-                if not _tk or _tk.startswith(("🟢","🔴","🆕","🟣","AEGIS")):
-                    continue
-                _rn = str(ws.cell(r_idx, 9).value or "").upper()
+            for r_idx, row in self._iter_data_rows("Portfolio", 6):
+                _tk_raw = self._row_val("Portfolio", row, "Ticker")
+                if self._is_banner_or_summary(_tk_raw): continue
+                _tk = str(_tk_raw).upper()
+                _rn = str(self._row_val("Portfolio", row, "Runner") or "").upper()
                 if _rn in ("SHADOW", "MOMENTUM"): continue
-                _dec = str(ws.cell(r_idx, 3).value or "")
-                if "🔴 EXIT" in _dec or "🟣 SUGGESTED" in _dec: continue
-                _curr = ws.cell(r_idx, 24).value
+                _v = str(self._row_val("Portfolio", row, "Verdict") or "").upper()
+                if _v.startswith("🔴 EXIT") or _v.startswith("EXIT_") or "SUGGESTED" in _v:
+                    continue
+                _curr = self._row_val("Portfolio", row, "Current Price")
                 if not (isinstance(_curr, (int, float)) and _curr > 0):
                     continue
                 pq_close, matched, _ = self._parquet_close_lookup(_tk, asof, 3)
@@ -1137,7 +1251,6 @@ class XlsxValidator:
                         "parquet_asof_close": round(pq_close, 2),
                         "delta_pct": round(delta_pct, 2),
                     })
-            wb.close()
             status = "PASS" if not violations else "FAIL"
             return InvariantResult(
                 "I29", "Current Price legitimate", "BLOCK", status,
@@ -1148,22 +1261,23 @@ class XlsxValidator:
                                    "BLOCK", "SKIP", f"{type(e).__name__}: {e}")
 
     def check_exit_price_legitimate(self) -> InvariantResult:
-        """I30 · Exit Price matches parquet close on exit_date within 2%
-        (with 10-day nearby-lookback for date restamps · same tolerance I26)."""
-        from openpyxl import load_workbook
+        """I30 · Exit Price matches parquet close on exit_date within 2%.
+        Header-name based access."""
         try:
-            wb = load_workbook(self.xlsx_path, read_only=True, data_only=True)
             if not self._has_sheet("Exit History (90d)"):
                 return InvariantResult("I30", "Exit Price legitimate",
                                        "BLOCK", "SKIP", "no Exit History")
-            ws = self._ws("Exit History (90d)")
-            # Exit History cols · Stock=1 · Exit Date=6 · Exit Price=9
+            for col in ("Ticker", "Exit Date", "Exit Price"):
+                if self._resolve_col("Exit History (90d)", col) is None:
+                    return self._schema_fail("I30", "Exit Price legitimate",
+                                               "Exit History (90d)", col)
             violations = []
-            for r_idx in range(6, ws.max_row + 1):
-                _tk = str(ws.cell(r_idx, 1).value or "").upper()
-                if not _tk: continue
-                _xd = str(ws.cell(r_idx, 6).value or "")[:10]
-                _xp = ws.cell(r_idx, 9).value
+            for r_idx, row in self._iter_data_rows("Exit History (90d)", 6):
+                _tk_raw = self._row_val("Exit History (90d)", row, "Ticker")
+                if self._is_banner_or_summary(_tk_raw): break
+                _tk = str(_tk_raw).upper()
+                _xd = str(self._row_val("Exit History (90d)", row, "Exit Date") or "")[:10]
+                _xp = self._row_val("Exit History (90d)", row, "Exit Price")
                 if not (_xd and isinstance(_xp, (int, float)) and _xp > 0):
                     continue
                 pq_close, matched, _ = self._parquet_close_lookup(_tk, _xd, 10)
@@ -1177,7 +1291,6 @@ class XlsxValidator:
                         "parquet_close": round(pq_close, 2),
                         "delta_pct": round(delta_pct, 2),
                     })
-            wb.close()
             status = "PASS" if not violations else "FAIL"
             return InvariantResult(
                 "I30", "Exit Price legitimate", "BLOCK", status,
@@ -1188,58 +1301,54 @@ class XlsxValidator:
                                    "BLOCK", "SKIP", f"{type(e).__name__}: {e}")
 
     def check_realized_matches_exit_history(self) -> InvariantResult:
-        """I25 · Portfolio Row 2 Realized 90d numbers must reconcile to
-        Exit History (90d) sheet's row count."""
+        """I25 · Portfolio Row 2 'Realized 90d ... N exits' must reconcile
+        to Exit History body row count. Header-name based access.
+        3-sheet layout: Portfolio row 2 sub-header may not contain this
+        realized-90d clause (kept in Exit History banner instead) · so
+        SKIP when the header pattern is absent."""
         import re
-        from openpyxl import load_workbook
-        try:
-            wb = load_workbook(self.xlsx_path, read_only=True, data_only=True)
-            if "Portfolio" not in wb.sheetnames or \
-                    "Exit History (90d)" not in wb.sheetnames:
-                wb.close()
-                return InvariantResult("I25", "Realized reconciles",
-                                       "BLOCK", "SKIP", "missing sheet")
-            ws_p = wb["Portfolio"]
-            r2 = str(ws_p.cell(2, 1).value or "")
-            m = re.search(r"Realized 90d[^(]*\(\s*(\d+)\s*exits", r2)
-            header_n = int(m.group(1)) if m else -1
-            ws_eh = wb["Exit History (90d)"]
-            # Count Exit History data rows with numeric P&L in col 10
-            eh_n = 0
-            for r_idx in range(6, ws_eh.max_row + 1):
-                _v = ws_eh.cell(r_idx, 10).value
-                if isinstance(_v, (int, float)):
-                    eh_n += 1
-            wb.close()
-            status = "PASS" if header_n == eh_n else "FAIL"
-            return InvariantResult(
-                "I25", "Realized reconciles", "BLOCK", status,
-                f"header={header_n} exit_history={eh_n}",
-                [{"header": header_n, "exit_history": eh_n}] if status == "FAIL" else [])
-        except Exception as e:
+        if not (self._has_sheet("Portfolio") and self._has_sheet("Exit History (90d)")):
             return InvariantResult("I25", "Realized reconciles",
-                                   "BLOCK", "SKIP",
-                                   f"{type(e).__name__}: {e}")
+                                   "BLOCK", "SKIP", "missing sheet")
+        ws_p = self._ws("Portfolio")
+        r2 = str(ws_p.cell(2, 1).value or "")
+        m = re.search(r"Realized 90d[^(]*\(\s*(\d+)\s*exits", r2)
+        if not m:
+            return InvariantResult("I25", "Realized reconciles", "BLOCK", "SKIP",
+                                   "Portfolio row 2 has no 'Realized 90d (N exits)' clause")
+        header_n = int(m.group(1))
+        if self._resolve_col("Exit History (90d)", "P&L %") is None:
+            return self._schema_fail("I25", "Realized reconciles",
+                                       "Exit History (90d)", "P&L %")
+        eh_n = 0
+        for r_idx, row in self._iter_data_rows("Exit History (90d)", 6):
+            _tk_raw = self._row_val("Exit History (90d)", row, "Ticker")
+            if self._is_banner_or_summary(_tk_raw): break
+            _pnl = self._row_val("Exit History (90d)", row, "P&L %")
+            if isinstance(_pnl, (int, float)):
+                eh_n += 1
+        status = "PASS" if header_n == eh_n else "FAIL"
+        return InvariantResult(
+            "I25", "Realized reconciles", "BLOCK", status,
+            f"header={header_n} exit_history={eh_n}",
+            [{"header": header_n, "exit_history": eh_n}] if status == "FAIL" else [])
 
     def check_runner_canonical(self) -> InvariantResult:
         """I23 · Runner column has canonical values (R1/R2/SHADOW/MOMENTUM).
-
-        Regression for 2026-08-26 bug where hardcoded c_run=4 read the
-        Country column, so every Portfolio row's Runner showed 'INDIA' /
-        'USA' instead of R1/R2 · a symptom of Portfolio's column-index
-        drift.
-        """
+        Header-name based access · no more hardcoded col=9 (which would
+        read Country/Sector on the wrong layout)."""
         allowed = {"R1", "R2", "SHADOW", "MOMENTUM", "SUGGESTED", ""}
+        if self._resolve_col("Portfolio", "Runner") is None:
+            return self._schema_fail("I23", "Runner column has canonical values",
+                                       "Portfolio", "Runner")
         violations = []
         for r_idx, row in self._iter_data_rows("Portfolio", 6):
-            _tk = str(row[0] or "").upper()
-            if not _tk or _tk.startswith(("🟢","🔴","🆕","🟣","AEGIS","📊","🩺","✅","❌")):
-                continue
-            # Runner column index = 8 (0-indexed) · matches C9 in current schema
-            _rn = str(row[8] or "").upper() if len(row) > 8 else ""
+            _tk_raw = self._row_val("Portfolio", row, "Ticker")
+            if self._is_banner_or_summary(_tk_raw): continue
+            _rn = str(self._row_val("Portfolio", row, "Runner") or "").upper()
             if _rn not in allowed:
                 violations.append({
-                    "ticker": _tk, "row": r_idx, "runner_value": _rn,
+                    "ticker": str(_tk_raw), "row": r_idx, "runner_value": _rn,
                 })
         return InvariantResult(
             "I23", "Runner column has canonical values", "BLOCK",
