@@ -256,6 +256,16 @@ def reconcile(market: str, root: Path) -> dict:
             _c8_ret = set()
         _CARVEOUT_KW = ("ORPHAN_AUTO_CLOSE", "SAME_DAY_ROTATION",
                          "CANCELLED", "DATA_REPAIR")
+        # CEO 2026-09-02 · align with builder's structural admin filter:
+        # same-day OR entry_price==exit_price = administrative event ·
+        # not required to appear in Exit History body.
+        try:
+            from scripts.build_aegis_3sheet_workbook import (
+                _is_administrative_exit as _c8_is_admin,
+                _close_on_or_before as _c8_close_on)
+        except Exception:
+            _c8_is_admin = None
+            _c8_close_on = None
         reg_closed_by_ticker: dict[str, list] = {}
         for _pid, opps in reg.items():
             for o in opps:
@@ -266,10 +276,9 @@ def reconcile(market: str, root: Path) -> dict:
         real_missing = []
         retired_ignored = []
         carveout_ignored = []
+        admin_ignored = []
         for tk, closed_events in reg_closed_by_ticker.items():
             if tk in eh_tickers: continue
-            # Check every CLOSED event for this ticker · only flag
-            # if AT LEAST ONE is production-active-runner + non-carveout
             has_production_gap = False
             for ev in closed_events:
                 runner_up = str(ev.runner or "").upper()
@@ -280,6 +289,13 @@ def reconcile(market: str, root: Path) -> dict:
                 if any(kw in reason for kw in _CARVEOUT_KW):
                     carveout_ignored.append((tk, reason))
                     continue
+                # Structural admin check · builder filters these out too
+                if _c8_is_admin is not None and _c8_close_on is not None:
+                    _ep = _c8_close_on(_ROOT, ev.ticker, market_l, ev.created_date or "")
+                    _xp = _c8_close_on(_ROOT, ev.ticker, market_l, ev.closed_date or "")
+                    if _c8_is_admin(ev, _ep, _xp):
+                        admin_ignored.append((tk, "same-day or entry==exit"))
+                        continue
                 has_production_gap = True
                 real_missing.append({"ticker": tk, "runner": runner_up,
                                        "reason": reason,
@@ -287,12 +303,14 @@ def reconcile(market: str, root: Path) -> dict:
                 break
         _add("C8_registry_closed_in_exit_history",
               len(real_missing) == 0,
-              (f"{len(real_missing)} ACTIVE-runner non-carveout Registry-CLOSED "
+              (f"{len(real_missing)} ACTIVE-runner non-carveout non-admin Registry-CLOSED "
                 f"missing from EH · {len(retired_ignored)} retired-runner · "
-                f"{len(carveout_ignored)} carveout ignored (all expected)"),
+                f"{len(carveout_ignored)} carveout · {len(admin_ignored)} admin (same-day/zero-Δ) "
+                f"ignored (all expected)"),
               {"n_real_missing": len(real_missing),
                "n_retired_ignored": len(retired_ignored),
                "n_carveout_ignored": len(carveout_ignored),
+               "n_admin_ignored": len(admin_ignored),
                "sample_real_missing": real_missing[:5]})
 
     # ── C10 · Retired-runner contamination check ──────────────────

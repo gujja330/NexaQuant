@@ -74,11 +74,12 @@ def synthetic_xlsx(tmp_path):
     ws.title = "01_Portfolio"
     ws.cell(1, 1, "AEGIS INDIA · PORTFOLIO · current active holdings as of 2026-08-26")
     ws.cell(2, 1, "🟢 R2 ACTIVE: 2 · production runner is R2")
-    # Row 4 · header (was row 5)
+    # Row 4 · header (was row 5) · CEO 2026-09-02 XLSX contract cleanup:
+    #   Stop Type + Target + Action columns added
     headers = ["Position ID", "Ticker", "Runner", "Entry Date",
                "Entry Price", "Current Price", "Unrealized P&L %",
-               "Holding Days", "Dynamic Stop", "Engine Verdict",
-               "Would-Have-Exited-On", "As-Of", "Provenance"]
+               "Holding Days", "Dynamic Stop", "Stop Type", "Target",
+               "Engine Verdict", "Action", "As-Of"]
     for c, h in enumerate(headers, start=1):
         ws.cell(4, c, h)
     # Row 5 · valid ACTIVE row (TCS)
@@ -91,19 +92,20 @@ def synthetic_xlsx(tmp_path):
     ws.cell(5, 7, 1.43)
     ws.cell(5, 8, 25)
     ws.cell(5, 9, 3300.0)
-    ws.cell(5, 10, "HOLD (audit-only)")
-    ws.cell(5, 11, "—")
-    ws.cell(5, 12, "2026-08-26")
-    ws.cell(5, 13, "canonical:Registry+prices")
+    ws.cell(5, 10, "atr")
+    ws.cell(5, 11, "UNAVAILABLE")
+    ws.cell(5, 12, "HOLD · stop 6.9% below")
+    ws.cell(5, 13, "HOLD")
+    ws.cell(5, 14, "2026-08-26")
     # Exit History sheet · new name + row offsets
     eh = wb.create_sheet("03_Exit_History")
     eh.cell(1, 1, "AEGIS INDIA · EXIT HISTORY · realized · as of 2026-08-26")
     eh.cell(2, 1, "📕 Closed positions (last 90d): 1 · latest exit first")
-    # Row 4 · header (was row 5)
+    # Row 4 · header · CEO 2026-09-02: Relative Opportunity pp column added
     eh_hdr = ["Position ID", "Stock", "Sector", "Runner", "Market",
               "Entry Date", "Exit Date", "Holding Days",
               "Entry Price", "Exit Price", "Realized P&L %",
-              "Exit Reason", "Provenance"]
+              "Exit Reason", "Relative Opportunity pp", "Provenance"]
     for c, h in enumerate(eh_hdr, start=1):
         eh.cell(4, c, h)
     # Row 5 · HDFC exit
@@ -119,7 +121,8 @@ def synthetic_xlsx(tmp_path):
     eh.cell(5, 10, 1620.0)
     eh.cell(5, 11, 8.0)
     eh.cell(5, 12, "Profit target hit")
-    eh.cell(5, 13, "canonical:Registry+prices")
+    eh.cell(5, 13, "—")
+    eh.cell(5, 14, "canonical:Registry+prices")
     wb.save(p)
     return tmp_path
 

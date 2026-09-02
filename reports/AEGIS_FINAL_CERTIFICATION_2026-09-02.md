@@ -13,7 +13,7 @@
 | G05_registry_canonical_recon_india | PASS | Registry india: 25 ACTIVE · 43 CLOSED-90d |
 | G06_portfolio_lifecycle_recon_india | PASS | banner=9 body=9 |
 | G07_portfolio_exit_recon_india | PASS | 0 UNEXPLAINED lifecycle collisions (same ticker+runner+entry_date active AND closed) · 0 EXPLAINED overlaps (different e |
-| G08_exit_history_recon_india | PASS | 0 ACTIVE-runner non-carveout Registry-CLOSED missing from EH · 5 retired-runner · 0 carveout ignored (all expected) |
+| G08_exit_history_recon_india | PASS | 0 ACTIVE-runner non-carveout non-admin Registry-CLOSED missing from EH · 5 retired-runner · 0 carveout · 18 admin (same- |
 | G13_pnl_reconciliation_india | PASS | 0 UNEXPLAINED PID duplicates at (ticker, runner, entry_date) grain · Registry authoritative |
 | G14_provenance_validation_india | PASS | 46/46 opened rows have Position ID (100.0%) |
 | G09_population_counts_india | PASS | HISTORICAL_CLOSED=37 · CURRENT_HOLDING=9 |
@@ -23,14 +23,14 @@
 | G15_xlsx_structural_india | PASS | exactly 3 required sheets present · no legacy sheets |
 | G16_visual_inspection_india | PASS | auto-audit PASS · sign-off: visual_signoff_india_2026-09-02.md |
 | G17_standard_filename_india | PASS | dated=True byte_match=True · expected=aegis_india_2026-09-02.xlsx |
-| G18_three_run_determinism_india | PASS | 3-run data-only hash: 1dccdff1 / 1dccdff1 / 1dccdff1 |
+| G18_three_run_determinism_india | PASS | 3-run data-only hash: 00a26b7a / 00a26b7a / 00a26b7a |
 | G19_fabrication_scan_india | PASS | 0 holding rows with LOW/PENDING |
 | G22_research_pit_india | PASS | 112 evidence rows · 56 AVAILABLE |
 | G04_canonical_identity_usa | PASS | 551 new-format PIDs · 0 legacy (source: Registry) |
 | G05_registry_canonical_recon_usa | PASS | Registry usa: 23 ACTIVE · 528 CLOSED-90d |
 | G06_portfolio_lifecycle_recon_usa | PASS | banner=6 body=6 |
 | G07_portfolio_exit_recon_usa | PASS | 0 UNEXPLAINED lifecycle collisions (same ticker+runner+entry_date active AND closed) · 0 EXPLAINED overlaps (different e |
-| G08_exit_history_recon_usa | PASS | 0 ACTIVE-runner non-carveout Registry-CLOSED missing from EH · 2 retired-runner · 0 carveout ignored (all expected) |
+| G08_exit_history_recon_usa | PASS | 0 ACTIVE-runner non-carveout non-admin Registry-CLOSED missing from EH · 11 retired-runner · 3 carveout · 20 admin (same |
 | G13_pnl_reconciliation_usa | PASS | 0 UNEXPLAINED PID duplicates at (ticker, runner, entry_date) grain · Registry authoritative |
 | G14_provenance_validation_usa | PASS | 508/508 opened rows have Position ID (100.0%) |
 | G09_population_counts_usa | PASS | HISTORICAL_CLOSED=502 · CURRENT_HOLDING=6 |
@@ -40,19 +40,19 @@
 | G15_xlsx_structural_usa | PASS | exactly 3 required sheets present · no legacy sheets |
 | G16_visual_inspection_usa | PASS | auto-audit PASS · sign-off: visual_signoff_usa_2026-09-02.md |
 | G17_standard_filename_usa | PASS | dated=True byte_match=True · expected=aegis_usa_2026-09-02.xlsx |
-| G18_three_run_determinism_usa | PASS | 3-run data-only hash: 442e1e6a / 442e1e6a / 442e1e6a |
+| G18_three_run_determinism_usa | PASS | 3-run data-only hash: af4b6648 / af4b6648 / af4b6648 |
 | G19_fabrication_scan_usa | PASS | 0 holding rows with LOW/PENDING |
 | G22_research_pit_usa | PASS | 112 evidence rows · 56 AVAILABLE |
 | G20_overrideallow_false | PASS | no overrideallow=true |
-| G21_locked_layer_diff | PASS | 0 diffs vs fe1fff18 |
+| G21_locked_layer_diff | PASS | 0 diffs vs 0e3735a8 |
 | G23_universe_sp500_only | PASS | n=516 label=sp500 range=[480,550] expected=sp500 |
 | G24_overlap_classification_india | PASS | 0 overlap tickers · defects=0 · {'LEGITIMATE_DIFFERENT_LIFECYCLE': 0, 'LEGITIMATE_DIFFERENT_RUNNER': 0, 'LEGITIMATE_REEN |
 | G25_r1_producer_wide_india | PASS | PROVEN_RETIRED · total_violations=0 · n_producers=6 |
-| G26_stress_regime_india | PASS | n_trades=38 · overall_mean_pnl_pct=-0.422 · regimes=['UNKNOWN', 'NEUTRAL', 'BEAR', 'BULL'] |
+| G26_stress_regime_india | PASS | n_trades=20 · overall_mean_pnl_pct=-0.802 · regimes=['UNKNOWN', 'BEAR', 'BULL'] |
 | G27_momentum_conservation_india | PASS | conservation_ok=True · silent_disappearances=0 · universe=2 · by_state={'ACCEPTED': 0, 'WATCH': 0, 'REJECTED': 2, 'NO_EV |
 | G28_crash_resilience_india | PASS | today_regime=WEAKENING · n_r2_trades_tagged=0 · n_days_classified=1535 |
 | G24_overlap_classification_usa | PASS | 0 overlap tickers · defects=0 · {'LEGITIMATE_DIFFERENT_LIFECYCLE': 0, 'LEGITIMATE_DIFFERENT_RUNNER': 0, 'LEGITIMATE_REEN |
 | G25_r1_producer_wide_usa | PASS | PROVEN_RETIRED · total_violations=0 · n_producers=6 |
-| G26_stress_regime_usa | PASS | n_trades=502 · overall_mean_pnl_pct=0.208 · regimes=['UNKNOWN', 'BULL'] |
+| G26_stress_regime_usa | PASS | n_trades=479 · overall_mean_pnl_pct=0.218 · regimes=['UNKNOWN'] |
 | G27_momentum_conservation_usa | PASS | conservation_ok=True · silent_disappearances=0 · universe=34 · by_state={'ACCEPTED': 0, 'WATCH': 4, 'REJECTED': 1, 'NO_E |
 | G28_crash_resilience_usa | PASS | today_regime=NORMAL · n_r2_trades_tagged=0 · n_days_classified=1254 |

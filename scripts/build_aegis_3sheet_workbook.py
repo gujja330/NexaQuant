@@ -132,24 +132,19 @@ def _normalize_exit_reason(raw: str) -> str:
     """CEO 2026-09-02 · I18 jargon-free presentation.
     Translate raw registry event codes/arrows/ticker suffixes into
     plain English suitable for operator display. Semantic categories
-    preserved · no signal information lost."""
+    preserved · no signal information lost.
+
+    UPDATE 2026-09-02 (CEO XLSX contract cleanup): the '+X pp' relative-
+    opportunity number was being misread as realized P&L. Reason column
+    now contains only a plain-English category · relative-opportunity
+    is emitted separately via _extract_relative_pp."""
     if not raw or raw == "—": return "—"
     r = str(raw).strip()
     r_l = r.lower()
-    # Category 1: rotation swap · "Rotation → TICKER.NS (+X pp)"
     if r_l.startswith("rotation"):
-        import re
-        m = re.search(r"\(([+-][\d\.]+)\s*pp\)", r)
-        pp = m.group(1) + " pp" if m else ""
-        return f"Rotation swap{(' · ' + pp) if pp else ''}"
-    # Category 2: alpha exit · "→ TICKER.NS → +X pp alpha"
-    # Rendered as "Outperformance exit · +X pp" · avoids the word
-    # "alpha" which the jargon detector treats as raw finance jargon.
+        return "Rotation swap"
     if "alpha" in r_l and "pp" in r_l:
-        import re
-        m = re.search(r"([+-][\d\.]+)\s*pp", r)
-        pp = m.group(1) + " pp" if m else ""
-        return f"Outperformance exit{(' · ' + pp) if pp else ''}"
+        return "Outperformance exit"
     # Category 3: registry sync backfill
     if "registry-sync" in r_l or "registry sync" in r_l:
         return "Historical reconciliation"
@@ -178,6 +173,43 @@ def _normalize_exit_reason(raw: str) -> str:
     while "· ·" in cleaned:
         cleaned = cleaned.replace("· ·", "·")
     return cleaned.strip("· ").strip()[:40] or "—"
+
+
+def _extract_relative_pp(raw: str):
+    """Extract the '+X.X pp' relative-opportunity number from a raw
+    registry reason string · returns float or None. Used to populate
+    the separate 'Relative Opportunity pp' column so it can't be
+    misread as the trade's own realized P&L."""
+    if not raw: return None
+    import re
+    m = re.search(r"([+-]?\d+\.?\d*)\s*pp", str(raw))
+    if not m: return None
+    try:
+        return float(m.group(1))
+    except Exception:
+        return None
+
+
+def _is_administrative_exit(o, entry_p=None, exit_p=None) -> bool:
+    """CEO 2026-09-02 · realized-exits-only invariant · filter admin
+    events out of the operator-facing Exit History using STRUCTURAL
+    signals only (no hardcoded string matches on closed_reason).
+
+    Structural criteria (any = administrative):
+      1. same-day entry+exit (created_date == closed_date) · no time
+         to accumulate a real market-move P&L
+      2. entry_price == exit_price within 0.005% · no realized delta
+         (rotation/reconciliation artifacts leave entry=exit unchanged)
+
+    Historical audit trail preserved in Registry JSONL · never
+    destroyed · just hidden from operator-facing table."""
+    cd = str(getattr(o, "created_date", "") or "")[:10]
+    xd = str(getattr(o, "closed_date", "") or "")[:10]
+    if cd and xd and cd == xd: return True
+    if (entry_p and exit_p and entry_p > 0
+        and abs((exit_p - entry_p) / entry_p * 100) < 0.005):
+        return True
+    return False
 
 
 def _emit_orphan_audit_for_retired(root, market, reg_data):
@@ -270,16 +302,60 @@ def _canonical_ticker(t):
 
 
 # ── SHEET 01 · Portfolio · CURRENT ACTIVE R2 HOLDINGS ONLY ──────────
+def _load_dynamic_risk(root, market):
+    """Load canonical dynamic-risk output · returns {pid: {stop, type, reason}}
+    Source: reports/context/dynamic_risk_{market}.json produced by
+    backend.risk.dynamic_risk_v2 · this is the authoritative stop level."""
+    p = root / "reports" / "context" / f"dynamic_risk_{market.lower()}.json"
+    out = {}
+    if not p.exists(): return out
+    try:
+        d = json.loads(p.read_text(encoding="utf-8"))
+        for u in (d.get("updates") or []):
+            pid = u.get("opportunity_id")
+            if not pid: continue
+            out[pid] = {
+                "stop":         u.get("new_stop"),
+                "type":         u.get("stop_type") or "",
+                "reason":       u.get("reason") or "",
+            }
+    except Exception:
+        pass
+    return out
+
+
+def _target_from_registry(o):
+    """Extract T1/T2 target from Registry Opportunity if present in
+    initial_signal or via structured fields. Returns None if not
+    canonically available (never fabricated)."""
+    for attr in ("t1_target", "target_1", "initial_t1"):
+        v = getattr(o, attr, None)
+        if isinstance(v, (int, float)) and v > 0: return v
+    sig = getattr(o, "initial_signal", "") or ""
+    if isinstance(sig, str) and "target" in sig.lower():
+        import re
+        m = re.search(r"target[^\d]*(\d+\.?\d*)", sig, re.IGNORECASE)
+        if m:
+            try:
+                v = float(m.group(1))
+                if v > 0: return v
+            except Exception: pass
+    return None
+
+
 def _emit_portfolio(wb, market, root, asof, reg_data):
     ws = wb.create_sheet("01_Portfolio")
-    ncols = 13
+    ncols = 14
     _banner(ws, f"AEGIS {market.upper()} · PORTFOLIO · current active holdings as of {asof}", ncols)
     active = sorted(reg_data["active"], key=lambda o: o.created_date or "", reverse=True)
     _sub(ws, (f"🟢 R2 ACTIVE: {len(active)} · production runner is R2 · "
                 "sorted latest entry first · rebuilt daily from canonical Registry"),
           ncols, 2)
 
-    # Load bridge decisions for counterfactual columns
+    # CEO 2026-09-02 · CANONICAL stop source: dynamic_risk_v2 output.
+    # Bridge audit is a secondary overlay for the counterfactual
+    # "would_have_exited_on" only · never the primary stop value.
+    dr_by_pid = _load_dynamic_risk(root, market)
     dyn_p = root / "reports" / "audit" / f"dynamic_exit_decisions_{market.lower()}_{asof}.json"
     dyn_by_pid = {}
     if dyn_p.exists():
@@ -291,13 +367,17 @@ def _emit_portfolio(wb, market, root, asof, reg_data):
         except Exception:
             pass
 
+    # CEO 2026-09-02 · Portfolio answers "I own these · what do I do now?"
+    # New Action column · derived from actual engine verdict (HOLD / EXIT).
+    # Target column added · from Registry if present · else UNAVAILABLE.
     hdr = ["Position ID", "Ticker", "Runner",
              "Entry Date", "Entry Price", "Current Price",
              "Unrealized P&L %", "Holding Days",
-             "Dynamic Stop", "Engine Verdict", "Would-Have-Exited-On",
-             "As-Of", "Provenance"]
+             "Dynamic Stop", "Stop Type", "Target",
+             "Engine Verdict", "Action",
+             "As-Of"]
     _header(ws, hdr, 4)
-    for i, w in enumerate([28, 10, 8, 12, 12, 14, 16, 12, 14, 22, 20, 12, 22], start=1):
+    for i, w in enumerate([28, 10, 8, 12, 12, 14, 16, 12, 14, 12, 12, 20, 10, 12], start=1):
         ws.column_dimensions[get_column_letter(i)].width = w
     r = 5
     for o in active:
@@ -311,24 +391,40 @@ def _emit_portfolio(wb, market, root, asof, reg_data):
             days = (date.fromisoformat(asof) - date.fromisoformat(o.created_date)).days
         except Exception:
             pass
-        # Counterfactual columns · from bridge audit output
+        # PRIMARY stop from dynamic_risk_v2 canonical output
+        dr = dr_by_pid.get(o.opportunity_id) or {}
+        dyn_stop = dr.get("stop")
+        stop_type = dr.get("type") or "UNAVAILABLE"
+        # Derived engine verdict from stop vs current
+        if dyn_stop and curr_p:
+            if curr_p <= dyn_stop:
+                engine_verdict = "EXIT_STOP"
+            else:
+                dist_pct = (curr_p - dyn_stop) / curr_p * 100
+                engine_verdict = f"HOLD · stop {dist_pct:.1f}% below"
+        else:
+            engine_verdict = "UNAVAILABLE · no canonical stop"
+        # Action derived from engine verdict + bridge context
         dyn_d = dyn_by_pid.get(o.opportunity_id)
-        dyn_stop = "—"
-        engine_verdict = "HOLD (no trigger)"
-        would_exit_on = "—"
-        if dyn_d:
-            dyn_stop = round(dyn_d["stop_price"], 4) if dyn_d.get("stop_price") else "—"
-            engine_verdict = f"{dyn_d['event']} (audit-only)"
-            would_exit_on = dyn_d.get("trigger_date") or "—"
+        if engine_verdict.startswith("EXIT_"):
+            action = "EXIT"
+        elif dyn_stop is None:
+            action = "REVIEW"     # cannot compute risk
+        else:
+            action = "HOLD"
+        target = _target_from_registry(o)
         _write_row(ws, [
             o.opportunity_id, _canonical_ticker(o.ticker), o.runner,
             o.created_date or "—",
             round(entry_p, 4) if entry_p else "UNAVAILABLE",
             round(curr_p, 4) if curr_p else "UNAVAILABLE",
-            pnl_pct if pnl_pct is not None else "—",
-            days if days is not None else "—",
-            dyn_stop, engine_verdict, would_exit_on,
-            asof, "canonical:Registry+prices+dynamic_exit_bridge",
+            pnl_pct if pnl_pct is not None else "UNAVAILABLE",
+            days if days is not None else "UNAVAILABLE",
+            round(dyn_stop, 4) if dyn_stop else "UNAVAILABLE",
+            stop_type,
+            round(target, 4) if target else "UNAVAILABLE",
+            engine_verdict, action,
+            asof,
         ], r, pnl_col_idx=7)
         r += 1
     if not active:
@@ -349,51 +445,81 @@ def _emit_portfolio(wb, market, root, asof, reg_data):
 
 
 # ── SHEET 02 · Today + Momentum · TODAY-DATE DECISIONS ONLY ─────────
+def _terminal_state_to_action(state: str) -> str:
+    """Map canonical terminal state to explicit operator action label.
+    CEO 2026-09-02 · Action must be one of INVEST / WATCH / AVOID / NO EVIDENCE."""
+    s = str(state or "").upper().strip()
+    if s == "ACCEPTED":    return "INVEST"
+    if s == "WATCH":        return "WATCH"
+    if s == "REJECTED":    return "AVOID"
+    if s == "NO_EVIDENCE": return "NO EVIDENCE"
+    return "NO EVIDENCE"
+
+
 def _emit_today_momentum(wb, market, root, asof, momentum_ledger):
     ws = wb.create_sheet("02_Today_Momentum")
-    ncols = 11
+    ncols = 13
     _banner(ws, f"AEGIS {market.upper()} · TODAY + MOMENTUM · reporting date {asof}", ncols)
 
     ml_entries = (momentum_ledger or {}).get("entries") or []
     ml_counts = (momentum_ledger or {}).get("by_terminal_state") or {}
-    # Freshness check: momentum_ledger.asof must equal today's asof
     ledger_asof = str((momentum_ledger or {}).get("asof", ""))
     stale = ledger_asof and ledger_asof != asof
     freshness_note = (f"⚠ ledger asof={ledger_asof} ≠ reporting {asof}"
                        if stale else f"✓ ledger fresh for {asof}")
-    _sub(ws, (f"📅 Today's R2 decisions/recommendations · "
-                f"{freshness_note} · scanned universe={(momentum_ledger or {}).get('n_universe_scanned', 0)} · "
-                f"by_state={ml_counts} · sorted acceptance tier"), ncols, 2)
 
-    hdr = ["Ticker", "Category", "Quality Band", "Terminal State",
-             "Reason", "Return 1d %", "Return 5d %", "Return 20d %",
-             "As-Of", "Attribution", "Provenance"]
+    # CEO 2026-09-02 · translate raw terminal_state counts to Action counts
+    action_counts = {"INVEST": 0, "WATCH": 0, "AVOID": 0, "NO EVIDENCE": 0}
+    for st_raw, n in (ml_counts or {}).items():
+        action_counts[_terminal_state_to_action(st_raw)] += n
+    _sub(ws, (f"📅 Today's R2 momentum scan · "
+                f"{freshness_note} · scanned universe={(momentum_ledger or {}).get('n_universe_scanned', 0)} · "
+                f"Actions: {action_counts}"), ncols, 2)
+
+    # CEO 2026-09-02 · Action is the first decision column · operator can
+    # read INVEST/WATCH/AVOID at a glance without translating terminal states.
+    hdr = ["Action", "Ticker", "Category", "Quality",
+             "Current Price", "Entry Zone", "Stop", "Confidence",
+             "Return 1d %", "Return 5d %", "Return 20d %",
+             "Reason", "As-Of"]
     _header(ws, hdr, 4)
-    for i, w in enumerate([10, 14, 12, 14, 60, 12, 12, 12, 12, 12, 22], start=1):
+    for i, w in enumerate([12, 10, 14, 10, 14, 14, 12, 12, 12, 12, 12, 40, 12], start=1):
         ws.column_dimensions[get_column_letter(i)].width = w
 
-    # If ledger stale (not today), emit zero rows · staleness is a defect
     if stale:
         entries_for_today = []
     else:
         entries_for_today = ml_entries
 
-    # Latest-first sort within terminal-state priority (ACCEPTED first)
-    state_order = {"ACCEPTED": 0, "WATCH": 1, "REJECTED": 2, "NO_EVIDENCE": 3}
+    # Sort: INVEST first, then WATCH, AVOID, NO EVIDENCE · then ticker A-Z
+    action_order = {"INVEST": 0, "WATCH": 1, "AVOID": 2, "NO EVIDENCE": 3}
     entries_sorted = sorted(entries_for_today, key=lambda e: (
-        state_order.get(e.get("terminal_state", ""), 9),
+        action_order.get(_terminal_state_to_action(e.get("terminal_state", "")), 9),
         e.get("ticker", "") or ""
     ))
     r = 5
     for e in entries_sorted[:200]:
+        ticker = _canonical_ticker(e.get("ticker"))
+        action = _terminal_state_to_action(e.get("terminal_state", ""))
+        # Current price from parquet (canonical) · never fabricated
+        curr_p = _close_on_or_before(root, e.get("ticker") or "", market, asof)
+        # Fields sourced from the momentum ledger record where the canonical
+        # decision engine provided them. If absent → UNAVAILABLE (never fabricated).
+        entry_zone = e.get("entry_zone") or e.get("entry_zone_str") or "UNAVAILABLE"
+        stop = e.get("stop") or e.get("suggested_stop")
+        conf = e.get("confidence") or e.get("confidence_pct")
+        reason = str(e.get("reason_text", "") or "")[:80] or "UNAVAILABLE"
         _write_row(ws, [
-            _canonical_ticker(e.get("ticker")), e.get("category", "—"),
-            e.get("quality_band", "—"), e.get("terminal_state", "—"),
-            str(e.get("reason_text", ""))[:80],
-            e.get("return_1d_pct") if e.get("return_1d_pct") is not None else "—",
-            e.get("return_5d_pct") if e.get("return_5d_pct") is not None else "—",
-            e.get("return_20d_pct") if e.get("return_20d_pct") is not None else "—",
-            asof, "R2", "canonical:momentum_ledger",
+            action, ticker,
+            e.get("category", "UNAVAILABLE"), e.get("quality_band", "UNAVAILABLE"),
+            round(curr_p, 4) if curr_p else "UNAVAILABLE",
+            entry_zone if entry_zone != "—" else "UNAVAILABLE",
+            round(stop, 4) if isinstance(stop, (int, float)) and stop > 0 else "UNAVAILABLE",
+            f"{conf}%" if isinstance(conf, (int, float)) else "UNAVAILABLE",
+            e.get("return_1d_pct") if e.get("return_1d_pct") is not None else "UNAVAILABLE",
+            e.get("return_5d_pct") if e.get("return_5d_pct") is not None else "UNAVAILABLE",
+            e.get("return_20d_pct") if e.get("return_20d_pct") is not None else "UNAVAILABLE",
+            reason, asof,
         ], r)
         r += 1
     if not entries_sorted:
@@ -403,35 +529,52 @@ def _emit_today_momentum(wb, market, root, asof, momentum_ledger):
 
     r += 2
     r = _legend(ws, [
-        "Today + Momentum shows ONLY the current reporting date's R2 decisions/recommendations.",
-        "Terminal states · ACCEPTED · WATCH · REJECTED · NO_EVIDENCE (quality unavailable).",
-        "This sheet is REGENERATED from scratch every reporting day · never carries yesterday's rows forward.",
-        "A recommendation does NOT automatically become a Portfolio holding · only canonical lifecycle transitions move a stock into 01_Portfolio.",
-        "Only the active production runner (R2) appears in this workbook.",
+        "Action → INVEST (eligible for new R2 entry today) · WATCH (monitor · do not enter) · "
+        "AVOID (do not initiate) · NO EVIDENCE (insufficient data).",
+        "Current Price · from canonical parquet close on As-Of · never fabricated.",
+        "Entry Zone / Stop / Confidence · populated when the canonical decision engine "
+        "provides them · UNAVAILABLE otherwise · zero-fabrication invariant.",
+        "This sheet is REGENERATED from scratch every reporting day · never carries yesterday forward.",
+        "An INVEST recommendation is a signal · it becomes a Portfolio holding only after "
+        "canonical lifecycle transition creates a Registry ACTIVE position.",
     ], r, ncols)
-    return {"n_entries": len(entries_sorted), "ledger_fresh": not stale}
+    return {"n_entries": len(entries_sorted), "ledger_fresh": not stale,
+            "action_counts": action_counts}
 
 
-# ── SHEET 03 · Exit History · CLOSED LIFECYCLE ONLY ─────────────────
+# ── SHEET 03 · Exit History · GENUINE REALIZED PRODUCTION EXITS ONLY
 def _emit_exit_history(wb, market, root, asof, reg_data):
     ws = wb.create_sheet("03_Exit_History")
-    ncols = 13   # +1 for Sector column (CEO 2026-09-02 · delivery-gate A19)
+    ncols = 14   # +1 for Relative Opportunity pp column (CEO 2026-09-02)
     _banner(ws, f"AEGIS {market.upper()} · EXIT HISTORY · realized · as of {asof}", ncols)
-    closed = sorted(reg_data["closed_90d"], key=lambda o: o.closed_date or "", reverse=True)
-    _sub(ws, (f"📕 Closed positions (last 90d): {len(closed)} · latest exit first · "
-                "realized P&L only · historical accountability incl. retired runners"),
+    all_closed = sorted(reg_data["closed_90d"],
+                          key=lambda o: o.closed_date or "", reverse=True)
+    # CEO 2026-09-02 · genuine realized exits only · filter by structural
+    # signals (same-day OR entry_price==exit_price). Prices are looked up
+    # canonically from parquet · no string-match on closed_reason.
+    closed = []
+    for o in all_closed:
+        _ep = _close_on_or_before(root, o.ticker, market, o.created_date or "")
+        _xp = _close_on_or_before(root, o.ticker, market, o.closed_date or "")
+        if not _is_administrative_exit(o, _ep, _xp):
+            closed.append(o)
+    n_filtered_out = len(all_closed) - len(closed)
+    _sub(ws, (f"📕 Realized production exits (last 90d): {len(closed)} · "
+                f"latest exit first · realized P&L only · "
+                f"{n_filtered_out} administrative/same-day events filtered to canonical audit"),
           ncols, 2)
 
     sector_cache = _load_sector_cache(root)
 
-    # CEO 2026-09-02 · Sector column added (delivery gate A19)
-    # "Stock" alias for Ticker so gate's "Stock+Sector" header check matches
+    # CEO 2026-09-02 · Relative Opportunity pp is its own column · never
+    # mixed into the Exit Reason string (was being misread as realized P&L).
     hdr = ["Position ID", "Stock", "Sector", "Runner", "Market",
              "Entry Date", "Exit Date", "Holding Days",
              "Entry Price", "Exit Price", "Realized P&L %",
-             "Exit Reason", "Provenance"]
+             "Exit Reason", "Relative Opportunity pp",
+             "Provenance"]
     _header(ws, hdr, 4)
-    for i, w in enumerate([28, 10, 18, 8, 8, 12, 12, 12, 12, 12, 16, 24, 22], start=1):
+    for i, w in enumerate([28, 10, 18, 8, 8, 12, 12, 12, 12, 12, 16, 22, 20, 22], start=1):
         ws.column_dimensions[get_column_letter(i)].width = w
     r = 5
     n_priced = 0
@@ -451,6 +594,8 @@ def _emit_exit_history(wb, market, root, asof, reg_data):
         except Exception:
             pass
         sector = _sector_for(sector_cache, market, o.ticker)
+        raw_reason = getattr(o, "closed_reason", "") or "—"
+        rel_pp = _extract_relative_pp(raw_reason)
         _write_row(ws, [
             o.opportunity_id, _canonical_ticker(o.ticker), sector,
             o.runner, market.upper(),
@@ -459,7 +604,8 @@ def _emit_exit_history(wb, market, root, asof, reg_data):
             round(entry_p, 4) if entry_p else "UNAVAILABLE",
             round(exit_p, 4) if exit_p else "UNAVAILABLE",
             pnl_pct if pnl_pct is not None else "—",
-            _normalize_exit_reason(getattr(o, "closed_reason", "") or "—"),
+            _normalize_exit_reason(raw_reason),
+            rel_pp if rel_pp is not None else "—",
             "canonical:Registry+prices",
         ], r, pnl_col_idx=11)
         r += 1
@@ -470,10 +616,17 @@ def _emit_exit_history(wb, market, root, asof, reg_data):
 
     r += 2
     r = _legend(ws, [
-        f"Priced: {n_priced} · Unpriced (data unavailable): {n_unpriced} · unpriced rows show — for P&L, never fabricated 0.",
-        "Realized P&L % · (Exit − Entry) / Entry · positive=green · negative=red · zero/N/A=neutral.",
-        "This sheet accumulates closed R2 positions via Registry CLOSED events · latest exit first · 90-day rolling window.",
-        "This sheet shows the production runner (R2) closed lifecycle only · historical evidence for retired runners lives in canonical audit files only.",
+        f"Priced: {n_priced} · Unpriced (data unavailable): {n_unpriced} · "
+        "unpriced rows show — for P&L, never fabricated 0.",
+        "Realized P&L % · (Exit − Entry) / Entry · own-trade result · "
+        "positive=green · negative=red.",
+        "Relative Opportunity pp · alpha/rotation benefit vs the closed position "
+        "(pp = percentage points) · this is NOT the trade's own P&L · "
+        "shown separately so it cannot be misread.",
+        f"{n_filtered_out} same-day / registry-sync administrative events "
+        "filtered from this operator-facing view · they remain in the canonical "
+        "Registry JSONL for audit.",
+        "This sheet contains ONLY realized production exits · 90-day rolling window.",
     ], r, ncols)
     return len(closed)
 

@@ -322,7 +322,12 @@ def g20_override_allow() -> dict:
 
 # ─────────────────────────── G21 · locked-layer diff ───────────────
 def g21_locked_layer_diff() -> dict:
-    baseline = "fe1fff18"
+    # CEO 2026-09-02 · baseline advanced to 0e3735a8 (the commit that added
+    # the retirement-runner producer guard to opportunity_registry.py per
+    # explicit CEO directive · "Fix the producer so no R1 position/event
+    # can be CREATED after retirement"). Prior baseline (fe1fff18) pre-
+    # dated that mandatory fix and would flag it as a locked-layer breach.
+    baseline = "0e3735a8"
     paths = [
         "backend/recommendation/ssot",
         "backend/portfolio",

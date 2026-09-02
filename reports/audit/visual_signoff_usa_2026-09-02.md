@@ -8,9 +8,9 @@
 
 | Sheet | Rows x Cols |
 |---|---|
-| 01_Portfolio | 19 x 13 |
-| 02_Today_Momentum | 45 x 11 |
-| 03_Exit_History | 512 x 13 |
+| 01_Portfolio | 19 x 14 |
+| 02_Today_Momentum | 45 x 13 |
+| 03_Exit_History | 490 x 14 |
 
 ## Objective checks
 
@@ -19,7 +19,7 @@
 | exactly_3_required_sheets_present | PASS | 3/3 sheets present · no legacy sheets |
 | portfolio_banner_correct | PASS | title_asof=True · banner_R2_active=True |
 | today_momentum_reporting_date | PASS | title_asof=True · fresh_ledger=True |
-| exit_history_sheet_present | PASS | closed_positions=502 |
+| exit_history_sheet_present | PASS | closed_positions=479 |
 | no_fabricated_low_pending | PASS | cells_with_LOW_or_PENDING=0 |
 | portfolio_r2_only | PASS | r1_rows=0 · r2_rows=6 |
 | workbook_wide_r1_zero | PASS | cells_hit=0 |
