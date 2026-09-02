@@ -1,6 +1,6 @@
 # Adaptive Recommendation Engine · v1.4 → v2.0 · Migration Guide
 
-_Generated 2026-09-01T00:48:27.753271+00:00Z · code_sha `3e280179e8ce`_
+_Generated 2026-09-02T00:47:08.708546+00:00Z · code_sha `891e7bf68125`_
 
 ## Summary
 
@@ -21,8 +21,8 @@ _Generated 2026-09-01T00:48:27.753271+00:00Z · code_sha `3e280179e8ce`_
 | precision_at_1 | 0.0000 | 0.0000 | +0.0000 |
 | precision_at_3 | 0.6667 | 0.6667 | +0.0000 |
 | precision_at_5 | 0.8000 | 0.8000 | +0.0000 |
-| precision_at_10 | 0.6000 | 0.6000 | +0.0000 |
-| precision_at_20 | 0.5500 | 0.5500 | +0.0000 |
+| precision_at_10 | 0.5000 | 0.5000 | +0.0000 |
+| precision_at_20 | 0.3500 | 0.3500 | +0.0000 |
 | avg_win | 6.8212 | 6.8212 | +0.0000 |
 | avg_loss | -6.4379 | -6.4379 | +0.0000 |
 | expectancy | 1.3591 | 1.3591 | +0.0000 |
@@ -35,14 +35,14 @@ Phase 2 exit criterion (PHASE2_MASTER_ROADMAP.md §6):
 
 - Verdict: **FAIL · discrimination weak**
 - Monotone decreasing: `False`
-- Top-vs-bottom spread: `-0.0568`
+- Top-vs-bottom spread: `-0.1544`
 
 | Tier | n | Win rate | Predicted mean | Expectancy |
 |------|---|---------:|---------------:|-----------:|
-| **Strong-Buy** | 15 | 0.5333 | 1.0 | 0.8634 |
-| **Buy** | 47 | 0.6383 | 1.0 | 2.3685 |
-| **Hold** | 95 | 0.5684 | 0.9732 | 0.1368 |
-| **Sell** | 161 | 0.5901 | 0.85 | 1.8319 |
+| **Strong-Buy** | 15 | 0.4667 | 1.0 | -0.3036 |
+| **Buy** | 47 | 0.4255 | 1.0 | -3.4093 |
+| **Hold** | 95 | 0.6316 | 0.9732 | 2.1957 |
+| **Sell** | 161 | 0.6211 | 0.85 | 2.4124 |
 
 ## Feature importance (top 10)
 
