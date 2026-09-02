@@ -715,18 +715,21 @@ def _emit_daily_history(wb, market, root, asof, reg_data):
         _header(ws, hdr, 4)
         return 0
 
-    # Find earliest genuine (non-admin) entry date
+    # Find genuine positions · exclude ALL structurally administrative
+    # events (same-day OR zero-delta price · matches builder's admin filter
+    # used in Exit History). CEO 2026-09-03 fix: previous filter only
+    # checked same-day and let ORPHAN_AUTO_CLOSE zero-delta events through
+    # as "active history" (USA-R2-RF / USA-R2-CSRA orphan artifacts).
     genuine = []
     for o in all_positions:
         cd = str(o.created_date or "")[:10]
-        xd = str(o.closed_date or "")[:10]
-        if o.status == "CLOSED" and cd and xd and cd == xd:
+        if not cd: continue
+        if o.status == "CLOSED":
             ep = _close_on_or_before(root, o.ticker, market, cd)
-            xp = _close_on_or_before(root, o.ticker, market, xd)
+            xp = _close_on_or_before(root, o.ticker, market, o.closed_date or "")
             if _is_administrative_exit(o, ep, xp):
                 continue
-        if cd:
-            genuine.append(o)
+        genuine.append(o)
     if not genuine:
         _sub(ws, "No genuine R2 positions to reconstruct", ncols, 2)
         return 0
