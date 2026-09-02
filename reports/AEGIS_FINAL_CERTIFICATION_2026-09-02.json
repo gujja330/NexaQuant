@@ -1,0 +1,665 @@
+{
+  "engine": "aegis.local_certification.v2",
+  "framework_section": "Section 18 (23 gates)",
+  "asof": "2026-09-02",
+  "verdict": "LOCK_CANDIDATE",
+  "by_status": {
+    "PASS": 50,
+    "FAIL": 0,
+    "WARN": 0,
+    "BLOCKED": 0
+  },
+  "gates": [
+    {
+      "name": "G01_full_test_suite",
+      "status": "PASS",
+      "detail": "560 passed · 0 failed · 11 skipped",
+      "data": {
+        "rc": 0,
+        "n_pass": 560,
+        "n_fail": 0,
+        "n_skip": 11
+      }
+    },
+    {
+      "name": "G02_e2e_build_india",
+      "status": "PASS",
+      "detail": "xlsx.asof=2026-09-02 · dated=True",
+      "data": {
+        "xlsx": "aegis_history_india.xlsx",
+        "asof": "2026-09-02",
+        "dated_present": true
+      }
+    },
+    {
+      "name": "G03_e2e_build_usa",
+      "status": "PASS",
+      "detail": "xlsx.asof=2026-09-02 · dated=True",
+      "data": {
+        "xlsx": "aegis_history_usa.xlsx",
+        "asof": "2026-09-02",
+        "dated_present": true
+      }
+    },
+    {
+      "name": "G04_canonical_identity_india",
+      "status": "PASS",
+      "detail": "66 new-format PIDs · 0 legacy (source: Registry)",
+      "data": {
+        "section18": "canonical PID format audit",
+        "reconciler": {
+          "new_ct": 66,
+          "legacy_ct": 0,
+          "legacy_samples": []
+        }
+      }
+    },
+    {
+      "name": "G05_registry_canonical_recon_india",
+      "status": "PASS",
+      "detail": "Registry india: 25 ACTIVE · 41 CLOSED-90d",
+      "data": {
+        "section18": "Registry load + counts",
+        "reconciler": {
+          "n_active": 25,
+          "n_closed_90d": 41
+        }
+      }
+    },
+    {
+      "name": "G06_portfolio_lifecycle_recon_india",
+      "status": "PASS",
+      "detail": "banner=9 body=9",
+      "data": {
+        "section18": "Portfolio banner ≡ body (3 axes)",
+        "reconciler": {
+          "banner": 9,
+          "body": 9
+        }
+      }
+    },
+    {
+      "name": "G07_portfolio_exit_recon_india",
+      "status": "PASS",
+      "detail": "0 UNEXPLAINED lifecycle collisions (same ticker+runner+entry_date active AND closed) · 0 EXPLAINED overlaps (different entry_date · legit re-entry)",
+      "data": {
+        "section18": "Portfolio ↔ Exit lifecycle collision",
+        "reconciler": {
+          "n_unexplained": 0,
+          "unexplained_collisions": [],
+          "n_explained_overlaps": 0,
+          "explained_samples": [],
+          "n_portfolio_active_keys": 9,
+          "n_exit_closed_keys": 37
+        }
+      }
+    },
+    {
+      "name": "G08_exit_history_recon_india",
+      "status": "PASS",
+      "detail": "0 ACTIVE-runner non-carveout Registry-CLOSED missing from EH · 4 retired-runner · 0 carveout ignored (all expected)",
+      "data": {
+        "section18": "Registry-CLOSED in Exit History",
+        "reconciler": {
+          "n_real_missing": 0,
+          "n_retired_ignored": 4,
+          "n_carveout_ignored": 0,
+          "sample_real_missing": []
+        }
+      }
+    },
+    {
+      "name": "G13_pnl_reconciliation_india",
+      "status": "PASS",
+      "detail": "0 UNEXPLAINED PID duplicates at (ticker, runner, entry_date) grain · Registry authoritative",
+      "data": {
+        "section18": "AEGIS History uniqueness (P&L base)",
+        "reconciler": {
+          "n_unexplained": 0,
+          "unexplained_samples": []
+        }
+      }
+    },
+    {
+      "name": "G14_provenance_validation_india",
+      "status": "PASS",
+      "detail": "46/46 opened rows have Position ID (100.0%)",
+      "data": {
+        "section18": "Provenance companion coverage",
+        "reconciler": {
+          "n_need_pid": 46,
+          "n_have_pid": 46,
+          "coverage_pct": 100.0,
+          "unresolved_samples": []
+        }
+      }
+    },
+    {
+      "name": "G09_population_counts_india",
+      "status": "PASS",
+      "detail": "HISTORICAL_CLOSED=37 · CURRENT_HOLDING=9",
+      "data": {
+        "CURRENT_HOLDING": 9,
+        "HISTORICAL_CLOSED": 37
+      }
+    },
+    {
+      "name": "G10_runner_counts_india",
+      "status": "PASS",
+      "detail": "R1(RETIRED_DORMANT·opened=20·active=16) · R2(ACTIVE_PRODUCTION·opened=46·active=9) · COMBINED(ACTIVE_PRODUCTION·opened=66·active=25)",
+      "data": {
+        "R1": {
+          "status": "RETIRED_DORMANT",
+          "opened": 20,
+          "active": 16,
+          "closed": 4
+        },
+        "R2": {
+          "status": "ACTIVE_PRODUCTION",
+          "opened": 46,
+          "active": 9,
+          "closed": 37
+        },
+        "COMBINED": {
+          "status": "ACTIVE_PRODUCTION",
+          "opened": 66,
+          "active": 25,
+          "closed": 41
+        }
+      }
+    },
+    {
+      "name": "G11_r1_production_absence_india",
+      "status": "PASS",
+      "detail": "0 retired-runner rows in Portfolio · retired=['R1']",
+      "data": {
+        "n_retired_rows": 0,
+        "retired_runners": [
+          "R1"
+        ]
+      }
+    },
+    {
+      "name": "G12_r2_integrity_india",
+      "status": "PASS",
+      "detail": "status=ACTIVE_PRODUCTION · signals=46 · opened=46 · closed=37",
+      "data": {
+        "utilization_status": "ACTIVE_PRODUCTION",
+        "signals": 46,
+        "opened": 46,
+        "closed": 37
+      }
+    },
+    {
+      "name": "G15_xlsx_structural_india",
+      "status": "PASS",
+      "detail": "exactly 3 required sheets present · no legacy sheets",
+      "data": {
+        "present": [
+          "01_Portfolio",
+          "02_Today_Momentum",
+          "03_Exit_History"
+        ],
+        "required": [
+          "01_Portfolio",
+          "02_Today_Momentum",
+          "03_Exit_History"
+        ],
+        "missing": [],
+        "extra": []
+      }
+    },
+    {
+      "name": "G16_visual_inspection_india",
+      "status": "PASS",
+      "detail": "auto-audit PASS · sign-off: visual_signoff_india_2026-09-02.md",
+      "data": {
+        "signoff": "reports\\audit\\visual_signoff_india_2026-09-02.md"
+      }
+    },
+    {
+      "name": "G17_standard_filename_india",
+      "status": "PASS",
+      "detail": "dated=True byte_match=True · expected=aegis_india_2026-09-02.xlsx",
+      "data": {
+        "dated_present": true,
+        "byte_match": true,
+        "expected": "aegis_india_2026-09-02.xlsx"
+      }
+    },
+    {
+      "name": "G18_three_run_determinism_india",
+      "status": "PASS",
+      "detail": "3-run data-only hash: d568a145 / d568a145 / d568a145",
+      "data": {
+        "h1": "d568a1459fc5c2afbdc25eb04f72fc1b9461f095bbfbb7cafed40f618e739597",
+        "h2": "d568a1459fc5c2afbdc25eb04f72fc1b9461f095bbfbb7cafed40f618e739597",
+        "h3": "d568a1459fc5c2afbdc25eb04f72fc1b9461f095bbfbb7cafed40f618e739597",
+        "match": true
+      }
+    },
+    {
+      "name": "G19_fabrication_scan_india",
+      "status": "PASS",
+      "detail": "0 holding rows with LOW/PENDING",
+      "data": {
+        "n": 0,
+        "samples": []
+      }
+    },
+    {
+      "name": "G22_research_pit_india",
+      "status": "PASS",
+      "detail": "112 evidence rows · 56 AVAILABLE",
+      "data": {
+        "n_records": 112,
+        "n_available": 56
+      }
+    },
+    {
+      "name": "G04_canonical_identity_usa",
+      "status": "PASS",
+      "detail": "551 new-format PIDs · 0 legacy (source: Registry)",
+      "data": {
+        "section18": "canonical PID format audit",
+        "reconciler": {
+          "new_ct": 551,
+          "legacy_ct": 0,
+          "legacy_samples": []
+        }
+      }
+    },
+    {
+      "name": "G05_registry_canonical_recon_usa",
+      "status": "PASS",
+      "detail": "Registry usa: 23 ACTIVE · 528 CLOSED-90d",
+      "data": {
+        "section18": "Registry load + counts",
+        "reconciler": {
+          "n_active": 23,
+          "n_closed_90d": 528
+        }
+      }
+    },
+    {
+      "name": "G06_portfolio_lifecycle_recon_usa",
+      "status": "PASS",
+      "detail": "banner=6 body=6",
+      "data": {
+        "section18": "Portfolio banner ≡ body (3 axes)",
+        "reconciler": {
+          "banner": 6,
+          "body": 6
+        }
+      }
+    },
+    {
+      "name": "G07_portfolio_exit_recon_usa",
+      "status": "PASS",
+      "detail": "0 UNEXPLAINED lifecycle collisions (same ticker+runner+entry_date active AND closed) · 0 EXPLAINED overlaps (different entry_date · legit re-entry)",
+      "data": {
+        "section18": "Portfolio ↔ Exit lifecycle collision",
+        "reconciler": {
+          "n_unexplained": 0,
+          "unexplained_collisions": [],
+          "n_explained_overlaps": 0,
+          "explained_samples": [],
+          "n_portfolio_active_keys": 6,
+          "n_exit_closed_keys": 502
+        }
+      }
+    },
+    {
+      "name": "G08_exit_history_recon_usa",
+      "status": "PASS",
+      "detail": "0 ACTIVE-runner non-carveout Registry-CLOSED missing from EH · 2 retired-runner · 0 carveout ignored (all expected)",
+      "data": {
+        "section18": "Registry-CLOSED in Exit History",
+        "reconciler": {
+          "n_real_missing": 0,
+          "n_retired_ignored": 2,
+          "n_carveout_ignored": 0,
+          "sample_real_missing": []
+        }
+      }
+    },
+    {
+      "name": "G13_pnl_reconciliation_usa",
+      "status": "PASS",
+      "detail": "0 UNEXPLAINED PID duplicates at (ticker, runner, entry_date) grain · Registry authoritative",
+      "data": {
+        "section18": "AEGIS History uniqueness (P&L base)",
+        "reconciler": {
+          "n_unexplained": 0,
+          "unexplained_samples": []
+        }
+      }
+    },
+    {
+      "name": "G14_provenance_validation_usa",
+      "status": "PASS",
+      "detail": "508/508 opened rows have Position ID (100.0%)",
+      "data": {
+        "section18": "Provenance companion coverage",
+        "reconciler": {
+          "n_need_pid": 508,
+          "n_have_pid": 508,
+          "coverage_pct": 100.0,
+          "unresolved_samples": []
+        }
+      }
+    },
+    {
+      "name": "G09_population_counts_usa",
+      "status": "PASS",
+      "detail": "HISTORICAL_CLOSED=502 · CURRENT_HOLDING=6",
+      "data": {
+        "CURRENT_HOLDING": 6,
+        "HISTORICAL_CLOSED": 502
+      }
+    },
+    {
+      "name": "G10_runner_counts_usa",
+      "status": "PASS",
+      "detail": "R1(RETIRED_DORMANT·opened=43·active=17) · R2(ACTIVE_PRODUCTION·opened=508·active=6) · COMBINED(ACTIVE_PRODUCTION·opened=551·active=23)",
+      "data": {
+        "R1": {
+          "status": "RETIRED_DORMANT",
+          "opened": 43,
+          "active": 17,
+          "closed": 26
+        },
+        "R2": {
+          "status": "ACTIVE_PRODUCTION",
+          "opened": 508,
+          "active": 6,
+          "closed": 502
+        },
+        "COMBINED": {
+          "status": "ACTIVE_PRODUCTION",
+          "opened": 551,
+          "active": 23,
+          "closed": 528
+        }
+      }
+    },
+    {
+      "name": "G11_r1_production_absence_usa",
+      "status": "PASS",
+      "detail": "0 retired-runner rows in Portfolio · retired=['R1']",
+      "data": {
+        "n_retired_rows": 0,
+        "retired_runners": [
+          "R1"
+        ]
+      }
+    },
+    {
+      "name": "G12_r2_integrity_usa",
+      "status": "PASS",
+      "detail": "status=ACTIVE_PRODUCTION · signals=508 · opened=508 · closed=502",
+      "data": {
+        "utilization_status": "ACTIVE_PRODUCTION",
+        "signals": 508,
+        "opened": 508,
+        "closed": 502
+      }
+    },
+    {
+      "name": "G15_xlsx_structural_usa",
+      "status": "PASS",
+      "detail": "exactly 3 required sheets present · no legacy sheets",
+      "data": {
+        "present": [
+          "01_Portfolio",
+          "02_Today_Momentum",
+          "03_Exit_History"
+        ],
+        "required": [
+          "01_Portfolio",
+          "02_Today_Momentum",
+          "03_Exit_History"
+        ],
+        "missing": [],
+        "extra": []
+      }
+    },
+    {
+      "name": "G16_visual_inspection_usa",
+      "status": "PASS",
+      "detail": "auto-audit PASS · sign-off: visual_signoff_usa_2026-09-02.md",
+      "data": {
+        "signoff": "reports\\audit\\visual_signoff_usa_2026-09-02.md"
+      }
+    },
+    {
+      "name": "G17_standard_filename_usa",
+      "status": "PASS",
+      "detail": "dated=True byte_match=True · expected=aegis_usa_2026-09-02.xlsx",
+      "data": {
+        "dated_present": true,
+        "byte_match": true,
+        "expected": "aegis_usa_2026-09-02.xlsx"
+      }
+    },
+    {
+      "name": "G18_three_run_determinism_usa",
+      "status": "PASS",
+      "detail": "3-run data-only hash: 0aa792a2 / 0aa792a2 / 0aa792a2",
+      "data": {
+        "h1": "0aa792a2647b36ca45ab24a1e5f6e86bbf4356a5f2bb04759e052cc8a34ff25d",
+        "h2": "0aa792a2647b36ca45ab24a1e5f6e86bbf4356a5f2bb04759e052cc8a34ff25d",
+        "h3": "0aa792a2647b36ca45ab24a1e5f6e86bbf4356a5f2bb04759e052cc8a34ff25d",
+        "match": true
+      }
+    },
+    {
+      "name": "G19_fabrication_scan_usa",
+      "status": "PASS",
+      "detail": "0 holding rows with LOW/PENDING",
+      "data": {
+        "n": 0,
+        "samples": []
+      }
+    },
+    {
+      "name": "G22_research_pit_usa",
+      "status": "PASS",
+      "detail": "112 evidence rows · 56 AVAILABLE",
+      "data": {
+        "n_records": 112,
+        "n_available": 56
+      }
+    },
+    {
+      "name": "G20_overrideallow_false",
+      "status": "PASS",
+      "detail": "no overrideallow=true",
+      "data": {
+        "hits": []
+      }
+    },
+    {
+      "name": "G21_locked_layer_diff",
+      "status": "PASS",
+      "detail": "0 diffs vs fe1fff18",
+      "data": {
+        "baseline": "fe1fff18",
+        "diverged": []
+      }
+    },
+    {
+      "name": "G23_universe_sp500_only",
+      "status": "PASS",
+      "detail": "n=516 label=sp500 range=[480,550] expected=sp500",
+      "data": {
+        "market": "usa",
+        "ok": true,
+        "verdict": "OK",
+        "n_tickers": 516,
+        "active_label": "sp500",
+        "detail": "n=516 label=sp500 range=[480,550] expected=sp500",
+        "violations": []
+      }
+    },
+    {
+      "name": "G24_overlap_classification_india",
+      "status": "PASS",
+      "detail": "0 overlap tickers · defects=0 · {'LEGITIMATE_DIFFERENT_LIFECYCLE': 0, 'LEGITIMATE_DIFFERENT_RUNNER': 0, 'LEGITIMATE_REENTRY': 0, 'STALE_DUPLICATE': 0, 'RECONCILIATION_DEFECT': 0}",
+      "data": {
+        "n_defects": 0,
+        "by_category": {
+          "LEGITIMATE_DIFFERENT_LIFECYCLE": 0,
+          "LEGITIMATE_DIFFERENT_RUNNER": 0,
+          "LEGITIMATE_REENTRY": 0,
+          "STALE_DUPLICATE": 0,
+          "RECONCILIATION_DEFECT": 0
+        }
+      }
+    },
+    {
+      "name": "G25_r1_producer_wide_india",
+      "status": "PASS",
+      "detail": "PROVEN_RETIRED · total_violations=0 · n_producers=6",
+      "data": {
+        "verdict": "PROVEN_RETIRED",
+        "total_violations": 0
+      }
+    },
+    {
+      "name": "G26_stress_regime_india",
+      "status": "PASS",
+      "detail": "n_trades=37 · overall_mean_pnl_pct=-0.433 · regimes=['UNKNOWN', 'NEUTRAL', 'BEAR', 'BULL']",
+      "data": {
+        "n_trades": 37,
+        "overall": {
+          "n": 37,
+          "win_rate_pct": 21.6,
+          "mean_pnl_pct": -0.433,
+          "median_pnl_pct": 0.0,
+          "sum_pnl_pct": -16.03,
+          "worst_trade_pct": -9.38,
+          "avg_holding_days": 7.3
+        }
+      }
+    },
+    {
+      "name": "G27_momentum_conservation_india",
+      "status": "PASS",
+      "detail": "conservation_ok=True · silent_disappearances=0 · universe=3 · by_state={'ACCEPTED': 0, 'WATCH': 2, 'REJECTED': 1, 'NO_EVIDENCE': 0}",
+      "data": {
+        "conservation_ok": true,
+        "n_silent_disappearances": 0,
+        "by_terminal_state": {
+          "ACCEPTED": 0,
+          "WATCH": 2,
+          "REJECTED": 1,
+          "NO_EVIDENCE": 0
+        },
+        "by_reason_code": {
+          "R_QUALIFIES_WATCH": 2,
+          "R_PUMP_RISK": 1
+        }
+      }
+    },
+    {
+      "name": "G28_crash_resilience_india",
+      "status": "PASS",
+      "detail": "today_regime=WEAKENING · n_r2_trades_tagged=37 · n_days_classified=1535",
+      "data": {
+        "today_regime": "WEAKENING",
+        "n_r2_trades_tagged": 37,
+        "regime_distribution": {
+          "UNAVAILABLE": 30,
+          "NORMAL": 622,
+          "WEAKENING": 476,
+          "RISK_OFF": 406,
+          "CRASH": 1
+        },
+        "interpretation": [
+          "INSUFFICIENT_STRESS_HISTORY_IN_R2_WINDOW"
+        ]
+      }
+    },
+    {
+      "name": "G24_overlap_classification_usa",
+      "status": "PASS",
+      "detail": "0 overlap tickers · defects=0 · {'LEGITIMATE_DIFFERENT_LIFECYCLE': 0, 'LEGITIMATE_DIFFERENT_RUNNER': 0, 'LEGITIMATE_REENTRY': 0, 'STALE_DUPLICATE': 0, 'RECONCILIATION_DEFECT': 0}",
+      "data": {
+        "n_defects": 0,
+        "by_category": {
+          "LEGITIMATE_DIFFERENT_LIFECYCLE": 0,
+          "LEGITIMATE_DIFFERENT_RUNNER": 0,
+          "LEGITIMATE_REENTRY": 0,
+          "STALE_DUPLICATE": 0,
+          "RECONCILIATION_DEFECT": 0
+        }
+      }
+    },
+    {
+      "name": "G25_r1_producer_wide_usa",
+      "status": "PASS",
+      "detail": "PROVEN_RETIRED · total_violations=0 · n_producers=6",
+      "data": {
+        "verdict": "PROVEN_RETIRED",
+        "total_violations": 0
+      }
+    },
+    {
+      "name": "G26_stress_regime_usa",
+      "status": "PASS",
+      "detail": "n_trades=502 · overall_mean_pnl_pct=0.208 · regimes=['UNKNOWN', 'BULL']",
+      "data": {
+        "n_trades": 502,
+        "overall": {
+          "n": 502,
+          "win_rate_pct": 49.8,
+          "mean_pnl_pct": 0.208,
+          "median_pnl_pct": 0.0,
+          "sum_pnl_pct": 104.26,
+          "worst_trade_pct": -13.78,
+          "avg_holding_days": 14.7
+        }
+      }
+    },
+    {
+      "name": "G27_momentum_conservation_usa",
+      "status": "PASS",
+      "detail": "conservation_ok=True · silent_disappearances=0 · universe=34 · by_state={'ACCEPTED': 0, 'WATCH': 4, 'REJECTED': 1, 'NO_EVIDENCE': 29}",
+      "data": {
+        "conservation_ok": true,
+        "n_silent_disappearances": 0,
+        "by_terminal_state": {
+          "ACCEPTED": 0,
+          "WATCH": 4,
+          "REJECTED": 1,
+          "NO_EVIDENCE": 29
+        },
+        "by_reason_code": {
+          "R_QUALITY_UNAVAILABLE": 29,
+          "R_QUALIFIES_WATCH": 4,
+          "R_PUMP_RISK": 1
+        }
+      }
+    },
+    {
+      "name": "G28_crash_resilience_usa",
+      "status": "PASS",
+      "detail": "today_regime=NORMAL · n_r2_trades_tagged=502 · n_days_classified=1254",
+      "data": {
+        "today_regime": "NORMAL",
+        "n_r2_trades_tagged": 502,
+        "regime_distribution": {
+          "UNAVAILABLE": 30,
+          "NORMAL": 559,
+          "WEAKENING": 181,
+          "RISK_OFF": 427,
+          "CRASH": 57
+        },
+        "interpretation": [
+          "INSUFFICIENT_STRESS_HISTORY_IN_R2_WINDOW"
+        ]
+      }
+    }
+  ]
+}

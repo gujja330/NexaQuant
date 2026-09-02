@@ -4115,6 +4115,29 @@ def main() -> int:
                 _sh_std.copyfile(out_path, _std_dated)
                 print(f"[xlsx:{mkt_key}] standard-name snapshot -> "
                       f"{_std_dated.relative_to(_ROOT)}")
+
+                # CEO 2026-09-02 · SINGLE-SOURCE-OF-TRUTH RESTORE (LOCK contract)
+                # The legacy sender above builds the 5-sheet OLD workbook and
+                # just clobbered both out_path AND _std_dated. Rebuild the
+                # 3-sheet canonical (01_Portfolio · 02_Today_Momentum ·
+                # 03_Exit_History) BEFORE the Telegram send below so operator
+                # receives the LOCKED contract, not the 5-sheet legacy.
+                # Idempotent · no engine mods · zero signal-chain impact.
+                try:
+                    from datetime import date as _dt
+                    from scripts.build_aegis_3sheet_workbook import (
+                        build_workbook as _build_3sheet,
+                    )
+                    _asof_today = _dt.today().isoformat()
+                    _res_3s = _build_3sheet(mkt_key.lower(), _ROOT, _asof_today)
+                    print(f"[xlsx:{mkt_key}] 3-sheet canonical RESTORED "
+                          f"(LOCK contract) · asof={_asof_today} · "
+                          f"sheets={_res_3s['sheets']} · out_path + "
+                          f"dated snapshot both 3-sheet")
+                except Exception as _e_3s:
+                    print(f"[xlsx:{mkt_key}] WARN 3-sheet restore FAILED · "
+                          f"legacy 5-sheet remains · "
+                          f"{type(_e_3s).__name__}: {_e_3s}")
             except Exception as _e_std:
                 print(f"[xlsx:{mkt_key}] standard-name snapshot failed · "
                       f"{type(_e_std).__name__}: {_e_std}")
