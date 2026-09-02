@@ -799,11 +799,19 @@ class XlsxValidator:
                                    "SKIP", f"{type(e).__name__}: {e}")
 
     def check_closed_tickers_in_exit_history(self) -> InvariantResult:
-        """I20 · Every PRODUCTION-runner Registry-CLOSED in 90d must appear
-        in Exit History. Retired-runner (R1) CLOSED positions are workbook-
-        excluded by the R1-retirement contract and tracked in orphan_audit_
-        {market}.jsonl (documented sink · CEO 2026-09-02 reconciliation)."""
+        """I20 · Every PRODUCTION-runner + NON-ADMIN Registry-CLOSED in 90d
+        must appear in Exit History. Retired runners → orphan_audit sink.
+        Admin events (same-day OR entry==exit) → also orphan_audit sink.
+        CEO 2026-09-02 · matches builder's structural filter · without this,
+        every ORPHAN_AUTO_CLOSE zero-Δ event blocks USA delivery daily."""
         from backend.delivery.canonical.retirement import retired_runners
+        try:
+            from scripts.build_aegis_3sheet_workbook import (
+                _is_administrative_exit as _i20_is_admin,
+                _close_on_or_before as _i20_close_on)
+        except Exception:
+            _i20_is_admin = None
+            _i20_close_on = None
         retired = retired_runners(self.root)
         reg = self._registry()
         cutoff = (date.today() - timedelta(days=90)).isoformat()
@@ -813,7 +821,13 @@ class XlsxValidator:
                 if o.market.lower() != self.market: continue
                 if o.status != "CLOSED": continue
                 if not o.closed_date or str(o.closed_date)[:10] < cutoff: continue
-                if o.runner in retired: continue   # excluded from workbook by contract
+                if o.runner in retired: continue
+                # Structural admin exclusion · matches builder + A23 filter
+                if _i20_is_admin is not None and _i20_close_on is not None:
+                    _ep = _i20_close_on(self.root, o.ticker, self.market, o.created_date or "")
+                    _xp = _i20_close_on(self.root, o.ticker, self.market, o.closed_date or "")
+                    if _i20_is_admin(o, _ep, _xp):
+                        continue
                 closed_tks_prod.add(o.ticker.upper().replace(".NS","").replace(".BO",""))
         # Exit History tickers · resolved by header name
         exit_tks: set = set()

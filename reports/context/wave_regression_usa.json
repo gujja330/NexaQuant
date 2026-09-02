@@ -1,0 +1,150 @@
+{
+  "schema_fingerprint": "aegis.wave_regression.v1.20260821",
+  "asof": "2026-09-02",
+  "market": "usa",
+  "run_utc": "2026-09-02T13:42:28+00:00",
+  "checks": [
+    {
+      "code": "A1",
+      "name": "No same-day NEW→EXIT (§5)",
+      "status": "WARN",
+      "detail": "5 same-day rows in history (filtered from Portfolio)"
+    },
+    {
+      "code": "A2",
+      "name": "SKIP not in Portfolio (§6)",
+      "status": "PASS",
+      "detail": "Registry uses REJECTED/CLOSED · no SKIP status"
+    },
+    {
+      "code": "A3",
+      "name": "Canonical position per ticker (§7 LUPIN)",
+      "status": "WARN",
+      "detail": "4 tickers ACTIVE in R1+R2 (display collapses via Wave 2): BMY, DXCM, IT, PLTR"
+    },
+    {
+      "code": "A4",
+      "name": "Closed positions decision = EXIT (§19)",
+      "status": "PASS",
+      "detail": "vocab v5.0 collapse enforces closed→EXIT (Wave 1)"
+    },
+    {
+      "code": "A5",
+      "name": "Unique Position IDs (§9)",
+      "status": "PASS",
+      "detail": "556 Position IDs, all unique"
+    },
+    {
+      "code": "A6",
+      "name": "Re-entry creates new Position ID (§9)",
+      "status": "PASS",
+      "detail": "Registry API prevents CLOSED→ACTIVE reversal (defensive check)"
+    },
+    {
+      "code": "A7",
+      "name": "Active + Exit P&L formulas (§14/§15)",
+      "status": "PASS",
+      "detail": "no missing-P&L rows this run"
+    },
+    {
+      "code": "A9",
+      "name": "Today Move requires valid Prev Close (§16)",
+      "status": "PASS",
+      "detail": "_today_move_pct + _prev_close use same guarded source"
+    },
+    {
+      "code": "A10",
+      "name": "Zero-NEW explained (§31)",
+      "status": "PASS",
+      "detail": "NEW=0 today · narrative not needed"
+    },
+    {
+      "code": "A11",
+      "name": "Classifier + vocab v5.0 unit tests (Part 28)",
+      "status": "PASS",
+      "detail": "21 legacy tests + 7 vocab-v5.0 tests all pass"
+    },
+    {
+      "code": "A12",
+      "name": "Alerts→bucket→Decision chain (§ 28.2)",
+      "status": "PASS",
+      "detail": "no STOP_LOSS_HIT row escaped bucket R"
+    },
+    {
+      "code": "A13",
+      "name": "P0 outcome dataset present (§ 28.9)",
+      "status": "WARN",
+      "detail": "outcome_dataset_summary.json missing/empty at reports\\research\\outcome_dataset_summary.json"
+    },
+    {
+      "code": "A14",
+      "name": "P1 attribution analysis present (§ 28.9)",
+      "status": "PASS",
+      "detail": "attribution present · 60 positions"
+    },
+    {
+      "code": "A15",
+      "name": "Post-Exit Assessment split from Decision (§ 28.6)",
+      "status": "PASS",
+      "detail": "sender emits Post-Exit Assessment as orthogonal column"
+    },
+    {
+      "code": "A16",
+      "name": "Pipeline runtime ≤ 20 min (Part 29)",
+      "status": "WARN",
+      "detail": "no runtime profile yet · run scripts/aegis_run_all.py --profile"
+    },
+    {
+      "code": "A17",
+      "name": "No EXIT rows leak into ACTIVE section",
+      "status": "PASS",
+      "detail": "section classifier clean"
+    },
+    {
+      "code": "A18",
+      "name": "Exit reasons plain-English",
+      "status": "PASS",
+      "detail": "no jargon in Exit History sheet"
+    },
+    {
+      "code": "A19",
+      "name": "Exit History has Sector column",
+      "status": "PASS",
+      "detail": "Sector column present"
+    },
+    {
+      "code": "A20",
+      "name": "SUGGESTED NEW strip visible when discoveries exist",
+      "status": "PASS",
+      "detail": "no discoveries today · strip legitimately absent"
+    },
+    {
+      "code": "A21",
+      "name": "No dead-symbol tickers in universe",
+      "status": "PASS",
+      "detail": "universe clean per Angel NSE master"
+    },
+    {
+      "code": "A22",
+      "name": "No ticker in both Portfolio + Exit History",
+      "status": "PASS",
+      "detail": "no true dupes · 0 multi-runner tickers accepted"
+    },
+    {
+      "code": "A23",
+      "name": "Historical-lineage validation for Exit History",
+      "status": "PASS",
+      "detail": "479 rows lineage-valid · 45 orphan-audit rows · 479 Registry-CLOSED all tracked"
+    },
+    {
+      "code": "A24",
+      "name": "Portfolio contains no fully-CLOSED tickers",
+      "status": "PASS",
+      "detail": "runner-aware lifecycle sync clean"
+    }
+  ],
+  "n_pass": 19,
+  "n_fail": 0,
+  "n_warn": 4,
+  "verdict": "WARN"
+}

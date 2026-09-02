@@ -23,24 +23,24 @@
 | G15_xlsx_structural_india | PASS | exactly 4 required sheets present · no legacy sheets |
 | G16_visual_inspection_india | PASS | auto-audit PASS · sign-off: visual_signoff_india_2026-09-02.md |
 | G17_standard_filename_india | PASS | dated=True byte_match=True · expected=aegis_india_2026-09-02.xlsx |
-| G18_three_run_determinism_india | PASS | 3-run data-only hash: 110b3653 / 110b3653 / 110b3653 |
+| G18_three_run_determinism_india | PASS | 3-run data-only hash: 48621f09 / 48621f09 / 48621f09 |
 | G19_fabrication_scan_india | PASS | 0 holding rows with LOW/PENDING |
 | G22_research_pit_india | PASS | 112 evidence rows · 56 AVAILABLE |
-| G04_canonical_identity_usa | PASS | 551 new-format PIDs · 0 legacy (source: Registry) |
-| G05_registry_canonical_recon_usa | PASS | Registry usa: 23 ACTIVE · 528 CLOSED-90d |
+| G04_canonical_identity_usa | PASS | 556 new-format PIDs · 0 legacy (source: Registry) |
+| G05_registry_canonical_recon_usa | PASS | Registry usa: 23 ACTIVE · 533 CLOSED-90d |
 | G06_portfolio_lifecycle_recon_usa | PASS | banner=6 body=6 |
 | G07_portfolio_exit_recon_usa | PASS | 0 UNEXPLAINED lifecycle collisions (same ticker+runner+entry_date active AND closed) · 0 EXPLAINED overlaps (different e |
 | G08_exit_history_recon_usa | PASS | 0 ACTIVE-runner non-carveout non-admin Registry-CLOSED missing from EH · 11 retired-runner · 3 carveout · 20 admin (same |
 | G13_pnl_reconciliation_usa | PASS | 0 UNEXPLAINED PID duplicates at (ticker, runner, entry_date) grain · Registry authoritative |
 | G14_provenance_validation_usa | PASS | 508/508 opened rows have Position ID (100.0%) |
 | G09_population_counts_usa | PASS | HISTORICAL_CLOSED=502 · CURRENT_HOLDING=6 |
-| G10_runner_counts_usa | PASS | R1(RETIRED_DORMANT·opened=43·active=17) · R2(ACTIVE_PRODUCTION·opened=508·active=6) · COMBINED(ACTIVE_PRODUCTION·opened= |
+| G10_runner_counts_usa | PASS | R1(RETIRED_DORMANT·opened=43·active=17) · R2(ACTIVE_PRODUCTION·opened=513·active=6) · COMBINED(ACTIVE_PRODUCTION·opened= |
 | G11_r1_production_absence_usa | PASS | 0 retired-runner rows in Portfolio · retired=['R1'] |
-| G12_r2_integrity_usa | PASS | status=ACTIVE_PRODUCTION · signals=508 · opened=508 · closed=502 |
+| G12_r2_integrity_usa | PASS | status=ACTIVE_PRODUCTION · signals=513 · opened=513 · closed=507 |
 | G15_xlsx_structural_usa | PASS | exactly 4 required sheets present · no legacy sheets |
 | G16_visual_inspection_usa | PASS | auto-audit PASS · sign-off: visual_signoff_usa_2026-09-02.md |
 | G17_standard_filename_usa | PASS | dated=True byte_match=True · expected=aegis_usa_2026-09-02.xlsx |
-| G18_three_run_determinism_usa | PASS | 3-run data-only hash: 256de093 / 256de093 / 256de093 |
+| G18_three_run_determinism_usa | PASS | 3-run data-only hash: c8afadf9 / c8afadf9 / c8afadf9 |
 | G19_fabrication_scan_usa | PASS | 0 holding rows with LOW/PENDING |
 | G22_research_pit_usa | PASS | 112 evidence rows · 56 AVAILABLE |
 | G20_overrideallow_false | PASS | no overrideallow=true |

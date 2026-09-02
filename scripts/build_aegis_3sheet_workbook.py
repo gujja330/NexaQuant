@@ -113,6 +113,10 @@ def _load_registry(root, market, retired):
     reg = oreg.load_all(root)
     cutoff = (date.today() - timedelta(days=90)).isoformat()
     active, closed, closed_retired = [], [], []
+    # CEO 2026-09-02 · all admin/retired CLOSED must land in orphan_audit
+    # (A23 sink) · otherwise USA delivery blocks daily on ORPHAN_AUTO_CLOSE
+    # events my filter drops from EH body but leaves untracked.
+    closed_admin = []
     for pid, opps in reg.items():
         for o in opps:
             if o.market.lower() != market.lower(): continue
@@ -121,11 +125,18 @@ def _load_registry(root, market, retired):
                 active.append(o)
             elif o.status == "CLOSED" and o.closed_date and o.closed_date >= cutoff:
                 if o.runner in retired:
-                    closed_retired.append(o)   # goes to orphan_audit
+                    closed_retired.append(o)     # → orphan_audit (retired sink)
+                    continue
+                # Production runner CLOSED · classify structurally
+                _ep_r = _close_on_or_before(root, o.ticker, market, o.created_date or "")
+                _xp_r = _close_on_or_before(root, o.ticker, market, o.closed_date or "")
+                if _is_administrative_exit(o, _ep_r, _xp_r):
+                    closed_admin.append(o)       # → orphan_audit (admin sink)
                 else:
-                    closed.append(o)            # visible in Exit History body
+                    closed.append(o)              # → Exit History body
     return {"active": active, "closed_90d": closed,
-             "closed_retired_90d": closed_retired}
+             "closed_retired_90d": closed_retired,
+             "closed_admin_90d": closed_admin}
 
 
 def _normalize_exit_reason(raw: str) -> str:
@@ -213,12 +224,12 @@ def _is_administrative_exit(o, entry_p=None, exit_p=None) -> bool:
 
 
 def _emit_orphan_audit_for_retired(root, market, reg_data):
-    """Write R1 CLOSED tickers to the orphan_audit_{market}.jsonl sink
-    so A23 historical-lineage validation passes. The workbook stays
-    R1-zero while accountability is preserved.
+    """Write ALL non-body CLOSED events to orphan_audit_{market}.jsonl:
+      · retired-runner CLOSED (R1 retirement carveout)
+      · admin CLOSED (same-day OR entry==exit · e.g. ORPHAN_AUTO_CLOSE)
 
-    Preserves any existing ORPHAN_AUTO_CLOSE entries · appends retirement
-    entries with a distinguishing kind field · idempotent."""
+    A23 lineage validation reads this sink · anything NOT in Exit History
+    body MUST appear here or A23 blocks USA delivery daily. Idempotent."""
     p = root / "reports" / "delivery" / f"orphan_audit_{market.lower()}.jsonl"
     p.parent.mkdir(parents=True, exist_ok=True)
     existing_tickers = set()
@@ -232,7 +243,8 @@ def _emit_orphan_audit_for_retired(root, market, reg_data):
                     if t: existing_tickers.add(t)
                 except Exception: pass
         except Exception: pass
-    added = 0
+    added_retired = 0
+    added_admin = 0
     with p.open("a", encoding="utf-8") as f:
         for o in reg_data.get("closed_retired_90d", []):
             tk = o.ticker.upper()
@@ -240,20 +252,41 @@ def _emit_orphan_audit_for_retired(root, market, reg_data):
             existing_tickers.add(tk)
             entry = {
                 "kind": "RETIRED_RUNNER_CLOSED",
-                "ticker": tk,
-                "runner": o.runner,
+                "ticker": tk, "runner": o.runner,
                 "market": market.lower(),
                 "opportunity_id": o.opportunity_id,
                 "closed_date": o.closed_date,
                 "closed_reason": getattr(o, "closed_reason", "") or "",
                 "rationale": (f"Runner {o.runner} retired · workbook-wide "
-                              f"R1-zero contract · historical accountability "
-                              f"preserved via orphan_audit sink"),
+                              f"contract · historical accountability preserved"),
             }
             f.write(json.dumps(entry, ensure_ascii=False) + "\n")
-            added += 1
-    return {"path": str(p.relative_to(root)), "added": added,
-            "total_retired_closed": len(reg_data.get("closed_retired_90d", []))}
+            added_retired += 1
+        # CEO 2026-09-02 · production-runner admin events (same-day / zero-Δ)
+        # also go to orphan_audit · not silently lost from A23's perspective.
+        for o in reg_data.get("closed_admin_90d", []):
+            tk = o.ticker.upper()
+            if tk in existing_tickers: continue
+            existing_tickers.add(tk)
+            entry = {
+                "kind": "ADMIN_ZERO_DELTA_CLOSED",
+                "ticker": tk, "runner": o.runner,
+                "market": market.lower(),
+                "opportunity_id": o.opportunity_id,
+                "created_date": o.created_date,
+                "closed_date": o.closed_date,
+                "closed_reason": getattr(o, "closed_reason", "") or "",
+                "rationale": ("Production-runner administrative event · "
+                              "same-day OR entry==exit price · never a real "
+                              "market delta · filtered from Exit History body · "
+                              "tracked here for A23 lineage completeness"),
+            }
+            f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+            added_admin += 1
+    return {"path": str(p.relative_to(root)),
+            "added_retired": added_retired, "added_admin": added_admin,
+            "total_retired_closed": len(reg_data.get("closed_retired_90d", [])),
+            "total_admin_closed": len(reg_data.get("closed_admin_90d", []))}
 
 
 def _load_sector_cache(root):
@@ -604,21 +637,18 @@ def _emit_exit_history(wb, market, root, asof, reg_data):
     ws = wb.create_sheet("03_Exit_History")
     ncols = 14   # +1 for Relative Opportunity pp column (CEO 2026-09-02)
     _banner(ws, f"AEGIS {market.upper()} · EXIT HISTORY · realized · as of {asof}", ncols)
-    all_closed = sorted(reg_data["closed_90d"],
-                          key=lambda o: o.closed_date or "", reverse=True)
-    # CEO 2026-09-02 · genuine realized exits only · filter by structural
-    # signals (same-day OR entry_price==exit_price). Prices are looked up
-    # canonically from parquet · no string-match on closed_reason.
-    closed = []
-    for o in all_closed:
-        _ep = _close_on_or_before(root, o.ticker, market, o.created_date or "")
-        _xp = _close_on_or_before(root, o.ticker, market, o.closed_date or "")
-        if not _is_administrative_exit(o, _ep, _xp):
-            closed.append(o)
-    n_filtered_out = len(all_closed) - len(closed)
+    # CEO 2026-09-02 · closed_90d from _load_registry is ALREADY the
+    # non-admin non-retired set. Admin events → closed_admin_90d (→ orphan_audit).
+    # Retired → closed_retired_90d (→ orphan_audit). This filter chain
+    # is single-source-of-truth in _load_registry.
+    closed = sorted(reg_data["closed_90d"],
+                       key=lambda o: o.closed_date or "", reverse=True)
+    n_admin = len(reg_data.get("closed_admin_90d", []))
+    n_retired = len(reg_data.get("closed_retired_90d", []))
     _sub(ws, (f"📕 Realized production exits (last 90d): {len(closed)} · "
                 f"latest exit first · realized P&L only · "
-                f"{n_filtered_out} administrative/same-day events filtered to canonical audit"),
+                f"{n_admin} admin (same-day/zero-Δ) + {n_retired} retired-runner "
+                f"events routed to canonical audit sink (orphan_audit_{market.lower()}.jsonl)"),
           ncols, 2)
 
     sector_cache = _load_sector_cache(root)
@@ -680,9 +710,9 @@ def _emit_exit_history(wb, market, root, asof, reg_data):
         "Relative Opportunity pp · alpha/rotation benefit vs the closed position "
         "(pp = percentage points) · this is NOT the trade's own P&L · "
         "shown separately so it cannot be misread.",
-        f"{n_filtered_out} same-day / registry-sync administrative events "
-        "filtered from this operator-facing view · they remain in the canonical "
-        "Registry JSONL for audit.",
+        f"{n_admin} same-day / zero-Δ administrative events + {n_retired} "
+        "retired-runner events filtered from this operator-facing view · they "
+        "remain in the canonical Registry JSONL and orphan_audit sink for audit.",
         "This sheet contains ONLY realized production exits · 90-day rolling window.",
     ], r, ncols)
     return len(closed)

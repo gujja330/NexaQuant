@@ -594,20 +594,39 @@ def compute(root: Path, market: str, asof: str) -> WaveRegressionReport:
     try:
         from backend.research import opportunity_registry as _oreg
         from backend.delivery.canonical.retirement import retired_runners as _rr
+        # CEO 2026-09-02 · A23 must EXCLUDE administrative events (same-day
+        # OR entry_price == exit_price) that the builder legitimately
+        # filters from Exit History body. Otherwise every R2 rotation
+        # artifact / orphan-auto-close blocks USA delivery daily.
+        try:
+            from scripts.build_aegis_3sheet_workbook import (
+                _is_administrative_exit as _a23_is_admin,
+                _close_on_or_before as _a23_close_on)
+        except Exception:
+            _a23_is_admin = None
+            _a23_close_on = None
         _reg = _oreg.load_all(root)
         _retired = _rr(root)
         # Build the historical universe · every Registry-known ticker
-        # CEO 2026-09-02 · scope Check 2 to PRODUCTION runners only ·
-        # retired-runner CLOSED positions are excluded from workbook by
-        # contract · they live in orphan_audit sink (also checked below).
+        # CEO 2026-09-02 · scope Check 2 to PRODUCTION runners only + non-admin.
+        # Retired-runner CLOSED excluded by contract (orphan_audit sink) ·
+        # admin events (same-day / zero-Δ) excluded because they never
+        # traded a real market delta.
         _historical_tickers = set()
         _closed_reg = set()
         for _opps in _reg.values():
             for _o in _opps:
                 if _o.market.lower() != market: continue
                 _historical_tickers.add(_o.ticker.upper())
-                if _o.status == "CLOSED" and _o.runner not in _retired:
-                    _closed_reg.add(_o.ticker.upper())
+                if _o.status != "CLOSED": continue
+                if _o.runner in _retired: continue
+                # Structural admin exclusion · matches builder filter
+                if _a23_is_admin is not None and _a23_close_on is not None:
+                    _ep_a = _a23_close_on(root, _o.ticker, market, _o.created_date or "")
+                    _xp_a = _a23_close_on(root, _o.ticker, market, _o.closed_date or "")
+                    if _a23_is_admin(_o, _ep_a, _xp_a):
+                        continue
+                _closed_reg.add(_o.ticker.upper())
         # Snapshot ledger tickers (canonical entry records)
         try:
             from backend.delivery.prediction_snapshot import _load_ledger
