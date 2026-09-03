@@ -229,18 +229,52 @@ def _scorecard(root: Path) -> str:
         L.append(f"- **Sprint M-R narrative:** `{fr.relative_to(root)}` (India −6.48pp · USA +2.69pp through 2026-08-27)")
     L.append("")
 
-    # 5 · Additive extensions declared (not yet run)
-    L.append("## 5 · Additive extensions declared (not yet run)")
+    # 5 · R3 Tier-2 / Tier-3 Research Tickets + additive extensions
+    L.append("## 5 · R3 Tier-2 / Tier-3 · Research Tickets (V2 §21)")
+    L.append("")
+    L.append("Every ticket = own module + gate + PDF reference. Default BLOCKED-EVIDENCE until R3 shadow satisfies precondition.")
+    L.append("")
+    L.append("| Ticket | Tier | Module | Gate |")
+    L.append("|---|---:|---|---|")
+    for tid, tier, mod, gate in [
+        ("R3-T2-STACKING",             2, "backend.research.r3.tier2.stacking",             "R3 shadow ≥20 picks"),
+        ("R3-T2-BMA",                  2, "backend.research.r3.tier2.bayesian_averaging",   "R3 shadow ≥20 · OOF logloss per model"),
+        ("R3-T2-FACTOR-NEUTRAL",       2, "backend.research.r3.tier2.factor_neutral",       "R3 shadow ≥20 · size/value/mom PIT-avail"),
+        ("R3-T2-PROMOTER-GOVERNANCE",  2, "backend.research.r3.tier2.promoter_governance",  "India-only · NSE SAST + BSE disclosures wired"),
+        ("R3-T2-TRANSCRIPT-TONE",      2, "backend.research.r3.tier2.transcript_tone",      "Q&A SEPARATE per V2 §5 · transcript ingest wired"),
+        ("R3-T2-MULTI-HORIZON",        2, "backend.research.r3.tier2.multi_horizon_consensus","Per-horizon IC trailing window ≥60"),
+        ("R3-T3-GNN-GRAPHSAGE",        3, "backend.research.r3.tier3.gnn_graphsage",        "R3 shadow ≥60 + community-percentile validated + KG persistent ≥90d"),
+        ("R3-T3-PAIR-STATARB",         3, "backend.research.r3.tier3.pair_stat_arb",        "R3 shadow ≥60 + short-selling infra"),
+        ("CUSUM_REGIME_SUPPLEMENT",    3, "backend.research.r3.tier3.cusum_regime",         "Regime source present (LANDED) + historical transition-date labels"),
+    ]:
+        L.append(f"| {tid} | {tier} | `{mod}` | {gate} |")
+    L.append("")
+    L.append("**Verdict:** all 9 tickets currently BLOCKED-EVIDENCE per V2 §21 (correct · Tier-2/3 gates on Phase-3 shadow evidence). Scaffolds + tests in place.")
+    L.append("")
+
+    L.append("## 5b · Regime detectors · CRASH + RECOVERY (V2 §7 additive)")
+    L.append("")
+    for m in ("india","usa"):
+        d = _read_json(r / "enrichers" / f"crash_recovery_{m}.json")
+        if d:
+            L.append(f"- **{m.upper()}** · touched {d.get('n_rows_touched',0)} rows · CRASH={d.get('n_crash',0)} · RECOVERY={d.get('n_recovery',0)} · market_return_days={d.get('n_market_return_days',0)}")
+    L.append("")
+
+    L.append("## 5c · Data-source shims (REQUIRES_LIVE_SOURCE)")
+    L.append("")
+    L.append("- **India FII/DII net flow** · `backend/research/fundamentals/providers/india_flow_adapter.py` · NSE FII/DII CSV feed not yet wired")
+    L.append("- **India Options PCR** · same adapter · NSE option-chain API not yet wired")
+    L.append("- **Related-Party Transactions (India)** + **Transcript Tone (both markets)** · Layer-5 extended module scaffolded · ingest sources pending")
+    L.append("")
+
+    L.append("## 5d · Additive extensions declared")
     L.append("")
     L.append("- **P0-EXTENSION-01** · 60-trial (k×m×horizon) grid · gated on regime enricher (LANDED) · can now run")
     L.append("- **R2-EXT-EXIT-DOCTRINE-01** · chandelier / fixed-% / MFE / regime-aware k · separate research tickets")
-    L.append("- **CRASH_DETECTOR_01 + RECOVERY_DETECTOR_01** · covers 2 of 6 PDF regime states not currently emitted")
     L.append("- **CAP_PIT_STRICT_01** · shares_out(entry_date) × close(entry_date) instead of yfinance current-fallback")
     L.append("- **UNIVERSE_EXT_NIFTY200** · India PIT audit currently uses NIFTY 50 subset")
     L.append("- **MIDCAP400_EXT** · USA S&P MidCap 400 historical membership")
-    L.append("- **RELATED_PARTY_TXN_SIGNAL + TRANSCRIPT_TONE_SIGNAL** (Q&A separate) · REQUIRES NEW SOURCE")
-    L.append("- **CUSUM_REGIME_SUPPLEMENT** · Tier-3 regime detector research")
-    L.append("- **WINNER_GENOME_FULL** · unblocks after fundamentals batch fully populates")
+    L.append("- **WINNER_GENOME_FULL** · unblocks after fundamentals PIT accumulation")
     L.append("")
 
     # 6 · Trial matrix
