@@ -165,6 +165,79 @@ Categories used everywhere:
 
 ---
 
+---
+
+## Batch B enricher entries · 2026-09-03
+
+### E-009 · B1 Regime enricher · 2026-09-03
+- **Deliverable:** populate `regime_at_entry` on Outcome Dataset per PDF regime vocabulary.
+- **Source:** `reports/research/mr_market_regime_{market}.json` · 1472 India / 1194 USA daily labels.
+- **Mapping (locked):** `BULL→NORMAL · NEUTRAL→NORMAL · HIGH_VOL→RISK_OFF · BEAR→WEAKENING`.
+- **Missing states declared:** `CRASH_DETECTOR_01` and `RECOVERY_DETECTOR_01` — additive detectors not yet built. Enricher covers 4 of 6 PDF states.
+- **Result:** 🟢 **ENRICHED** · USA 556 rows (all NORMAL under current mapping/source-coverage); India 68 rows.
+- **PIT invariant:** for entry_date D, uses largest source date ≤ D · never looks forward · verified by 8 tests in `tests/enrichers/test_regime_enricher.py`.
+- **No fabrication:** missing → UNKNOWN with `regime_source="missing"`; unmapped label → UNKNOWN with `regime_source="unmapped:<label>"`.
+- **Artifacts:** `reports/research/enrichers/regime_{market}.json`.
+
+### E-010 · B3 Cap + Investability enricher · 2026-09-03
+- **Deliverable:** populate `cap_bucket` and `investability` columns.
+- **Cap thresholds (USD-locked · INR converted at 83/USD):** micro <300M · small 300M-2B · mid 2B-10B · large 10B-200B · mega ≥200B.
+- **Investability thresholds:** liquid ≥ $10M ADV · less_liquid $1M-$10M · illiquid < $1M.
+- **Provenance:** `cap_source="yfinance:current_fallback"` (yfinance marketCap is current-value; PIT market_cap would need shares_out(entry_date) × close(entry_date) · declared as `CAP_PIT_STRICT_01` extension). `investability_source="parquet_pit_adv"` is fully PIT-safe.
+- **Result:** 🟢 **ENRICHER READY** · smoke-tested with `--no-yfinance` (fills nulls with `cap_source="yfinance_skipped"`). Full population batch is a network job (not run today · rate-limited).
+- **Unblocks:** P4 Cap×Sector×Investability LR test.
+- **Artifacts:** `reports/research/enrichers/cap_investability_{market}.json`.
+
+### E-011 · B4 Sector + Market regime scores enricher · 2026-09-03
+- **Deliverable:** populate `sector_regime_score` and `market_regime_score`.
+- **Methodology:** sector = 20d mean return per sector on asof, z-scored cross-sectionally across sectors, clamped [−3,3]. Market = universe-mean 20d return on asof, z-scored across trailing 90d of same measure, clamped [−3,3]. Fully PIT.
+- **Result:** 🟢 **ENRICHED** · USA 13 rows got market score (only 8 unique dates in dataset · trailing-90d z requires ≥5 window values); sector scores 0 (each date has 1-2 tickers per sector · cross-section requires ≥3 peers).
+- **Interpretation:** sample thinness at present · rerun once Outcome Dataset accumulates. Substrate ready.
+- **Unblocks:** P2 α·sector_regime_score + β·market_regime_score lift measurement (when sample fills).
+- **Artifacts:** `reports/research/enrichers/regime_scores_{market}.json`.
+
+### E-012 · B5 KG persistence hook · 2026-09-03
+- **Deliverable:** helper for the daily KG runner to persist per-node community IDs into PIT snapshots with `confidence="HIGH"` (vs backfill scaffolds at `confidence="LOW"`).
+- **Result:** 🟢 **HOOK SHIPPED** · daily KG runner integration is a one-line call: `persist_pit_snapshot(root, market, asof, communities, graph_stats, algorithm, modularity_q)`.
+- **Preservation:** historical UNKNOWN snapshots stay UNKNOWN · this hook is forward-looking only, per CEO governance.
+- **Unblocks:** P3 KG-community γ scoring once the daily runner is wired.
+- **Artifacts:** `backend/research/enrichers/kg_persistence_hook.py`.
+
+### E-013 · B7 Signal Ledger walker · 2026-09-03
+- **Deliverable:** walk every historical snapshot path (recommendations_history + archive bundles + live) and feed to ledger builder.
+- **Result:** 🟠 **DISCOVERED** · only 3 snapshot files per market exist historically (2026-07-29, 2026-07-30, 2026-09-02). No hidden history to unlock. Ledger will accumulate as the daily orchestrator runs.
+- **Signal Ledger current:** 30 India rows / 45 USA rows · below n=50 for P1 calibration gate.
+- **P1 gate stays BLOCKED** until natural accumulation.
+- **Artifacts:** `reports/research/enrichers/signal_ledger_walker_{market}.json` (not persisted separately · reported inline).
+
+### E-014 · B2 India PIT universe · 2026-09-03
+- **Deliverable:** India historical universe reconstruction per PDF Sec 5 (NIFTY 200 target).
+- **Best auditable source found:** `configs/india_universe_tiers.yaml` largecap_tickers block = **NIFTY 50 only**. NIFTY 200 full list NOT SPECIFIED in PDF and NOT PRESENT in repo.
+- **Action taken (per CEO governance):** emitted `reports/india_universe.json` with 50 tickers + explicit note. Wired `configs/aegis_universes.yaml → india.source_file`. PIT audit now produces 3250 rows (50 × 65 days) with `confidence=LOW` for the 65-day window.
+- **No fabrication:** rest of NIFTY 200 constituents NOT invented.
+- **Extension declared:** `UNIVERSE_EXT_NIFTY200` · pending an authoritative NIFTY 200 constituent source. When landed, becomes an additive extension.
+- **Artifacts:** `reports/research/pit_universe/india.parquet` + `reports/india_universe.json`.
+
+### E-015 · R3 Daily Shadow Feed live · 2026-09-03
+- **Deliverable:** start the Day-30 shadow clock per PDF Phase 3.
+- **Result USA:** 🟢 **APPENDED** · 5 picks written to `reports/research/r3/shadow_ledger.jsonl` for asof=2026-09-03. Day-30 gate fires at ≥20 accumulated picks (4-5 daily runs at n=5).
+- **Result India:** 🟠 **TRAIN_SKIPPED** · n=24 < 30 sample minimum; will begin appending once Outcome Dataset grows.
+- **Isolation invariant:** verified by CI · never writes to Registry / Portfolio / Exit History / delivered workbook.
+- **Artifacts:** `reports/research/r3/shadow_ledger.jsonl`.
+
+---
+
+## Additive extensions declared (not yet run)
+
+- **P0-EXTENSION-01** · 60-trial (k×m×horizon) parameter surface · gated on regime enricher landing first (now unblocked · can proceed after Batch B commit).
+- **R2-EXT-EXIT-DOCTRINE-01** · alternative exit doctrines · separate research tickets.
+- **CRASH_DETECTOR_01** · WEAKENING + market_1d < −3σ event detector · additive to regime enricher.
+- **RECOVERY_DETECTOR_01** · trailing NORMAL/BULL after a CRASH · additive.
+- **CAP_PIT_STRICT_01** · shares_out(entry_date) × close(entry_date) instead of yfinance current-fallback · replaces the current cap approximation for PIT strictness.
+- **UNIVERSE_EXT_NIFTY200** · full NIFTY 200 constituent list · replaces the NIFTY 50 subset once an auditable source lands.
+
+---
+
 ## Errata policy
 
 Any correction to an existing entry lives here as a dated errata line, never as an in-place rewrite of the entry above.

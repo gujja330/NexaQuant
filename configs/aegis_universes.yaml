@@ -34,15 +34,21 @@ markets:
       reconciler.
 
   india:
-    active_universe_label: nse_curated
-    description: "NSE curated large/mid-cap · currently held intentionally"
-    n_tickers_min: 10
+    active_universe_label: nifty50
+    description: "NIFTY 50 large-cap · NIFTY 200 full list NOT SPECIFIED in PDF/repo · additive extension declared as UNIVERSE_EXT_NIFTY200 in EVIDENCE_LOG"
+    n_tickers_min: 50
     n_tickers_max: 500
-    source_file: null           # India universe is derived · no static file yet
+    source_file: reports/india_universe.json     # Best auditable India source (NIFTY 50) · Batch B2 · CEO 2026-09-03
     disallowed_labels: []
     change_policy: |
       Retained as-is pending evidence-based reduction study. Applying the
       same research methodology as USA before any further tightening.
+      NIFTY 200 extension tracked in EVIDENCE_LOG (UNIVERSE_EXT_NIFTY200).
+    source_provenance_note: |
+      Historical membership source: Not specified in the document.
+      Best auditable source available in repository: configs/india_universe_tiers.yaml
+      (largecap_tickers block = NIFTY 50 constituents). This is copied to
+      reports/india_universe.json for the PIT audit to consume.
 
 change_events:
   - date: 2026-08-14
