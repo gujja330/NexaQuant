@@ -1,5 +1,5 @@
 # AEGIS · SCORECARD
-_regen `python scripts/aegis_scorecard.py` · 2026-09-03 13:41 UTC · replaces EVIDENCE_LOG + PDF_MATRIX + EXPERIMENT_REGISTRY + 28_REPORTS_
+_regen `python scripts/aegis_scorecard.py` · 2026-09-03 13:51 UTC · replaces EVIDENCE_LOG + PDF_MATRIX + EXPERIMENT_REGISTRY + 28_REPORTS_
 
 **PRODUCTION = FROZEN.** No R2 change. No push. Per CEO Development Freeze.
 

@@ -1,0 +1,69 @@
+# AEGIS Deep Research Registry · CEO 2026-09-03
+# Authoritative dependency + hypothesis + blocker registry per domain.
+# NOT a scaffold list. Every entry MUST have:
+#   hypothesis (research question)
+#   data_required (specific fields)
+#   pit_status (achievable / partial / not-yet)
+#   blocker_type (EXTERNAL_DATA · INTERNAL_BUILD · SAMPLE_TIME · NOT_BLOCKED)
+#   owner_action (concrete next step)
+
+D01_BUSINESS_QUALITY:
+  hypothesis: "Does business-quality composite (ROIC + FCF conversion + margin stability + reinvestment rate) provide incremental predictive information beyond R2's existing ensemble score?"
+  sub_signals:
+    revenue_growth:      {data: [revenue_ttm, revenue_ttm_prior], pit_status: partial,      blocker: SAMPLE_TIME, action: "Accumulate quarterly snapshots · 8Q for QoQ/YoY"}
+    earnings_growth:     {data: [net_income_ttm, ni_ttm_prior],   pit_status: partial,      blocker: SAMPLE_TIME, action: "Same"}
+    margin_quality:      {data: [gross_margin_series],            pit_status: partial,      blocker: SAMPLE_TIME, action: "Same"}
+    roic:                {data: [ebit, invested_capital],         pit_status: not-yet,      blocker: INTERNAL_BUILD, action: "Compute IC from BS · not yet built"}
+    fcf_generation:      {data: [fcf_ttm, market_cap],            pit_status: achievable,   blocker: NOT_BLOCKED, action: "Testable now on single-day snapshot"}
+    fcf_conversion:      {data: [fcf_ttm, net_income_ttm],        pit_status: achievable,   blocker: NOT_BLOCKED, action: "Compute (fcf/ni) ratio · testable NOW"}
+    working_capital:     {data: [current_assets, current_liabs],  pit_status: achievable,   blocker: NOT_BLOCKED, action: "Compute WC/sales · testable NOW"}
+    capital_allocation:  {data: [dividends, buybacks, capex],     pit_status: partial,      blocker: SAMPLE_TIME, action: "Buybacks not in yfinance free · declare gap"}
+    reinvestment_econ:   {data: [capex, ebit, revenue],           pit_status: achievable,   blocker: NOT_BLOCKED, action: "Compute capex/revenue · testable NOW"}
+
+D02_BALANCE_SHEET:
+  hypothesis: "Does balance-sheet-risk composite predict downside skew of forward returns better than R2's dynamic stop?"
+  sub_signals:
+    debt_equity:         {data: [total_debt, total_equity],       pit_status: achievable,   blocker: NOT_BLOCKED, action: "Compute now"}
+    net_debt_ebitda:     {data: [total_debt, cash, ebitda],       pit_status: achievable,   blocker: NOT_BLOCKED, action: "Compute now"}
+    interest_coverage:   {data: [ebit, interest_expense],         pit_status: achievable,   blocker: NOT_BLOCKED, action: "Already in FS L1"}
+    debt_maturity:       {data: [debt_maturity_schedule],         pit_status: not-yet,      blocker: EXTERNAL_DATA, action: "Requires SEC/SEBI filings parse"}
+    current_ratio:       {data: [current_assets, current_liabs],  pit_status: achievable,   blocker: NOT_BLOCKED, action: "Compute now"}
+    cash_quality:        {data: [cash, short_term_investments],   pit_status: achievable,   blocker: NOT_BLOCKED, action: "Compute now"}
+    off_balance_sheet:   {data: [contingent_liabilities],         pit_status: not-yet,      blocker: EXTERNAL_DATA, action: "SEC 10-K parse"}
+
+D03_ACCOUNTING_QUALITY:
+  hypothesis: "Do earnings-quality flags (Beneish M > -1.78 · Sloan |accruals| > 0.10 · cash-vs-profit divergence) predict future negative surprises?"
+  sub_signals:
+    piotroski_f:              {data: piotroski_inputs,     pit_status: achievable, blocker: NOT_BLOCKED, action: "Already computed"}
+    beneish_m:                {data: beneish_inputs,       pit_status: achievable, blocker: NOT_BLOCKED, action: "Already computed"}
+    sloan_accruals:           {data: [ni, cfo, avg_ta],    pit_status: achievable, blocker: NOT_BLOCKED, action: "Already computed"}
+    cash_vs_profit_divergence: {data: [ni_ttm, cfo_ttm],   pit_status: achievable, blocker: NOT_BLOCKED, action: "Compute (ni-cfo)/|ni| · NOW"}
+    receivables_quality:      {data: [receivables, sales], pit_status: achievable, blocker: NOT_BLOCKED, action: "Compute receivables/sales · NOW"}
+    inventory_quality:        {data: [inventory, cogs],    pit_status: achievable, blocker: NOT_BLOCKED, action: "Compute inventory days · NOW"}
+    one_off_earnings:         {data: [extraordinary_items], pit_status: not-yet,   blocker: EXTERNAL_DATA, action: "Not in yfinance"}
+    auditor_signals:          {data: [auditor_changes],    pit_status: not-yet,    blocker: EXTERNAL_DATA, action: "SEC/SEBI filings"}
+
+D04_VALUATION:
+  hypothesis: "Does sector-relative valuation percentile (P/E · EV/EBITDA · FCF-yield) predict mean-reversion in returns?"
+  sub_signals:
+    pe:                       {data: [market_cap, ni_ttm],    pit_status: achievable, blocker: NOT_BLOCKED, action: "Compute now"}
+    ev_ebitda:                {data: [ev, ebitda_ttm],       pit_status: achievable, blocker: NOT_BLOCKED, action: "In FS L2"}
+    fcf_yield:                {data: [fcf_ttm, market_cap],  pit_status: achievable, blocker: NOT_BLOCKED, action: "In FS L2"}
+    pb:                       {data: [market_cap, book_val], pit_status: achievable, blocker: NOT_BLOCKED, action: "Compute now"}
+    peg:                      {data: [pe, eps_growth],       pit_status: partial,    blocker: SAMPLE_TIME, action: "Needs multi-year EPS growth"}
+    dcf:                      {data: [analyst_forecasts],    pit_status: not-yet,    blocker: EXTERNAL_DATA, action: "Consensus estimate feed"}
+    reverse_dcf:              {data: [current_price, growth_assumptions], pit_status: partial, blocker: INTERNAL_BUILD, action: "Derive implied growth"}
+    sector_relative:          {data: [pe, sector],           pit_status: achievable, blocker: NOT_BLOCKED, action: "Sector percentile · NOW"}
+    historical_percentile:    {data: [pe_history],           pit_status: partial,    blocker: SAMPLE_TIME, action: "Needs accumulated history"}
+    growth_adjusted:          {data: [pe, growth_rate],      pit_status: achievable, blocker: NOT_BLOCKED, action: "PE / growth · NOW"}
+
+D05_GROWTH_QUALITY:
+  hypothesis: "Do earnings surprise + revision-momentum + guidance direction jointly predict short-term price drift better than technical momentum alone?"
+  sub_signals:
+    revenue_acceleration:     {data: [revenue_series], pit_status: partial, blocker: SAMPLE_TIME, action: "Needs 4Q+ history"}
+    eps_acceleration:         {data: [eps_series], pit_status: partial, blocker: SAMPLE_TIME, action: "Same"}
+    estimate_revisions:       {data: [consensus_eps_now, consensus_eps_prior], pit_status: partial, blocker: EXTERNAL_DATA, action: "Consensus feed"}
+    guidance_revisions:       {data: [guidance_direction], pit_status: achievable, blocker: NOT_BLOCKED, action: "Already in FS L3 · categorical"}
+    earnings_surprise:        {data: [actual_eps, consensus_eps], pit_status: achievable, blocker: NOT_BLOCKED, action: "Already in FS L3"}
+    forward_growth_vs_price:  {data: [expected_growth, price], pit_status: partial, blocker: EXTERNAL_DATA, action: "Analyst forecast series"}
+    growth_durability:        {data: [growth_series_multi_year], pit_status: partial, blocker: SAMPLE_TIME, action: "Multi-year growth stability"}

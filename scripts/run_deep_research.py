@@ -10,12 +10,15 @@ except Exception: pass
 DOMAIN_MODULES = [
     "d01_business_quality", "d02_balance_sheet", "d03_accounting_quality_ext",
     "d04_valuation_ext", "d05_growth_quality", "d06_industry_cycle",
-    "d07_macro_fci", "d08_flows_crowding", "d09_deep_technical",
+    "d07_macro_fci", "d08_flows_crowding", "t09_deep_technical",
     "d10_corp_events_ext", "d11_governance_india_ext", "d12_narrative_ext",
     "d13_kg_ownership", "d14_risk_ext", "d15_portfolio_construction",
     "d16_deep_exit_science", "d17_cross_market_global",
     "d18_data_integrity_audit", "d19_statistical_robustness",
     "d20_failure_research_ext",
+    # Integrated fundamentals family (F-prefix per CEO 2026-09-03 naming standard)
+    "f01_05_fundamental_intelligence",
+    "f01_05_filter_grid",
 ]
 
 def main():

@@ -1,0 +1,131 @@
+{
+  "ticket_id": "D01-05-FILTER-GRID",
+  "domain": 1,
+  "market": "india",
+  "gate_status": "EXECUTED",
+  "coverage_status": "TRAILING_20D_PROXY \u00b7 not walk-forward",
+  "n_tickers_with_returns": 45,
+  "baseline_mean_ret_20d_pct": -2.794,
+  "trial_family_count": 10,
+  "individual_variants": [
+    {
+      "filter": "fcf_positive",
+      "col": "fcf_yield",
+      "threshold": 0.0,
+      "n_pass": 5,
+      "n_fail": 40,
+      "mean_ret_pass_pct": -4.02,
+      "mean_ret_fail_pct": -2.641,
+      "lift_pct": -1.379
+    },
+    {
+      "filter": "int_cov_ge_1.5",
+      "col": "interest_coverage",
+      "threshold": 1.5,
+      "n_pass": 38,
+      "n_fail": 7,
+      "mean_ret_pass_pct": -2.948,
+      "mean_ret_fail_pct": -1.96,
+      "lift_pct": -0.988
+    },
+    {
+      "filter": "int_cov_ge_3.0",
+      "col": "interest_coverage",
+      "threshold": 3.0,
+      "n_pass": 35,
+      "n_fail": 10,
+      "mean_ret_pass_pct": -2.897,
+      "mean_ret_fail_pct": -2.436,
+      "lift_pct": -0.461
+    },
+    {
+      "filter": "int_cov_ge_5.0",
+      "col": "interest_coverage",
+      "threshold": 5.0,
+      "n_pass": 29,
+      "n_fail": 16,
+      "mean_ret_pass_pct": -2.831,
+      "mean_ret_fail_pct": -2.727,
+      "lift_pct": -0.104
+    },
+    {
+      "filter": "piotroski_ge_6",
+      "col": "piotroski_f",
+      "threshold": 6,
+      "n_pass": 18,
+      "n_fail": 27,
+      "mean_ret_pass_pct": -2.855,
+      "mean_ret_fail_pct": -2.754,
+      "lift_pct": -0.101
+    },
+    {
+      "filter": "piotroski_ge_7",
+      "col": "piotroski_f",
+      "threshold": 7,
+      "n_pass": 11,
+      "n_fail": 34,
+      "mean_ret_pass_pct": -3.615,
+      "mean_ret_fail_pct": -2.529,
+      "lift_pct": -1.086
+    },
+    {
+      "filter": "piotroski_ge_8",
+      "col": "piotroski_f",
+      "threshold": 8,
+      "n_pass": 3,
+      "n_fail": 42,
+      "mean_ret_pass_pct": -4.185,
+      "mean_ret_fail_pct": -2.695,
+      "lift_pct": -1.49
+    },
+    {
+      "filter": "sloan_abs_le_0.10",
+      "col": "sloan_accruals",
+      "threshold": 0.1,
+      "n_pass": 39,
+      "n_fail": 6,
+      "mean_ret_pass_pct": -2.582,
+      "mean_ret_fail_pct": -4.176,
+      "lift_pct": 1.594
+    },
+    {
+      "filter": "ev_ebitda_le_15",
+      "col": "ev_ebitda",
+      "threshold": 15,
+      "n_pass": 18,
+      "n_fail": 27,
+      "mean_ret_pass_pct": -2.26,
+      "mean_ret_fail_pct": -3.151,
+      "lift_pct": 0.891
+    },
+    {
+      "filter": "ev_ebitda_le_10",
+      "col": "ev_ebitda",
+      "threshold": 10,
+      "n_pass": 9,
+      "n_fail": 36,
+      "mean_ret_pass_pct": -3.126,
+      "mean_ret_fail_pct": -2.711,
+      "lift_pct": -0.414
+    }
+  ],
+  "combined_all_filters": null,
+  "best_individual_variant": {
+    "filter": "sloan_abs_le_0.10",
+    "col": "sloan_accruals",
+    "threshold": 0.1,
+    "n_pass": 39,
+    "n_fail": 6,
+    "mean_ret_pass_pct": -2.582,
+    "mean_ret_fail_pct": -4.176,
+    "lift_pct": 1.594
+  },
+  "dsr_of_best_deflated_by_trials": {
+    "dsr_stat": -1.712888510629722,
+    "p_value": 0.9566334738056832,
+    "expected_max_sr_from_selection": 1.5745983018542213
+  },
+  "verdict": "EXECUTED \u00b7 10 filter variants tested \u00b7 best=sloan_abs_le_0.10 lift=1.594% \u00b7 TRAILING PROXY \u00b7 needs walk-forward + real forward returns",
+  "governance_note": "Filter-grid research per CEO 2026-09-03 \u00b7 turns 7-filter screenshot into a proper experiment. Trailing-20d used as proxy \u00b7 true forward-return test requires historical PIT fundamentals. DSR-deflated by trial count. No filter promoted \u00b7 this is directional research only.",
+  "generated_utc": "2026-09-03T13:52:13Z"
+}

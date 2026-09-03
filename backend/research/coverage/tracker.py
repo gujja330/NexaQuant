@@ -33,7 +33,7 @@ COVERAGE_MAP = {
     ("D01", "Earnings growth"):      "Populated",
     ("D01", "Margin quality"):       "Implemented",   # in FS L1 as gross_margin_now/prev
     ("D01", "ROIC/ROE"):             "Populated",     # ROA proxy from yfinance · ROIC needs invested capital
-    ("D01", "FCF generation"):       "Populated",     # L2 FCF yield populated for 148 tickers
+    ("D01", "FCF generation"):       "Tested",        # F01-05 composite + filter grid · lift/DSR reported
     ("D01", "FCF conversion"):       "Data-required", # (CFO/NI) not yet computed
     ("D01", "Working capital"):      "Data-required", # WC delta yoy not yet
     ("D01", "Capital allocation"):   "Mapped",
@@ -42,16 +42,16 @@ COVERAGE_MAP = {
     # Domain 2 · Balance sheet
     ("D02", "D/E"):                  "Populated",
     ("D02", "Net Debt/EBITDA"):      "Data-required",
-    ("D02", "Interest coverage"):    "Populated",     # L1 populated
+    ("D02", "Interest coverage"):    "Tested",        # F01-05 filter grid tested >=1.5/3/5 thresholds
     ("D02", "Debt maturity"):        "Data-required",
     ("D02", "Current ratio"):        "Populated",
     ("D02", "Cash quality"):         "Mapped",
     ("D02", "Off-BS exposure"):      "Mapped",
 
     # Domain 3 · Accounting quality
-    ("D03", "Piotroski F"):          "Populated",     # L1 · 148 tickers
-    ("D03", "Beneish M"):            "Populated",
-    ("D03", "Sloan accruals"):       "Populated",
+    ("D03", "Piotroski F"):          "Tested",        # F01-05 filter grid · thresholds 6/7/8
+    ("D03", "Beneish M"):            "Tested",        # F01-05 filter grid · <= -1.78
+    ("D03", "Sloan accruals"):       "Tested",        # F01-05 filter grid · |<=0.10|
     ("D03", "Cash-vs-profit divergence"):"Data-required",
     ("D03", "Receivables quality"):  "Data-required",
     ("D03", "Inventory quality"):    "Data-required",
@@ -60,8 +60,8 @@ COVERAGE_MAP = {
 
     # Domain 4 · Valuation
     ("D04", "P/E"):                  "Implemented",
-    ("D04", "EV/EBITDA"):            "Populated",     # L2
-    ("D04", "FCF yield"):            "Populated",     # L2
+    ("D04", "EV/EBITDA"):            "Tested",        # F01-05 filter grid · <=10/15
+    ("D04", "FCF yield"):            "Tested",        # F01-05 filter grid · >0, >=0.05
     ("D04", "P/B"):                  "Implemented",
     ("D04", "PEG"):                  "Data-required",
     ("D04", "DCF"):                  "Data-required",

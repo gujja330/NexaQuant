@@ -15,7 +15,7 @@ MODULES = [
     "backend.research.deep.d06_industry_cycle",
     "backend.research.deep.d07_macro_fci",
     "backend.research.deep.d08_flows_crowding",
-    "backend.research.deep.d09_deep_technical",
+    "backend.research.deep.t09_deep_technical",
     "backend.research.deep.d10_corp_events_ext",
     "backend.research.deep.d11_governance_india_ext",
     "backend.research.deep.d12_narrative_ext",
