@@ -1,5 +1,5 @@
 # AEGIS · SCORECARD
-_regen `python scripts/aegis_scorecard.py` · 2026-09-03 12:45 UTC · replaces EVIDENCE_LOG + PDF_MATRIX + EXPERIMENT_REGISTRY + 28_REPORTS_
+_regen `python scripts/aegis_scorecard.py` · 2026-09-03 12:58 UTC · replaces EVIDENCE_LOG + PDF_MATRIX + EXPERIMENT_REGISTRY + 28_REPORTS_
 
 **PRODUCTION = FROZEN.** No R2 change. No push. Per CEO Development Freeze.
 
@@ -80,7 +80,7 @@ A module can be 🟢 Implementation and still 🟠 Validation if substrate is th
 | R1 attribution | INDIA | 🟢 | 🟠 | r1_archive_days=0 · early_warnings=0 · BLOCKED (archive gap) | RESEARCH FURTHER · start R1 daily archive |
 | R1 attribution | USA | 🟢 | 🟠 | r1_archive_days=0 · early_warnings=0 · BLOCKED (archive gap) | RESEARCH FURTHER · start R1 daily archive |
 | Composite daily loop | INDIA | 🟢 | 🟠 | n_tickers=16 · R3 admitted?=no (trailing_n<50) · shadow only | KEEP as shadow · REJECT sizing promotion |
-| Composite daily loop | USA | 🟢 | 🟠 | n_tickers=21 · R3 admitted?=no (trailing_n<50) · shadow only | KEEP as shadow · REJECT sizing promotion |
+| Composite daily loop | USA | 🟢 | 🟠 | n_tickers=26 · R3 admitted?=no (trailing_n<50) · shadow only | KEEP as shadow · REJECT sizing promotion |
 | R3 Tier-2 · stacking | both | 🟢 | ❌ | BLOCKED-EVIDENCE (R3 shadow <20) | KEEP gate · lifts when Day-30 fires |
 | R3 Tier-2 · BMA | both | 🟢 | ❌ | BLOCKED-EVIDENCE | KEEP gate |
 | R3 Tier-2 · factor-neutral | both | 🟢 | ❌ | BLOCKED-EVIDENCE | KEEP gate |
