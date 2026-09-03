@@ -60,25 +60,31 @@ def reconcile(market: str, root: Path) -> dict:
     def _add(name: str, ok: bool, detail: str = "", data=None):
         checks.append({"name": name, "ok": ok, "detail": detail, "data": data})
 
-    # ── C1 · Sheets present · CEO 2026-09-03 FINAL 4-sheet spec ─────
-    # Exactly 4 visible sheets · no more no less. Sheet 04 is the
-    # historical reconstruction from canonical Registry (CEO added
-    # to answer "what did AEGIS hold on date X?").
-    required_sheets = [
+    # ── C1 · Sheets present · CEO 2026-09-03 4-sheet base + Sprint A optional 05/06 ──
+    # Base 4 sheets are HARD-LOCKED (Sprint M lock 2026-08-25 · never removed).
+    # Sprint A adds two OPTIONAL sheets driven by configs/aegis_runner_registry.yaml:
+    #   05_R1_Advisory       · appears when R1 workbook_visibility == advisory_only
+    #   06_Composite_Signals · appears when composite workbook_visibility == shadow
+    # Extra sheets beyond the allowed set are still a violation.
+    base_sheets = [
         "01_Portfolio",                    # 1 · current active R2 holdings
         "02_Today_Momentum",               # 2 · today's decisions/recommendations
         "03_Exit_History",                 # 3 · realized production exits only
         "04_Daily_Portfolio_History",      # 4 · daily active reconstruction
     ]
-    missing = [s for s in required_sheets if s not in wb.sheetnames]
-    extra = [s for s in wb.sheetnames if s not in required_sheets]
+    optional_sheets = ["05_R1_Advisory", "06_Composite_Signals"]
+    allowed_sheets = base_sheets + optional_sheets
+    missing_base = [s for s in base_sheets if s not in wb.sheetnames]
+    extra = [s for s in wb.sheetnames if s not in allowed_sheets]
     _add("C1_required_sheets_present",
-          (not missing) and (not extra),
-          (f"missing={missing} · extra={extra}"
-            if (missing or extra)
-            else "exactly 4 required sheets present · no legacy sheets"),
-          {"present": wb.sheetnames, "required": required_sheets,
-           "missing": missing, "extra": extra})
+          (not missing_base) and (not extra),
+          (f"missing_base={missing_base} · extra={extra}"
+            if (missing_base or extra)
+            else f"base 4 present · optional Sprint A sheets: "
+                 f"{[s for s in optional_sheets if s in wb.sheetnames]}"),
+          {"present": wb.sheetnames, "base_required": base_sheets,
+           "optional_allowed": optional_sheets,
+           "missing_base": missing_base, "extra": extra})
 
     # ── C2 · Registry consistency ──────────────────────────────────
     reg = oreg.load_all(root)

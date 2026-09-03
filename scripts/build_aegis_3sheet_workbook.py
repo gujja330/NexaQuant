@@ -863,6 +863,10 @@ def build_workbook(market: str, root: Path, asof: str) -> dict:
     n_closed = _emit_exit_history(wb, market, root, asof, reg_data)
     n_history_rows = _emit_daily_history(wb, market, root, asof, reg_data)
 
+    # Sprint A · optional sheets driven by configs/aegis_runner_registry.yaml
+    # Base 4 above are HARD LOCKED · 05/06 are additive (append-only).
+    optional_emitted = _emit_optional_sprint_a_sheets(wb, market, root, asof, reg_data)
+
     xlsx_dated = root / "reports" / "telegram" / f"aegis_{market.lower()}_{asof}.xlsx"
     xlsx_undated = root / "reports" / "telegram" / f"aegis_history_{market.lower()}.xlsx"
     xlsx_dated.parent.mkdir(parents=True, exist_ok=True)
@@ -872,15 +876,109 @@ def build_workbook(market: str, root: Path, asof: str) -> dict:
     return {
         "market": market.lower(),
         "asof": asof,
-        "sheets": ["01_Portfolio", "02_Today_Momentum",
-                     "03_Exit_History", "04_Daily_Portfolio_History"],
+        "sheets": list(wb.sheetnames),
         "active_holdings": n_active,
         "today_stats": today_stats,
         "closed_positions": n_closed,
         "daily_history_rows": n_history_rows,
+        "optional_sprint_a_sheets": optional_emitted,
         "xlsx_dated": str(xlsx_dated.relative_to(root)),
         "xlsx_undated": str(xlsx_undated.relative_to(root)),
     }
+
+
+def _emit_optional_sprint_a_sheets(wb, market: str, root: Path, asof: str,
+                                    reg_data: dict) -> list[str]:
+    """Emit 05_R1_Advisory and/or 06_Composite_Signals when
+    configs/aegis_runner_registry.yaml declares them.
+
+    Sheets are ADDITIVE · never touch base 4. Safe no-op if config missing.
+    """
+    emitted: list[str] = []
+    try:
+        import yaml
+        cfg = yaml.safe_load(
+            (root / "configs" / "aegis_runner_registry.yaml").read_text(encoding="utf-8")
+        ) or {}
+    except Exception:
+        return emitted
+    runners_cfg = cfg.get("runners", {}) or {}
+    comp_cfg = cfg.get("composite", {}) or {}
+
+    # 05_R1_Advisory · when R1 workbook_visibility == advisory_only
+    r1_vis = str(runners_cfg.get("R1", {}).get("workbook_visibility", "") or "")
+    if r1_vis == "advisory_only":
+        try:
+            _emit_r1_advisory_sheet(wb, market, root, asof)
+            emitted.append("05_R1_Advisory")
+        except Exception as e:
+            # Never break the base 4 · log softly
+            print(f"[optional-sheet] 05_R1_Advisory skipped: {e}", file=sys.stderr)
+
+    # 06_Composite_Signals · when composite workbook_visibility == shadow
+    comp_vis = str(comp_cfg.get("workbook_visibility", "") or "")
+    if comp_vis == "shadow":
+        try:
+            _emit_composite_signals_sheet(wb, market, root, asof)
+            emitted.append("06_Composite_Signals")
+        except Exception as e:
+            print(f"[optional-sheet] 06_Composite_Signals skipped: {e}", file=sys.stderr)
+
+    return emitted
+
+
+def _emit_r1_advisory_sheet(wb, market: str, root: Path, asof: str) -> None:
+    """Render the 05_R1_Advisory sheet · uses builders in backend/delivery/sheets/."""
+    from backend.delivery.sheets.r1_advisory_sheet import (
+        sheet_meta, build_r1_advisory_rows, ADVISORY_BANNER,
+    )
+    meta = sheet_meta()
+    ws = wb.create_sheet(meta["sheet_name"])
+    ncols = len(meta["columns"])
+    _banner(ws, ADVISORY_BANNER, ncols)
+    # Read today's R1 picks · degrade gracefully if not present
+    r1_picks: list[dict] = []
+    picks_path = root / "data" / f"aegis_today_{market.lower()}.csv"
+    if picks_path.exists():
+        try:
+            import pandas as pd
+            df_picks = pd.read_csv(picks_path)
+            if "runner" in df_picks.columns:
+                df_picks = df_picks[df_picks["runner"].astype(str).str.upper() == "R1"]
+            r1_picks = df_picks.head(25).to_dict("records")
+        except Exception:
+            r1_picks = []
+    # Load KG filter result if fresh
+    kg_path = root / "reports" / "research" / f"r1_kg_group_filter_{market.lower()}.json"
+    kg_result = {}
+    if kg_path.exists():
+        try:
+            kg_result = json.loads(kg_path.read_text(encoding="utf-8"))
+        except Exception:
+            kg_result = {}
+    _header(ws, meta["columns"], 4)
+    rows = build_r1_advisory_rows(root, market.lower(), asof, r1_picks, kg_result)
+    for r_idx, row in enumerate(rows, start=5):
+        for c_idx, val in enumerate(row, start=1):
+            ws.cell(row=r_idx, column=c_idx, value=val)
+
+
+def _emit_composite_signals_sheet(wb, market: str, root: Path, asof: str) -> None:
+    """Render the 06_Composite_Signals sheet · shadow · uses composite engine."""
+    from backend.delivery.sheets.composite_signals_sheet import (
+        sheet_meta, build_composite_rows, COMPOSITE_BANNER,
+    )
+    meta = sheet_meta()
+    ws = wb.create_sheet(meta["sheet_name"])
+    ncols = len(meta["columns"])
+    _banner(ws, COMPOSITE_BANNER, ncols)
+    _header(ws, meta["columns"], 4)
+    # Sprint A initial ship · sheet appears with headers only until
+    # per-ticker composite scoring is wired into the daily orchestrator.
+    # The engine (backend/recommendation/composite/engine.py) is complete
+    # and unit-tested · only the daily job that feeds per_ticker_scores
+    # is pending.
+    ws.cell(row=5, column=1, value="(composite scoring loop pending daily orchestrator wire · engine + tests complete)")
 
 
 def main() -> int:
