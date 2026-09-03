@@ -1056,21 +1056,44 @@ def _emit_r1_advisory_sheet(wb, market: str, root: Path, asof: str) -> None:
 
 
 def _emit_composite_signals_sheet(wb, market: str, root: Path, asof: str) -> None:
-    """Render the 06_Composite_Signals sheet · shadow · uses composite engine."""
+    """Render the 06_Composite_Signals sheet · shadow · uses composite engine.
+    V2 §19 · daily loop landed 2026-09-03 · sheet now populates."""
     from backend.delivery.sheets.composite_signals_sheet import (
-        sheet_meta, build_composite_rows, COMPOSITE_BANNER,
+        sheet_meta, build_composite_rows, COMPOSITE_BANNER, COMPOSITE_COLUMNS,
     )
+    from backend.recommendation.composite.daily_loop import run_composite_daily
     meta = sheet_meta()
     ws = wb.create_sheet(meta["sheet_name"])
     ncols = len(meta["columns"])
     _banner(ws, COMPOSITE_BANNER, ncols)
     _header(ws, meta["columns"], 4)
-    # Sprint A initial ship · sheet appears with headers only until
-    # per-ticker composite scoring is wired into the daily orchestrator.
-    # The engine (backend/recommendation/composite/engine.py) is complete
-    # and unit-tested · only the daily job that feeds per_ticker_scores
-    # is pending.
-    ws.cell(row=5, column=1, value="(composite scoring loop pending daily orchestrator wire · engine + tests complete)")
+    try:
+        payload = run_composite_daily(root, market.lower(), asof)
+        signals = payload.get("signals", []) or []
+        r_idx = 5
+        for s in signals:
+            row = [
+                s.get("ticker") or "",
+                s.get("sector") or "",
+                round(float(s.get("R1_score") or 0.0), 4),
+                round(float(s.get("R2_score") or 0.0), 4),
+                round(float(s.get("R3_score") or 0.0), 4),
+                round(float((s.get("trust_weights_normalized") or {}).get("R1", 0.0)), 4),
+                round(float((s.get("trust_weights_normalized") or {}).get("R2", 0.0)), 4),
+                round(float((s.get("trust_weights_normalized") or {}).get("R3", 0.0)), 4),
+                round(float(s.get("composite_score") or 0.0), 4),
+                str(s.get("conviction") or ""),
+                int(s.get("n_runners_active") or 0),
+                ("YES" if (s.get("admissions") or {}).get("R3") == "ADMITTED" else "NO"),
+                "shadow only · no P&L",
+            ]
+            for c_idx, val in enumerate(row, start=1):
+                ws.cell(row=r_idx, column=c_idx, value=val)
+            r_idx += 1
+        if not signals:
+            ws.cell(row=5, column=1, value="(no runner scores today · composite has nothing to fuse)")
+    except Exception as e:
+        ws.cell(row=5, column=1, value=f"(composite loop error · {str(e)[:80]})")
 
 
 def main() -> int:

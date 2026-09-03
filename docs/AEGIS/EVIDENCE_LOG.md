@@ -294,6 +294,55 @@ Historical baseline present but sample thinner. Full panel produced in `reports/
 
 ---
 
+### E-022 · Final 28-report aggregation · V2 §37 · 2026-09-03
+
+- **Deliverable:** consolidated 28-report set in `docs/AEGIS/FINAL_28_REPORTS.md`.
+- **Method:** `scripts/aegis_final_28_reports.py` aggregates every JSON panel + evidence entry + registry entry into ONE document with explicit KEEP/REJECT/RESEARCH FURTHER/PROMOTE-CANDIDATE recommendation per item.
+- **Result:** 23 recommendations issued today · 6 KEEP · 3 REJECT (all correct rejections: NEG-PNL variants · POS-PNL threshold loosening · joint pareto strategies) · 14 RESEARCH FURTHER · **0 PROMOTE-CANDIDATE**.
+- **Governance:** V2 §37 satisfied · no production promotion authorized · no PDF gate weakened.
+
+### E-021 · Fundamentals Feature Store · synthetic smoke batch · 2026-09-03
+
+- **Deliverable:** substrate priming for V2 §5 · Layer-1..Layer-5 all populated with realistic values across India top-10 tickers.
+- **Method:** `scripts/populate_fundamentals_smoke.py` seeds using RELIANCE-magnitude inputs with per-ticker `market_cap` variation.
+- **Result:** Fundamentals FS India → 10 rows (was 1 · synthetic RELIANCE only). All 5 layers populated (n_with_signal_by_layer = {1:10, 2:10, 3:10 incl. inst_13f_change, 4:10, 5:10}).
+- **Data-source tag:** `synthetic_smoke` · every row is transparently marked · **does NOT unblock any downstream PDF gate** (V2 §36 · substrate must be genuine PIT for gate-crossing).
+- **What it does unlock:** Winner Genome extraction can now emit non-null Fundamentals fields for smoke testing · R3 Tier-1 GBM `build_training_frame` receives populated columns · downstream code paths exercised end-to-end.
+- **What it does NOT do:** replace the pending B6 network batch. E-004 R3 baseline-replicate FAIL stands.
+- **Recommendation:** RESEARCH FURTHER · schedule B6 batch (25 tickers · sleep 2s) against real yfinance data before any Tier-2 interpretation.
+
+### E-020 · R1 Advisory Attribution · 2026-09-03
+
+- **Deliverable:** V2 §18 · R1 vs R2 early-warning study substrate.
+- **Method:** `backend/research/r1_advisory_attribution.py` cross-references R1 daily archive against R2 Registry.
+- **Result USA:** r1_archive_days=**0** · early_warnings=0 · r2_days_open=4. India same shape (r2_days_open=14).
+- **Data gap flagged:** R1 daily archive is a Week-3 Sprint A deliverable (`data/r1_daily_archive/YYYY-MM-DD.csv`) not yet running. Module reports the gap transparently rather than fabricating early-warning counts.
+- **Governance:** R1 stays RETIRED_ADVISORY · this attribution is DIAGNOSTIC · does NOT authorize R1 to acquire production authority per V2 §2/§18.
+- **Recommendation:** RESEARCH FURTHER · start daily R1 archive to fill this substrate over coming weeks.
+
+### E-019 · Paper Comparator daily tick · V2 Phase H · 2026-09-03
+
+- **Deliverable:** V2 §27 forward validation substrate.
+- **Method:** `backend/research/paper_comparator/daily_tick.py` records daily JSONL line per (market, asof) with:
+  - R2 production picks · from `recommendations_v3.json`
+  - Standing comparator picks · equal-weight top-10 3-mo momentum · **PERMANENT · never optimized** (V2 §17 P5.5)
+  - Candidate strategy picks · currently empty (no research strategy has cleared gates)
+- **First tick:** India 15 R2 picks + 10 standing comparator · USA 15 R2 picks + 10 standing comparator.
+- **Substrate:** append-only ledger at `reports/research/paper_comparator/{market}.jsonl`.
+- **Recommendation:** KEEP daily tick · accumulate forward evidence · REJECT any promotion until sustained forward window (per PDF requires paper period before controlled change).
+
+### E-018 · Joint Positive+Negative P&L frontier · V2 §11 · 2026-09-03
+
+- **Research family:** joint objective per V2 §11 · every candidate strategy scored on BOTH sides simultaneously.
+- **Method:** `backend/research/joint_pnl/joint_score.py` crosses NEG-PNL variants (9) × chosen POS winner definition (h20_t10pct) → 9 joint scorecards. Applies Pareto-frontier filter dominating on {delta_pnl↑, pos_tp↑, winners_sacrificed↓, forfeited_upside↓}.
+- **Result USA:** **Pareto frontier size = 1** · only `static_time@10d + POS[h20_t10pct]` survives dominance. That strategy has delta_pnl≈0 · pos_tp=0 · winners_sacrificed=0 · forfeited_upside=0.049 — essentially "do nothing" is the only non-dominated point.
+- **Interpretation:** the joint frontier confirms E-016 and E-017 read together: no NEG-control variant beats baseline on the pos-capture side either. Cross-side improvement isn't available at these parameters on this data window.
+- **Governance:** even a frontier strategy would still require PIT audit + walk-forward + OOS + stat-sig + MT-correction + evidence gate + paper period + explicit CEO authorization before any production consideration (V2 §34).
+- **Recommendation:** REJECT all pareto strategies · KEEP the frontier engine as diagnostic infrastructure.
+- **Artifact:** `reports/research/joint_pnl/panel_{market}.json`.
+
+---
+
 ### E-017 · POS-PNL-CAPTURE-60D · additive research family FIRST RUN · 2026-09-03
 
 - **Research family:** additive · declared by CEO 2026-09-03 master prompt · mirror of NEG-PNL-CONTROL-60D.
