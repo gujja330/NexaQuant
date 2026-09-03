@@ -1,12 +1,16 @@
 # AEGIS · SCORECARD
-_regen `python scripts/aegis_scorecard.py` · 2026-09-03 12:31 UTC · replaces EVIDENCE_LOG + PDF_MATRIX + EXPERIMENT_REGISTRY + 28_REPORTS_
+_regen `python scripts/aegis_scorecard.py` · 2026-09-03 12:45 UTC · replaces EVIDENCE_LOG + PDF_MATRIX + EXPERIMENT_REGISTRY + 28_REPORTS_
 
 **PRODUCTION = FROZEN.** No R2 change. No push. Per CEO Development Freeze.
 
 ## 0 · TL;DR
 
+**All previously discovered implementation gaps: YES.**  
+**All PDF research/validation gates: NO.**  
+_(That distinction is the whole point · CEO 2026-09-03)_
+
 - Architecture LOCKED · isolation CI green · R1 advisory · R2 sole production · R3 shadow-only
-- 4 correct REJECT verdicts preserved (P0 · R3 baseline · NEG-PNL · POS-PNL)
+- **6 correct REJECT verdicts preserved forever:** E-001 P0-original · E-004 R3 baseline · E-016 NEG-PNL · E-017 POS-PNL · P0-EXTENSION-01 60-trial · CUSUM_REGIME_SUPPLEMENT real
 - **Zero PROMOTE-CANDIDATE** · nothing meets promotion criteria
 - Pytest 622/0 · xlsx_validator 24 PASS / 0 FAIL / 1 WARN
 

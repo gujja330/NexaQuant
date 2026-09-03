@@ -75,8 +75,12 @@ def _scorecard(root: Path) -> str:
     # 0 · TL;DR
     L.append("## 0 · TL;DR")
     L.append("")
+    L.append("**All previously discovered implementation gaps: YES.**  ")
+    L.append("**All PDF research/validation gates: NO.**  ")
+    L.append("_(That distinction is the whole point · CEO 2026-09-03)_")
+    L.append("")
     L.append("- Architecture LOCKED · isolation CI green · R1 advisory · R2 sole production · R3 shadow-only")
-    L.append("- 4 correct REJECT verdicts preserved (P0 · R3 baseline · NEG-PNL · POS-PNL)")
+    L.append("- **6 correct REJECT verdicts preserved forever:** E-001 P0-original · E-004 R3 baseline · E-016 NEG-PNL · E-017 POS-PNL · P0-EXTENSION-01 60-trial · CUSUM_REGIME_SUPPLEMENT real")
     L.append("- **Zero PROMOTE-CANDIDATE** · nothing meets promotion criteria")
     L.append("- Pytest 622/0 · xlsx_validator 24 PASS / 0 FAIL / 1 WARN")
     L.append("")
