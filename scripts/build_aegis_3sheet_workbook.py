@@ -1028,18 +1028,42 @@ def _emit_r1_advisory_sheet(wb, market: str, root: Path, asof: str) -> None:
     ws = wb.create_sheet(meta["sheet_name"])
     ncols = len(meta["columns"])
     _banner(ws, ADVISORY_BANNER, ncols)
-    # Read today's R1 picks · degrade gracefully if not present
+    # Read today's R1 picks · degrade gracefully if not present.
+    # Real R1 CSV schema (from adaptive_rec_v2 daily output):
+    #   Generated · Profile · Stock · Sector · Strength · Score /100 · Current Price
+    #   Buy Range · Hist Target · Prob +ve · Rec Confidence % · Why
+    # Normalize into the fields the sheet builder expects (ticker · action · rank · ...).
     r1_picks: list[dict] = []
-    picks_path = root / "data" / f"aegis_today_{market.lower()}.csv"
-    if picks_path.exists():
+    # Per-market candidates · India can fall back to legacy aegis_today.csv ·
+    # USA MUST NOT (that file is India's daily R1 output · loading it into USA
+    # would misattribute India picks as USA · verified 2026-09-03).
+    picks_candidates = [root / "data" / f"aegis_today_{market.lower()}.csv"]
+    if market.lower() == "india":
+        picks_candidates.append(root / "data" / "aegis_today.csv")
+    for picks_path in picks_candidates:
+        if not picks_path.exists(): continue
         try:
             import pandas as pd
             df_picks = pd.read_csv(picks_path)
+            # Modern schema
             if "runner" in df_picks.columns:
                 df_picks = df_picks[df_picks["runner"].astype(str).str.upper() == "R1"]
+            # Legacy R1 schema · Stock/Profile columns
+            if "Stock" in df_picks.columns and "ticker" not in df_picks.columns:
+                df_picks = df_picks.rename(columns={
+                    "Stock": "ticker",
+                    "Sector": "sector",
+                    "Strength": "action",
+                    "Score /100": "score",
+                    "Buy Range": "entry_zone",
+                    "Why": "bull_case",
+                    "Rec Confidence %": "confidence",
+                    "Hist Target": "target",
+                })
             r1_picks = df_picks.head(25).to_dict("records")
+            if r1_picks: break   # first source with data wins
         except Exception:
-            r1_picks = []
+            continue
     # Load KG filter result if fresh
     kg_path = root / "reports" / "research" / f"r1_kg_group_filter_{market.lower()}.json"
     kg_result = {}
