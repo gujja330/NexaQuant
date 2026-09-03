@@ -16,6 +16,7 @@ COMPOSITE_COLUMNS = [
 ]
 
 COMPOSITE_BANNER = (
+    "⚠️ RESEARCH ONLY · DO NOT USE FOR INVESTMENT DECISIONS · "
     "COMPOSITE META-ENSEMBLE · shadow only · zero contribution to production P&L. "
     "R3 admitted only when trailing_closed_trades(R3) >= 50 (typically post Day-60). "
     "Promotion of this signal set to primary operator recommendation requires "

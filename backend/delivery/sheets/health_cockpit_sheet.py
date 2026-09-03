@@ -21,7 +21,8 @@ from pathlib import Path
 HEALTH_COLUMNS = ["Metric", "Market", "Value", "Status", "Detail"]
 
 HEALTH_BANNER = (
-    "AEGIS HEALTH COCKPIT · Sprint A governance surface · "
+    "SUPPORTING · system/governance surface · NOT FOR INVESTMENT DECISIONS · "
+    "AEGIS HEALTH COCKPIT · Sprint A governance · "
     "single glance of every gate + funnel + budget in the platform. "
     "Green = OK · Yellow = degraded · Red = blocked."
 )

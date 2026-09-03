@@ -932,6 +932,12 @@ def build_workbook(market: str, root: Path, asof: str) -> dict:
     # Base 4 above are HARD LOCKED · 05/06 are additive (append-only).
     optional_emitted = _emit_optional_sprint_a_sheets(wb, market, root, asof, reg_data)
 
+    # CEO 2026-09-03 · Investments primary sheet · placed as FIRST tab.
+    # This is the operator's daily view · consolidates R1/R2/Composite into
+    # ONE actionable list with mandatory Dynamic Stop trichotomy.
+    _emit_investments_sheet_first(wb, market, root, asof, reg_data, momentum_ledger)
+    optional_emitted.insert(0, "01_Investments")
+
     xlsx_dated = root / "reports" / "telegram" / f"aegis_{market.lower()}_{asof}.xlsx"
     xlsx_undated = root / "reports" / "telegram" / f"aegis_history_{market.lower()}.xlsx"
     xlsx_dated.parent.mkdir(parents=True, exist_ok=True)
@@ -1001,6 +1007,88 @@ def _emit_optional_sprint_a_sheets(wb, market: str, root: Path, asof: str,
             print(f"[optional-sheet] 06_Composite_Signals skipped: {e}", file=sys.stderr)
 
     return emitted
+
+
+def _emit_investments_sheet_first(wb, market: str, root: Path, asof: str,
+                                    reg_data: dict, momentum_ledger: dict) -> None:
+    """Emit 01_Investments as the FIRST tab · operator daily view."""
+    from backend.delivery.sheets.investments_sheet import (
+        sheet_meta, build_investments_rows, INVESTMENTS_BANNER,
+    )
+    meta = sheet_meta()
+    # Load R1 picks (same logic as R1 advisory sheet)
+    r1_picks: list[dict] = []
+    picks_candidates = [root / "data" / f"aegis_today_{market.lower()}.csv"]
+    if market.lower() == "india":
+        picks_candidates.append(root / "data" / "aegis_today.csv")
+    for picks_path in picks_candidates:
+        if not picks_path.exists(): continue
+        try:
+            import pandas as pd
+            df_picks = pd.read_csv(picks_path)
+            if "runner" in df_picks.columns:
+                df_picks = df_picks[df_picks["runner"].astype(str).str.upper() == "R1"]
+            if "Stock" in df_picks.columns and "ticker" not in df_picks.columns:
+                df_picks = df_picks.rename(columns={
+                    "Stock": "ticker", "Sector": "sector",
+                    "Strength": "action", "Buy Range": "entry_zone",
+                    "Why": "bull_case",
+                })
+            r1_picks = df_picks.head(25).to_dict("records")
+            if r1_picks: break
+        except Exception: continue
+
+    data = build_investments_rows(root, market.lower(), asof, reg_data, momentum_ledger, r1_picks)
+    ws = wb.create_sheet(meta["sheet_name"])
+    # Reorder to first tab
+    wb.move_sheet(ws, offset=-len(wb.sheetnames) + 1)
+    ncols = len(meta["columns"])
+    _banner(ws, INVESTMENTS_BANNER, ncols)
+
+    # Section A · NEW opportunities
+    r = 3
+    ws.cell(row=r, column=1, value=f"🟢 NEW OPPORTUNITIES · {asof} · sorted by Score ↓").font = FONT_HEADER
+    r += 1
+    _header(ws, meta["columns"], r)
+    r += 1
+    if data["new_rows"]:
+        for row in data["new_rows"]:
+            for c_idx, val in enumerate(row, start=1):
+                ws.cell(row=r, column=c_idx, value=val)
+            r += 1
+    else:
+        ws.cell(row=r, column=1, value="(no INVEST verdicts today across R1/R2)")
+        r += 1
+
+    # Section B · ACTIVE positions
+    r += 2
+    ws.cell(row=r, column=1, value=f"🟡 ACTIVE POSITIONS · currently held · sorted by Score ↓").font = FONT_HEADER
+    r += 1
+    _header(ws, meta["columns"], r)
+    r += 1
+    if data["active_rows"]:
+        for row in data["active_rows"]:
+            for c_idx, val in enumerate(row, start=1):
+                ws.cell(row=r, column=c_idx, value=val)
+            r += 1
+    else:
+        ws.cell(row=r, column=1, value="(no ACTIVE R2 holdings)")
+        r += 1
+
+    r += 2
+    r = _legend(ws, [
+        "Score · unified 0-100 · higher = better · combines confidence + P&L trend + safety margin",
+        "Action · BUY (new) · HOLD (active above stop) · EXIT (stop hit) · REVIEW (data error)",
+        "Runner · which engine produced the signal · R1=advisory · R2=production · Composite=research",
+        "Dynamic Stop · MANDATORY on every row · trichotomy:",
+        "  ₹XXX                        = valid dynamic stop (R2 · ATR-14 · k=2)",
+        "  ₹XXX · SUGGESTED           = R1 advisory · no auto-exit per V2 §18",
+        "  N/A · advisory · no auto-exit = R1 with no ATR available",
+        "  DATA_ERROR · <reason>       = engine/data failure · never blank",
+        "Entry Date · from Registry for active positions · today for new BUY",
+        "Holding Days · active positions only · calendar days since Registry entry",
+        "R:R · Reward/Risk · (Target − Current) / (Current − Stop) · only when both present",
+    ], r, ncols)
 
 
 def _emit_health_cockpit_sheet(wb, market: str, root: Path, asof: str) -> None:
