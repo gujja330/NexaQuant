@@ -227,6 +227,73 @@ Categories used everywhere:
 
 ---
 
+### E-016 · NEG-PNL-CONTROL-60D · additive research family FIRST RUN · 2026-09-03
+
+- **Research family:** additive · declared by CEO 2026-09-03 · not a P0 replacement.
+- **Question:** during the latest 60 calendar days of AEGIS output, could an earlier, more disciplined control/exit rule have reduced negative P&L WITHOUT destroying positions that subsequently recovered or won?
+- **Scope:** 18 tests declared · core (T1, T2, T3, T5, T6, T12, T13, T14, T15, T16) implemented in this run · T4/T7/T8/T9/T10 deferred pending substrate enrichers.
+- **Window:** entry_date ≥ (2026-09-03 − 60d) OR still active in window OR fresh exit in window.
+- **Trial family count:** 9 counterfactual variants (6 static-% thresholds + 3 static-timing) · Deflated Sharpe applies with `n_trials = 9`, not `1`.
+
+#### USA · 536 positions in window · **verdict: no control variant improves baseline**
+
+Trajectory classification:
+  - IMMEDIATE_LOSER 217 · TEMPORARY_LOSER 53 · WINNER 229 · FLAT 36 · DEEP_LOSER 1
+
+MFE/MAE buckets (key intervention group HIGH_MAE_LOW_MFE = 34):
+  - LOW_MAE_LOW_MFE 446 · HIGH_MAE_LOW_MFE 34 · LOW_MAE_HIGH_MFE 47 · HIGH_MAE_HIGH_MFE 9
+
+Depth cohorts: 108 crossed −2% · 62 crossed −3% · 26 crossed −5% · 9 crossed −7%.
+
+Counterfactual variants vs baseline (10 000 paired-bootstrap, α=0.05):
+
+| Variant | n_exit | Δ mean P&L | 95% CI | p_two | winners_sacrificed | winner_rate |
+|---|---:|---:|---|---:|---:|---:|
+| static_pct@−2% | 108 | **−0.133%** | [−0.255%, −0.025%] | **0.016** | 15 | 13.9% |
+| static_pct@−3% | 62 | **−0.130%** | [−0.249%, −0.029%] | **0.012** | 10 | 16.1% |
+| static_pct@−4% | 38 | **−0.098%** | [−0.197%, −0.017%] | **0.018** | 4 | 10.5% |
+| static_pct@−5% | 26 | −0.062% | [−0.129%, +0.000%] | 0.051 | 2 | 7.7% |
+| static_pct@−6% | 17 | −0.039% | [−0.091%, +0.004%] | 0.077 | 1 | 5.9% |
+| static_pct@−7% | 9 | −0.008% | [−0.033%, +0.019%] | 0.508 | 0 | 0.0% |
+| static_time@3d | 41 | −0.042% | [−0.138%, +0.046%] | 0.352 | 18 | 43.9% |
+| static_time@5d | 59 | **−0.193%** | [−0.327%, −0.073%] | **0.000** | 23 | 39.0% |
+| static_time@10d | 0 | −0.000% | [−0.000%, +0.000%] | 0.480 | 0 | 0.0% |
+
+**Result:** 🔴 **NO CONTROL VARIANT IMPROVES BASELINE.**
+
+Three tighter static-% stops (−2%, −3%, −4%) are statistically-significantly WORSE at p < 0.02. Static 5-day time-stop is worse at p ≈ 0. Every tighter variant sacrifices winners (up to 44% sacrifice rate on static_time@3d). The loosest variant (−7% or 10d) has effectively no effect (delta ≈ 0, non-significant). After Deflated-Sharpe deflation by 9 trials, none of these results survives as a positive edge either.
+
+**Empirical answer to the research question:** during this 60-day window, **an earlier control rule would have hurt or done nothing**. R2's current exit discipline should not be tightened based on this evidence.
+
+#### India · 67 positions in window
+
+Historical baseline present but sample thinner. Full panel produced in `reports/research/neg_pnl_control_60d/panel_india.json`.
+
+#### Governance preserved
+
+- P0-original (E-001) unchanged · this is NOT a P0 replacement.
+- No R2 change proposed.
+- No production stop tightened.
+- All 9 variants counted in trial family.
+- Bootstrap paired · same-position comparison as PDF Sec 27 requires.
+- Deflated Sharpe deflation flagged with n_trials=9 for any future "best variant" claim.
+
+#### Deferred tests
+
+- T4 (static vs dynamic ATR comparison) · needs dynamic-risk producer for both markets · Sprint A Week-3 slot.
+- T7 (signal deterioration replay) · needs richer Signal Ledger · blocked by natural accumulation (E-013).
+- T8 (regime-conditioned loss control) · needs sufficient rows per regime · regime enricher landed (E-009) · rerun once sample matures.
+- T9 (Sector × Cap × Investability interaction) · blocked on B3 batch (cap network job pending).
+- T10 (R1 vs R2 control comparison) · needs R1 daily archive.
+- T11 (administrative-exit separation) · already applied in E-002 · re-verified in this run.
+
+- **Artifacts:**
+  - `reports/research/neg_pnl_control_60d/dataset_{market}.json`
+  - `reports/research/neg_pnl_control_60d/panel_{market}.json`
+  - `reports/research/neg_pnl_control_60d/summary_{market}.md`
+
+---
+
 ## Additive extensions declared (not yet run)
 
 - **P0-EXTENSION-01** · 60-trial (k×m×horizon) parameter surface · gated on regime enricher landing first (now unblocked · can proceed after Batch B commit).
