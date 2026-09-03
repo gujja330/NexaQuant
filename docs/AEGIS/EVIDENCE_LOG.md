@@ -1,0 +1,172 @@
+# AEGIS · Evidence Log
+
+**Status:** IMMUTABLE · APPEND-ONLY · CEO 2026-09-03 controlling contract.
+
+## Governance rule
+
+> **PDF = immutable research/governance contract.**
+> **Current repository state = implementation status.**
+> **New work = additive advancement only.**
+> **A failed experiment = evidence, never something we erase.**
+
+This log records every experiment run, its exact acceptance criteria per the PDF, and its outcome. Entries are **never** deleted, rewritten, or "improved after the fact." An improvement is a new entry with a new `experiment_id` that references the prior one. Any correction to a prior entry lives as an errata note appended to that entry (and dated).
+
+Categories used everywhere:
+
+| Badge | Meaning |
+|---|---|
+| 🟢 PASSED | Real acceptance criteria met against real substrate |
+| 🔴 FAILED | Experiment ran with adequate substrate · acceptance criteria not met |
+| 🟠 BLOCKED | Foundation gap prevents the experiment from producing a meaningful result · rerun after foundation is fixed · do NOT interpret as negative |
+
+"Code exists" is not a category. A green isolation-CI is only 🟢 if the acceptance criterion is "isolation CI passes."
+
+---
+
+## Entries
+
+### E-001 · P0-original · Dynamic Exit Bridge · 2026-09-03
+
+- **Runner scope:** R2 (production)
+- **PDF acceptance criteria** (verbatim from spec):
+  - ≥ 539 historical R2 closes replayed
+  - Actual vs counterfactual per position
+  - 10 000 paired bootstrap
+  - Segmented by regime (NORMAL / WEAKENING / RISK_OFF / CRASH / RECOVERY)
+  - Counterfactual expectancy ≥ actual with **n ≥ 50**
+  - After validation · ≥ 1 genuine enforcement fire within first 20 trading days
+- **Parameters tested (single point):**
+  - `k_stop = 2.0`
+  - `m_target = 3.0`
+  - `horizon = 60` trading days
+  - `atr_window = 14`
+  - OHLC ambiguity resolution: `PESSIMISTIC_STOP_FIRST` (CANONICAL 1)
+- **Substrate used:**
+  - Outcome Dataset · USA n=479 non-admin closed R2 · India n=20
+  - Regime segmentation: **not honored** — `regime_at_entry` null on every row (enricher not wired). This is a substrate deficiency vs the PDF spec, recorded here so the E-001 result is qualified.
+- **Result:** 🔴 **FAILED**
+  - USA · mean_delta = −0.03% · 95% CI [−0.12%, +0.06%] · p = 0.56 · trade Sharpe counterfactual 0.067 vs actual 0.078
+  - India · mean_delta = +0.75% · 95% CI [−0.64%, +2.23%] · p = 0.30 · n=20 (below acceptance floor of 50)
+  - Counterfactual exit-reason distribution (USA): `HORIZON_EXPIRED 452 · STOP_HIT 25 · TARGET_HIT 2` — 94% never fired stop or target within 60d.
+- **Interpretation:** at this single parameter point, the dynamic ATR-trailing doctrine does not clear the PDF gate. Stops/targets are too wide relative to typical R2 holding excursions in the tested sample.
+- **Artifacts (do not delete):**
+  - `reports/research/r2_upgrades/p0_exit_bridge_replay_usa.json`
+  - `reports/research/r2_upgrades/p0_exit_bridge_replay_india.json`
+- **Substrate qualification (transparency):** regime segmentation missing → this FAIL cannot be attributed to any specific regime. If regime enrichment later reveals the doctrine works in RISK_OFF but not NORMAL, that is a NEW entry (E-001-errata or E-P0-EXT-01), not a rewrite of E-001.
+
+---
+
+### E-002 · R2 zero-entry funnel · symptom count · 2026-09-03
+
+- **Runner scope:** R2
+- **PDF acceptance criteria:** preliminary diagnosis with **root cause identified**, classified against {NO_QUALIFYING_SIGNAL / RUNNER_NOT_EXECUTED / PIPELINE_FAILURE / DORMANT_BY_DESIGN}.
+- **What was produced:** per-stage funnel counts M1–M8. India collapses M3→M4 (dropped 228 of 230 tickers). USA collapses same transition (dropped 802 of 908). Bottleneck **location** identified.
+- **Result:** 🟠 **BLOCKED / INCOMPLETE** — location named, cause not opened. Cannot yet classify against the 4 PDF categories.
+- **Follow-up:** written readout with root cause traced through momentum engine code → `docs/AEGIS/R2_ZERO_ENTRY_READOUT.md` (pending).
+- **Artifacts:**
+  - `reports/research/momentum_funnel/india/latest.json`
+  - `reports/research/momentum_funnel/usa/latest.json`
+
+**Errata / follow-up · 2026-09-03 (same day):** root cause traced through code in `backend/research/short_term_momentum.py:260-340` (`categorize()` returns IGNORE for any ticker outside ±4/±8/±12% 1d/3d/5d bands with vol-adjustment cap 2x). 227/230 India + 802/908 USA correctly classified as IGNORE in the tested calm-market window. Classified as **DORMANT_BY_DESIGN** per PDF Sec 2. Signal Silence correctly does NOT fire (all runners simultaneously quiet · condition explicitly held by trigger). MVS reports below floor but relaxation NOT applied (relaxation is pre-registered and validated per PDF · Sprint A hasn't done that pre-work · budget stays at 15/15). Readout at `docs/AEGIS/R2_ZERO_ENTRY_READOUT.md`. E-002 status upgraded 🟠 → **CLOSED** (classified, not "passed" — the classification itself is the deliverable per PDF).
+
+---
+
+### E-003 · R3 isolation CI · 2026-09-03
+
+- **Runner scope:** R3 (research challenger)
+- **PDF acceptance criteria:** R3 cannot write to production paths · cannot import R2 SSoT / Registry writers · cannot appear in delivered workbook · cannot mutate R2 weights.
+- **What was produced:** 4 CI tests in `tests/isolation/test_r3_no_production_writes.py` + 1 CI test in `tests/isolation/test_composite_no_registry_writes.py` + 1 in `test_r1_advisory_no_pnl.py` · pytest verifies isolation on every push.
+- **Result:** 🟢 **PASSED**
+- **Note:** this is the only 🟢 Sprint A entry. Every other item is 🔴 or 🟠.
+- **Artifacts:** `tests/isolation/`
+
+---
+
+### E-004 · R3 Tier-1 GBM baseline · 2026-09-03
+
+- **Runner scope:** R3 shadow
+- **PDF acceptance criteria:** GBM baseline trained · walk-forward folds per PDF Part 4 protocol (train=252, test=63, step=21, embargo=5) · Platt calibration on OOF predictions · SHAP importance emitted · R3 must **replicate the R2 baseline** (within ±5% IC / 0.02 abs) before adding new features.
+- **Substrate used:** Outcome Dataset USA n=500 with **effectively empty features** (Fundamentals Feature Store has 1 synthetic RELIANCE row today · all 19 fundamentals fields null-then-zero-filled in training).
+- **Result:** 🔴 **FAILED** on the baseline-replicate gate specifically (IC gap 0.10 vs tol 0.02). Substrate insufficient to interpret as evidence about the GBM doctrine itself — the model trained on zeros.
+- **Interpretation:** baseline gate correctly BLOCKS Tier-2 features (this is the design working). Whether the R3 doctrine has any edge is not yet testable — needs real fundamentals populated first.
+- **Artifacts:**
+  - `reports/research/r3/models/gbm_tier1_usa.json`
+  - `reports/research/r3/baseline_replicate_usa.json`
+
+---
+
+### E-005 · P2 sector/regime α,β grid · 2026-09-03
+
+- **Runner scope:** R2 (research)
+- **PDF acceptance criteria:** walk-forward folds · out-of-sample separation · deflated Sharpe for grid size (9 trials).
+- **Substrate deficiency:** `sector_regime_score` and `market_regime_score` are 0 for every row (enricher not wired). "Folds" used are naive contiguous slices, not walk-forward per Part 4.
+- **Result:** 🟠 **BLOCKED / NOT INTERPRETABLE** — best (α=0, β=0) is a trivially true statement about multiplying regime features that are zero. This is not evidence about the P2 doctrine.
+- **Artifacts:** `reports/research/r2_upgrades/p2_sector_regime_usa.json`
+
+---
+
+### E-006 · P3 KG-community γ grid · 2026-09-03
+
+- **Runner scope:** R2 (research)
+- **PDF acceptance criteria:** PIT community snapshots (CANONICAL 3) · community stability check · incremental info beyond Cap×Sector · permutation importance · out-of-sample fold.
+- **Substrate deficiency:** historical KG snapshots archived aggregate stats only — per-node community IDs were never persisted. Backfill assigns `community_id = UNKNOWN` sentinel · γ effectively 0 for every historical position.
+- **Result:** 🟠 **BLOCKED** — γ grid ran on zero communities. Not a P3 result.
+- **Fix path:** start persisting per-node community IDs going forward · accumulate → rerun.
+- **Artifacts:** `reports/research/r2_upgrades/p3_kg_community_usa.json` · `reports/research/kg_pit_snapshots/{market}/*.json`
+
+---
+
+### E-007 · P4 Cap × Sector interaction · 2026-09-03
+
+- **Runner scope:** R2 (research)
+- **PDF acceptance criteria:** Runner × Cap × Sector × **Investability** table · LR test (Cap-only vs Cap+Sector).
+- **Substrate deficiency:** `cap_bucket` null everywhere in Outcome Dataset · **Investability** axis not declared in schema at all.
+- **Result:** 🟠 **BLOCKED / NOT TESTABLE** — n=0 usable rows in LR fit. Cannot be interpreted as "Cap × Sector has no relationship."
+- **Fix path:** wire cap-bucket enricher (market-cap lookup at entry_date) · add investability axis to schema · rebuild Outcome Dataset · rerun.
+- **Artifacts:** `reports/research/r2_upgrades/p4_cap_sector_usa.json`
+
+---
+
+### E-008 · P1 joint Platt calibration · 2026-09-03
+
+- **Runner scope:** R2
+- **PDF acceptance criteria:** weekly refit · ECE ≤ 0.05 for 4 consecutive weekly refits · calibrated confidence replaces raw in Telegram/XLSX AFTER gate · confidence never drives sizing before gate.
+- **Substrate deficiency:** Signal Ledger has only 3 historical snapshot files → 12 valid rows for the joint fit · below n=50 sample floor.
+- **Result:** 🟠 **BLOCKED / INSUFFICIENT SAMPLE** — previous calibration retained per PDF rule (never deploy worse calibration).
+- **Fix path:** accumulate ledger snapshots via daily orchestrator · rerun weekly.
+- **Artifacts:** `reports/research/r2_upgrades/p1_calibration_usa.json`
+
+---
+
+## P0-EXTENSION-01 · declared, not run
+
+- **Extends:** E-001 (P0-original).
+- **Motivation:** E-001 FAILED at one parameter point. PDF does not permit reinterpreting the doctrine as failed on a single-trial evidence base. Extension explores an additive parameter surface.
+- **Design:**
+  - `k_stop ∈ {1.0, 1.5, 2.0, 2.5, 3.0}` (5 values)
+  - `m_target ∈ {1.5, 2.0, 3.0, 4.0}` (4 values)
+  - `horizon ∈ {20, 40, 60}` trading days (3 values)
+  - **Total trial family: 60 · trial accounting matrix updated when extension runs.**
+  - Deflated Sharpe applied with `n_trials = 60`, not `1`.
+  - Regime segmentation mandatory once regime enricher lands.
+  - Walk-forward folds (252 / 63 / 21 / 5) applied per PDF Part 4.
+- **Preservation invariant:** E-001 result stays. E-P0-EXT-01 is a separate entry with its own fingerprint. Even if extension finds a passing parameter point, the ORIGINAL point (k=2, m=3, 60d) remains recorded as FAIL forever.
+- **Status:** DECLARED · not yet run · gated on regime enricher landing first (segmentation is mandatory per PDF).
+
+## R2-EXT-EXIT-DOCTRINE-01 · alternative exit doctrines · declared
+
+- **Motivation:** if E-P0-EXT-01 also fails, alternative doctrines are tested as separate research tickets (not P0 replacements).
+- **Candidates:**
+  - Chandelier stop (trailing off n-bar high, not close)
+  - Fixed-% stop (no ATR dependence)
+  - MFE-anchored stop (trail from realized max)
+  - Volatility-regime-aware k (different k under RISK_OFF vs NORMAL)
+- Each becomes its own experiment entry when run. None can call itself "P0."
+
+---
+
+## Errata policy
+
+Any correction to an existing entry lives here as a dated errata line, never as an in-place rewrite of the entry above.
+
+_(no errata yet)_
