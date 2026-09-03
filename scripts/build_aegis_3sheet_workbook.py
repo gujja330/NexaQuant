@@ -357,6 +357,45 @@ def _load_dynamic_risk(root, market):
     return out
 
 
+def _atr14_at_date(root, market, ticker, asof: str):
+    """PIT ATR-14 at asof from parquet · returns float or None.
+    Same math the P0 exit-bridge replay uses · single source of truth."""
+    try:
+        import pandas as pd
+        from backend.research._paths import price_parquet_path
+        p = price_parquet_path(root, market, str(ticker).upper())
+        if not p or not p.exists(): return None
+        df = pd.read_parquet(p)
+        df.index = pd.to_datetime(df.index)
+        target_dt = pd.to_datetime(asof).normalize()
+        if target_dt in df.index:
+            idx = df.index.get_loc(target_dt)
+        else:
+            mask = df.index <= target_dt
+            if not mask.any(): return None
+            idx = int(mask.sum()) - 1
+        if isinstance(idx, slice) or hasattr(idx, "__len__"): return None
+        if idx < 14: return None
+        highs = df["high"].to_numpy(); lows = df["low"].to_numpy(); closes = df["close"].to_numpy()
+        trs = []
+        for i in range(idx - 13, idx + 1):
+            if i <= 0: continue
+            trs.append(max(highs[i] - lows[i],
+                           abs(highs[i] - closes[i-1]),
+                           abs(lows[i] - closes[i-1])))
+        if not trs: return None
+        return sum(trs) / len(trs)
+    except Exception:
+        return None
+
+
+def _target_from_atr_fallback(entry_price, atr, m_target: float = 3.0):
+    """P0-consistent ATR-based target · used when Registry has no
+    structural target field. m=3.0 matches P0 replay parameters."""
+    if not entry_price or not atr or atr <= 0: return None
+    return float(entry_price) + m_target * float(atr)
+
+
 def _target_from_registry(o):
     """Extract T1/T2 target from Registry Opportunity if present in
     initial_signal or via structured fields. Returns None if not
@@ -424,7 +463,7 @@ def _emit_portfolio(wb, market, root, asof, reg_data):
              "Unrealized P&L %", "Holding Days",
              "Dynamic Stop", "Stop Distance %", "Stop Type",
              "Target", "Target Distance %", "Exit Horizon",
-             "Engine Verdict", "Action", "Would-Have-Exited-On",
+             "Engine Verdict", "Action", "Est. Exit Window",
              "Risk/Reward", "Provenance"]
     _header(ws, hdr, 4)
     widths = [28, 10, 18, 8, 12, 12, 14, 16, 12, 14, 14, 12, 12, 16, 12, 20, 10, 20, 12, 22]
@@ -462,18 +501,30 @@ def _emit_portfolio(wb, market, root, asof, reg_data):
             action = "REVIEW"
         else:
             action = "HOLD"
-        # Would-Have-Exited-On from bridge audit (counterfactual)
-        would_exit_on = "UNAVAILABLE"
-        if dyn_d:
-            trigger = dyn_d.get("trigger_date")
-            if trigger: would_exit_on = trigger
-        # Target · from Registry if canonically present
+        # Target · Registry first, then ATR-based fallback (P0-consistent, m=3.0)
         target = _target_from_registry(o)
+        target_source = "registry" if target else None
+        if not target and entry_p:
+            atr = _atr14_at_date(root, market, o.ticker, o.created_date or asof)
+            target = _target_from_atr_fallback(entry_p, atr, m_target=3.0)
+            if target: target_source = "atr_fallback_m3"
         target_dist_pct = None
         if target and curr_p and target > 0:
             target_dist_pct = round((target - curr_p) / curr_p * 100, 2)
-        # Exit Horizon from Registry initial_signal
-        horizon = _horizon_from_registry(o)
+        # Exit Horizon from Registry initial_signal · fallback to P0 default 60d
+        horizon = _horizon_from_registry(o) or 60
+        # Est. Exit Window · FORWARD-LOOKING (CEO 2026-09-03 fix ·
+        # replaces backward-looking "Would-Have-Exited-On" which is
+        # structurally N/A for active positions).
+        est_exit_window = "UNAVAILABLE"
+        try:
+            if o.created_date and horizon:
+                exit_est = date.fromisoformat(o.created_date) + timedelta(days=horizon)
+                today_d = date.fromisoformat(asof)
+                days_remaining = (exit_est - today_d).days
+                est_exit_window = f"{exit_est.isoformat()} (~{days_remaining}d)"
+        except Exception:
+            pass
         # Risk/Reward · only when BOTH dyn_stop and target available
         rr = None
         if dyn_stop and target and curr_p:
@@ -495,9 +546,9 @@ def _emit_portfolio(wb, market, root, asof, reg_data):
             round(target, 4) if target else "UNAVAILABLE",
             target_dist_pct if target_dist_pct is not None else "UNAVAILABLE",
             horizon if horizon is not None else "UNAVAILABLE",
-            engine_verdict, action, would_exit_on,
+            engine_verdict, action, est_exit_window,
             rr if rr is not None else "UNAVAILABLE",
-            "canonical:Registry+dynamic_risk_v2+prices+sector_cache",
+            f"canonical:Registry+dynamic_risk_v2+prices+sector_cache+target_src={target_source or 'none'}",
         ], r, pnl_col_idx=8)
         r += 1
     if not active:
@@ -510,10 +561,10 @@ def _emit_portfolio(wb, market, root, asof, reg_data):
         "Unrealized P&L % · (Current − Entry) / Entry · positive=green · negative=red.",
         "Dynamic Stop · canonical dynamic_risk_v2 output · authoritative production value.",
         "Stop Distance % · (Current − Stop) / Current · numeric so operator can sort by risk buffer.",
-        "Target · from Registry initial_signal · UNAVAILABLE means source has no structural target field.",
+        "Target · Registry-provided OR ATR-based fallback = Entry + 3·ATR14(entry) · same math as P0 replay · Provenance shows source.",
         "Target Distance % · (Target − Current) / Current · shows upside gap.",
-        "Exit Horizon · days from Registry initial_signal · UNAVAILABLE means source has no horizon.",
-        "Would-Have-Exited-On · bridge audit counterfactual trigger date · UNAVAILABLE = no trigger today.",
+        "Exit Horizon · days from Registry initial_signal · defaults to 60 (P0 horizon) when source has no horizon.",
+        "Est. Exit Window · FORWARD-LOOKING · entry_date + horizon · shows the planned close date + days-remaining.",
         "Risk/Reward · Reward / Risk = (Target−Current) / (Current−Stop) · only when both Target and Stop present.",
         "Action · HOLD (above stop) · EXIT (at/below stop) · REVIEW (no canonical stop available).",
         "UNAVAILABLE = canonical source returned no value · never fabricated.",
@@ -586,7 +637,15 @@ def _emit_today_momentum(wb, market, root, asof, momentum_ledger):
         entry_zone = e.get("entry_zone") or e.get("entry_zone_str") or "UNAVAILABLE"
         stop = e.get("stop") or e.get("suggested_stop")
         target = e.get("target") or e.get("t1") or e.get("target_price")
-        conf = e.get("confidence") or e.get("confidence_pct")
+        # Confidence · populate for EVERY action · diagnostic info about
+        # signal strength, not just execution parameter. CEO 2026-09-03.
+        # Try multiple aliases; last resort read from raw_confidence * 100.
+        conf = (e.get("confidence")
+                or e.get("confidence_pct")
+                or e.get("calibrated_confidence")
+                or e.get("raw_confidence"))
+        if conf is not None and isinstance(conf, (int, float)) and 0 <= float(conf) <= 1:
+            conf = round(float(conf) * 100, 1)   # promote to pct
         reason = str(e.get("reason_text", "") or "")[:80] or "UNAVAILABLE"
         sector = _sector_for(sector_cache_m, market, e.get("ticker") or "")
         # Risk/Reward · only when BOTH stop and target and curr present canonically
@@ -622,8 +681,9 @@ def _emit_today_momentum(wb, market, root, asof, momentum_ledger):
         "Action → INVEST (eligible for new R2 entry today) · WATCH (monitor · do not enter) · "
         "AVOID (do not initiate) · NO EVIDENCE (insufficient data).",
         "Current Price · from canonical parquet close on As-Of · never fabricated.",
-        "Entry Zone / Stop / Confidence · populated when the canonical decision engine "
-        "provides them · UNAVAILABLE otherwise · zero-fabrication invariant.",
+        "Entry Zone / Stop · populated for INVEST verdicts only (execution parameters).",
+        "Confidence · populated for ALL verdicts (WATCH/AVOID included) · diagnostic signal-strength, not execution-only.",
+        "Zero-fabrication invariant · UNAVAILABLE means the canonical source returned no value.",
         "This sheet is REGENERATED from scratch every reporting day · never carries yesterday forward.",
         "An INVEST recommendation is a signal · it becomes a Portfolio holding only after "
         "canonical lifecycle transition creates a Registry ACTIVE position.",
@@ -645,11 +705,16 @@ def _emit_exit_history(wb, market, root, asof, reg_data):
                        key=lambda o: o.closed_date or "", reverse=True)
     n_admin = len(reg_data.get("closed_admin_90d", []))
     n_retired = len(reg_data.get("closed_retired_90d", []))
-    _sub(ws, (f"📕 Realized production exits (last 90d): {len(closed)} · "
-                f"latest exit first · realized P&L only · "
-                f"{n_admin} admin (same-day/zero-Δ) + {n_retired} retired-runner "
-                f"events routed to canonical audit sink (orphan_audit_{market.lower()}.jsonl)"),
+    # CEO 2026-09-03 · simplified banner · the two side-population counts
+    # were confusing (looked like they should sum to the main count).
+    # Now: primary count on its own line · audit-sink counts on a separate
+    # "excluded" line so it's clear these are DIFFERENT populations.
+    _sub(ws, (f"📕 This sheet · {len(closed)} realized production exits (last 90d) · "
+                f"newest first · realized P&L only"),
           ncols, 2)
+    _sub(ws, (f"    Excluded (routed to orphan_audit_{market.lower()}.jsonl · not P&L): "
+                f"{n_admin} administrative (same-day/zero-Δ) · {n_retired} retired-runner"),
+          ncols, 3)
 
     sector_cache = _load_sector_cache(root)
 
@@ -889,12 +954,23 @@ def build_workbook(market: str, root: Path, asof: str) -> dict:
 
 def _emit_optional_sprint_a_sheets(wb, market: str, root: Path, asof: str,
                                     reg_data: dict) -> list[str]:
-    """Emit 05_R1_Advisory and/or 06_Composite_Signals when
+    """Emit 00_Health, 05_R1_Advisory and/or 06_Composite_Signals when
     configs/aegis_runner_registry.yaml declares them.
 
     Sheets are ADDITIVE · never touch base 4. Safe no-op if config missing.
+    00_Health always renders (cockpit governance surface).
     """
     emitted: list[str] = []
+
+    # 00_Health · always render (governance cockpit · CEO 2026-09-03)
+    try:
+        _emit_health_cockpit_sheet(wb, market, root, asof)
+        # Reorder so 00_Health is FIRST in the sheet tab list
+        health_sheet = wb["00_Health"]
+        wb.move_sheet(health_sheet, offset=-len(wb.sheetnames) + 1)
+        emitted.append("00_Health")
+    except Exception as e:
+        print(f"[optional-sheet] 00_Health skipped: {e}", file=sys.stderr)
     try:
         import yaml
         cfg = yaml.safe_load(
@@ -925,6 +1001,22 @@ def _emit_optional_sprint_a_sheets(wb, market: str, root: Path, asof: str,
             print(f"[optional-sheet] 06_Composite_Signals skipped: {e}", file=sys.stderr)
 
     return emitted
+
+
+def _emit_health_cockpit_sheet(wb, market: str, root: Path, asof: str) -> None:
+    """Render the 00_Health governance cockpit sheet."""
+    from backend.delivery.sheets.health_cockpit_sheet import (
+        sheet_meta, build_health_rows, HEALTH_BANNER,
+    )
+    meta = sheet_meta()
+    ws = wb.create_sheet(meta["sheet_name"])
+    ncols = len(meta["columns"])
+    _banner(ws, HEALTH_BANNER, ncols)
+    _header(ws, meta["columns"], 4)
+    rows = build_health_rows(root, market.lower())
+    for r_idx, row in enumerate(rows, start=5):
+        for c_idx, val in enumerate(row, start=1):
+            ws.cell(row=r_idx, column=c_idx, value=val)
 
 
 def _emit_r1_advisory_sheet(wb, market: str, root: Path, asof: str) -> None:

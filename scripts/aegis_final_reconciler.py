@@ -72,7 +72,7 @@ def reconcile(market: str, root: Path) -> dict:
         "03_Exit_History",                 # 3 · realized production exits only
         "04_Daily_Portfolio_History",      # 4 · daily active reconstruction
     ]
-    optional_sheets = ["05_R1_Advisory", "06_Composite_Signals"]
+    optional_sheets = ["00_Health", "05_R1_Advisory", "06_Composite_Signals"]
     allowed_sheets = base_sheets + optional_sheets
     missing_base = [s for s in base_sheets if s not in wb.sheetnames]
     extra = [s for s in wb.sheetnames if s not in allowed_sheets]
