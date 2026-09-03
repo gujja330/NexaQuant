@@ -1,0 +1,67 @@
+# AEGIS · Fundamentals Feature Store Schema · Sprint A · CEO 2026-09-03
+#
+# 19-signal 5-layer expansion (CEO 2026-09-03 · GAP 1 reconciliation ·
+# added 13F Institutional Change to Layer 3 per pasted-plan Week 4 table):
+#
+#   Layer 1 · Quality  (5) · Piotroski / Beneish / Altman / Sloan / Interest Cov
+#   Layer 2 · Value    (4) · FCF Yield / EV-EBITDA / TSY / Sector-relative rank
+#   Layer 3 · Change   (5) · Analyst Rev / Guidance / Earnings Surprise / Insider F4 / 13F Institutional Change
+#   Layer 4 · Flow     (3) · FII/DII net-flow z / Options PCR / Short interest %
+#   Layer 5 · Event    (2) · Earnings-calendar window / Promoter pledge % (India)
+#
+# One row per (market, ticker, asof). Append-only, deterministic, PIT.
+# Every R3 model reads THIS · Outcome Dataset ingests THIS · walk-forward
+# uses the asof-key to prevent leakage.
+#
+# Fingerprint changes require a version bump + a walk-forward re-fit of any
+# model consuming the feature set.
+
+version: 1.0.0
+last_updated: 2026-09-03
+authorized_by: CEO
+fingerprint: aegis.fundamentals_feature_store.v1.20260903
+
+parquet_layout:
+  path_template: "reports/research/fundamentals_feature_store/{market}.parquet"
+  partition_by: [market]
+  primary_key: [market, ticker, asof]
+
+schema:
+  # ---- Identity ----
+  market:        {type: str,  required: true, enum: [india, usa]}
+  ticker:        {type: str,  required: true}
+  asof:          {type: date, required: true}
+
+  # ---- Layer 1 · Quality (5) ----
+  piotroski_f:      {type: int,   layer: 1, min: 0, max: 9, description: "0..9 · sum of 9 binary criteria (ROA/CFO/Improve/Accruals/Leverage/Liquidity/Dilution/Margin/Turnover)"}
+  beneish_m:        {type: float, layer: 1, description: "M = -4.84 + 0.92*DSRI + 0.528*GMI + 0.404*AQI + 0.892*SGI + 0.115*DEPI - 0.172*SGAI + 4.679*TATA - 0.327*LVGI · flag M > -1.78"}
+  altman_z:         {type: float, layer: 1, description: "Z = 1.2*A + 1.4*B + 3.3*C + 0.6*D + 1.0*E · bankruptcy risk · <1.81 distress"}
+  sloan_accruals:   {type: float, layer: 1, description: "(NI - CFO) / Avg_Total_Assets · high magnitude → earnings quality flag"}
+  interest_coverage:{type: float, layer: 1, description: "EBIT / Interest_Expense · < 1.5 solvency flag"}
+
+  # ---- Layer 2 · Value (4) ----
+  fcf_yield:              {type: float, layer: 2, description: "FCF_ttm / Market_Cap · higher = better"}
+  ev_ebitda:              {type: float, layer: 2, description: "EV / EBITDA_ttm · lower = better · sector-relative"}
+  total_shareholder_yield:{type: float, layer: 2, description: "(Dividends + Buybacks - Issuance) / Market_Cap"}
+  sector_rel_value_rank:  {type: float, layer: 2, min: 0, max: 1, description: "Composite value percentile within sector on asof"}
+
+  # ---- Layer 3 · Change / Momentum (4) ----
+  analyst_rev_momentum:{type: float, layer: 3, description: "(Consensus_EPS_now - Consensus_EPS_3mo_ago) / |EPS_3mo_ago|"}
+  guidance_rev:        {type: float, layer: 3, description: "Direction of most recent management guidance vs prior (-1, 0, +1)"}
+  earnings_surprise:   {type: float, layer: 3, description: "(Actual_EPS - Consensus_EPS) / |Consensus_EPS|"}
+  insider_f4_signal:   {type: float, layer: 3, description: "Net insider buy-sell $ over trailing 90d / Market_Cap"}
+  inst_13f_change:     {type: float, layer: 3, description: "Δ (this-quarter 13F institutional holdings - prior-quarter) / prior-quarter · USA-primary · India uses SAST 5%+ disclosures as proxy"}
+
+  # ---- Layer 4 · Flow / Sentiment (3) ----
+  fii_dii_net_flow_z:  {type: float, layer: 4, description: "z-score of FII+DII net flow over 20d (India-critical; USA uses ADR proxies)"}
+  options_pcr:         {type: float, layer: 4, description: "Put open interest / Call open interest · single-name if available else sector"}
+  short_interest_pct:  {type: float, layer: 4, description: "Short_Interest / Float · monthly (USA) or approx (India)"}
+
+  # ---- Layer 5 · Event / Governance (2) ----
+  earnings_calendar_window:{type: int,   layer: 5, description: "Trading days to next earnings; -1 unknown; 0 today"}
+  promoter_pledge_pct:     {type: float, layer: 5, description: "India · pledged shares / promoter holding; NaN for USA"}
+
+  # ---- Provenance ----
+  data_sources:  {type: str, description: "csv of source tags · e.g. 'yfinance,nseindia,finviz'"}
+  built_utc:     {type: str, required: true}
+  schema_version:{type: str, required: true, default: "1.0.0"}
