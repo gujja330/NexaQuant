@@ -26,15 +26,23 @@ Everything in this document is a codified sprint plan. Deviation from any standa
 
 - **R2 zero-entry diagnosis** with documented root-cause classification (bug vs discipline)
 - **Daily Signal Ledger** foundation (60-day rolling · R1 + R2 forward returns 5/10/20/60d)
-- **Fundamentals Feature Store** (13 signals · zero new external sources)
-- **P0 dynamic exit bridge retrospective replay** (539 R2 closes · with OHLC intraday sequencing correction)
-- **P1 confidence calibration** wired to delivered output (both runners) with joint-calibration fix
+- **Fundamentals Feature Store** · **19 signals** in 5 layers (L1 Quality 5 · L2 Value 4 · L3 Change 5 incl. 13F Institutional Change · L4 Flow 3 · L5 Event 2) · CEO 2026-09-03 GAP-1 reconciliation · zero new external sources
+- **P0 dynamic exit bridge retrospective replay** (539 R2 closes · OHLC pessimistic-ordering resolution when high–low spans stop AND target · CEO 2026-09-03 CANONICAL-1)
+- **P1 confidence calibration** wired to delivered output (both runners) · **joint Platt on (raw_score, regime_encoded, win/loss)** — single-stage, not two-stage (CEO 2026-09-03 CANONICAL-2)
 - **P2 sector/regime-adjusted ranking** live in R2 top-N
+- **P3 KG community-relative scoring** with **PIT community snapshots** (CEO 2026-09-03 CANONICAL-3 · lookup community by (asof, ticker), never today's structure)
+- **P4 Cap × Sector interaction** table + likelihood-ratio test
+- **P5.1-P5.5** disagreement-sizing · regime-conditional weights · turnover cap · PIT universe audit · standing comparator
 - **R1 advisory sheet** `05_R1_Advisory` in both markets' workbooks
-- **Composite meta-ensemble layer** with sample-size floor
+- **R1 KG-community group filter** (NOT static GICS · CEO 2026-09-03 GAP-5 confirmation)
+- **USA parity** (CEO 2026-09-03 GAP-4): USA news sentiment adapter and USA dynamic-risk producer are IN-SCOPE for Sprint A · silent USA gap not acceptable
+- **Composite meta-ensemble layer** with sample-size floor (Trust_Weight=0 when trailing_n<50) · admission_state · R1+R2 from Day 0, R3 admitted when trailing_n≥50 (typically post Day-60 shadow scorecard) · CEO 2026-09-03 GAP-2 reconciliation
 - **`06_Composite_Signals` sheet** in both markets (shadow-only)
-- **R3 Tier 1 build** (GBM + Fundamentals Feature Store · fully isolated)
-- **Signal Silence trigger** (8th Research Trigger) + Minimum Viable Signal governance
+- **R3 Tier 1 build** (GBM + Fundamentals Feature Store · fully isolated · isolation CI + baseline-replicate gate)
+- **R3 Day-30 kill gate · Day-60 scorecard · Day-90 promotion evaluation**
+- **Signal Silence trigger** (8th Research Trigger) + Minimum Viable Signal governance with 15-day relaxation cap per rolling 90
+- **Trial accounting matrix** (configs/outcome_dataset_schema.yaml `trial_accounting` block · P0=1, P1=1, P2≈9, P3≈5, P4=1, P5.1-3=5, R3_GBM=1)
+- **Walk-forward engine** 252/63/21/5 · paired bootstrap 10k · Deflated Sharpe · LR test · single shared implementation
 - **Standards enforcement** (all sections in §4)
 
 ### Non-goals (explicitly out of scope)
@@ -44,7 +52,8 @@ Everything in this document is a codified sprint plan. Deviation from any standa
 - CUSUM change-point detection (Tier 3 supplement, not primary)
 - R1 un-retirement to production P&L (advisory-only exposure is the whole point)
 - Any change to R2's 11-model ensemble weights (locked baseline)
-- New external data ingestion (fundamentals expansion uses existing sources only)
+- New external data ingestion beyond yfinance/nseindia/finviz free tier (fundamentals expansion uses existing sources only)
+- Bulk Tier-2 R3 model additions (stacking, BMA, factor-neutral, transcript tone) · each requires its own research ticket after Day-90 shadow evidence justifies it
 
 ---
 
@@ -192,6 +201,12 @@ No deliverable is considered complete until every item in its DoD is checked. Se
 **S20 · CEO-facing surface changes require dry-run.**
 Any change that will alter what the operator sees (new sheet, new column, new banner, new Telegram message) must be dry-run locally with `--build-only` and inspected by opening the actual XLSX before shipping. No exceptions.
 
+**S21 · Push semantics · CEO 2026-09-03 GAP-3 clarification.**
+"Single push at end of an execution batch" means ONE consolidated push at the END of the batch a session/turn is executing — NOT holding 8 weeks of work for a single push. Each weekly gate (Week 1 · Week 2 · Week 3 …) ships its own batch and its own push per S16. Long-lived uncommitted work is exactly what §4.1 was built to prevent. The rule is:
+- One logical batch → one final verification → one push (or the smallest consistent chain of atomic S16 commits pushed together)
+- Weekly gates ship on their own week · they never wait for the next week
+- The end-of-batch push includes a labelled tag when the batch closes a phase gate (e.g. `sprint-a/week-2/complete`)
+
 ---
 
 ## 5 · Parallel Development Tracks
@@ -232,7 +247,7 @@ Fully isolated per Part 0 contract. GBM + Fundamentals Feature Store as primary 
 |---|---|---|---|
 | R2 | R2 zero-entry diagnosis · instrument signal chain per-stage · emit `reports/context/r2_signal_funnel_{market}.jsonl` for last 28 days | R2 | Preliminary classification: (a) gate too strict, (b) threshold too high, or (c) correctly restraining |
 | Common | Build Daily Signal Ledger · `scripts/build_daily_signal_ledger.py` · 60-day forward returns 5/10/20/60d | Data | Both markets · ≥45 trading days populated |
-| Common | Scaffold Fundamentals Feature Store · `scripts/build_fundamentals_feature_store.py` · 13-signal schema · empty derivations OK | Data | Schema locked; column names + provenance sources documented |
+| Common | Scaffold Fundamentals Feature Store · `configs/fundamentals_feature_store_schema.yaml` · **19-signal 5-layer schema** (L1 Quality 5 · L2 Value 4 · L3 Change 5 incl. 13F Institutional Change · L4 Flow 3 · L5 Event 2) · CEO 2026-09-03 GAP-1 reconciliation | Data | Schema locked at 19 signals; column names + provenance sources documented |
 | R3 | Isolation CI test · `tests/isolation/test_r3_no_production_writes.py` · fails build if any R3 module writes to production path | R3 | Test present + committed · no R3 code yet |
 | Standards | Enforce S1-S6 · commit any untracked user docs · pre-commit hook for validator freshness (S10) · CI grep for positional column reads (S8) | All | All 20 standards documented in this file + at least S1, S2, S7, S10, S13 automated |
 
@@ -268,8 +283,8 @@ Fully isolated per Part 0 contract. GBM + Fundamentals Feature Store as primary 
 | Track | Deliverable | Owner | Gate |
 |---|---|---|---|
 | R2 | P2 sector/regime-adjusted ranking · α, β walk-forward grid search on Daily Signal Ledger | R2 | Grid searched · IC per bucket · deflated for grid size |
-| R1 | R1 rolling regime-adaptive sector filter (NOT hardcoded skip list) · sector composite score = 0.4·trailing_20d_realized_pnl + 0.3·trailing_10d_news_sentiment + 0.2·trailing_60d_relative_strength + 0.1·regime_multiplier | R1 | Filter computed daily · exposed as `reports/research/r1_sector_filter_{market}.json` · not yet applied to R1 advisory sheet |
-| Common | Fundamentals per-signal IC ranking · permutation importance on Daily Signal Ledger · publish `reports/research/fundamentals_ic_report_{market}.json` | Data | All 13 signals ranked · which survive (IC > threshold at p<0.05 deflated) · which are noise |
+| R1 | R1 **Knowledge-Graph community** group filter (NOT static GICS sectors · CEO 2026-09-03 GAP-5 confirmation) · Group_Composite_Score(g) = 0.4·trailing_20d_realized_pnl + 0.3·trailing_10d_news_sentiment + 0.2·trailing_60d_relative_strength + 0.1·regime_multiplier · community IDs pulled from `data/market_intelligence/derived/graph_snapshots.parquet` PIT snapshot at asof · weights walk-forward tuned (not hardcoded) | R1 | Filter computed daily · exposed as `reports/research/r1_kg_group_filter_{market}.json` · not yet applied to R1 advisory sheet |
+| Common | Fundamentals per-signal IC ranking · permutation importance on Daily Signal Ledger · publish `reports/research/fundamentals_ic_report_{market}.json` | Data | All 19 signals ranked · which survive (IC > threshold at p<0.05 deflated) · which are noise |
 | R3 | R3 shadow output live · daily emissions to `reports/research/r3/shadow_ledger.jsonl` | R3 | Ledger accumulating · zero writes to production paths (isolation CI verifies daily) |
 
 ### Week 6 · P2 R2 wired · KG communities PIT
@@ -363,7 +378,7 @@ Sample-size tiers (locked):
 | Week 2 R1 advisory | Reconciler C1 fails 5-sheet acceptance | Revert to 4-sheet · re-diagnose C1 · do not ship advisory until it passes |
 | Week 3-4 P1 calibration | ECE > 0.05 after 4 weekly refits | Try isotonic regression before abandoning · report if both fail |
 | Week 5-6 P2 ranking | Best α, β doesn't beat baseline out-of-sample | Skip P2 · go straight to composite · don't ship regime adjustment |
-| Week 5 Fundamentals IC | <3 of 13 signals show IC > 0.02 at p<0.05 deflated | Fundamentals expansion doesn't add value · park it · continue with Piotroski + Beneish only |
+| Week 5 Fundamentals IC | <3 of 19 signals show IC > 0.02 at p<0.05 deflated | Fundamentals expansion doesn't add value · park it · continue with Piotroski + Beneish only |
 | Week 7 composite | R1 sample-size floor keeps R1 permanently at zero weight AND R3 shadow hasn't reached 50 trades | Composite is just "R2 renamed" · re-evaluate whether it's worth shipping |
 | Week 9-16 shadow | Composite underperforms R2 by >10% at Day 30 | Kill composite · revert to R2-only · document why |
 | Any time | `override_allow` gets flipped to true | Immediate stop-work · investigate who/why · revert · post-mortem |
@@ -400,7 +415,7 @@ Sample-size tiers (locked):
 - [ ] Week 2 · `05_R1_Advisory` sheet with regression test
 - [ ] Week 3 · R1 daily archive to `data/r1_daily_archive/`
 - [ ] Week 4 · R1 calibration (once ≥50 signals in ledger)
-- [ ] Week 5 · R1 rolling regime-adaptive sector filter
+- [ ] Week 5 · R1 KG-community group filter (NOT GICS sectors · Group_Composite_Score formula · walk-forward tuned)
 - [ ] Week 6 · R1 advisory sheet with sector composite scores
 
 ### R3 track
