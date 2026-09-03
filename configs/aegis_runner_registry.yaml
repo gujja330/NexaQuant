@@ -1,0 +1,100 @@
+# AEGIS Runner Registry · Sprint A
+# CEO 2026-09-03 · declarative runner status · single source of truth for isolation.
+#
+# Every consumer that needs to know which runners are production / advisory / shadow
+# reads this file. Retirement, composite layer, R3 shadow-only gate all derive from here.
+#
+# CHANGES require CEO authorization · named + dated + written · same pattern as
+# aegis_retirement.yaml.
+
+runners:
+  R1:
+    status: RETIRED_ADVISORY
+    engine: research/adaptive_rec_v2
+    output_source: data/aegis_today.csv
+    workbook_visibility: advisory_only     # → 05_R1_Advisory sheet
+    production_pnl: false
+    dynamic_exit_protection: false
+    since: 2026-09-01
+    authorization_note: |
+      R1 retired from AEGIS production 2026-09-01. Engine remains alive
+      producing daily picks; those picks are surfaced via the 05_R1_Advisory
+      sheet with an explicit banner. Historical R1 CLOSED events are routed
+      to orphan_audit_{market}.jsonl sink for A23 lineage completeness.
+      Registry ACTIVE R1 positions (if any) are HIDDEN from Portfolio.
+
+  R2:
+    status: PRODUCTION
+    engine: backend/recommendation/ssot
+    output_source: reports/recommendations.json
+    workbook_visibility: primary            # → 01_Portfolio + 02_Today_Momentum + 03_Exit_History + 04_Daily_Portfolio_History
+    production_pnl: true
+    dynamic_exit_protection: true           # via dynamic_risk_v2 + apply_dynamic_exits.py --enforce
+    since: 2026-08-01
+    authorization_note: |
+      R2 is the sole production runner emitting positions counted in
+      AEGIS P&L. Ensemble weights adaptive per configs/ensemble_weights_adaptive.yaml.
+      Every P0-P5 upgrade must be evidence-gated per Sprint A standards.
+
+  R3:
+    status: SHADOW_ONLY
+    engine: backend/research/r3
+    output_source: reports/research/r3/shadow_ledger.jsonl
+    workbook_visibility: none               # NEVER appears in shipped workbook
+    production_pnl: false
+    dynamic_exit_protection: false          # shadow output does not execute
+    since: null                             # not yet initialized
+    authorization_note: |
+      R3 is a fully isolated research challenger. Writes ONLY to
+      reports/research/r3/ and configs/r3_*.yaml. Never enters Registry,
+      Exit History, Portfolio, or any production path. Promotion R3 → R2
+      requires named + dated + written CEO authorization per Part 0
+      isolation contract.
+
+# Composite layer · reads runners per admission_state · writes to none
+# CEO 2026-09-03 · GAP 2 reconciliation · staged inclusion:
+#
+#   admission_state[R1] = ADMITTED_FROM_DAY_0    (retired but 25-trade history exists)
+#   admission_state[R2] = ADMITTED_FROM_DAY_0    (production runner)
+#   admission_state[R3] = ADMITTED_ON_TRAIL_N_50 (shadow-only until trailing_closed_trades >= 50 · typically post Day-60)
+#
+# Trust_Weight(r) = 0 for any runner whose trailing_closed_trades(r) < 50 ·
+# so R3 contributes 0 to Composite_Score until its own shadow sample matures.
+# This resolves the Executive-Summary "reads all 3" vs Track 2 "reads R1+R2"
+# apparent contradiction · both are true at different points in the timeline.
+composite:
+  status: SHADOW_ONLY
+  engine: backend/recommendation/composite
+  output_source: reports/research/composite/composite_signals_{market}.json
+  workbook_visibility: shadow               # → 06_Composite_Signals sheet (shadow, no P&L)
+  production_pnl: false
+  since: null
+  admission_state:
+    R1: ADMITTED_FROM_DAY_0
+    R2: ADMITTED_FROM_DAY_0
+    R3: ADMITTED_ON_TRAIL_N_50
+  sample_floor_trailing_closed: 50
+  authorization_note: |
+    Meta-ensemble reading admitted runners' outputs. Uses IC-adaptive trust
+    weighting one level above R2's internal ensemble. Sample-size floor:
+    Trust_Weight(r) = 0 when trailing_closed_trades(r) < 50. R3 is
+    admission-gated on this floor · typically satisfied after the Day-60
+    shadow scorecard. Never writes to Registry, Exit History, or production
+    P&L. Promotion to primary operator recommendation requires evidence +
+    CEO authorization.
+
+# Retirement configuration (mirrored from configs/aegis_retirement.yaml · authoritative source)
+# This section is a READ-ONLY view · edits must go to aegis_retirement.yaml
+retired_runners:
+  - R1
+active_production_runners:
+  - R2
+shadow_runners:
+  - R3
+
+# Isolation guarantees (enforced by tests/isolation/)
+isolation_matrix:
+  R1_writes_to_R2_paths: forbidden
+  R2_writes_to_R3_paths: forbidden
+  R3_writes_to_any_production_path: forbidden
+  composite_writes_to_any_registry_path: forbidden
