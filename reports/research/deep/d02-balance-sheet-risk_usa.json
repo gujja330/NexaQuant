@@ -2,10 +2,63 @@
   "ticket_id": "D02-BALANCE-SHEET-RISK",
   "domain": 2,
   "market": "usa",
-  "gate_status": "BLOCKED-EVIDENCE",
-  "blocker_reason": "yfinance free tier lacks debt-maturity schedule + off-balance-sheet exposure \u00b7 need paid source (S&P Cap IQ / MoneyControl full statements) OR SEC 10-K parsing",
-  "artifacts_when_unblocked": [
-    "reports/research/deep/d02_balance_sheet_usa.json"
-  ],
-  "generated_utc": "2026-09-03T13:28:02Z"
+  "gate_status": "EXECUTED",
+  "coverage_status": "SINGLE_DAY_SNAPSHOT",
+  "n_tickers": 100,
+  "distributions": {
+    "interest_coverage": {
+      "n": 85,
+      "min": -4.3672,
+      "max": 57.2264,
+      "median": 7.8708,
+      "p25": 3.2394,
+      "p75": 16.2276,
+      "mean": 12.3628
+    },
+    "altman_z": null
+  },
+  "solvency_flags": {
+    "n_flagged": 6,
+    "flagged_tickers": [
+      {
+        "ticker": "AES",
+        "flags": [
+          "IntCov 1.05<1.5"
+        ]
+      },
+      {
+        "ticker": "ALB",
+        "flags": [
+          "IntCov -1.66<1.5"
+        ]
+      },
+      {
+        "ticker": "APD",
+        "flags": [
+          "IntCov -1.06<1.5"
+        ]
+      },
+      {
+        "ticker": "ARE",
+        "flags": [
+          "IntCov -4.37<1.5"
+        ]
+      },
+      {
+        "ticker": "AXON",
+        "flags": [
+          "IntCov 1.20<1.5"
+        ]
+      },
+      {
+        "ticker": "BAX",
+        "flags": [
+          "IntCov -0.74<1.5"
+        ]
+      }
+    ]
+  },
+  "verdict": "EXECUTED \u00b7 6 of 100 tickers show solvency flags \u00b7 cross-sectional distribution captured \u00b7 forward-return predictive test pending accumulation",
+  "governance_note": "Single-day snapshot \u00b7 debt-maturity + off-BS still declared BLOCKED per D02 spec",
+  "generated_utc": "2026-09-03T13:37:39Z"
 }

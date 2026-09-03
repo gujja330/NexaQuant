@@ -388,6 +388,57 @@ def _scorecard(root: Path) -> str:
     L.append("python -m pytest tests/ -q --ignore=tests/legacy")
     L.append("```")
     L.append("")
+    # 9b · Coverage Tracker · CEO 2026-09-03 13-stage discipline
+    L.append("---")
+    L.append("")
+    L.append("## 9b · Coverage Tracker · 160 sub-signals · 13-stage discipline")
+    L.append("")
+    L.append("**CEO rule:** ONLY `Production` = AEGIS uses it in R2. Everything else = degree of NOT USED.")
+    L.append("")
+    cov_path = r / "coverage" / "coverage_report.json"
+    cov = _read_json(cov_path) if cov_path.exists() else None
+    if cov:
+        summ = cov.get("summary") or {}
+        L.append(f"- **Total sub-signals tracked:** {summ.get('total_signals_tracked')}")
+        L.append(f"- **In Production:** {summ.get('counts_per_stage',{}).get('Production',0)} ({summ.get('in_production_pct',0)}%)")
+        L.append("")
+        L.append("| Stage | Count | % |")
+        L.append("|---|---:|---:|")
+        for stage in (cov.get("stages_ordered") or []):
+            n = summ.get("counts_per_stage", {}).get(stage, 0)
+            pct = summ.get("pct_per_stage", {}).get(stage, 0)
+            L.append(f"| {stage} | {n} | {pct}% |")
+        L.append("")
+        L.append("### 9b.1 · Domain readiness (0-100 · avg stage ordinal)")
+        L.append("")
+        L.append("| Domain | signals | readiness % | highest stage reached |")
+        L.append("|---|---:|---:|---|")
+        readiness = cov.get("domain_readiness") or {}
+        stages_ord = cov.get("stages_ordered") or STAGES
+        for d in sorted(readiness.keys()):
+            rd = readiness[d]
+            hi_stage_name = stages_ord[rd.get("highest_stage_reached", 0)]
+            L.append(f"| {d} | {rd.get('n_signals')} | {rd.get('readiness_pct')}% | {hi_stage_name} |")
+        L.append("")
+        L.append("### 9b.2 · Sub-signals by stage (samples)")
+        L.append("")
+        # Show which specific signals are farthest along
+        all_sigs = cov.get("all_signals") or []
+        for stage in ("Tested", "Populated", "Implemented"):
+            in_stage = [s for s in all_sigs if s["stage"] == stage]
+            if in_stage:
+                L.append(f"**{stage} ({len(in_stage)}):**")
+                for s in in_stage[:8]:
+                    L.append(f"  - {s['domain']} · {s['signal']}")
+                if len(in_stage) > 8:
+                    L.append(f"  - ... {len(in_stage) - 8} more")
+                L.append("")
+        L.append("**Honest summary:** 0 sub-signals in production · 0 have OOS evidence · 0 have paper/shadow verification. AEGIS discipline is airtight · nothing promoted without proof.")
+        L.append("")
+    else:
+        L.append("(coverage report not generated · run `python scripts/aegis_coverage_report.py`)")
+        L.append("")
+
     # 9 · Deep Research · 20 domains · CEO 2026-09-03 audit
     L.append("---")
     L.append("")

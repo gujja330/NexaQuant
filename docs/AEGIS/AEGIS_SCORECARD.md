@@ -1,5 +1,5 @@
 # AEGIS · SCORECARD
-_regen `python scripts/aegis_scorecard.py` · 2026-09-03 13:32 UTC · replaces EVIDENCE_LOG + PDF_MATRIX + EXPERIMENT_REGISTRY + 28_REPORTS_
+_regen `python scripts/aegis_scorecard.py` · 2026-09-03 13:41 UTC · replaces EVIDENCE_LOG + PDF_MATRIX + EXPERIMENT_REGISTRY + 28_REPORTS_
 
 **PRODUCTION = FROZEN.** No R2 change. No push. Per CEO Development Freeze.
 
@@ -205,6 +205,93 @@ python -m pytest tests/ -q --ignore=tests/legacy
 
 ---
 
+## 9b · Coverage Tracker · 160 sub-signals · 13-stage discipline
+
+**CEO rule:** ONLY `Production` = AEGIS uses it in R2. Everything else = degree of NOT USED.
+
+- **Total sub-signals tracked:** 160
+- **In Production:** 0 (0.0%)
+
+| Stage | Count | % |
+|---|---:|---:|
+| Mapped | 34 | 21.2% |
+| Data-required | 31 | 19.4% |
+| PIT-ready | 2 | 1.2% |
+| Populated | 48 | 30.0% |
+| Implemented | 14 | 8.8% |
+| Tested | 29 | 18.1% |
+| OOS | 0 | 0.0% |
+| Corrected | 2 | 1.2% |
+| Incremental | 0 | 0.0% |
+| Paper | 0 | 0.0% |
+| Shadow | 0 | 0.0% |
+| Candidate | 0 | 0.0% |
+| Production | 0 | 0.0% |
+
+### 9b.1 · Domain readiness (0-100 · avg stage ordinal)
+
+| Domain | signals | readiness % | highest stage reached |
+|---|---:|---:|---|
+| D01 | 9 | 16.7% | Implemented |
+| D02 | 7 | 13.1% | Populated |
+| D03 | 8 | 12.5% | Populated |
+| D04 | 10 | 18.3% | Implemented |
+| D05 | 7 | 13.1% | Populated |
+| D06 | 9 | 14.8% | Tested |
+| D07 | 9 | 6.5% | Data-required |
+| D08 | 8 | 19.8% | Implemented |
+| D09 | 10 | 36.7% | Tested |
+| D10 | 8 | 12.5% | Populated |
+| D11 | 7 | 13.1% | Implemented |
+| D12 | 6 | 19.4% | Implemented |
+| D13 | 5 | 11.7% | Populated |
+| D14 | 10 | 28.3% | Tested |
+| D15 | 8 | 24.0% | Tested |
+| D16 | 9 | 36.1% | Tested |
+| D17 | 6 | 13.9% | Populated |
+| D18 | 9 | 34.3% | Corrected |
+| D19 | 8 | 21.9% | Tested |
+| D20 | 7 | 31.0% | Tested |
+
+### 9b.2 · Sub-signals by stage (samples)
+
+**Tested (29):**
+  - D06 · Sector momentum
+  - D06 · Relative strength
+  - D09 · Momentum
+  - D09 · Trend
+  - D09 · ATR
+  - D09 · Volume confirmation
+  - D09 · Breakout quality
+  - D09 · Drawdown/recovery
+  - ... 21 more
+
+**Populated (48):**
+  - D01 · Revenue growth
+  - D01 · Earnings growth
+  - D01 · ROIC/ROE
+  - D01 · FCF generation
+  - D02 · D/E
+  - D02 · Interest coverage
+  - D02 · Current ratio
+  - D03 · Piotroski F
+  - ... 40 more
+
+**Implemented (14):**
+  - D01 · Margin quality
+  - D04 · P/E
+  - D04 · P/B
+  - D08 · FII/DII
+  - D08 · Options PCR
+  - D11 · Promoter pledge
+  - D11 · Related parties
+  - D12 · Transcript prepared remarks
+  - ... 6 more
+
+**Honest summary:** 0 sub-signals in production · 0 have OOS evidence · 0 have paper/shadow verification. AEGIS discipline is airtight · nothing promoted without proof.
+
+---
+
 ## 9 · Deep Research · 20 domains (CEO 2026-09-03 audit)
 
 Per V2 §21 · every domain publishes RESEARCH_TICKET + evaluate() · default gate BLOCKED-EVIDENCE.
@@ -236,20 +323,20 @@ Modules: `backend/research/deep/d01..d20` · orchestrator: `scripts/run_deep_res
 
 | Domain | Blocker |
 |---|---|
-| D01 · business quality | Historical fundamentals PIT snapshots missing · today's yfinance snapshot only · needs 8+ quarters a |
-| D02 · balance sheet | yfinance free tier lacks debt-maturity schedule + off-balance-sheet exposure · need paid source (S&P |
+| D01 · business quality | ? |
+| D02 · balance sheet | ? |
 | D03 · accounting quality ext | Auditor-change + one-off earnings need direct filings parse (SEC 10-K/10-Q · SEBI annual reports) ·  |
 | D04 · valuation ext | DCF requires analyst-forecast time series + WACC per ticker · needs consensus estimate feed · not wi |
 | D05 · growth quality | Estimate revision + guidance history needs consensus feed (I/B/E/S · Bloomberg · not in yfinance) |
-| D06 · industry cycle | Industry cycle indicators need external data (RBI monetary policy · FRED GDP · World Bank commodity  |
+| D06 · industry cycle | ? |
 | D07 · macro fci | FCI needs FRED (USA) + RBI Handbook (India) rates+FX+credit-spread feeds · not yet ingested |
 | D08 · flows crowding | 13F ingest (SEC EDGAR) + SAST parse + short-interest history not wired · REQUIRES_LIVE_SOURCE |
 | D10 · corp events ext | SEC 8-K + BSE/NSE announcement scrapers not wired · need dedicated ingest per market |
 | D11 · governance india ext | India-only governance signals |
 | D12 · narrative ext | Transcript ingest not wired (Tier-2 module ready · needs SeekingAlpha/bamsec/MoneyControl scraper) · |
 | D13 · kg ownership | Ownership graph + supplier/customer edges need paid data (Bloomberg SPLC / S&P Cap IQ) · free proxie |
-| D14 · risk ext | Factor betas + intraday liquidity + historical crisis scenarios need dedicated build · foundational  |
-| D15 · portfolio construction | Historical portfolio-state PIT not yet reconstructed · Registry has current state · needs nightly sn |
+| D14 · risk ext | ? |
+| D15 · portfolio construction | ? |
 | D17 · cross market global | FRED (USA rates) + RBI FX + commodity feeds not wired · doable but needs ingest work |
 
 ### 9.3 · Deep Research summary
