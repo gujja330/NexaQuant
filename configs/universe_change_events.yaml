@@ -1,0 +1,24 @@
+# AEGIS · Universe Change Events · P5.4 PIT audit source
+# Sprint A · CEO 2026-09-03
+#
+# Historical add/remove events for NSE 200 (India) and S&P 500 + MidCap 400 (USA).
+# Empty at initialization · populated from:
+#   - Wikipedia S&P constituent changes page
+#   - NSE index rebalance PDFs (semi-annual)
+#
+# Every backtest that filters to "was_in_universe(date, ticker)" uses this.
+# Silent widening / narrowing is a contract violation.
+
+markets:
+  - market: usa
+    source_hint: "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies (Recent changes section)"
+    changes:
+      # Seed with the events we know · CEO added S&P 500 on 2026-08-14
+      - date: 2026-08-14
+        added: []       # not applicable · this was a UNIVERSE-SHRINK, not member changes
+        removed: []
+        note: "Universe reduced from ~900-ticker extended set to S&P 500 (universe-level change · not constituent change)"
+
+  - market: india
+    source_hint: "NSE semi-annual index review PDFs"
+    changes: []
