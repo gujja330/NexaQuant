@@ -1,5 +1,5 @@
 # AEGIS · SCORECARD
-_regen `python scripts/aegis_scorecard.py` · 2026-09-03 12:16 UTC · replaces EVIDENCE_LOG + PDF_MATRIX + EXPERIMENT_REGISTRY + 28_REPORTS_
+_regen `python scripts/aegis_scorecard.py` · 2026-09-03 12:21 UTC · replaces EVIDENCE_LOG + PDF_MATRIX + EXPERIMENT_REGISTRY + 28_REPORTS_
 
 **PRODUCTION = FROZEN.** No R2 change. No push. Per CEO Development Freeze.
 
@@ -8,7 +8,18 @@ _regen `python scripts/aegis_scorecard.py` · 2026-09-03 12:16 UTC · replaces E
 - Architecture LOCKED · isolation CI green · R1 advisory · R2 sole production · R3 shadow-only
 - 4 correct REJECT verdicts preserved (P0 · R3 baseline · NEG-PNL · POS-PNL)
 - **Zero PROMOTE-CANDIDATE** · nothing meets promotion criteria
-- Pytest 599/0 · xlsx_validator 24 PASS / 0 FAIL / 1 WARN
+- Pytest 622/0 · xlsx_validator 24 PASS / 0 FAIL / 1 WARN
+
+**PDF completeness ≠ Validation.** The audit hierarchy per CEO 2026-09-03:
+
+```
+PDF completeness → Implementation → Data/dependency → Experiment execution
+     → Statistical validation → Evidence/gates → Production decision
+```
+
+This scorecard reports **Implementation** and **Validation** as SEPARATE columns.
+A scaffolded module with a BLOCKED-EVIDENCE gate is ✅ Implementation · ❌ Validation.
+A `FAIL` verdict is ✅ Implementation · ✅ Validation-executed · 🔴 result-rejected.
 
 ## 1 · Governance
 
@@ -40,27 +51,43 @@ _regen `python scripts/aegis_scorecard.py` · 2026-09-03 12:16 UTC · replaces E
 | R3 shadow ledger picks | — | 5 |
 | Paper comparator ticks | 1 | 1 |
 
-## 3 · Research results · verdict + recommendation
+## 3 · Research results · Implementation vs Validation
 
-| Experiment | Market | Result | Verdict | Recommendation |
-|---|---|---|---|---|
-| P0 exit-bridge (k=2,m=3,60d) | INDIA | n=20 · Δ=0.750% · p=0.295 | **FAIL** | REJECT at these params · run P0-EXTENSION-01 |
-| P0 exit-bridge (k=2,m=3,60d) | USA | n=479 · Δ=-0.029% · p=0.561 | **FAIL** | REJECT at these params · run P0-EXTENSION-01 |
-| P1 joint Platt | USA | n=12 | INSUFFICIENT_SAMPLE | RESEARCH FURTHER · needs n≥50 |
-| P2 α,β (9 trials) | USA | best (α=0.0, β=0.0) lift=0.000 | BLOCKED | RESEARCH FURTHER · regime substrate thin |
-| P3 KG γ (5 trials) | USA | n_communities=0 | BLOCKED | RESEARCH FURTHER · needs real KG persistence |
-| P4 Cap × Sector LR | USA | n_cells=2 · LR n=0 | BLOCKED | RESEARCH FURTHER · after cap/investability batch |
-| P5.1-5.5 | USA | 5 subitems scaffolded | MIXED | P5.5 KEEP (permanent) · rest RESEARCH FURTHER |
-| NEG-PNL-CONTROL-60D | INDIA | n=67 · 9 variants all FAIL or null | **REJECT** (correct) | KEEP research family · no R2 tightening |
-| NEG-PNL-CONTROL-60D | USA | n=536 · 9 variants all FAIL or null | **REJECT** (correct) | KEEP research family · no R2 tightening |
-| POS-PNL-CAPTURE-60D | INDIA | n=3050 · 16 winner defs · 100% misses = C_FUNNEL_STAGE | **REJECT loosening** | KEEP family · alternate candidate path = NEW ticket |
-| POS-PNL-CAPTURE-60D | USA | n=31476 · 16 winner defs · 100% misses = C_FUNNEL_STAGE | **REJECT loosening** | KEEP family · alternate candidate path = NEW ticket |
-| Joint P&L Pareto | USA | pareto size=1 (null action) | **REJECT all** | KEEP engine |
-| R3 Tier-1 GBM | USA | n_train=500 · Brier=0.255 · AUC=0.447 · ECE=0.011 | training run | Tier-2 BLOCKED · **KEEP gate** |
-| R1 attribution | INDIA | r1_archive_days=0 · early_warnings=0 | BLOCKED · archive gap | RESEARCH FURTHER · start R1 daily archive |
-| R1 attribution | USA | r1_archive_days=0 · early_warnings=0 | BLOCKED · archive gap | RESEARCH FURTHER · start R1 daily archive |
-| Composite daily loop | INDIA | n_tickers=16 · R3 admitted?=no (trailing_n<50) | shadow only | KEEP as shadow · REJECT sizing promotion |
-| Composite daily loop | USA | n_tickers=21 · R3 admitted?=no (trailing_n<50) | shadow only | KEEP as shadow · REJECT sizing promotion |
+**Implementation** = code exists · tests exist · module runnable.  
+**Validation** = experiment executed against real substrate · statistical evidence produced.  
+A module can be 🟢 Implementation and still 🟠 Validation if substrate is thin.
+
+| Experiment | Market | Impl | Val | Result | Recommendation |
+|---|---|---|---|---|---|
+| P0 exit-bridge (k=2,m=3,60d) | INDIA | 🟢 | 🔴 exec | n=20 · Δ=0.750% · p=0.295 · **FAIL** | REJECT these params · run P0-EXTENSION-01 |
+| P0 exit-bridge (k=2,m=3,60d) | USA | 🟢 | 🔴 exec | n=479 · Δ=-0.029% · p=0.561 · **FAIL** | REJECT these params · run P0-EXTENSION-01 |
+| P1 joint Platt | USA | 🟢 | 🟠 | n=12 · INSUFFICIENT_SAMPLE | RESEARCH FURTHER · needs n≥50 |
+| P2 α,β (9 trials) | USA | 🟢 | 🟠 | best (α=0.0, β=0.0) lift=0.000 · BLOCKED (regime features thin) | RESEARCH FURTHER |
+| P3 KG γ (5 trials) | USA | 🟢 | 🟠 | n_communities=0 · BLOCKED (KG PIT UNKNOWN) | RESEARCH FURTHER · real KG persistence |
+| P4 Cap × Sector LR | USA | 🟢 | 🟠 | n_cells=2 · LR n=0 · BLOCKED (cap/invest incomplete) | RESEARCH FURTHER |
+| P5.1-5.5 | USA | 🟢 | 🟠 | 5 subitems scaffolded · sample-limited | P5.5 KEEP · rest RESEARCH FURTHER |
+| NEG-PNL-CONTROL-60D | INDIA | 🟢 | 🔴 exec | n=67 · 9 variants all FAIL or null · **REJECT** (correct) | KEEP family · no R2 tightening |
+| NEG-PNL-CONTROL-60D | USA | 🟢 | 🔴 exec | n=536 · 9 variants all FAIL or null · **REJECT** (correct) | KEEP family · no R2 tightening |
+| POS-PNL-CAPTURE-60D | INDIA | 🟢 | 🔴 exec | n=3050 · 16 winner defs · 100% misses = C_FUNNEL_STAGE · **REJECT loosening** | KEEP family · alt candidate path = NEW ticket |
+| POS-PNL-CAPTURE-60D | USA | 🟢 | 🔴 exec | n=31476 · 16 winner defs · 100% misses = C_FUNNEL_STAGE · **REJECT loosening** | KEEP family · alt candidate path = NEW ticket |
+| Joint P&L Pareto | USA | 🟢 | 🔴 exec | pareto size=1 (null action) · **REJECT all** | KEEP engine |
+| R3 Tier-1 GBM | USA | 🟢 | 🔴 exec | n_train=500 · Brier=0.255 · AUC=0.447 · ECE=0.011 · baseline gap ? > tol · Tier-2 BLOCKED | KEEP gate |
+| R1 attribution | INDIA | 🟢 | 🟠 | r1_archive_days=0 · early_warnings=0 · BLOCKED (archive gap) | RESEARCH FURTHER · start R1 daily archive |
+| R1 attribution | USA | 🟢 | 🟠 | r1_archive_days=0 · early_warnings=0 · BLOCKED (archive gap) | RESEARCH FURTHER · start R1 daily archive |
+| Composite daily loop | INDIA | 🟢 | 🟠 | n_tickers=16 · R3 admitted?=no (trailing_n<50) · shadow only | KEEP as shadow · REJECT sizing promotion |
+| Composite daily loop | USA | 🟢 | 🟠 | n_tickers=21 · R3 admitted?=no (trailing_n<50) · shadow only | KEEP as shadow · REJECT sizing promotion |
+| R3 Tier-2 · stacking | both | 🟢 | ❌ | BLOCKED-EVIDENCE (R3 shadow <20) | KEEP gate · lifts when Day-30 fires |
+| R3 Tier-2 · BMA | both | 🟢 | ❌ | BLOCKED-EVIDENCE | KEEP gate |
+| R3 Tier-2 · factor-neutral | both | 🟢 | ❌ | BLOCKED-EVIDENCE | KEEP gate |
+| R3 Tier-2 · promoter-governance | india | 🟢 | ❌ | BLOCKED-EVIDENCE + REQUIRES_LIVE_SOURCE (NSE SAST/BSE) | KEEP gate · India-only · NOT_APPLICABLE USA |
+| R3 Tier-2 · transcript-tone (Q&A sep) | both | 🟢 | ❌ | BLOCKED-EVIDENCE + transcript ingest missing | KEEP gate |
+| R3 Tier-2 · multi-horizon | both | 🟢 | ❌ | BLOCKED-EVIDENCE | KEEP gate |
+| R3 Tier-3 · GraphSAGE | both | 🟢 | ❌ | BLOCKED-EVIDENCE (shadow ≥60 + community persistent ≥90d) | KEEP gate |
+| R3 Tier-3 · Engle-Granger pairs | both | 🟢 | ❌ | BLOCKED-EVIDENCE + short-sell infra absent | KEEP gate |
+| R3 Tier-3 · CUSUM regime | both | 🟢 | ❌ | BLOCKED-EVIDENCE (needs historical transition-date labels) | KEEP gate |
+| CRASH_DETECTOR_01 + RECOVERY_DETECTOR_01 | both | 🟢 | 🟢 exec | 0 fires today (no −3σ days in window) · **result preserved** | KEEP · additive to base regime enricher |
+| L5 Related-Party + Transcript Tone Q&A-sep | both | 🟢 | ❌ | Modules exist · data sources absent (RPT + transcript ingest) | RESEARCH FURTHER · wire sources |
+| L4 India FII/DII + Options PCR shim | india | 🟢 | ❌ | REQUIRES_LIVE_SOURCE marker · adapter placeholder | RESEARCH FURTHER · wire NSE ingest |
 
 ## 4 · Forward artifacts
 

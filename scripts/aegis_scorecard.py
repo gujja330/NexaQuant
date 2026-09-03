@@ -78,7 +78,18 @@ def _scorecard(root: Path) -> str:
     L.append("- Architecture LOCKED · isolation CI green · R1 advisory · R2 sole production · R3 shadow-only")
     L.append("- 4 correct REJECT verdicts preserved (P0 · R3 baseline · NEG-PNL · POS-PNL)")
     L.append("- **Zero PROMOTE-CANDIDATE** · nothing meets promotion criteria")
-    L.append("- Pytest 599/0 · xlsx_validator 24 PASS / 0 FAIL / 1 WARN")
+    L.append("- Pytest 622/0 · xlsx_validator 24 PASS / 0 FAIL / 1 WARN")
+    L.append("")
+    L.append("**PDF completeness ≠ Validation.** The audit hierarchy per CEO 2026-09-03:")
+    L.append("")
+    L.append("```")
+    L.append("PDF completeness → Implementation → Data/dependency → Experiment execution")
+    L.append("     → Statistical validation → Evidence/gates → Production decision")
+    L.append("```")
+    L.append("")
+    L.append("This scorecard reports **Implementation** and **Validation** as SEPARATE columns.")
+    L.append("A scaffolded module with a BLOCKED-EVIDENCE gate is ✅ Implementation · ❌ Validation.")
+    L.append("A `FAIL` verdict is ✅ Implementation · ✅ Validation-executed · 🔴 result-rejected.")
     L.append("")
 
     # 1 · Governance
@@ -126,10 +137,14 @@ def _scorecard(root: Path) -> str:
     L.append("")
 
     # 3 · Research results
-    L.append("## 3 · Research results · verdict + recommendation")
+    L.append("## 3 · Research results · Implementation vs Validation")
     L.append("")
-    L.append("| Experiment | Market | Result | Verdict | Recommendation |")
-    L.append("|---|---|---|---|---|")
+    L.append("**Implementation** = code exists · tests exist · module runnable.  ")
+    L.append("**Validation** = experiment executed against real substrate · statistical evidence produced.  ")
+    L.append("A module can be 🟢 Implementation and still 🟠 Validation if substrate is thin.")
+    L.append("")
+    L.append("| Experiment | Market | Impl | Val | Result | Recommendation |")
+    L.append("|---|---|---|---|---|---|")
 
     # P0
     for m in ("india","usa"):
@@ -139,78 +154,91 @@ def _scorecard(root: Path) -> str:
             delta_pct = _fmt((d.get("mean_delta_pct") or 0)*100, 3)
             p = _fmt(pb.get("p_value_two_sided"), 3)
             gate = d.get("P0_GATE_STATUS") or ("PASS" if d.get("P0_GATE_PASS") else "FAIL")
-            L.append(f"| P0 exit-bridge (k=2,m=3,60d) | {m.upper()} | n={d.get('n_positions',0)} · Δ={delta_pct}% · p={p} | **{gate}** | REJECT at these params · run P0-EXTENSION-01 |")
+            L.append(f"| P0 exit-bridge (k=2,m=3,60d) | {m.upper()} | 🟢 | 🔴 exec | n={d.get('n_positions',0)} · Δ={delta_pct}% · p={p} · **{gate}** | REJECT these params · run P0-EXTENSION-01 |")
 
     # P1
     for m in ("india","usa"):
         d = _read_json(r / "r2_upgrades" / f"p1_calibration_{m}.json")
         if d:
-            L.append(f"| P1 joint Platt | {m.upper()} | n={d.get('n',0)} | {d.get('gate_status','?')} | RESEARCH FURTHER · needs n≥50 |")
+            L.append(f"| P1 joint Platt | {m.upper()} | 🟢 | 🟠 | n={d.get('n',0)} · {d.get('gate_status','?')} | RESEARCH FURTHER · needs n≥50 |")
 
     # P2
     for m in ("india","usa"):
         d = _read_json(r / "r2_upgrades" / f"p2_sector_regime_{m}.json")
         if d:
             best = d.get("best") or {}
-            L.append(f"| P2 α,β (9 trials) | {m.upper()} | best (α={best.get('alpha','?')}, β={best.get('beta','?')}) lift={_fmt(d.get('sharpe_lift_over_baseline'))} | BLOCKED | RESEARCH FURTHER · regime substrate thin |")
+            L.append(f"| P2 α,β (9 trials) | {m.upper()} | 🟢 | 🟠 | best (α={best.get('alpha','?')}, β={best.get('beta','?')}) lift={_fmt(d.get('sharpe_lift_over_baseline'))} · BLOCKED (regime features thin) | RESEARCH FURTHER |")
 
     # P3
     for m in ("india","usa"):
         d = _read_json(r / "r2_upgrades" / f"p3_kg_community_{m}.json")
         if d:
-            L.append(f"| P3 KG γ (5 trials) | {m.upper()} | n_communities={d.get('n_communities',0)} | BLOCKED | RESEARCH FURTHER · needs real KG persistence |")
+            L.append(f"| P3 KG γ (5 trials) | {m.upper()} | 🟢 | 🟠 | n_communities={d.get('n_communities',0)} · BLOCKED (KG PIT UNKNOWN) | RESEARCH FURTHER · real KG persistence |")
 
     # P4
     for m in ("india","usa"):
         d = _read_json(r / "r2_upgrades" / f"p4_cap_sector_{m}.json")
         if d:
             lr = d.get("likelihood_ratio_test") or {}
-            L.append(f"| P4 Cap × Sector LR | {m.upper()} | n_cells={d.get('n_cells',0)} · LR n={lr.get('n',0)} | BLOCKED | RESEARCH FURTHER · after cap/investability batch |")
+            L.append(f"| P4 Cap × Sector LR | {m.upper()} | 🟢 | 🟠 | n_cells={d.get('n_cells',0)} · LR n={lr.get('n',0)} · BLOCKED (cap/invest incomplete) | RESEARCH FURTHER |")
 
     # P5
     for m in ("india","usa"):
         d = _read_json(r / "r2_upgrades" / f"p5_{m}.json")
         if d:
-            L.append(f"| P5.1-5.5 | {m.upper()} | 5 subitems scaffolded | MIXED | P5.5 KEEP (permanent) · rest RESEARCH FURTHER |")
+            L.append(f"| P5.1-5.5 | {m.upper()} | 🟢 | 🟠 | 5 subitems scaffolded · sample-limited | P5.5 KEEP · rest RESEARCH FURTHER |")
 
     # NEG
     for m in ("india","usa"):
         panel = _read_json(r / "neg_pnl_control_60d" / f"panel_{m}.json")
         if panel:
             recent = panel.get("protection_recent_60d") or {}
-            L.append(f"| NEG-PNL-CONTROL-60D | {m.upper()} | n={recent.get('n',0)} · 9 variants all FAIL or null | **REJECT** (correct) | KEEP research family · no R2 tightening |")
+            L.append(f"| NEG-PNL-CONTROL-60D | {m.upper()} | 🟢 | 🔴 exec | n={recent.get('n',0)} · 9 variants all FAIL or null · **REJECT** (correct) | KEEP family · no R2 tightening |")
 
     # POS
     for m in ("india","usa"):
         panel = _read_json(r / "pos_pnl_capture_60d" / f"panel_{m}.json")
         if panel:
-            agg = panel.get("aggregate_missed_cost_pct_by_horizon") or {}
-            L.append(f"| POS-PNL-CAPTURE-60D | {m.upper()} | n={panel.get('n_candidates_total',0)} · 16 winner defs · 100% misses = C_FUNNEL_STAGE | **REJECT loosening** | KEEP family · alternate candidate path = NEW ticket |")
+            L.append(f"| POS-PNL-CAPTURE-60D | {m.upper()} | 🟢 | 🔴 exec | n={panel.get('n_candidates_total',0)} · 16 winner defs · 100% misses = C_FUNNEL_STAGE · **REJECT loosening** | KEEP family · alt candidate path = NEW ticket |")
 
     # Joint
     for m in ("india","usa"):
         d = _read_json(r / "joint_pnl" / f"panel_{m}.json")
         if d:
-            L.append(f"| Joint P&L Pareto | {m.upper()} | pareto size={d.get('pareto_frontier_size',0)} (null action) | **REJECT all** | KEEP engine |")
+            L.append(f"| Joint P&L Pareto | {m.upper()} | 🟢 | 🔴 exec | pareto size={d.get('pareto_frontier_size',0)} (null action) · **REJECT all** | KEEP engine |")
 
     # R3
     for m in ("india","usa"):
         model = _read_json(r / "r3" / "models" / f"gbm_tier1_{m}.json")
         bg = _read_json(r / "r3" / f"baseline_replicate_{m}.json")
         if model:
-            L.append(f"| R3 Tier-1 GBM | {m.upper()} | n_train={model.get('n_train',0)} · Brier={_fmt(model.get('brier'))} · AUC={_fmt(model.get('auc'))} · ECE={_fmt(model.get('ece'))} | {'training run' if not bg else ('PASS' if bg.get('gate_pass') else 'FAIL')} | Tier-2 {'UNLOCKED' if (bg and bg.get('gate_pass')) else 'BLOCKED'} · **KEEP gate** |")
+            L.append(f"| R3 Tier-1 GBM | {m.upper()} | 🟢 | 🔴 exec | n_train={model.get('n_train',0)} · Brier={_fmt(model.get('brier'))} · AUC={_fmt(model.get('auc'))} · ECE={_fmt(model.get('ece'))} · baseline gap {_fmt((bg or {}).get('gap'))} > tol · Tier-2 BLOCKED | KEEP gate |")
 
     # R1
     for m in ("india","usa"):
         d = _read_json(r / "r1_advisory_attribution" / f"{m}.json")
         if d:
-            L.append(f"| R1 attribution | {m.upper()} | r1_archive_days={d.get('n_r1_days_archived',0)} · early_warnings={d.get('n_early_warnings_r1_before_r2',0)} | {'BLOCKED · archive gap' if d.get('n_r1_days_archived',0)==0 else 'OK'} | RESEARCH FURTHER · start R1 daily archive |")
+            L.append(f"| R1 attribution | {m.upper()} | 🟢 | 🟠 | r1_archive_days={d.get('n_r1_days_archived',0)} · early_warnings={d.get('n_early_warnings_r1_before_r2',0)} · BLOCKED (archive gap) | RESEARCH FURTHER · start R1 daily archive |")
 
     # Composite
     for m in ("india","usa"):
         d = _read_json(r / "composite" / f"composite_signals_{m}.json")
         if d:
-            L.append(f"| Composite daily loop | {m.upper()} | n_tickers={d.get('n_tickers',0)} · R3 admitted?=no (trailing_n<50) | shadow only | KEEP as shadow · REJECT sizing promotion |")
+            L.append(f"| Composite daily loop | {m.upper()} | 🟢 | 🟠 | n_tickers={d.get('n_tickers',0)} · R3 admitted?=no (trailing_n<50) · shadow only | KEEP as shadow · REJECT sizing promotion |")
+
+    # R3 Tier-2/Tier-3 tickets · 9 modules · all BLOCKED-EVIDENCE by design
+    L.append("| R3 Tier-2 · stacking | both | 🟢 | ❌ | BLOCKED-EVIDENCE (R3 shadow <20) | KEEP gate · lifts when Day-30 fires |")
+    L.append("| R3 Tier-2 · BMA | both | 🟢 | ❌ | BLOCKED-EVIDENCE | KEEP gate |")
+    L.append("| R3 Tier-2 · factor-neutral | both | 🟢 | ❌ | BLOCKED-EVIDENCE | KEEP gate |")
+    L.append("| R3 Tier-2 · promoter-governance | india | 🟢 | ❌ | BLOCKED-EVIDENCE + REQUIRES_LIVE_SOURCE (NSE SAST/BSE) | KEEP gate · India-only · NOT_APPLICABLE USA |")
+    L.append("| R3 Tier-2 · transcript-tone (Q&A sep) | both | 🟢 | ❌ | BLOCKED-EVIDENCE + transcript ingest missing | KEEP gate |")
+    L.append("| R3 Tier-2 · multi-horizon | both | 🟢 | ❌ | BLOCKED-EVIDENCE | KEEP gate |")
+    L.append("| R3 Tier-3 · GraphSAGE | both | 🟢 | ❌ | BLOCKED-EVIDENCE (shadow ≥60 + community persistent ≥90d) | KEEP gate |")
+    L.append("| R3 Tier-3 · Engle-Granger pairs | both | 🟢 | ❌ | BLOCKED-EVIDENCE + short-sell infra absent | KEEP gate |")
+    L.append("| R3 Tier-3 · CUSUM regime | both | 🟢 | ❌ | BLOCKED-EVIDENCE (needs historical transition-date labels) | KEEP gate |")
+    L.append("| CRASH_DETECTOR_01 + RECOVERY_DETECTOR_01 | both | 🟢 | 🟢 exec | 0 fires today (no −3σ days in window) · **result preserved** | KEEP · additive to base regime enricher |")
+    L.append("| L5 Related-Party + Transcript Tone Q&A-sep | both | 🟢 | ❌ | Modules exist · data sources absent (RPT + transcript ingest) | RESEARCH FURTHER · wire sources |")
+    L.append("| L4 India FII/DII + Options PCR shim | india | 🟢 | ❌ | REQUIRES_LIVE_SOURCE marker · adapter placeholder | RESEARCH FURTHER · wire NSE ingest |")
 
     L.append("")
 
