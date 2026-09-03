@@ -1,5 +1,5 @@
 # AEGIS · SCORECARD
-_regen `python scripts/aegis_scorecard.py` · 2026-09-03 12:21 UTC · replaces EVIDENCE_LOG + PDF_MATRIX + EXPERIMENT_REGISTRY + 28_REPORTS_
+_regen `python scripts/aegis_scorecard.py` · 2026-09-03 12:31 UTC · replaces EVIDENCE_LOG + PDF_MATRIX + EXPERIMENT_REGISTRY + 28_REPORTS_
 
 **PRODUCTION = FROZEN.** No R2 change. No push. Per CEO Development Freeze.
 
@@ -46,10 +46,10 @@ A `FAIL` verdict is ✅ Implementation · ✅ Validation-executed · 🔴 result
 | Signal Ledger snapshots | 3 | 3 |
 | PIT Universe rows | 3250 | 33540 |
 | PIT Universe unique tickers | 50 | 516 |
-| Fundamentals FS rows | 31 | 30 |
+| Fundamentals FS rows | 48 | 100 |
 | KG PIT snapshots | 7 | 7 |
-| R3 shadow ledger picks | — | 5 |
-| Paper comparator ticks | 1 | 1 |
+| R3 shadow ledger picks | — | 15 |
+| Paper comparator ticks | 2 | 2 |
 
 ## 3 · Research results · Implementation vs Validation
 
@@ -70,6 +70,7 @@ A module can be 🟢 Implementation and still 🟠 Validation if substrate is th
 | NEG-PNL-CONTROL-60D | USA | 🟢 | 🔴 exec | n=536 · 9 variants all FAIL or null · **REJECT** (correct) | KEEP family · no R2 tightening |
 | POS-PNL-CAPTURE-60D | INDIA | 🟢 | 🔴 exec | n=3050 · 16 winner defs · 100% misses = C_FUNNEL_STAGE · **REJECT loosening** | KEEP family · alt candidate path = NEW ticket |
 | POS-PNL-CAPTURE-60D | USA | 🟢 | 🔴 exec | n=31476 · 16 winner defs · 100% misses = C_FUNNEL_STAGE · **REJECT loosening** | KEEP family · alt candidate path = NEW ticket |
+| Joint P&L Pareto | INDIA | 🟢 | 🔴 exec | pareto size=6 (null action) · **REJECT all** | KEEP engine |
 | Joint P&L Pareto | USA | 🟢 | 🔴 exec | pareto size=1 (null action) · **REJECT all** | KEEP engine |
 | R3 Tier-1 GBM | USA | 🟢 | 🔴 exec | n_train=500 · Brier=0.255 · AUC=0.447 · ECE=0.011 · baseline gap ? > tol · Tier-2 BLOCKED | KEEP gate |
 | R1 attribution | INDIA | 🟢 | 🟠 | r1_archive_days=0 · early_warnings=0 · BLOCKED (archive gap) | RESEARCH FURTHER · start R1 daily archive |
@@ -91,9 +92,9 @@ A module can be 🟢 Implementation and still 🟠 Validation if substrate is th
 
 ## 4 · Forward artifacts
 
-- **R3 shadow ledger:** 5 picks · Day-30 gate fires at ≥20 · `reports/research/r3/shadow_ledger.jsonl`
-- **Paper comparator (India):** 1 ticks · `reports/research/paper_comparator/india.jsonl`
-- **Paper comparator (USA):** 1 ticks · `reports/research/paper_comparator/usa.jsonl`
+- **R3 shadow ledger:** 15 picks · Day-30 gate fires at ≥20 · `reports/research/r3/shadow_ledger.jsonl`
+- **Paper comparator (India):** 2 ticks · `reports/research/paper_comparator/india.jsonl`
+- **Paper comparator (USA):** 2 ticks · `reports/research/paper_comparator/usa.jsonl`
 - **Sprint M-R forward (pre-Sprint-A · INDIA):** n_obs=62 through 2026-08-27 · `reports/research/mr_forward_validation_india.json`
 - **Sprint M-R forward (pre-Sprint-A · USA):** n_obs=546 through 2026-08-27 · `reports/research/mr_forward_validation_usa.json`
 - **Sprint M-R narrative:** `reports\research\AEGIS_FORWARD_VALIDATION_REPORT.md` (India −6.48pp · USA +2.69pp through 2026-08-27)
