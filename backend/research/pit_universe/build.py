@@ -32,6 +32,18 @@ def _yaml_load(p: Path) -> dict:
     return yaml.safe_load(p.read_text(encoding="utf-8"))
 
 
+def _extract_ticker(x) -> str:
+    """Normalize a universe entry to bare ticker · handles str, dict-with-SYMBOL,
+    dict-with-symbol, dict-with-ticker."""
+    if isinstance(x, str):
+        return x.strip().upper()
+    if isinstance(x, dict):
+        for k in ("SYMBOL", "symbol", "TICKER", "ticker", "code"):
+            v = x.get(k)
+            if v: return str(v).strip().upper()
+    return str(x).strip().upper()
+
+
 def _current_universe(root: Path, market: str) -> list[str]:
     """Load today's declared universe as a fallback baseline."""
     cfg = _yaml_load(root / "configs" / "aegis_universes.yaml")
@@ -42,11 +54,11 @@ def _current_universe(root: Path, market: str) -> list[str]:
     try:
         d = json.loads(p.read_text(encoding="utf-8"))
         if isinstance(d, list):
-            return [str(x).upper() for x in d]
+            return [_extract_ticker(x) for x in d if x]
         if isinstance(d, dict):
             for key in ("tickers", "constituents", "members"):
                 if key in d and isinstance(d[key], list):
-                    return [str(x).upper() for x in d[key]]
+                    return [_extract_ticker(x) for x in d[key] if x]
     except (ValueError, OSError):
         pass
     return []

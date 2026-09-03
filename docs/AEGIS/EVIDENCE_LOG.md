@@ -294,6 +294,86 @@ Historical baseline present but sample thinner. Full panel produced in `reports/
 
 ---
 
+### E-017 · POS-PNL-CAPTURE-60D · additive research family FIRST RUN · 2026-09-03
+
+- **Research family:** additive · declared by CEO 2026-09-03 master prompt · mirror of NEG-PNL-CONTROL-60D.
+- **Question:** during the latest 60 calendar days of AEGIS output, which profitable opportunities were missed, why were they missed, and can the new AEGIS techniques recover those opportunities without materially increasing losses / drawdown / turnover / concentration / winner sacrifice?
+- **Scope:** 18 tests declared · core (T1 dataset + T3 winner definition + T4 missed-winner funnel A-F + T5 selection metrics) implemented in this run · T2/T6-T18 documented at call sites pending enricher wiring.
+- **Winner definition trial family:** 16 (4 horizons × 4 thresholds · PREDECLARED before inspecting results) · Deflated Sharpe deflation applies `n_trials=16` for any "best" claim.
+- **PIT rule:** every candidate uses only features available at decision date · future returns are outcome labels only.
+
+#### USA · 31 476 candidate × date rows · 30 950 with data (98.3%)
+
+Per-winner-definition selection quality (subset):
+
+| Definition | TP | FP | FN | Precision | Recall | Missed cost sum |
+|---|---:|---:|---:|---:|---:|---:|
+| h5_t5pct   | 1 | 88 | 2652 | 0.011 | 0.000 | +23 766% |
+| h5_t10pct  | 0 | 89 |  682 | 0.000 | 0.000 | +10 311% |
+| h5_t15pct  | 0 | 89 |  234 | 0.000 | 0.000 |  +4 933% |
+| h5_t20pct  | 0 | 89 |  111 | 0.000 | 0.000 |  +2 828% |
+| h10_t5pct  | 1 |  3 | 3526 | 0.250 | 0.000 | +36 009% |
+| h10_t10pct | 0 |  4 | 1295 | 0.000 | 0.000 | +20 067% |
+| h10_t15pct | 0 |  4 |  478 | 0.000 | 0.000 | +10 219% |
+| h10_t20pct | 0 |  4 |  210 | 0.000 | 0.000 |  +5 611% |
+
+Aggregate missed-winner cost by horizon (sum of forward-returns of missed winners across all thresholds):
+- 5d:  +41 839%
+- 10d: +71 907%
+- 20d: +74 382%
+- 60d:  0% (out-of-window · needs longer parquet reach)
+
+**Miss-category classification (h20_t10pct):**
+- C_FUNNEL_STAGE_MISS: **1 417** (100% of the missed winners at that definition)
+- All misses trace to the same upstream filter identified in E-002 · `short_term_momentum.py:340` returns IGNORE for tickers outside ±4/±8/±12% bands. Not only were 227/230 India universe tickers dropped that way, so were thousands of USA candidates that subsequently became winners.
+
+#### Interpretation
+
+- The system's precision-when-selecting is essentially zero at short horizons (h5) — AEGIS's 89 USA selections in the window produced ~1 TP against the h5_t5pct definition.
+- The overwhelming majority of missed winners were dropped upstream by the volatile-mover filter (C_FUNNEL_STAGE_MISS). This is the SAME finding as E-002 (R2 zero-entry) — the short_term_momentum filter is DORMANT_BY_DESIGN, and that design has a cost visible from the positive side.
+- The 88 false-positives in h5_t5pct selections show current AEGIS selections rarely produce a +5% 5-day return.
+- Precision improves at longer horizons (h10 shows prec=0.250 for at least one TP) but recall stays at 0 across every horizon+threshold combination.
+
+#### What this evidence does NOT justify
+
+Per governance:
+- Does NOT justify tightening R2 (that's E-016's job · already showed no control variant helps)
+- Does NOT justify LOOSENING the short_term_momentum thresholds (that would replace a volatile-mover detector with a broadband filter · silent doctrine change)
+- Does NOT justify adding a second candidate-source path yet · that's a NEW research ticket requiring its own gate
+
+#### What this evidence DOES suggest for future research
+
+- Test whether the PDF techniques (P1/P2/P3/P4/P5) can recover any of the C_FUNNEL_STAGE misses when substrate lands · this is exactly the "PDF technique tests" section of the master prompt.
+- The short_term_momentum IGNORE filter is worth a formal research ticket · not a threshold change, but a study of whether an ALTERNATE candidate-generation path (fundamentals-first · KG-community-first · flow-first) would recover any missed winners.
+- Per PDF Sec 9 · Signal Silence + MVS discipline stays in place.
+
+#### Deferred tests (each with named blocker)
+
+- T2 winner cohort analysis by class · blocked on trajectory reconstruction of PIT candidates (not just Registry positions)
+- T6 joint pos+neg counterfactual · blocked on candidate-strategy definition
+- T7 timing "would AEGIS have caught it earlier?" · blocked on daily-rank history
+- T8 signal deterioration replay · blocked on rank/confidence timeseries
+- T9 Cap × Sector × Investability winner rate · blocked on B3 batch (yfinance)
+- T10 R1 vs R2 winner discovery · blocked on R1 daily archive
+- T11 fundamentals attribution of winners · blocked on B6 batch (yfinance)
+- T12 KG community winner concentration · blocked on real per-node KG snapshots
+
+- **Artifacts:**
+  - `reports/research/pos_pnl_capture_60d/dataset_{market}.summary.json`
+  - `reports/research/pos_pnl_capture_60d/panel_{market}.json`
+  - `reports/research/pos_pnl_capture_60d/summary_{market}.md`
+
+#### Governance preserved
+
+- P0-original (E-001) unchanged.
+- NEG-PNL-CONTROL-60D (E-016) unchanged.
+- No R2 change proposed.
+- No PDF gate lowered.
+- Trial family (16) counted; Deflated Sharpe deflation applies to any future "best" claim.
+- Master controlling prompt saved verbatim at `docs/AEGIS/MASTER_CONTROLLING_PROMPT_2026-09-03.md`.
+
+---
+
 ## Additive extensions declared (not yet run)
 
 - **P0-EXTENSION-01** · 60-trial (k×m×horizon) parameter surface · gated on regime enricher landing first (now unblocked · can proceed after Batch B commit).
