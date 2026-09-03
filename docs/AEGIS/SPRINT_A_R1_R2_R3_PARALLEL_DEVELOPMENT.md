@@ -260,13 +260,15 @@ Fully isolated per Part 0 contract. GBM + Fundamentals Feature Store as primary 
 | Common | Fundamentals derivation Layer 1 (Quality) · Piotroski F-score · Beneish M-score · Altman Z-score · Sloan Accruals · Interest Coverage | Data | All 5 computable from existing balance-sheet + income-statement + cash-flow data · per-ticker per-market · verified against 5 known cases |
 | R3 | Isolation contract implementation · `backend/research/r3/` skeleton · `configs/r3_registry.yaml` (SHADOW_ONLY) · `configs/aegis_runner_registry.yaml` shipped | R3 | Skeleton importable · isolation CI test PASS · no functional code yet |
 
-### Week 3 · Fundamentals Layer 2 + P1 calibration start
+### Week 3 · Fundamentals Layer 2 + P1 calibration start + USA parity block
 
 | Track | Deliverable | Owner | Gate |
 |---|---|---|---|
 | R2 | P1 Platt calibration · `backend/calibration/platt_calibration.py` · joint-calibration fix (Amendment 1 from prior evaluation: fit on `(raw_score, regime_encoded, win/loss)` jointly, not two-stage multiply) | R2 | ECE weekly refit job scheduled · sanity guard active (don't deploy if new ECE > old) |
 | R1 | R1 output preserved to a historical archive · `data/r1_daily_archive/YYYY-MM-DD.csv` daily copy of `aegis_today.csv` for future ledger backfill | R1 | Daily copy running; archive covers ≥7 days by Week 3 end |
 | Common | Fundamentals Layer 2 (Value) · FCF Yield · EV/EBITDA · Total Shareholder Yield · Sector-relative percentile ranking | Data | All 4 signals computable · sector-relative uses `sector_cache.json` for grouping |
+| **USA parity** | **USA news sentiment adapter** · `usa/scripts/ingest_news.py` upgraded to per-ticker sentiment via free RSS (mirrors India news pipeline · adds Google News lexicon score at `usa/data/raw/us/news_sentiment.parquet`) · CEO 2026-09-03 GAP-4 | USA | ≥ 80% of S&P 500 tickers have news_sentiment row within 3 trading days; parquet appended daily |
+| **USA parity** | **USA dynamic-risk producer** · `usa/scripts/dynamic_risk_producer.py` mirrors `backend/research/multi_layer/dynamic_risk_v2.py` output shape · writes `usa/reports/research/multi_layer/dynamic_risk_v2_usa_{asof}.json` · so USA `01_Portfolio` Dynamic Stop stops showing UNAVAILABLE | USA | Every USA R2 ACTIVE position has a non-null Dynamic Stop in `01_Portfolio` (verified via xlsx_validator I-check + `_a` `01_Portfolio` audit ≥ 95% coverage) |
 | R3 | R3 Tier 1 model skeleton · LightGBM training loop · walk-forward folds per Part 4 protocol (train=252, test=63, step=21, embargo=5) | R3 | Loop runs on synthetic data · SHAP feature importance emits · no real training yet |
 
 ### Week 4 · Fundamentals Layer 3 + P1 wired

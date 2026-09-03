@@ -42,10 +42,10 @@ schema:
   # ---- Regime + context at entry ----
   regime_at_entry:        {type: str,  required: false, enum: [NORMAL, WEAKENING, RISK_OFF, CRASH, RECOVERY, UNKNOWN]}
   sector_regime_at_entry: {type: str,  required: false}
-  market_breadth_at_entry:{type: float, required: false}      # 0..1 pct-above-200dma
+  market_breadth_at_entry: {type: float, required: false}      # 0..1 pct-above-200dma
   vix_at_entry:           {type: float, required: false}      # USA VIX or India-VIX
 
-  # ---- Fundamentals at entry (18-signal Fundamentals Feature Store snapshot) ----
+  # ---- Fundamentals at entry (19-signal Fundamentals Feature Store snapshot · CEO GAP 1 reconciliation) ----
   piotroski_f:            {type: int,   required: false, min: 0, max: 9}
   beneish_m:              {type: float, required: false}
   altman_z:               {type: float, required: false}
@@ -53,7 +53,7 @@ schema:
   interest_coverage:      {type: float, required: false}
   fcf_yield:              {type: float, required: false}
   ev_ebitda:              {type: float, required: false}
-  total_shareholder_yield:{type: float, required: false}
+  total_shareholder_yield: {type: float, required: false}
   sector_rel_value_rank:  {type: float, required: false, min: 0, max: 1}
   analyst_rev_momentum:   {type: float, required: false}
   guidance_rev:           {type: float, required: false}
@@ -63,7 +63,7 @@ schema:
   fii_dii_net_flow_z:     {type: float, required: false}       # z-score over 20d
   options_pcr:            {type: float, required: false}       # put-call ratio
   short_interest_pct:     {type: float, required: false}       # % float
-  earnings_calendar_window:{type: int,  required: false}       # days-to-next-earnings; -1 unknown
+  earnings_calendar_window: {type: int,  required: false}       # days-to-next-earnings; -1 unknown
   promoter_pledge_pct:    {type: float, required: false}       # India only; NaN elsewhere
 
   # ---- Exit (populated when closed) ----
@@ -72,7 +72,7 @@ schema:
   exit_reason:            {type: str,   required: false}       # canonical: STOP_HIT, TARGET_HIT, HORIZON_EXPIRED, MANUAL, RETIRED, ADMIN_ZERO_DELTA
   holding_days:           {type: int,   required: false, min: 0}
   realized_return_pct:    {type: float, required: false}       # decimal (0.05 = 5%)
-  max_favorable_excursion:{type: float, required: false}       # MFE % from entry
+  max_favorable_excursion: {type: float, required: false}       # MFE % from entry
   max_adverse_excursion:  {type: float, required: false}       # MAE % from entry
   was_stop_hit:           {type: bool,  required: false}
   was_target_hit:         {type: bool,  required: false}
