@@ -1,0 +1,47 @@
+{
+  "ticket_id": "D18-DATA-INTEGRITY-AUDIT",
+  "domain": 18,
+  "market": "usa",
+  "gate_status": "EXECUTED",
+  "n_parquet_files": 908,
+  "pit_universe_present": true,
+  "audit": {
+    "survivorship_bias": {
+      "risk": "MEDIUM",
+      "detail": "Only today's universe is in parquet \u00b7 delisted historical tickers absent \u00b7 backtests on this parquet set have upward bias",
+      "mitigation": "Reconstruct historical constituent list (NIFTY 200 \u00b7 S&P 500 + MidCap 400) \u00b7 declared as UNIVERSE_EXT_NIFTY200 + MIDCAP400_EXT"
+    },
+    "look_ahead_bias": {
+      "risk": "LOW",
+      "detail": "PIT ATR \u00b7 PIT prices \u00b7 PIT regime enricher \u00b7 signal_ledger walks forward correctly",
+      "controls": [
+        "PIT rule verified in tests/enrichers/",
+        "walk-forward embargo 5d"
+      ]
+    },
+    "revision_bias": {
+      "risk": "MEDIUM",
+      "detail": "yfinance fundamentals are current-vintage \u00b7 original-as-reported not preserved",
+      "mitigation": "Would need SEC/SEBI original filings \u00b7 not currently done"
+    },
+    "missing_data_bias": {
+      "risk": "LOW-MEDIUM",
+      "detail": "NULL preserved \u00b7 never zero-filled per V2 \u00a736 \u00b7 verified in provider tests",
+      "known_gaps": [
+        "FII/DII (India)",
+        "Options PCR",
+        "Transcripts",
+        "13F",
+        "Related-party txns"
+      ]
+    },
+    "delisting_bias": {
+      "risk": "MEDIUM",
+      "detail": "Delisted tickers vanish from parquet dir \u00b7 no explicit delisting log",
+      "mitigation": "Would need explicit delisting event log \u00b7 not currently maintained"
+    }
+  },
+  "verdict": "RESEARCH FURTHER \u00b7 survivorship + revision + delisting biases need mitigation before declaring backtests trustworthy",
+  "governance_note": "Data-integrity audit runs any time \u00b7 findings are informational \u00b7 do not block experiments but qualify results",
+  "generated_utc": "2026-09-03T13:28:39Z"
+}
