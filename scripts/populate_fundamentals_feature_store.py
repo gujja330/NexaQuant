@@ -36,6 +36,16 @@ except Exception:
     pass
 
 
+def _extract_ticker(x) -> str:
+    """Handle str, dict-with-SYMBOL, dict-with-symbol, dict-with-ticker."""
+    if isinstance(x, str): return x.strip().upper()
+    if isinstance(x, dict):
+        for k in ("SYMBOL","symbol","TICKER","ticker","code"):
+            v = x.get(k)
+            if v: return str(v).strip().upper()
+    return str(x).strip().upper()
+
+
 def _universe(root: Path, market: str) -> list[str]:
     """Load the declared universe."""
     if market == "usa":
@@ -43,18 +53,18 @@ def _universe(root: Path, market: str) -> list[str]:
         if p.exists():
             try:
                 d = json.loads(p.read_text(encoding="utf-8"))
-                if isinstance(d, list): return [str(x).upper() for x in d]
+                if isinstance(d, list): return [_extract_ticker(x) for x in d if x]
                 if isinstance(d, dict):
                     for k in ("tickers","constituents","members"):
                         if k in d and isinstance(d[k], list):
-                            return [str(x).upper() for x in d[k]]
+                            return [_extract_ticker(x) for x in d[k] if x]
             except Exception: pass
     else:
         p = root / "reports" / "india_universe.json"
         if p.exists():
             try:
                 d = json.loads(p.read_text(encoding="utf-8"))
-                return [str(x).upper() for x in (d.get("tickers") or [])]
+                return [_extract_ticker(x) for x in (d.get("tickers") or [])]
             except Exception: pass
     return []
 
