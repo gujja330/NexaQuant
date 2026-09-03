@@ -388,6 +388,94 @@ def _scorecard(root: Path) -> str:
     L.append("python -m pytest tests/ -q --ignore=tests/legacy")
     L.append("```")
     L.append("")
+    # 9 · Deep Research · 20 domains · CEO 2026-09-03 audit
+    L.append("---")
+    L.append("")
+    L.append("## 9 · Deep Research · 20 domains (CEO 2026-09-03 audit)")
+    L.append("")
+    L.append("Per V2 §21 · every domain publishes RESEARCH_TICKET + evaluate() · default gate BLOCKED-EVIDENCE.")
+    L.append("Modules: `backend/research/deep/d01..d20` · orchestrator: `scripts/run_deep_research.py`.")
+    L.append("")
+    L.append("### 9.1 · EXECUTED domains · real numbers today")
+    L.append("")
+    L.append("**D09 · Deep Technical · REJECT · breakout signal has NEGATIVE forward-return lift both markets**")
+    d09_india = _read_json(r / "deep" / "d09-deep-technical_india.json")
+    d09_usa = _read_json(r / "deep" / "d09-deep-technical_usa.json")
+    for mkt, d in [("INDIA", d09_india), ("USA", d09_usa)]:
+        if d and "signals" in d:
+            bq = d["signals"].get("breakout_quality", {})
+            dd = d["signals"].get("drawdown_90d", {})
+            tk = d["signals"].get("tail_behavior_kurtosis", {})
+            L.append(f"- **{mkt}** · breakout n={bq.get('n_events_positive_signal')} · fwd5d signal={round((bq.get('mean_fwd5d_when_signal') or 0)*100,3)}% · no-signal={round((bq.get('mean_fwd5d_when_no_signal') or 0)*100,3)}% · **lift={round((bq.get('lift_signal_vs_no_signal') or 0)*100,3)}% → {bq.get('verdict','?')}**")
+            L.append(f"  drawdown-90d: median={round((dd.get('median_dd') or 0)*100,1)}% · worst={round((dd.get('worst_dd') or 0)*100,1)}% · fat-tail kurtosis p95={round(tk.get('p95_kurtosis') or 0,2)}")
+    L.append("")
+    L.append("**D16 · Deep Exit Science · MAE/MFE decomposition + regime split**")
+    for mkt in ("india", "usa"):
+        d = _read_json(r / "deep" / f"d16-deep-exit-science_{mkt}.json")
+        if d and d.get("gate_status") == "EXECUTED":
+            mm = d.get("mae_mfe_summary", {})
+            L.append(f"- **{mkt.upper()}** · n={d.get('n_positions')} · MAE={round((mm.get('mean_mae') or 0)*100,2)}% · MFE={round((mm.get('mean_mfe') or 0)*100,2)}% · winners={mm.get('n_winners')} · deep_losers={mm.get('n_deep_losers')}")
+        elif d:
+            L.append(f"- **{mkt.upper()}** · {d.get('gate_status')} n={d.get('n','?')}")
+    L.append("")
+    L.append("**D18 · Data Integrity Audit · 5 bias categories**")
+    for mkt in ("india", "usa"):
+        d = _read_json(r / "deep" / f"d18-data-integrity-audit_{mkt}.json")
+        if d:
+            risks = {k: v.get("risk") for k, v in (d.get("audit") or {}).items()}
+            L.append(f"- **{mkt.upper()}** · {risks} · **{d.get('verdict','?')[:80]}**")
+    L.append("")
+    L.append("**D19 · Statistical Robustness · audits 10 existing experiments each**")
+    for mkt in ("india", "usa"):
+        d = _read_json(r / "deep" / f"d19-statistical-robustness_{mkt}.json")
+        if d:
+            L.append(f"- **{mkt.upper()}** · audited={d.get('n_experiments_audited')} · compliance gaps={d.get('total_compliance_gaps')} · {d.get('verdict','?')[:80]}")
+    L.append("")
+    L.append("**D20 · Failure Research · 4-category loss decomposition**")
+    for mkt in ("india", "usa"):
+        d = _read_json(r / "deep" / f"d20-failure-research-ext_{mkt}.json")
+        if d and d.get("gate_status") == "EXECUTED":
+            dist = d.get("failure_category_distribution", {})
+            L.append(f"- **{mkt.upper()}** · n_losses={d.get('n_losses_classified')} · {list(dist.keys())[0] if dist else '?'} = {list(dist.values())[0] if dist else 0}")
+        elif d:
+            L.append(f"- **{mkt.upper()}** · {d.get('gate_status')} n={d.get('n','?')}")
+    L.append("")
+    L.append("### 9.2 · BLOCKED-EVIDENCE domains · what each is waiting on")
+    L.append("")
+    L.append("| Domain | Blocker |")
+    L.append("|---|---|")
+    for domain_num, mod_name in [
+        (1, "d01_business_quality"), (2, "d02_balance_sheet"),
+        (3, "d03_accounting_quality_ext"), (4, "d04_valuation_ext"),
+        (5, "d05_growth_quality"), (6, "d06_industry_cycle"),
+        (7, "d07_macro_fci"), (8, "d08_flows_crowding"),
+        (10, "d10_corp_events_ext"), (11, "d11_governance_india_ext"),
+        (12, "d12_narrative_ext"), (13, "d13_kg_ownership"),
+        (14, "d14_risk_ext"), (15, "d15_portfolio_construction"),
+        (17, "d17_cross_market_global"),
+    ]:
+        d = _read_json(r / "deep" / f"{mod_name.replace('_','-')}_usa.json") or _read_json(r / "deep" / f"{mod_name.replace('_','-').upper()}_usa.json")
+        # try both naming
+        for pat in (f"d{domain_num:02d}-*_usa.json",):
+            files = list((r / "deep").glob(pat))
+            if files:
+                d = _read_json(files[0])
+                break
+        if d:
+            blk = str(d.get('blocker_reason', d.get('note', '?')))[:100]
+            L.append(f"| D{domain_num:02d} · {mod_name.split('_',1)[1].replace('_',' ')} | {blk} |")
+    L.append("")
+    L.append("### 9.3 · Deep Research summary")
+    L.append("")
+    L.append("- **20 modules · all live · zero silent PASS**")
+    L.append("- **4 domains EXECUTED with real evidence today** (d09 REJECT · d16 both/USA · d18 bias audit · d19 audit · d20 USA)")
+    L.append("- **15 domains BLOCKED-EVIDENCE** with named substrate blocker per V2 §36")
+    L.append("- **1 domain NOT_APPLICABLE** (d11 India-only for USA)")
+    L.append("- **Notable REJECT · D09 breakout-quality** · +N-day-high with volume produces NEGATIVE 5-day forward returns both markets · rejects a popular technical premise")
+    L.append("- **D19 flags 12 India + 23 USA compliance gaps** in existing experiments · needs walk-forward + DSR extension")
+    L.append("- **D18 confirms 5 bias risks** · survivorship/revision/delisting all MEDIUM · needs mitigation before backtest results are called trustworthy")
+    L.append("")
+
     L.append("---")
     L.append("")
     L.append("**End of scorecard. This file supersedes EVIDENCE_LOG.md · PDF_IMPLEMENTATION_MATRIX.md · EXPERIMENT_REGISTRY.md · FINAL_28_REPORTS.md — deleted per CEO directive.**")

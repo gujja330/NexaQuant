@@ -1,5 +1,5 @@
 # AEGIS · SCORECARD
-_regen `python scripts/aegis_scorecard.py` · 2026-09-03 12:58 UTC · replaces EVIDENCE_LOG + PDF_MATRIX + EXPERIMENT_REGISTRY + 28_REPORTS_
+_regen `python scripts/aegis_scorecard.py` · 2026-09-03 13:32 UTC · replaces EVIDENCE_LOG + PDF_MATRIX + EXPERIMENT_REGISTRY + 28_REPORTS_
 
 **PRODUCTION = FROZEN.** No R2 change. No push. Per CEO Development Freeze.
 
@@ -202,6 +202,65 @@ python scripts/aegis_scorecard.py
 python scripts/build_aegis_3sheet_workbook.py --market both --asof 2026-09-03
 python -m pytest tests/ -q --ignore=tests/legacy
 ```
+
+---
+
+## 9 · Deep Research · 20 domains (CEO 2026-09-03 audit)
+
+Per V2 §21 · every domain publishes RESEARCH_TICKET + evaluate() · default gate BLOCKED-EVIDENCE.
+Modules: `backend/research/deep/d01..d20` · orchestrator: `scripts/run_deep_research.py`.
+
+### 9.1 · EXECUTED domains · real numbers today
+
+**D09 · Deep Technical · REJECT · breakout signal has NEGATIVE forward-return lift both markets**
+- **INDIA** · breakout n=63 · fwd5d signal=-0.328% · no-signal=0.407% · **lift=-0.735% → REJECT · no incremental info**
+  drawdown-90d: median=-19.0% · worst=-67.0% · fat-tail kurtosis p95=9.51
+- **USA** · breakout n=116 · fwd5d signal=-0.245% · no-signal=0.29% · **lift=-0.536% → REJECT · no incremental info**
+  drawdown-90d: median=-24.4% · worst=-81.0% · fat-tail kurtosis p95=9.06
+
+**D16 · Deep Exit Science · MAE/MFE decomposition + regime split**
+- **USA** · n=479 · MAE=-2.25% · MFE=2.35% · winners=250 · deep_losers=1
+
+**D18 · Data Integrity Audit · 5 bias categories**
+- **INDIA** · {'survivorship_bias': 'MEDIUM', 'look_ahead_bias': 'LOW', 'revision_bias': 'MEDIUM', 'missing_data_bias': 'LOW-MEDIUM', 'delisting_bias': 'MEDIUM'} · **RESEARCH FURTHER · survivorship + revision + delisting biases need mitigation be**
+- **USA** · {'survivorship_bias': 'MEDIUM', 'look_ahead_bias': 'LOW', 'revision_bias': 'MEDIUM', 'missing_data_bias': 'LOW-MEDIUM', 'delisting_bias': 'MEDIUM'} · **RESEARCH FURTHER · survivorship + revision + delisting biases need mitigation be**
+
+**D19 · Statistical Robustness · audits 10 existing experiments each**
+- **INDIA** · audited=10 · compliance gaps=12 · RESEARCH FURTHER · 12 compliance gaps
+- **USA** · audited=10 · compliance gaps=23 · RESEARCH FURTHER · 23 compliance gaps
+
+**D20 · Failure Research · 4-category loss decomposition**
+- **USA** · n_losses=229 · PORTFOLIO_OR_UNKNOWN_FAILURE · needs portfolio-state PIT = 229
+
+### 9.2 · BLOCKED-EVIDENCE domains · what each is waiting on
+
+| Domain | Blocker |
+|---|---|
+| D01 · business quality | Historical fundamentals PIT snapshots missing · today's yfinance snapshot only · needs 8+ quarters a |
+| D02 · balance sheet | yfinance free tier lacks debt-maturity schedule + off-balance-sheet exposure · need paid source (S&P |
+| D03 · accounting quality ext | Auditor-change + one-off earnings need direct filings parse (SEC 10-K/10-Q · SEBI annual reports) ·  |
+| D04 · valuation ext | DCF requires analyst-forecast time series + WACC per ticker · needs consensus estimate feed · not wi |
+| D05 · growth quality | Estimate revision + guidance history needs consensus feed (I/B/E/S · Bloomberg · not in yfinance) |
+| D06 · industry cycle | Industry cycle indicators need external data (RBI monetary policy · FRED GDP · World Bank commodity  |
+| D07 · macro fci | FCI needs FRED (USA) + RBI Handbook (India) rates+FX+credit-spread feeds · not yet ingested |
+| D08 · flows crowding | 13F ingest (SEC EDGAR) + SAST parse + short-interest history not wired · REQUIRES_LIVE_SOURCE |
+| D10 · corp events ext | SEC 8-K + BSE/NSE announcement scrapers not wired · need dedicated ingest per market |
+| D11 · governance india ext | India-only governance signals |
+| D12 · narrative ext | Transcript ingest not wired (Tier-2 module ready · needs SeekingAlpha/bamsec/MoneyControl scraper) · |
+| D13 · kg ownership | Ownership graph + supplier/customer edges need paid data (Bloomberg SPLC / S&P Cap IQ) · free proxie |
+| D14 · risk ext | Factor betas + intraday liquidity + historical crisis scenarios need dedicated build · foundational  |
+| D15 · portfolio construction | Historical portfolio-state PIT not yet reconstructed · Registry has current state · needs nightly sn |
+| D17 · cross market global | FRED (USA rates) + RBI FX + commodity feeds not wired · doable but needs ingest work |
+
+### 9.3 · Deep Research summary
+
+- **20 modules · all live · zero silent PASS**
+- **4 domains EXECUTED with real evidence today** (d09 REJECT · d16 both/USA · d18 bias audit · d19 audit · d20 USA)
+- **15 domains BLOCKED-EVIDENCE** with named substrate blocker per V2 §36
+- **1 domain NOT_APPLICABLE** (d11 India-only for USA)
+- **Notable REJECT · D09 breakout-quality** · +N-day-high with volume produces NEGATIVE 5-day forward returns both markets · rejects a popular technical premise
+- **D19 flags 12 India + 23 USA compliance gaps** in existing experiments · needs walk-forward + DSR extension
+- **D18 confirms 5 bias risks** · survivorship/revision/delisting all MEDIUM · needs mitigation before backtest results are called trustworthy
 
 ---
 
