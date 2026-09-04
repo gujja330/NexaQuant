@@ -2,18 +2,18 @@
 
 *Recomputed: 2026-09-04 · single source: `backend/research/research_registry.py`*
 
-**Total items in registry:** 51
+**Total items in registry:** 52
 
 ## Grand totals (mechanical · sums equal total)
 
 | State | Count |
 |---|---:|
 | WORKED_LEGACY | 30 |
-| PENDING | 11 |
+| PENDING | 12 |
 | REJECTED | 8 |
 | CONDITIONAL | 1 |
 | BLOCKED | 1 |
-| **Sum** | **51** |
+| **Sum** | **52** |
 | Reconciles? | **✅ YES** |
 
 ## Per runner
@@ -26,7 +26,7 @@
 | R1 | 0 | 0 | 0 | 0 | 7 | **7** |
 | R2 | 0 | 1 | 7 | 1 | 3 | **12** |
 | R3 | 0 | 0 | 4 | 1 | 8 | **13** |
-| STANDALONE | 1 | 0 | 0 | 0 | 2 | **3** |
+| STANDALONE | 1 | 0 | 1 | 0 | 2 | **4** |
 
 ## STP verdict → 13-stage Coverage Tracker mapping (single vocabulary)
 
@@ -92,3 +92,4 @@
 | LT-COMPOUNDER-01 | STANDALONE | Part C | Compounder Watchlist · Winner/Failure Genome | **BLOCKED** |
 | STP | STANDALONE | Framework | Standard Testing Pattern (STP) | **WORKED_LEGACY** |
 | COV-13 | STANDALONE | Framework | 13-stage Coverage Tracker | **WORKED_LEGACY** |
+| EVIDENCE-ENGINE | STANDALONE | Framework | Cross-Cutting Evidence Engine (V2 PDF walk-forward + bootstrap + DSR + forward paper) | **PENDING** |

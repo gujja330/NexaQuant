@@ -215,7 +215,12 @@ STANDALONE_ITEMS: list[ResearchItem] = [
     ResearchItem("STP", "STANDALONE", "Framework", "Standard Testing Pattern (STP)",
                   "T1-T5 default · auto worth verdict · single vocabulary"),
     ResearchItem("COV-13", "STANDALONE", "Framework", "13-stage Coverage Tracker",
-                  "Mapped→Data-required→PIT-ready→Populated→Implemented→Tested→OOS→Corrected→Incremental→Paper→Shadow→Candidate→Production"),
+                  "Mapped→Data-required→PIT-ready→Populated→Implemented→Tested→OOS→Corrected→Incremental→Paper→Shadow→Candidate→Production",
+                  remediation_priority=99, next_stp_action="Framework · no STP applicable"),
+    ResearchItem("EVIDENCE-ENGINE", "STANDALONE", "Framework",
+                  "Cross-Cutting Evidence Engine (V2 PDF walk-forward + bootstrap + DSR + forward paper)",
+                  "252/5/63/21 folds + paired bootstrap 10k + LR + DSR + forward paper/shadow + immutable Evidence Log · common infra for every research item",
+                  remediation_priority=99, next_stp_action="Framework · consumed by all other items · no STP self-test"),
 ]
 
 

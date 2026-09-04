@@ -54,6 +54,21 @@ GRANDFATHERED_MASKS: dict[str, dict[tuple[int, str], str]] = {
             "ENG003 debt: ops_check.py is a reporter; non-zero exit is a signal not a failure.",
         (89, "|| echo \"sheets sync skipped/failed (non-fatal)\""):
             "ENG003 debt: Google Sheets is downstream mirror; failure must not stop primary Telegram.",
+        # 2026-09-05 · CEO substrate-before-sophistication rule wired accumulator into
+        # aegis-daily.yml. Non-fatal is required · a rate-limited yfinance batch or a
+        # transient parquet write MUST NOT block India's Telegram delivery. Freshness
+        # check step separately raises visible FAILURE flag if accumulator drift.
+        (167, "|| echo \"fundamentals FS populate reported issues (non-fatal)\""):
+            "ENG003 debt: fundamentals FS populate is research substrate accumulator · "
+            "non-fatal so delivery pipeline is decoupled · staleness surfaced by "
+            "fundamentals_freshness_check step + 00_Health cockpit row.",
+        (168, "|| echo \"fundamentals history accumulator reported issues (non-fatal)\""):
+            "ENG003 debt: same rationale as line 167 · accumulator append is idempotent · "
+            "next day's cron reconciles · monitoring via freshness check + 00_Health cockpit.",
+        (175, "|| echo \"fundamentals freshness FAILURE flag raised · check reports/research/fundamentals_freshness.json\""):
+            "ENG003 debt: freshness monitor is a SIGNAL not a gate at this workflow level · "
+            "exit-1 emitted in JSON artifact + rendered as FAIL row in 00_Health cockpit · "
+            "operator sees staleness on next workbook open · delivery not blocked.",
         # 2026-07-15: line 98 Telegram mask REMOVED. Notify is now routed through
         # scripts/telegram_send_with_retry.py which has 3 built-in retries and
         # exits non-zero on total failure. Any Telegram failure now fails the
@@ -85,6 +100,16 @@ GRANDFATHERED_MASKS: dict[str, dict[tuple[int, str], str]] = {
             "ENG003 debt: git push mask — if remote raced (e.g. concurrent MON001 push), "
             "workflow continues; next scheduled run reconciles. "
             "Mirrors aegis-daily.yml:108 rationale.",
+        # 2026-09-05 · CEO substrate-before-sophistication rule wired accumulator into
+        # aegis-usa.yml. Non-fatal for same reason as India: research substrate must not
+        # block USA delivery. Freshness check runs in aegis-daily.yml covers both markets.
+        (78, "|| echo \"USA fundamentals FS populate reported issues (non-fatal)\""):
+            "ENG003 debt: USA fundamentals FS populate is research substrate · non-fatal so "
+            "USA Telegram delivery is decoupled from yfinance rate-limit spikes on fundamentals "
+            "endpoint · monitoring via fundamentals_freshness_check (India workflow · both markets).",
+        (79, "|| echo \"USA fundamentals history accumulator reported issues (non-fatal)\""):
+            "ENG003 debt: same rationale as line 78 · accumulator idempotent · next USA cron "
+            "reconciles · freshness monitor surfaces drift in 00_Health cockpit.",
     },
     "eng001-regression.yml": {},  # target: 0 masks; enforce zero
 }
