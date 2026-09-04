@@ -38,7 +38,9 @@ INVESTMENTS_COLUMNS = [
 INVESTMENTS_BANNER = (
     "AEGIS INVESTMENTS · daily operator view · "
     "NEW opportunities + ACTIVE holdings across all runners · "
-    "Dynamic Stop mandatory · R1 rows tagged SUGGESTED (no auto-exit per V2 §18)"
+    "Dynamic Stop mandatory · R1 rows tagged SUGGESTED · "
+    "⚠ R1 POSITIONS CARRY NO DYNAMIC-EXIT PROTECTION · advisory only · "
+    "no auto-exit enforcement (per AEGIS Master v2 §R1.9 Stage 1 requirement)"
 )
 
 

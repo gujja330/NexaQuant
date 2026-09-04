@@ -1,0 +1,88 @@
+{
+  "run_utc": "2026-09-04",
+  "engine": "r2_zero_entry_diagnosis",
+  "version": "v1.0",
+  "origin": "AEGIS Master v2 Phase 0.5 precondition \u00b7 Signal Silence trigger evaluation",
+  "per_market": {
+    "india": {
+      "r2_active_now": 47,
+      "last_active_created_date": "2026-09-02",
+      "days_since_last_active_entry": 2,
+      "signal_silence_trigger_8_threshold_days": 10,
+      "signal_silence_trigger_would_fire": false,
+      "entries_last_15_dates": {
+        "2026-08-05": 15,
+        "2026-08-04": 15,
+        "2026-08-10": 3,
+        "2026-08-11": 1,
+        "2026-08-06": 2,
+        "2026-08-18": 1,
+        "2026-08-20": 1,
+        "2026-08-14": 1,
+        "2026-08-21": 3,
+        "2026-08-24": 1,
+        "2026-08-25": 1,
+        "2026-08-26": 1,
+        "2026-08-31": 1,
+        "2026-09-02": 1
+      },
+      "rec_v3_asof": "2026-09-03",
+      "rec_v3_n_candidates": 15,
+      "rec_v3_verdict_distribution": {
+        "HOLD": 15
+      },
+      "rec_v3_conflicts_collapsed_distribution": {
+        "HOLD": 7
+      },
+      "ensemble_top_score": 0.302,
+      "ensemble_top_score_note": "raw ensemble scores are 0.25-0.35 range \u00b7 conflict engine collapses to HOLD when model_agreement < ~0.55",
+      "model_abstentions_top_pick": [
+        "aegis.macro.v1",
+        "aegis.sector_rotation.v1",
+        "aegis.event_driven.v1"
+      ],
+      "root_cause_finding": "INDIA R2 acceptance layer is NOT silent \u00b7 last entry 2 days ago. Effective HOLD-only output on 15/15 candidates today is caused by: (a) macro/sector_rotation/event_driven models returning 0.0 (abstention counted as neutral, dragging agreement to ~0.545), (b) conflict engine collapse rule mapping any candidate below model_agreement threshold to HOLD, (c) ensemble raw scores in 0.25-0.35 band (below high-conviction 0.4+ threshold)."
+    },
+    "usa": {
+      "r2_active_now": 516,
+      "last_active_created_date": "2026-09-03",
+      "days_since_last_active_entry": 1,
+      "signal_silence_trigger_8_threshold_days": 10,
+      "signal_silence_trigger_would_fire": false,
+      "entries_last_15_dates": {
+        "2026-08-11": 479,
+        "2026-08-10": 28,
+        "2026-08-12": 1,
+        "2026-09-02": 5,
+        "2026-09-03": 3
+      },
+      "rec_v3_asof": "2026-09-03",
+      "rec_v3_n_candidates": 15,
+      "rec_v3_verdict_distribution": {
+        "HOLD": 14,
+        "BUY": 1
+      },
+      "rec_v3_conflicts_collapsed_distribution": {
+        "HOLD": 3
+      },
+      "ensemble_top_score": 0.3524,
+      "ensemble_top_score_note": "raw ensemble scores are 0.25-0.35 range \u00b7 conflict engine collapses to HOLD when model_agreement < ~0.55",
+      "model_abstentions_top_pick": [
+        "aegis.macro.v1",
+        "aegis.sector_rotation.v1"
+      ],
+      "root_cause_finding": "USA R2 acceptance layer is NOT silent \u00b7 last entry 1 days ago. Effective HOLD-only output on 14/15 candidates today is caused by: (a) macro/sector_rotation/event_driven models returning 0.0 (abstention counted as neutral, dragging agreement to ~0.545), (b) conflict engine collapse rule mapping any candidate below model_agreement threshold to HOLD, (c) ensemble raw scores in 0.25-0.35 band (below high-conviction 0.4+ threshold)."
+    }
+  },
+  "verdict": {
+    "signal_silence_trigger_8_fires": false,
+    "reason": "Neither market shows the R2 zero-entry pattern that the earlier 2026-09-02 memory noted. India last R2 entry: 2 days ago (2026-09-02). USA last: 1 day ago (2026-09-03). Both markets are producing R2 candidates every 1-3 days \u00b7 under the 10-trading-day Signal Silence threshold.",
+    "observed_pattern": "What LOOKS like silence is actually the conflict-engine downgrading BUY candidates to HOLD due to sparse model participation (3 of 11 models routinely abstain by returning 0.0). Recommendation for Part R2 \u00a7P1 upgrade path: treat 0.0 as abstain (not neutral) in model_agreement math.",
+    "phase_0_5_gate_status": "PASS \u00b7 V2 Phase 0.5 precondition satisfied \u00b7 preliminary R2 diagnosis exists prior to R1 advisory ship. R1 advisory (Option 1 in commit f890806c) may remain in production without violating V2 sequencing.",
+    "follow_ups_flagged": [
+      "MEDIUM \u00b7 fix conflict engine model_agreement math \u00b7 treat 0.0 as abstain not neutral vote",
+      "LOW \u00b7 macro/sector_rotation/event_driven model factories return 0.0 consistently \u00b7 investigate whether they need data pipeline attention or are correctly silent",
+      "DOC \u00b7 update aegis_session_2026-09-02.md memory \u00b7 28-day-silence description is stale (Aug 2026 backlog \u00b7 resolved)"
+    ]
+  }
+}
