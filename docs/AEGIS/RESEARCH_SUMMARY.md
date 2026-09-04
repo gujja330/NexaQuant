@@ -2,18 +2,18 @@
 
 *Recomputed: 2026-09-04 · single source: `backend/research/research_registry.py`*
 
-**Total items in registry:** 52
+**Total items in registry:** 53
 
 ## Grand totals (mechanical · sums equal total)
 
 | State | Count |
 |---|---:|
-| WORKED_LEGACY | 30 |
-| PENDING | 12 |
+| WORKED_LEGACY | 35 |
 | REJECTED | 8 |
+| PENDING | 8 |
 | CONDITIONAL | 1 |
 | BLOCKED | 1 |
-| **Sum** | **52** |
+| **Sum** | **53** |
 | Reconciles? | **✅ YES** |
 
 ## Per runner
@@ -24,9 +24,9 @@
 | DOMAIN | 0 | 0 | 0 | 3 | 6 | **9** |
 | FUNDAMENTALS | 0 | 0 | 0 | 3 | 1 | **4** |
 | R1 | 0 | 0 | 0 | 0 | 7 | **7** |
-| R2 | 0 | 1 | 7 | 1 | 3 | **12** |
+| R2 | 0 | 1 | 3 | 1 | 7 | **12** |
 | R3 | 0 | 0 | 4 | 1 | 8 | **13** |
-| STANDALONE | 1 | 0 | 1 | 0 | 2 | **4** |
+| STANDALONE | 1 | 0 | 1 | 0 | 3 | **5** |
 
 ## STP verdict → 13-stage Coverage Tracker mapping (single vocabulary)
 
@@ -52,12 +52,12 @@
 | P1 | R2 | P1 | Confidence Calibration on Delivered Output | **CONDITIONAL** |
 | P2 | R2 | P2 | Sector/Regime-Adjusted Ranking | **PENDING** |
 | P3 | R2 | P3 | KG Community-Relative Scoring | **PENDING** |
-| P4 | R2 | P4 | Cap × Sector Interaction Study | **PENDING** |
-| P5.1 | R2 | P5 | Ensemble disagreement display + sizing | **PENDING** |
+| P4 | R2 | P4 | Cap × Sector Interaction Study | **WORKED_LEGACY** |
+| P5.1 | R2 | P5 | Ensemble disagreement display + sizing | **WORKED_LEGACY** |
 | P5.2 | R2 | P5 | Regime-conditional ensemble weights | **PENDING** |
-| P5.3 | R2 | P5 | Daily turnover / rotation cap | **PENDING** |
+| P5.3 | R2 | P5 | Daily turnover / rotation cap | **WORKED_LEGACY** |
 | P5.4 | R2 | P5 | PIT universe audit | **WORKED_LEGACY** |
-| P5.5 | R2 | P5 | Standing post-R1 fixed comparator | **PENDING** |
+| P5.5 | R2 | P5 | Standing post-R1 fixed comparator | **WORKED_LEGACY** |
 | R2-USA-PARQUET | R2 | Data | USA price parquet drift root fix | **WORKED_LEGACY** |
 | R2-ZERO-DIAG | R2 | Diagnostic | R2 zero-entry diagnosis | **WORKED_LEGACY** |
 | II.1-GBM | R3 | II.1 | GBM primary model family | **WORKED_LEGACY** |
@@ -93,3 +93,4 @@
 | STP | STANDALONE | Framework | Standard Testing Pattern (STP) | **WORKED_LEGACY** |
 | COV-13 | STANDALONE | Framework | 13-stage Coverage Tracker | **WORKED_LEGACY** |
 | EVIDENCE-ENGINE | STANDALONE | Framework | Cross-Cutting Evidence Engine (V2 PDF walk-forward + bootstrap + DSR + forward paper) | **PENDING** |
+| FORWARD-DAILY-RUNNER | STANDALONE | Framework | AUDIT-04 forward-paper daily orchestrator | **WORKED_LEGACY** |

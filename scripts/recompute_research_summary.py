@@ -79,6 +79,8 @@ def classify_item(item, stp_verdicts: dict) -> tuple[str, str]:
         "R1.1", "R1.2", "R1.5.3", "R1.7", "R1.9-S1", "R1-OPT1", "R1-BANNER",
         # P0 REMOVED · reclassified REJECTED (evidence at p0_exit_bridge_replay JSON)
         "P5.4", "R2-USA-PARQUET", "R2-ZERO-DIAG",
+        # 2026-09-05 · infra-only P-items shipped this session (evidence gates unchanged)
+        "P4", "P5.1", "P5.3", "P5.5", "FORWARD-DAILY-RUNNER",
         "II.1-GBM", "II.2-FN", "II.4-PIOT", "II.4-BENE", "II.4-GOV",
         "II.5-REV", "II.5-TONE", "II.6-MH",
         "FUND-ACCUM",
@@ -94,7 +96,7 @@ def classify_item(item, stp_verdicts: dict) -> tuple[str, str]:
     # already classified REJECTED · registry now catches up to existing evidence.
     LEGACY_REJECTED = {"II.3-CUSUM", "T09-BRK", "P0"}
     LEGACY_DEFERRED = {"II.1-STK", "II.1-GNN", "II.1-BMA", "II.2-PAIR"}
-    PENDING_R2 = {"P3", "P4", "P5.1", "P5.2", "P5.3", "P5.5"}
+    PENDING_R2 = {"P3", "P5.2"}    # P4/P5.1/P5.3/P5.5 shipped 2026-09-05 · P3 substrate-blocked · P5.2 IC-substrate-blocked
     LEGACY_CONDITIONAL = {"P1"}     # P1 CONDITIONAL_PROMOTE this session
     LEGACY_NOT_WORTH = {"F01-05-COMP", "F01-05-GRID"}   # prior REJECT
 
