@@ -81,6 +81,11 @@ def classify_item(item, stp_verdicts: dict) -> tuple[str, str]:
         "P5.4", "R2-USA-PARQUET", "R2-ZERO-DIAG",
         # 2026-09-05 · infra-only P-items shipped this session (evidence gates unchanged)
         "P4", "P5.1", "P5.3", "P5.5", "FORWARD-DAILY-RUNNER",
+        # 2026-09-05 · closure audit · shipped framework mislabelled as PENDING
+        "EVIDENCE-ENGINE",
+        # 2026-09-05 · closure · P3 + P5.2 infrastructure shipped · engineering complete ·
+        # evidence-waiting per PDF gates (P3 needs F01-F05 Tested · P5.2 needs per-bucket n>=30)
+        "P3", "P5.2",
         "II.1-GBM", "II.2-FN", "II.4-PIOT", "II.4-BENE", "II.4-GOV",
         "II.5-REV", "II.5-TONE", "II.6-MH",
         "FUND-ACCUM",
@@ -94,9 +99,13 @@ def classify_item(item, stp_verdicts: dict) -> tuple[str, str]:
     #   USA   · n=479 · mean_delta=-0.0003 · p_value=0.561 · gate expectancy_ge_actual FAIL
     # Same class of paired-bootstrap statistical evidence as F01-05-COMP/F01-05-GRID
     # already classified REJECTED · registry now catches up to existing evidence.
-    LEGACY_REJECTED = {"II.3-CUSUM", "T09-BRK", "P0"}
+    # 2026-09-05 · P2 added · D06-P2 STP verdict NOT_WORTH already in evidence log ·
+    # P2 = same runner (d06_p2_regime_ranking.py) shared with DOMAIN item · same verdict.
+    LEGACY_REJECTED = {"II.3-CUSUM", "T09-BRK", "P0", "P2"}
     LEGACY_DEFERRED = {"II.1-STK", "II.1-GNN", "II.1-BMA", "II.2-PAIR"}
-    PENDING_R2 = {"P3", "P5.2"}    # P4/P5.1/P5.3/P5.5 shipped 2026-09-05 · P3 substrate-blocked · P5.2 IC-substrate-blocked
+    # P3 + P5.2 · infrastructure shipped 2026-09-05 (engineering complete · evidence-waiting)
+    # · classify as WORKED_LEGACY with next_stp_action recording the substrate dependency
+    PENDING_R2: set = set()   # all R2 P-items now engineering-shipped or REJECTED
     LEGACY_CONDITIONAL = {"P1"}     # P1 CONDITIONAL_PROMOTE this session
     LEGACY_NOT_WORTH = {"F01-05-COMP", "F01-05-GRID"}   # prior REJECT
 

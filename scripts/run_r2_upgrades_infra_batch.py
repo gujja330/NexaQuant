@@ -18,6 +18,8 @@ except Exception: pass
 from backend.research.r2_upgrades import p5_1_ensemble_disagreement as p51
 from backend.research.r2_upgrades import p4_cap_sector_interaction as p4
 from backend.research.r2_upgrades import p5_3_turnover_cap_simulator as p53
+from backend.research.r2_upgrades import p3_kg_community_infra as p3
+from backend.research.r2_upgrades import p5_2_regime_ic_infra as p52
 
 
 def main():
@@ -37,6 +39,18 @@ def main():
         print(f"  n_closed={r['n_closed_positions']} · n_cells={r['n_cells']}")
         print(f"  LR lr_stat={lr['lr_stat']} · df={lr['df']} · p_approx={lr['p_value_approx']}")
         print(f"  sector adds info at p<0.05: {lr['sector_adds_info_beyond_cap_at_p_0.05']}")
+    print()
+    print("=== P3 · KG community-relative (INFRA · substrate-blocked) ===")
+    for m in ("india","usa"):
+        out = p3.emit_report(_ROOT, m, gamma=0.2)
+        r = json.loads(out.read_text(encoding="utf-8"))
+        print(f"  {m}: status={r.get('status')} · n_tickers={r.get('n_tickers',0)}")
+    print()
+    print("=== P5.2 · regime-conditional IC (INFRA · per-bucket n<30) ===")
+    for m in ("india","usa"):
+        out = p52.emit_report(_ROOT, m)
+        r = json.loads(out.read_text(encoding="utf-8"))
+        print(f"  {m}: status={r.get('status')} · n_r2_closed={r.get('total_r2_closed_scanned',0)} · ready={r.get('p52_wiring_ready')}")
     print()
     print("=== P5.3 · turnover cap simulator ===")
     out = p53.emit_report(_ROOT, cap_pct=0.05)

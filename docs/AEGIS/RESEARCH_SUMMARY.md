@@ -8,9 +8,9 @@
 
 | State | Count |
 |---|---:|
-| WORKED_LEGACY | 35 |
-| REJECTED | 8 |
-| PENDING | 8 |
+| WORKED_LEGACY | 38 |
+| REJECTED | 9 |
+| PENDING | 4 |
 | CONDITIONAL | 1 |
 | BLOCKED | 1 |
 | **Sum** | **53** |
@@ -24,9 +24,9 @@
 | DOMAIN | 0 | 0 | 0 | 3 | 6 | **9** |
 | FUNDAMENTALS | 0 | 0 | 0 | 3 | 1 | **4** |
 | R1 | 0 | 0 | 0 | 0 | 7 | **7** |
-| R2 | 0 | 1 | 3 | 1 | 7 | **12** |
+| R2 | 0 | 1 | 0 | 2 | 9 | **12** |
 | R3 | 0 | 0 | 4 | 1 | 8 | **13** |
-| STANDALONE | 1 | 0 | 1 | 0 | 3 | **5** |
+| STANDALONE | 1 | 0 | 0 | 0 | 4 | **5** |
 
 ## STP verdict → 13-stage Coverage Tracker mapping (single vocabulary)
 
@@ -50,11 +50,11 @@
 | R1-BANNER | R1 | Delivery | R1 no-dynamic-exit-protection banner | **WORKED_LEGACY** |
 | P0 | R2 | P0 | Dynamic Exit Bridge · retrospective replay | **REJECTED** |
 | P1 | R2 | P1 | Confidence Calibration on Delivered Output | **CONDITIONAL** |
-| P2 | R2 | P2 | Sector/Regime-Adjusted Ranking | **PENDING** |
-| P3 | R2 | P3 | KG Community-Relative Scoring | **PENDING** |
+| P2 | R2 | P2 | Sector/Regime-Adjusted Ranking | **REJECTED** |
+| P3 | R2 | P3 | KG Community-Relative Scoring | **WORKED_LEGACY** |
 | P4 | R2 | P4 | Cap × Sector Interaction Study | **WORKED_LEGACY** |
 | P5.1 | R2 | P5 | Ensemble disagreement display + sizing | **WORKED_LEGACY** |
-| P5.2 | R2 | P5 | Regime-conditional ensemble weights | **PENDING** |
+| P5.2 | R2 | P5 | Regime-conditional ensemble weights | **WORKED_LEGACY** |
 | P5.3 | R2 | P5 | Daily turnover / rotation cap | **WORKED_LEGACY** |
 | P5.4 | R2 | P5 | PIT universe audit | **WORKED_LEGACY** |
 | P5.5 | R2 | P5 | Standing post-R1 fixed comparator | **WORKED_LEGACY** |
@@ -92,5 +92,5 @@
 | LT-COMPOUNDER-01 | STANDALONE | Part C | Compounder Watchlist · Winner/Failure Genome | **BLOCKED** |
 | STP | STANDALONE | Framework | Standard Testing Pattern (STP) | **WORKED_LEGACY** |
 | COV-13 | STANDALONE | Framework | 13-stage Coverage Tracker | **WORKED_LEGACY** |
-| EVIDENCE-ENGINE | STANDALONE | Framework | Cross-Cutting Evidence Engine (V2 PDF walk-forward + bootstrap + DSR + forward paper) | **PENDING** |
+| EVIDENCE-ENGINE | STANDALONE | Framework | Cross-Cutting Evidence Engine (V2 PDF walk-forward + bootstrap + DSR + forward paper) | **WORKED_LEGACY** |
 | FORWARD-DAILY-RUNNER | STANDALONE | Framework | AUDIT-04 forward-paper daily orchestrator | **WORKED_LEGACY** |
