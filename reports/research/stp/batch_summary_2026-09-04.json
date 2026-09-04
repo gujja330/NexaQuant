@@ -1,0 +1,312 @@
+{
+  "engine": "aegis_stp_batch",
+  "run_utc": "2026-09-04T10:43:25Z",
+  "n_reports": 8,
+  "reports": [
+    {
+      "research_id": "F01-05-OOS",
+      "market": "india",
+      "T1_backend_unit": {
+        "status": "PASS",
+        "note": "module importable \u00b7 evaluate() present",
+        "metric": {}
+      },
+      "T2_backend_integration": {
+        "status": "FAIL",
+        "note": "no artifact at reports/research/deep/f01-05-oos-ticker_india.json",
+        "metric": {}
+      },
+      "T3_backward_walkforward": {
+        "status": "BLOCKED",
+        "note": "no result file (evaluate must run first)",
+        "metric": {}
+      },
+      "T4_forward_last60d": {
+        "status": "FAIL",
+        "note": "last-60d fund-composite top-tercile lift = -2.74% (n=12)",
+        "metric": {
+          "lift_pct": -2.738,
+          "n_scored": 12
+        }
+      },
+      "T5_frontend": {
+        "status": "N/A",
+        "note": "research-only \u00b7 does not touch delivery layer",
+        "metric": {}
+      },
+      "worth_verdict": "NOT_WORTH",
+      "worth_reason": "Integration test fail \u00b7 module does not run on real data \u00b7 no artifact at reports/research/deep/f01-05-oos-ticker_india.json",
+      "generated_utc": "2026-09-04T10:43:25Z"
+    },
+    {
+      "research_id": "D06-P2",
+      "market": "india",
+      "T1_backend_unit": {
+        "status": "PASS",
+        "note": "module importable \u00b7 evaluate() present",
+        "metric": {}
+      },
+      "T2_backend_integration": {
+        "status": "PASS",
+        "note": "gate_status=EXECUTED",
+        "metric": {
+          "gate": "EXECUTED"
+        }
+      },
+      "T3_backward_walkforward": {
+        "status": "FAIL",
+        "note": "lift=0.0% p=1.0 \u00b7 best-adjusted did not beat baseline",
+        "metric": {
+          "lift": 0.0,
+          "p": 1.0
+        }
+      },
+      "T4_forward_last60d": {
+        "status": "FAIL",
+        "note": "last-60d P2 adjusted top-5 = -0.79% vs baseline -0.79% \u00b7 lift 0.00%",
+        "metric": {
+          "lift_pct": 0.0,
+          "n_positions": 15
+        }
+      },
+      "T5_frontend": {
+        "status": "N/A",
+        "note": "research-only \u00b7 R2 P2 upgrade requires CEO auth",
+        "metric": {}
+      },
+      "worth_verdict": "NOT_WORTH",
+      "worth_reason": "T3=FAIL T4=FAIL \u00b7 does not clear worth gate \u00b7 preserve REJECT verdict \u00b7 do not promote",
+      "generated_utc": "2026-09-04T10:43:26Z"
+    },
+    {
+      "research_id": "D08-FLOWS",
+      "market": "india",
+      "T1_backend_unit": {
+        "status": "PASS",
+        "note": "module importable \u00b7 evaluate() present",
+        "metric": {}
+      },
+      "T2_backend_integration": {
+        "status": "FAIL",
+        "note": "no artifact at reports/research/deep/d08-flows-wf_india.json",
+        "metric": {}
+      },
+      "T3_backward_walkforward": {
+        "status": "BLOCKED",
+        "note": "no result file",
+        "metric": {}
+      },
+      "T4_forward_last60d": {
+        "status": "BLOCKED",
+        "note": "n_scored=0 < 20",
+        "metric": {}
+      },
+      "T5_frontend": {
+        "status": "N/A",
+        "note": "research-only \u00b7 would flow into R3 Tier-1 features",
+        "metric": {}
+      },
+      "worth_verdict": "BLOCKED",
+      "worth_reason": "Both T3 and T4 blocked \u00b7 no result file",
+      "generated_utc": "2026-09-04T10:43:26Z"
+    },
+    {
+      "research_id": "LT-COMPOUNDER-01",
+      "market": "india",
+      "T1_backend_unit": {
+        "status": "PASS",
+        "note": "module importable \u00b7 evaluate() present",
+        "metric": {}
+      },
+      "T2_backend_integration": {
+        "status": "PASS",
+        "note": "gate_status=BLOCKED-EVIDENCE",
+        "metric": {
+          "gate": "BLOCKED-EVIDENCE"
+        }
+      },
+      "T3_backward_walkforward": {
+        "status": "BLOCKED",
+        "note": "LT-COMPOUNDER-01 EXTERNAL_DATA \u00b7 no 20+yr PIT fundamentals",
+        "metric": {}
+      },
+      "T4_forward_last60d": {
+        "status": "BLOCKED",
+        "note": "same \u00b7 needs multi-decade data before any forward test possible",
+        "metric": {}
+      },
+      "T5_frontend": {
+        "status": "N/A",
+        "note": "no delivery integration by design (Part C isolation contract)",
+        "metric": {}
+      },
+      "worth_verdict": "BLOCKED",
+      "worth_reason": "Both T3 and T4 blocked \u00b7 LT-COMPOUNDER-01 EXTERNAL_DATA \u00b7 no 20+yr PIT fundamentals",
+      "generated_utc": "2026-09-04T10:43:26Z"
+    },
+    {
+      "research_id": "F01-05-OOS",
+      "market": "usa",
+      "T1_backend_unit": {
+        "status": "PASS",
+        "note": "module importable \u00b7 evaluate() present",
+        "metric": {}
+      },
+      "T2_backend_integration": {
+        "status": "PASS",
+        "note": "gate_status=EXECUTED",
+        "metric": {
+          "gate": "EXECUTED"
+        }
+      },
+      "T3_backward_walkforward": {
+        "status": "FAIL",
+        "note": "train=-2.307% test=0.539% p=0.058362888914981204 \u00b7 does not clear gate",
+        "metric": {
+          "train_lift": -2.307,
+          "test_lift": 0.539,
+          "p": 0.058362888914981204
+        }
+      },
+      "T4_forward_last60d": {
+        "status": "PASS",
+        "note": "last-60d fund-composite top-tercile lift = +0.39% (n=53)",
+        "metric": {
+          "lift_pct": 0.387,
+          "n_scored": 53
+        }
+      },
+      "T5_frontend": {
+        "status": "N/A",
+        "note": "research-only \u00b7 does not touch delivery layer",
+        "metric": {}
+      },
+      "worth_verdict": "NOT_WORTH",
+      "worth_reason": "T3=FAIL T4=PASS \u00b7 does not clear worth gate \u00b7 preserve REJECT verdict \u00b7 do not promote",
+      "generated_utc": "2026-09-04T10:43:30Z"
+    },
+    {
+      "research_id": "D06-P2",
+      "market": "usa",
+      "T1_backend_unit": {
+        "status": "PASS",
+        "note": "module importable \u00b7 evaluate() present",
+        "metric": {}
+      },
+      "T2_backend_integration": {
+        "status": "PASS",
+        "note": "gate_status=EXECUTED",
+        "metric": {
+          "gate": "EXECUTED"
+        }
+      },
+      "T3_backward_walkforward": {
+        "status": "FAIL",
+        "note": "lift=0.0% p=1.0 \u00b7 best-adjusted did not beat baseline",
+        "metric": {
+          "lift": 0.0,
+          "p": 1.0
+        }
+      },
+      "T4_forward_last60d": {
+        "status": "FAIL",
+        "note": "last-60d P2 adjusted top-5 = 1.44% vs baseline 1.44% \u00b7 lift 0.00%",
+        "metric": {
+          "lift_pct": 0.0,
+          "n_positions": 60
+        }
+      },
+      "T5_frontend": {
+        "status": "N/A",
+        "note": "research-only \u00b7 R2 P2 upgrade requires CEO auth",
+        "metric": {}
+      },
+      "worth_verdict": "NOT_WORTH",
+      "worth_reason": "T3=FAIL T4=FAIL \u00b7 does not clear worth gate \u00b7 preserve REJECT verdict \u00b7 do not promote",
+      "generated_utc": "2026-09-04T10:43:32Z"
+    },
+    {
+      "research_id": "D08-FLOWS",
+      "market": "usa",
+      "T1_backend_unit": {
+        "status": "PASS",
+        "note": "module importable \u00b7 evaluate() present",
+        "metric": {}
+      },
+      "T2_backend_integration": {
+        "status": "PASS",
+        "note": "gate_status=EXECUTED",
+        "metric": {
+          "gate": "EXECUTED"
+        }
+      },
+      "T3_backward_walkforward": {
+        "status": "FAIL",
+        "note": "lift=-2.745% p=0.9997587587876133 \u00b7 volume-spike does not beat baseline",
+        "metric": {
+          "lift": -2.745,
+          "p": 0.9997587587876133,
+          "spearman": {
+            "r": -0.1028,
+            "p_value": 0.3165
+          }
+        }
+      },
+      "T4_forward_last60d": {
+        "status": "PASS",
+        "note": "last-60d D08 vol-spike top vs bot lift = +12.48%",
+        "metric": {
+          "lift_pct": 12.48,
+          "n_high": 10,
+          "n_low": 320
+        }
+      },
+      "T5_frontend": {
+        "status": "N/A",
+        "note": "research-only \u00b7 would flow into R3 Tier-1 features",
+        "metric": {}
+      },
+      "worth_verdict": "NOT_WORTH",
+      "worth_reason": "T3=FAIL T4=PASS \u00b7 does not clear worth gate \u00b7 preserve REJECT verdict \u00b7 do not promote",
+      "generated_utc": "2026-09-04T10:43:36Z"
+    },
+    {
+      "research_id": "LT-COMPOUNDER-01",
+      "market": "usa",
+      "T1_backend_unit": {
+        "status": "PASS",
+        "note": "module importable \u00b7 evaluate() present",
+        "metric": {}
+      },
+      "T2_backend_integration": {
+        "status": "PASS",
+        "note": "gate_status=BLOCKED-EVIDENCE",
+        "metric": {
+          "gate": "BLOCKED-EVIDENCE"
+        }
+      },
+      "T3_backward_walkforward": {
+        "status": "BLOCKED",
+        "note": "LT-COMPOUNDER-01 EXTERNAL_DATA \u00b7 no 20+yr PIT fundamentals",
+        "metric": {}
+      },
+      "T4_forward_last60d": {
+        "status": "BLOCKED",
+        "note": "same \u00b7 needs multi-decade data before any forward test possible",
+        "metric": {}
+      },
+      "T5_frontend": {
+        "status": "N/A",
+        "note": "no delivery integration by design (Part C isolation contract)",
+        "metric": {}
+      },
+      "worth_verdict": "BLOCKED",
+      "worth_reason": "Both T3 and T4 blocked \u00b7 LT-COMPOUNDER-01 EXTERNAL_DATA \u00b7 no 20+yr PIT fundamentals",
+      "generated_utc": "2026-09-04T10:43:36Z"
+    }
+  ],
+  "worth_summary": {
+    "NOT_WORTH": 5,
+    "BLOCKED": 3
+  }
+}
