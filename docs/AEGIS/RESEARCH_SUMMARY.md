@@ -8,9 +8,9 @@
 
 | State | Count |
 |---|---:|
-| WORKED_LEGACY | 31 |
+| WORKED_LEGACY | 30 |
 | PENDING | 11 |
-| REJECTED | 7 |
+| REJECTED | 8 |
 | CONDITIONAL | 1 |
 | BLOCKED | 1 |
 | **Sum** | **51** |
@@ -24,7 +24,7 @@
 | DOMAIN | 0 | 0 | 0 | 3 | 6 | **9** |
 | FUNDAMENTALS | 0 | 0 | 0 | 3 | 1 | **4** |
 | R1 | 0 | 0 | 0 | 0 | 7 | **7** |
-| R2 | 0 | 1 | 7 | 0 | 4 | **12** |
+| R2 | 0 | 1 | 7 | 1 | 3 | **12** |
 | R3 | 0 | 0 | 4 | 1 | 8 | **13** |
 | STANDALONE | 1 | 0 | 0 | 0 | 2 | **3** |
 
@@ -48,7 +48,7 @@
 | R1.9-S1 | R1 | Delivery | R1 advisory sheet 05_R1_Advisory | **WORKED_LEGACY** |
 | R1-OPT1 | R1 | Delivery | R1 rows in 01_Investments ACTIVE section | **WORKED_LEGACY** |
 | R1-BANNER | R1 | Delivery | R1 no-dynamic-exit-protection banner | **WORKED_LEGACY** |
-| P0 | R2 | P0 | Dynamic Exit Bridge · retrospective replay | **WORKED_LEGACY** |
+| P0 | R2 | P0 | Dynamic Exit Bridge · retrospective replay | **REJECTED** |
 | P1 | R2 | P1 | Confidence Calibration on Delivered Output | **CONDITIONAL** |
 | P2 | R2 | P2 | Sector/Regime-Adjusted Ranking | **PENDING** |
 | P3 | R2 | P3 | KG Community-Relative Scoring | **PENDING** |

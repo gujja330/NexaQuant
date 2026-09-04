@@ -77,7 +77,8 @@ def classify_item(item, stp_verdicts: dict) -> tuple[str, str]:
     # Legacy shipped items · items with no STP but produced substrate previously
     LEGACY_SHIPPED = {
         "R1.1", "R1.2", "R1.5.3", "R1.7", "R1.9-S1", "R1-OPT1", "R1-BANNER",
-        "P0", "P5.4", "R2-USA-PARQUET", "R2-ZERO-DIAG",
+        # P0 REMOVED · reclassified REJECTED (evidence at p0_exit_bridge_replay JSON)
+        "P5.4", "R2-USA-PARQUET", "R2-ZERO-DIAG",
         "II.1-GBM", "II.2-FN", "II.4-PIOT", "II.4-BENE", "II.4-GOV",
         "II.5-REV", "II.5-TONE", "II.6-MH",
         "FUND-ACCUM",
@@ -85,7 +86,13 @@ def classify_item(item, stp_verdicts: dict) -> tuple[str, str]:
         "COMP-META", "COMP-SHEET", "COMP-ADM",
         "STP", "COV-13",
     }
-    LEGACY_REJECTED = {"II.3-CUSUM", "T09-BRK"}    # both markets REJECT (memory)
+    # CEO 2026-09-05 · P0 reclassified WORKED_LEGACY -> REJECTED.
+    # Evidence at reports/research/r2_upgrades/p0_exit_bridge_replay_{market}.json:
+    #   India · n=20 · lower_ci=-0.006 · gate lower_ci_ge_zero FAIL · n_ge_50 FAIL
+    #   USA   · n=479 · mean_delta=-0.0003 · p_value=0.561 · gate expectancy_ge_actual FAIL
+    # Same class of paired-bootstrap statistical evidence as F01-05-COMP/F01-05-GRID
+    # already classified REJECTED · registry now catches up to existing evidence.
+    LEGACY_REJECTED = {"II.3-CUSUM", "T09-BRK", "P0"}
     LEGACY_DEFERRED = {"II.1-STK", "II.1-GNN", "II.1-BMA", "II.2-PAIR"}
     PENDING_R2 = {"P3", "P4", "P5.1", "P5.2", "P5.3", "P5.5"}
     LEGACY_CONDITIONAL = {"P1"}     # P1 CONDITIONAL_PROMOTE this session

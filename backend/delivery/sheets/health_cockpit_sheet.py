@@ -140,6 +140,38 @@ def build_health_rows(root: Path, market: str) -> list[list]:
                          _status(stale_days <= 3, warn_only=True),
                          f"{len(files)} files · newest mtime {stale_days}d ago"])
 
+    # ── Fundamentals PIT accumulator freshness (CEO 2026-09-05) ────────
+    fresh = _read_json(root / "reports" / "research" / "fundamentals_freshness.json")
+    if fresh:
+        per_mkt = (fresh.get("per_market") or {}).get(market, {})
+        st = per_mkt.get("status", "?")
+        rows.append([
+            "Fundamentals PIT freshness", market,
+            per_mkt.get("latest_asof", "?"),
+            "OK" if st == "OK" else ("WARN" if st == "WARNING" else "FAIL"),
+            f"trading_age={per_mkt.get('age_days_trading','?')}d · "
+            f"unique_asof={per_mkt.get('n_unique_asof_dates','?')} "
+            f"(≥60 needed for F01-05 OOS)"
+        ])
+        rows.append([
+            "Fundamentals substrate maturity", market,
+            per_mkt.get("n_unique_asof_dates", 0),
+            "OK" if per_mkt.get("usable_for_f01_05_oos", False) else "WARN",
+            "Substrate-before-sophistication rule · F01-05 OOS unblock at 60 asof-dates"
+        ])
+
+    # ── WORKED_LEGACY remediation queue size (CEO 2026-09-05) ──────────
+    try:
+        from backend.research.research_registry import ALL_ITEMS
+        n_schedulable = sum(1 for x in ALL_ITEMS if x.remediation_priority < 90)
+        n_blocked = sum(1 for x in ALL_ITEMS if 90 <= x.remediation_priority <= 98)
+        rows.append([
+            "WORKED_LEGACY remediation queue", market, n_schedulable,
+            "INFO",
+            f"{n_schedulable} schedulable · {n_blocked} blocked by substrate rule"
+        ])
+    except Exception: pass
+
     return rows
 
 

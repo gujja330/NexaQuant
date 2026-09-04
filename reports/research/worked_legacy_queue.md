@@ -15,7 +15,6 @@ their upstream substrate reaches `Tested` stage.
 | 2 | `F01-05-OOS` | FUNDAMENTALS | F01-05 | F01-05 OOS ticker-partition | FUND-ACCUM | Move to temporal OOS (not ticker-OOS) once PIT history ≥ 60d |
 | 3 | `F01-05-COMP` | FUNDAMENTALS | F01-05 | F01-05 Composite (Piotroski + FCF + IntCov − Beneish) | FUND-ACCUM | Re-run STP once fundamentals_history has 8+ quarters PIT |
 | 4 | `F01-05-GRID` | FUNDAMENTALS | F01-05 | F01-05 Filter Grid (11 threshold variants) | FUND-ACCUM | Re-run STP once accumulator has multi-quarter PIT history |
-| 5 | `P0` | R2 | P0 | Dynamic Exit Bridge · retrospective replay | — | Re-run counterfactual replay through STP · n=539 exceeds validation-candidate tier |
 | 6 | `II.4-PIOT` | R3 | II.4 | Piotroski F-score | — | Already Tested in F01-05 · confirm coverage_tracker stage |
 | 7 | `II.4-BENE` | R3 | II.4 | Beneish M-score | — | Same · already in F01-05 filter grid · confirm tracker |
 | 8 | `P5.4` | R2 | P5 | PIT universe audit | — | STP T3 one-time · check whether prior metrics need footnoted corrections |
@@ -52,6 +51,7 @@ their upstream substrate reaches `Tested` stage.
 | `R1.9-S1` | R1 | Delivery item · STP T5 only · already renders correctly |
 | `R1-OPT1` | R1 | Delivery item · STP T5 only · verified this session |
 | `R1-BANNER` | R1 | Delivery item · verified this session |
+| `P0` | R2 | REJECTED · India lower_ci<0 + n<50 · USA p=0.561 · same evidence tier as F01-05 REJECT |
 | `R2-USA-PARQUET` | R2 | Data hygiene · verified this session · monitor via freshness check |
 | `R2-ZERO-DIAG` | R2 | Diagnostic · no STP · findings folded into Signal Silence Trigger 8 |
 | `II.2-PAIR` | R3 | DEFERRED · needs short infrastructure we don't have |

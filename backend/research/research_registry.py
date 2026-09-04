@@ -65,7 +65,8 @@ R1_ITEMS: list[ResearchItem] = [
 R2_ITEMS: list[ResearchItem] = [
     ResearchItem("P0", "R2", "P0", "Dynamic Exit Bridge · retrospective replay",
                   "Walk-forward counterfactual replay on 539 closes · paired bootstrap",
-                  remediation_priority=5, next_stp_action="Re-run counterfactual replay through STP · n=539 exceeds validation-candidate tier"),
+                  remediation_priority=99,   # REJECTED · already has paired-bootstrap evidence
+                  next_stp_action="REJECTED · India lower_ci<0 + n<50 · USA p=0.561 · same evidence tier as F01-05 REJECT"),
     ResearchItem("P1", "R2", "P1", "Confidence Calibration on Delivered Output",
                   "Platt A/B fit · ECE ≤0.05 gate · sustained 4-refit acceptance",
                   upstream_substrate=("CAL-HISTORY-4W",),
