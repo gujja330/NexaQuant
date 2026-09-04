@@ -238,6 +238,9 @@ jobs:
           _add_safe "reports/context/daily_opportunity_discovery.json"
           _add_safe "reports/telegram/aegis_history_india.xlsx"
           _add_safe "reports/telegram/aegis_history_usa.xlsx"
+          # CEO 2026-09-04 · commit-back USA price parquets · previously
+          # gitignored · left workstation stale for weeks while CI ran fresh.
+          _add_safe "usa/data/raw/us/*.parquet"
           if git diff --cached --quiet; then
               echo "[commit-artifacts] nothing new to commit"
               exit 0
