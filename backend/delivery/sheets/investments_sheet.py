@@ -177,8 +177,14 @@ def _rr_ratio(entry_price, current_price, stop_value, target) -> Optional[float]
 
 def build_investments_rows(root: Path, market: str, asof: str,
                             reg_data: dict, momentum_ledger: dict,
-                            r1_picks: list[dict]) -> dict:
-    """Return {new_rows, active_rows} · caller renders into sheet."""
+                            r1_picks: list[dict],
+                            r1_active: list | None = None) -> dict:
+    """Return {new_rows, active_rows} · caller renders into sheet.
+
+    CEO 2026-09-04 · Option 1 fix (scoped C19 deviation for 01_Investments only):
+    r1_active is a list of registry Opportunity objects with runner=R1 status=ACTIVE.
+    Rendered in ACTIVE section with 'R1 · ADVISORY' tag. 01_Portfolio and Exit
+    History remain R1-zero (C19 intact for those sheets)."""
     from datetime import date as _date
     import pandas as pd
 
@@ -295,6 +301,48 @@ def build_investments_rows(root: Path, market: str, asof: str,
         reason = f"{o.runner} · {o.opportunity_id[-8:]}"
         active_rows.append([
             score, action, ticker, sector, str(o.runner or "R2"),
+            o.created_date or "—",
+            round(entry_p, 4) if entry_p else "DATA_ERROR",
+            round(curr_p, 4) if curr_p else "DATA_ERROR",
+            pnl_pct if pnl_pct is not None else "DATA_ERROR",
+            days if days is not None else "?",
+            stop_val, target, stop_dist, rr,
+            conf if conf is not None else "UNAVAILABLE", reason,
+        ])
+    # B.2 · R1 ACTIVE (registry) · scoped C19 deviation for 01_Investments only.
+    # De-dupe by ticker vs R2 ACTIVE (R2 wins if same ticker · R1 is advisory).
+    r2_active_tickers = {str(o.ticker).upper() for o in (reg_data.get("active") or [])}
+    r1_active_tickers_in_new = {str(r[2]).upper() for r in new_rows if r[4] == "R1"}
+    for o in (r1_active or []):
+        ticker = str(getattr(o, "ticker", "")).upper()
+        if not ticker: continue
+        if ticker in r2_active_tickers: continue           # R2 wins
+        if ticker in r1_active_tickers_in_new: continue    # already in NEW today
+        sector = _sector_for(sector_cache, market, o.ticker)
+        entry_p = _close_on_or_before(root, o.ticker, market, o.created_date or "")
+        curr_p = _close_on_or_before(root, o.ticker, market, asof)
+        pnl_pct = _num_pnl(entry_p, curr_p)
+        days = None
+        try:
+            days = (_date.fromisoformat(asof) - _date.fromisoformat(o.created_date)).days
+        except Exception: pass
+        atr = _pit_atr(root, market, o.ticker, o.created_date or asof)
+        stop_val, _ = _stop_cell("R1", entry_p, atr)      # SUGGESTED trichotomy
+        target = _target_from_atr(entry_p, atr, m=3.0)
+        stop_dist = None
+        if isinstance(stop_val, str) and "SUGGESTED" in stop_val:
+            try:
+                sn = float(stop_val.split(" ", 1)[0])
+                if curr_p and curr_p > 0: stop_dist = round((curr_p - sn) / curr_p * 100, 2)
+            except (TypeError, ValueError): pass
+        rr = _rr_ratio(entry_p, curr_p, stop_val, target)
+        conf = getattr(o, "initial_score", None)
+        if isinstance(conf, (int, float)) and 0 <= conf <= 1:
+            conf = round(float(conf) * 100, 1)
+        score = _score_for_active(pnl_pct, stop_dist, conf)
+        reason = f"R1 ADVISORY · {getattr(o, 'opportunity_id', '')[-8:]}"
+        active_rows.append([
+            score, "HOLD · R1 ADVISORY", ticker, sector, "R1",
             o.created_date or "—",
             round(entry_p, 4) if entry_p else "DATA_ERROR",
             round(curr_p, 4) if curr_p else "DATA_ERROR",

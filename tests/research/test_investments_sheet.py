@@ -112,3 +112,63 @@ def test_investments_sheet_is_first_tab():
         assert wb.sheetnames[0] == "01_Investments", (
             f"{m} · 01_Investments must be FIRST tab · got {wb.sheetnames[0]}"
         )
+
+
+def test_option1_r1_active_present_in_investments_sheet_c19_preserved_in_portfolio():
+    """CEO 2026-09-04 · Option 1 fix regression test.
+
+    R1 ACTIVE opportunities MUST render in 01_Investments ACTIVE section
+    (fixes 'R1 daily NEW does not translate into ACTIVE' UX gap AND USA
+    'no recommendations' where aegis_today_usa.csv does not exist).
+
+    CRITICAL · C19 workbook contract MUST remain intact on 01_Portfolio
+    and Exit History · R1 stays retired-from-Portfolio there.
+    """
+    from openpyxl import load_workbook
+    root = Path(__file__).resolve().parents[2]
+    found_any = False
+    for m in ("india", "usa"):
+        # Pick LATEST workbook for the market · Option 1 only exists in files
+        # rebuilt after 2026-09-04 (earlier files pre-date the fix).
+        candidates = sorted((root / "reports" / "telegram").glob(f"aegis_{m}_*.xlsx"),
+                              reverse=True)
+        p = next((c for c in candidates if "2026-09-04" in c.name or "2026-09-05" in c.name), None)
+        if p is None: continue
+        date_str = p.stem.replace(f"aegis_{m}_", "")
+        found_any = True
+        for _ in [None]:
+            wb = load_workbook(p, data_only=True, read_only=True)
+            if "01_Investments" not in wb.sheetnames: continue
+            ws = wb["01_Investments"]
+            # Walk sheet · identify section · count R1 in ACTIVE
+            r1_in_active = 0
+            section = None
+            for row in ws.iter_rows(values_only=True):
+                row_str = " ".join(str(c) for c in row if c is not None).upper()
+                if "NEW OPPORTUNITIES" in row_str: section = "NEW"
+                elif ("ACTIVE POSITIONS" in row_str or
+                      "ACTIVE HOLDINGS" in row_str or "HOLDING" in row_str):
+                    section = "ACTIVE"
+                elif section == "ACTIVE" and len(row) >= 5 and row[4] == "R1":
+                    r1_in_active += 1
+            # C19 · 01_Portfolio must contain ZERO R1 rows
+            if "01_Portfolio" in wb.sheetnames:
+                ws2 = wb["01_Portfolio"]
+                r1_in_portfolio = sum(
+                    1 for row in ws2.iter_rows(values_only=True)
+                    for c in row if str(c) == "R1"
+                )
+                assert r1_in_portfolio == 0, (
+                    f"{m} {date_str} · C19 VIOLATION · 01_Portfolio has "
+                    f"{r1_in_portfolio} R1 rows (must be 0)"
+                )
+            # Option 1 · at least one R1 ACTIVE row in 01_Investments (either
+            # market with an aegis_*_YYYY-MM-DD.xlsx has R1 registry data)
+            assert r1_in_active > 0, (
+                f"{m} {date_str} · Option 1 REGRESSION · expected R1 rows "
+                f"in 01_Investments ACTIVE section · got 0"
+            )
+    # We only assert when at least one workbook was present (CI may not have artifacts)
+    if not found_any:
+        import pytest
+        pytest.skip("no aegis_*_{date}.xlsx present in reports/telegram/")

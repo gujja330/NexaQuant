@@ -99,6 +99,24 @@ def _legend(ws, lines, start_row, ncols):
     return start_row
 
 
+def _load_r1_active_for_investments(root, market):
+    """CEO 2026-09-04 · Option 1 · scoped C19 deviation.
+    Return R1 ACTIVE opportunities for 01_Investments sheet ONLY.
+    01_Portfolio + Exit History remain R1-zero via _load_registry contract.
+    Fixes 'R1 daily NEW does not translate into ACTIVE' UX gap · also surfaces
+    USA R1 (which has no aegis_today_usa.csv producer)."""
+    from backend.research import opportunity_registry as oreg
+    reg = oreg.load_all(root)
+    out = []
+    for pid, opps in reg.items():
+        for o in opps:
+            if o.market.lower() != market.lower(): continue
+            if str(o.runner or "").upper() != "R1": continue
+            if o.status != "ACTIVE": continue
+            out.append(o)
+    return out
+
+
 def _load_registry(root, market, retired):
     """R1 retired workbook-wide: excluded from BOTH Portfolio and
     Exit History. Historical R1 CLOSED go to orphan_audit_{market}.jsonl
@@ -1038,7 +1056,11 @@ def _emit_investments_sheet_first(wb, market: str, root: Path, asof: str,
             if r1_picks: break
         except Exception: continue
 
-    data = build_investments_rows(root, market.lower(), asof, reg_data, momentum_ledger, r1_picks)
+    # CEO 2026-09-04 · Option 1 · load R1 ACTIVE from registry for 01_Investments
+    # ACTIVE section (scoped C19 deviation · Portfolio + EH stay R1-zero).
+    r1_active = _load_r1_active_for_investments(root, market.lower())
+    data = build_investments_rows(root, market.lower(), asof, reg_data,
+                                    momentum_ledger, r1_picks, r1_active=r1_active)
     ws = wb.create_sheet(meta["sheet_name"])
     # Reorder to first tab
     wb.move_sheet(ws, offset=-len(wb.sheetnames) + 1)
