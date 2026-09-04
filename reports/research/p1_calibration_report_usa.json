@@ -1,0 +1,70 @@
+{
+  "engine": "p1_confidence_calibration",
+  "version": "v1.0",
+  "market": "usa",
+  "run_utc": "2026-09-04T08:29:11Z",
+  "governance": {
+    "v2_reference": "AEGIS Master Document v2 \u00b7 Part R2 \u00a7P1",
+    "acceptance_gate": "ECE \u2264 0.05 sustained \u00b7 4 consecutive weekly refits",
+    "sample_size_tier": "validation_candidate"
+  },
+  "dataset_summary": {
+    "n_total_samples": 4095,
+    "n_with_confidence_and_outcome": 4080
+  },
+  "phase_D_backward_walk_forward": {
+    "stage": "D_backward",
+    "status": "COMPLETED",
+    "n_total": 4080,
+    "n_train": 2856,
+    "n_test": 1224,
+    "date_split": {
+      "train_end": "2026-05-20",
+      "test_start": "2026-05-20"
+    },
+    "ece_raw_train": 0.1688,
+    "ece_raw_test": 0.2599,
+    "platt_A": 0.0512,
+    "platt_B": 0.0466,
+    "ece_calibrated_train": 0.0012,
+    "ece_calibrated_test": 0.0706,
+    "ece_improvement_test": 0.1894,
+    "brier_raw_test": 0.3141,
+    "brier_calibrated_test": 0.2463,
+    "monotonicity": {
+      "q1_win_rate": 0.569,
+      "q4_win_rate": 1.0,
+      "is_monotonic": true
+    }
+  },
+  "phase_E_forward_60d": {
+    "stage": "E_forward_60d",
+    "status": "COMPLETED",
+    "as_of": "2026-09-04",
+    "cutoff_date": "2026-07-06",
+    "n_train_pre_60d": 3750,
+    "n_test_last_60d": 330,
+    "ece_raw_last_60d": 0.1839,
+    "ece_calibrated_last_60d": 0.1236,
+    "ece_improvement": 0.0603,
+    "brier_raw_last_60d": 0.26,
+    "brier_calibrated_last_60d": 0.2404,
+    "platt_A": 0.0754,
+    "platt_B": 0.0728,
+    "meets_v2_ece_gate": false,
+    "v2_ece_threshold": 0.05
+  },
+  "phase_F_worth_analysis": {
+    "stage": "F_worth_analysis",
+    "market": "usa",
+    "verdict": "CONDITIONAL_PROMOTE \u00b7 needs refit-monitoring cycle",
+    "reasons": [
+      "3/4 checks pass \u00b7 {'wf_ece_improvement': True, 'forward60d_ece_improvement': True, 'monotonic_confidence_vs_outcome': True, 'meets_v2_ece_threshold': False}"
+    ]
+  },
+  "phase_G_integration_marker": {
+    "stage": "G_integration",
+    "action": "WEIGHTS_WRITTEN",
+    "path": "reports\\research\\calibration_weights\\usa.json"
+  }
+}

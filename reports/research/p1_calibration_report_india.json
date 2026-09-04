@@ -1,0 +1,70 @@
+{
+  "engine": "p1_confidence_calibration",
+  "version": "v1.0",
+  "market": "india",
+  "run_utc": "2026-09-04T08:28:37Z",
+  "governance": {
+    "v2_reference": "AEGIS Master Document v2 \u00b7 Part R2 \u00a7P1",
+    "acceptance_gate": "ECE \u2264 0.05 sustained \u00b7 4 consecutive weekly refits",
+    "sample_size_tier": "validation_candidate"
+  },
+  "dataset_summary": {
+    "n_total_samples": 15579,
+    "n_with_confidence_and_outcome": 15371
+  },
+  "phase_D_backward_walk_forward": {
+    "stage": "D_backward",
+    "status": "COMPLETED",
+    "n_total": 15371,
+    "n_train": 10759,
+    "n_test": 4612,
+    "date_split": {
+      "train_end": "2026-05-14",
+      "test_start": "2026-05-14"
+    },
+    "ece_raw_train": 0.3622,
+    "ece_raw_test": 0.4301,
+    "platt_A": 0.0265,
+    "platt_B": 0.1471,
+    "ece_calibrated_train": 0.0043,
+    "ece_calibrated_test": 0.0707,
+    "ece_improvement_test": 0.3594,
+    "brier_raw_test": 0.4225,
+    "brier_calibrated_test": 0.2432,
+    "monotonicity": {
+      "q1_win_rate": 0.0,
+      "q4_win_rate": 0.96,
+      "is_monotonic": true
+    }
+  },
+  "phase_E_forward_60d": {
+    "stage": "E_forward_60d",
+    "status": "COMPLETED",
+    "as_of": "2026-09-04",
+    "cutoff_date": "2026-07-06",
+    "n_train_pre_60d": 15300,
+    "n_test_last_60d": 71,
+    "ece_raw_last_60d": 0.2658,
+    "ece_calibrated_last_60d": 0.2098,
+    "ece_improvement": 0.056,
+    "brier_raw_last_60d": 0.2926,
+    "brier_calibrated_last_60d": 0.2724,
+    "platt_A": 0.0412,
+    "platt_B": 0.2289,
+    "meets_v2_ece_gate": false,
+    "v2_ece_threshold": 0.05
+  },
+  "phase_F_worth_analysis": {
+    "stage": "F_worth_analysis",
+    "market": "india",
+    "verdict": "CONDITIONAL_PROMOTE \u00b7 needs refit-monitoring cycle",
+    "reasons": [
+      "3/4 checks pass \u00b7 {'wf_ece_improvement': True, 'forward60d_ece_improvement': True, 'monotonic_confidence_vs_outcome': True, 'meets_v2_ece_threshold': False}"
+    ]
+  },
+  "phase_G_integration_marker": {
+    "stage": "G_integration",
+    "action": "WEIGHTS_WRITTEN",
+    "path": "reports\\research\\calibration_weights\\india.json"
+  }
+}
