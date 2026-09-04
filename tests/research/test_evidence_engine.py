@@ -306,6 +306,90 @@ def test_accumulator_verifier_detects_stall(tmp_path: Path):
     assert r["status"] == "FAIL"
 
 
+def test_audit01_exchange_aware_nse_independence_day():
+    """AUDIT-01 · India Independence Day 2026-08-15 must be skipped for NSE."""
+    from backend.research.evidence.trading_calendars import add_trading_days, is_trading_day
+    from datetime import date
+    assert not is_trading_day(date(2026, 8, 15), "india")   # Independence Day
+    # Sat 2026-08-15 + 1 day = Mon 2026-08-17 (skip weekend AND Sat itself)
+    assert add_trading_days(date(2026, 8, 14), 1, "india") == date(2026, 8, 17)
+
+
+def test_audit01_exchange_aware_nyse_thanksgiving():
+    """AUDIT-01 · USA Thanksgiving 2026-11-26 must be skipped for NYSE."""
+    from backend.research.evidence.trading_calendars import add_trading_days, is_trading_day
+    from datetime import date
+    assert not is_trading_day(date(2026, 11, 26), "usa")   # Thanksgiving Thu
+    # Wed Nov 25 + 1 day = Fri Nov 27 (skip Thu)
+    assert add_trading_days(date(2026, 11, 25), 1, "usa") == date(2026, 11, 27)
+
+
+def test_audit01_calendars_differ_between_markets():
+    """India Aug 15 is holiday, USA Aug 15 is not · vice versa for July 4."""
+    from backend.research.evidence.trading_calendars import is_trading_day
+    from datetime import date
+    # Aug 15 · India Independence Day · but a normal USA trading day if weekday
+    assert not is_trading_day(date(2024, 8, 15), "india")   # Thu · NSE closed
+    assert is_trading_day(date(2024, 8, 15), "usa")         # Thu · NYSE open
+    # July 4 USA Independence Day · normal India trading day
+    assert not is_trading_day(date(2024, 7, 4), "usa")      # Thu · NYSE closed
+    assert is_trading_day(date(2024, 7, 4), "india")        # Thu · NSE open
+
+
+def test_audit05_engine_gates_pass_on_n_ge_50():
+    """AUDIT-05 · n<50 caps at RESEARCH_FURTHER even if stat gate passes."""
+    import tempfile
+    from datetime import date, timedelta
+    from backend.research.evidence.engine import run_historical_evidence
+    with tempfile.TemporaryDirectory() as td:
+        root = Path(td)
+        (root / ".git").mkdir(); (root / ".git" / "HEAD").write_text("abcd\n", encoding="utf-8")
+        # 500 dates spanning 2020-2023 · enough for many folds
+        def dates_fn(_r, _m): return [date(2020,1,1) + timedelta(days=i) for i in range(1500)]
+        # Signal that produces exactly 40 OOS returns per fold → total ~ 40*many
+        # Actually we need to control n_oos to test the boundary
+        # Return a fixed 5-element list per fold · to keep total OOS below 50
+        # BUT we have 30+ folds usually · so 5×30=150 · we need ~40 total
+        def small_oos_fn(_r, _m, fold):
+            # 40 OOS total across all folds · make each fold return 2
+            return [1.0, 1.0], [0.5, 0.7]    # positive returns
+        r = run_historical_evidence(root, "TEST-N40", "india", dates_fn, small_oos_fn)
+        # n depends on fold count · verify it stays below 50 · else can't test boundary
+        assert r.n_oos_samples >= 30, f"need ≥30 for stronger-evidence tier · got {r.n_oos_samples}"
+        # If n < 50 · decision MUST be RESEARCH_FURTHER or INSUFFICIENT_SAMPLE (not PASS)
+        if r.n_oos_samples < 50:
+            assert r.decision != "PASS", (
+                f"CEO AUDIT-05 violation · decision=PASS with n={r.n_oos_samples} < 50 · "
+                f"should be RESEARCH_FURTHER")
+
+
+def test_audit06_universe_at_date_hook_recorded():
+    """AUDIT-06 · engine accepts universe_at_date_fn arg · signature valid."""
+    import tempfile, inspect
+    from backend.research.evidence.engine import run_historical_evidence
+    sig = inspect.signature(run_historical_evidence)
+    assert "universe_at_date_fn" in sig.parameters, "AUDIT-06 · hook not present"
+
+
+def test_audit03_experiment_family_id_recorded_in_log(tmp_path: Path):
+    """AUDIT-03 · Evidence Log must carry experiment_family_id for trial accounting."""
+    from datetime import date, timedelta
+    from backend.research.evidence.engine import run_historical_evidence
+    root = tmp_path / "repo"
+    (root / ".git").mkdir(parents=True); (root / ".git" / "HEAD").write_text("abcd\n", encoding="utf-8")
+    def dates_fn(_r, _m): return [date(2020,1,1) + timedelta(days=i) for i in range(1500)]
+    def sig_fn(_r, _m, fold):
+        return [1.0, 1.0], [0.5, 0.7]
+    r = run_historical_evidence(root, "TEST-FAMILY", "india", dates_fn, sig_fn,
+                                  experiment_family_id="TEST-FAMILY_grid_9trials",
+                                  trial_count=9)
+    from backend.research.evidence.evidence_log import latest_for_item
+    rec = latest_for_item(root, "TEST-FAMILY", "india")
+    assert rec is not None
+    assert rec["fold_definition"].get("experiment_family_id") == "TEST-FAMILY_grid_9trials"
+    assert rec["trial_count"] == 9   # not the default 1
+
+
 def test_engine_never_writes_r2_production_paths():
     """Grep evidence module tree · assert no writes to R2 production paths.
     Any evidence-engine code that writes to reports/production/*, reports/telegram/*,

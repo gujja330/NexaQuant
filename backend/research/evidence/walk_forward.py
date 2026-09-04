@@ -4,11 +4,17 @@ Locked per V2 PDF · TRAIN 252 · EMBARGO 5 · OOS 63 · STEP 21 · trading days
 
 Mechanically enforces · no random split · no OOS fitting · no hindsight
 threshold selection · no feature leakage across embargo boundary.
+
+CEO 2026-09-05 AUDIT-01 · trading-day math is now EXCHANGE-AWARE via
+backend/research/evidence/trading_calendars.py · NSE + NYSE holidays honored.
+Legacy weekday-only path retained for tests that don't specify market.
 """
 from __future__ import annotations
 from dataclasses import dataclass, asdict
 from datetime import date, timedelta
-from typing import Iterator
+from typing import Iterator, Optional
+
+from backend.research.evidence.trading_calendars import add_trading_days as _add_market_tdays
 
 
 # LOCKED per V2 PDF · never override without CEO authorization
@@ -34,10 +40,14 @@ class Fold:
         return d
 
 
-def _add_trading_days(d: date, n: int) -> date:
-    """Add n Mon-Fri days to d (ignores holidays · calendar exchange spec is
-    per-market · walk-forward embargo is small enough that holiday drift
-    doesn't affect the boundary within the 5-day gap)."""
+def _add_trading_days(d: date, n: int, market: Optional[str] = None) -> date:
+    """Add n trading days · EXCHANGE-AWARE when market specified · else Mon-Fri only.
+
+    CEO 2026-09-05 AUDIT-01 · when market='india' or 'usa', NSE/NYSE holidays
+    honored per backend/research/evidence/trading_calendars.py. Backward-compat
+    default (no market) uses simple weekday arithmetic."""
+    if market is not None:
+        return _add_market_tdays(d, n, market)
     cur = d
     added = 0
     while added < n:
@@ -51,7 +61,8 @@ def generate_folds(first_date: date, last_date: date,
                     train_days: int = TRAIN_DAYS,
                     embargo_days: int = EMBARGO_DAYS,
                     oos_days: int = OOS_DAYS,
-                    step_days: int = STEP_DAYS) -> Iterator[Fold]:
+                    step_days: int = STEP_DAYS,
+                    market: Optional[str] = None) -> Iterator[Fold]:
     """Generate walk-forward folds from first_date through last_date.
 
     Guarantee · every fold obeys · train ⟂ embargo ⟂ OOS · in that temporal
@@ -59,10 +70,10 @@ def generate_folds(first_date: date, last_date: date,
     fold_id = 0
     train_start = first_date
     while True:
-        train_end = _add_trading_days(train_start, train_days - 1)
-        embargo_end = _add_trading_days(train_end, embargo_days)
-        oos_start = _add_trading_days(embargo_end, 1)
-        oos_end = _add_trading_days(oos_start, oos_days - 1)
+        train_end = _add_trading_days(train_start, train_days - 1, market)
+        embargo_end = _add_trading_days(train_end, embargo_days, market)
+        oos_start = _add_trading_days(embargo_end, 1, market)
+        oos_end = _add_trading_days(oos_start, oos_days - 1, market)
         if oos_end > last_date:
             return
         yield Fold(fold_id=fold_id,
@@ -70,7 +81,7 @@ def generate_folds(first_date: date, last_date: date,
                     embargo_end=embargo_end,
                     oos_start=oos_start, oos_end=oos_end)
         fold_id += 1
-        train_start = _add_trading_days(train_start, step_days)
+        train_start = _add_trading_days(train_start, step_days, market)
 
 
 def assert_no_leakage(fold: Fold) -> None:
@@ -101,6 +112,9 @@ def fold_manifest(first_date: date, last_date: date, **kw) -> dict:
         "embargo_days": kw.get("embargo_days", EMBARGO_DAYS),
         "oos_days": kw.get("oos_days", OOS_DAYS),
         "step_days": kw.get("step_days", STEP_DAYS),
+        "market": kw.get("market"),
+        "trading_calendar": ("exchange-aware · NSE/NYSE holidays honored"
+                              if kw.get("market") else "weekday-only (no holidays)"),
         "first_date": str(first_date),
         "last_date": str(last_date),
         "n_folds": len(folds),

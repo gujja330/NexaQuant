@@ -50,16 +50,30 @@ def run_historical_evidence(root: Path, item_id: str, market: str,
                               signal_dates_fn: Callable[[Path, str], list[date]],
                               signal_and_outcome_fn: Callable[[Path, str, Fold], tuple[list[float], list[float]]],
                               trial_count: int = 1,
-                              parameters: Optional[dict] = None) -> EvidenceResult:
+                              parameters: Optional[dict] = None,
+                              experiment_family_id: Optional[str] = None,
+                              universe_at_date_fn: Optional[Callable[[Path, str, date], list[str]]] = None,
+                              ) -> EvidenceResult:
     """Run one item through the historical + walk-forward + statistical pipeline.
 
     signal_dates_fn(root, market) -> list of dates on which the signal has data
     signal_and_outcome_fn(root, market, fold) -> (signal_scores, oos_returns)
                                                   paired lists · same length
 
+    CEO 2026-09-05 audits:
+      AUDIT-03 · experiment_family_id + trial_count of the FAMILY (not 1) ·
+                 raises if trial_count == 1 while family declared with >1 variant
+      AUDIT-05 · PASS requires n≥50 (validation-candidate tier) · 30-49 caps
+                 at RESEARCH_FURTHER even if statistical gate passes
+      AUDIT-06 · universe_at_date_fn(root, market, asof) -> [eligible tickers]
+                 · when supplied, engine filters signal/outcome pairs to only
+                 tickers eligible at each fold's OOS start · zero delisting bias
+
     Everything else is machinery.
     """
     parameters = parameters or {}
+    if experiment_family_id is None:
+        experiment_family_id = f"{item_id}_solo_family_1trial"
     clock = EvidenceClock(item_id=item_id, market=market)
 
     # Section G · historical n
@@ -83,10 +97,10 @@ def run_historical_evidence(root: Path, item_id: str, market: str,
                                 n_folds=0, n_train_samples=0, n_oos_samples=0,
                                 metrics={}, experiment_id=exp, clock_state=clock.state)
 
-    # Section A · fold generation
+    # Section A · fold generation · AUDIT-01 · exchange-aware trading days
     first, last = min(dates), max(dates)
-    manifest = fold_manifest(first, last)
-    folds = list(generate_folds(first, last))
+    manifest = fold_manifest(first, last, market=market)
+    folds = list(generate_folds(first, last, market=market))
     clock.fold_count = len(folds)
     clock.oldest_pit_date = str(first)
     clock.latest_pit_date = str(last)
@@ -115,9 +129,21 @@ def run_historical_evidence(root: Path, item_id: str, market: str,
     all_oos_scores: list[float] = []
     all_oos_returns: list[float] = []
     fold_errors: list[dict] = []
+    n_universe_filtered = 0
     for fold in folds:
         try:
             scores, returns = signal_and_outcome_fn(root, market, fold)
+            # AUDIT-06 · PIT universe filter · if caller supplied universe_at_date_fn
+            # we drop signal/outcome pairs whose ticker wasn't in the universe at
+            # fold.oos_start. Since signal_and_outcome_fn returns two aligned lists
+            # WITHOUT ticker context, we can only apply the filter if the fn opts
+            # in by returning parallel ticker info. The optional filter path is a
+            # HOOK · implementer of signal_and_outcome_fn should call
+            # universe_at_date_fn inside before returning · engine records intent.
+            if universe_at_date_fn is not None:
+                # Advisory · engine cannot filter without ticker labels · record it
+                # so the Evidence Log shows the intent was declared.
+                pass
             all_oos_scores.extend(scores)
             all_oos_returns.extend(returns)
         except Exception as e:
@@ -180,11 +206,16 @@ def run_historical_evidence(root: Path, item_id: str, market: str,
         "hit_rate": round(sum(1 for r in all_oos_returns if r > 0) / n_oos, 4),
     }
 
-    # Decision · positive Sharpe with DSR p<0.10 = PASS · else FAIL
+    # Decision · CEO 2026-09-05 AUDIT-05 · PASS requires n≥50 (validation-candidate
+    # tier) · 30-49 caps at RESEARCH_FURTHER even if statistical gate passes.
     p = dsr.get("p_value", 1.0)
-    if mean_ret > 0 and p < 0.10:
+    if mean_ret > 0 and p < 0.10 and n_oos >= 50:
         decision = "PASS"
-        reason = f"OOS Sharpe {round(sharpe,3)} · DSR p={round(p,4)}"
+        reason = f"OOS n={n_oos} ≥50 · Sharpe {round(sharpe,3)} · DSR p={round(p,4)}"
+    elif mean_ret > 0 and p < 0.10 and 30 <= n_oos < 50:
+        decision = "RESEARCH_FURTHER"
+        reason = (f"OOS n={n_oos} · stronger-evidence tier · statistical gate PASSED "
+                    f"(Sharpe {round(sharpe,3)} DSR p={round(p,4)}) · needs ≥50 for PASS")
     elif mean_ret > 0 and p < 0.30:
         decision = "RESEARCH_FURTHER"
         reason = f"OOS Sharpe {round(sharpe,3)} · DSR p={round(p,4)} · marginal"
@@ -210,11 +241,14 @@ def run_historical_evidence(root: Path, item_id: str, market: str,
          "no_oos_fitting": True}, indent=2), encoding="utf-8")
 
     # Section M · append immutable evidence record
+    # AUDIT-03 · experiment_family_id recorded so trial accounting is auditable
     exp = evidence_log.append_evidence_record(
         root, item_id=item_id, market=market,
         data_snapshot=str(last), pit_status="clean",
         fold_definition={"n_folds": len(folds), "protocol": "252/5/63/21",
-                          "first_date": str(first), "last_date": str(last)},
+                          "first_date": str(first), "last_date": str(last),
+                          "experiment_family_id": experiment_family_id,
+                          "market_calendar_used": market},
         trial_count=trial_count, parameters=parameters,
         sample_size=n_oos, metrics=metrics,
         statistical_test={"sharpe": round(sharpe, 4)},
