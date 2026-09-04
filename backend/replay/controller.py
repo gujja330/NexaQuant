@@ -426,8 +426,10 @@ class ReplayController:
             "outcomes_computed": outcomes.get("n_outcomes", 0),
             "open_positions": outcomes.get("n_open_positions", 0),
             "horizon_days": outcomes.get("horizon_days", 20),
-            "status": "backfilled" if outcomes.get("n_outcomes", 0) > 0
-                        else "framework-ready-awaiting-recommendation-history",
+            # CEO 2026-09-04 · honesty guard · outcomes-backfilled is NOT the same
+            # as "learning step in production". Report "deferred-to-sprint-7.7"
+            # regardless of outcome count · n_outcomes above conveys the count separately.
+            "status": "deferred-to-sprint-7.7",
         }
 
     # ── integrity + readiness ────────────────────────────────
