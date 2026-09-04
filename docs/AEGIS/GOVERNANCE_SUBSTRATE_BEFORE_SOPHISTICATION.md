@@ -137,3 +137,57 @@ This is mostly already happening in the good updates (P0 reclassification number
 ## Amendment
 
 Verbatim CEO override "override the display-results rule" required to lift.
+
+---
+
+# Companion Rule · Session-Start Unpushed-Work Tripwire (locked 2026-09-05)
+
+## The rule
+
+**Every session · before any other work · run:**
+
+```
+git log --oneline origin/main..HEAD
+```
+
+If the output is non-empty · surface the unpushed commit list to the operator immediately · do not proceed with new work until the operator has acknowledged the backlog and decided (push · continue holding · investigate).
+
+## Why this is needed
+
+Under the old "push every round" habit, `origin/main` was always current · there was never a question of what existed only locally. Under the new push-discipline rule (above), local commits can pile up for a while — the intended benefit. But this widens the gap between "committed" and "safe" · one lost laptop / crash / context-limit event with commits sitting unpushed = work exists nowhere else.
+
+## Sizing
+
+One `git log` command · zero seconds if backlog is empty · a single visible surface if not. Cheap. Natural companion to a rule that deliberately widens the committed-vs-safe gap.
+
+## Amendment
+
+Verbatim CEO override "override the session-start tripwire rule" required to lift.
+
+---
+
+# Companion Rule · Session-Boundary Pushes Stay Atomic (locked 2026-09-05)
+
+## The rule
+
+When the eventual push happens at a session boundary or explicit instruction · **push the full linear history as-is** · fast-forward only · **never squash multiple logical fixes into one commit for a "tidier" push**.
+
+Explicitly forbidden without CEO instruction:
+- `git rebase -i` to squash local commits before push
+- `git commit --amend` on multiple prior commits
+- `git reset --soft` + single new commit collapsing local history
+- Any "cleanup" commit rewriting that removes distinct commit boundaries
+
+Explicitly permitted:
+- `git pull --rebase origin main` to keep linear history against incoming bot commits (this rebases the local commits over new remote work · does NOT squash them)
+- Any fast-forward push of N commits as N commits on origin
+
+## Why this is needed
+
+The whole reason S16 mandates one commit per logical fix (in the Sprint A standards) was to keep history reviewable and avoid the rebase-conflict cascades documented in the original git-hygiene incidents. Squashing at push time would silently undo that.
+
+Each local commit is a review boundary · a bisect point · a revert unit. Multiple accumulated local commits are MORE valuable per commit at that granularity than one collapsed super-commit would be, not less. The push does not tidy history · it publishes it.
+
+## Amendment
+
+Verbatim CEO override "override the atomic-push rule" required to lift.
