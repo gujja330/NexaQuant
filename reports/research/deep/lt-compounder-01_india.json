@@ -1,0 +1,30 @@
+{
+  "ticket_id": "LT-COMPOUNDER-01",
+  "domain": 99,
+  "market": "india",
+  "gate_status": "BLOCKED-EVIDENCE",
+  "isolation_contract": {
+    "no_position_id": true,
+    "watchlist_id_namespace": "WL-{MKT}-{TICKER}-{LISTED_DATE}",
+    "no_delivery_sheet_integration_into_existing": true,
+    "reserved_sheet_name": "07_Compounder_Watchlist",
+    "sheet_not_emitted_until": "program produces genuine evidence past its own gate",
+    "no_auto_sizing_or_auto_recommendation": true,
+    "retrospective_only_validation": true
+  },
+  "data_blocker": {
+    "blocker_type": "EXTERNAL_DATA",
+    "specific_need": "Multi-decade PIT historical fundamentals \u00b7 20+ years",
+    "candidate_vendors": [
+      "Compustat / S&P Capital IQ (subscription \u00b7 gold standard)",
+      "CMIE Prowess (India \u00b7 subscription)",
+      "yfinance historical (free \u00b7 but shallower depth than needed)",
+      "SEC EDGAR historical 10-K parsing (free \u00b7 significant engineering lift)"
+    ],
+    "why_deeper_than_sample_time": "SAMPLE_TIME blockers wait for time \u00b7 this blocker requires a different data source we do not currently have. Cannot self-resolve by running the accumulator longer.",
+    "owner_action": "CEO decision \u00b7 budget allocation for multi-decade fundamentals vendor OR engineering-time allocation for SEC EDGAR historical parser build. This program does not advance without one of the two."
+  },
+  "next_gate": "This ticket stays BLOCKED-EVIDENCE until CEO authorizes ONE of \u00b7 (A) multi-decade fundamentals vendor subscription \u00b7 (B) engineering ticket for SEC EDGAR historical 10-K parser.",
+  "verdict": "BLOCKED-EVIDENCE \u00b7 EXTERNAL_DATA \u00b7 LT-COMPOUNDER-01 open",
+  "generated_utc": "2026-09-04T10:12:49Z"
+}

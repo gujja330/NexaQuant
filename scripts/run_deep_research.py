@@ -19,6 +19,9 @@ DOMAIN_MODULES = [
     # Integrated fundamentals family (F-prefix per CEO 2026-09-03 naming standard)
     "f01_05_fundamental_intelligence",
     "f01_05_filter_grid",
+    "f01_05_oos_walkforward",
+    "d06_p2_regime_ranking",
+    "d08_flows_walkforward",
 ]
 
 def main():
