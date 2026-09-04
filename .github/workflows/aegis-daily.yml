@@ -158,6 +158,15 @@ jobs:
           python india/scorecard.py || echo "scorecard skipped"
           python india/ops_check.py || echo "ops-check reported issues (see board above)"
 
+      # CEO 2026-09-04 · fundamentals PIT accumulator · unattended daily append.
+      # Non-fatal · this is research substrate for F01-F05 OOS unblock over time.
+      # Populates today's snapshot then appends into fundamentals_history parquet.
+      - name: Fundamentals FS + PIT history accumulator (India)
+        if: steps.guard.outputs.run == 'true' && steps.freshcheck.outputs.verified == 'true'
+        run: |
+          python scripts/populate_fundamentals_feature_store.py --market india || echo "fundamentals FS populate reported issues (non-fatal)"
+          python scripts/accumulate_fundamentals_history.py --market india || echo "fundamentals history accumulator reported issues (non-fatal)"
+
       - name: Push to Google Sheets (no-ops if secrets absent)
         if: steps.guard.outputs.run == 'true' && steps.freshcheck.outputs.verified == 'true'
         env:

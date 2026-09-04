@@ -71,6 +71,13 @@ jobs:
       - name: Run USA ops check
         run: python usa/scripts/usa_ops_check.py
 
+      # CEO 2026-09-04 · fundamentals PIT accumulator · unattended daily append.
+      # Non-fatal · research substrate for F01-F05 OOS unblock over time.
+      - name: Fundamentals FS + PIT history accumulator (USA)
+        run: |
+          python scripts/populate_fundamentals_feature_store.py --market usa || echo "USA fundamentals FS populate reported issues (non-fatal)"
+          python scripts/accumulate_fundamentals_history.py --market usa || echo "USA fundamentals history accumulator reported issues (non-fatal)"
+
       - name: Generate USA Runner 1 defensive orphans (Sprint H · release-blocker)
         # Belt-and-suspenders: build_and_stamp_all in the sender also runs
         # this, but we invoke it EXPLICITLY here so USA R1 is guaranteed
