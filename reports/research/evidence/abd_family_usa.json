@@ -1,0 +1,340 @@
+{
+  "family_id": "ABD_COHORT_MINE_usa_2026-09-04",
+  "market": "usa",
+  "asof": "2026-09-04",
+  "total_trials": 21,
+  "trials_by_verdict": {
+    "DATA_BLOCKED": 8,
+    "PROMISING": 3,
+    "INSUFFICIENT": 9,
+    "NO_LIFT": 1
+  },
+  "correction_method": "benjamini_hochberg_fdr",
+  "results": [
+    {
+      "item_id": "A1",
+      "trial_key": "A1_confidence_x_fwd",
+      "cohort_kind": "predictive_lift",
+      "sample_size": 0,
+      "verdict": "DATA_BLOCKED",
+      "note": "outcome_dataset has 0 closed R2 for usa \u00b7 need 5+",
+      "experiment_id": "exp-bf1fa0bd2faa",
+      "fdr_q_value": null
+    },
+    {
+      "item_id": "A2",
+      "trial_key": "A2_horizon_selection",
+      "cohort_kind": "horizon",
+      "sample_size": 546,
+      "metrics": {
+        "fwd_5d_win_pct": 31.68,
+        "fwd_10d_win_pct": 61.54,
+        "delta_10_minus_5_pp": 29.86
+      },
+      "verdict": "PROMISING",
+      "note": "fwd_10d WR=61.5% vs fwd_5d=31.7% \u00b7 \u0394=+29.9pp",
+      "experiment_id": "exp-0f3e29fdc11e",
+      "fdr_q_value": null
+    },
+    {
+      "item_id": "A3",
+      "trial_key": "A3_sector_x_mr",
+      "cohort_kind": "sector_split",
+      "sample_size": 0,
+      "verdict": "INSUFFICIENT",
+      "note": "n=0<15 \u00b7 hypothesis tier not reached",
+      "experiment_id": "exp-28a30d937d7e",
+      "fdr_q_value": null
+    },
+    {
+      "item_id": "A4",
+      "trial_key": "A4_cap_x_mr",
+      "cohort_kind": "cap_split",
+      "sample_size": 0,
+      "verdict": "INSUFFICIENT",
+      "note": "n=0<15",
+      "experiment_id": "exp-2511b3f3322b",
+      "fdr_q_value": null
+    },
+    {
+      "item_id": "A5",
+      "trial_key": "A5_regime_x_mr",
+      "cohort_kind": "regime_split",
+      "sample_size": 0,
+      "verdict": "INSUFFICIENT",
+      "note": "n=0<10 \u00b7 regime split not viable",
+      "experiment_id": "exp-4f1408b07c03",
+      "fdr_q_value": null
+    },
+    {
+      "item_id": "A6",
+      "trial_key": "A6_multi_horizon_consensus",
+      "cohort_kind": "horizon_consensus",
+      "sample_size": 546,
+      "metrics": {
+        "aggregate_signs": {
+          "1": 1,
+          "3": 1,
+          "5": -1,
+          "10": 1
+        },
+        "all_horizons_agree": false
+      },
+      "verdict": "INSUFFICIENT",
+      "note": "aggregate-level sign check only \u00b7 per-position sign-match requires raw obs list which MR JSON doesn't expose \u00b7 DATA-BLOCKED on per-obs computation",
+      "experiment_id": "exp-b7b833c38535",
+      "fdr_q_value": null
+    },
+    {
+      "item_id": "A7",
+      "trial_key": "A7_r1_vs_r2",
+      "cohort_kind": "runner_split",
+      "sample_size": 546,
+      "metrics": {
+        "n_R1": 38,
+        "n_R2": 508,
+        "R1_fwd_5d_avg": -0.917,
+        "R2_fwd_5d_avg": -0.978,
+        "delta_R2_minus_R1_pp": -0.061
+      },
+      "verdict": "NO_LIFT",
+      "note": "R2 fwd_5d -0.98% vs R1 -0.92% \u00b7 \u0394=-0.06pp",
+      "experiment_id": "exp-73d43da46e82",
+      "fdr_q_value": null
+    },
+    {
+      "item_id": "A8",
+      "trial_key": "A8_winner_sacrifice",
+      "cohort_kind": "winner_sacrifice",
+      "sample_size": 536,
+      "metrics": {
+        "n_variants": 9,
+        "best_variant": {
+          "threshold_pct": -0.06,
+          "n_winners_sacrificed": 1,
+          "winner_sacrifice_rate": 0.058823529411764705
+        },
+        "all_thresholds": [
+          {
+            "threshold_pct": -0.02,
+            "n_winners_sacrificed": 15,
+            "winner_sacrifice_rate": 0.1388888888888889
+          },
+          {
+            "threshold_pct": -0.03,
+            "n_winners_sacrificed": 10,
+            "winner_sacrifice_rate": 0.16129032258064516
+          },
+          {
+            "threshold_pct": -0.04,
+            "n_winners_sacrificed": 4,
+            "winner_sacrifice_rate": 0.10526315789473684
+          },
+          {
+            "threshold_pct": -0.05,
+            "n_winners_sacrificed": 2,
+            "winner_sacrifice_rate": 0.07692307692307693
+          },
+          {
+            "threshold_pct": -0.06,
+            "n_winners_sacrificed": 1,
+            "winner_sacrifice_rate": 0.058823529411764705
+          },
+          {
+            "threshold_pct": -0.07,
+            "n_winners_sacrificed": 0,
+            "winner_sacrifice_rate": 0.0
+          },
+          {
+            "threshold_pct": null,
+            "n_winners_sacrificed": 18,
+            "winner_sacrifice_rate": 0.43902439024390244
+          },
+          {
+            "threshold_pct": null,
+            "n_winners_sacrificed": 23,
+            "winner_sacrifice_rate": 0.3898305084745763
+          },
+          {
+            "threshold_pct": null,
+            "n_winners_sacrificed": 0,
+            "winner_sacrifice_rate": 0.0
+          }
+        ]
+      },
+      "verdict": "INSUFFICIENT",
+      "note": "lowest winner-sacrifice rate at threshold -0.06 \u00b7 rate=0.058823529411764705",
+      "experiment_id": "exp-7354d751f356",
+      "fdr_q_value": null
+    },
+    {
+      "item_id": "A9",
+      "trial_key": "A9_investability_avoid",
+      "cohort_kind": "band_validation",
+      "sample_size": 21,
+      "metrics": {
+        "n_AVOID": 4,
+        "n_OK": 17,
+        "AVOID_fwd_5d": 2.869,
+        "OK_fwd_5d": -1.897,
+        "delta_OK_minus_AVOID_pp": -4.766
+      },
+      "verdict": "INSUFFICIENT",
+      "note": "OK -1.90% vs AVOID +2.87% \u00b7 \u0394=-4.77pp",
+      "experiment_id": "exp-e7254e3cadd6",
+      "fdr_q_value": null
+    },
+    {
+      "item_id": "A10",
+      "trial_key": "A10_lead_lag_usa_india",
+      "cohort_kind": "cross_market",
+      "sample_size": 0,
+      "verdict": "DATA_BLOCKED",
+      "note": "MR JSON is single-point snapshot \u00b7 lead-lag needs multiple asof snapshots \u00b7 requires accumulator of MR outputs over time \u00b7 not currently persisted",
+      "experiment_id": "exp-9e80e6d334e3",
+      "fdr_q_value": null
+    },
+    {
+      "item_id": "B1",
+      "trial_key": "B1_kg_community",
+      "cohort_kind": "kg_split",
+      "sample_size": 0,
+      "verdict": "DATA_BLOCKED",
+      "note": "no KG snapshot on disk",
+      "experiment_id": "exp-d47bac102da5",
+      "fdr_q_value": null
+    },
+    {
+      "item_id": "B2",
+      "trial_key": "B2_disagreement",
+      "cohort_kind": "disagreement",
+      "sample_size": 10,
+      "metrics": {
+        "median_disagreement": 0.363
+      },
+      "verdict": "INSUFFICIENT",
+      "note": "P5.1 has today's disagreement but no error series yet \u00b7 needs realized outcomes",
+      "experiment_id": "exp-d2943f2afe63",
+      "fdr_q_value": null
+    },
+    {
+      "item_id": "B3",
+      "trial_key": "B3_runner_conviction",
+      "cohort_kind": "composite",
+      "sample_size": 0,
+      "verdict": "DATA_BLOCKED",
+      "note": "composite conviction rows not yet populated with fwd outcomes",
+      "experiment_id": "exp-255b99ab716f",
+      "fdr_q_value": null
+    },
+    {
+      "item_id": "B4",
+      "trial_key": "B4_turnover",
+      "cohort_kind": "turnover",
+      "sample_size": 11,
+      "metrics": {
+        "mean_daily_turnover": 0.0788,
+        "days_over_5pct": 6
+      },
+      "verdict": "INSUFFICIENT",
+      "note": "n_rotation_days=11 \u00b7 sim only \u00b7 no return correlation computed",
+      "experiment_id": "exp-6630f6cbb9fc",
+      "fdr_q_value": null
+    },
+    {
+      "item_id": "B5",
+      "trial_key": "B5_entry_slippage",
+      "cohort_kind": "execution",
+      "sample_size": 0,
+      "verdict": "DATA_BLOCKED",
+      "note": "suggested buy zone at entry time not persisted for historical positions",
+      "experiment_id": "exp-2dcd442bcbc6",
+      "fdr_q_value": null
+    },
+    {
+      "item_id": "B6",
+      "trial_key": "B6_seasonality",
+      "cohort_kind": "seasonality",
+      "sample_size": 0,
+      "verdict": "INSUFFICIENT",
+      "note": "n=0<15",
+      "experiment_id": "exp-db5cffcd2267",
+      "fdr_q_value": null
+    },
+    {
+      "item_id": "B7",
+      "trial_key": "B7_position_count",
+      "cohort_kind": "concentration",
+      "sample_size": 0,
+      "verdict": "DATA_BLOCKED",
+      "note": "concurrent-position count per entry day not indexed",
+      "experiment_id": "exp-e49b211e2e89",
+      "fdr_q_value": null
+    },
+    {
+      "item_id": "B8",
+      "trial_key": "B8_news",
+      "cohort_kind": "news",
+      "sample_size": 0,
+      "verdict": "DATA_BLOCKED",
+      "note": "news sentiment score per Position ID at entry not surfaced in outcome_dataset",
+      "experiment_id": "exp-8fea14b6a536",
+      "fdr_q_value": null
+    },
+    {
+      "item_id": "D1",
+      "trial_key": "D1_depth_cohorts",
+      "cohort_kind": "data_quality",
+      "sample_size": 1,
+      "metrics": {
+        "depth_cohorts_populated": true,
+        "depth_cohorts_type": "dict",
+        "depth_cohorts_size": 4
+      },
+      "verdict": "PROMISING",
+      "note": "populated",
+      "experiment_id": "exp-f6ed2eced57a",
+      "fdr_q_value": null
+    },
+    {
+      "item_id": "D2",
+      "trial_key": "D2_fwd17_missing",
+      "cohort_kind": "data_quality",
+      "sample_size": 546,
+      "metrics": {
+        "forward_horizons_declared": [
+          1,
+          3,
+          5,
+          10,
+          20
+        ],
+        "fwd_17d_avg_populated": false,
+        "asof": "2026-08-27",
+        "note": "17 not in horizons list"
+      },
+      "verdict": "DATA_BLOCKED",
+      "note": "horizons list does NOT include 17 \u00b7 engine schema mismatch",
+      "experiment_id": "exp-b0b66141c9dd",
+      "fdr_q_value": null
+    },
+    {
+      "item_id": "D3",
+      "trial_key": "D3_pos_pnl_missing",
+      "cohort_kind": "data_quality",
+      "sample_size": 31476,
+      "metrics": {
+        "n_total": 31476,
+        "n_data_available": 30950,
+        "n_data_missing": 526,
+        "missing_fraction": 0.0167
+      },
+      "verdict": "PROMISING",
+      "note": "1.7% missing \u00b7 acceptable",
+      "experiment_id": "exp-f3c93f7e57bb",
+      "fdr_q_value": null
+    }
+  ],
+  "governance": "C.1 trial-accounting applied \u00b7 every trial logged with family_id + trial_number + total_planned_trials + BH-FDR q-value \u00b7 zero production/XLSX changes",
+  "generated_utc": "2026-09-04T15:30:27Z"
+}
