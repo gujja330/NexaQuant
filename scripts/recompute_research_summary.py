@@ -33,6 +33,21 @@ STP_TO_COVERAGE = {
     "BLOCKED":     "Data-required",    # data availability blocker
 }
 
+# CEO 2026-09-04 · CAVEAT · WORTH → Corrected is a PROJECTION into the 13-stage
+# ladder · NOT a production-readiness claim. Between Corrected and Production
+# the following gates still remain and each is a real blocker:
+#     Incremental → Paper → Shadow → Candidate → Production
+# WORTH means statistical significance/evidence has cleared the STP gate.
+# It does NOT establish · incremental value over R2 · paper/live validation ·
+# shadow-tracked sample ≥ 50 · CEO promotion authorization.
+# Read WORTH as "cleared research bar · still three real gates from production".
+WORTH_CAVEAT = (
+    "WORTH cleared statistical significance (OOS + DSR) · does NOT establish "
+    "incremental value over R2 · not paper-validated · not shadow-tracked · "
+    "not a Production candidate. Remaining gates: Incremental → Paper → "
+    "Shadow → Candidate → Production."
+)
+
 
 def load_stp_verdicts() -> dict[str, dict]:
     """{item_id: {market: verdict}} · from reports/research/stp/*.json"""

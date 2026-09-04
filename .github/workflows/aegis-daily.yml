@@ -167,6 +167,13 @@ jobs:
           python scripts/populate_fundamentals_feature_store.py --market india || echo "fundamentals FS populate reported issues (non-fatal)"
           python scripts/accumulate_fundamentals_history.py --market india || echo "fundamentals history accumulator reported issues (non-fatal)"
 
+      # CEO 2026-09-04 · independent freshness monitor · surfaces silent
+      # accumulator failure. Non-fatal at daily level · visible in JSON artifact.
+      - name: Fundamentals freshness check (India + USA)
+        if: steps.guard.outputs.run == 'true' && steps.freshcheck.outputs.verified == 'true'
+        run: |
+          python scripts/fundamentals_freshness_check.py || echo "fundamentals freshness FAILURE flag raised · check reports/research/fundamentals_freshness.json"
+
       - name: Push to Google Sheets (no-ops if secrets absent)
         if: steps.guard.outputs.run == 'true' && steps.freshcheck.outputs.verified == 'true'
         env:

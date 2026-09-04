@@ -53,6 +53,29 @@ Every past violation produced the same failure class:
 - P2 (Sector/Regime Ranking) · already ran through STP · NOT_WORTH · no follow-up until D06 sub-signals mature.
 - P5 items · same rule · check dependency before scheduling.
 
+## P1 exemption · reasoned exception · NOT a template
+
+**Item exempt:** P1 Confidence Calibration on Delivered Output (V2 §P1)
+
+**Basis for exemption:**
+- P1's required substrate is **the R2 recommendation pipeline's own delivered output** — a stream of `(raw_confidence, calibrated_confidence, action, forward_outcome)` observations that the production system generates every day it runs.
+- That substrate is **already being produced** as a side-effect of R2 running · it is not "unbuilt" · it is not blocked on data acquisition · it is not blocked on external vendors.
+- P1's evidence gate (ECE ≤ 0.05 sustained across 4 weekly refits) IS itself an accumulation requirement on that same substrate · this is not an exemption from evidence discipline · it is a different form of evidence discipline.
+
+**What this exemption does NOT establish:**
+- It does NOT create a general precedent that any item can proceed if a plausible reason is invented for why its missing data is "different."
+- It does NOT exempt any R2 P-item other than P1.
+- It does NOT exempt any R3 Tier 2/3 item.
+- It does NOT permit "small exploratory versions" of P3, P4, or later P-items.
+
+**Reasoning that must be preserved to grant a similar exemption in the future:**
+1. The candidate operates on data that the production system generates as a normal by-product of running.
+2. The candidate does NOT depend on any F0X or Dxx sub-signal being at `Tested` stage.
+3. The candidate's own evidence gate imposes an accumulation requirement on the same live-production data.
+4. Not granting the exemption would freeze work on an item whose substrate is already flowing · which is different from freezing work on an item whose substrate does not exist.
+
+Any future exemption request must state all four conditions explicitly. Absence of any one condition = no exemption.
+
 ## Amendment
 
 This rule can only be lifted by verbatim CEO override · "override the substrate-before-sophistication rule". It replaces any prior instruction that scheduled sophistication work while substrate was thin.
