@@ -193,6 +193,35 @@ def fetch_yfinance_inputs(ticker: str, market: str, asof: str,
     fin["net_income"] = _latest(income, "Net Income")
     fin["sales"]      = _latest(income, "Total Revenue")
     fin["ebit"]       = _latest(income, "EBIT") or _latest(income, "Operating Income")
+
+    # CEO 2026-09-05 · F05 revenue_growth_yoy · PIT-safe pair
+    # yfinance income_stmt columns are dated at fiscal year end · we verify
+    # the current-year column's date is ≤ asof to prevent lookahead.
+    try:
+        rev_cur = _latest(income, "Total Revenue")
+        rev_prev_y = _prior(income, "Total Revenue")
+        if rev_cur is not None and income is not None and not income.empty:
+            cur_report_date = None
+            try:
+                cur_report_date = income.columns[0]
+                # cur_report_date may be a Timestamp
+                import pandas as pd
+                cur_report_ts = pd.Timestamp(cur_report_date)
+                asof_ts = pd.Timestamp(asof)
+                if cur_report_ts > asof_ts:
+                    # PIT violation · reported after asof · flag and skip
+                    fin["revenue_pit_violated"] = True
+                else:
+                    fin["revenue_current_annual"] = rev_cur
+                    if rev_prev_y is not None:
+                        fin["revenue_prior_annual"] = rev_prev_y
+                    fin["revenue_report_date"] = str(cur_report_ts.date())
+            except Exception:
+                # If we cannot verify report date, do NOT populate revenue
+                # (fail closed on PIT safety per CEO 2026-09-05 rule)
+                pass
+    except Exception:
+        pass
     ie = _latest(income, "Interest Expense")
     if ie is not None:
         fin["interest_expense"] = abs(ie)

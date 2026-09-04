@@ -69,6 +69,13 @@ GRANDFATHERED_MASKS: dict[str, dict[tuple[int, str], str]] = {
             "ENG003 debt: freshness monitor is a SIGNAL not a gate at this workflow level · "
             "exit-1 emitted in JSON artifact + rendered as FAIL row in 00_Health cockpit · "
             "operator sees staleness on next workbook open · delivery not blocked.",
+        # 2026-09-05 · accumulator progress verifier · surfaces silent stall even if
+        # freshness reports OK · e.g. accumulator writes today's parquet but with
+        # same-day asof (no new information · would look fresh but stalled).
+        (182, "|| echo \"accumulator progress FAILURE · reports/research/accumulator_progress_summary.json\""):
+            "ENG003 debt: progress verifier is a SIGNAL not a gate · exit-1 emitted "
+            "in JSON artifact · rendered in 00_Health cockpit · delivery not blocked. "
+            "Complements freshness check by comparing day-over-day asof count.",
         # 2026-07-15: line 98 Telegram mask REMOVED. Notify is now routed through
         # scripts/telegram_send_with_retry.py which has 3 built-in retries and
         # exits non-zero on total failure. Any Telegram failure now fails the

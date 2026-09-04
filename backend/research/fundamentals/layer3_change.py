@@ -76,6 +76,38 @@ def insider_f4_signal(fin: dict) -> Optional[float]:
         return None
 
 
+def revenue_growth_yoy(fin: dict) -> Optional[float]:
+    """Year-over-year revenue growth · PIT-safe · CEO 2026-09-05 F05 unblock.
+
+    Requires provider to supply both current-year and prior-year revenue as
+    reported at or before the asof date. Provider MUST NOT include the most
+    recent unreported fiscal year · that is the PIT-safety contract.
+
+    fin keys:
+      revenue_current_annual   · most recent reported annual revenue as of asof
+      revenue_prior_annual     · the fiscal year immediately preceding
+      revenue_report_date      · the reporting date of the current annual value
+                                  (used by provider to enforce ≤ asof)
+
+    Returns · (current - prior) / |prior| · positive = growth. None if either
+    revenue is missing, prior <= 0, or provider flagged post-asof leakage.
+    """
+    for k in ("revenue_current_annual", "revenue_prior_annual"):
+        if k not in fin or fin[k] is None:
+            return None
+    # PIT safety guard · caller must have already verified report_date <= asof
+    # (kept in provider · signalled here by absence of revenue_pit_violated flag).
+    if fin.get("revenue_pit_violated"):
+        return None
+    try:
+        prev = float(fin["revenue_prior_annual"])
+        if prev <= 0: return None
+        cur = float(fin["revenue_current_annual"])
+        return round((cur - prev) / abs(prev), 6)
+    except (TypeError, ValueError, ZeroDivisionError):
+        return None
+
+
 def inst_13f_change(fin: dict) -> Optional[float]:
     """13F institutional-holdings quarter-over-quarter change.
 
@@ -104,4 +136,5 @@ LAYER3_FUNCTIONS = {
     "earnings_surprise":    earnings_surprise,
     "insider_f4_signal":    insider_f4_signal,
     "inst_13f_change":      inst_13f_change,
+    "revenue_growth_yoy":   revenue_growth_yoy,   # F05 unblock · CEO 2026-09-05
 }

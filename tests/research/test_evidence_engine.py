@@ -237,6 +237,75 @@ def test_evidence_log_market_filter(tmp_path: Path):
 
 # ── Governance contract ───────────────────────────────────────────────
 
+def test_engine_fails_closed_on_fold_exception():
+    """CEO 2026-09-05 · engine must FAIL CLOSED · not silently continue.
+    A signal_and_outcome_fn that raises must produce decision=FAIL,
+    not decision=INSUFFICIENT_SAMPLE with silently-lost folds."""
+    import tempfile
+    from datetime import date, timedelta
+    from backend.research.evidence.engine import run_historical_evidence
+    with tempfile.TemporaryDirectory() as td:
+        root = Path(td)
+        (root / ".git").mkdir(); (root / ".git" / "HEAD").write_text("abcd\n", encoding="utf-8")
+        def dates(_r, _m): return [date(2020,1,1) + timedelta(days=i) for i in range(1000)]
+        def raiser(_r, _m, fold): raise RuntimeError("test-injected fold failure")
+        r = run_historical_evidence(root, "TEST-FC", "india", dates, raiser)
+        assert r.decision == "FAIL", f"engine should fail-closed · got {r.decision}"
+        assert "fail-closed" in r.reason.lower() or "raised exception" in r.reason.lower()
+
+
+def test_f05_revenue_growth_yoy_computed():
+    """CEO 2026-09-05 F05 unblock · revenue_growth_yoy derives from two annual
+    revenue observations with PIT safety guard."""
+    from backend.research.fundamentals.layer3_change import revenue_growth_yoy
+    # Missing keys → None
+    assert revenue_growth_yoy({}) is None
+    # PIT violation → None
+    assert revenue_growth_yoy({
+        "revenue_current_annual": 100e9,
+        "revenue_prior_annual": 90e9,
+        "revenue_pit_violated": True,
+    }) is None
+    # Happy path
+    r = revenue_growth_yoy({
+        "revenue_current_annual": 110e9,
+        "revenue_prior_annual": 100e9,
+    })
+    assert r is not None
+    assert abs(r - 0.10) < 1e-6
+    # Zero-prior guard
+    assert revenue_growth_yoy({
+        "revenue_current_annual": 100e9,
+        "revenue_prior_annual": 0,
+    }) is None
+
+
+def test_accumulator_verifier_detects_stall(tmp_path: Path):
+    """Verifier must FAIL on second run if asof count did not advance mid-week."""
+    # Simulated · not a real run · just check the _verify logic
+    from scripts.accumulator_progress_verifier import _verify
+    # BASELINE case
+    r = _verify({"market": "india", "exists": True, "n_unique_asof": 1}, None)
+    assert r["status"] == "BASELINE"
+    # PROGRESSING case
+    r = _verify({"market": "india", "exists": True, "n_unique_asof": 2},
+                 {"n_unique_asof": 1})
+    assert r["status"] == "PROGRESSING"
+    # STALLED case (weekday only · will show WEEKEND_OK on Sat/Sun)
+    from datetime import date
+    r = _verify({"market": "india", "exists": True, "n_unique_asof": 5},
+                 {"n_unique_asof": 5})
+    today_wd = date.today().weekday()
+    if today_wd < 5:
+        assert r["status"] == "STALLED"
+    else:
+        assert r["status"] == "WEEKEND_OK"
+    # BACKWARDS case
+    r = _verify({"market": "india", "exists": True, "n_unique_asof": 3},
+                 {"n_unique_asof": 5})
+    assert r["status"] == "FAIL"
+
+
 def test_engine_never_writes_r2_production_paths():
     """Grep evidence module tree · assert no writes to R2 production paths.
     Any evidence-engine code that writes to reports/production/*, reports/telegram/*,

@@ -109,16 +109,44 @@ def run_historical_evidence(root: Path, item_id: str, market: str,
                                 metrics={}, experiment_id=exp, clock_state=clock.state)
 
     # Section B · run all folds · collect metrics
+    # CEO 2026-09-05 · FAIL CLOSED on fold exceptions · silent continue would
+    # lose folds without visibility · exception is a real problem, surface it.
     all_train_scores: list[float] = []
     all_oos_scores: list[float] = []
     all_oos_returns: list[float] = []
+    fold_errors: list[dict] = []
     for fold in folds:
         try:
             scores, returns = signal_and_outcome_fn(root, market, fold)
             all_oos_scores.extend(scores)
             all_oos_returns.extend(returns)
-        except Exception:
-            continue
+        except Exception as e:
+            fold_errors.append({"fold_id": fold.fold_id,
+                                  "oos_start": str(fold.oos_start),
+                                  "error": type(e).__name__,
+                                  "message": str(e)[:200]})
+    if fold_errors:
+        # Fail closed · every fold error is visible in the Evidence Log record
+        clock.tick()
+        exp = evidence_log.append_evidence_record(
+            root, item_id=item_id, market=market,
+            data_snapshot=str(last), pit_status="clean",
+            fold_definition={"n_folds": len(folds), "n_failed_folds": len(fold_errors),
+                              "fold_errors": fold_errors},
+            trial_count=trial_count, parameters=parameters,
+            sample_size=len(all_oos_returns), metrics={},
+            statistical_test={}, multiple_testing_correction={},
+            decision="FAIL",
+            artifact_paths=[])
+        return EvidenceResult(
+            item_id=item_id, market=market, decision="FAIL",
+            reason=(f"{len(fold_errors)} of {len(folds)} folds raised exceptions · "
+                     f"fail-closed per CEO 2026-09-05 · first error: {fold_errors[0]['error']}: "
+                     f"{fold_errors[0]['message'][:100]}"),
+            n_folds=len(folds), n_train_samples=0,
+            n_oos_samples=len(all_oos_returns),
+            metrics={"n_failed_folds": len(fold_errors)},
+            experiment_id=exp, clock_state=clock.state)
 
     clock.historical_oos_n = len(all_oos_returns)
     n_oos = len(all_oos_returns)
