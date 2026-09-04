@@ -191,3 +191,96 @@ Each local commit is a review boundary · a bisect point · a revert unit. Multi
 ## Amendment
 
 Verbatim CEO override "override the atomic-push rule" required to lift.
+
+---
+
+# Companion Rule · Pre-Push AEGIS Integration Checklist (locked 2026-09-05)
+
+## The rule
+
+Every push must complete, in order:
+
+### 1. Scope frozen
+
+No additions after verification begins. New work does not join a push mid-verification.
+
+### 2. Production-path diff explicitly checked
+
+Run:
+
+```bash
+git diff origin/main...HEAD -- \
+  '*recommendation*' \
+  '*ensemble_weights*' \
+  'reports/telegram/*' \
+  'backend/recommendation/*' \
+  'usa/scripts/*' \
+  'india/*.py'
+```
+
+This MUST be empty unless an explicitly authorized production change is part of the frozen scope. Running this after the push (retrospective) is not sufficient · the check must happen BEFORE the push so the push can be aborted if any unintended production file is present.
+
+### 3. Full test suite green
+
+Every push must include the applicable governance-baseline regression:
+- Evidence engine + governance invariants + calibrator + investments sheet + deep research modules
+- ci-discipline (`nexaquant/tests/test_ci_discipline.py`) · 36+ masks all grandfathered
+- library tests + sealed-file guards (`test_lib.py`, `test_regression.py`, `test_governance.py`)
+- Plus the new experiment's own tests
+
+Any regression → **stop; do not push.**
+
+### 4. Evidence ledger complete
+
+Every experiment/trial in the push must carry in its Evidence Log record:
+- `experiment_family_id`
+- `trial_number` + `total_planned_trials`
+- `sample_size` + `sample_tier` (per V2 locked tiers)
+- planned or applied `correction_method`
+- honest `verdict` (PROMISING/NO_LIFT/HARMFUL/INSUFFICIENT/DATA_BLOCKED · not "winner" unless statistical gate actually cleared)
+
+### 5. Single explicit commit · no unrelated sweeping
+
+- `git add <intended files only>` · never blanket `git add .` or `git add -u` at the repo root
+- Unrelated working-tree artifacts stay outside the commit
+- If unrelated artifacts genuinely need committing (e.g. daily-refresh JSON), that is a SEPARATE commit with its own message
+
+### 6. Push once · verify
+
+Immediately after `git push`:
+
+```bash
+git fetch origin
+git rev-parse HEAD
+git rev-parse origin/main
+git status --short
+```
+
+Required final state:
+- `HEAD == origin/main` ✓
+- **working tree is clean** ✓
+- no unexpected post-push modifications ✓
+
+## Dirty-tree clarification (CEO 2026-09-05)
+
+**A dirty working tree is a release blocker unless every uncommitted change is explicitly classified as pre-existing, outside the release scope, and safely isolated.**
+
+The default is **clean working tree before push** · not "push anyway because the dirty files are probably unrelated." When a legitimate exception applies:
+- Document each uncommitted file in the push report
+- Confirm each is pre-existing (not created by this session's scope)
+- Confirm each is outside the release scope (not in the diff to origin/main)
+- Confirm each is safely isolated (won't be swept into any subsequent commit accidentally)
+
+An honest status output must distinguish:
+- **PUSH SUCCESSFUL · PRODUCTION-SAFE · REPOSITORY CLEAN** (all six steps ✓)
+- **PUSH SUCCESSFUL · PRODUCTION-SAFE · REPOSITORY NOT CLEAN** (step 6 partial · dirty tree exception applied · documented)
+
+The second is acceptable only as an exception, never as normal operating procedure. Retroactively normalizing a dirty-tree push into "clean" is forbidden.
+
+## Never-amend rule
+
+**Do not amend or rewrite a pushed commit merely to make the history look cleaner.** Once a commit is on `origin/main`, its permanence is a governance feature, not a bug. Cleanup of unrelated working-tree artifacts is a SEPARATE controlled reconciliation action with its own commit boundary.
+
+## Amendment
+
+Verbatim CEO override "override the pre-push integration rule" required to lift.
