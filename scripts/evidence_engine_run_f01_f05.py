@@ -116,19 +116,28 @@ def run_item(root: Path, item: dict, market: str) -> dict:
     def _dates_fn(_root: Path, _market: str):
         return sorted(df["asof_d"].unique())
 
+    # AUDIT-06 · PIT universe membership hook · universe_at_date_fn wired
+    # inside the signal_and_outcome_fn so filtering happens where the ticker
+    # labels live. Universe = the set of tickers with a PIT fundamentals row
+    # at the fold's oos_start (this is the strictest PIT universe available
+    # from the accumulator itself · never today's superset).
+    def _universe_at_date_fn(_root: Path, _market: str, asof):
+        return sorted(df[df["asof_d"] == asof]["ticker"].astype(str).unique())
+
     def _signal_and_outcome_fn(_root: Path, _market: str, fold):
-        # For fundamentals we compute cross-sectional decile at each fold's OOS start
-        # then measure forward 20d return of top vs bottom decile · aggregated
-        oos_df = df[(df["asof_d"] >= fold.oos_start) & (df["asof_d"] <= fold.oos_end)]
+        # AUDIT-06 · restrict OOS candidates to tickers in PIT universe at
+        # fold.oos_start · prevents future-universe leakage
+        pit_universe = set(_universe_at_date_fn(_root, _market, fold.oos_start))
+        oos_df = df[(df["asof_d"] >= fold.oos_start) & (df["asof_d"] <= fold.oos_end)
+                     & (df["ticker"].astype(str).isin(pit_universe))]
         if len(oos_df) < 10: return [], []
-        # Simple approach · signal direction determines rank
+        # Signal direction determines rank
         if item["direction"] == "positive":
             oos_df = oos_df.sort_values(signal_col, ascending=False)
         else:
             oos_df = oos_df.sort_values(signal_col, ascending=True)
         decile = max(3, len(oos_df) // 10)
         top = oos_df.head(decile)
-        # Compute realized 20d return per ticker
         from backend.research.evidence.forward_paper import compute_matured_return
         returns = []
         for _, row in top.iterrows():
@@ -137,11 +146,17 @@ def run_item(root: Path, item: dict, market: str) -> dict:
             if r is not None: returns.append(r)
         return [1.0] * len(returns), returns
 
+    # AUDIT-03 · declare the experiment family explicitly. Single top-decile
+    # test = 1 trial in family · but the family_id makes multi-decile expansions
+    # (which would raise trial_count) visible in Evidence Log.
+    family_id = f"{item['id']}_top_decile_20d_v1"
     result: EvidenceResult = run_historical_evidence(
         root, item["id"], market,
         signal_dates_fn=_dates_fn,
         signal_and_outcome_fn=_signal_and_outcome_fn,
         trial_count=1,
+        experiment_family_id=family_id,
+        universe_at_date_fn=_universe_at_date_fn,
         parameters={"signal_col": signal_col, "direction": item["direction"],
                      "decile": "top", "horizon_days": 20},
     )
