@@ -2,17 +2,17 @@
   "engine": "backend_validation",
   "version": "v1.0",
   "market": "usa",
-  "run_utc": "2026-09-03T13:49:37+00:00Z",
+  "run_utc": "2026-09-04T12:26:00+00:00Z",
   "n_datasets": 85,
   "verdict": "FAIL",
-  "confidence": 0.8945,
+  "confidence": 0.8985,
   "counts": {
-    "PASS": 83,
+    "PASS": 84,
     "WARNING": 0,
-    "FAIL": 2,
+    "FAIL": 1,
     "NOT_APPLICABLE": 0
   },
-  "elapsed_s": 2.421,
+  "elapsed_s": 2.573,
   "datasets": {
     "aapl_price": {
       "spec": {
@@ -51,13 +51,13 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/data/raw/us/AAPL_D1.parquet",
-            "mtime_utc": "2026-09-03T13:33:15+00:00",
-            "wall_hours_old": 0.27,
+            "mtime_utc": "2026-09-04T12:10:43+00:00",
+            "wall_hours_old": 0.25,
             "trading_days_old": 0,
             "sla_trading_days": 3
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.34
+          "elapsed_ms": 0.44
         },
         "schema": {
           "validator": "schema",
@@ -87,7 +87,7 @@
             "n_columns": 6
           },
           "suggested_fixes": [],
-          "elapsed_ms": 22.02
+          "elapsed_ms": 23.06
         },
         "completeness": {
           "validator": "completeness",
@@ -97,10 +97,10 @@
           "n_issues": 0,
           "issues": [],
           "evidence": {
-            "n_rows": 1255
+            "n_rows": 1254
           },
           "suggested_fixes": [],
-          "elapsed_ms": 1.99
+          "elapsed_ms": 2.11
         },
         "quality": {
           "validator": "quality",
@@ -111,11 +111,11 @@
           "issues": [],
           "evidence": {
             "max_return_z": {
-              "close": 8.68
+              "close": 8.67
             }
           },
           "suggested_fixes": [],
-          "elapsed_ms": 4.05
+          "elapsed_ms": 4.48
         },
         "lineage": {
           "validator": "lineage",
@@ -134,7 +134,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 221.77
+          "elapsed_ms": 230.8
         }
       }
     },
@@ -162,250 +162,18 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/ai_execution_narrative.json",
-            "mtime_utc": "2026-09-03T13:32:49+00:00",
-            "wall_hours_old": 0.28,
+            "mtime_utc": "2026-09-04T12:10:14+00:00",
+            "wall_hours_old": 0.26,
             "trading_days_old": 0,
             "sla_trading_days": 1,
-            "run_utc_declared": "2026-09-03T12:28:49+00:00"
+            "run_utc_declared": "2026-09-03T13:50:02+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.4
+          "elapsed_ms": 0.45
         },
         "schema": {
           "validator": "schema",
           "dataset": "ai_execution_narrative",
-          "verdict": "PASS",
-          "confidence": 1.0,
-          "n_issues": 0,
-          "issues": [],
-          "evidence": {
-            "required": [
-              "engine",
-              "version",
-              "market",
-              "run_utc",
-              "output"
-            ],
-            "present": [
-              "engine",
-              "version",
-              "market",
-              "run_utc",
-              "asof",
-              "output"
-            ],
-            "missing": [],
-            "extras": [],
-            "n_columns": 6
-          },
-          "suggested_fixes": [],
-          "elapsed_ms": 0.12
-        },
-        "completeness": {
-          "validator": "completeness",
-          "dataset": "ai_execution_narrative",
-          "verdict": "PASS",
-          "confidence": 1.0,
-          "n_issues": 0,
-          "issues": [],
-          "evidence": {},
-          "suggested_fixes": [],
-          "elapsed_ms": 0.08
-        },
-        "quality": {
-          "validator": "quality",
-          "dataset": "ai_execution_narrative",
-          "verdict": "NOT_APPLICABLE",
-          "confidence": 0.0,
-          "n_issues": 0,
-          "issues": [],
-          "evidence": {
-            "reason": "not_applicable_to_non_parquet_or_missing"
-          },
-          "suggested_fixes": [],
-          "elapsed_ms": 0.02
-        },
-        "lineage": {
-          "validator": "lineage",
-          "dataset": "ai_execution_narrative",
-          "verdict": "PASS",
-          "confidence": 1.0,
-          "n_issues": 0,
-          "issues": [],
-          "evidence": {
-            "producer": "usa/research/execution_simulator/run.py",
-            "producer_path": "/home/runner/work/NexaQuant/NexaQuant/usa/research/execution_simulator/run.py",
-            "n_callers": 20,
-            "callers": [
-              "backend/__init__.py",
-              "india/daily_run.py",
-              "docs/generate_architecture_review.py",
-              "scripts/aegis_daily_v2.py",
-              "scripts/aegis_profile.py",
-              "scripts/check_data_freshness.py",
-              "scripts/aegis_scorecard.py",
-              "scripts/intraday_hourly_run.py",
-              "scripts/intraday_run.py",
-              "research/portfolio_construction/run.py"
-            ]
-          },
-          "suggested_fixes": [],
-          "elapsed_ms": 15.06
-        }
-      }
-    },
-    "ai_feature_narrative": {
-      "spec": {
-        "name": "ai_feature_narrative",
-        "path": "usa/reports/ai_feature_narrative.json",
-        "producer": "usa/research/feature_store/run.py",
-        "kind": "ai_narrative",
-        "freshness_sla_trading_days": 1,
-        "consumers": [
-          "usa/dashboard/frontend"
-        ]
-      },
-      "rollup_verdict": "PASS",
-      "rollup_confidence": 0.9013,
-      "n_issues": 0,
-      "validators": {
-        "freshness": {
-          "validator": "freshness",
-          "dataset": "ai_feature_narrative",
-          "verdict": "PASS",
-          "confidence": 1.0,
-          "n_issues": 0,
-          "issues": [],
-          "evidence": {
-            "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/ai_feature_narrative.json",
-            "mtime_utc": "2026-09-03T13:32:49+00:00",
-            "wall_hours_old": 0.28,
-            "trading_days_old": 0,
-            "sla_trading_days": 1,
-            "run_utc_declared": "2026-09-03T12:28:33+00:00"
-          },
-          "suggested_fixes": [],
-          "elapsed_ms": 0.38
-        },
-        "schema": {
-          "validator": "schema",
-          "dataset": "ai_feature_narrative",
-          "verdict": "PASS",
-          "confidence": 1.0,
-          "n_issues": 0,
-          "issues": [],
-          "evidence": {
-            "required": [
-              "engine",
-              "version",
-              "market",
-              "run_utc",
-              "agents"
-            ],
-            "present": [
-              "engine",
-              "version",
-              "market",
-              "run_utc",
-              "asof",
-              "agents"
-            ],
-            "missing": [],
-            "extras": [],
-            "n_columns": 6
-          },
-          "suggested_fixes": [],
-          "elapsed_ms": 0.23
-        },
-        "completeness": {
-          "validator": "completeness",
-          "dataset": "ai_feature_narrative",
-          "verdict": "PASS",
-          "confidence": 1.0,
-          "n_issues": 0,
-          "issues": [],
-          "evidence": {},
-          "suggested_fixes": [],
-          "elapsed_ms": 0.24
-        },
-        "quality": {
-          "validator": "quality",
-          "dataset": "ai_feature_narrative",
-          "verdict": "NOT_APPLICABLE",
-          "confidence": 0.0,
-          "n_issues": 0,
-          "issues": [],
-          "evidence": {
-            "reason": "not_applicable_to_non_parquet_or_missing"
-          },
-          "suggested_fixes": [],
-          "elapsed_ms": 0.03
-        },
-        "lineage": {
-          "validator": "lineage",
-          "dataset": "ai_feature_narrative",
-          "verdict": "PASS",
-          "confidence": 1.0,
-          "n_issues": 0,
-          "issues": [],
-          "evidence": {
-            "producer": "usa/research/feature_store/run.py",
-            "producer_path": "/home/runner/work/NexaQuant/NexaQuant/usa/research/feature_store/run.py",
-            "n_callers": 20,
-            "callers": [
-              "backend/__init__.py",
-              "india/daily_run.py",
-              "docs/generate_architecture_review.py",
-              "scripts/aegis_daily_v2.py",
-              "scripts/aegis_profile.py",
-              "scripts/check_data_freshness.py",
-              "scripts/aegis_scorecard.py",
-              "scripts/intraday_hourly_run.py",
-              "scripts/intraday_run.py",
-              "research/portfolio_construction/run.py"
-            ]
-          },
-          "suggested_fixes": [],
-          "elapsed_ms": 14.76
-        }
-      }
-    },
-    "ai_feature_research": {
-      "spec": {
-        "name": "ai_feature_research",
-        "path": "usa/reports/ai_feature_research.json",
-        "producer": "usa/research/feature_intelligence/run.py",
-        "kind": "ai_narrative",
-        "freshness_sla_trading_days": 1,
-        "consumers": [
-          "usa/dashboard/frontend"
-        ]
-      },
-      "rollup_verdict": "PASS",
-      "rollup_confidence": 0.9013,
-      "n_issues": 0,
-      "validators": {
-        "freshness": {
-          "validator": "freshness",
-          "dataset": "ai_feature_research",
-          "verdict": "PASS",
-          "confidence": 1.0,
-          "n_issues": 0,
-          "issues": [],
-          "evidence": {
-            "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/ai_feature_research.json",
-            "mtime_utc": "2026-09-03T13:32:49+00:00",
-            "wall_hours_old": 0.28,
-            "trading_days_old": 0,
-            "sla_trading_days": 1,
-            "run_utc_declared": "2026-09-03T12:28:42+00:00"
-          },
-          "suggested_fixes": [],
-          "elapsed_ms": 0.24
-        },
-        "schema": {
-          "validator": "schema",
-          "dataset": "ai_feature_research",
           "verdict": "PASS",
           "confidence": 1.0,
           "n_issues": 0,
@@ -435,7 +203,7 @@
         },
         "completeness": {
           "validator": "completeness",
-          "dataset": "ai_feature_research",
+          "dataset": "ai_execution_narrative",
           "verdict": "PASS",
           "confidence": 1.0,
           "n_issues": 0,
@@ -443,6 +211,238 @@
           "evidence": {},
           "suggested_fixes": [],
           "elapsed_ms": 0.08
+        },
+        "quality": {
+          "validator": "quality",
+          "dataset": "ai_execution_narrative",
+          "verdict": "NOT_APPLICABLE",
+          "confidence": 0.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "reason": "not_applicable_to_non_parquet_or_missing"
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 0.04
+        },
+        "lineage": {
+          "validator": "lineage",
+          "dataset": "ai_execution_narrative",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "producer": "usa/research/execution_simulator/run.py",
+            "producer_path": "/home/runner/work/NexaQuant/NexaQuant/usa/research/execution_simulator/run.py",
+            "n_callers": 20,
+            "callers": [
+              "backend/__init__.py",
+              "india/daily_run.py",
+              "docs/generate_architecture_review.py",
+              "scripts/aegis_daily_v2.py",
+              "scripts/aegis_profile.py",
+              "scripts/check_data_freshness.py",
+              "scripts/aegis_scorecard.py",
+              "scripts/intraday_hourly_run.py",
+              "scripts/intraday_run.py",
+              "research/portfolio_construction/run.py"
+            ]
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 16.05
+        }
+      }
+    },
+    "ai_feature_narrative": {
+      "spec": {
+        "name": "ai_feature_narrative",
+        "path": "usa/reports/ai_feature_narrative.json",
+        "producer": "usa/research/feature_store/run.py",
+        "kind": "ai_narrative",
+        "freshness_sla_trading_days": 1,
+        "consumers": [
+          "usa/dashboard/frontend"
+        ]
+      },
+      "rollup_verdict": "PASS",
+      "rollup_confidence": 0.9013,
+      "n_issues": 0,
+      "validators": {
+        "freshness": {
+          "validator": "freshness",
+          "dataset": "ai_feature_narrative",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/ai_feature_narrative.json",
+            "mtime_utc": "2026-09-04T12:10:14+00:00",
+            "wall_hours_old": 0.26,
+            "trading_days_old": 0,
+            "sla_trading_days": 1,
+            "run_utc_declared": "2026-09-03T13:49:44+00:00"
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 0.46
+        },
+        "schema": {
+          "validator": "schema",
+          "dataset": "ai_feature_narrative",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "required": [
+              "engine",
+              "version",
+              "market",
+              "run_utc",
+              "agents"
+            ],
+            "present": [
+              "engine",
+              "version",
+              "market",
+              "run_utc",
+              "asof",
+              "agents"
+            ],
+            "missing": [],
+            "extras": [],
+            "n_columns": 6
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 0.25
+        },
+        "completeness": {
+          "validator": "completeness",
+          "dataset": "ai_feature_narrative",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {},
+          "suggested_fixes": [],
+          "elapsed_ms": 0.22
+        },
+        "quality": {
+          "validator": "quality",
+          "dataset": "ai_feature_narrative",
+          "verdict": "NOT_APPLICABLE",
+          "confidence": 0.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "reason": "not_applicable_to_non_parquet_or_missing"
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 0.02
+        },
+        "lineage": {
+          "validator": "lineage",
+          "dataset": "ai_feature_narrative",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "producer": "usa/research/feature_store/run.py",
+            "producer_path": "/home/runner/work/NexaQuant/NexaQuant/usa/research/feature_store/run.py",
+            "n_callers": 20,
+            "callers": [
+              "backend/__init__.py",
+              "india/daily_run.py",
+              "docs/generate_architecture_review.py",
+              "scripts/aegis_daily_v2.py",
+              "scripts/aegis_profile.py",
+              "scripts/check_data_freshness.py",
+              "scripts/aegis_scorecard.py",
+              "scripts/intraday_hourly_run.py",
+              "scripts/intraday_run.py",
+              "research/portfolio_construction/run.py"
+            ]
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 15.93
+        }
+      }
+    },
+    "ai_feature_research": {
+      "spec": {
+        "name": "ai_feature_research",
+        "path": "usa/reports/ai_feature_research.json",
+        "producer": "usa/research/feature_intelligence/run.py",
+        "kind": "ai_narrative",
+        "freshness_sla_trading_days": 1,
+        "consumers": [
+          "usa/dashboard/frontend"
+        ]
+      },
+      "rollup_verdict": "PASS",
+      "rollup_confidence": 0.9013,
+      "n_issues": 0,
+      "validators": {
+        "freshness": {
+          "validator": "freshness",
+          "dataset": "ai_feature_research",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/ai_feature_research.json",
+            "mtime_utc": "2026-09-04T12:10:14+00:00",
+            "wall_hours_old": 0.26,
+            "trading_days_old": 0,
+            "sla_trading_days": 1,
+            "run_utc_declared": "2026-09-03T13:49:54+00:00"
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 0.25
+        },
+        "schema": {
+          "validator": "schema",
+          "dataset": "ai_feature_research",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {
+            "required": [
+              "engine",
+              "version",
+              "market",
+              "run_utc",
+              "output"
+            ],
+            "present": [
+              "engine",
+              "version",
+              "market",
+              "run_utc",
+              "asof",
+              "output"
+            ],
+            "missing": [],
+            "extras": [],
+            "n_columns": 6
+          },
+          "suggested_fixes": [],
+          "elapsed_ms": 0.1
+        },
+        "completeness": {
+          "validator": "completeness",
+          "dataset": "ai_feature_research",
+          "verdict": "PASS",
+          "confidence": 1.0,
+          "n_issues": 0,
+          "issues": [],
+          "evidence": {},
+          "suggested_fixes": [],
+          "elapsed_ms": 0.12
         },
         "quality": {
           "validator": "quality",
@@ -455,7 +455,7 @@
             "reason": "not_applicable_to_non_parquet_or_missing"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.02
+          "elapsed_ms": 0.03
         },
         "lineage": {
           "validator": "lineage",
@@ -482,7 +482,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 14.77
+          "elapsed_ms": 15.67
         }
       }
     },
@@ -510,14 +510,14 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/ai_learning_narrative.json",
-            "mtime_utc": "2026-09-03T13:32:49+00:00",
-            "wall_hours_old": 0.28,
+            "mtime_utc": "2026-09-04T12:10:14+00:00",
+            "wall_hours_old": 0.26,
             "trading_days_old": 0,
             "sla_trading_days": 1,
-            "run_utc_declared": "2026-09-03T12:28:48+00:00"
+            "run_utc_declared": "2026-09-03T13:50:01+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.25
+          "elapsed_ms": 0.27
         },
         "schema": {
           "validator": "schema",
@@ -598,7 +598,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 14.9
+          "elapsed_ms": 15.67
         }
       }
     },
@@ -626,14 +626,14 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/ai_macro_narrative.json",
-            "mtime_utc": "2026-09-03T13:32:49+00:00",
-            "wall_hours_old": 0.28,
+            "mtime_utc": "2026-09-04T12:10:14+00:00",
+            "wall_hours_old": 0.26,
             "trading_days_old": 0,
             "sla_trading_days": 1,
-            "run_utc_declared": "2026-09-03T12:28:27+00:00"
+            "run_utc_declared": "2026-09-03T13:49:37+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.33
+          "elapsed_ms": 0.27
         },
         "schema": {
           "validator": "schema",
@@ -663,7 +663,7 @@
             "n_columns": 6
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.09
+          "elapsed_ms": 0.1
         },
         "completeness": {
           "validator": "completeness",
@@ -714,7 +714,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 14.98
+          "elapsed_ms": 15.65
         }
       }
     },
@@ -742,14 +742,14 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/ai_market_narrative.json",
-            "mtime_utc": "2026-09-03T13:32:49+00:00",
-            "wall_hours_old": 0.28,
+            "mtime_utc": "2026-09-04T12:10:14+00:00",
+            "wall_hours_old": 0.26,
             "trading_days_old": 0,
             "sla_trading_days": 1,
-            "run_utc_declared": "2026-09-03T12:28:28+00:00"
+            "run_utc_declared": "2026-09-03T13:49:38+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.33
+          "elapsed_ms": 0.27
         },
         "schema": {
           "validator": "schema",
@@ -830,7 +830,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 14.79
+          "elapsed_ms": 15.52
         }
       }
     },
@@ -858,14 +858,14 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/ai_model_narrative.json",
-            "mtime_utc": "2026-09-03T13:32:49+00:00",
-            "wall_hours_old": 0.28,
+            "mtime_utc": "2026-09-04T12:10:14+00:00",
+            "wall_hours_old": 0.26,
             "trading_days_old": 0,
             "sla_trading_days": 1,
-            "run_utc_declared": "2026-09-03T12:28:46+00:00"
+            "run_utc_declared": "2026-09-03T13:49:58+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.28
+          "elapsed_ms": 0.27
         },
         "schema": {
           "validator": "schema",
@@ -906,7 +906,7 @@
           "issues": [],
           "evidence": {},
           "suggested_fixes": [],
-          "elapsed_ms": 0.09
+          "elapsed_ms": 0.1
         },
         "quality": {
           "validator": "quality",
@@ -946,7 +946,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 14.59
+          "elapsed_ms": 15.9
         }
       }
     },
@@ -974,14 +974,14 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/ai_portfolio_narrative.json",
-            "mtime_utc": "2026-09-03T13:32:49+00:00",
-            "wall_hours_old": 0.28,
+            "mtime_utc": "2026-09-04T12:10:14+00:00",
+            "wall_hours_old": 0.26,
             "trading_days_old": 0,
             "sla_trading_days": 1,
-            "run_utc_declared": "2026-09-03T12:28:48+00:00"
+            "run_utc_declared": "2026-09-03T13:50:01+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.25
+          "elapsed_ms": 0.31
         },
         "schema": {
           "validator": "schema",
@@ -1011,7 +1011,7 @@
             "n_columns": 6
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.08
+          "elapsed_ms": 0.09
         },
         "completeness": {
           "validator": "completeness",
@@ -1062,7 +1062,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 14.7
+          "elapsed_ms": 15.7
         }
       }
     },
@@ -1090,14 +1090,14 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/ai_recommendation_narrative.json",
-            "mtime_utc": "2026-09-03T13:32:49+00:00",
-            "wall_hours_old": 0.28,
+            "mtime_utc": "2026-09-04T12:10:14+00:00",
+            "wall_hours_old": 0.26,
             "trading_days_old": 0,
             "sla_trading_days": 1,
-            "run_utc_declared": "2026-09-03T12:28:47+00:00"
+            "run_utc_declared": "2026-09-03T13:49:59+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.21
+          "elapsed_ms": 0.27
         },
         "schema": {
           "validator": "schema",
@@ -1178,7 +1178,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 14.77
+          "elapsed_ms": 15.59
         }
       }
     },
@@ -1206,14 +1206,14 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/ai_risk_narrative.json",
-            "mtime_utc": "2026-09-03T13:32:49+00:00",
-            "wall_hours_old": 0.28,
+            "mtime_utc": "2026-09-04T12:10:14+00:00",
+            "wall_hours_old": 0.26,
             "trading_days_old": 0,
             "sla_trading_days": 1,
-            "run_utc_declared": "2026-09-03T12:28:47+00:00"
+            "run_utc_declared": "2026-09-03T13:50:00+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.21
+          "elapsed_ms": 0.24
         },
         "schema": {
           "validator": "schema",
@@ -1294,7 +1294,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 14.65
+          "elapsed_ms": 15.99
         }
       }
     },
@@ -1323,14 +1323,14 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/benchmark.json",
-            "mtime_utc": "2026-09-03T13:32:49+00:00",
-            "wall_hours_old": 0.28,
+            "mtime_utc": "2026-09-04T12:10:14+00:00",
+            "wall_hours_old": 0.26,
             "trading_days_old": 0,
             "sla_trading_days": 1,
-            "run_utc_declared": "2026-09-03T12:29:11+00:00Z"
+            "run_utc_declared": "2026-09-03T13:50:25+00:00Z"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.21
+          "elapsed_ms": 0.37
         },
         "schema": {
           "validator": "schema",
@@ -1420,7 +1420,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 14.71
+          "elapsed_ms": 15.74
         }
       }
     },
@@ -1448,11 +1448,11 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/bond_intelligence.json",
-            "mtime_utc": "2026-09-03T13:32:49+00:00",
-            "wall_hours_old": 0.28,
+            "mtime_utc": "2026-09-04T12:10:14+00:00",
+            "wall_hours_old": 0.26,
             "trading_days_old": 0,
             "sla_trading_days": 1,
-            "run_utc_declared": "2026-09-03T12:28:27+00:00"
+            "run_utc_declared": "2026-09-03T13:49:37+00:00"
           },
           "suggested_fixes": [],
           "elapsed_ms": 0.27
@@ -1497,7 +1497,7 @@
           "issues": [],
           "evidence": {},
           "suggested_fixes": [],
-          "elapsed_ms": 0.09
+          "elapsed_ms": 0.08
         },
         "quality": {
           "validator": "quality",
@@ -1537,7 +1537,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 15.22
+          "elapsed_ms": 15.71
         }
       }
     },
@@ -1565,14 +1565,14 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/central_bank_state.json",
-            "mtime_utc": "2026-09-03T13:32:49+00:00",
-            "wall_hours_old": 0.28,
+            "mtime_utc": "2026-09-04T12:10:14+00:00",
+            "wall_hours_old": 0.26,
             "trading_days_old": 0,
             "sla_trading_days": 1,
-            "run_utc_declared": "2026-09-03T12:28:27+00:00"
+            "run_utc_declared": "2026-09-03T13:49:37+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.22
+          "elapsed_ms": 0.23
         },
         "schema": {
           "validator": "schema",
@@ -1661,7 +1661,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 14.87
+          "elapsed_ms": 15.61
         }
       }
     },
@@ -1689,14 +1689,14 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/commodity_intelligence.json",
-            "mtime_utc": "2026-09-03T13:32:49+00:00",
-            "wall_hours_old": 0.28,
+            "mtime_utc": "2026-09-04T12:10:14+00:00",
+            "wall_hours_old": 0.26,
             "trading_days_old": 0,
             "sla_trading_days": 1,
-            "run_utc_declared": "2026-09-03T12:28:27+00:00"
+            "run_utc_declared": "2026-09-03T13:49:37+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.36
+          "elapsed_ms": 0.22
         },
         "schema": {
           "validator": "schema",
@@ -1738,7 +1738,7 @@
           "issues": [],
           "evidence": {},
           "suggested_fixes": [],
-          "elapsed_ms": 0.07
+          "elapsed_ms": 0.06
         },
         "quality": {
           "validator": "quality",
@@ -1778,7 +1778,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 14.92
+          "elapsed_ms": 15.78
         }
       }
     },
@@ -1806,14 +1806,14 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/commodity_sector_matrix.json",
-            "mtime_utc": "2026-09-03T13:32:49+00:00",
-            "wall_hours_old": 0.28,
+            "mtime_utc": "2026-09-04T12:10:14+00:00",
+            "wall_hours_old": 0.26,
             "trading_days_old": 0,
             "sla_trading_days": 1,
-            "run_utc_declared": "2026-09-03T12:28:27+00:00"
+            "run_utc_declared": "2026-09-03T13:49:37+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.21
+          "elapsed_ms": 0.22
         },
         "schema": {
           "validator": "schema",
@@ -1856,7 +1856,7 @@
           "issues": [],
           "evidence": {},
           "suggested_fixes": [],
-          "elapsed_ms": 0.06
+          "elapsed_ms": 0.07
         },
         "quality": {
           "validator": "quality",
@@ -1869,7 +1869,7 @@
             "reason": "not_applicable_to_non_parquet_or_missing"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.02
+          "elapsed_ms": 0.05
         },
         "lineage": {
           "validator": "lineage",
@@ -1896,7 +1896,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 14.7
+          "elapsed_ms": 15.66
         }
       }
     },
@@ -1924,14 +1924,14 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/confidence_calibration.json",
-            "mtime_utc": "2026-09-03T13:32:49+00:00",
-            "wall_hours_old": 0.28,
+            "mtime_utc": "2026-09-04T12:10:14+00:00",
+            "wall_hours_old": 0.26,
             "trading_days_old": 0,
             "sla_trading_days": 1,
-            "run_utc_declared": "2026-09-03T12:28:48+00:00"
+            "run_utc_declared": "2026-09-03T13:50:01+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.21
+          "elapsed_ms": 0.24
         },
         "schema": {
           "validator": "schema",
@@ -1962,7 +1962,7 @@
             "n_columns": 7
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.07
+          "elapsed_ms": 0.1
         },
         "completeness": {
           "validator": "completeness",
@@ -1973,7 +1973,7 @@
           "issues": [],
           "evidence": {},
           "suggested_fixes": [],
-          "elapsed_ms": 0.06
+          "elapsed_ms": 0.07
         },
         "quality": {
           "validator": "quality",
@@ -2013,7 +2013,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 14.68
+          "elapsed_ms": 15.61
         }
       }
     },
@@ -2043,13 +2043,13 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/data/raw/us/corporate_actions.parquet",
-            "mtime_utc": "2026-09-03T13:48:52+00:00",
+            "mtime_utc": "2026-09-04T12:25:18+00:00",
             "wall_hours_old": 0.01,
             "trading_days_old": 0,
             "sla_trading_days": 5
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.16
+          "elapsed_ms": 0.21
         },
         "schema": {
           "validator": "schema",
@@ -2078,7 +2078,7 @@
             "n_columns": 5
           },
           "suggested_fixes": [],
-          "elapsed_ms": 2.57
+          "elapsed_ms": 2.76
         },
         "completeness": {
           "validator": "completeness",
@@ -2088,10 +2088,10 @@
           "n_issues": 0,
           "issues": [],
           "evidence": {
-            "n_rows": 1217
+            "n_rows": 1345
           },
           "suggested_fixes": [],
-          "elapsed_ms": 1.52
+          "elapsed_ms": 1.75
         },
         "quality": {
           "validator": "quality",
@@ -2102,7 +2102,7 @@
           "issues": [],
           "evidence": {},
           "suggested_fixes": [],
-          "elapsed_ms": 1.43
+          "elapsed_ms": 1.66
         },
         "lineage": {
           "validator": "lineage",
@@ -2129,7 +2129,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 15.04
+          "elapsed_ms": 15.93
         }
       }
     },
@@ -2154,14 +2154,14 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/corporate_actions_summary.json",
-            "mtime_utc": "2026-09-03T13:48:52+00:00",
+            "mtime_utc": "2026-09-04T12:25:18+00:00",
             "wall_hours_old": 0.01,
             "trading_days_old": 0,
             "sla_trading_days": 5,
-            "run_utc_declared": "2026-09-03T13:46:05+00:00"
+            "run_utc_declared": "2026-09-04T12:22:58+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.65
+          "elapsed_ms": 0.75
         },
         "schema": {
           "validator": "schema",
@@ -2197,7 +2197,7 @@
             "n_columns": 12
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.43
+          "elapsed_ms": 0.42
         },
         "completeness": {
           "validator": "completeness",
@@ -2208,7 +2208,7 @@
           "issues": [],
           "evidence": {},
           "suggested_fixes": [],
-          "elapsed_ms": 0.39
+          "elapsed_ms": 0.4
         },
         "quality": {
           "validator": "quality",
@@ -2248,7 +2248,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 14.75
+          "elapsed_ms": 15.73
         }
       }
     },
@@ -2276,14 +2276,14 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/currency_intelligence.json",
-            "mtime_utc": "2026-09-03T13:32:49+00:00",
-            "wall_hours_old": 0.28,
+            "mtime_utc": "2026-09-04T12:10:14+00:00",
+            "wall_hours_old": 0.26,
             "trading_days_old": 0,
             "sla_trading_days": 1,
-            "run_utc_declared": "2026-09-03T12:28:27+00:00"
+            "run_utc_declared": "2026-09-03T13:49:37+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.22
+          "elapsed_ms": 0.29
         },
         "schema": {
           "validator": "schema",
@@ -2314,7 +2314,7 @@
             "n_columns": 9
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.07
+          "elapsed_ms": 0.08
         },
         "completeness": {
           "validator": "completeness",
@@ -2325,7 +2325,7 @@
           "issues": [],
           "evidence": {},
           "suggested_fixes": [],
-          "elapsed_ms": 0.07
+          "elapsed_ms": 0.06
         },
         "quality": {
           "validator": "quality",
@@ -2365,7 +2365,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 14.7
+          "elapsed_ms": 16.01
         }
       }
     },
@@ -2393,14 +2393,14 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/decision_attribution.json",
-            "mtime_utc": "2026-09-03T13:32:49+00:00",
-            "wall_hours_old": 0.28,
+            "mtime_utc": "2026-09-04T12:10:14+00:00",
+            "wall_hours_old": 0.26,
             "trading_days_old": 0,
             "sla_trading_days": 1,
-            "run_utc_declared": "2026-09-03T12:29:10+00:00Z"
+            "run_utc_declared": "2026-09-03T13:50:25+00:00Z"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.31
+          "elapsed_ms": 0.33
         },
         "schema": {
           "validator": "schema",
@@ -2486,7 +2486,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 14.68
+          "elapsed_ms": 15.65
         }
       }
     },
@@ -2515,13 +2515,13 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/data/raw/us/earnings.parquet",
-            "mtime_utc": "2026-09-03T13:45:15+00:00",
-            "wall_hours_old": 0.07,
+            "mtime_utc": "2026-09-04T12:22:12+00:00",
+            "wall_hours_old": 0.06,
             "trading_days_old": 0,
             "sla_trading_days": 2
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.15
+          "elapsed_ms": 0.18
         },
         "schema": {
           "validator": "schema",
@@ -2544,14 +2544,15 @@
               "last_report_date",
               "last_reported_eps",
               "last_eps_estimate",
-              "last_surprise_pct"
+              "last_surprise_pct",
+              "error"
             ],
             "missing": [],
             "extras": [],
-            "n_columns": 8
+            "n_columns": 9
           },
           "suggested_fixes": [],
-          "elapsed_ms": 2.19
+          "elapsed_ms": 2.77
         },
         "completeness": {
           "validator": "completeness",
@@ -2561,10 +2562,10 @@
           "n_issues": 0,
           "issues": [],
           "evidence": {
-            "n_rows": 516
+            "n_rows": 2094
           },
           "suggested_fixes": [],
-          "elapsed_ms": 1.84
+          "elapsed_ms": 2.27
         },
         "quality": {
           "validator": "quality",
@@ -2575,7 +2576,7 @@
           "issues": [],
           "evidence": {},
           "suggested_fixes": [],
-          "elapsed_ms": 1.73
+          "elapsed_ms": 2.02
         },
         "lineage": {
           "validator": "lineage",
@@ -2602,7 +2603,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 14.88
+          "elapsed_ms": 16.26
         }
       }
     },
@@ -2627,14 +2628,14 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/earnings_summary.json",
-            "mtime_utc": "2026-09-03T13:45:15+00:00",
-            "wall_hours_old": 0.07,
+            "mtime_utc": "2026-09-04T12:22:12+00:00",
+            "wall_hours_old": 0.06,
             "trading_days_old": 0,
             "sla_trading_days": 2,
-            "run_utc_declared": "2026-09-03T13:40:07+00:00"
+            "run_utc_declared": "2026-09-04T12:17:06+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.22
+          "elapsed_ms": 0.29
         },
         "schema": {
           "validator": "schema",
@@ -2665,7 +2666,7 @@
             "n_columns": 9
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.07
+          "elapsed_ms": 0.08
         },
         "completeness": {
           "validator": "completeness",
@@ -2676,7 +2677,7 @@
           "issues": [],
           "evidence": {},
           "suggested_fixes": [],
-          "elapsed_ms": 0.06
+          "elapsed_ms": 0.07
         },
         "quality": {
           "validator": "quality",
@@ -2716,7 +2717,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 14.77
+          "elapsed_ms": 15.73
         }
       }
     },
@@ -2745,13 +2746,13 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/ensemble.json",
-            "mtime_utc": "2026-09-03T13:32:49+00:00",
-            "wall_hours_old": 0.28,
+            "mtime_utc": "2026-09-04T12:10:14+00:00",
+            "wall_hours_old": 0.26,
             "trading_days_old": 0,
             "sla_trading_days": 1
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.25
+          "elapsed_ms": 0.28
         },
         "schema": {
           "validator": "schema",
@@ -2784,7 +2785,7 @@
             "n_columns": 8
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.11
+          "elapsed_ms": 0.12
         },
         "completeness": {
           "validator": "completeness",
@@ -2795,7 +2796,7 @@
           "issues": [],
           "evidence": {},
           "suggested_fixes": [],
-          "elapsed_ms": 0.1
+          "elapsed_ms": 0.13
         },
         "quality": {
           "validator": "quality",
@@ -2808,7 +2809,7 @@
             "reason": "not_applicable_to_non_parquet_or_missing"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.02
+          "elapsed_ms": 0.03
         },
         "lineage": {
           "validator": "lineage",
@@ -2835,7 +2836,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 14.78
+          "elapsed_ms": 15.85
         }
       }
     },
@@ -2864,13 +2865,13 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/data/raw/us/etf_flows.parquet",
-            "mtime_utc": "2026-09-03T13:46:02+00:00",
-            "wall_hours_old": 0.06,
+            "mtime_utc": "2026-09-04T12:22:55+00:00",
+            "wall_hours_old": 0.05,
             "trading_days_old": 0,
             "sla_trading_days": 2
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.15
+          "elapsed_ms": 0.17
         },
         "schema": {
           "validator": "schema",
@@ -2901,7 +2902,7 @@
             "n_columns": 7
           },
           "suggested_fixes": [],
-          "elapsed_ms": 1.83
+          "elapsed_ms": 2.28
         },
         "completeness": {
           "validator": "completeness",
@@ -2911,10 +2912,10 @@
           "n_issues": 0,
           "issues": [],
           "evidence": {
-            "n_rows": 600
+            "n_rows": 1280
           },
           "suggested_fixes": [],
-          "elapsed_ms": 1.59
+          "elapsed_ms": 1.7
         },
         "quality": {
           "validator": "quality",
@@ -2925,7 +2926,7 @@
           "issues": [],
           "evidence": {},
           "suggested_fixes": [],
-          "elapsed_ms": 1.52
+          "elapsed_ms": 1.64
         },
         "lineage": {
           "validator": "lineage",
@@ -2952,7 +2953,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 14.78
+          "elapsed_ms": 15.95
         }
       }
     },
@@ -2977,14 +2978,14 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/etf_flows_summary.json",
-            "mtime_utc": "2026-09-03T13:46:02+00:00",
-            "wall_hours_old": 0.06,
+            "mtime_utc": "2026-09-04T12:22:55+00:00",
+            "wall_hours_old": 0.05,
             "trading_days_old": 0,
             "sla_trading_days": 2,
-            "run_utc_declared": "2026-09-03T13:45:58+00:00"
+            "run_utc_declared": "2026-09-04T12:22:51+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.24
+          "elapsed_ms": 0.3
         },
         "schema": {
           "validator": "schema",
@@ -3029,7 +3030,7 @@
           "issues": [],
           "evidence": {},
           "suggested_fixes": [],
-          "elapsed_ms": 0.12
+          "elapsed_ms": 0.09
         },
         "quality": {
           "validator": "quality",
@@ -3069,7 +3070,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 14.76
+          "elapsed_ms": 15.64
         }
       }
     },
@@ -3102,7 +3103,7 @@
             "reason": "optional_missing"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.04
+          "elapsed_ms": 0.05
         },
         "schema": {
           "validator": "schema",
@@ -3115,7 +3116,7 @@
             "reason": "file_missing"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.04
+          "elapsed_ms": 0.02
         },
         "completeness": {
           "validator": "completeness",
@@ -3168,7 +3169,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 14.56
+          "elapsed_ms": 15.71
         }
       }
     },
@@ -3197,14 +3198,14 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/execution_summary.json",
-            "mtime_utc": "2026-09-03T13:32:49+00:00",
-            "wall_hours_old": 0.28,
+            "mtime_utc": "2026-09-04T12:10:14+00:00",
+            "wall_hours_old": 0.26,
             "trading_days_old": 0,
             "sla_trading_days": 1,
-            "run_utc_declared": "2026-09-03T12:28:49+00:00"
+            "run_utc_declared": "2026-09-03T13:50:02+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.23
+          "elapsed_ms": 0.26
         },
         "schema": {
           "validator": "schema",
@@ -3317,7 +3318,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 14.78
+          "elapsed_ms": 15.66
         }
       }
     },
@@ -3347,14 +3348,14 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/factor_library.json",
-            "mtime_utc": "2026-09-03T13:32:49+00:00",
-            "wall_hours_old": 0.28,
+            "mtime_utc": "2026-09-04T12:10:14+00:00",
+            "wall_hours_old": 0.26,
             "trading_days_old": 0,
             "sla_trading_days": 5,
-            "run_utc_declared": "2026-09-03T12:28:27+00:00"
+            "run_utc_declared": "2026-09-03T13:49:38+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.33
+          "elapsed_ms": 0.29
         },
         "schema": {
           "validator": "schema",
@@ -3412,7 +3413,7 @@
             "reason": "not_applicable_to_non_parquet_or_missing"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.04
+          "elapsed_ms": 0.02
         },
         "lineage": {
           "validator": "lineage",
@@ -3439,7 +3440,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 14.69
+          "elapsed_ms": 15.86
         }
       }
     },
@@ -3470,13 +3471,13 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/factor_library_history.parquet",
-            "mtime_utc": "2026-09-03T13:32:49+00:00",
-            "wall_hours_old": 0.28,
+            "mtime_utc": "2026-09-04T12:10:14+00:00",
+            "wall_hours_old": 0.26,
             "trading_days_old": 0,
             "sla_trading_days": 5
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.15
+          "elapsed_ms": 0.16
         },
         "schema": {
           "validator": "schema",
@@ -3509,7 +3510,7 @@
             "n_columns": 15
           },
           "suggested_fixes": [],
-          "elapsed_ms": 3.16
+          "elapsed_ms": 2.94
         },
         "completeness": {
           "validator": "completeness",
@@ -3522,7 +3523,7 @@
             "n_rows": 22
           },
           "suggested_fixes": [],
-          "elapsed_ms": 2.03
+          "elapsed_ms": 2.15
         },
         "quality": {
           "validator": "quality",
@@ -3533,7 +3534,7 @@
           "issues": [],
           "evidence": {},
           "suggested_fixes": [],
-          "elapsed_ms": 1.96
+          "elapsed_ms": 2.17
         },
         "lineage": {
           "validator": "lineage",
@@ -3560,7 +3561,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 14.98
+          "elapsed_ms": 16.17
         }
       }
     },
@@ -3588,14 +3589,14 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/failure_clusters.json",
-            "mtime_utc": "2026-09-03T13:32:49+00:00",
-            "wall_hours_old": 0.28,
+            "mtime_utc": "2026-09-04T12:10:14+00:00",
+            "wall_hours_old": 0.26,
             "trading_days_old": 0,
             "sla_trading_days": 1,
-            "run_utc_declared": "2026-09-03T12:28:48+00:00"
+            "run_utc_declared": "2026-09-03T13:50:01+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.22
+          "elapsed_ms": 0.26
         },
         "schema": {
           "validator": "schema",
@@ -3679,7 +3680,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 14.73
+          "elapsed_ms": 16.4
         }
       }
     },
@@ -3707,14 +3708,14 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/feature_attribution.json",
-            "mtime_utc": "2026-09-03T13:32:49+00:00",
-            "wall_hours_old": 0.28,
+            "mtime_utc": "2026-09-04T12:10:14+00:00",
+            "wall_hours_old": 0.26,
             "trading_days_old": 0,
             "sla_trading_days": 1,
-            "run_utc_declared": "2026-09-03T12:28:48+00:00"
+            "run_utc_declared": "2026-09-03T13:50:01+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.22
+          "elapsed_ms": 0.28
         },
         "schema": {
           "validator": "schema",
@@ -3798,7 +3799,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 14.78
+          "elapsed_ms": 16.08
         }
       }
     },
@@ -3826,14 +3827,14 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/feature_intelligence.json",
-            "mtime_utc": "2026-09-03T13:32:49+00:00",
-            "wall_hours_old": 0.28,
+            "mtime_utc": "2026-09-04T12:10:14+00:00",
+            "wall_hours_old": 0.26,
             "trading_days_old": 0,
             "sla_trading_days": 1,
-            "run_utc_declared": "2026-09-03T12:28:42+00:00"
+            "run_utc_declared": "2026-09-03T13:49:54+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.8
+          "elapsed_ms": 0.9
         },
         "schema": {
           "validator": "schema",
@@ -3873,7 +3874,7 @@
             "n_columns": 11
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.63
+          "elapsed_ms": 0.66
         },
         "completeness": {
           "validator": "completeness",
@@ -3884,7 +3885,7 @@
           "issues": [],
           "evidence": {},
           "suggested_fixes": [],
-          "elapsed_ms": 0.65
+          "elapsed_ms": 0.64
         },
         "quality": {
           "validator": "quality",
@@ -3924,7 +3925,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 14.67
+          "elapsed_ms": 16.01
         }
       }
     },
@@ -3953,13 +3954,13 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/feature_intelligence_summary.json",
-            "mtime_utc": "2026-09-03T13:32:49+00:00",
-            "wall_hours_old": 0.28,
+            "mtime_utc": "2026-09-04T12:10:14+00:00",
+            "wall_hours_old": 0.26,
             "trading_days_old": 0,
             "sla_trading_days": 1
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.2
+          "elapsed_ms": 0.26
         },
         "schema": {
           "validator": "schema",
@@ -4049,7 +4050,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 14.71
+          "elapsed_ms": 15.85
         }
       }
     },
@@ -4077,14 +4078,14 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/feature_store_summary.json",
-            "mtime_utc": "2026-09-03T13:32:49+00:00",
-            "wall_hours_old": 0.28,
+            "mtime_utc": "2026-09-04T12:10:14+00:00",
+            "wall_hours_old": 0.26,
             "trading_days_old": 0,
             "sla_trading_days": 1,
-            "run_utc_declared": "2026-09-03T12:28:33+00:00"
+            "run_utc_declared": "2026-09-03T13:49:44+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.21
+          "elapsed_ms": 0.25
         },
         "schema": {
           "validator": "schema",
@@ -4137,7 +4138,7 @@
           "issues": [],
           "evidence": {},
           "suggested_fixes": [],
-          "elapsed_ms": 0.07
+          "elapsed_ms": 0.1
         },
         "quality": {
           "validator": "quality",
@@ -4177,7 +4178,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 14.74
+          "elapsed_ms": 15.93
         }
       }
     },
@@ -4206,14 +4207,14 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/fundamentals.json",
-            "mtime_utc": "2026-09-03T13:40:06+00:00",
-            "wall_hours_old": 0.16,
+            "mtime_utc": "2026-09-04T12:17:05+00:00",
+            "wall_hours_old": 0.15,
             "trading_days_old": 0,
             "sla_trading_days": 5,
-            "run_utc_declared": "2026-09-03T13:40:06+00:00Z"
+            "run_utc_declared": "2026-09-04T12:17:05+00:00Z"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 4.1
+          "elapsed_ms": 4.13
         },
         "schema": {
           "validator": "schema",
@@ -4258,7 +4259,7 @@
           "issues": [],
           "evidence": {},
           "suggested_fixes": [],
-          "elapsed_ms": 3.62
+          "elapsed_ms": 3.66
         },
         "quality": {
           "validator": "quality",
@@ -4298,7 +4299,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 14.57
+          "elapsed_ms": 15.97
         }
       }
     },
@@ -4323,14 +4324,14 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/insider_summary.json",
-            "mtime_utc": "2026-09-03T13:45:57+00:00",
-            "wall_hours_old": 0.06,
+            "mtime_utc": "2026-09-04T12:22:51+00:00",
+            "wall_hours_old": 0.05,
             "trading_days_old": 0,
             "sla_trading_days": 2,
-            "run_utc_declared": "2026-09-03T13:45:16+00:00"
+            "run_utc_declared": "2026-09-04T12:22:13+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.85
+          "elapsed_ms": 0.97
         },
         "schema": {
           "validator": "schema",
@@ -4366,7 +4367,7 @@
             "n_columns": 12
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.69
+          "elapsed_ms": 0.74
         },
         "completeness": {
           "validator": "completeness",
@@ -4377,7 +4378,7 @@
           "issues": [],
           "evidence": {},
           "suggested_fixes": [],
-          "elapsed_ms": 0.73
+          "elapsed_ms": 0.71
         },
         "quality": {
           "validator": "quality",
@@ -4417,7 +4418,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 14.56
+          "elapsed_ms": 15.8
         }
       }
     },
@@ -4447,13 +4448,13 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/data/raw/us/insider_transactions.parquet",
-            "mtime_utc": "2026-09-03T13:45:57+00:00",
-            "wall_hours_old": 0.06,
+            "mtime_utc": "2026-09-04T12:22:51+00:00",
+            "wall_hours_old": 0.05,
             "trading_days_old": 0,
             "sla_trading_days": 3
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.15
+          "elapsed_ms": 0.21
         },
         "schema": {
           "validator": "schema",
@@ -4484,7 +4485,7 @@
             "n_columns": 8
           },
           "suggested_fixes": [],
-          "elapsed_ms": 3.19
+          "elapsed_ms": 3.98
         },
         "completeness": {
           "validator": "completeness",
@@ -4494,10 +4495,10 @@
           "n_issues": 0,
           "issues": [],
           "evidence": {
-            "n_rows": 4294
+            "n_rows": 6843
           },
           "suggested_fixes": [],
-          "elapsed_ms": 2.51
+          "elapsed_ms": 2.69
         },
         "quality": {
           "validator": "quality",
@@ -4508,7 +4509,7 @@
           "issues": [],
           "evidence": {},
           "suggested_fixes": [],
-          "elapsed_ms": 2.21
+          "elapsed_ms": 2.56
         },
         "lineage": {
           "validator": "lineage",
@@ -4535,7 +4536,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 15.2
+          "elapsed_ms": 16.4
         }
       }
     },
@@ -4565,13 +4566,13 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/data/raw/us/institutional_holders.parquet",
-            "mtime_utc": "2026-09-03T13:49:34+00:00",
+            "mtime_utc": "2026-09-04T12:25:57+00:00",
             "wall_hours_old": 0.0,
             "trading_days_old": 0,
             "sla_trading_days": 30
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.23
+          "elapsed_ms": 0.25
         },
         "schema": {
           "validator": "schema",
@@ -4600,7 +4601,7 @@
             "n_columns": 7
           },
           "suggested_fixes": [],
-          "elapsed_ms": 2.37
+          "elapsed_ms": 2.66
         },
         "completeness": {
           "validator": "completeness",
@@ -4610,10 +4611,10 @@
           "n_issues": 0,
           "issues": [],
           "evidence": {
-            "n_rows": 5070
+            "n_rows": 8991
           },
           "suggested_fixes": [],
-          "elapsed_ms": 1.91
+          "elapsed_ms": 2.11
         },
         "quality": {
           "validator": "quality",
@@ -4624,7 +4625,7 @@
           "issues": [],
           "evidence": {},
           "suggested_fixes": [],
-          "elapsed_ms": 1.83
+          "elapsed_ms": 2.28
         },
         "lineage": {
           "validator": "lineage",
@@ -4651,7 +4652,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 15.12
+          "elapsed_ms": 15.86
         }
       }
     },
@@ -4679,14 +4680,14 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/intelligence_conflicts.json",
-            "mtime_utc": "2026-09-03T13:32:49+00:00",
-            "wall_hours_old": 0.28,
+            "mtime_utc": "2026-09-04T12:10:14+00:00",
+            "wall_hours_old": 0.26,
             "trading_days_old": 0,
             "sla_trading_days": 1,
-            "run_utc_declared": "2026-09-03T12:28:53+00:00Z"
+            "run_utc_declared": "2026-09-03T13:50:06+00:00Z"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.26
+          "elapsed_ms": 0.31
         },
         "schema": {
           "validator": "schema",
@@ -4711,7 +4712,7 @@
             "n_columns": 5
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.07
+          "elapsed_ms": 0.08
         },
         "completeness": {
           "validator": "completeness",
@@ -4722,7 +4723,7 @@
           "issues": [],
           "evidence": {},
           "suggested_fixes": [],
-          "elapsed_ms": 0.06
+          "elapsed_ms": 0.07
         },
         "quality": {
           "validator": "quality",
@@ -4762,7 +4763,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 14.74
+          "elapsed_ms": 15.66
         }
       }
     },
@@ -4791,14 +4792,14 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/intelligence_summary.json",
-            "mtime_utc": "2026-09-03T13:32:49+00:00",
-            "wall_hours_old": 0.28,
+            "mtime_utc": "2026-09-04T12:10:14+00:00",
+            "wall_hours_old": 0.26,
             "trading_days_old": 0,
             "sla_trading_days": 1,
-            "run_utc_declared": "2026-09-03T12:28:53+00:00Z"
+            "run_utc_declared": "2026-09-03T13:50:06+00:00Z"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.22
+          "elapsed_ms": 0.25
         },
         "schema": {
           "validator": "schema",
@@ -4826,7 +4827,7 @@
             "n_columns": 8
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.06
+          "elapsed_ms": 0.07
         },
         "completeness": {
           "validator": "completeness",
@@ -4837,7 +4838,7 @@
           "issues": [],
           "evidence": {},
           "suggested_fixes": [],
-          "elapsed_ms": 0.05
+          "elapsed_ms": 0.06
         },
         "quality": {
           "validator": "quality",
@@ -4877,7 +4878,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 14.86
+          "elapsed_ms": 15.62
         }
       }
     },
@@ -4912,14 +4913,14 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/investment_intelligence.json",
-            "mtime_utc": "2026-09-03T13:32:49+00:00",
-            "wall_hours_old": 0.28,
+            "mtime_utc": "2026-09-04T12:10:14+00:00",
+            "wall_hours_old": 0.26,
             "trading_days_old": 0,
             "sla_trading_days": 1,
-            "run_utc_declared": "2026-09-03T12:28:53+00:00Z"
+            "run_utc_declared": "2026-09-03T13:50:06+00:00Z"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 7.52
+          "elapsed_ms": 7.54
         },
         "schema": {
           "validator": "schema",
@@ -4945,7 +4946,7 @@
             "n_columns": 5
           },
           "suggested_fixes": [],
-          "elapsed_ms": 5.89
+          "elapsed_ms": 5.98
         },
         "completeness": {
           "validator": "completeness",
@@ -4960,7 +4961,7 @@
             }
           },
           "suggested_fixes": [],
-          "elapsed_ms": 5.75
+          "elapsed_ms": 5.93
         },
         "quality": {
           "validator": "quality",
@@ -4973,7 +4974,7 @@
             "reason": "not_applicable_to_non_parquet_or_missing"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.05
+          "elapsed_ms": 0.07
         },
         "lineage": {
           "validator": "lineage",
@@ -5000,7 +5001,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 15.29
+          "elapsed_ms": 16.88
         }
       }
     },
@@ -5099,7 +5100,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 14.89
+          "elapsed_ms": 15.75
         }
       }
     },
@@ -5146,7 +5147,7 @@
             "reason": "file_missing"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.02
+          "elapsed_ms": 0.05
         },
         "completeness": {
           "validator": "completeness",
@@ -5159,7 +5160,7 @@
             "reason": "file_missing"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.01
+          "elapsed_ms": 0.02
         },
         "quality": {
           "validator": "quality",
@@ -5199,7 +5200,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 14.77
+          "elapsed_ms": 15.65
         }
       }
     },
@@ -5228,13 +5229,13 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/data/raw/us/macro.parquet",
-            "mtime_utc": "2026-09-03T13:46:04+00:00",
-            "wall_hours_old": 0.06,
+            "mtime_utc": "2026-09-04T12:22:58+00:00",
+            "wall_hours_old": 0.05,
             "trading_days_old": 0,
             "sla_trading_days": 2
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.27
+          "elapsed_ms": 0.31
         },
         "schema": {
           "validator": "schema",
@@ -5262,7 +5263,7 @@
             "n_columns": 5
           },
           "suggested_fixes": [],
-          "elapsed_ms": 2.2
+          "elapsed_ms": 2.38
         },
         "completeness": {
           "validator": "completeness",
@@ -5272,10 +5273,10 @@
           "n_issues": 0,
           "issues": [],
           "evidence": {
-            "n_rows": 300
+            "n_rows": 636
           },
           "suggested_fixes": [],
-          "elapsed_ms": 1.5
+          "elapsed_ms": 1.55
         },
         "quality": {
           "validator": "quality",
@@ -5286,7 +5287,7 @@
           "issues": [],
           "evidence": {},
           "suggested_fixes": [],
-          "elapsed_ms": 1.39
+          "elapsed_ms": 1.49
         },
         "lineage": {
           "validator": "lineage",
@@ -5313,7 +5314,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 14.99
+          "elapsed_ms": 15.79
         }
       }
     },
@@ -5341,14 +5342,14 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/macro_knowledge_graph.json",
-            "mtime_utc": "2026-09-03T13:32:49+00:00",
-            "wall_hours_old": 0.28,
+            "mtime_utc": "2026-09-04T12:10:14+00:00",
+            "wall_hours_old": 0.26,
             "trading_days_old": 0,
             "sla_trading_days": 1,
-            "run_utc_declared": "2026-09-03T12:28:27+00:00"
+            "run_utc_declared": "2026-09-03T13:49:37+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.3
+          "elapsed_ms": 0.29
         },
         "schema": {
           "validator": "schema",
@@ -5379,7 +5380,7 @@
             "n_columns": 9
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.07
+          "elapsed_ms": 0.08
         },
         "completeness": {
           "validator": "completeness",
@@ -5430,7 +5431,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 15.02
+          "elapsed_ms": 15.54
         }
       }
     },
@@ -5459,11 +5460,11 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/macro_regime.json",
-            "mtime_utc": "2026-09-03T13:32:49+00:00",
-            "wall_hours_old": 0.28,
+            "mtime_utc": "2026-09-04T12:10:14+00:00",
+            "wall_hours_old": 0.26,
             "trading_days_old": 0,
             "sla_trading_days": 1,
-            "run_utc_declared": "2026-09-03T12:28:27+00:00"
+            "run_utc_declared": "2026-09-03T13:49:37+00:00"
           },
           "suggested_fixes": [],
           "elapsed_ms": 0.25
@@ -5556,7 +5557,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 14.99
+          "elapsed_ms": 15.56
         }
       }
     },
@@ -5581,14 +5582,14 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/macro_summary.json",
-            "mtime_utc": "2026-09-03T13:46:04+00:00",
-            "wall_hours_old": 0.06,
+            "mtime_utc": "2026-09-04T12:22:58+00:00",
+            "wall_hours_old": 0.05,
             "trading_days_old": 0,
             "sla_trading_days": 2,
-            "run_utc_declared": "2026-09-03T13:46:02+00:00"
+            "run_utc_declared": "2026-09-04T12:22:56+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.29
+          "elapsed_ms": 0.27
         },
         "schema": {
           "validator": "schema",
@@ -5643,7 +5644,7 @@
             "reason": "not_applicable_to_non_parquet_or_missing"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.02
+          "elapsed_ms": 0.05
         },
         "lineage": {
           "validator": "lineage",
@@ -5670,7 +5671,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 14.95
+          "elapsed_ms": 15.58
         }
       }
     },
@@ -5698,14 +5699,14 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/market_data_freshness.json",
-            "mtime_utc": "2026-09-03T13:36:31+00:00",
-            "wall_hours_old": 0.22,
+            "mtime_utc": "2026-09-04T12:13:39+00:00",
+            "wall_hours_old": 0.21,
             "trading_days_old": 0,
             "sla_trading_days": 1,
-            "run_utc_declared": "2026-09-03T13:36:31+00:00Z"
+            "run_utc_declared": "2026-09-04T12:13:39+00:00Z"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.35
+          "elapsed_ms": 0.37
         },
         "schema": {
           "validator": "schema",
@@ -5748,7 +5749,7 @@
           "issues": [],
           "evidence": {},
           "suggested_fixes": [],
-          "elapsed_ms": 0.16
+          "elapsed_ms": 0.13
         },
         "quality": {
           "validator": "quality",
@@ -5761,7 +5762,7 @@
             "reason": "not_applicable_to_non_parquet_or_missing"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.03
+          "elapsed_ms": 0.02
         },
         "lineage": {
           "validator": "lineage",
@@ -5780,7 +5781,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 198.38
+          "elapsed_ms": 209.4
         }
       }
     },
@@ -5809,14 +5810,14 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/market_intelligence.json",
-            "mtime_utc": "2026-09-03T13:32:49+00:00",
-            "wall_hours_old": 0.28,
+            "mtime_utc": "2026-09-04T12:10:14+00:00",
+            "wall_hours_old": 0.26,
             "trading_days_old": 0,
             "sla_trading_days": 1,
-            "run_utc_declared": "2026-09-03T12:28:28+00:00"
+            "run_utc_declared": "2026-09-03T13:49:38+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.39
+          "elapsed_ms": 0.41
         },
         "schema": {
           "validator": "schema",
@@ -5857,7 +5858,7 @@
             "n_columns": 14
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.13
+          "elapsed_ms": 0.11
         },
         "completeness": {
           "validator": "completeness",
@@ -5868,7 +5869,7 @@
           "issues": [],
           "evidence": {},
           "suggested_fixes": [],
-          "elapsed_ms": 0.1
+          "elapsed_ms": 0.09
         },
         "quality": {
           "validator": "quality",
@@ -5908,7 +5909,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 14.98
+          "elapsed_ms": 16.06
         }
       }
     },
@@ -5937,13 +5938,13 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/market_intelligence_summary.json",
-            "mtime_utc": "2026-09-03T13:32:49+00:00",
-            "wall_hours_old": 0.28,
+            "mtime_utc": "2026-09-04T12:10:14+00:00",
+            "wall_hours_old": 0.26,
             "trading_days_old": 0,
             "sla_trading_days": 1
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.22
+          "elapsed_ms": 0.26
         },
         "schema": {
           "validator": "schema",
@@ -5976,7 +5977,7 @@
             "n_columns": 8
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.07
+          "elapsed_ms": 0.1
         },
         "completeness": {
           "validator": "completeness",
@@ -5987,7 +5988,7 @@
           "issues": [],
           "evidence": {},
           "suggested_fixes": [],
-          "elapsed_ms": 0.06
+          "elapsed_ms": 0.07
         },
         "quality": {
           "validator": "quality",
@@ -6027,7 +6028,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 14.68
+          "elapsed_ms": 15.8
         }
       }
     },
@@ -6055,14 +6056,14 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/missed_opportunities.json",
-            "mtime_utc": "2026-09-03T13:32:49+00:00",
-            "wall_hours_old": 0.28,
+            "mtime_utc": "2026-09-04T12:10:14+00:00",
+            "wall_hours_old": 0.26,
             "trading_days_old": 0,
             "sla_trading_days": 1,
-            "run_utc_declared": "2026-09-03T12:29:09+00:00Z"
+            "run_utc_declared": "2026-09-03T13:50:23+00:00Z"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.21
+          "elapsed_ms": 0.27
         },
         "schema": {
           "validator": "schema",
@@ -6094,7 +6095,7 @@
             "n_columns": 9
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.06
+          "elapsed_ms": 0.07
         },
         "completeness": {
           "validator": "completeness",
@@ -6145,7 +6146,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 15.11
+          "elapsed_ms": 15.77
         }
       }
     },
@@ -6173,14 +6174,14 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/model_attribution.json",
-            "mtime_utc": "2026-09-03T13:32:49+00:00",
-            "wall_hours_old": 0.28,
+            "mtime_utc": "2026-09-04T12:10:14+00:00",
+            "wall_hours_old": 0.26,
             "trading_days_old": 0,
             "sla_trading_days": 1,
-            "run_utc_declared": "2026-09-03T12:28:48+00:00"
+            "run_utc_declared": "2026-09-03T13:50:01+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.37
+          "elapsed_ms": 0.3
         },
         "schema": {
           "validator": "schema",
@@ -6264,7 +6265,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 15.03
+          "elapsed_ms": 15.64
         }
       }
     },
@@ -6292,14 +6293,14 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/model_factory.json",
-            "mtime_utc": "2026-09-03T13:32:49+00:00",
-            "wall_hours_old": 0.28,
+            "mtime_utc": "2026-09-04T12:10:14+00:00",
+            "wall_hours_old": 0.26,
             "trading_days_old": 0,
             "sla_trading_days": 1,
-            "run_utc_declared": "2026-09-03T12:28:46+00:00"
+            "run_utc_declared": "2026-09-03T13:49:58+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.41
+          "elapsed_ms": 0.31
         },
         "schema": {
           "validator": "schema",
@@ -6334,7 +6335,7 @@
             "n_columns": 9
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.18
+          "elapsed_ms": 0.15
         },
         "completeness": {
           "validator": "completeness",
@@ -6345,7 +6346,7 @@
           "issues": [],
           "evidence": {},
           "suggested_fixes": [],
-          "elapsed_ms": 0.14
+          "elapsed_ms": 0.16
         },
         "quality": {
           "validator": "quality",
@@ -6358,7 +6359,7 @@
             "reason": "not_applicable_to_non_parquet_or_missing"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.02
+          "elapsed_ms": 0.03
         },
         "lineage": {
           "validator": "lineage",
@@ -6385,7 +6386,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 15.2
+          "elapsed_ms": 15.77
         }
       }
     },
@@ -6413,13 +6414,13 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/model_metrics.json",
-            "mtime_utc": "2026-09-03T13:32:49+00:00",
-            "wall_hours_old": 0.28,
+            "mtime_utc": "2026-09-04T12:10:14+00:00",
+            "wall_hours_old": 0.26,
             "trading_days_old": 0,
             "sla_trading_days": 1
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.3
+          "elapsed_ms": 0.29
         },
         "schema": {
           "validator": "schema",
@@ -6448,7 +6449,7 @@
             "n_columns": 5
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.12
+          "elapsed_ms": 0.1
         },
         "completeness": {
           "validator": "completeness",
@@ -6459,7 +6460,7 @@
           "issues": [],
           "evidence": {},
           "suggested_fixes": [],
-          "elapsed_ms": 0.1
+          "elapsed_ms": 0.09
         },
         "quality": {
           "validator": "quality",
@@ -6499,7 +6500,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 14.92
+          "elapsed_ms": 15.84
         }
       }
     },
@@ -6527,13 +6528,13 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/morning_latest.html",
-            "mtime_utc": "2026-09-03T13:32:49+00:00",
-            "wall_hours_old": 0.28,
+            "mtime_utc": "2026-09-04T12:10:14+00:00",
+            "wall_hours_old": 0.26,
             "trading_days_old": 0,
             "sla_trading_days": 1
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.22
+          "elapsed_ms": 0.19
         },
         "schema": {
           "validator": "schema",
@@ -6597,7 +6598,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 14.97
+          "elapsed_ms": 15.59
         }
       }
     },
@@ -6625,13 +6626,13 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/morning_latest.md",
-            "mtime_utc": "2026-09-03T13:32:49+00:00",
-            "wall_hours_old": 0.28,
+            "mtime_utc": "2026-09-04T12:10:14+00:00",
+            "wall_hours_old": 0.26,
             "trading_days_old": 0,
             "sla_trading_days": 1
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.22
+          "elapsed_ms": 0.18
         },
         "schema": {
           "validator": "schema",
@@ -6695,7 +6696,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 14.94
+          "elapsed_ms": 15.6
         }
       }
     },
@@ -6711,71 +6712,83 @@
         ],
         "notes": "Sprint 1B \u00b7 Google News RSS + lexicon score. Optional FinBERT rescore later."
       },
-      "rollup_verdict": "FAIL",
-      "rollup_confidence": 0.6598,
-      "n_issues": 1,
+      "rollup_verdict": "PASS",
+      "rollup_confidence": 1.0,
+      "n_issues": 0,
       "validators": {
         "freshness": {
           "validator": "freshness",
           "dataset": "news_sentiment",
-          "verdict": "FAIL",
+          "verdict": "PASS",
           "confidence": 1.0,
-          "n_issues": 1,
-          "issues": [
-            {
-              "severity": "CRITICAL",
-              "message": "/home/runner/work/NexaQuant/NexaQuant/usa/data/raw/us/news_sentiment.parquet does not exist",
-              "evidence": {
-                "path": "/home/runner/work/NexaQuant/NexaQuant/usa/data/raw/us/news_sentiment.parquet"
-              }
-            }
-          ],
+          "n_issues": 0,
+          "issues": [],
           "evidence": {
-            "path": "/home/runner/work/NexaQuant/NexaQuant/usa/data/raw/us/news_sentiment.parquet"
+            "path": "/home/runner/work/NexaQuant/NexaQuant/usa/data/raw/us/news_sentiment.parquet",
+            "mtime_utc": "2026-09-04T12:10:14+00:00",
+            "wall_hours_old": 0.26,
+            "trading_days_old": 0,
+            "sla_trading_days": 2
           },
-          "suggested_fixes": [
-            "Run the producer script for news_sentiment"
-          ],
-          "elapsed_ms": 0.06
+          "suggested_fixes": [],
+          "elapsed_ms": 0.17
         },
         "schema": {
           "validator": "schema",
           "dataset": "news_sentiment",
-          "verdict": "NOT_APPLICABLE",
-          "confidence": 0.0,
+          "verdict": "PASS",
+          "confidence": 1.0,
           "n_issues": 0,
           "issues": [],
           "evidence": {
-            "reason": "file_missing"
+            "required": [
+              "asof",
+              "symbol",
+              "news_sent",
+              "pos",
+              "neg",
+              "n_headlines"
+            ],
+            "present": [
+              "asof",
+              "ingested_utc",
+              "symbol",
+              "query",
+              "news_sent",
+              "pos",
+              "neg",
+              "n_headlines"
+            ],
+            "missing": [],
+            "extras": [],
+            "n_columns": 8
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.02
+          "elapsed_ms": 2.59
         },
         "completeness": {
           "validator": "completeness",
           "dataset": "news_sentiment",
-          "verdict": "NOT_APPLICABLE",
-          "confidence": 0.0,
+          "verdict": "PASS",
+          "confidence": 1.0,
           "n_issues": 0,
           "issues": [],
           "evidence": {
-            "reason": "file_missing"
+            "n_rows": 1578
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.02
+          "elapsed_ms": 1.95
         },
         "quality": {
           "validator": "quality",
           "dataset": "news_sentiment",
-          "verdict": "NOT_APPLICABLE",
-          "confidence": 0.0,
+          "verdict": "PASS",
+          "confidence": 1.0,
           "n_issues": 0,
           "issues": [],
-          "evidence": {
-            "reason": "not_applicable_to_non_parquet_or_missing"
-          },
+          "evidence": {},
           "suggested_fixes": [],
-          "elapsed_ms": 0.01
+          "elapsed_ms": 1.82
         },
         "lineage": {
           "validator": "lineage",
@@ -6802,7 +6815,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 14.92
+          "elapsed_ms": 16.2
         }
       }
     },
@@ -6830,14 +6843,14 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/news_sentiment_summary.json",
-            "mtime_utc": "2026-09-03T13:32:49+00:00",
-            "wall_hours_old": 0.28,
+            "mtime_utc": "2026-09-04T12:10:14+00:00",
+            "wall_hours_old": 0.26,
             "trading_days_old": 0,
             "sla_trading_days": 2,
             "run_utc_declared": "2026-08-21T05:24:26+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.33
+          "elapsed_ms": 0.27
         },
         "schema": {
           "validator": "schema",
@@ -6924,7 +6937,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 15.01
+          "elapsed_ms": 15.96
         }
       }
     },
@@ -6953,14 +6966,14 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/portfolio_diff.json",
-            "mtime_utc": "2026-09-03T13:32:49+00:00",
-            "wall_hours_old": 0.28,
+            "mtime_utc": "2026-09-04T12:10:14+00:00",
+            "wall_hours_old": 0.26,
             "trading_days_old": 0,
             "sla_trading_days": 1,
-            "run_utc_declared": "2026-09-03T12:28:48+00:00"
+            "run_utc_declared": "2026-09-03T13:50:01+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.27
+          "elapsed_ms": 0.24
         },
         "schema": {
           "validator": "schema",
@@ -7055,7 +7068,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 14.96
+          "elapsed_ms": 15.51
         }
       }
     },
@@ -7085,13 +7098,13 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/portfolio_history.parquet",
-            "mtime_utc": "2026-09-03T13:32:49+00:00",
-            "wall_hours_old": 0.28,
+            "mtime_utc": "2026-09-04T12:10:14+00:00",
+            "wall_hours_old": 0.26,
             "trading_days_old": 0,
             "sla_trading_days": 5
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.25
+          "elapsed_ms": 0.17
         },
         "schema": {
           "validator": "schema",
@@ -7123,7 +7136,7 @@
             "n_columns": 14
           },
           "suggested_fixes": [],
-          "elapsed_ms": 3.01
+          "elapsed_ms": 3.03
         },
         "completeness": {
           "validator": "completeness",
@@ -7133,10 +7146,10 @@
           "n_issues": 0,
           "issues": [],
           "evidence": {
-            "n_rows": 137
+            "n_rows": 138
           },
           "suggested_fixes": [],
-          "elapsed_ms": 2.35
+          "elapsed_ms": 2.32
         },
         "quality": {
           "validator": "quality",
@@ -7147,7 +7160,7 @@
           "issues": [],
           "evidence": {},
           "suggested_fixes": [],
-          "elapsed_ms": 2.17
+          "elapsed_ms": 2.15
         },
         "lineage": {
           "validator": "lineage",
@@ -7174,7 +7187,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 15.51
+          "elapsed_ms": 15.81
         }
       }
     },
@@ -7202,13 +7215,13 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/portfolio_state.json",
-            "mtime_utc": "2026-09-03T13:32:49+00:00",
-            "wall_hours_old": 0.28,
+            "mtime_utc": "2026-09-04T12:10:14+00:00",
+            "wall_hours_old": 0.26,
             "trading_days_old": 0,
             "sla_trading_days": 1
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.29
+          "elapsed_ms": 0.28
         },
         "schema": {
           "validator": "schema",
@@ -7300,7 +7313,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 14.97
+          "elapsed_ms": 15.53
         }
       }
     },
@@ -7329,14 +7342,14 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/portfolio_v3.json",
-            "mtime_utc": "2026-09-03T13:32:49+00:00",
-            "wall_hours_old": 0.28,
+            "mtime_utc": "2026-09-04T12:10:14+00:00",
+            "wall_hours_old": 0.26,
             "trading_days_old": 0,
             "sla_trading_days": 1,
-            "run_utc_declared": "2026-09-03T12:28:48+00:00"
+            "run_utc_declared": "2026-09-03T13:50:01+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.32
+          "elapsed_ms": 0.25
         },
         "schema": {
           "validator": "schema",
@@ -7375,7 +7388,7 @@
             "n_columns": 10
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.08
+          "elapsed_ms": 0.09
         },
         "completeness": {
           "validator": "completeness",
@@ -7426,7 +7439,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 14.96
+          "elapsed_ms": 15.48
         }
       }
     },
@@ -7454,14 +7467,14 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/price_context.json",
-            "mtime_utc": "2026-09-03T13:32:49+00:00",
-            "wall_hours_old": 0.28,
+            "mtime_utc": "2026-09-04T12:10:14+00:00",
+            "wall_hours_old": 0.26,
             "trading_days_old": 0,
             "sla_trading_days": 1,
-            "run_utc_declared": "2026-09-03T12:28:54+00:00Z"
+            "run_utc_declared": "2026-09-03T13:50:08+00:00Z"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 1.55
+          "elapsed_ms": 1.52
         },
         "schema": {
           "validator": "schema",
@@ -7542,7 +7555,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 14.9
+          "elapsed_ms": 15.46
         }
       }
     },
@@ -7570,14 +7583,14 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/recommendation_history.json",
-            "mtime_utc": "2026-09-03T13:32:49+00:00",
-            "wall_hours_old": 0.28,
+            "mtime_utc": "2026-09-04T12:10:14+00:00",
+            "wall_hours_old": 0.26,
             "trading_days_old": 0,
             "sla_trading_days": 1,
-            "run_utc_declared": "2026-09-03T12:29:10+00:00Z"
+            "run_utc_declared": "2026-09-03T13:50:25+00:00Z"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 2.1
+          "elapsed_ms": 1.98
         },
         "schema": {
           "validator": "schema",
@@ -7610,7 +7623,7 @@
             "n_columns": 10
           },
           "suggested_fixes": [],
-          "elapsed_ms": 1.39
+          "elapsed_ms": 1.42
         },
         "completeness": {
           "validator": "completeness",
@@ -7621,7 +7634,7 @@
           "issues": [],
           "evidence": {},
           "suggested_fixes": [],
-          "elapsed_ms": 1.34
+          "elapsed_ms": 1.38
         },
         "quality": {
           "validator": "quality",
@@ -7634,7 +7647,7 @@
             "reason": "not_applicable_to_non_parquet_or_missing"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.03
+          "elapsed_ms": 0.04
         },
         "lineage": {
           "validator": "lineage",
@@ -7661,7 +7674,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 14.89
+          "elapsed_ms": 15.58
         }
       }
     },
@@ -7693,13 +7706,13 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/recommendation_history.parquet",
-            "mtime_utc": "2026-09-03T13:32:49+00:00",
-            "wall_hours_old": 0.28,
+            "mtime_utc": "2026-09-04T12:10:14+00:00",
+            "wall_hours_old": 0.26,
             "trading_days_old": 0,
             "sla_trading_days": 5
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.26
+          "elapsed_ms": 0.19
         },
         "schema": {
           "validator": "schema",
@@ -7733,7 +7746,7 @@
             "n_columns": 16
           },
           "suggested_fixes": [],
-          "elapsed_ms": 6.61
+          "elapsed_ms": 6.68
         },
         "completeness": {
           "validator": "completeness",
@@ -7743,10 +7756,10 @@
           "n_issues": 0,
           "issues": [],
           "evidence": {
-            "n_rows": 137
+            "n_rows": 138
           },
           "suggested_fixes": [],
-          "elapsed_ms": 4.95
+          "elapsed_ms": 4.51
         },
         "quality": {
           "validator": "quality",
@@ -7757,7 +7770,7 @@
           "issues": [],
           "evidence": {},
           "suggested_fixes": [],
-          "elapsed_ms": 4.82
+          "elapsed_ms": 4.3
         },
         "lineage": {
           "validator": "lineage",
@@ -7784,7 +7797,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 15.2
+          "elapsed_ms": 16.01
         }
       }
     },
@@ -7812,14 +7825,14 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/recommendation_lifecycle.json",
-            "mtime_utc": "2026-09-03T13:32:49+00:00",
-            "wall_hours_old": 0.28,
+            "mtime_utc": "2026-09-04T12:10:14+00:00",
+            "wall_hours_old": 0.26,
             "trading_days_old": 0,
             "sla_trading_days": 1,
-            "run_utc_declared": "2026-09-03T12:29:09+00:00Z"
+            "run_utc_declared": "2026-09-03T13:50:23+00:00Z"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.41
+          "elapsed_ms": 0.34
         },
         "schema": {
           "validator": "schema",
@@ -7862,7 +7875,7 @@
           "issues": [],
           "evidence": {},
           "suggested_fixes": [],
-          "elapsed_ms": 0.07
+          "elapsed_ms": 0.1
         },
         "quality": {
           "validator": "quality",
@@ -7902,7 +7915,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 14.9
+          "elapsed_ms": 16.16
         }
       }
     },
@@ -7943,11 +7956,11 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/recommendations.json",
-            "mtime_utc": "2026-09-03T13:32:49+00:00",
-            "wall_hours_old": 0.28,
+            "mtime_utc": "2026-09-04T12:10:14+00:00",
+            "wall_hours_old": 0.26,
             "trading_days_old": 0,
             "sla_trading_days": 1,
-            "run_utc_declared": "2026-09-03T12:28:55.405577+00:00"
+            "run_utc_declared": "2026-09-03T13:50:08.882553+00:00"
           },
           "suggested_fixes": [],
           "elapsed_ms": 1.26
@@ -8013,7 +8026,7 @@
           "suggested_fixes": [
             "Update producer of recommendations to emit ['currency']"
           ],
-          "elapsed_ms": 0.95
+          "elapsed_ms": 0.94
         },
         "completeness": {
           "validator": "completeness",
@@ -8068,7 +8081,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 14.88
+          "elapsed_ms": 16.26
         }
       }
     },
@@ -8097,14 +8110,14 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/recommendations_v3.json",
-            "mtime_utc": "2026-09-03T13:32:49+00:00",
-            "wall_hours_old": 0.28,
+            "mtime_utc": "2026-09-04T12:10:14+00:00",
+            "wall_hours_old": 0.26,
             "trading_days_old": 0,
             "sla_trading_days": 1,
-            "run_utc_declared": "2026-09-03T12:28:47+00:00"
+            "run_utc_declared": "2026-09-03T13:49:59+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.47
+          "elapsed_ms": 0.5
         },
         "schema": {
           "validator": "schema",
@@ -8158,7 +8171,7 @@
           "issues": [],
           "evidence": {},
           "suggested_fixes": [],
-          "elapsed_ms": 0.19
+          "elapsed_ms": 0.22
         },
         "quality": {
           "validator": "quality",
@@ -8171,7 +8184,7 @@
             "reason": "not_applicable_to_non_parquet_or_missing"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.02
+          "elapsed_ms": 0.03
         },
         "lineage": {
           "validator": "lineage",
@@ -8198,7 +8211,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 14.77
+          "elapsed_ms": 16.1
         }
       }
     },
@@ -8226,13 +8239,13 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/recommendations_v3_conflicts.json",
-            "mtime_utc": "2026-09-03T13:32:49+00:00",
-            "wall_hours_old": 0.28,
+            "mtime_utc": "2026-09-04T12:10:14+00:00",
+            "wall_hours_old": 0.26,
             "trading_days_old": 0,
             "sla_trading_days": 1
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.25
+          "elapsed_ms": 0.28
         },
         "schema": {
           "validator": "schema",
@@ -8312,7 +8325,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 14.91
+          "elapsed_ms": 15.66
         }
       }
     },
@@ -8340,13 +8353,13 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/recommendations_v3_summary.json",
-            "mtime_utc": "2026-09-03T13:32:49+00:00",
-            "wall_hours_old": 0.28,
+            "mtime_utc": "2026-09-04T12:10:14+00:00",
+            "wall_hours_old": 0.26,
             "trading_days_old": 0,
             "sla_trading_days": 1
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.35
+          "elapsed_ms": 0.25
         },
         "schema": {
           "validator": "schema",
@@ -8435,7 +8448,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 14.79
+          "elapsed_ms": 15.76
         }
       }
     },
@@ -8465,13 +8478,13 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/risk_history.parquet",
-            "mtime_utc": "2026-09-03T13:32:49+00:00",
-            "wall_hours_old": 0.28,
+            "mtime_utc": "2026-09-04T12:10:14+00:00",
+            "wall_hours_old": 0.26,
             "trading_days_old": 0,
             "sla_trading_days": 5
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.16
+          "elapsed_ms": 0.21
         },
         "schema": {
           "validator": "schema",
@@ -8517,7 +8530,7 @@
             "n_columns": 28
           },
           "suggested_fixes": [],
-          "elapsed_ms": 3.38
+          "elapsed_ms": 3.73
         },
         "completeness": {
           "validator": "completeness",
@@ -8527,10 +8540,10 @@
           "n_issues": 0,
           "issues": [],
           "evidence": {
-            "n_rows": 137
+            "n_rows": 138
           },
           "suggested_fixes": [],
-          "elapsed_ms": 2.65
+          "elapsed_ms": 2.77
         },
         "quality": {
           "validator": "quality",
@@ -8541,7 +8554,7 @@
           "issues": [],
           "evidence": {},
           "suggested_fixes": [],
-          "elapsed_ms": 2.71
+          "elapsed_ms": 2.75
         },
         "lineage": {
           "validator": "lineage",
@@ -8568,7 +8581,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 15.14
+          "elapsed_ms": 16.06
         }
       }
     },
@@ -8597,14 +8610,14 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/risk_latest.json",
-            "mtime_utc": "2026-09-03T13:32:49+00:00",
-            "wall_hours_old": 0.28,
+            "mtime_utc": "2026-09-04T12:10:14+00:00",
+            "wall_hours_old": 0.26,
             "trading_days_old": 0,
             "sla_trading_days": 1,
-            "run_utc_declared": "2026-09-03T12:28:53+00:00Z"
+            "run_utc_declared": "2026-09-03T13:50:06+00:00Z"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 1.47
+          "elapsed_ms": 1.48
         },
         "schema": {
           "validator": "schema",
@@ -8636,7 +8649,7 @@
             "n_columns": 9
           },
           "suggested_fixes": [],
-          "elapsed_ms": 1.11
+          "elapsed_ms": 1.14
         },
         "completeness": {
           "validator": "completeness",
@@ -8647,7 +8660,7 @@
           "issues": [],
           "evidence": {},
           "suggested_fixes": [],
-          "elapsed_ms": 1.08
+          "elapsed_ms": 1.11
         },
         "quality": {
           "validator": "quality",
@@ -8687,7 +8700,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 15.08
+          "elapsed_ms": 15.82
         }
       }
     },
@@ -8715,14 +8728,14 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/risk_report.json",
-            "mtime_utc": "2026-09-03T13:32:49+00:00",
-            "wall_hours_old": 0.28,
+            "mtime_utc": "2026-09-04T12:10:14+00:00",
+            "wall_hours_old": 0.26,
             "trading_days_old": 0,
             "sla_trading_days": 1,
-            "run_utc_declared": "2026-09-03T12:28:47+00:00"
+            "run_utc_declared": "2026-09-03T13:50:00+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.32
+          "elapsed_ms": 0.27
         },
         "schema": {
           "validator": "schema",
@@ -8785,7 +8798,7 @@
           "issues": [],
           "evidence": {},
           "suggested_fixes": [],
-          "elapsed_ms": 0.1
+          "elapsed_ms": 0.06
         },
         "quality": {
           "validator": "quality",
@@ -8825,7 +8838,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 14.95
+          "elapsed_ms": 16.03
         }
       }
     },
@@ -8850,14 +8863,14 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/sec_13f_summary.json",
-            "mtime_utc": "2026-09-03T13:49:34+00:00",
+            "mtime_utc": "2026-09-04T12:25:57+00:00",
             "wall_hours_old": 0.0,
             "trading_days_old": 0,
             "sla_trading_days": 30,
-            "run_utc_declared": "2026-09-03T13:48:53+00:00"
+            "run_utc_declared": "2026-09-04T12:25:19+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.71
+          "elapsed_ms": 0.73
         },
         "schema": {
           "validator": "schema",
@@ -8891,7 +8904,7 @@
             "n_columns": 11
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.49
+          "elapsed_ms": 0.52
         },
         "completeness": {
           "validator": "completeness",
@@ -8902,7 +8915,7 @@
           "issues": [],
           "evidence": {},
           "suggested_fixes": [],
-          "elapsed_ms": 0.46
+          "elapsed_ms": 0.45
         },
         "quality": {
           "validator": "quality",
@@ -8942,7 +8955,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 14.88
+          "elapsed_ms": 16.0
         }
       }
     },
@@ -8970,14 +8983,14 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/sector_rotation.json",
-            "mtime_utc": "2026-09-03T13:32:49+00:00",
-            "wall_hours_old": 0.28,
+            "mtime_utc": "2026-09-04T12:10:14+00:00",
+            "wall_hours_old": 0.26,
             "trading_days_old": 0,
             "sla_trading_days": 1,
-            "run_utc_declared": "2026-09-03T12:28:27+00:00"
+            "run_utc_declared": "2026-09-03T13:49:37+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.29
+          "elapsed_ms": 0.31
         },
         "schema": {
           "validator": "schema",
@@ -9022,7 +9035,7 @@
           "issues": [],
           "evidence": {},
           "suggested_fixes": [],
-          "elapsed_ms": 0.06
+          "elapsed_ms": 0.07
         },
         "quality": {
           "validator": "quality",
@@ -9062,7 +9075,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 14.72
+          "elapsed_ms": 15.86
         }
       }
     },
@@ -9092,13 +9105,13 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/selected_features.json",
-            "mtime_utc": "2026-09-03T13:32:49+00:00",
-            "wall_hours_old": 0.28,
+            "mtime_utc": "2026-09-04T12:10:14+00:00",
+            "wall_hours_old": 0.26,
             "trading_days_old": 0,
             "sla_trading_days": 1
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.24
+          "elapsed_ms": 0.28
         },
         "schema": {
           "validator": "schema",
@@ -9130,7 +9143,7 @@
             "n_columns": 8
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.07
+          "elapsed_ms": 0.08
         },
         "completeness": {
           "validator": "completeness",
@@ -9141,7 +9154,7 @@
           "issues": [],
           "evidence": {},
           "suggested_fixes": [],
-          "elapsed_ms": 0.06
+          "elapsed_ms": 0.07
         },
         "quality": {
           "validator": "quality",
@@ -9181,7 +9194,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 14.77
+          "elapsed_ms": 15.65
         }
       }
     },
@@ -9210,14 +9223,14 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/sized_positions.json",
-            "mtime_utc": "2026-09-03T13:32:49+00:00",
-            "wall_hours_old": 0.28,
+            "mtime_utc": "2026-09-04T12:10:14+00:00",
+            "wall_hours_old": 0.26,
             "trading_days_old": 0,
             "sla_trading_days": 1,
-            "run_utc_declared": "2026-09-03T12:28:47+00:00"
+            "run_utc_declared": "2026-09-03T13:50:00+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.24
+          "elapsed_ms": 0.31
         },
         "schema": {
           "validator": "schema",
@@ -9310,7 +9323,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 14.99
+          "elapsed_ms": 15.62
         }
       }
     },
@@ -9352,13 +9365,13 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/data/raw/us/_IDX_GSPC_D1.parquet",
-            "mtime_utc": "2026-09-03T13:36:31+00:00",
-            "wall_hours_old": 0.22,
+            "mtime_utc": "2026-09-04T12:13:39+00:00",
+            "wall_hours_old": 0.21,
             "trading_days_old": 0,
             "sla_trading_days": 3
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.17
+          "elapsed_ms": 0.19
         },
         "schema": {
           "validator": "schema",
@@ -9388,7 +9401,7 @@
             "n_columns": 6
           },
           "suggested_fixes": [],
-          "elapsed_ms": 2.4
+          "elapsed_ms": 2.49
         },
         "completeness": {
           "validator": "completeness",
@@ -9401,7 +9414,7 @@
             "n_rows": 1254
           },
           "suggested_fixes": [],
-          "elapsed_ms": 1.73
+          "elapsed_ms": 1.67
         },
         "quality": {
           "validator": "quality",
@@ -9416,7 +9429,7 @@
             }
           },
           "suggested_fixes": [],
-          "elapsed_ms": 3.19
+          "elapsed_ms": 3.7
         },
         "lineage": {
           "validator": "lineage",
@@ -9435,7 +9448,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 197.17
+          "elapsed_ms": 210.58
         }
       }
     },
@@ -9463,14 +9476,14 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/stock_validation.json",
-            "mtime_utc": "2026-09-03T13:32:49+00:00",
-            "wall_hours_old": 0.28,
+            "mtime_utc": "2026-09-04T12:10:14+00:00",
+            "wall_hours_old": 0.26,
             "trading_days_old": 0,
             "sla_trading_days": 1,
-            "run_utc_declared": "2026-09-03T12:28:53+00:00Z"
+            "run_utc_declared": "2026-09-03T13:50:06+00:00Z"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 1.35
+          "elapsed_ms": 1.39
         },
         "schema": {
           "validator": "schema",
@@ -9498,7 +9511,7 @@
             "n_columns": 7
           },
           "suggested_fixes": [],
-          "elapsed_ms": 1.02
+          "elapsed_ms": 1.04
         },
         "completeness": {
           "validator": "completeness",
@@ -9549,7 +9562,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 15.08
+          "elapsed_ms": 15.93
         }
       }
     },
@@ -9584,14 +9597,14 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/universe.json",
-            "mtime_utc": "2026-09-03T13:33:13+00:00",
-            "wall_hours_old": 0.27,
+            "mtime_utc": "2026-09-04T12:10:41+00:00",
+            "wall_hours_old": 0.26,
             "trading_days_old": 0,
             "sla_trading_days": 1,
-            "run_utc_declared": "2026-09-03T13:33:13+00:00Z"
+            "run_utc_declared": "2026-09-04T12:10:41+00:00Z"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.67
+          "elapsed_ms": 0.71
         },
         "schema": {
           "validator": "schema",
@@ -9628,7 +9641,7 @@
             "n_columns": 13
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.44
+          "elapsed_ms": 0.48
         },
         "completeness": {
           "validator": "completeness",
@@ -9643,7 +9656,7 @@
             }
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.43
+          "elapsed_ms": 0.45
         },
         "quality": {
           "validator": "quality",
@@ -9656,7 +9669,7 @@
             "reason": "not_applicable_to_non_parquet_or_missing"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.03
+          "elapsed_ms": 0.02
         },
         "lineage": {
           "validator": "lineage",
@@ -9677,7 +9690,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 197.65
+          "elapsed_ms": 214.2
         }
       }
     },
@@ -9705,11 +9718,11 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/validation_latest.json",
-            "mtime_utc": "2026-09-03T13:32:49+00:00",
-            "wall_hours_old": 0.28,
+            "mtime_utc": "2026-09-04T12:10:14+00:00",
+            "wall_hours_old": 0.26,
             "trading_days_old": 0,
             "sla_trading_days": 1,
-            "run_utc_declared": "2026-09-03T12:28:53+00:00Z"
+            "run_utc_declared": "2026-09-03T13:50:06+00:00Z"
           },
           "suggested_fixes": [],
           "elapsed_ms": 0.37
@@ -9792,7 +9805,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 15.04
+          "elapsed_ms": 16.23
         }
       }
     },
@@ -9821,13 +9834,13 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/data/raw/us/_IDX_VIX_D1.parquet",
-            "mtime_utc": "2026-09-03T13:36:31+00:00",
-            "wall_hours_old": 0.22,
+            "mtime_utc": "2026-09-04T12:13:39+00:00",
+            "wall_hours_old": 0.21,
             "trading_days_old": 0,
             "sla_trading_days": 3
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.21
+          "elapsed_ms": 0.26
         },
         "schema": {
           "validator": "schema",
@@ -9856,7 +9869,7 @@
             "n_columns": 6
           },
           "suggested_fixes": [],
-          "elapsed_ms": 2.39
+          "elapsed_ms": 2.51
         },
         "completeness": {
           "validator": "completeness",
@@ -9866,10 +9879,10 @@
           "n_issues": 0,
           "issues": [],
           "evidence": {
-            "n_rows": 1255
+            "n_rows": 1256
           },
           "suggested_fixes": [],
-          "elapsed_ms": 1.57
+          "elapsed_ms": 1.69
         },
         "quality": {
           "validator": "quality",
@@ -9880,7 +9893,7 @@
           "issues": [],
           "evidence": {},
           "suggested_fixes": [],
-          "elapsed_ms": 1.58
+          "elapsed_ms": 1.6
         },
         "lineage": {
           "validator": "lineage",
@@ -9899,7 +9912,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 198.27
+          "elapsed_ms": 209.26
         }
       }
     },
@@ -9927,14 +9940,14 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/volatility_intelligence.json",
-            "mtime_utc": "2026-09-03T13:32:49+00:00",
-            "wall_hours_old": 0.28,
+            "mtime_utc": "2026-09-04T12:10:14+00:00",
+            "wall_hours_old": 0.26,
             "trading_days_old": 0,
             "sla_trading_days": 1,
-            "run_utc_declared": "2026-09-03T12:28:27+00:00"
+            "run_utc_declared": "2026-09-03T13:49:37+00:00"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.39
+          "elapsed_ms": 0.36
         },
         "schema": {
           "validator": "schema",
@@ -9969,7 +9982,7 @@
             "n_columns": 11
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.08
+          "elapsed_ms": 0.07
         },
         "completeness": {
           "validator": "completeness",
@@ -10020,7 +10033,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 15.07
+          "elapsed_ms": 15.62
         }
       }
     },
@@ -10048,14 +10061,14 @@
           "issues": [],
           "evidence": {
             "path": "/home/runner/work/NexaQuant/NexaQuant/usa/reports/winner_genome.json",
-            "mtime_utc": "2026-09-03T13:32:49+00:00",
-            "wall_hours_old": 0.28,
+            "mtime_utc": "2026-09-04T12:10:14+00:00",
+            "wall_hours_old": 0.26,
             "trading_days_old": 0,
             "sla_trading_days": 1,
-            "run_utc_declared": "2026-09-03T12:29:10+00:00Z"
+            "run_utc_declared": "2026-09-03T13:50:25+00:00Z"
           },
           "suggested_fixes": [],
-          "elapsed_ms": 0.27
+          "elapsed_ms": 0.23
         },
         "schema": {
           "validator": "schema",
@@ -10141,7 +10154,7 @@
             ]
           },
           "suggested_fixes": [],
-          "elapsed_ms": 14.78
+          "elapsed_ms": 15.66
         }
       }
     }
