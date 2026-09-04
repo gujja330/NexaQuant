@@ -79,3 +79,61 @@ Any future exemption request must state all four conditions explicitly. Absence 
 ## Amendment
 
 This rule can only be lifted by verbatim CEO override · "override the substrate-before-sophistication rule". It replaces any prior instruction that scheduled sophistication work while substrate was thin.
+
+---
+
+# Companion Rule · Push Discipline (locked 2026-09-05)
+
+Codified here because this project has already re-litigated "single push at end" twice (once as GAP-3 in the original sprint doc, again in the current session). Same recurrence pattern the substrate rule was built to end.
+
+## The rule
+
+- **Commit locally** after every verified fix. Commits are cheap · they protect work · they cost nothing.
+- **Push to origin only on explicit instruction, or at a genuine session boundary** (context/session limit hit · "stopping for now" · session end). Not automatically at the end of every round of fixes.
+- Local commits can and should pile up between pushes — three, five, ten logical commits sitting locally unpushed is fine and is what git is for.
+- What's being minimized · **how often origin/main changes** and **how often CI runs** · NOT how often work gets checkpointed.
+
+## Exception · time-sensitive changes
+
+If a change is itself time-sensitive · something a live cron run today or another process depends on today · **flag that explicitly and ask** before deciding to hold it. Do not silently batch something that shouldn't wait.
+
+Examples of time-sensitive:
+- Fix required for tonight's cron to succeed
+- CI-blocking regression that will halt tomorrow's pipeline
+- Delivery contract change that must ship before next scheduled Telegram send
+
+Examples of NOT time-sensitive (batch safely):
+- Governance/documentation edits
+- Research reports · verdicts · analysis artifacts
+- Test additions
+- Refactors + code hygiene
+- New research modules that only run on manual dispatch
+
+## Amendment
+
+Same rule as above · verbatim CEO override "override the push-discipline rule" required to lift.
+
+---
+
+# Companion Rule · Display Results Before Commit (locked 2026-09-05)
+
+## The rule
+
+Before any commit, show actual before/after evidence sized to the change · not a prose description of what was done.
+
+- **Numbers/reconciliation** · explicit old → new format. Precedent: `"WORKED_LEGACY 31→30, REJECTED 7→8"`. Every numeric change held to this standard.
+- **Sheet/workbook changes** · the actual new rows or cells rendered from the built workbook. Precedent: the three new 00_Health rows shown as literal Python tuples this round. Never "rows added successfully."
+- **Config/registry edits** · the diff of changed lines. Never a prose paraphrase of what changed.
+- **Test additions** · the assertion pattern + pass count. Precedent: `"Fri→Mon=1 · Fri→Tue=2 · Fri→Fri=0 · unit-tested"`.
+
+## Sizing rule
+
+Match evidence density to change size · a one-line typo fix needs the one-line diff, not a table · a governance-rule addition needs the new paragraphs literally, not "governance doc updated." Not more, not less.
+
+## Not-a-new-burden clause
+
+This is mostly already happening in the good updates (P0 reclassification numbers, freshness unit-test cases). Making it a standing rule just means it happens every time · including for smaller changes where it's tempting to skip.
+
+## Amendment
+
+Verbatim CEO override "override the display-results rule" required to lift.
