@@ -25,11 +25,22 @@ The previous version could never start the evidence clock:
 
 THE TWO JOBS, SEPARATED
 -----------------------
-LANE A · PIT FEATURE SNAPSHOT. Recorded EVERY day for every eligible
-name, whether or not a model exists. This is what eventually gives
-walk-forward the time dispersion it currently lacks · each day adds one
-distinct entry date. Not writing it because no model has trained yet is
-precisely what kept the dataset a single cross-section.
+LANE A · PIT SUBSTRATE. Recorded EVERY day for EVERY ELIGIBLE NAME in the
+PRODUCTION UNIVERSE (India 50 · USA 516), whether or not a model exists.
+This is what eventually gives walk-forward the time dispersion it
+currently lacks · each day adds one distinct entry date. Not writing it
+because no model had trained is precisely what kept the dataset a single
+cross-section.
+
+CEO 2026-09-07 · LANE A UNIVERSE DECISION. Lane A previously drew from
+the R2 recommendations SSoT, which publishes only the top 15 names per
+market. `top_n` was never the binding constraint - the SOURCE was. Left
+alone, thirty days would have produced thousands of rows that were still
+a SELECTION-BIASED sample concentrated on R2's preferred names, and any
+model trained on it would have learned R2's selection rather than the
+market. Lane A now draws the full eligible production universe so the
+training substrate is broad; Lane C's prediction selection stays separate
+and is recorded per row, so the two can never be conflated in analysis.
 
 LANE C · FORWARD PREDICTION. Written only when a trained, serialized
 artifact exists. When none does, the prediction fields are
@@ -52,6 +63,35 @@ _ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_ROOT))
 
 NOT_AVAILABLE = "NOT_AVAILABLE_AT_ASOF"
+
+
+def _eligible_universe(root: Path, market: str) -> list:
+    """The FULL production universe · Lane A substrate scope.
+
+    Source of truth is configs/aegis_universes.yaml -> markets.<m>.source_file
+    (reports/india_universe.json · usa/reports/universe.json). This is the
+    same universe R2 is permitted to trade, so Lane A observes exactly the
+    opportunity set, not a subset of it.
+    """
+    try:
+        import yaml
+        cfg = yaml.safe_load(
+            (root / "configs" / "aegis_universes.yaml").read_text(encoding="utf-8")) or {}
+        src = ((cfg.get("markets") or {}).get(market.lower()) or {}).get("source_file")
+        if not src:
+            return []
+        p = root / src
+        if not p.exists():
+            return []
+        d = json.loads(p.read_text(encoding="utf-8"))
+        out = []
+        for t in (d.get("tickers") or []):
+            tk = str(t.get("symbol") if isinstance(t, dict) else t).upper().split(".", 1)[0]
+            if tk:
+                out.append(tk)
+        return sorted(set(out))
+    except Exception:
+        return []
 
 
 def _r2_universe(root: Path, market: str) -> list:
@@ -168,19 +208,38 @@ def run_daily_shadow(root: Path, market: str, asof: str,
         MODEL_VERSION, FEATURE_VERSION, CALIBRATOR_VERSION, load_model,
         apply_platt)
 
-    universe = _r2_universe(root, market)
-    if not universe:
+    # LANE A scope · every eligible production-universe name.
+    eligible = _eligible_universe(root, market)
+    # LANE C scope · R2's own selection, kept SEPARATE and recorded per
+    # row so a later analysis can always tell the broad substrate apart
+    # from the R2-selected subset.
+    r2_rows = {r["ticker"]: r for r in _r2_universe(root, market)}
+    if not eligible:
+        # Fall back to the R2 selection ONLY if the production universe
+        # file is unreadable · and say so, rather than silently narrowing.
+        eligible = sorted(r2_rows)
+        _scope = "R2_SELECTION_FALLBACK"
+    else:
+        _scope = "PRODUCTION_UNIVERSE"
+    if not eligible:
         return {"market": market, "asof": asof, "status": "NO_UNIVERSE",
-                "reason": "recommendations.json absent or empty"}
+                "reason": "production universe and recommendations both empty"}
 
     model, calibrator, model_feats = load_model(root, market)
     have_model = model is not None
 
     n_written = 0
     n_snapshot_only = 0
-    for row in universe[:top_n]:
-        tk = row["ticker"]
+    n_r2_selected = 0
+    n_with_features = 0
+    for tk in eligible:
+        row = r2_rows.get(tk, {})
+        _is_r2 = tk in r2_rows
+        if _is_r2:
+            n_r2_selected += 1
         feats = _pit_features(root, market, tk, asof)
+        if feats:
+            n_with_features += 1
         entry = _close_at(root, market, tk, asof)
 
         raw_p = cal_p = None
@@ -218,6 +277,11 @@ def run_daily_shadow(root: Path, market: str, asof: str,
                 "r2_score": row.get("r2_score", NOT_AVAILABLE),
                 "r2_action": row.get("r2_action", NOT_AVAILABLE),
                 "r2_confidence": row.get("r2_confidence", NOT_AVAILABLE),
+                # Whether R2 SELECTED this name today · the field that
+                # keeps Lane A's broad substrate distinguishable from the
+                # R2-selected subset. Training on the substrate without
+                # this flag would silently inherit R2's selection.
+                "r2_selected_today": _is_r2,
                 "r2_in_universe": True,
                 "relative_return_pp": "PENDING",
                 "rotation_outcome": "PENDING",
@@ -227,8 +291,11 @@ def run_daily_shadow(root: Path, market: str, asof: str,
 
     return {
         "market": market, "asof": asof, "status": "APPENDED",
-        "n_universe": len(universe),
+        "lane_a_scope": _scope,
+        "n_eligible_universe": len(eligible),
         "n_written": n_written,
+        "n_r2_selected": n_r2_selected,
+        "n_with_tier1_features": n_with_features,
         "n_snapshot_only_no_model": n_snapshot_only,
         "model_available": have_model,
         "lane_a_note": ("PIT feature snapshot recorded for every name · this "
@@ -244,7 +311,10 @@ def main() -> int:
     ap = argparse.ArgumentParser(description="R3 canonical daily shadow feed")
     ap.add_argument("--market", choices=["india", "usa", "both"], default="both")
     ap.add_argument("--asof", default=date.today().isoformat())
-    ap.add_argument("--top-n", type=int, default=25)
+    ap.add_argument("--top-n", type=int, default=0,
+                    help=("DEPRECATED for Lane A · retained for callers. "
+                          "Lane A always covers the full eligible universe; "
+                          "truncating it would reintroduce selection bias."))
     ap.add_argument("--root", default=str(_ROOT))
     ap.add_argument("--accumulate-outcomes", action="store_true", default=True,
                     help="fill any horizons that have closed (default on)")

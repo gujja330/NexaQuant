@@ -62,6 +62,17 @@ COVERAGE_MAP = {
     ("R3", "Lane B · short interest USA"):        "Data-required",
     ("R3", "Lane B · short proxy India"):         "Mapped",
     ("R3", "Lane B · earnings calendar"):         "Data-required",
+    # CEO 2026-09-07 · widening Lane A to the full universe revealed that
+    # the ROW set is now broad but the FEATURE set is still R2-selected:
+    # 578 rows written, only 30 carry a Tier-1 feature.
+    ("R3", "Lane A · feature substrate coverage"): "Data-required",
+    # Delivery data-quality · tracked separately, NOT folded into A19.
+    # A19 checks the Sector COLUMN exists; it cannot see that USA coverage
+    # is 62/541 (11.5%) while India is 45/45 (100%). Strengthening A19
+    # into a population gate would block production on a pre-existing gap,
+    # so the gap is tracked here instead.
+    ("DQ", "USA sector cache coverage"):           "Data-required",
+    ("DQ", "India sector cache coverage"):         "Populated",
 
     # Domain 1 · Business quality
     ("D01", "Revenue growth"):       "Populated",     # yfinance income series present

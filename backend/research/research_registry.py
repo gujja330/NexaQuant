@@ -35,6 +35,9 @@ class ResearchItem:
     next_stp_action: str = ""        # concrete action needed to leave WORKED_LEGACY
 
 
+# ── Data-quality tracks (CEO 2026-09-07) ────────────────────────────────────
+DATA_QUALITY_ITEMS: list = []
+
 # ── R1 ──────────────────────────────────────────────────────────────────────
 R1_ITEMS: list[ResearchItem] = [
     ResearchItem("R1.1", "R1", "Self-analysis", "R1 engine self-analysis · 3 candidate models",
@@ -234,6 +237,15 @@ R3_ITEMS: list[ResearchItem] = [
                   "Frozen daily prediction + R2 comparator · outcomes fill only as horizons close",
                   "Tier 1", remediation_priority=1,
                   next_stp_action="WIRED · predictions withheld as NO_MODEL until an artifact trains"),
+    ResearchItem("R3-LANE-A-FEATURES", "R3", "Infra",
+                  "Lane A feature-substrate coverage",
+                  "Tier-1 features computable universe-wide, not only for R2's selection",
+                  "Tier 1", remediation_priority=2,
+                  next_stp_action=("BLOCKED · Lane A now writes 50/516 LABEL rows but only "
+                                    "30 carry Tier-1 features · the 5 available features come "
+                                    "from R2's recommendations SSoT (15 names/market), so the "
+                                    "FEATURE substrate is still R2-selected even though the "
+                                    "row set is broad")),
     ResearchItem("II.6-MH", "R3", "II.6", "Multi-horizon consensus",
                   "sign_match(5d, 17d) · conviction ×1.15/×0.7", "Tier 1",
                   upstream_substrate=("II.1-GBM",),
