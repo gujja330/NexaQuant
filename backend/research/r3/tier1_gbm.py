@@ -85,8 +85,23 @@ GBM_PARAMS = {
 # explicit and enforced by `usable_features`, so substrate-dependent
 # sophistication cannot enter Tier-1 by accident.
 
+# Universe-wide PIT technicals · CEO 2026-09-07. The PDF's Tier-1 scope
+# names "existing daily/technical features" first, but TIER1_SCOPE
+# contained ZERO of them: all five entries below are R2 MODEL OUTPUTS and
+# therefore only exist for names R2 scored (15/market). That is why Lane A
+# had 30 feature rows out of 578. These technicals are computed from price
+# bars <= asof for the whole universe, so the feature substrate is finally
+# as broad as the label substrate.
+from backend.research.r3.tier1_features import (          # noqa: E402
+    TECHNICAL_FEATURES as _TECHNICAL_FEATURES)
+
 TIER1_SCOPE = [
-    # Daily / signal-ledger technicals (substrate-independent)
+    # Daily technicals · universe-wide, PIT by construction
+    *_TECHNICAL_FEATURES,
+    # Signal-ledger features · R2 model outputs · exist ONLY for names R2
+    # scored, so they are inherently R2-selected. Retained because they are
+    # legitimately informative where present, but they can never be the
+    # whole substrate · see R3-LANE-A-FEATURES.
     "entry_signal_score", "entry_calibrated_conf", "entry_regime_adj_conf",
     "entry_model_agreement", "entry_n_models_scoring",
     # FII/DII flows

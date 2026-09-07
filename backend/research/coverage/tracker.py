@@ -65,7 +65,11 @@ COVERAGE_MAP = {
     # CEO 2026-09-07 · widening Lane A to the full universe revealed that
     # the ROW set is now broad but the FEATURE set is still R2-selected:
     # 578 rows written, only 30 carry a Tier-1 feature.
-    ("R3", "Lane A · feature substrate coverage"): "Data-required",
+    # CEO 2026-09-07 · universe-wide PIT technicals implemented · the
+    # PDF's "existing daily/technical features" Tier-1 item that
+    # TIER1_SCOPE had contained ZERO of. Coverage india 46/50 · usa 503/516.
+    ("R3", "Lane A · feature substrate coverage"): "Populated",
+    ("R3", "Tier-1 universe-wide technicals"):     "PIT-ready",
     # Delivery data-quality · tracked separately, NOT folded into A19.
     # A19 checks the Sector COLUMN exists; it cannot see that USA coverage
     # is 62/541 (11.5%) while India is 45/45 (100%). Strengthening A19

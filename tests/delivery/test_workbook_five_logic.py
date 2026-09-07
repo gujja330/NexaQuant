@@ -349,3 +349,28 @@ def test_investable_recommendations_never_enter_r2():
     assert "v.r2.append" not in tail, (
         "investable daily recommendations are being written onto the R2 "
         "production sheet · that bypasses R2 eligibility")
+
+
+def test_r3_ledger_refuses_a_future_asof(tmp_path):
+    """A shadow ledger must never hold a record dated after today.
+
+    Demonstrated live: a stray `--asof <tomorrow>` wrote 566 future-dated
+    rows. A prospective evidence record cannot predate its own
+    observation, so the writer refuses rather than trusting the caller.
+    """
+    from datetime import date, timedelta
+    from backend.research.r3.shadow_ledger import append_shadow_pick
+    future = (date.today() + timedelta(days=1)).isoformat()
+    with pytest.raises(ValueError, match="future as-of"):
+        append_shadow_pick(tmp_path, "usa", "AAPL", future,
+                           r3_score=None, r3_calibrated_p=None,
+                           action="NO_MODEL", features={})
+
+
+def test_r3_ledger_accepts_today(tmp_path):
+    from datetime import date
+    from backend.research.r3.shadow_ledger import append_shadow_pick
+    rec = append_shadow_pick(tmp_path, "usa", "AAPL", date.today().isoformat(),
+                             r3_score=None, r3_calibrated_p=None,
+                             action="NO_MODEL", features={})
+    assert rec["runner"] == "R3" and rec["shadow_only"] is True

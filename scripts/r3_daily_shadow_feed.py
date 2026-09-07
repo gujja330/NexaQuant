@@ -134,10 +134,15 @@ def _pit_features(root: Path, market: str, ticker: str, asof: str) -> dict:
     imputed from a later observation.
     """
     from backend.research.r3.tier1_gbm import TIER1_SCOPE
+    from backend.research.r3.tier1_features import compute as _tech
 
-    feats = {}
-    # Signal-ledger technicals · derived from the R2 recommendation record
+    # UNIVERSE-WIDE technicals first · computed from price bars <= asof, so
+    # they exist for every eligible name rather than only R2's selection.
+    feats = dict(_tech(root, market, ticker, asof))
+
+    # Signal-ledger features · derived from the R2 recommendation record
     # for this asof, which IS point-in-time (it is today's own output).
+    # Present only for names R2 scored · absent, never imputed, otherwise.
     rec = _rec_by_ticker(root, market).get(ticker) or {}
     mapping = {
         "entry_signal_score": rec.get("ensemble_score"),

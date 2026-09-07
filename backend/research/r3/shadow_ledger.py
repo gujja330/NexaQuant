@@ -79,6 +79,18 @@ def append_shadow_pick(root: Path, market: str, ticker: str, asof: str,
         size_pct_simulated=size_pct_simulated,
         top_features=top_features, regime=regime, comparator=comparator,
     )
+    # FUTURE-DATE GUARD · CEO 2026-09-07. A shadow ledger is prospective
+    # evidence: a record dated after today asserts an observation that has
+    # not happened. Demonstrated live while wiring universe-wide features
+    # (a stray --asof tomorrow wrote 566 future rows). Refuse rather than
+    # rely on the caller passing the right date.
+    from datetime import date as _date
+    _today = _date.today().isoformat()
+    if str(asof) > _today:
+        raise ValueError(
+            f"R3 shadow ledger refuses a future as-of: {asof} > today {_today}. "
+            "A prospective evidence record cannot predate its own observation.")
+
     # R3-0 identity · runner=R3 + canonical shadow Position ID.
     stamp_identity(row, market, ticker, asof)
     p = _ledger_path(root)

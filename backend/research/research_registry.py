@@ -246,6 +246,12 @@ R3_ITEMS: list[ResearchItem] = [
                                     "from R2's recommendations SSoT (15 names/market), so the "
                                     "FEATURE substrate is still R2-selected even though the "
                                     "row set is broad")),
+    ResearchItem("R3-T1-TECHNICALS", "R3", "Infra",
+                  "Tier-1 universe-wide PIT technicals",
+                  "10 declared technicals from price bars <= asof · returns/vol/RSI/volume/52w/MA/ATR",
+                  "Tier 1", remediation_priority=1,
+                  next_stp_action=("IMPLEMENTED · coverage india 46/50 (92%) usa 503/516 (97.5%) "
+                                    "· PIT self-test stable · fixed declared set, never tuned on outcomes")),
     ResearchItem("II.6-MH", "R3", "II.6", "Multi-horizon consensus",
                   "sign_match(5d, 17d) · conviction ×1.15/×0.7", "Tier 1",
                   upstream_substrate=("II.1-GBM",),
