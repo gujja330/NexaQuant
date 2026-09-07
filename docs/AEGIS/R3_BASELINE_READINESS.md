@@ -6,15 +6,26 @@ Mechanical inventory of the R3 implementation against the AEGIS R1/R2/R3
 Implementation & Strategy PDF. Every status below was produced by running
 the code, not by reading it. No assumptions.
 
-Status vocabulary (as specified):
-
-| Status | Meaning |
-|---|---|
-| `BUILT` | Code exists |
-| `EXECUTABLE` | Runs end-to-end without error |
-| `DATA-COMPLETE` | Its inputs are actually populated |
-| `EVIDENCE-COMPLETE` | It has produced the evidence it exists to produce |
-| `BLOCKED` | Cannot progress without a fix or a decision |
+> **STATUS LIVES IN THE REGISTRY, NOT IN THIS FILE.**
+>
+> CEO 2026-09-07 · this document originally carried its own status
+> vocabulary (`BUILT / EXECUTABLE / DATA-COMPLETE / EVIDENCE-COMPLETE /
+> BLOCKED`). That recreated exactly the status-fragmentation problem the
+> project had just spent two rounds fixing — first the STP 4-state
+> vocabulary, then folding it into the 13-stage Coverage Tracker so that
+> nothing sits as a second, unreconciled way of describing status.
+>
+> The vocabulary has been withdrawn. Authoritative R3 status is now:
+>
+> * `backend/research/research_registry.py` — 12 R3 foundation items
+>   (`R3-INFRA-*`, `R3-T1-*`), each with `next_stp_action`
+> * `backend/research/coverage/tracker.py` — domain `R3`, 18 entries on
+>   the existing 13-stage scale
+>
+> This file is retained as the EVIDENCE APPENDIX behind those stages: the
+> measurements, commands and reproductions that justify each stage. If a
+> number here and the registry ever disagree, the registry is correct and
+> this file is stale.
 
 ---
 

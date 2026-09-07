@@ -28,6 +28,32 @@ STAGES = [
 # Honest current state per (domain, sub_signal) tuple.
 # Updated when new evidence lands.
 COVERAGE_MAP = {
+    # ── R3 · shadow research runner · CEO 2026-09-07 (R3-1) ───────────
+    # Routed into the EXISTING 13-stage tracker rather than a parallel
+    # status document, so R3 is governed by the same state machine as
+    # every other item. Stages are honest, not aspirational:
+    #   Implemented = code exists and runs
+    #   Populated   = real data flowing through it
+    #   Tested      = evidence produced from it
+    ("R3", "Identity · Position ID namespace"):   "Tested",
+    ("R3", "Isolation contract"):                 "Tested",
+    ("R3", "Shadow ledger schema v2"):            "Implemented",
+    ("R3", "Shadow ledger persistence"):          "Implemented",
+    ("R3", "Outcome accumulator"):                "Implemented",
+    ("R3", "Platt calibration"):                  "Implemented",
+    ("R3", "Walk-forward + embargo"):             "Implemented",
+    ("R3", "Reproducible model artifact"):        "Implemented",
+    ("R3", "Tier-1 feature contract"):            "PIT-ready",
+    ("R3", "Tier-1 FII/DII input"):               "Data-required",
+    ("R3", "Tier-1 options PCR input"):           "Data-required",
+    ("R3", "Tier-1 short interest input"):        "Data-required",
+    ("R3", "Tier-1 earnings calendar input"):     "Data-required",
+    ("R3", "Replication target (horizon)"):       "Tested",
+    ("R3", "Tier-1 training sample dispersion"):  "Data-required",
+    ("R3", "Tier-1 GBM baseline"):                "Implemented",
+    ("R3", "Baseline replication gate"):          "Implemented",
+    ("R3", "Day-30 evidence gate"):               "Mapped",
+
     # Domain 1 · Business quality
     ("D01", "Revenue growth"):       "Populated",     # yfinance income series present
     ("D01", "Earnings growth"):      "Populated",

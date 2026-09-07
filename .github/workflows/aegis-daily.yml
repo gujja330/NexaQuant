@@ -311,6 +311,16 @@ jobs:
           # 2026-08-20 · Sprint K Part 30 · Registry MUST persist across CI runs
           # or every fresh checkout treats every ticker as first-time NEW (bug).
           git add reports/research/opportunity_registry.jsonl 2>/dev/null || true
+          # 2026-09-07 · R3 Sprint 1 · the canonical R3 shadow ledger MUST
+          # persist across CI runs for the same reason the Registry must.
+          # Before this line the R3 step reported SUCCESS on every run while
+          # only 2 distinct shadow days accumulated in 33 calendar days: the
+          # ledger was appended in a workspace that was then discarded, so a
+          # green pipeline run did not equal accumulated evidence. Without
+          # persistence no Day-30/60/90 gate can ever fire.
+          git add reports/research/r3/shadow_ledger.jsonl 2>/dev/null || true
+          git add reports/research/r3/models/*.json reports/research/r3/models/*.pkl 2>/dev/null || true
+          git add reports/research/runner3/shadow_ledger.jsonl 2>/dev/null || true
           git add reports/context/opportunity_violations.json reports/context/daily_opportunity_discovery.json 2>/dev/null || true
           # 2026-08-20 · commit per-market XLSX too · so local devs pulling
           # the repo get freshest India+USA delivered files (was Aug-14 stale).

@@ -79,7 +79,18 @@ reports/research/pit_universe/
 reports/research/signal_ledger/
 reports/research/fundamentals_feature_store/
 reports/research/r2_upgrades/
-reports/research/r3/
+# CEO 2026-09-07 · R3 Sprint 1. reports/research/r3/ was ignored wholesale,
+# which made the canonical R3 shadow ledger IMPOSSIBLE to accumulate: every
+# CI run appended to a workspace that was then discarded, so a green
+# pipeline run did not equal accumulated evidence. The ledger and the model
+# artifacts are the R3 evidence base and must persist across runs.
+# Everything else under r3/ stays ignored (scratch, intermediate frames).
+reports/research/r3/*
+!reports/research/r3/shadow_ledger.jsonl
+!reports/research/r3/models/
+reports/research/r3/models/*
+!reports/research/r3/models/*.json
+!reports/research/r3/models/*.pkl
 reports/research/kg_pit_snapshots/
 reports/research/composite/
 reports/research/governance/

@@ -47,22 +47,38 @@ def _features_hash(features: dict) -> str:
 def append_shadow_pick(root: Path, market: str, ticker: str, asof: str,
                        r3_score: float, r3_calibrated_p: float,
                        action: str, features: dict,
-                       model_id: str = "aegis.r3.gbm_tier1.v1") -> dict:
-    """Append one pick to the shadow ledger · idempotent per (asof,ticker,model)."""
-    from backend.research.r3.identity import stamp_identity
+                       model_id: str = "aegis.r3.gbm_tier1.v1",
+                       *,
+                       r3_raw_p=None, rank=None,
+                       model_version="NOT_AVAILABLE_AT_ASOF",
+                       feature_version="NOT_AVAILABLE_AT_ASOF",
+                       calibrator_version="NOT_AVAILABLE_AT_ASOF",
+                       entry_price=None, stop_price=None, target_price=None,
+                       horizon_days=None, size_pct_simulated=None,
+                       top_features=None, regime=None,
+                       comparator=None) -> dict:
+    """Append one pick to the shadow ledger · idempotent per (asof,ticker).
 
-    ts = datetime.now(timezone.utc).isoformat(timespec="seconds")
-    row = {
-        "asof": asof,
-        "market": market,
-        "ticker": str(ticker).upper(),
-        "r3_score": round(float(r3_score), 6),
-        "r3_calibrated_p": round(float(r3_calibrated_p), 6),
-        "action": str(action).upper(),
-        "model_id": model_id,
-        "features_hash": _features_hash(features),
-        "ts_utc": ts,
-    }
+    CEO 2026-09-07 · R3 Sprint 1 · the record is now the CANONICAL
+    five-block schema (identity · signal · risk · outcome · comparator ·
+    attribution). The outcome block is written PENDING at T0 and filled
+    forward by `backend.research.r3.outcomes`, never at write time.
+    """
+    from backend.research.r3.identity import stamp_identity
+    from backend.research.r3.ledger_schema import build_record
+
+    row = build_record(
+        market=market, ticker=ticker, asof=asof,
+        r3_score=r3_score, r3_raw_p=r3_raw_p,
+        r3_calibrated_p=r3_calibrated_p, rank=rank, action=action,
+        model_id=model_id, model_version=model_version,
+        feature_version=feature_version,
+        calibrator_version=calibrator_version, features=features,
+        entry_price=entry_price, stop_price=stop_price,
+        target_price=target_price, horizon_days=horizon_days,
+        size_pct_simulated=size_pct_simulated,
+        top_features=top_features, regime=regime, comparator=comparator,
+    )
     # R3-0 identity · runner=R3 + canonical shadow Position ID.
     stamp_identity(row, market, ticker, asof)
     p = _ledger_path(root)
