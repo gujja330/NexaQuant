@@ -134,19 +134,29 @@ def _workbook_cross_reference(root: Path, pid: str, ticker: str, market: str):
               "portfolio_row": None, "portfolio_snapshot": None,
               "exit_history_present": None, "exit_history_rows": []}
 
-    if "01_Portfolio" in wb.sheetnames:
-        ws = wb["01_Portfolio"]
+    # CEO 2026-09-07 · five-sheet spec · "R2" is the production holdings
+    # sheet, and its first column is Stock (Position ID moved right), so the
+    # header is located by content rather than by column-1 identity.
+    _pf_sheet = next((s for s in ("R2", "01_Portfolio") if s in wb.sheetnames),
+                     None)
+    if _pf_sheet:
+        ws = wb[_pf_sheet]
         headers = None
         for r in range(1, ws.max_row + 1):
-            v0 = ws.cell(row=r, column=1).value
+            _row = [ws.cell(row=r, column=c).value
+                    for c in range(1, ws.max_column + 1)]
+            v0 = "Position ID" if "Position ID" in [
+                str(x).strip() for x in _row if x is not None] else None
             if v0 == "Position ID":
                 headers = [ws.cell(row=r, column=c).value
                            for c in range(1, ws.max_column + 1)]
                 header_row = r
                 break
         if headers:
+            _pid_c = next((i + 1 for i, h in enumerate(headers)
+                           if str(h).strip() == "Position ID"), 1)
             for r in range(header_row + 1, ws.max_row + 1):
-                cell_pid = ws.cell(row=r, column=1).value
+                cell_pid = ws.cell(row=r, column=_pid_c).value
                 if cell_pid and str(cell_pid).strip() == pid:
                     row_vals = [ws.cell(row=r, column=c).value
                                 for c in range(1, ws.max_column + 1)]
@@ -154,11 +164,14 @@ def _workbook_cross_reference(root: Path, pid: str, ticker: str, market: str):
                     result["portfolio_snapshot"] = dict(zip(headers, row_vals))
                     break
 
-    if "03_Exit_History" in wb.sheetnames:
-        ws = wb["03_Exit_History"]
+    _ex_sheet = next((s for s in ("EXIT", "03_Exit_History")
+                      if s in wb.sheetnames), None)
+    if _ex_sheet:
+        ws = wb[_ex_sheet]
         found_rows = []
         for r in range(1, ws.max_row + 1):
-            for c in range(1, min(ws.max_column + 1, 5)):
+            # Scan the whole row · Position ID is no longer in column 1.
+            for c in range(1, ws.max_column + 1):
                 v = ws.cell(row=r, column=c).value
                 if v is None: continue
                 v_str = str(v).strip()

@@ -87,8 +87,13 @@ EXIT_HISTORY_CONTRACT = SheetContract(
 
 # Legacy aliases · gates that need to accept both old and new sheet
 # names during rollout should check these tuples with `any()`.
-PORTFOLIO_SHEET_ALIASES = ("01_Portfolio", "Portfolio")
-EXIT_HISTORY_SHEET_ALIASES = ("03_Exit_History", "Exit History (90d)")
+# CEO 2026-09-07 · five-sheet spec. "R2" is the production-holdings
+# surface (successor to 01_Portfolio) and "EXIT" is the unified exit
+# history (successor to 03_Exit_History). New names first so the current
+# layout wins; legacy names retained so the validator still works against
+# an archived workbook.
+PORTFOLIO_SHEET_ALIASES = ("R2", "01_Portfolio", "Portfolio")
+EXIT_HISTORY_SHEET_ALIASES = ("EXIT", "03_Exit_History", "Exit History (90d)")
 
 
 # ─────────────────────────────────────────────────────────────────

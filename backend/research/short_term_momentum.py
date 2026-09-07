@@ -93,6 +93,19 @@ class MomentumReport:
     generated_utc: str
     engine: str = SCHEMA_FINGERPRINT
     n_universe: int = 0
+    # CEO 2026-09-07 · TRUTHFUL FUNNEL COUNTERS.
+    # `n_universe` is the DECLARED universe · it was previously the only
+    # number published, and downstream rendered it as "scanned", implying
+    # every ticker had been evaluated. Tickers with an unreadable parquet or
+    # <22 bars were skipped SILENTLY. During the 11-day producer outage that
+    # made a total data failure indistinguishable from a quiet market.
+    # These four counters make the drop-off explicit and must reconcile:
+    #     n_universe == n_unreadable + n_insufficient_history + n_evaluated
+    #     n_evaluated == n_ignored_no_momentum + len(candidates)
+    n_evaluated: int = 0
+    n_unreadable: int = 0
+    n_insufficient_history: int = 0
+    n_ignored_no_momentum: int = 0
     n_quick_rise: int = 0
     n_quick_fall: int = 0
     n_sustained_up: int = 0
@@ -103,6 +116,9 @@ class MomentumReport:
     n_avoid: int = 0
     candidates: list = field(default_factory=list)
     thresholds: dict = field(default_factory=dict)
+
+
+_DATAFRAME_LOAD_ERROR_REPORTED = False
 
 
 def _dataframe(root: Path, ticker: str, market: str):
@@ -119,7 +135,17 @@ def _dataframe(root: Path, ticker: str, market: str):
         df = pd.read_parquet(p)
         df.index = pd.to_datetime(df.index).strftime("%Y-%m-%d")
         return df
-    except Exception:
+    except Exception as e:
+        # CEO 2026-09-07 · this bare-except previously returned None silently.
+        # When every load failed the scan emitted 0 candidates and downstream
+        # rendered it as "a quiet market" · hiding an 11-day outage. Surface the
+        # first failure per process so the cause is visible, then stay quiet.
+        global _DATAFRAME_LOAD_ERROR_REPORTED
+        if not _DATAFRAME_LOAD_ERROR_REPORTED:
+            _DATAFRAME_LOAD_ERROR_REPORTED = True
+            import sys as _s
+            print(f"[short-term-momentum] _dataframe FAILED for {p} · "
+                  f"{type(e).__name__}: {e}", file=_s.stderr)
         return None
 
 
@@ -326,7 +352,13 @@ def compute(root: Path, market: str) -> MomentumReport:
     candidates: list = []
     for tk in universe:
         df = _dataframe(root, tk, market)
-        if df is None or len(df) < 22: continue
+        if df is None:
+            rep.n_unreadable += 1
+            continue
+        if len(df) < 22:
+            rep.n_insufficient_history += 1
+            continue
+        rep.n_evaluated += 1
         col = "close" if "close" in df.columns else "Close"
         s = df[col].astype(float)
         r1  = _return_over_last(s, 1)
@@ -337,7 +369,9 @@ def compute(root: Path, market: str) -> MomentumReport:
         ann_vol = _annualized_vol(s)
         vol_adj = _vol_adjustment(ann_vol)
         cat = categorize(r1, r3, r5, r20, vol_adjust=vol_adj)
-        if cat == "IGNORE": continue
+        if cat == "IGNORE":
+            rep.n_ignored_no_momentum += 1
+            continue
         # Advanced signals
         vol_ratio = _volume_ratio(df)
         vol_conf = (vol_ratio is not None
@@ -428,3 +462,105 @@ def summary_line(rep: MomentumReport) -> str:
             f"RISE {rep.n_quick_rise} · FALL {rep.n_quick_fall} · "
             f"ENTRY {rep.n_potential_entry} · REBOUND {rep.n_rebound_watch} · "
             f"PUMP-RISK {rep.n_pump_risk} · AVOID {rep.n_avoid}")
+
+
+# ── CLI entry · CEO 2026-09-07 · P0 orphaned-producer fix ────────────────
+# This module previously had NO __main__ block, so it could not be invoked
+# as a pipeline step. `momentum_ledger.py` CONSUMES its output daily but
+# nothing PRODUCED it · leaving short_term_momentum_{market}.json frozen at
+# asof=2026-08-27 (India) / 2026-08-26 (USA) while the ledger faithfully
+# re-derived the same stale answer every day.
+#
+# Governance preserved · thresholds unchanged · classification logic
+# unchanged · still READ-ONLY · still never feeds R1/R2 automatically.
+def main() -> int:
+    import argparse
+    import sys as _sys
+
+    ap = argparse.ArgumentParser(
+        description="Produce short_term_momentum_{market}.json for the current as-of date")
+    ap.add_argument("--market", choices=("india", "usa", "both"), default="both")
+    ap.add_argument("--root", default=None, help="repo root (default: auto-detect)")
+    args = ap.parse_args()
+
+    root = Path(args.root) if args.root else Path(__file__).resolve().parents[2]
+    markets = ["india", "usa"] if args.market == "both" else [args.market]
+
+    rc = 0
+    for m in markets:
+        try:
+            rep = compute(root, m)
+
+            # CEO 2026-09-07 · SILENT-ZERO GUARD.
+            # A 0-candidate emit on a non-empty universe is indistinguishable
+            # downstream from "a genuinely quiet market". momentum_ledger.py
+            # consumes this file and renders it as "Today's scan" either way.
+            # Refuse to emit silently · self-diagnose and fail loudly instead.
+            if rep.n_universe > 0 and not rep.candidates:
+                probe = _zero_candidate_probe(root, m)
+                print(f"[short-term-momentum] {m}: SILENT-ZERO GUARD TRIPPED · "
+                      f"universe={rep.n_universe} candidates=0", file=_sys.stderr)
+                for line in probe:
+                    print(f"[short-term-momentum] {m}:   {line}", file=_sys.stderr)
+                if probe and probe[0].startswith("DATA_UNREADABLE"):
+                    print(f"[short-term-momentum] {m}: REFUSING TO EMIT · "
+                          f"would overwrite good data with an artifact of a "
+                          f"data-access failure", file=_sys.stderr)
+                    rc = 1
+                    continue
+
+            out = emit(root, rep)
+            print(f"[short-term-momentum] {m}: {summary_line(rep)}")
+            print(f"[short-term-momentum] {m}: asof={rep.asof} -> {out}")
+        except Exception as e:
+            print(f"[short-term-momentum] {m}: ERROR {type(e).__name__}: {e}",
+                  file=_sys.stderr)
+            rc = 1
+    return rc
+
+
+def _zero_candidate_probe(root: Path, market: str) -> list:
+    """Diagnose WHY a scan produced zero candidates · data problem vs quiet market.
+
+    Returns human-readable diagnosis lines. Distinguishes:
+      DATA_UNREADABLE · price frames not loading (real failure)
+      QUIET_MARKET    · frames load, no ticker crossed thresholds (legitimate)
+    """
+    uni = _universe(root, market)
+    if not uni:
+        return ["UNIVERSE_EMPTY · no *_D1.parquet found under the market data root"]
+    sample = uni[:25]
+    n_none = n_short = n_ok = 0
+    best_r1 = best_r5 = None
+    for tk in sample:
+        df = _dataframe(root, tk, market)
+        if df is None:
+            n_none += 1
+            continue
+        if len(df) < 22:
+            n_short += 1
+            continue
+        n_ok += 1
+        col = "close" if "close" in df.columns else "Close"
+        s = df[col].astype(float)
+        r1 = _return_over_last(s, 1)
+        r5 = _return_over_last(s, 5)
+        if r1 is not None: best_r1 = r1 if best_r1 is None else max(best_r1, r1)
+        if r5 is not None: best_r5 = r5 if best_r5 is None else max(best_r5, r5)
+
+    lines = [f"probe sample={len(sample)} readable={n_ok} unreadable={n_none} "
+             f"too_few_bars={n_short}"]
+    if n_ok == 0:
+        lines.insert(0, "DATA_UNREADABLE · every sampled ticker failed to load a "
+                        "usable price frame")
+    else:
+        lines.insert(0, "QUIET_MARKET · price frames load fine")
+        lines.append(f"best 1d move in sample={best_r1}% (rise threshold "
+                     f"{THRESHOLDS['1d_rise_pct']}% before vol-adjust)")
+        lines.append(f"best 5d move in sample={best_r5}% (rise threshold "
+                     f"{THRESHOLDS['5d_rise_pct']}% before vol-adjust)")
+    return lines
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

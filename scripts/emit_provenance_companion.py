@@ -105,85 +105,96 @@ def emit(market: str, root: Path) -> dict:
         legacy = reg_legacy_by_key.get(key) or hist_legacy_by_key.get(key) or ""
         return pid, legacy
 
-    # ── Portfolio rows ─────────────────────────────────────────────
-    if "01_Portfolio" in wb.sheetnames:
-        ws_p = wb["01_Portfolio"]
-        rows_p = list(ws_p.iter_rows(values_only=True))
-        hr = _find_hdr_row(rows_p)
-        hdr_p = rows_p[hr]
-        c_tk = _col(hdr_p, "Ticker")
-        c_run = _col(hdr_p, "Runner")
-        c_life = _col(hdr_p, "Lifecycle")
-        c_dec = _col_any(hdr_p, "🎯 DECISION", "DECISION")
-        c_ent = _col(hdr_p, "Entry Date")
-        c_ext = _col(hdr_p, "Exit Date")
-        for r in rows_p[hr + 1:]:
-            if not r or not r[c_tk if c_tk is not None else 0]: continue
-            tk = str(r[c_tk] or "").split(".", 1)[0].upper() if c_tk is not None else ""
-            rn = str(r[c_run] or "").upper() if c_run is not None else ""
-            ed = str(r[c_ent] or "")[:10] if c_ent is not None else ""
-            xd = str(r[c_ext] or "")[:10] if c_ext is not None else ""
-            life = str(r[c_life] or "") if c_life is not None else ""
-            dec = str(r[c_dec] or "") if c_dec is not None else ""
-            pid, legacy = _resolve_pid(tk, rn, ed)
-            # Population classification per Population enum
-            if "SUGGESTED" in dec.upper():
-                pop = "FRESH_RECOMMENDATION"
-            elif "SHADOW" in rn:
-                pop = "SHADOW"
-            elif "ACTIVE" in life.upper():
-                pop = "CURRENT_HOLDING"
-            elif "NEW" in life.upper():
-                pop = "CURRENT_SIGNAL"
-            else:
-                pop = "CURRENT_HOLDING"
+    # ── R2 production holdings ─────────────────────────────────────
+    # CEO 2026-09-07 · FIVE-SHEET spec. Read by HEADER NAME through the
+    # shared reader: this script previously addressed 01_Portfolio by
+    # column index and, once the layout changed, emitted 0 records without
+    # raising · a silent zero that looks exactly like a clean run.
+    from backend.delivery import five_sheet_reader as _fsr
+
+    if _fsr.SHEET_R2 in wb.sheetnames:
+        for rec in _fsr.r2_positions(wb):
+            tk = str(rec.get("Stock") or "").split(".", 1)[0].upper()
+            ed = str(rec.get("Entry Date") or "")[:10]
+            if ed == "—":
+                ed = ""
+            pid = str(rec.get("Position ID") or "")
+            _rp, legacy = _resolve_pid(tk, "R2", ed)
             out_records.append({
-                "sheet": "01_Portfolio",
-                "position_id": pid,
+                "sheet": _fsr.SHEET_R2,
+                "position_id": pid or _rp,
                 "legacy_position_id": legacy,
                 "ticker": tk,
-                "runner": rn,
+                "runner": "R2",
                 "entry_date": ed,
-                "exit_date": xd,
-                "lifecycle": life,
-                "population": pop,
+                "exit_date": "",
+                "lifecycle": "ACTIVE",
+                "population": "CURRENT_HOLDING",
                 "asof": asof,
                 "source": "build_aegis_3sheet_workbook",
                 "engine": "aegis_canonical_v3",
             })
 
-    # ── 03_Exit_History body rows (canonical PID in col 0) ──────────
-    eh_sheet = "03_Exit_History"
-    if eh_sheet in wb.sheetnames:
-        ws_e = wb[eh_sheet]
-        rows_e = list(ws_e.iter_rows(values_only=True))
-        for r in rows_e:
-            if not r or not r[0]: continue
-            pid = str(r[0])
-            if not (pid.upper().startswith("USA-") or pid.upper().startswith("IND-")):
+    # ── R1 advisory holdings ───────────────────────────────────────
+    # R1 is advisory and never enters production P&L · it is recorded here
+    # with population ADVISORY so provenance is complete without letting
+    # an R1 row be mistaken for a production holding.
+    if _fsr.SHEET_R1 in wb.sheetnames:
+        for rec in _fsr.r1_positions(wb):
+            tk = str(rec.get("Stock") or "").split(".", 1)[0].upper()
+            ed = str(rec.get("Entry Date") or "")[:10]
+            if ed == "—":
+                ed = ""
+            pid = str(rec.get("Position ID") or "")
+            _rp, legacy = _resolve_pid(tk, "R1", ed)
+            out_records.append({
+                "sheet": _fsr.SHEET_R1,
+                "position_id": pid if pid.upper().startswith(("USA-", "IND-")) else _rp,
+                "legacy_position_id": legacy,
+                "ticker": tk,
+                "runner": "R1",
+                "entry_date": ed,
+                "exit_date": "",
+                "lifecycle": "ACTIVE",
+                "population": "ADVISORY",
+                "asof": asof,
+                "source": "build_aegis_3sheet_workbook",
+                "engine": "aegis_canonical_v3",
+            })
+
+    # ── EXIT · unified realized exits (R1 · R2 · Momentum) ─────────
+    if _fsr.SHEET_EXIT in wb.sheetnames:
+        for rec in _fsr.exits(wb):
+            pid = str(rec.get("Position ID") or "")
+            if not pid.upper().startswith(("USA-", "IND-")):
                 continue
-            # cols: 0=PID 1=Ticker 2=Runner 3=Market 4=EntryDate 5=ExitDate
-            tk = str(r[1] or "").split(".", 1)[0].upper() if len(r) > 1 else ""
-            rn = str(r[2] or "").upper() if len(r) > 2 else ""
-            ed = str(r[4] or "")[:10] if len(r) > 4 and str(r[4] or "") != "—" else ""
-            xd = str(r[5] or "")[:10] if len(r) > 5 and str(r[5] or "") != "—" else ""
+            tk = str(rec.get("Stock") or "").split(".", 1)[0].upper()
+            src = str(rec.get("Source") or "").upper()
+            rn = "R1" if src.startswith("R1") else ("R2" if src == "R2" else src)
+            ed = str(rec.get("Entry Date") or "")[:10]
+            xd = str(rec.get("Exit Date") or "")[:10]
+            if ed == "—":
+                ed = ""
+            if xd == "—":
+                xd = ""
             legacy = reg_legacy_by_key.get((tk, rn, ed), "")
             out_records.append({
-                "sheet": eh_sheet,
+                "sheet": _fsr.SHEET_EXIT,
                 "position_id": pid,
                 "legacy_position_id": legacy,
                 "ticker": tk,
                 "runner": rn,
                 "entry_date": ed,
                 "exit_date": xd,
-                "lifecycle": "EXIT",
-                "population": "HISTORICAL_CLOSED",
+                "lifecycle": "CLOSED",
+                "population": ("ADVISORY" if rn == "R1"
+                               else str(rec.get("Classification") or
+                                        "HISTORICAL_EXIT").upper()),
                 "asof": asof,
                 "source": "build_aegis_3sheet_workbook",
-                "engine": "aegis_daily_v2",
+                "engine": "aegis_canonical_v3",
             })
 
-    wb.close()
     out_path = root / "reports" / "telegram" / f"aegis_history_{market_l}_provenance.jsonl"
     with out_path.open("w", encoding="utf-8") as f:
         for rec in out_records:

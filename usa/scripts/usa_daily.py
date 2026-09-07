@@ -57,6 +57,20 @@ STEPS = [
         "produces": ["usa/reports/market_data_freshness.json"],
         "requires": ["usa/reports/universe.json"],
     },
+    # CEO 2026-09-07 · P0 FIX · orphaned producer. short_term_momentum_usa.json
+    # was frozen at asof=2026-08-26 for 12 days because nothing produced it,
+    # while momentum_ledger consumed it daily and 02_Today_Momentum rendered
+    # the stale scan as "today". Runs right after price refresh so it scans
+    # current bars. MUST be module mode (see _run_step cmd construction).
+    {
+        "name":     "short_term_momentum_producer_usa",
+        "desc":     "Short-term momentum scan (USA) · PRODUCES short_term_momentum_usa.json",
+        "module":   "backend.research.short_term_momentum",
+        "script_args": ["--market", "usa"],
+        "produces": ["reports/research/short_term_momentum_usa.json"],
+        "requires": [],
+        "optional": True,
+    },
     # ── Sprint 1B · Data Ingestion (fundamentals + news + earnings + insider + flows + macro + actions + 13F) ─
     {
         "name":     "ingest_fundamentals",
@@ -463,9 +477,16 @@ def _banner(msg: str) -> None:
 
 
 def _run_step(step: dict) -> dict:
-    script = _ROOT / step["script"]
-    if not script.exists():
-        return {"name": step["name"], "verdict": "MISSING_SCRIPT", "elapsed_s": 0.0}
+    # CEO 2026-09-07 · steps may declare "module" (run via -m) instead of "script".
+    if step.get("module"):
+        _mod_rel = Path(step["module"].replace(".", "/") + ".py")
+        if not (_ROOT / _mod_rel).exists():
+            return {"name": step["name"], "verdict": "MISSING_SCRIPT",
+                    "elapsed_s": 0.0, "note": f"module not found: {step['module']}"}
+    else:
+        script = _ROOT / step["script"]
+        if not script.exists():
+            return {"name": step["name"], "verdict": "MISSING_SCRIPT", "elapsed_s": 0.0}
 
     # 2026-08-21 · Part 29 Lever A · staleness-aware skip.
     # If every `produces` artifact is fresher than the configured window
@@ -495,7 +516,15 @@ def _run_step(step: dict) -> dict:
             }
 
     # Wave Y: optional script_args passthrough.
-    _cmd = [sys.executable, step["script"]] + list(step.get("script_args", []))
+    # CEO 2026-09-07 · a step may declare "module" instead of "script" and is
+    # then run as `python -m pkg.mod`. Needed because running some backend
+    # modules as bare scripts puts their own dir on sys.path[0], shadowing
+    # third-party imports (short_term_momentum silently emitted 0 candidates
+    # for 11 days because every pd.read_parquet raised a numpy ImportError).
+    if step.get("module"):
+        _cmd = [sys.executable, "-m", step["module"]] + list(step.get("script_args", []))
+    else:
+        _cmd = [sys.executable, step["script"]] + list(step.get("script_args", []))
 
     # 2026-08-05 · timeout was crashing the whole orchestrator when a single
     # step hung (subprocess.TimeoutExpired was unhandled · killed the parent

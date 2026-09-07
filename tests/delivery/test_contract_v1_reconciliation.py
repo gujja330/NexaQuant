@@ -70,12 +70,43 @@ def _is_3sheet_workbook() -> bool:
     except Exception:
         return False
 
+
+def _is_5sheet_workbook() -> bool:
+    """CEO 2026-09-07 · the FIVE-sheet spec (R1 · R2 · MOMENTUM ·
+    DAILY RECOMMENDATION · EXIT) supersedes both Contract v1's 8 sheets and
+    the 2026-09-01 3-sheet spec. Detected the same way the 3-sheet guard
+    above works · by the sheet names actually present in the shipped file.
+
+    The invariants these tests protect are NOT dropped · they are ported to
+    the new layout in tests/delivery/test_five_sheet_contract.py:
+      · MISSING is never fabricated as LOW / PENDING / 0
+      · P&L units are unambiguous
+      · banner counts reconcile to the visible body
+      · definitions are available to the operator (now a legend on every
+        sheet rather than one Definitions tab)
+      · monthly summary is clearly separated from the exit body (now a
+        headed block on EXIT rather than its own tab)
+    """
+    try:
+        from openpyxl import load_workbook
+        if not _XLSX_INDIA.exists(): return False
+        wb = load_workbook(_XLSX_INDIA, read_only=True)
+        result = "DAILY RECOMMENDATION" in wb.sheetnames
+        wb.close()
+        return result
+    except Exception:
+        return False
+
 pytestmark = pytest.mark.skipif(
-    _is_3sheet_workbook(),
-    reason="Contract v1 (8-sheet) superseded by CEO 2026-09-01 3-sheet spec. "
-             "See docs/AEGIS/R1_RETIREMENT_2026-09-01.md and "
-             "scripts/build_aegis_3sheet_workbook.py. Contract v1 checks are "
-             "preserved for audit history but do not apply to the 3-sheet workbook."
+    _is_3sheet_workbook() or _is_5sheet_workbook(),
+    reason="Contract v1 (8-sheet) superseded by CEO 2026-09-01 3-sheet spec "
+             "and then by the CEO 2026-09-07 5-sheet spec (R1 · R2 · MOMENTUM "
+             "· DAILY RECOMMENDATION · EXIT). See "
+             "docs/AEGIS/R1_RETIREMENT_2026-09-01.md, "
+             "backend/delivery/sheets/workbook_five.py. Contract v1 checks are "
+             "preserved for audit history · the live invariants are enforced "
+             "against the current layout in tests/delivery/"
+             "test_five_sheet_contract.py."
 )
 
 

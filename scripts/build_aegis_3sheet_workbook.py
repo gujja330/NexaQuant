@@ -939,22 +939,24 @@ def build_workbook(market: str, root: Path, asof: str) -> dict:
     # A23 lineage validation reads this sink).
     orphan_stats = _emit_orphan_audit_for_retired(root, market, reg_data)
 
-    wb = Workbook()
-    wb.remove(wb.active)
-    n_active = _emit_portfolio(wb, market, root, asof, reg_data)
-    today_stats = _emit_today_momentum(wb, market, root, asof, momentum_ledger)
-    n_closed = _emit_exit_history(wb, market, root, asof, reg_data)
-    n_history_rows = _emit_daily_history(wb, market, root, asof, reg_data)
+    # CEO 2026-09-07 · FIVE-SHEET DELIVERY.
+    # Supersedes the 8-tab layout (00_Health · 01_Investments · 01_Portfolio ·
+    # 02_Today_Momentum · 03_Exit_History · 04_Daily_Portfolio_History ·
+    # 05_R1_Advisory · 06_Composite_Signals) with exactly:
+    #     R1 · R2 · MOMENTUM · DAILY RECOMMENDATION · EXIT
+    # Verbatim directive: "Do not create additional operational sheets such as
+    # Portfolio, Health, Research, Daily History, R1 Advisory, etc. Embed the
+    # necessary information into these five sheets."
+    #
+    # All five are formatters over ONE computation (workbook_five.build_views).
+    # The legacy _emit_* helpers below remain only as the reference
+    # implementation the five-sheet emitters were derived from and for the
+    # loaders they still export · they are no longer part of delivery.
+    from backend.delivery.sheets.workbook_five import build_five_sheet_workbook
 
-    # Sprint A · optional sheets driven by configs/aegis_runner_registry.yaml
-    # Base 4 above are HARD LOCKED · 05/06 are additive (append-only).
-    optional_emitted = _emit_optional_sprint_a_sheets(wb, market, root, asof, reg_data)
-
-    # CEO 2026-09-03 · Investments primary sheet · placed as FIRST tab.
-    # This is the operator's daily view · consolidates R1/R2/Composite into
-    # ONE actionable list with mandatory Dynamic Stop trichotomy.
-    _emit_investments_sheet_first(wb, market, root, asof, reg_data, momentum_ledger)
-    optional_emitted.insert(0, "01_Investments")
+    built = build_five_sheet_workbook(market, root, asof, reg_data,
+                                        momentum_ledger)
+    wb = built["workbook"]
 
     xlsx_dated = root / "reports" / "telegram" / f"aegis_{market.lower()}_{asof}.xlsx"
     xlsx_undated = root / "reports" / "telegram" / f"aegis_history_{market.lower()}.xlsx"
@@ -962,18 +964,13 @@ def build_workbook(market: str, root: Path, asof: str) -> dict:
     wb.save(xlsx_dated)
     import shutil
     shutil.copyfile(xlsx_dated, xlsx_undated)
-    return {
-        "market": market.lower(),
-        "asof": asof,
-        "sheets": list(wb.sheetnames),
-        "active_holdings": n_active,
-        "today_stats": today_stats,
-        "closed_positions": n_closed,
-        "daily_history_rows": n_history_rows,
-        "optional_sprint_a_sheets": optional_emitted,
+    out = {k: v for k, v in built.items() if k not in ("workbook", "views")}
+    out.update({
+        "orphan_stats": orphan_stats,
         "xlsx_dated": str(xlsx_dated.relative_to(root)),
         "xlsx_undated": str(xlsx_undated.relative_to(root)),
-    }
+    })
+    return out
 
 
 def _emit_optional_sprint_a_sheets(wb, market: str, root: Path, asof: str,

@@ -66,13 +66,17 @@ def reconcile(market: str, root: Path) -> dict:
     #   05_R1_Advisory       · appears when R1 workbook_visibility == advisory_only
     #   06_Composite_Signals · appears when composite workbook_visibility == shadow
     # Extra sheets beyond the allowed set are still a violation.
+    # CEO 2026-09-07 · FIVE-SHEET spec · supersedes the 4-base + optional
+    # Sprint A layout. There are no optional operational sheets any more:
+    # everything the operator needs is embedded in these five.
     base_sheets = [
-        "01_Portfolio",                    # 1 · current active R2 holdings
-        "02_Today_Momentum",               # 2 · today's decisions/recommendations
-        "03_Exit_History",                 # 3 · realized production exits only
-        "04_Daily_Portfolio_History",      # 4 · daily active reconstruction
+        "R1",                     # 1 · advisory positions · no auto-exit
+        "R2",                     # 2 · production holdings · canonical stop
+        "MOMENTUM",               # 3 · upstream research funnel
+        "DAILY RECOMMENDATION",   # 4 · consolidated daily decision view
+        "EXIT",                   # 5 · unified realized exits (R1+R2+Momentum)
     ]
-    optional_sheets = ["00_Health", "01_Investments", "05_R1_Advisory", "06_Composite_Signals"]
+    optional_sheets = []
     allowed_sheets = base_sheets + optional_sheets
     missing_base = [s for s in base_sheets if s not in wb.sheetnames]
     extra = [s for s in wb.sheetnames if s not in allowed_sheets]
@@ -80,8 +84,7 @@ def reconcile(market: str, root: Path) -> dict:
           (not missing_base) and (not extra),
           (f"missing_base={missing_base} · extra={extra}"
             if (missing_base or extra)
-            else f"base 4 present · optional Sprint A sheets: "
-                 f"{[s for s in optional_sheets if s in wb.sheetnames]}"),
+            else "5/5 required sheets present · no legacy sheets"),
           {"present": wb.sheetnames, "base_required": base_sheets,
            "optional_allowed": optional_sheets,
            "missing_base": missing_base, "extra": extra})
@@ -128,38 +131,30 @@ def reconcile(market: str, root: Path) -> dict:
           {"new_ct": n_new_pid, "legacy_ct": n_legacy_pid,
                "legacy_samples": legacy_samples})
 
-    # ── C4 · Portfolio banner ≡ body count (3-sheet spec) ───────────
+    # CEO 2026-09-07 · read the workbook by HEADER NAME via the shared
+    # reader. The previous index-based access (row[0]=PID, row[1]=Ticker)
+    # silently produced zero records the moment the layout changed.
+    from backend.delivery import five_sheet_reader as _fsr
+    _r2_recs = _fsr.r2_positions(wb) if "R2" in wb.sheetnames else []
+    _r1_recs = _fsr.r1_positions(wb) if "R1" in wb.sheetnames else []
+    _exit_recs = _fsr.exits(wb) if "EXIT" in wb.sheetnames else []
+
+    # ── C4 · R2 banner ≡ body count ────────────────────────────────
     # New banner format: "🟢 R2 ACTIVE: N · R1 retired · ..." — banner
     # count of R2 ACTIVE must match the number of body rows.
-    ws_p = wb["01_Portfolio"]
-    rows_p = list(ws_p.iter_rows(values_only=True))
-    banner_r2 = str(rows_p[1][0]) if len(rows_p) > 1 and rows_p[1][0] else ""
+    rows_p = list(wb["R2"].iter_rows(values_only=True)) if "R2" in wb.sheetnames else []
+    banner_r2 = " ".join(str(rows_p[i][0]) for i in (1, 2)
+                           if i < len(rows_p) and rows_p[i][0])
     import re as _re
-    m_act = _re.search(r"R2\s+ACTIVE[:\s]+(\d+)", banner_r2, _re.IGNORECASE)
+    m_act = _re.search(r"Holdings:\s*(\d+)", banner_r2, _re.IGNORECASE)
     banner_active = int(m_act.group(1)) if m_act else -1
-    banner_new = 0        # new spec · no NEW rows in Portfolio (they go to sheet 2)
-    banner_suggested = 0  # no SUGGESTED bucket in new Portfolio
-    # Body count: rows below header with a Ticker
-    hdr_p_idx = next((i for i, r in enumerate(rows_p)
-                        if r[0] and "Position ID" in str(r[0])), None)
-    body = rows_p[hdr_p_idx + 1:] if hdr_p_idx is not None else []
-    hdr_p = rows_p[hdr_p_idx] if hdr_p_idx is not None else ()
-    def _pcol(name):
-        for i, c in enumerate(hdr_p):
-            if c and str(c).lower() == name.lower(): return i
-        return None
-    ci_run = _pcol("Runner")
-    ci_tk = _pcol("Ticker")
-    body_life_active = 0
-    for r in body:
-        if not r: continue
-        # A body row must have a canonical PID in col[0] AND a ticker in col[1]
-        pid = str(r[0] or "").strip() if len(r) > 0 else ""
-        tk = str(r[ci_tk] or "").strip() if ci_tk is not None and ci_tk < len(r) else ""
-        if not pid or not tk: continue
-        # Canonical PID starts with USA- or IND-
-        if not (pid.upper().startswith("USA-") or pid.upper().startswith("IND-")): continue
-        body_life_active += 1
+    banner_new = 0        # NEW opportunities live on DAILY RECOMMENDATION
+    banner_suggested = 0  # no SUGGESTED bucket on the R2 production sheet
+    # Body count from the reader · a row counts only when it carries a
+    # canonical Position ID, so legend prose can never inflate the total.
+    body_life_active = sum(
+        1 for r in _r2_recs
+        if str(r.get("Position ID") or "").upper().startswith(("USA-", "IND-")))
     body_life_new = 0
     body_suggested = 0
     ok_active = banner_active == body_life_active
@@ -176,39 +171,57 @@ def reconcile(market: str, root: Path) -> dict:
           {"banner": banner_suggested, "body": body_suggested})
 
     # ── C5 · Combined ledger has NO trailer rows ───────────────────
-    if "03_Exit_History" in wb.sheetnames:
-        ws_e = wb["03_Exit_History"]
-        eh_rows = [r for r in ws_e.iter_rows(values_only=True)
+    # CEO 2026-09-07 · the five-sheet spec EMBEDS the monthly summary on
+    # EXIT (no spare tab). Contract v1's rule was that MONTHLY_SUMMARY must
+    # never be undifferentiated trailer rows appended to the exit body ·
+    # that intent is preserved by requiring the summary to sit BELOW the
+    # last exit row, under its own heading and its own header row.
+    eh_rows = []
+    if "EXIT" in wb.sheetnames:
+        eh_rows = [r for r in wb["EXIT"].iter_rows(values_only=True)
                      if any(c is not None for c in r)]
-        # Last data row's first cell should be a ticker
-        trailer_hit = False
-        trailer_row = None
-        for r in eh_rows:
-            first = str(r[0]) if r[0] else ""
-            for f in ("MONTHLY", "SUMMARY", "──"):
-                if f in first.upper():
-                    trailer_hit = True
-                    trailer_row = first[:60]
-                    break
-            if trailer_hit: break
-        _add("C5_exit_history_no_trailer", not trailer_hit,
-              f"trailer row found: '{trailer_row}'" if trailer_hit else "clean",
-              {"trailer_found": trailer_hit, "trailer_row": trailer_row})
+        last_exit_row = -1
+        summary_row = -1
+        summary_hdr_row = -1
+        for i, r in enumerate(eh_rows):
+            first = str(r[0]).strip() if r[0] else ""
+            if first.upper().startswith(("USA-", "IND-")) or first in (
+                    "R2", "R1 · ADVISORY", "MOMENTUM"):
+                last_exit_row = i
+            # FIRST occurrence only · the legend below the table also
+            # mentions MONTHLY SUMMARY, and matching that would place the
+            # heading after its own header row.
+            if summary_row == -1 and "MONTHLY SUMMARY" in first.upper():
+                summary_row = i
+            if summary_hdr_row == -1 and first == "Month":
+                summary_hdr_row = i
+        interleaved = (summary_row != -1 and summary_row < last_exit_row)
+        headed = summary_row != -1 and summary_hdr_row > summary_row
+        ok = (not interleaved) and (summary_row == -1 or headed)
+        _add("C5_monthly_summary_separated_from_exit_body", ok,
+              (f"summary_row={summary_row} last_exit_row={last_exit_row} "
+                f"own_header_row={summary_hdr_row}"),
+              {"interleaved": interleaved, "headed": headed,
+               "summary_row": summary_row, "last_exit_row": last_exit_row})
 
     # ── C6 · Path-A holding rows use "—" not fabricated values ─────
+    # Rule C4 (contract v1) · a slot the engine did not evaluate must read
+    # as MISSING · never as a plausible-looking LOW / PENDING stand-in.
     n_fabricated = 0
     fabricated_samples = []
-    for r in body:
-        action = str(r[1]) if len(r) > 1 and r[1] else ""
-        if "holding" in action.lower() and "no signal" in action.lower():
-            urg = str(r[15]) if len(r) > 15 and r[15] else ""
-            iq = str(r[20]) if len(r) > 20 and r[20] else ""
-            if "LOW" in urg.upper() or "PENDING" in iq.upper():
-                n_fabricated += 1
-                if len(fabricated_samples) < 5:
-                    fabricated_samples.append((r[0], urg[:20], iq[:20]))
+    for _label, _recs in (("R2", _r2_recs), ("R1", _r1_recs)):
+        for r in _recs:
+            for k, v in r.items():
+                if v is None:
+                    continue
+                if str(v).strip().upper() in ("LOW", "PENDING"):
+                    n_fabricated += 1
+                    if len(fabricated_samples) < 5:
+                        fabricated_samples.append(
+                            (_label, r.get("Stock"), k, str(v)[:20]))
+                    break
     _add("C6_no_fabricated_low_pending", n_fabricated == 0,
-          f"{n_fabricated} holding rows with LOW/PENDING",
+          f"{n_fabricated} rows with fabricated LOW/PENDING stand-ins",
           {"n": n_fabricated, "samples": fabricated_samples})
 
     # ── C7 · Registry PID uniqueness (canonical grain) ──────────────
@@ -236,21 +249,14 @@ def reconcile(market: str, root: Path) -> dict:
            "unexplained_samples": unexplained_dupes[:5]})
 
     # ── C8 · Registry-CLOSED ⊆ 02_Decisions_Exit_History HISTORICAL rows ──
-    if "03_Exit_History" in wb.sheetnames:
-        eh_tickers = set()
-        # 03_Exit_History layout: hdr [0]=Position ID [1]=Ticker [2]=Runner
-        # [3]=Market [4]=Entry Date [5]=Exit Date ...
-        # Header row has "Position ID" in col 0
-        _hdr_idx = next((i for i, r in enumerate(eh_rows)
-                          if r[0] and "Position ID" in str(r[0])), None)
-        if _hdr_idx is not None and _hdr_idx + 1 < len(eh_rows):
-            for r in eh_rows[_hdr_idx + 1:]:
-                if not r or not r[0]: continue
-                # Skip legend / summary rows (they don't have canonical PID)
-                if not (str(r[0]).upper().startswith("USA-") or
-                          str(r[0]).upper().startswith("IND-")): continue
-                if len(r) > 1 and r[1]:
-                    eh_tickers.add(str(r[1]).upper().split(".", 1)[0])
+    if "EXIT" in wb.sheetnames:
+        # The EXIT sheet is now UNIFIED (R1 + R2 + administrative), so this
+        # population is strictly larger than the old R2-only Exit History.
+        # That is the point: exits that used to be diverted to the
+        # orphan_audit sink are now visible to the operator, so a
+        # Registry-CLOSED event has fewer legitimate places to hide.
+        eh_tickers = {str(r.get("Stock") or "").upper().split(".", 1)[0]
+                      for r in _exit_recs if r.get("Stock")}
         # C8 · CEO 2026-09-01 STRENGTHENED: retirement-aware · carveout-aware.
         # Registry CLOSED events for RETIRED runners are EXPECTED to be absent
         # (retirement carveout · not a production exit). Registry CLOSED events
@@ -333,15 +339,19 @@ def reconcile(market: str, root: Path) -> dict:
     except Exception:
         retired_set = set()
     if retired_set:
+        # The R2 sheet is the PRODUCTION surface · a retired runner must
+        # never appear on it. R1 appearing on the R1 / DAILY RECOMMENDATION
+        # / EXIT sheets is REQUIRED by the five-sheet spec and is checked
+        # separately (C19 below), not here.
         n_retired_in_portfolio = 0
-        for r in body:
-            run = str(r[ci_run]).upper() if ci_run is not None and ci_run < len(r) and r[ci_run] else ""
-            if run in retired_set:
+        for r in _r2_recs:
+            blob = " ".join(str(v).upper() for v in r.values() if v is not None)
+            if any(_rr in blob.split() for _rr in retired_set):
                 n_retired_in_portfolio += 1
         _add("C10_no_retired_in_production_portfolio",
               n_retired_in_portfolio == 0,
-              f"{n_retired_in_portfolio} retired-runner rows in Portfolio · "
-              f"retired={sorted(retired_set)}",
+              f"{n_retired_in_portfolio} retired-runner rows on the R2 "
+              f"production sheet · retired={sorted(retired_set)}",
               {"n_retired_rows": n_retired_in_portfolio,
                "retired_runners": sorted(retired_set)})
 
@@ -353,35 +363,32 @@ def reconcile(market: str, root: Path) -> dict:
     # ACTIVE row in 01_Portfolio AND a HISTORICAL_EXIT row in sheet 2.
     port_active_key = set()
     port_entry_by_tk_run = {}
-    # In new 01_Portfolio: hdr columns [0]=Position ID [1]=Ticker [2]=Runner
-    # [3]=Entry Date. Body rows have those indices.
-    for r in body:
-        if not r or not r[0]: continue
-        if str(r[0]).strip() == "" or str(r[0]).lower().startswith("no current"): continue
-        tk = str(r[1]).upper().replace(".NS", "").replace(".BO", "") if len(r) > 1 and r[1] else ""
-        run = str(r[2] or "").upper() if len(r) > 2 else ""
-        ent = str(r[3])[:10] if len(r) > 3 and r[3] and str(r[3]) != "—" else ""
-        if run in ("R1", "R2") and ent and tk:
-            port_active_key.add((tk, run, ent))
-            port_entry_by_tk_run.setdefault((tk, run), set()).add(ent)
+    # R2 sheet is the production holdings surface · runner is R2 by
+    # construction, so it is derived from the sheet rather than read from a
+    # column that no longer exists.
+    for r in _r2_recs:
+        tk = str(r.get("Stock") or "").upper().replace(".NS", "").replace(".BO", "")
+        ent = str(r.get("Entry Date") or "")[:10]
+        if ent == "—" or not ent or not tk:
+            continue
+        port_active_key.add((tk, "R2", ent))
+        port_entry_by_tk_run.setdefault((tk, "R2"), set()).add(ent)
     # 03_Exit_History · body rows have canonical PID in col 0
     eh_closed_key = set()
     eh_by_tk_run = {}
-    if "03_Exit_History" in wb.sheetnames:
-        ws_e2 = wb["03_Exit_History"]
-        eh_all = list(ws_e2.iter_rows(values_only=True))
-        for r in eh_all:
-            if not r or not r[0]: continue
-            pid = str(r[0]).upper()
-            if not (pid.startswith("USA-") or pid.startswith("IND-")): continue
-            # cols: 0=PID 1=Ticker 2=Runner 3=Market 4=EntryDate 5=ExitDate
-            tk_e = str(r[1]).upper().replace(".NS", "").replace(".BO", "") if len(r) > 1 and r[1] else ""
-            run_e = str(r[2] or "").upper() if len(r) > 2 else ""
-            ent_e = str(r[4])[:10] if len(r) > 4 and r[4] and str(r[4]) != "—" else ""
-            exit_e = str(r[5])[:10] if len(r) > 5 and r[5] and str(r[5]) != "—" else ""
-            if run_e in ("R1", "R2") and ent_e and tk_e:
-                eh_closed_key.add((tk_e, run_e, ent_e))
-                eh_by_tk_run.setdefault((tk_e, run_e), []).append((ent_e, exit_e))
+    for r in _exit_recs:
+        tk_e = str(r.get("Stock") or "").upper().replace(".NS", "").replace(".BO", "")
+        src = str(r.get("Source") or "").upper()
+        run_e = "R1" if src.startswith("R1") else ("R2" if src == "R2" else "")
+        ent_e = str(r.get("Entry Date") or "")[:10]
+        exit_e = str(r.get("Exit Date") or "")[:10]
+        if ent_e == "—":
+            ent_e = ""
+        if exit_e == "—":
+            exit_e = ""
+        if run_e in ("R1", "R2") and ent_e and tk_e:
+            eh_closed_key.add((tk_e, run_e, ent_e))
+            eh_by_tk_run.setdefault((tk_e, run_e), []).append((ent_e, exit_e))
     # True collision · same (ticker, runner, entry_date) in both
     collisions = port_active_key & eh_closed_key
     # Same ticker+runner but different entry_date is EXPLAINED
@@ -407,10 +414,24 @@ def reconcile(market: str, root: Path) -> dict:
 
     wb.close()
 
-    # ── C19 · Workbook-wide R1 = 0 (STRENGTHENED CONTRACT) ─────────
-    # CEO 2026-09-01 strengthened: R1 must be COMPLETELY absent from
-    # every visible sheet · every cell · except Definitions (which may
-    # name R1 as a reference explaining retirement). Cell-level scan.
+    # ── C19 · R1 absent from the PRODUCTION sheets (SCOPED) ────────
+    # CEO 2026-09-01 required R1 to be absent from EVERY sheet.
+    # CEO 2026-09-07 five-sheet spec REQUIRES R1 to be visible: it has its
+    # own advisory sheet, it appears on DAILY RECOMMENDATION, and EXIT is
+    # now "all exits - R1, R2 and Momentum". A workbook-wide scan would
+    # therefore fail by construction, and the only way to make it green
+    # would be to delete it · which is how a real invariant gets lost.
+    #
+    # So C19 is SCOPED rather than abolished. What it always protected was
+    # production integrity, and that is unchanged and still enforced:
+    #   · R1 must never appear on R2 (the production holdings sheet)
+    #   · R1 must never appear on MOMENTUM (upstream research)
+    #   · R1 must never be counted in production P&L (EXIT rows are
+    #     labelled "R1 · ADVISORY" and classified `advisory`, which
+    #     `five_sheet_reader.production_exits` excludes)
+    # Hidden sheets, R1-referencing formulas and R1-referencing defined
+    # names remain forbidden EVERYWHERE · those are covert channels, not
+    # operator-facing disclosure.
     try:
         from backend.delivery.canonical.retirement import retired_runners as _c19_retired
         _c19_ret = _c19_retired(root)
@@ -423,17 +444,18 @@ def reconcile(market: str, root: Path) -> dict:
             p + rr + "-" for rr in _c19_ret
             for p in ("", "IND-", "USA-")
         )
-        _defs_name = "___NO_DEFINITIONS_SHEET_IN_FINAL_SPEC___"  # every sheet scanned
-        # 1. Visible-value scan · CEO 2026-09-01 STRICT rule: the WORD R1
-        # (and any variant of a retired runner) must not appear anywhere
-        # in the workbook text · not just as an exact cell value.
+        # Sheets where R1 disclosure is REQUIRED by the five-sheet spec.
+        _c19_r1_permitted = {"R1", "DAILY RECOMMENDATION", "EXIT"}
+        # 1. Visible-value scan · the WORD R1 (or any retired-runner
+        # variant) must not appear on a PRODUCTION sheet · not just as an
+        # exact cell value.
         import re as _re_c19
         _wb_re = _re_c19.compile(
             r"\b(" + "|".join(_re_c19.escape(r) for r in _c19_ret) + r")\b",
             _re_c19.IGNORECASE,
         )
         for _sh_name in _c19_wb_ro.sheetnames:
-            if _sh_name == _defs_name: continue
+            if _sh_name in _c19_r1_permitted: continue
             _ws = _c19_wb_ro[_sh_name]
             _rn = 0
             for _row in _ws.iter_rows(values_only=True):
@@ -461,7 +483,6 @@ def reconcile(market: str, root: Path) -> dict:
         # 3. Formula scan · any cell.data_type == 'f' with R1 in formula text
         _c19_formula_hits = []
         for _sh_name in _c19_wb_fx.sheetnames:
-            if _sh_name == _defs_name: continue
             _sh = _c19_wb_fx[_sh_name]
             for _row in _sh.iter_rows():
                 for _c in _row:

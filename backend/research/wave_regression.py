@@ -306,14 +306,26 @@ def compute(root: Path, market: str, asof: str) -> WaveRegressionReport:
             # Legacy layout: emoji-banner section detection.
             wb = load_workbook(xp, read_only=True)
             leaks = []
+            # CEO 2026-09-07 · "R2" is the production holdings sheet in the
+            # five-sheet spec. Without it here the leak scan found no sheet
+            # and reported zero leaks · a clean-looking result produced by
+            # scanning nothing.
             _portfolio_sheet = None
-            for _cand in ("01_Portfolio", "Portfolio"):
+            for _cand in ("R2", "01_Portfolio", "Portfolio"):
                 if _cand in wb.sheetnames:
                     _portfolio_sheet = _cand; break
-            if _portfolio_sheet == "01_Portfolio":
+            if _portfolio_sheet in ("R2", "01_Portfolio"):
                 _ws = wb[_portfolio_sheet]
-                # Find Ticker + Verdict column indexes by header name (row 4)
-                _hdr = [str(_ws.cell(4, c).value or "").strip()
+                # Header row differs between layouts (R2 = 5, 01_Portfolio = 4)
+                # · locate it by content rather than assuming a row number.
+                _hdr_r = 5 if _portfolio_sheet == "R2" else 4
+                for _try in range(1, min(_ws.max_row, 12) + 1):
+                    _probe = [str(_ws.cell(_try, c).value or "").strip()
+                                for c in range(1, _ws.max_column + 1)]
+                    if "Stock" in _probe or "Ticker" in _probe:
+                        _hdr_r = _try
+                        break
+                _hdr = [str(_ws.cell(_hdr_r, c).value or "").strip()
                          for c in range(1, _ws.max_column + 1)]
                 _tk_idx = None
                 for _cand_tk in ("Ticker", "Stock"):
@@ -364,13 +376,23 @@ def compute(root: Path, market: str, asof: str) -> WaveRegressionReport:
         if xp.exists():
             wb = load_workbook(xp, read_only=True)
             _jargon = 0
+            # CEO 2026-09-07 · "EXIT" is the unified exit sheet.
             _eh_sheet = None
             _hdr_row = 5
-            for _cand in ("03_Exit_History", "Exit History (90d)"):
+            for _cand in ("EXIT", "03_Exit_History", "Exit History (90d)"):
                 if _cand in wb.sheetnames:
                     _eh_sheet = _cand
                     _hdr_row = 4 if _cand == "03_Exit_History" else 5
                     break
+            if _eh_sheet:
+                # Locate the header row by content · layouts differ.
+                _wsp = wb[_eh_sheet]
+                for _try in range(1, min(_wsp.max_row, 12) + 1):
+                    _probe = [str(_wsp.cell(_try, c).value or "").strip()
+                                for c in range(1, _wsp.max_column + 1)]
+                    if "Exit Reason" in _probe or "Reason" in _probe:
+                        _hdr_row = _try
+                        break
             if _eh_sheet:
                 _ws = wb[_eh_sheet]
                 _hdr = [str(_ws.cell(_hdr_row, c).value or "").strip()

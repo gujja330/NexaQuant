@@ -26,11 +26,20 @@ from openpyxl import load_workbook
 _ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_ROOT))
 
-REQUIRED_SHEETS_3 = [
-    "01_Portfolio",
-    "02_Today_Momentum",
-    "03_Exit_History",
-]
+# CEO 2026-09-07 · FIVE-SHEET spec.
+REQUIRED_SHEETS_5 = ["R1", "R2", "MOMENTUM", "DAILY RECOMMENDATION", "EXIT"]
+
+# C19 (workbook-wide R1-zero) is now SCOPED, not abolished.
+# The five-sheet spec REQUIRES R1 to be visible: it has its own advisory
+# sheet, it appears on DAILY RECOMMENDATION, and EXIT is now "all exits -
+# R1, R2, Momentum". A blanket workbook-wide R1 scan would therefore fail
+# by design and would have to be deleted to go green, which is exactly how
+# a real invariant gets quietly lost.
+# What still matters, and is enforced below, is the part that protected
+# production integrity: R1 must never appear on the R2 production sheet,
+# and R1 must never be counted as production P&L.
+R1_PERMITTED_SHEETS = {"R1", "DAILY RECOMMENDATION", "EXIT"}
+R1_FORBIDDEN_SHEETS = {"R2", "MOMENTUM"}
 
 
 def _find_hdr(rows):
@@ -53,89 +62,101 @@ def audit(market: str, asof: str) -> dict:
         return {"error": f"missing {xlsx}"}
     wb = load_workbook(xlsx, read_only=True, data_only=True)
     sheets = wb.sheetnames
-    missing = [s for s in REQUIRED_SHEETS_3 if s not in sheets]
-    extra = [s for s in sheets if s not in REQUIRED_SHEETS_3]
+    missing = [s for s in REQUIRED_SHEETS_5 if s not in sheets]
+    extra = [s for s in sheets if s not in REQUIRED_SHEETS_5]
     checks = []
-    checks.append(("exactly_3_required_sheets_present",
+    checks.append(("exactly_5_required_sheets_present",
                     not missing and not extra,
                     f"missing={missing} extra={extra}"
                       if (missing or extra)
-                      else "3/3 sheets present · no legacy sheets"))
+                      else "5/5 sheets present · no legacy sheets"))
 
-    # 01_Portfolio banner
-    portfolio_ok = False; portfolio_reason = "sheet not found"
-    if "01_Portfolio" in sheets:
-        ws = wb["01_Portfolio"]
-        rows = list(ws.iter_rows(values_only=True))
+    from backend.delivery import five_sheet_reader as _fsr
+
+    # R2 · banner states the as-of and the holding count
+    r2_ok = False; r2_reason = "sheet not found"
+    if "R2" in sheets:
+        rows = list(wb["R2"].iter_rows(values_only=True))
         title = str((rows[0] or [None])[0] or "")
-        banner = str((rows[1] or [None])[0] or "") if len(rows) > 1 else ""
+        banner = " ".join(str((rows[i] or [None])[0] or "")
+                            for i in (1, 2) if i < len(rows))
         has_date = asof in title
-        has_r2_count = "R2 ACTIVE" in banner.upper()
-        portfolio_ok = has_date and has_r2_count
-        portfolio_reason = f"title_asof={has_date} · banner_R2_active={has_r2_count}"
-    checks.append(("portfolio_banner_correct", portfolio_ok, portfolio_reason))
+        has_count = "Holdings:" in banner
+        r2_ok = has_date and has_count
+        r2_reason = f"title_asof={has_date} · banner_holding_count={has_count}"
+    checks.append(("r2_banner_correct", r2_ok, r2_reason))
 
-    # 02_Today_Momentum · reporting date freshness
+    # R2 · every stop equals the canonical dynamic_risk_v2 value.
+    # This is the BATAINDIA / CHAMBLFERT / ITC check.
+    stop_ok = False; stop_reason = "canonical artifact absent"
+    _dr = _ROOT / "reports" / "context" / f"dynamic_risk_{market.lower()}.json"
+    if _dr.exists() and "R2" in sheets:
+        import json as _j
+        canon = {}
+        for u in (_j.loads(_dr.read_text(encoding="utf-8")).get("updates") or []):
+            if u.get("new_stop") is not None:
+                canon[str(u["ticker"]).upper().split(".", 1)[0]] = round(
+                    float(u["new_stop"]), 4)
+        bad, checked = [], 0
+        for rec in _fsr.r2_positions(wb):
+            tk = str(rec.get("Stock") or "").strip()
+            val = rec.get("Dynamic Stop")
+            if tk in canon and isinstance(val, (int, float)):
+                checked += 1
+                if round(float(val), 4) != canon[tk]:
+                    bad.append(f"{tk} sheet={val} canonical={canon[tk]}")
+        stop_ok = not bad
+        stop_reason = ("diverged: " + "; ".join(bad) if bad
+                        else f"{checked} R2 stops match dynamic_risk_v2")
+    checks.append(("r2_stop_matches_canonical", stop_ok, stop_reason))
+
+    # MOMENTUM · producer freshness must be stated explicitly
     tm_ok = False; tm_reason = "sheet not found"
-    if "02_Today_Momentum" in sheets:
-        ws = wb["02_Today_Momentum"]
-        rows = list(ws.iter_rows(values_only=True))
-        title = str((rows[0] or [None])[0] or "")
-        sub_line = str((rows[1] or [None])[0] or "") if len(rows) > 1 else ""
-        has_date = asof in title
-        is_fresh = "✓ ledger fresh" in sub_line or "no R2 decisions" in sub_line.lower()
-        tm_ok = has_date
-        tm_reason = f"title_asof={has_date} · fresh_ledger={is_fresh}"
-    checks.append(("today_momentum_reporting_date", tm_ok, tm_reason))
+    if "MOMENTUM" in sheets:
+        rows = list(wb["MOMENTUM"].iter_rows(values_only=True))
+        head = " ".join(str(c) for r in rows[:6] if r for c in r if c)
+        has_date = asof in head
+        declares = "Producer as-of" in head and ("FRESH" in head or "STALE" in head)
+        tm_ok = has_date and declares and "STALE" not in head
+        tm_reason = (f"title_asof={has_date} · declares_freshness={declares} "
+                       f"· stale={'STALE' in head}")
+    checks.append(("momentum_fresh_and_declared", tm_ok, tm_reason))
 
-    # 03_Exit_History · closed positions sheet
+    # MOMENTUM · declared universe must never be labelled "scanned"
+    lbl_ok = False; lbl_reason = "sheet not found"
+    if "MOMENTUM" in sheets:
+        allc = " ".join(str(c) for r in wb["MOMENTUM"].iter_rows(values_only=True)
+                          if r for c in r if c)
+        lbl_ok = ("scanned universe=" not in allc
+                    and "ACTUALLY EVALUATED" in allc)
+        lbl_reason = ("declared vs evaluated reported separately" if lbl_ok
+                        else "misleading universe label or missing "
+                             "ACTUALLY EVALUATED row")
+    checks.append(("momentum_universe_labelled_truthfully", lbl_ok, lbl_reason))
+
+    # EXIT · unified history present and classified
     eh_ok = False; eh_reason = "sheet not found"
-    if "03_Exit_History" in sheets:
-        ws = wb["03_Exit_History"]
-        rows = list(ws.iter_rows(values_only=True))
-        # body rows have canonical PID in col 0
-        n_body = sum(1 for r in rows if r and r[0]
-                       and (str(r[0]).upper().startswith("USA-")
-                             or str(r[0]).upper().startswith("IND-")))
-        eh_ok = True   # OK to be zero if no exits in window
-        eh_reason = f"closed_positions={n_body}"
-    checks.append(("exit_history_sheet_present", eh_ok, eh_reason))
+    if "EXIT" in sheets:
+        ex = _fsr.exits(wb)
+        prod = _fsr.production_exits(wb)
+        eh_ok = True          # zero exits in the window is legitimate
+        eh_reason = f"exits={len(ex)} · r2_production={len(prod)}"
+    checks.append(("exit_history_unified", eh_ok, eh_reason))
 
-    # No fabricated LOW/PENDING in 01_Portfolio (new layout has no
-    # Investability column · check any cell)
-    fab_ok = True; fab_reason = "sheet not found"
-    if "01_Portfolio" in sheets:
-        ws = wb["01_Portfolio"]
-        bad = 0
-        for row in ws.iter_rows(values_only=True):
+    # No fabricated stand-ins for missing data on the position sheets
+    fab_bad = []
+    for sh in ("R1", "R2"):
+        if sh not in sheets: continue
+        for row in wb[sh].iter_rows(values_only=True):
             for v in row:
                 if v and str(v).strip().upper() in ("LOW", "PENDING"):
-                    bad += 1
+                    fab_bad.append(sh)
                     break
-        fab_ok = bad == 0
-        fab_reason = f"cells_with_LOW_or_PENDING={bad}"
-    checks.append(("no_fabricated_low_pending", fab_ok, fab_reason))
+    checks.append(("no_fabricated_low_pending", not fab_bad,
+                    f"sheets_with_fabrication={sorted(set(fab_bad))}"
+                      if fab_bad else "no LOW/PENDING stand-ins on R1 or R2"))
 
-    # Portfolio Runner column · R2 only · zero R1
-    r1_ok = True; r1_reason = "sheet not found"
-    if "01_Portfolio" in sheets:
-        ws = wb["01_Portfolio"]
-        rows = list(ws.iter_rows(values_only=True))
-        hi = _find_hdr(rows)
-        hdr = rows[hi] if hi < len(rows) else ()
-        c_run = _col(hdr, "Runner")
-        r1_rows = 0; r2_rows = 0
-        for r in rows[hi + 1:]:
-            if c_run is None or c_run >= len(r) or not r[c_run]: continue
-            run = str(r[c_run] or "").upper()
-            if run == "R1": r1_rows += 1
-            if run == "R2": r2_rows += 1
-        r1_ok = r1_rows == 0
-        r1_reason = f"r1_rows={r1_rows} · r2_rows={r2_rows}"
-    checks.append(("portfolio_r2_only", r1_ok, r1_reason))
-
-    # CEO 2026-09-01 STRENGTHENED · workbook-wide R1 == 0 across every sheet
-    # except Definitions (which may reference R1 in retirement text)
+    # R1 must never leak into the production sheets
     from backend.delivery.canonical.retirement import retired_runners
     import re as _re_ss
     retired = retired_runners(_ROOT)
@@ -144,28 +165,38 @@ def audit(market: str, asof: str) -> dict:
         r"\b(" + "|".join(_re_ss.escape(r) for r in retired) + r")\b",
         _re_ss.IGNORECASE,
     )
-    workbook_r1_hits = []
     wb2 = load_workbook(xlsx, read_only=True, data_only=True)
-    for sh_name in wb2.sheetnames:
-        wsx = wb2[sh_name]
+    forbidden_hits = []
+    for sh in sorted(R1_FORBIDDEN_SHEETS):
+        if sh not in wb2.sheetnames: continue
         rn = 0
-        for row_vals in wsx.iter_rows(values_only=True):
+        for row_vals in wb2[sh].iter_rows(values_only=True):
             rn += 1
             for v in row_vals:
                 if v is None: continue
-                s = str(v).strip()
-                # STRICT · exact match OR canonical prefix OR word-boundary token
-                if (s.upper() in retired
-                      or s.upper().startswith(prefixes)
-                      or _wb_word_re.search(s)):
-                    workbook_r1_hits.append((sh_name, rn, s[:60]))
+                sv = str(v).strip()
+                if (sv.upper() in retired
+                        or sv.upper().startswith(prefixes)
+                        or _wb_word_re.search(sv)):
+                    forbidden_hits.append((sh, rn, sv[:60]))
                     break
     wb2.close()
-    checks.append(("workbook_wide_r1_zero",
-                    len(workbook_r1_hits) == 0,
-                    (f"cells_hit={len(workbook_r1_hits)}"
-                      + (f" · samples={workbook_r1_hits[:3]}"
-                         if workbook_r1_hits else ""))))
+    checks.append(("r1_absent_from_production_sheets",
+                    len(forbidden_hits) == 0,
+                    (f"cells_hit={len(forbidden_hits)} "
+                      f"scanned={sorted(R1_FORBIDDEN_SHEETS)}"
+                      + (f" · samples={forbidden_hits[:3]}"
+                         if forbidden_hits else ""))))
+
+    # R1 rows that ARE permitted must never carry an EXIT action.
+    adv_bad = []
+    if "R1" in sheets:
+        for rec in _fsr.r1_positions(wb):
+            if "EXIT" in str(rec.get("Action") or "").upper():
+                adv_bad.append(str(rec.get("Stock")))
+    checks.append(("r1_never_auto_exits", not adv_bad,
+                    f"rows_with_exit_action={adv_bad}" if adv_bad
+                      else "R1 escalates to REVIEW at most"))
 
     # Hidden / very-hidden sheets · formulas referencing retired runners ·
     # defined-name references
@@ -230,8 +261,10 @@ def audit(market: str, asof: str) -> dict:
         "",
         f"**Method**: automated inspection of "
         f"`reports/telegram/aegis_history_{market.lower()}.xlsx` against "
-        f"the CEO 2026-09-01 workbook contract (9 fixed sheets · population "
-        f"contract · R1 retired · no fabrication · provenance present).",
+        f"the CEO 2026-09-07 FIVE-SHEET contract (R1 · R2 · MOMENTUM · "
+        f"DAILY RECOMMENDATION · EXIT · canonical dynamic_risk_v2 stop shared "
+        f"across sheets · R1 advisory-only and absent from production sheets · "
+        f"momentum freshness declared · no fabrication).",
         "",
         f"**AUTO_AUDIT_VERDICT: {'PASS' if all_pass else 'FAIL'}**",
         "",

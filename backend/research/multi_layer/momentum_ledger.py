@@ -115,6 +115,17 @@ def build(root: Path, market: str, asof: str) -> dict:
     raw = json.loads(src.read_text(encoding="utf-8"))
     candidates_all = raw.get("candidates") or []
     n_raw_scanned = raw.get("n_universe") or len(candidates_all)
+    # CEO 2026-09-07 · carry the producer's TRUTHFUL funnel through instead of
+    # letting the ledger imply the declared universe was fully evaluated.
+    producer_asof = raw.get("asof")
+    producer_funnel = {
+        "n_declared_universe": raw.get("n_universe"),
+        "n_unreadable": raw.get("n_unreadable"),
+        "n_insufficient_history": raw.get("n_insufficient_history"),
+        "n_evaluated": raw.get("n_evaluated"),
+        "n_ignored_no_momentum": raw.get("n_ignored_no_momentum"),
+        "n_candidates": len(candidates_all),
+    }
 
     # CEO 2026-09-01 · production universe filter · S&P 500 for USA
     prod_universe = _production_universe(root, market)
@@ -171,7 +182,17 @@ def build(root: Path, market: str, asof: str) -> dict:
         "n_universe_scanned_raw": n_raw_scanned,
         "n_production_universe": n_prod,
         "n_out_of_universe_dropped": n_out_of_universe,
-        "n_universe_scanned": len(candidates),  # kept for downstream compat · now = in-universe
+        # DEPRECATED · CEO 2026-09-07. This field was rendered downstream as
+        # "scanned universe", which made 02_Today_Momentum print
+        # "scanned universe=1" on a 230-ticker run. Kept only so older
+        # consumers do not KeyError · every new consumer must read
+        # producer_funnel / n_production_universe instead.
+        "n_universe_scanned": len(candidates),
+        "n_universe_scanned_DEPRECATED_MEANING": (
+            "in-universe candidate count · NOT the number of tickers scanned"),
+        "producer_asof": producer_asof,
+        "producer_funnel": producer_funnel,
+        "producer_stale": (producer_asof != asof),
         "n_candidates_source": len(candidates),
         "n_candidates_classified": sum(counts.values()),
         "n_silent_disappearances": len(candidates) - sum(counts.values()),

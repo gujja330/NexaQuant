@@ -92,65 +92,28 @@ def build(market: str, root: Path, asof: str) -> dict:
     # 2. Load R2 historical exits from 03_Exit_History sheet
     # (CEO 2026-09-01 FINAL 3-sheet spec · body rows have canonical PID)
     xlsx = root / "reports" / "telegram" / f"aegis_history_{market.lower()}.xlsx"
+    # CEO 2026-09-07 · five-sheet spec. This block previously located
+    # "03_Exit_History" and read a fixed header row; after the rename the
+    # sheet was absent, r2_trades stayed empty, and the report published
+    # "n_r2_trades_tagged: 0" · a silent zero that reads like a real
+    # research result. Reads the unified EXIT sheet by header name now.
     r2_trades = []
-    _sheet = "03_Exit_History"
-    if xlsx.exists() and _sheet in load_workbook(xlsx, read_only=True).sheetnames:
-        wb = load_workbook(xlsx, read_only=True, data_only=True)
-        ws = wb[_sheet]
-        # CEO 2026-09-02 · header-name access · no positional column
-        # assumptions · adapts to workbook column order (Sector inserted
-        # between Ticker and Runner post-2026-09-02 · older layouts still
-        # supported via the same header lookup).
-        hdr_row = 4    # 3-sheet spec
-        hdr = [str(ws.cell(hdr_row, c).value or "").strip()
-                for c in range(1, ws.max_column + 1)]
-        def _idx(names):
-            for n in names:
-                if n in hdr: return hdr.index(n)
-            return None
-        i_pid = _idx(["Position ID"])
-        i_tk = _idx(["Stock", "Ticker"])
-        i_run = _idx(["Runner"])
-        i_ed = _idx(["Entry Date"])
-        i_xd = _idx(["Exit Date"])
-        i_pnl = _idx(["Realized P&L %", "P&L %", "P&L"])
-        if i_pid is None or i_run is None or i_ed is None or i_xd is None:
-            wb.close()
-            r2_trades = []
-        else:
-            rows = list(ws.iter_rows(values_only=True))
-            for r in rows[hdr_row:]:  # skip through header row
-                if not r or len(r) <= i_pid or r[i_pid] is None: continue
-                pid = str(r[i_pid])
-                if not (pid.upper().startswith("USA-") or pid.upper().startswith("IND-")):
-                    continue
-                run = str(r[i_run] or "").upper() if len(r) > i_run else ""
-                if run != "R2": continue
-                _xd_raw = str(r[i_xd] or "") if len(r) > i_xd else ""
-                exit_d = _xd_raw[:10] if _xd_raw and _xd_raw != "—" else ""
-                pnl = 0.0
-                if i_pnl is not None and len(r) > i_pnl:
-                    try:
-                        v = r[i_pnl]
-                        if v not in (None, "", "—"): pnl = float(v)
-                    except (TypeError, ValueError):
-                        pnl = 0.0
-                days = 0
-                try:
-                    from datetime import date as _d
-                    d1 = _d.fromisoformat(str(r[i_ed])[:10])
-                    d2 = _d.fromisoformat(_xd_raw[:10])
-                    days = (d2 - d1).days
-                except Exception:
-                    pass
+    if xlsx.exists():
+        from backend.delivery import five_sheet_reader as _fsr
+        _wb = _fsr.load(xlsx)
+        try:
+            for _t in _fsr.r2_production_trades(_wb):
                 r2_trades.append({
-                    "ticker": str(r[i_tk] or "") if i_tk is not None and len(r) > i_tk else "",
-                    "exit_date": exit_d,
-                    "entry_date": str(r[i_ed] or "")[:10] if len(r) > i_ed else "",
-                    "pnl_pct": round(pnl, 4),
-                    "days_held": days,
+                    "ticker": _t["ticker"],
+                    "exit_date": _t["exit_date"],
+                    "entry_date": _t["entry_date"],
+                    "pnl_pct": _t["pnl_pct"],
+                    "days_held": _t["days"],
                 })
-            wb.close()
+        except _fsr.SheetMissing:
+            r2_trades = []
+        finally:
+            _wb.close()
 
     # 3. Tag each trade with regime AND recovery flag
     by_regime = defaultdict(list)

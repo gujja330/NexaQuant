@@ -32,6 +32,9 @@ from pathlib import Path
 from openpyxl import load_workbook
 
 _ROOT = Path(__file__).resolve().parents[1]
+# Repo root on sys.path · this script now imports backend.delivery
+# (shared five-sheet reader); it previously used openpyxl only.
+sys.path.insert(0, str(_ROOT))
 
 
 def _col(hdr, *names):
@@ -58,44 +61,41 @@ def classify(market: str, root: Path, asof: str) -> dict:
         return {"error": f"missing xlsx: {xlsx}"}
     wb = load_workbook(xlsx, read_only=True, data_only=True)
 
-    # CEO 2026-09-01 3-sheet spec · load from 01_Portfolio and
-    # 02_Decisions_Exit_History (Population = HISTORICAL_EXIT rows)
+    # CEO 2026-09-07 · FIVE-SHEET spec · read by HEADER NAME through the
+    # shared reader. The previous index-based access silently yielded zero
+    # rows once the layout changed, so this script reported
+    # "tickers=0 · defects=0", which is indistinguishable from a clean run.
+    from backend.delivery import five_sheet_reader as _fsr
+
     portfolio_rows = []
-    if "01_Portfolio" in wb.sheetnames:
-        ws = wb["01_Portfolio"]
-        rows = list(ws.iter_rows(values_only=True))
-        hi = _find_hdr(rows)
-        hdr = rows[hi]
-        c_tk = _col(hdr, "Ticker")
-        c_run = _col(hdr, "Runner")
-        c_ent = _col(hdr, "Entry Date")
-        for r in rows[hi + 1:]:
-            if not r or c_tk is None or not r[c_tk]: continue
-            tk = _norm(r[c_tk])
-            if not tk: continue
+    if _fsr.SHEET_R2 in wb.sheetnames:
+        for rec in _fsr.r2_positions(wb):
+            tk = _norm(rec.get("Stock"))
+            if not tk:
+                continue
+            ent = str(rec.get("Entry Date") or "")[:10]
             portfolio_rows.append({
                 "ticker": tk,
-                "runner": _norm(r[c_run]) if c_run is not None else "",
+                "runner": "R2",
                 "lifecycle": "ACTIVE",
-                "entry_date": str(r[c_ent] or "")[:10] if c_ent is not None else "",
+                "entry_date": "" if ent == "—" else ent,
             })
 
     exit_rows = []
-    if "03_Exit_History" in wb.sheetnames:
-        ws = wb["03_Exit_History"]
-        rows = list(ws.iter_rows(values_only=True))
-        # New layout · body rows have canonical PID in col 0
-        for r in rows:
-            if not r or not r[0]: continue
-            pid = str(r[0])
-            if not (pid.upper().startswith("USA-") or pid.upper().startswith("IND-")):
+    if _fsr.SHEET_EXIT in wb.sheetnames:
+        for rec in _fsr.exits(wb):
+            pid = str(rec.get("Position ID") or "")
+            if not pid.upper().startswith(("USA-", "IND-")):
                 continue
-            # cols: 0=PID 1=Ticker 2=Runner 3=Market 4=EntryDate 5=ExitDate
+            src = str(rec.get("Source") or "").upper()
+            ent = str(rec.get("Entry Date") or "")[:10]
+            ext = str(rec.get("Exit Date") or "")[:10]
             exit_rows.append({
-                "ticker": _norm(r[1]) if len(r) > 1 else "",
-                "runner": _norm(r[2]) if len(r) > 2 else "",
-                "entry_date": str(r[4] or "")[:10] if len(r) > 4 and str(r[4] or "") != "—" else "",
-                "exit_date": str(r[5] or "")[:10] if len(r) > 5 and str(r[5] or "") != "—" else "",
+                "ticker": _norm(rec.get("Stock")),
+                "runner": "R1" if src.startswith("R1") else (
+                    "R2" if src == "R2" else src),
+                "entry_date": "" if ent == "—" else ent,
+                "exit_date": "" if ext == "—" else ext,
             })
     wb.close()
 

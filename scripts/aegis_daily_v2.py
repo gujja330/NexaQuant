@@ -490,14 +490,35 @@ STEPS = [
     # ── CEO 2026-09-01 · WIRE-IN of previously-manual research + certification
     # ── all optional=True · failure does not halt telegram delivery
     # ── audit-only default for the dynamic-exit bridge (no forced closes)
-    # ── produces the 3-sheet workbook alongside the legacy XLSX
+    # ── produces the five-sheet workbook alongside the legacy XLSX
+    # CEO 2026-09-07 · P0 FIX · short_term_momentum was an ORPHANED PRODUCER.
+    # momentum_ledger.py CONSUMES short_term_momentum_{market}.json daily but
+    # nothing PRODUCED it · the file sat frozen at asof=2026-08-27 (India) /
+    # 2026-08-26 (USA) for 11 days while the ledger faithfully re-derived the
+    # same stale answer every run and 02_Today_Momentum rendered it as "today".
+    # MUST run in module mode · see _run_step() docstring.
+    {
+        "name": "short_term_momentum_producer",
+        "desc": "Short-term momentum scan · PRODUCES short_term_momentum_{market}.json (must precede momentum ledger)",
+        "module": "backend.research.short_term_momentum",
+        "script_args": ["--market", "both"],
+        "produces": [
+            "reports/research/short_term_momentum_india.json",
+            "reports/research/short_term_momentum_usa.json",
+        ],
+        "requires": [],
+        "optional": True,
+    },
     {
         "name": "multi_layer_momentum_ledger",
         "desc": "Multi-layer research · momentum ledger (4 terminal states · production-universe filter · both markets)",
         "script": "backend/research/multi_layer/momentum_ledger.py",
         "script_args": ["--market", "both"],
         "produces": [],
-        "requires": [],
+        "requires": [
+            "reports/research/short_term_momentum_india.json",
+            "reports/research/short_term_momentum_usa.json",
+        ],
         "optional": True,
     },
     {
@@ -583,7 +604,12 @@ STEPS = [
     },
     {
         "name": "aegis_3sheet_workbook",
-        "desc": "Build canonical 3-sheet workbook (01_Portfolio · 02_Today_Momentum · 03_Exit_History)",
+        "desc": ("Build canonical FIVE-sheet workbook (R1 · R2 · MOMENTUM · "
+                    "DAILY RECOMMENDATION · EXIT) · CEO 2026-09-07. Reads the "
+                    "canonical dynamic_risk_v2 stop produced above; if that "
+                    "artifact is missing the workbook still builds and states "
+                    "the blocker on DAILY RECOMMENDATION rather than "
+                    "suppressing the whole delivery."),
         "script": "scripts/build_aegis_3sheet_workbook.py",
         "script_args": ["--market", "both"],
         "produces": [],
@@ -591,8 +617,23 @@ STEPS = [
         "optional": True,
     },
     {
+        # CEO 2026-09-07 · the five-sheet contract is asserted against the
+        # DELIVERED file every day, not just on the day it was built.
+        # C3 is the BATAINDIA/CHAMBLFERT/ITC check: R2 and DAILY
+        # RECOMMENDATION must never disagree about a stop or an action.
+        "name": "five_sheet_workbook_audit",
+        "desc": ("Audit the delivered five-sheet workbook · sheet set · "
+                    "canonical stop equality across sheets · R1 advisory-only · "
+                    "momentum freshness · unified exit history"),
+        "script": "scripts/audit_five_sheet_workbook.py",
+        "script_args": ["--market", "both"],
+        "produces": [],
+        "requires": [],
+        "optional": True,
+    },
+    {
         "name": "aegis_provenance_companion",
-        "desc": "Emit provenance JSONL companion for the 3-sheet workbook",
+        "desc": "Emit provenance JSONL companion for the five-sheet workbook",
         "script": "scripts/emit_provenance_companion.py",
         "script_args": ["--market", "both"],
         "produces": [],
@@ -610,7 +651,7 @@ STEPS = [
     },
     {
         "name": "aegis_visual_signoff",
-        "desc": "10-check visual sign-off audit against 3-sheet workbook",
+        "desc": "10-check visual sign-off audit against the five-sheet workbook",
         "script": "scripts/produce_visual_signoff.py",
         "script_args": ["--market", "both"],
         "produces": [],
@@ -619,7 +660,7 @@ STEPS = [
     },
     {
         "name": "aegis_determinism_hash",
-        "desc": "Data-only deterministic hash of the 3-sheet workbook",
+        "desc": "Data-only deterministic hash of the five-sheet workbook",
         "script": "scripts/determinism_hash.py",
         "script_args": ["--market", "both"],
         "produces": [],
@@ -728,14 +769,37 @@ def _check_produced(step: dict, before_mtimes: dict[str, str | None]) -> dict:
 
 
 def _run_step(step: dict, dry_run: bool = False) -> dict:
-    """Run one step, capture verdict + timing."""
-    script = _ROOT / step["script"]
-    if not script.exists():
-        return {
-            "name": step["name"], "verdict": "MISSING_SCRIPT",
-            "elapsed_s": 0.0, "returncode": None,
-            "note": f"script not found: {step['script']}",
-        }
+    """Run one step, capture verdict + timing.
+
+    CEO 2026-09-07 · a step may declare EITHER:
+      "script": "path/to/file.py"   · run as  python path/to/file.py
+      "module": "pkg.sub.module"    · run as  python -m pkg.sub.module
+
+    Module mode exists because running some backend modules as bare scripts
+    puts their own directory on sys.path[0], which can shadow third-party
+    imports (observed: short_term_momentum.py silently failed every
+    pd.read_parquet with a numpy ImportError, emitting 0 candidates). Module
+    mode keeps the repo root as the import anchor.
+    """
+    module = step.get("module")
+    if module:
+        script = None
+        # Verify the module's file exists so a typo fails loudly, not silently.
+        _mod_rel = Path(module.replace(".", "/") + ".py")
+        if not (_ROOT / _mod_rel).exists():
+            return {
+                "name": step["name"], "verdict": "MISSING_SCRIPT",
+                "elapsed_s": 0.0, "returncode": None,
+                "note": f"module not found: {module} (expected {_mod_rel})",
+            }
+    else:
+        script = _ROOT / step["script"]
+        if not script.exists():
+            return {
+                "name": step["name"], "verdict": "MISSING_SCRIPT",
+                "elapsed_s": 0.0, "returncode": None,
+                "note": f"script not found: {step['script']}",
+            }
 
     # 2026-08-21 · Part 29 Lever A · staleness-aware skip.
     # If every `produces` artifact is fresher than the configured window
@@ -775,7 +839,11 @@ def _run_step(step: dict, dry_run: bool = False) -> dict:
         }
 
     # Wave Y: optional script_args passed through to the child process.
-    _cmd = [sys.executable, str(script)] + list(step.get("script_args", []))
+    # CEO 2026-09-07 · module mode (-m) keeps repo root as the import anchor.
+    if module:
+        _cmd = [sys.executable, "-m", module] + list(step.get("script_args", []))
+    else:
+        _cmd = [sys.executable, str(script)] + list(step.get("script_args", []))
 
     if dry_run:
         return {

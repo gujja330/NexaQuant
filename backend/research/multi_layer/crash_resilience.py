@@ -120,44 +120,27 @@ def _daily_regime_map(series: list, coarse_regimes: dict) -> dict:
 
 
 def _load_exit_history(root: Path, market: str) -> list:
+    """Closed R2 PRODUCTION trades from the delivered workbook.
+
+    CEO 2026-09-07 · five-sheet spec. This previously read
+    "03_Exit_History" by hard-coded column ordinals; after the rename the
+    sheet lookup failed and the function returned [] SILENTLY, so the
+    research report rendered as "0 trades tagged" rather than as an error.
+    Now reads the unified EXIT sheet by header name through the shared
+    reader, which also guarantees R1 advisory and administrative rows stay
+    out of a production research population.
+    """
     xlsx = root / "reports" / "telegram" / f"aegis_history_{market.lower()}.xlsx"
-    if not xlsx.exists(): return []
-    wb = load_workbook(xlsx, read_only=True, data_only=True)
-    # CEO 2026-09-01 FINAL 3-sheet spec · read from 03_Exit_History
-    _sheet = "03_Exit_History"
-    if _sheet not in wb.sheetnames: wb.close(); return []
-    ws = wb[_sheet]
-    rows = list(ws.iter_rows(values_only=True))
-    out = []
-    for r in rows:
-        if not r or not r[0]: continue
-        pid = str(r[0])
-        if not (pid.upper().startswith("USA-") or pid.upper().startswith("IND-")):
-            continue
-        # cols: 0=PID 1=Ticker 2=Runner 3=Market 4=EntryDate 5=ExitDate
-        # 6=HoldingDays 7=EntryPrice 8=ExitPrice 9=RealizedPnL%
-        run = str(r[2] or "").upper() if len(r) > 2 else ""
-        if run != "R2": continue
-        try:
-            pnl = float(r[9]) if len(r) > 9 and r[9] not in (None, "", "—") else 0.0
-        except (TypeError, ValueError):
-            pnl = 0.0
-        try:
-            from datetime import date as _d
-            days = (_d.fromisoformat(str(r[5])[:10])
-                     - _d.fromisoformat(str(r[4])[:10])).days
-        except Exception:
-            days = 0
-        out.append({
-            "ticker": str(r[1] or "") if len(r) > 1 else "",
-            "sector": "",
-            "entry_date": str(r[4] or "")[:10] if len(r) > 4 else "",
-            "exit_date": str(r[5] or "")[:10] if len(r) > 5 else "",
-            "pnl_pct": round(pnl, 4),
-            "days": days,
-        })
-    wb.close()
-    return out
+    if not xlsx.exists():
+        return []
+    from backend.delivery import five_sheet_reader as _fsr
+    wb = _fsr.load(xlsx)
+    try:
+        return _fsr.r2_production_trades(wb)
+    except _fsr.SheetMissing:
+        return []
+    finally:
+        wb.close()
 
 
 def _benchmark_return_between(series_by_date: dict, start: str, end: str) -> float:

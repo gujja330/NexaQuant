@@ -108,8 +108,9 @@ class XlsxValidator:
             from backend.delivery.xlsx_contract import (
                 PORTFOLIO_SHEET_ALIASES, EXIT_HISTORY_SHEET_ALIASES)
         except Exception:
-            PORTFOLIO_SHEET_ALIASES = ("01_Portfolio", "Portfolio")
-            EXIT_HISTORY_SHEET_ALIASES = ("03_Exit_History", "Exit History (90d)")
+            PORTFOLIO_SHEET_ALIASES = ("R2", "01_Portfolio", "Portfolio")
+            EXIT_HISTORY_SHEET_ALIASES = ("EXIT", "03_Exit_History",
+                                            "Exit History (90d)")
         wb = self._wb_load()
         if wb is None: return None
         if logical_name in PORTFOLIO_SHEET_ALIASES:
@@ -199,10 +200,12 @@ class XlsxValidator:
         "Position ID":   ["Position ID"],
         "Ticker":        ["Stock", "Ticker"],
         "Sector":        ["Sector"],
-        "Runner":        ["Runner"],
+        "Runner":        ["Runner", "Source"],
         "Market":        ["Market", "Country"],
         "Entry Date":    ["Entry Date"],
         "Exit Date":     ["Exit Date"],
+        # EXIT names the runner column "Source" (R2 · R1 · ADVISORY ·
+        # MOMENTUM) because the sheet is unified across runners.
         "Holding Days":  ["Holding Days", "Days Held", "Days"],
         "Entry Price":   ["Entry Price", "Entry"],
         "Exit Price":    ["Exit Price", "Exit"],

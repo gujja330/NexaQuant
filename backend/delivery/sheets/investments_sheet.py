@@ -101,8 +101,17 @@ def _pit_atr(root: Path, market: str, ticker: str, asof: str) -> Optional[float]
 
 
 def _stop_cell(runner: str, entry_price, atr, has_dynamic_stop_upstream: bool = False,
-               upstream_stop: Optional[float] = None) -> tuple[str, str]:
-    """Return (cell_value, provenance_tag) · trichotomy per CEO 2026-09-03."""
+               upstream_stop: Optional[float] = None,
+               require_canonical: bool = False) -> tuple[str, str]:
+    """Return (cell_value, provenance_tag) · trichotomy per CEO 2026-09-03.
+
+    require_canonical · CEO 2026-09-07. Set True for R2 rows that are ALREADY
+    ACTIVE. Such a position has a trailed stop in dynamic_risk_v2 and that is
+    the only legitimate value · falling back to a fresh entry-anchored ATR stop
+    manufactures a number 01_Portfolio does not have and re-opens the exact
+    Investments-vs-Portfolio divergence this flag exists to close. Left False
+    for NEW BUY rows where an ATR initial stop IS the correct answer.
+    """
     if runner == "R1":
         stop = _stop_from_atr(entry_price, atr, k=2.0)
         if stop is not None:
@@ -111,6 +120,10 @@ def _stop_cell(runner: str, entry_price, atr, has_dynamic_stop_upstream: bool = 
     # R2 or Composite
     if has_dynamic_stop_upstream and upstream_stop:
         return (str(round(float(upstream_stop), 4)), "dynamic_risk_v2")
+    if require_canonical:
+        # Mirrors 01_Portfolio's "UNAVAILABLE · no canonical stop" → Action REVIEW.
+        return ("DATA_ERROR · no canonical dynamic_risk_v2 stop",
+                "missing_canonical_stop")
     stop = _stop_from_atr(entry_price, atr, k=2.0)
     if stop is not None:
         return (str(stop), "atr14_fallback_k2")
@@ -260,9 +273,17 @@ def build_investments_rows(root: Path, market: str, asof: str,
     # ── SECTION B · ACTIVE positions ──────────────────────────────
     active_rows: list[list] = []
     from scripts.build_aegis_3sheet_workbook import (
-        _load_sector_cache, _sector_for, _close_on_or_before,
+        _load_sector_cache, _sector_for, _close_on_or_before, _load_dynamic_risk,
     )
     sector_cache = _load_sector_cache(root)
+    # CEO 2026-09-07 · CANONICAL R2 STOP UNIFICATION.
+    # 01_Portfolio reads the authoritative trailed stop from dynamic_risk_v2.
+    # 01_Investments previously hardcoded `upstream_stop = None` and recomputed
+    # a FRESH entry-anchored ATR stop instead · so the two sheets reported
+    # different stop states for the same position as the canonical stop
+    # trailed (observed: BATAINDIA / CHAMBLFERT / ITC showed "EXIT · stop hit"
+    # in Investments while Portfolio showed "HOLD"). Same source now.
+    dr_by_pid = _load_dynamic_risk(root, market)
     for o in (reg_data.get("active") or []):
         ticker = str(o.ticker).upper()
         sector = _sector_for(sector_cache, market, o.ticker)
@@ -274,11 +295,18 @@ def build_investments_rows(root: Path, market: str, asof: str,
             days = (_date.fromisoformat(asof) - _date.fromisoformat(o.created_date)).days
         except Exception: pass
         atr = _pit_atr(root, market, o.ticker, o.created_date or asof)
-        # Use dynamic_risk_v2 stop if present via reg_data · else ATR fallback
-        upstream_stop = None
+        # CANONICAL R2 STOP · dynamic_risk_v2 is the single source of truth.
+        # Same lookup 01_Portfolio performs · keyed on opportunity_id.
+        _dr = dr_by_pid.get(getattr(o, "opportunity_id", "")) or {}
+        upstream_stop = _dr.get("stop")
+        try:
+            upstream_stop = float(upstream_stop) if upstream_stop is not None else None
+        except (TypeError, ValueError):
+            upstream_stop = None
         stop_val, stop_prov = _stop_cell(str(o.runner or "R2"), entry_p, atr,
-                                          has_dynamic_stop_upstream=False,
-                                          upstream_stop=upstream_stop)
+                                          has_dynamic_stop_upstream=upstream_stop is not None,
+                                          upstream_stop=upstream_stop,
+                                          require_canonical=True)
         target = _target_from_atr(entry_p, atr, m=3.0)
         stop_dist = None
         if isinstance(stop_val, str):
