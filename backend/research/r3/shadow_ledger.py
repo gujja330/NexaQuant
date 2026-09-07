@@ -6,8 +6,15 @@ Every daily R3 run appends its picks + calibrated probability to
 Portfolio, Exit History, or Telegram.
 
 Schema per line:
-  { asof, market, ticker, r3_score, r3_calibrated_p, action, model_id,
+  { runner, opportunity_id, shadow_only,
+    asof, market, ticker, r3_score, r3_calibrated_p, action, model_id,
     features_hash, ts_utc }
+
+CEO 2026-09-07 · R3-0 · `runner` and `opportunity_id` are MANDATORY.
+The R3-1 audit found records carried neither, so an R3 row was
+indistinguishable from an R2 row by schema alone and could not be
+rejected on identity by a production consumer. See
+docs/AEGIS/R3_BASELINE_READINESS.md (blocker B9).
 
 Consumed by:
   - r3.day30_gate  · Day-30 kill gate 2-of-3
@@ -42,6 +49,8 @@ def append_shadow_pick(root: Path, market: str, ticker: str, asof: str,
                        action: str, features: dict,
                        model_id: str = "aegis.r3.gbm_tier1.v1") -> dict:
     """Append one pick to the shadow ledger · idempotent per (asof,ticker,model)."""
+    from backend.research.r3.identity import stamp_identity
+
     ts = datetime.now(timezone.utc).isoformat(timespec="seconds")
     row = {
         "asof": asof,
@@ -54,11 +63,42 @@ def append_shadow_pick(root: Path, market: str, ticker: str, asof: str,
         "features_hash": _features_hash(features),
         "ts_utc": ts,
     }
+    # R3-0 identity · runner=R3 + canonical shadow Position ID.
+    stamp_identity(row, market, ticker, asof)
     p = _ledger_path(root)
-    # Dedupe on read · append-only on write
+    # IDEMPOTENCE (B11) · the docstring promised "idempotent per
+    # (asof,ticker,model)" but nothing enforced it · a re-run appended the
+    # whole day again, silently inflating the position count the Day-30
+    # gate measures. The R3 Position ID is deterministic per
+    # (market, ticker, asof), so it is the natural dedupe key.
+    if row["opportunity_id"] in _seen_ids(root):
+        return row
     with p.open("a", encoding="utf-8") as fh:
         fh.write(json.dumps(row) + "\n")
+    _seen_ids(root).add(row["opportunity_id"])
     return row
+
+
+# Per-path cache so a daily batch does not re-read the ledger per row.
+_SEEN_CACHE: dict = {}
+
+
+def _seen_ids(root: Path) -> set:
+    p = _ledger_path(root)
+    key = str(p)
+    if key not in _SEEN_CACHE:
+        ids = set()
+        if p.exists():
+            for line in p.read_text(encoding="utf-8",
+                                     errors="replace").splitlines():
+                if not line.strip():
+                    continue
+                try:
+                    ids.add(json.loads(line).get("opportunity_id"))
+                except ValueError:
+                    continue
+        _SEEN_CACHE[key] = ids
+    return _SEEN_CACHE[key]
 
 
 def read_shadow_ledger(root: Path, market: str = None) -> list[dict]:
