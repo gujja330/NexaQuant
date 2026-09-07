@@ -75,6 +75,28 @@ def test_five_sheet_names_are_pinned():
 # ── Momentum funnel ───────────────────────────────────────────────────
 
 
+FUNNEL_KEYS = ("n_universe", "n_evaluated", "n_unreadable",
+               "n_insufficient_history", "n_ignored_no_momentum")
+
+
+def test_momentum_report_declares_funnel_counters():
+    """CODE contract · the producer must DECLARE every funnel counter.
+
+    This is the hard gate and it always runs. The artifact test below is
+    deliberately allowed to skip on a pre-schema file, so this test is what
+    guarantees a regression (producer stops emitting counters) is caught
+    even on a day when no fresh artifact exists.
+    """
+    from dataclasses import fields
+    from backend.research.short_term_momentum import MomentumReport
+    declared = {f.name for f in fields(MomentumReport)}
+    missing = [k for k in FUNNEL_KEYS if k not in declared]
+    assert not missing, (
+        "MomentumReport no longer declares %s · the truthful funnel was "
+        "removed, and a total data failure would again be indistinguishable "
+        "from a quiet market" % missing)
+
+
 @pytest.mark.parametrize("market", ["india", "usa"])
 def test_producer_funnel_reconciles(market):
     """declared == unreadable + insufficient + evaluated, and
@@ -82,14 +104,26 @@ def test_producer_funnel_reconciles(market):
 
     A funnel that does not add up means tickers are vanishing silently ·
     exactly the condition that hid the 11-day producer outage.
+
+    SKIPS on an artifact written before the counters existed. That is not
+    a code defect: the committed momentum JSON can legitimately predate
+    this schema (on CI the delivery-test job runs before the market's own
+    producer step, and the other market's file is whatever was last
+    committed). The code contract is pinned by
+    `test_momentum_report_declares_funnel_counters` above, which never
+    skips · so a real regression still fails the suite.
     """
     p = ROOT / "reports" / "research" / ("short_term_momentum_%s.json" % market)
     if not p.exists():
         pytest.skip("producer artifact absent")
     d = json.loads(p.read_text(encoding="utf-8"))
-    for k in ("n_universe", "n_evaluated", "n_unreadable",
-              "n_insufficient_history", "n_ignored_no_momentum"):
-        assert k in d, "producer must publish %s" % k
+    missing = [k for k in FUNNEL_KEYS if k not in d]
+    if missing:
+        pytest.skip(
+            "artifact asof=%s predates the funnel-counter schema (missing "
+            "%s) · rebuild with `python -m "
+            "backend.research.short_term_momentum --market %s`"
+            % (d.get("asof"), missing, market))
     assert (d["n_unreadable"] + d["n_insufficient_history"]
             + d["n_evaluated"]) == d["n_universe"], (
         "declared universe does not reconcile: %s" % d)
@@ -109,6 +143,9 @@ def test_declared_universe_is_not_the_evaluated_count(market):
     if not p.exists():
         pytest.skip("producer artifact absent")
     d = json.loads(p.read_text(encoding="utf-8"))
+    if "n_evaluated" not in d:
+        pytest.skip("artifact asof=%s predates the funnel-counter schema"
+                    % d.get("asof"))
     assert d["n_universe"] >= d["n_evaluated"], (
         "evaluated cannot exceed the declared universe")
 

@@ -242,6 +242,33 @@ def _r1_confidence_map(root: Path, market: str) -> dict:
     return out
 
 
+# The engine's INVESTABLE verdict, across BOTH artifact schemas.
+#
+# CEO 2026-09-07 (correction) · `reports/recommendations.json` has two
+# possible producers and they do not share an action vocabulary:
+#   · the canonical SSoT bridge (backend/recommendation/ssot/guard.py,
+#     engine `aegis.recommendation.ssot.v1`) publishes the top-N v3 records
+#     with action BUY / HOLD;
+#   · the legacy DEV023 adaptive engine (research/recommendations/run.py)
+#     writes the full universe with action NEW_POSITION / NO_ACTION.
+# The SSoT bridge runs LAST in the pipeline and therefore wins. Reading
+# only NEW_POSITION — as the first version of this code did — meant the
+# canonical artifact yielded ZERO investable rows and the NEW section
+# silently emptied. Both vocabularies are accepted so the sheet is correct
+# whichever artifact is on disk.
+_INVESTABLE_ACTIONS = {
+    "NEW_POSITION", "BUY", "STRONG BUY", "STRONG-BUY", "ACCUMULATE",
+}
+
+
+def _is_investable(rec: dict) -> bool:
+    for key in ("action", "recommendation"):
+        v = str(rec.get(key) or "").upper().strip()
+        if v in _INVESTABLE_ACTIONS:
+            return True
+    return False
+
+
 def _daily_recommendations(root: Path, market: str) -> dict:
     """Canonical daily recommendation output · both markets.
 
@@ -276,6 +303,7 @@ def _daily_recommendations(root: Path, market: str) -> dict:
         return out
     recs = d.get("recommendations") or []
     asof = d.get("asof")
+    out["engine"] = d.get("engine")
     if not asof:
         # This artifact does not always stamp `asof` · fall back to the run
         # timestamp, then to file mtime, so freshness is ALWAYS reportable.
@@ -289,7 +317,7 @@ def _daily_recommendations(root: Path, market: str) -> dict:
         if not tk:
             continue
         out["by_ticker"][tk] = r
-        if str(r.get("action") or "").upper() == "NEW_POSITION":
+        if _is_investable(r):
             out["new_positions"].append(r)
     # Highest conviction first · the operator reads the top of the list.
     out["new_positions"].sort(
