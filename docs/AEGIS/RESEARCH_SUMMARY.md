@@ -1,6 +1,6 @@
 # AEGIS R1/R2/R3 Research Summary · Mechanically Recomputed
 
-*Recomputed: 2026-09-04 · single source: `backend/research/research_registry.py`*
+*Recomputed: 2026-09-07 · single source: `backend/research/research_registry.py`*
 
 **Total items in registry:** 53
 
