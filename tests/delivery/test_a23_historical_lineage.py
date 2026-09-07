@@ -284,3 +284,95 @@ def test_a23_deterministic_across_reruns(tmp_path):
     for _ in range(5):
         verdicts.add(_run_a23(tmp_path, "usa")["status"])
     assert len(verdicts) == 1
+
+
+# ── Layout matrix · CEO 2026-09-07 "make bulletproof" ────────────────
+#
+# A19/A23 blocked USA delivery because each carried its OWN sheet-name
+# lookup that the five-sheet rename missed, and A23 additionally resolved
+# the ticker by a hard-coded column ordinal. Fixing it naively then broke
+# the legacy fixture, whose ticker sits in column A with no header at all.
+#
+# These tests pin ALL THREE layouts simultaneously, so neither a rename
+# nor a column move can silently empty the Exit-History ticker set again.
+# An empty set is the dangerous failure: it makes every Registry-CLOSED
+# ticker look "silently lost" and blocks delivery on phantom losses.
+
+import pytest
+
+
+def _mk_wb(path, sheet, header_row, cols, ticker, ticker_col):
+    """Build a minimal exit sheet in a given layout."""
+    from openpyxl import Workbook
+    path.parent.mkdir(parents=True, exist_ok=True)
+    wb = Workbook()
+    wb.active.title = "Portfolio"
+    ws = wb.create_sheet(sheet)
+    ws.cell(1, 1, "title")
+    if cols:
+        for i, name in enumerate(cols, start=1):
+            ws.cell(header_row, i, name)
+    body = header_row + 1
+    ws.cell(body, ticker_col, ticker)
+    if ticker_col != 1:
+        ws.cell(body, 1, "R2")          # col A occupied so the body is seen
+    ws.cell(body, 10, 1.5)
+    wb.save(path)
+    return wb
+
+
+LAYOUTS = [
+    # (id, sheet name, header row, header cols, ticker column)
+    ("legacy_no_header", "Exit History (90d)", 5, None, 1),
+    ("three_sheet", "03_Exit_History", 4,
+     ["Position ID", "Stock", "Sector", "Runner"], 2),
+    ("five_sheet_EXIT", "EXIT", 5,
+     ["Source", "Stock", "Sector", "Entry Date"], 2),
+]
+
+
+@pytest.mark.parametrize("lid,sheet,hdr,cols,tcol", LAYOUTS,
+                         ids=[x[0] for x in LAYOUTS])
+def test_a23_finds_ticker_in_every_supported_layout(tmp_path, lid, sheet,
+                                                    hdr, cols, tcol):
+    """A23 must locate the Exit-History ticker in all supported layouts.
+
+    If it cannot, the body set is empty and every Registry-CLOSED name is
+    reported 'silently lost' · which is exactly what blocked USA delivery
+    on 2026-09-07 with 17 phantom losses.
+    """
+    _mk_wb(tmp_path / "reports" / "telegram" / "aegis_history_usa.xlsx",
+           sheet, hdr, cols, "PLTR", tcol)
+    _write_registry(tmp_path, [
+        {"ticker": "PLTR", "runner": "R2", "market": "usa",
+         "status": "CLOSED", "closed": "2026-08-15"},
+    ])
+    r = _run_a23(tmp_path, "usa")
+    assert r["status"] == "PASS", (
+        f"layout {lid}: A23 did not find PLTR in the Exit-History body · "
+        f"got {r}")
+
+
+def test_a23_still_stops_at_blank_in_five_sheet_layout(tmp_path):
+    """The blank-row stop must survive the five-sheet layout too."""
+    from openpyxl import Workbook
+    p = tmp_path / "reports" / "telegram" / "aegis_history_usa.xlsx"
+    p.parent.mkdir(parents=True, exist_ok=True)
+    wb = Workbook()
+    wb.active.title = "Portfolio"
+    ws = wb.create_sheet("EXIT")
+    ws.cell(1, 1, "title")
+    for i, name in enumerate(["Source", "Stock", "Sector"], start=1):
+        ws.cell(5, i, name)
+    ws.cell(6, 1, "R2"); ws.cell(6, 2, "PLTR"); ws.cell(6, 10, 1.5)
+    # blank row 7 · trailer below must not be scanned
+    ws.cell(9, 1, "R2"); ws.cell(9, 2, "GARBAGE_AFTER_BLANK")
+    wb.save(p)
+    _write_registry(tmp_path, [
+        {"ticker": "PLTR", "runner": "R2", "market": "usa",
+         "status": "CLOSED", "closed": "2026-08-15"},
+    ])
+    r = _run_a23(tmp_path, "usa")
+    assert r["status"] == "PASS", (
+        f"EXIT layout must stop at the first blank row · got {r}")
+    assert "GARBAGE_AFTER_BLANK" not in str(r.get("detail", ""))

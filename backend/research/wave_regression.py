@@ -435,8 +435,12 @@ def compute(root: Path, market: str, asof: str) -> WaveRegressionReport:
             _has_sector = False
             # CEO 2026-09-02 · sheet-name-agnostic · accept legacy
             # "Exit History (90d)" AND 3-sheet contract "03_Exit_History"
+            # CEO 2026-09-07 · five-sheet spec · "EXIT" is the unified
+            # exit sheet. Without it this lookup found nothing, _has_sector
+            # stayed False, and A19 blocked USA delivery even though the
+            # EXIT sheet does carry a Sector column.
             _eh_name = None
-            for _cand in ("03_Exit_History", "Exit History (90d)"):
+            for _cand in ("EXIT", "03_Exit_History", "Exit History (90d)"):
                 if _cand in wb.sheetnames:
                     _eh_name = _cand; break
             if _eh_name:
@@ -524,9 +528,10 @@ def compute(root: Path, market: str, asof: str) -> WaveRegressionReport:
             # CEO 2026-09-02 · sheet-name + header-name agnostic ·
             # 3-sheet layout: 03_Exit_History · Ticker at header-lookup
             # legacy layout: Exit History (90d) · Ticker at col A
+            # CEO 2026-09-07 · five-sheet spec · EXIT header is row 5.
             _eh_sheet_a22 = None
             _hdr_row_eh = 5
-            for _cand in ("03_Exit_History", "Exit History (90d)"):
+            for _cand in ("EXIT", "03_Exit_History", "Exit History (90d)"):
                 if _cand in wb.sheetnames:
                     _eh_sheet_a22 = _cand
                     _hdr_row_eh = 4 if _cand == "03_Exit_History" else 5
@@ -680,19 +685,43 @@ def compute(root: Path, market: str, asof: str) -> WaveRegressionReport:
                 # "Exit History (90d)" AND 3-sheet contract "03_Exit_History"
                 # 3-sheet layout: col A is Position ID (PID) · col B is Ticker/Stock
                 # legacy layout: col A is Ticker directly
+                # CEO 2026-09-07 · five-sheet spec. This block located the
+                # sheet by name and the ticker by a HARD-CODED ordinal
+                # (col B). Under the EXIT layout col B is still Stock, but
+                # the sheet name changed, so nothing was found: _in_eh was
+                # empty and every Registry-CLOSED ticker looked "silently
+                # lost", blocking USA delivery on 17 phantom losses.
+                # Resolve the ticker column by HEADER NAME so a future
+                # column move cannot reproduce this.
                 _eh_sheet_name = None
                 _pid_col = False
-                for _cand in ("03_Exit_History", "Exit History (90d)"):
+                for _cand in ("EXIT", "03_Exit_History", "Exit History (90d)"):
                     if _cand in _wb2.sheetnames:
                         _eh_sheet_name = _cand
-                        _pid_col = (_cand == "03_Exit_History")
+                        _pid_col = (_cand in ("EXIT", "03_Exit_History"))
                         break
                 if _eh_sheet_name:
                     _eh_ws = _wb2[_eh_sheet_name]
-                    # 3-sheet header is row 4 · body starts row 5
-                    # legacy header is row 5 · body starts row 6
-                    _start = 5 if _pid_col else 6
-                    _tk_col = 2 if _pid_col else 1   # PID at A · Ticker at B for 3-sheet
+                    # Layout resolution · three layouts must all work:
+                    #   legacy  "Exit History (90d)"  header@5  ticker@A
+                    #   3-sheet "03_Exit_History"     header@4  ticker@B
+                    #   5-sheet "EXIT"                header@5  ticker@B
+                    # Start from the layout default, then OVERRIDE from a
+                    # real header row when one exists. The defaults matter:
+                    # synthetic fixtures write body rows with no header at
+                    # all, and assuming a header would lose their ticker.
+                    _hdr_r = 4 if _eh_sheet_name == "03_Exit_History" else 5
+                    _tk_col = 2 if _pid_col else 1
+                    for _try_r in range(1, min(_eh_ws.max_row, 12) + 1):
+                        _probe = [str(_eh_ws.cell(_try_r, c).value or "").strip()
+                                  for c in range(1, _eh_ws.max_column + 1)]
+                        if "Stock" in _probe or "Ticker" in _probe:
+                            _hdr_r = _try_r
+                            _tk_col = ((_probe.index("Stock") + 1)
+                                       if "Stock" in _probe
+                                       else (_probe.index("Ticker") + 1))
+                            break
+                    _start = _hdr_r + 1
                     for _r_idx in range(_start, _eh_ws.max_row + 1):
                         _v_first = _eh_ws.cell(_r_idx, 1).value
                         if _v_first is None or str(_v_first).strip() == "":

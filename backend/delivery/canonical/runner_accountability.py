@@ -154,41 +154,67 @@ def compute_runner_accounting(root: Path, market: str,
     from openpyxl import load_workbook
     xlsx_p = root / "reports" / "telegram" / f"aegis_history_{market_l}.xlsx"
     exit_rows = []
+    # CEO 2026-09-07 · five-sheet spec. This previously looked up only the
+    # legacy "Exit History (90d)" tab; under the current layout the tab is
+    # "EXIT", so the lookup found nothing and exit_rows stayed EMPTY. That
+    # is a silent zero, not an error: runner accountability reported "no
+    # exits" to local certification while 479 real USA exits sat in the
+    # workbook. Reads by header name through the shared five-sheet reader,
+    # with the legacy tab still supported for archived workbooks.
     if xlsx_p.exists():
+        from backend.delivery import five_sheet_reader as _fsr
         wb = load_workbook(xlsx_p, read_only=True, data_only=True)
-        if "Exit History (90d)" in wb.sheetnames:
-            ws = wb["Exit History (90d)"]
+        _sheet = next((n for n in (_fsr.SHEET_EXIT, "03_Exit_History",
+                                   "Exit History (90d)")
+                       if n in wb.sheetnames), None)
+        if _sheet:
+            ws = wb[_sheet]
             rows = list(ws.iter_rows(values_only=True))
             hdr_idx = None
             for i, r in enumerate(rows):
-                if r[0] and "Stock" in str(r[0]):
+                cells = {str(c).strip() for c in r if c is not None}
+                if "Stock" in cells or "Ticker" in cells:
                     hdr_idx = i; break
             if hdr_idx is not None:
                 hdr = rows[hdr_idx]
-                def col(name):
-                    for i, c in enumerate(hdr):
-                        if c and str(c).strip().lower() == name.lower():
-                            return i
+                def col(*names):
+                    for name in names:
+                        for i, c in enumerate(hdr):
+                            if c and str(c).strip().lower() == name.lower():
+                                return i
                     return None
-                c_tk = col("Stock")
-                c_run = col("Runner")
+                c_tk = col("Stock", "Ticker")
+                # EXIT names the runner column "Source" · it is unified
+                # across runners, so R1 rows arrive labelled "R1 · ADVISORY".
+                c_run = col("Runner", "Source")
                 c_ent = col("Entry Date")
                 c_exit = col("Exit Date")
-                c_days = col("Days Held")
-                c_pnl = col("P&L %")
-                c_reason = col("Exit Reason")
+                c_days = col("Holding Days", "Days Held", "Days")
+                c_pnl = col("Realized P&L %", "P&L %", "P&L")
+                c_reason = col("Exit Reason", "Reason")
                 for r in rows[hdr_idx + 1:]:
-                    if not r[c_tk]: continue
-                    tk = str(r[c_tk])
-                    if not tk.replace("-", "").isalnum(): continue
-                    row_run = str(r[c_run] or "").upper() if c_run is not None else ""
+                    if c_tk is None or c_tk >= len(r) or not r[c_tk]:
+                        continue
+                    tk = str(r[c_tk]).strip()
+                    if not tk.replace("-", "").replace(".", "").isalnum():
+                        continue
+                    _raw_run = (str(r[c_run] or "").upper()
+                                if c_run is not None and c_run < len(r) else "")
+                    # Normalise "R1 · ADVISORY" -> "R1" so the runner filter
+                    # keeps working against the unified sheet.
+                    row_run = ("R1" if _raw_run.startswith("R1")
+                               else "R2" if _raw_run.startswith("R2")
+                               else _raw_run)
                     if runner_filter == "COMBINED":
                         if row_run not in ("R1", "R2"): continue
                     else:
                         if row_run != runner_filter: continue
-                    pnl = r[c_pnl] if c_pnl is not None and isinstance(r[c_pnl], (int, float)) else None
-                    days = r[c_days] if c_days is not None and isinstance(r[c_days], (int, float)) else None
-                    reason = str(r[c_reason] or "") if c_reason is not None else ""
+                    pnl = (r[c_pnl] if c_pnl is not None and c_pnl < len(r)
+                           and isinstance(r[c_pnl], (int, float)) else None)
+                    days = (r[c_days] if c_days is not None and c_days < len(r)
+                            and isinstance(r[c_days], (int, float)) else None)
+                    reason = (str(r[c_reason] or "")
+                              if c_reason is not None and c_reason < len(r) else "")
                     exit_rows.append({"pnl_pct": pnl, "days": days, "reason": reason,
                                        "ticker": tk, "runner": row_run})
         wb.close()
