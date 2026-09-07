@@ -166,6 +166,7 @@ class Views:
     r1_new: list = field(default_factory=list)
     momentum: dict = field(default_factory=dict)
     daily_recs: dict = field(default_factory=dict)
+    freshness: dict = field(default_factory=dict)
     exits: list = field(default_factory=list)
     reconciliation: dict = field(default_factory=dict)
     blockers: list = field(default_factory=list)
@@ -347,6 +348,29 @@ def _daily_recommendations(root: Path, market: str) -> dict:
     return out
 
 
+def _read_freshness(root: Path) -> dict:
+    """Read the universal data-freshness scan · measurement only."""
+    p = root / "reports" / "context" / "data_freshness.json"
+    if not p.exists():
+        return {}
+    try:
+        d = json.loads(p.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    c = d.get("counts") or {}
+    worst = d.get("worst_offenders") or []
+    return {
+        "today": d.get("today"),
+        "n_artifacts": d.get("n_artifacts"),
+        "n_fresh": c.get("FRESH", 0),
+        "n_stale": c.get("STALE", 0),
+        "n_missing": c.get("MISSING", 0),
+        "n_steps_unverifiable": d.get("n_steps_unverifiable", 0),
+        "worst": [(w.get("artifact"), w.get("age_trading_days"))
+                  for w in worst[:5]],
+    }
+
+
 def _pct(a: Optional[float], b: Optional[float]) -> Optional[float]:
     """(a/b - 1) * 100 · None-safe."""
     try:
@@ -380,6 +404,11 @@ def build_views(root: Path, market: str, asof: str, reg_data: dict,
     sector_cache = _load_sector_cache(root)
     r1_conf = _r1_confidence_map(root, m)
     v.daily_recs = _daily_recommendations(root, m)
+    # CEO 2026-09-07 · surface the universal data-freshness scan on the
+    # operator's daily sheet. Six producer outages were found in one day,
+    # every one silent because a green pipeline step and a stale artifact
+    # look identical from the workbook. Now they do not.
+    v.freshness = _read_freshness(root)
     _rec_by_tk = v.daily_recs["by_ticker"]
     if v.daily_recs["asof"] and v.daily_recs["asof"] != asof:
         v.daily_recs["stale"] = True
@@ -1147,17 +1176,37 @@ def emit_daily_recommendation(wb, v: Views):
                     len(dr.get("new_positions") or []),
                     "🔴 STALE" if dr.get("stale") else "🟢 FRESH"))
     _sub(ws, _rec_line, len(hdr), 3)
-    r_note = 4
+    fr = v.freshness or {}
+    if fr:
+        _icon = "🔴" if (fr.get("n_stale") or fr.get("n_missing")) else "🟢"
+        _worst = " · ".join(f"{a} ({n}td)" for a, n in (fr.get("worst") or [])[:3])
+        _sub(ws, ("%s DATA FRESHNESS · %s of %s artifacts fresh · STALE %s · "
+                  "MISSING %s · %s pipeline steps declare no artifact "
+                  "(unverifiable)%s"
+                  % (_icon, fr.get("n_fresh"), fr.get("n_artifacts"),
+                     fr.get("n_stale"), fr.get("n_missing"),
+                     fr.get("n_steps_unverifiable"),
+                     (" · worst: " + _worst) if _worst else "")),
+             len(hdr), 4)
+        r_note = 5
+    else:
+        r_note = 4
     if v.blockers:
         _sub(ws, "⚠ BLOCKERS: " + " || ".join(v.blockers), len(hdr), r_note)
     else:
         _sub(ws, "✅ No data blockers · every canonical source present and fresh.",
              len(hdr), r_note)
-    _header(ws, hdr, 5)
+    # Header sits BELOW the last banner line. Adding the data-freshness
+    # line pushed the blocker line onto row 5, and writing the header into
+    # those merged cells raised "MergedCell attribute is read-only" · the
+    # sheet then rendered without freshness at all. Every consumer locates
+    # this header by CONTENT, not by row number, so moving it is safe.
+    _hdr_row = r_note + 1
+    _header(ws, hdr, _hdr_row)
     for i, w in enumerate([12, 12, 18, 20, 13, 11, 13, 17, 12, 10, 30,
                             12, 46], 1):
         ws.column_dimensions[get_column_letter(i)].width = w
-    r = 6
+    r = _hdr_row + 1
     for row in rows:
         _write_row(ws, row, r, pnl_col_idx=6)
         r += 1

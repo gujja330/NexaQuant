@@ -603,6 +603,23 @@ STEPS = [
         "optional": True,
     },
     {
+        # CEO 2026-09-07 · "i need a 100% solution". Six silent producer
+        # outages were found in one day; each pipeline step went green
+        # while its artifact stayed old. This measures EVERY artifact the
+        # pipelines declare, in trading days, against the artifact's own
+        # as-of. Runs immediately before the workbook so the operator sheet
+        # can surface the result the same cycle.
+        "name":       "data_freshness_monitor",
+        "desc":       ("Universal data-freshness scan · every declared "
+                        "artifact · trading-day age · flags STALE/MISSING "
+                        "and steps that declare nothing"),
+        "script":     "backend/observability/data_freshness.py",
+        "script_args": [],
+        "produces":   ["reports/context/data_freshness.json"],
+        "requires":   [],
+        "optional":   True,
+    },
+    {
         "name": "aegis_3sheet_workbook",
         "desc": ("Build canonical FIVE-sheet workbook (R1 · R2 · MOMENTUM · "
                     "DAILY RECOMMENDATION · EXIT) · CEO 2026-09-07. Reads the "
@@ -786,17 +803,72 @@ def _check_requires(step: dict) -> list[str]:
     return missing
 
 
+def _artifact_asof(p) -> str | None:
+    """The artifact's OWN as-of stamp, when it declares one.
+
+    CEO 2026-09-07 · mtime is not freshness. A step that rewrites an
+    identical or stale payload every day changes mtime and therefore
+    looked "refreshed" · which is why SUCCESS_NO_REFRESH never once fired
+    in 50 recorded runs while artifacts sat 33 trading days stale. The
+    content stamp cannot be faked by a rewrite.
+    """
+    try:
+        if p.suffix.lower() == ".json":
+            import json as _j
+            d = _j.loads(p.read_text(encoding="utf-8"))
+            if isinstance(d, dict):
+                for k in ("asof", "as_of", "date", "reporting_date"):
+                    v = d.get(k)
+                    if isinstance(v, str) and len(v) >= 10:
+                        return v[:10]
+        elif p.suffix.lower() == ".jsonl":
+            import json as _j
+            last = None
+            for line in p.read_text(encoding="utf-8",
+                                        errors="replace").splitlines():
+                if line.strip():
+                    last = line
+            if last:
+                d = _j.loads(last)
+                for k in ("asof", "as_of", "date"):
+                    v = d.get(k)
+                    if isinstance(v, str) and len(v) >= 10:
+                        return v[:10]
+    except Exception:
+        return None
+    return None
+
+
 def _check_produced(step: dict, before_mtimes: dict[str, str | None]) -> dict:
-    """Verify each declared artifact was refreshed since `before_mtimes` was captured."""
+    """Verify each declared artifact was refreshed since `before_mtimes`.
+
+    TWO independent checks, because they catch different failures:
+      · mtime changed          · the step wrote something at all
+      · content as-of is today · what it wrote is actually current
+    A step passes only when BOTH hold for every artifact that carries an
+    as-of. Artifacts with no internal stamp fall back to mtime alone and
+    are marked so, rather than being silently credited as fresh.
+    """
+    from datetime import date as _date
+    _today = _date.today().isoformat()
     results = {}
     for art in step.get("produces", []):
         p = _ROOT / art
         after = _mtime_iso(p)
         before = before_mtimes.get(art)
         exists = p.exists()
-        refreshed = exists and (before != after)
-        results[art] = {"exists": exists, "before": before,
-                          "after": after, "refreshed": refreshed}
+        mtime_changed = exists and (before != after)
+        asof = _artifact_asof(p) if exists else None
+        if asof is None:
+            content_fresh = None          # unverifiable · no internal stamp
+            refreshed = mtime_changed
+        else:
+            content_fresh = (asof >= _today)
+            refreshed = mtime_changed and content_fresh
+        results[art] = {"exists": exists, "before": before, "after": after,
+                          "mtime_changed": mtime_changed, "asof": asof,
+                          "content_fresh": content_fresh,
+                          "refreshed": refreshed}
     return results
 
 
@@ -911,13 +983,29 @@ def _run_step(step: dict, dry_run: bool = False) -> dict:
             for line in r.stderr.splitlines():
                 print(f"  ERR: {line}")
         produced = _check_produced(step, before_mtimes)
-        all_refreshed = all(v["refreshed"] for v in produced.values()) if produced else True
-        if r.returncode == 0 and all_refreshed:
-            verdict = "SUCCESS"
-        elif r.returncode == 0 and not all_refreshed:
-            verdict = "SUCCESS_NO_REFRESH"
+        if not produced:
+            # A step declaring no artifacts cannot be verified at all. It
+            # previously auto-passed as SUCCESS · 20 such steps exist, and
+            # each is a blind spot. Say so instead of pretending.
+            all_refreshed = True
+            _unverifiable = True
         else:
+            all_refreshed = all(v["refreshed"] for v in produced.values())
+            _unverifiable = False
+        _stale_content = any(v.get("content_fresh") is False
+                                for v in produced.values())
+        if r.returncode != 0:
             verdict = "FAILURE"
+        elif _unverifiable:
+            verdict = "SUCCESS_UNVERIFIABLE"
+        elif all_refreshed:
+            verdict = "SUCCESS"
+        elif _stale_content:
+            # Wrote a file, but the content is not today's · the exact
+            # failure that let six producers go silently stale.
+            verdict = "SUCCESS_STALE_CONTENT"
+        else:
+            verdict = "SUCCESS_NO_REFRESH"
         rc = r.returncode
     except subprocess.TimeoutExpired as e:
         elapsed = time.perf_counter() - t0
