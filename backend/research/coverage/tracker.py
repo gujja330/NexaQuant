@@ -53,6 +53,15 @@ COVERAGE_MAP = {
     ("R3", "Tier-1 GBM baseline"):                "Implemented",
     ("R3", "Baseline replication gate"):          "Implemented",
     ("R3", "Day-30 evidence gate"):               "Mapped",
+    # Lane A / Lane C · now wired and accumulating (CEO 2026-09-07)
+    ("R3", "Lane A · daily PIT accumulation"):    "Populated",
+    ("R3", "Lane C · forward validation clock"):  "Populated",
+    # Lane B · acquisition tracks · specs frozen, no collector written
+    ("R3", "Lane B · FII/DII acquisition"):       "Data-required",
+    ("R3", "Lane B · options PCR acquisition"):   "Data-required",
+    ("R3", "Lane B · short interest USA"):        "Data-required",
+    ("R3", "Lane B · short proxy India"):         "Mapped",
+    ("R3", "Lane B · earnings calendar"):         "Data-required",
 
     # Domain 1 · Business quality
     ("D01", "Revenue growth"):       "Populated",     # yfinance income series present

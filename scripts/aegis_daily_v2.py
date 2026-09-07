@@ -713,11 +713,43 @@ STEPS = [
         # NEVER writes to R1/R2 paths (guarded by test_runner3_isolation).
         # Optional so a Runner 3 failure never blocks R1/R2 Telegram delivery.
         # Not visible in Telegram XLSX until Day-90 gate cleared by CEO.
+        # NON-CANONICAL as of CEO 2026-09-07 · retained ONLY for its risk
+        # fields and the 3-runner comparator, pending port into canonical
+        # R3. It trains no model ("logging feature snapshots only") and is
+        # no longer the R3 evidence accumulator · that is
+        # r3_canonical_daily_shadow below. Do not add features here.
         "name":       "runner3_shadow",
-        "desc":       "Runner 3 shadow · picks + Day-30 gate + 3-runner comparison (isolated)",
+        "desc":       "Runner 3 legacy shadow · NON-CANONICAL · comparator/risk fields only (isolated)",
         "script":     "backend/recommendation/runner3/run.py",
         "script_args": ["--market", "india"],
         "produces":   [],     # reports/research/runner3/* · isolated dir
+        "requires":   ["reports/recommendations.json"],
+        "optional":   True,
+    },
+    {
+        # CEO 2026-09-07 · R3 Sprint 1 · Lane A (daily PIT accumulation)
+        # + Lane C (forward validation). THE canonical R3 daily driver.
+        #
+        # Runs BOTH markets · the legacy step above was India-only, so USA
+        # had no R3 daily accumulation at all.
+        #
+        # Writes a PIT feature snapshot every day whether or not a model
+        # has trained. That is deliberate: walk-forward currently cannot
+        # run because the dataset is a single cross-section, and only
+        # daily snapshots create the time dispersion that fixes it. The
+        # previous feed gated writes on training success, so the fix for
+        # the blocker was gated on the blocker.
+        #
+        # Forward predictions are written only when a serialized artifact
+        # exists · otherwise action=NO_MODEL, never a fabricated number.
+        # Also fills any outcome horizon that has closed.
+        "name":       "r3_canonical_daily_shadow",
+        "desc":       ("R3 CANONICAL daily shadow · PIT snapshot + forward "
+                        "prediction + outcome accumulation (both markets · "
+                        "shadow-only · isolated)"),
+        "script":     "scripts/r3_daily_shadow_feed.py",
+        "script_args": ["--market", "both"],
+        "produces":   ["reports/research/r3/shadow_ledger.jsonl"],
         "requires":   ["reports/recommendations.json"],
         "optional":   True,
     },
