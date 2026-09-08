@@ -2,18 +2,18 @@
 
 *Recomputed: 2026-09-08 · single source: `backend/research/research_registry.py`*
 
-**Total items in registry:** 53
+**Total items in registry:** 73
 
 ## Grand totals (mechanical · sums equal total)
 
 | State | Count |
 |---|---:|
 | WORKED_LEGACY | 38 |
+| PENDING | 24 |
 | REJECTED | 9 |
-| PENDING | 4 |
 | CONDITIONAL | 1 |
 | BLOCKED | 1 |
-| **Sum** | **53** |
+| **Sum** | **73** |
 | Reconciles? | **✅ YES** |
 
 ## Per runner
@@ -25,7 +25,7 @@
 | FUNDAMENTALS | 0 | 0 | 0 | 3 | 1 | **4** |
 | R1 | 0 | 0 | 0 | 0 | 7 | **7** |
 | R2 | 0 | 1 | 0 | 2 | 9 | **12** |
-| R3 | 0 | 0 | 4 | 1 | 8 | **13** |
+| R3 | 0 | 0 | 24 | 1 | 8 | **33** |
 | STANDALONE | 1 | 0 | 0 | 0 | 4 | **5** |
 
 ## STP verdict → 13-stage Coverage Tracker mapping (single vocabulary)
@@ -72,6 +72,26 @@
 | II.4-GOV | R3 | II.4 | Governance India screen | **WORKED_LEGACY** |
 | II.5-REV | R3 | II.5 | Analyst estimate revision momentum | **WORKED_LEGACY** |
 | II.5-TONE | R3 | II.5 | Transcript tone Q&A | **WORKED_LEGACY** |
+| R3-INFRA-ID | R3 | Infra | R3 identity · Position ID namespace | **PENDING** |
+| R3-INFRA-ISO | R3 | Infra | R3 isolation contract | **PENDING** |
+| R3-INFRA-LEDGER | R3 | Infra | Canonical shadow ledger schema v2 | **PENDING** |
+| R3-INFRA-PERSIST | R3 | Infra | Shadow ledger persistence | **PENDING** |
+| R3-INFRA-OUTCOME | R3 | Infra | Outcome accumulator (evidence clock) | **PENDING** |
+| R3-INFRA-PLATT | R3 | Infra | Platt calibration (real sigmoid) | **PENDING** |
+| R3-INFRA-WF | R3 | Infra | Walk-forward + 5-day embargo | **PENDING** |
+| R3-INFRA-REPRO | R3 | Infra | Reproducible model artifact | **PENDING** |
+| R3-T1-FEATURES | R3 | Infra | Tier-1 feature contract (24 audited) | **PENDING** |
+| R3-T1-HORIZON | R3 | Infra | R3-1A frozen replication target | **PENDING** |
+| R3-T1-DATA | R3 | Infra | Tier-1 training-sample dispersion | **PENDING** |
+| R3-B1-FIIDII | R3 | LaneB | FII/DII flow acquisition (India) | **PENDING** |
+| R3-B2-PCR | R3 | LaneB | Options PCR acquisition | **PENDING** |
+| R3-B3-SHORT-USA | R3 | LaneB | Short interest acquisition (USA) | **PENDING** |
+| R3-B3-SHORT-INDIA | R3 | LaneB | Short proxy research (India) | **PENDING** |
+| R3-B4-EARNINGS | R3 | LaneB | Earnings calendar acquisition | **PENDING** |
+| R3-LANE-A | R3 | Infra | Lane A · daily PIT accumulation | **PENDING** |
+| R3-LANE-C | R3 | Infra | Lane C · forward validation clock | **PENDING** |
+| R3-LANE-A-FEATURES | R3 | Infra | Lane A feature-substrate coverage | **PENDING** |
+| R3-T1-TECHNICALS | R3 | Infra | Tier-1 universe-wide PIT technicals | **PENDING** |
 | II.6-MH | R3 | II.6 | Multi-horizon consensus | **WORKED_LEGACY** |
 | F01-05-COMP | FUNDAMENTALS | F01-05 | F01-05 Composite (Piotroski + FCF + IntCov − Beneish) | **REJECTED** |
 | F01-05-GRID | FUNDAMENTALS | F01-05 | F01-05 Filter Grid (11 threshold variants) | **REJECTED** |
