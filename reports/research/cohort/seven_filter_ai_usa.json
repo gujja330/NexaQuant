@@ -1,0 +1,1213 @@
+{
+  "schema_version": "aegis.research.seven_filter_ai.v1",
+  "experiment_family": "R3E_SEVEN_FILTER_V1",
+  "status": "RESEARCH ONLY \u00b7 human filters are the baseline to beat",
+  "market": "usa",
+  "horizon": "fwd_10d_pct",
+  "generated_utc": "2026-09-08T12:19:09+00:00",
+  "filters_computed": [
+    "sales_growth_gt10",
+    "profit_growth_gt10",
+    "roe_gt15",
+    "de_lt05",
+    "positive_cashflow"
+  ],
+  "filters_not_computable": {
+    "reasonable_pe": "no PIT share count \u00b7 no P/E possible",
+    "no_governance_concerns": "no governance dataset exists"
+  },
+  "lag_sensitivity": {
+    "lags_tested": [
+      30,
+      45,
+      60
+    ],
+    "n_by_lag": {
+      "30": 490,
+      "45": 490,
+      "60": 490
+    },
+    "population_mean_by_lag": {
+      "30": 0.453,
+      "45": 0.453,
+      "60": 0.453
+    },
+    "note": "a longer assumed lag admits fewer rows, so sample statistics MUST move \u00b7 only a sign flip is evidence that a conclusion depends on the assumption",
+    "per_dimension": {
+      "cash_conversion_gt1": {
+        "delta_mean_pp_by_lag": {
+          "30": 1.104,
+          "45": 1.104,
+          "60": 1.104
+        },
+        "sign_stable": true
+      },
+      "leverage_falling": {
+        "delta_mean_pp_by_lag": {
+          "30": -0.948,
+          "45": -0.948,
+          "60": -0.948
+        },
+        "sign_stable": true
+      },
+      "positive_surprise": {
+        "delta_mean_pp_by_lag": {
+          "30": 0.4,
+          "45": 0.4,
+          "60": 0.4
+        },
+        "sign_stable": true
+      },
+      "roe_accelerating": {
+        "delta_mean_pp_by_lag": {
+          "30": -1.178,
+          "45": -1.178,
+          "60": -1.178
+        },
+        "sign_stable": true
+      },
+      "roe_rising": {
+        "delta_mean_pp_by_lag": {
+          "30": 0.125,
+          "45": 0.125,
+          "60": 0.125
+        },
+        "sign_stable": true
+      },
+      "sales_accelerating": {
+        "delta_mean_pp_by_lag": {
+          "30": -0.898,
+          "45": -0.898,
+          "60": -0.898
+        },
+        "sign_stable": true
+      }
+    },
+    "dimensions_that_flip_sign": [],
+    "conclusion_stable_across_lags": true
+  },
+  "by_lag": {
+    "30": {
+      "lag_days": 30,
+      "n": 490,
+      "n_tickers": 235,
+      "severe_cut_pct": -6.32,
+      "population": {
+        "n": 490,
+        "n_tickers": 235,
+        "mean_fwd_pct": 0.453,
+        "median_fwd_pct": 0.185,
+        "win_rate_pct": 53.3,
+        "severe_loss_rate_pct": 10.0
+      },
+      "baseline_by_filters_passed": {
+        "0": {
+          "n": 11,
+          "n_tickers": 6,
+          "mean_fwd_pct": 1.337,
+          "median_fwd_pct": 0.522,
+          "win_rate_pct": 72.7,
+          "severe_loss_rate_pct": 0.0
+        },
+        "1": {
+          "n": 123,
+          "n_tickers": 62,
+          "mean_fwd_pct": 1.207,
+          "median_fwd_pct": 0.09,
+          "win_rate_pct": 51.2,
+          "severe_loss_rate_pct": 8.1
+        },
+        "2": {
+          "n": 181,
+          "n_tickers": 82,
+          "mean_fwd_pct": 0.43,
+          "median_fwd_pct": 0.526,
+          "win_rate_pct": 55.8,
+          "severe_loss_rate_pct": 10.5
+        },
+        "3": {
+          "n": 108,
+          "n_tickers": 55,
+          "mean_fwd_pct": -0.148,
+          "median_fwd_pct": -0.413,
+          "win_rate_pct": 47.2,
+          "severe_loss_rate_pct": 9.3
+        },
+        "4": {
+          "n": 58,
+          "n_tickers": 30,
+          "mean_fwd_pct": 0.134,
+          "median_fwd_pct": 1.432,
+          "win_rate_pct": 60.3,
+          "severe_loss_rate_pct": 17.2
+        },
+        "5": {
+          "n": 9,
+          "n_tickers": 3,
+          "mean_fwd_pct": -1.22,
+          "median_fwd_pct": -0.955,
+          "win_rate_pct": 33.3,
+          "severe_loss_rate_pct": 0.0
+        }
+      },
+      "baseline_caveat": "The seven filters are a MULTI-YEAR ownership thesis. This cohort measures fwd_10d_pct. A filter set can be entirely correct about five-year compounding and carry no signal - or an inverted one - over ten trading days, because short-horizon returns are dominated by momentum and flow. Any monotonicity seen here is a statement about this horizon only, and must NOT be read as a verdict on the filters themselves.",
+      "dimension_tests": {
+        "roe_rising": {
+          "with": {
+            "n": 315,
+            "n_tickers": 151,
+            "mean_fwd_pct": 0.497,
+            "median_fwd_pct": 0.034,
+            "win_rate_pct": 50.8,
+            "severe_loss_rate_pct": 11.7
+          },
+          "without": {
+            "n": 175,
+            "n_tickers": 84,
+            "mean_fwd_pct": 0.372,
+            "median_fwd_pct": 0.525,
+            "win_rate_pct": 57.7,
+            "severe_loss_rate_pct": 6.9
+          },
+          "delta_mean_pp": 0.125,
+          "delta_severe_pp": 4.8,
+          "mannwhitney_p_row_level": 0.333971,
+          "within_ticker": {
+            "n_tickers_paired": 0,
+            "verdict": "UNPAIRABLE \u00b7 fewer than 5 names carry both states"
+          },
+          "ticker_constant": true,
+          "unit_of_analysis": "ticker",
+          "ticker_level": {
+            "n_tickers_with": 151,
+            "n_tickers_without": 84,
+            "mean_of_ticker_means_with_pct": 0.291,
+            "mean_of_ticker_means_without_pct": 0.56,
+            "delta_pp": -0.269,
+            "mannwhitney_p_ticker_level": 0.461239
+          },
+          "mannwhitney_p": 0.461239,
+          "row_level_p_invalid_because": "predicate never changes within any name \u00b7 rows are not independent units",
+          "bh_q": 0.4612,
+          "significant_after_fdr": false
+        },
+        "roe_accelerating": {
+          "with": {
+            "n": 273,
+            "n_tickers": 132,
+            "mean_fwd_pct": -0.069,
+            "median_fwd_pct": -0.151,
+            "win_rate_pct": 48.4,
+            "severe_loss_rate_pct": 13.2
+          },
+          "without": {
+            "n": 217,
+            "n_tickers": 104,
+            "mean_fwd_pct": 1.109,
+            "median_fwd_pct": 0.531,
+            "win_rate_pct": 59.4,
+            "severe_loss_rate_pct": 6.0
+          },
+          "delta_mean_pp": -1.178,
+          "delta_severe_pp": 7.2,
+          "mannwhitney_p_row_level": 0.015362,
+          "within_ticker": {
+            "n_tickers_paired": 0,
+            "verdict": "UNPAIRABLE \u00b7 fewer than 5 names carry both states"
+          },
+          "ticker_constant": false,
+          "unit_of_analysis": "row",
+          "mannwhitney_p": 0.015362,
+          "bh_q": 0.0922,
+          "significant_after_fdr": false
+        },
+        "sales_accelerating": {
+          "with": {
+            "n": 316,
+            "n_tickers": 150,
+            "mean_fwd_pct": 0.134,
+            "median_fwd_pct": 0.185,
+            "win_rate_pct": 52.8,
+            "severe_loss_rate_pct": 13.0
+          },
+          "without": {
+            "n": 174,
+            "n_tickers": 86,
+            "mean_fwd_pct": 1.032,
+            "median_fwd_pct": 0.285,
+            "win_rate_pct": 54.0,
+            "severe_loss_rate_pct": 4.6
+          },
+          "delta_mean_pp": -0.898,
+          "delta_severe_pp": 8.4,
+          "mannwhitney_p_row_level": 0.305967,
+          "within_ticker": {
+            "n_tickers_paired": 0,
+            "verdict": "UNPAIRABLE \u00b7 fewer than 5 names carry both states"
+          },
+          "ticker_constant": false,
+          "unit_of_analysis": "row",
+          "mannwhitney_p": 0.305967,
+          "bh_q": 0.3672,
+          "significant_after_fdr": false
+        },
+        "leverage_falling": {
+          "with": {
+            "n": 271,
+            "n_tickers": 134,
+            "mean_fwd_pct": 0.029,
+            "median_fwd_pct": 0.204,
+            "win_rate_pct": 53.9,
+            "severe_loss_rate_pct": 11.1
+          },
+          "without": {
+            "n": 219,
+            "n_tickers": 104,
+            "mean_fwd_pct": 0.977,
+            "median_fwd_pct": 0.171,
+            "win_rate_pct": 52.5,
+            "severe_loss_rate_pct": 8.7
+          },
+          "delta_mean_pp": -0.948,
+          "delta_severe_pp": 2.4,
+          "mannwhitney_p_row_level": 0.089451,
+          "within_ticker": {
+            "n_tickers_paired": 0,
+            "verdict": "UNPAIRABLE \u00b7 fewer than 5 names carry both states"
+          },
+          "ticker_constant": false,
+          "unit_of_analysis": "row",
+          "mannwhitney_p": 0.089451,
+          "bh_q": 0.1789,
+          "significant_after_fdr": false
+        },
+        "positive_surprise": {
+          "with": {
+            "n": 435,
+            "n_tickers": 207,
+            "mean_fwd_pct": 0.498,
+            "median_fwd_pct": 0.46,
+            "win_rate_pct": 55.2,
+            "severe_loss_rate_pct": 9.9
+          },
+          "without": {
+            "n": 55,
+            "n_tickers": 28,
+            "mean_fwd_pct": 0.098,
+            "median_fwd_pct": -0.655,
+            "win_rate_pct": 38.2,
+            "severe_loss_rate_pct": 10.9
+          },
+          "delta_mean_pp": 0.4,
+          "delta_severe_pp": -1.0,
+          "mannwhitney_p_row_level": 0.073786,
+          "within_ticker": {
+            "n_tickers_paired": 0,
+            "verdict": "UNPAIRABLE \u00b7 fewer than 5 names carry both states"
+          },
+          "ticker_constant": true,
+          "unit_of_analysis": "ticker",
+          "ticker_level": {
+            "n_tickers_with": 207,
+            "n_tickers_without": 28,
+            "mean_of_ticker_means_with_pct": 0.41,
+            "mean_of_ticker_means_without_pct": 0.22,
+            "delta_pp": 0.19,
+            "mannwhitney_p_ticker_level": 0.275722
+          },
+          "mannwhitney_p": 0.275722,
+          "row_level_p_invalid_because": "predicate never changes within any name \u00b7 rows are not independent units",
+          "bh_q": 0.3672,
+          "significant_after_fdr": false
+        },
+        "cash_conversion_gt1": {
+          "with": {
+            "n": 342,
+            "n_tickers": 162,
+            "mean_fwd_pct": 0.786,
+            "median_fwd_pct": 0.456,
+            "win_rate_pct": 55.8,
+            "severe_loss_rate_pct": 7.3
+          },
+          "without": {
+            "n": 148,
+            "n_tickers": 74,
+            "mean_fwd_pct": -0.318,
+            "median_fwd_pct": -0.215,
+            "win_rate_pct": 47.3,
+            "severe_loss_rate_pct": 16.2
+          },
+          "delta_mean_pp": 1.104,
+          "delta_severe_pp": -8.9,
+          "mannwhitney_p_row_level": 0.047039,
+          "within_ticker": {
+            "n_tickers_paired": 0,
+            "verdict": "UNPAIRABLE \u00b7 fewer than 5 names carry both states"
+          },
+          "ticker_constant": false,
+          "unit_of_analysis": "row",
+          "mannwhitney_p": 0.047039,
+          "bh_q": 0.1411,
+          "significant_after_fdr": false
+        }
+      },
+      "multiple_testing": {
+        "n_tests": 6,
+        "method": "Benjamini-Hochberg FDR at q<0.05",
+        "n_significant": 0,
+        "n_tests_ticker_constant": 2,
+        "note": "2 of 6 dimensions never change within a name over this cohort \u00b7 for those, significance is computed on ticker means, not rows"
+      },
+      "interactions": {
+        "growth|roe_down|highlev": {
+          "n": 45,
+          "n_tickers": 21,
+          "mean_fwd_pct": 1.324,
+          "median_fwd_pct": 1.073,
+          "win_rate_pct": 73.3,
+          "severe_loss_rate_pct": 0.0
+        },
+        "growth|roe_up|highlev": {
+          "n": 81,
+          "n_tickers": 40,
+          "mean_fwd_pct": -0.743,
+          "median_fwd_pct": -0.848,
+          "win_rate_pct": 42.0,
+          "severe_loss_rate_pct": 17.3
+        },
+        "growth|roe_up|lowlev": {
+          "n": 52,
+          "n_tickers": 25,
+          "mean_fwd_pct": 1.0,
+          "median_fwd_pct": 2.333,
+          "win_rate_pct": 61.5,
+          "severe_loss_rate_pct": 15.4
+        },
+        "nogrowth|roe_down|highlev": {
+          "n": 82,
+          "n_tickers": 39,
+          "mean_fwd_pct": 0.599,
+          "median_fwd_pct": 0.506,
+          "win_rate_pct": 54.9,
+          "severe_loss_rate_pct": 6.1
+        },
+        "nogrowth|roe_down|lowlev": {
+          "n": 30,
+          "n_tickers": 15,
+          "mean_fwd_pct": -0.713,
+          "median_fwd_pct": 0.427,
+          "win_rate_pct": 50.0,
+          "severe_loss_rate_pct": 13.3
+        },
+        "nogrowth|roe_up|highlev": {
+          "n": 115,
+          "n_tickers": 55,
+          "mean_fwd_pct": 1.653,
+          "median_fwd_pct": 0.285,
+          "win_rate_pct": 56.5,
+          "severe_loss_rate_pct": 7.8
+        },
+        "nogrowth|roe_up|lowlev": {
+          "n": 67,
+          "n_tickers": 34,
+          "mean_fwd_pct": -0.378,
+          "median_fwd_pct": -0.799,
+          "win_rate_pct": 43.3,
+          "severe_loss_rate_pct": 9.0
+        }
+      },
+      "roe_exception": {
+        "rising_but_failing": {
+          "n": 283,
+          "n_tickers": 137,
+          "mean_fwd_pct": 0.474,
+          "median_fwd_pct": 0.073,
+          "win_rate_pct": 51.6,
+          "severe_loss_rate_pct": 12.4
+        },
+        "passing_but_falling": {
+          "n": 15,
+          "n_tickers": 8,
+          "mean_fwd_pct": 0.93,
+          "median_fwd_pct": 0.675,
+          "win_rate_pct": 60.0,
+          "severe_loss_rate_pct": 0.0
+        }
+      },
+      "failure_state_profile": {
+        "n": 49,
+        "n_tickers": 28,
+        "mean_filters_passed": 2.408,
+        "pct_roe_falling": 24.5,
+        "pct_sales_decelerating": 6.1,
+        "pct_negative_surprise": 12.2
+      },
+      "incremental_over_r2": {
+        "n_rows": 490,
+        "n_events": 49,
+        "n_event_tickers": 28,
+        "min_events_required": 40,
+        "min_event_tickers_required": 15,
+        "folds": "5 \u00b7 ticker-disjoint",
+        "auc_r2_features_only": 0.7458,
+        "auc_r2_plus_fundamentals": 0.7596,
+        "delta_auc": 0.0138,
+        "delta_auc_ci95_ticker_bootstrap": [
+          -0.0741,
+          0.1048
+        ],
+        "ci_excludes_zero": false,
+        "n_bootstrap": 400,
+        "verdict": "KILL MODEL \u00b7 delta AUC +0.0138 but the ticker-bootstrap 95% CI [-0.0741, 0.1048] spans zero. The point estimate is noise from 49 events across 28 names \u00b7 no incremental value is demonstrated."
+      }
+    },
+    "45": {
+      "lag_days": 45,
+      "n": 490,
+      "n_tickers": 235,
+      "severe_cut_pct": -6.32,
+      "population": {
+        "n": 490,
+        "n_tickers": 235,
+        "mean_fwd_pct": 0.453,
+        "median_fwd_pct": 0.185,
+        "win_rate_pct": 53.3,
+        "severe_loss_rate_pct": 10.0
+      },
+      "baseline_by_filters_passed": {
+        "0": {
+          "n": 11,
+          "n_tickers": 6,
+          "mean_fwd_pct": 1.337,
+          "median_fwd_pct": 0.522,
+          "win_rate_pct": 72.7,
+          "severe_loss_rate_pct": 0.0
+        },
+        "1": {
+          "n": 123,
+          "n_tickers": 62,
+          "mean_fwd_pct": 1.207,
+          "median_fwd_pct": 0.09,
+          "win_rate_pct": 51.2,
+          "severe_loss_rate_pct": 8.1
+        },
+        "2": {
+          "n": 181,
+          "n_tickers": 82,
+          "mean_fwd_pct": 0.43,
+          "median_fwd_pct": 0.526,
+          "win_rate_pct": 55.8,
+          "severe_loss_rate_pct": 10.5
+        },
+        "3": {
+          "n": 108,
+          "n_tickers": 55,
+          "mean_fwd_pct": -0.148,
+          "median_fwd_pct": -0.413,
+          "win_rate_pct": 47.2,
+          "severe_loss_rate_pct": 9.3
+        },
+        "4": {
+          "n": 58,
+          "n_tickers": 30,
+          "mean_fwd_pct": 0.134,
+          "median_fwd_pct": 1.432,
+          "win_rate_pct": 60.3,
+          "severe_loss_rate_pct": 17.2
+        },
+        "5": {
+          "n": 9,
+          "n_tickers": 3,
+          "mean_fwd_pct": -1.22,
+          "median_fwd_pct": -0.955,
+          "win_rate_pct": 33.3,
+          "severe_loss_rate_pct": 0.0
+        }
+      },
+      "baseline_caveat": "The seven filters are a MULTI-YEAR ownership thesis. This cohort measures fwd_10d_pct. A filter set can be entirely correct about five-year compounding and carry no signal - or an inverted one - over ten trading days, because short-horizon returns are dominated by momentum and flow. Any monotonicity seen here is a statement about this horizon only, and must NOT be read as a verdict on the filters themselves.",
+      "dimension_tests": {
+        "roe_rising": {
+          "with": {
+            "n": 315,
+            "n_tickers": 151,
+            "mean_fwd_pct": 0.497,
+            "median_fwd_pct": 0.034,
+            "win_rate_pct": 50.8,
+            "severe_loss_rate_pct": 11.7
+          },
+          "without": {
+            "n": 175,
+            "n_tickers": 84,
+            "mean_fwd_pct": 0.372,
+            "median_fwd_pct": 0.525,
+            "win_rate_pct": 57.7,
+            "severe_loss_rate_pct": 6.9
+          },
+          "delta_mean_pp": 0.125,
+          "delta_severe_pp": 4.8,
+          "mannwhitney_p_row_level": 0.333971,
+          "within_ticker": {
+            "n_tickers_paired": 0,
+            "verdict": "UNPAIRABLE \u00b7 fewer than 5 names carry both states"
+          },
+          "ticker_constant": true,
+          "unit_of_analysis": "ticker",
+          "ticker_level": {
+            "n_tickers_with": 151,
+            "n_tickers_without": 84,
+            "mean_of_ticker_means_with_pct": 0.291,
+            "mean_of_ticker_means_without_pct": 0.56,
+            "delta_pp": -0.269,
+            "mannwhitney_p_ticker_level": 0.461239
+          },
+          "mannwhitney_p": 0.461239,
+          "row_level_p_invalid_because": "predicate never changes within any name \u00b7 rows are not independent units",
+          "bh_q": 0.4612,
+          "significant_after_fdr": false
+        },
+        "roe_accelerating": {
+          "with": {
+            "n": 273,
+            "n_tickers": 132,
+            "mean_fwd_pct": -0.069,
+            "median_fwd_pct": -0.151,
+            "win_rate_pct": 48.4,
+            "severe_loss_rate_pct": 13.2
+          },
+          "without": {
+            "n": 217,
+            "n_tickers": 104,
+            "mean_fwd_pct": 1.109,
+            "median_fwd_pct": 0.531,
+            "win_rate_pct": 59.4,
+            "severe_loss_rate_pct": 6.0
+          },
+          "delta_mean_pp": -1.178,
+          "delta_severe_pp": 7.2,
+          "mannwhitney_p_row_level": 0.015362,
+          "within_ticker": {
+            "n_tickers_paired": 0,
+            "verdict": "UNPAIRABLE \u00b7 fewer than 5 names carry both states"
+          },
+          "ticker_constant": false,
+          "unit_of_analysis": "row",
+          "mannwhitney_p": 0.015362,
+          "bh_q": 0.0922,
+          "significant_after_fdr": false
+        },
+        "sales_accelerating": {
+          "with": {
+            "n": 316,
+            "n_tickers": 150,
+            "mean_fwd_pct": 0.134,
+            "median_fwd_pct": 0.185,
+            "win_rate_pct": 52.8,
+            "severe_loss_rate_pct": 13.0
+          },
+          "without": {
+            "n": 174,
+            "n_tickers": 86,
+            "mean_fwd_pct": 1.032,
+            "median_fwd_pct": 0.285,
+            "win_rate_pct": 54.0,
+            "severe_loss_rate_pct": 4.6
+          },
+          "delta_mean_pp": -0.898,
+          "delta_severe_pp": 8.4,
+          "mannwhitney_p_row_level": 0.305967,
+          "within_ticker": {
+            "n_tickers_paired": 0,
+            "verdict": "UNPAIRABLE \u00b7 fewer than 5 names carry both states"
+          },
+          "ticker_constant": false,
+          "unit_of_analysis": "row",
+          "mannwhitney_p": 0.305967,
+          "bh_q": 0.3672,
+          "significant_after_fdr": false
+        },
+        "leverage_falling": {
+          "with": {
+            "n": 271,
+            "n_tickers": 134,
+            "mean_fwd_pct": 0.029,
+            "median_fwd_pct": 0.204,
+            "win_rate_pct": 53.9,
+            "severe_loss_rate_pct": 11.1
+          },
+          "without": {
+            "n": 219,
+            "n_tickers": 104,
+            "mean_fwd_pct": 0.977,
+            "median_fwd_pct": 0.171,
+            "win_rate_pct": 52.5,
+            "severe_loss_rate_pct": 8.7
+          },
+          "delta_mean_pp": -0.948,
+          "delta_severe_pp": 2.4,
+          "mannwhitney_p_row_level": 0.089451,
+          "within_ticker": {
+            "n_tickers_paired": 0,
+            "verdict": "UNPAIRABLE \u00b7 fewer than 5 names carry both states"
+          },
+          "ticker_constant": false,
+          "unit_of_analysis": "row",
+          "mannwhitney_p": 0.089451,
+          "bh_q": 0.1789,
+          "significant_after_fdr": false
+        },
+        "positive_surprise": {
+          "with": {
+            "n": 435,
+            "n_tickers": 207,
+            "mean_fwd_pct": 0.498,
+            "median_fwd_pct": 0.46,
+            "win_rate_pct": 55.2,
+            "severe_loss_rate_pct": 9.9
+          },
+          "without": {
+            "n": 55,
+            "n_tickers": 28,
+            "mean_fwd_pct": 0.098,
+            "median_fwd_pct": -0.655,
+            "win_rate_pct": 38.2,
+            "severe_loss_rate_pct": 10.9
+          },
+          "delta_mean_pp": 0.4,
+          "delta_severe_pp": -1.0,
+          "mannwhitney_p_row_level": 0.073786,
+          "within_ticker": {
+            "n_tickers_paired": 0,
+            "verdict": "UNPAIRABLE \u00b7 fewer than 5 names carry both states"
+          },
+          "ticker_constant": true,
+          "unit_of_analysis": "ticker",
+          "ticker_level": {
+            "n_tickers_with": 207,
+            "n_tickers_without": 28,
+            "mean_of_ticker_means_with_pct": 0.41,
+            "mean_of_ticker_means_without_pct": 0.22,
+            "delta_pp": 0.19,
+            "mannwhitney_p_ticker_level": 0.275722
+          },
+          "mannwhitney_p": 0.275722,
+          "row_level_p_invalid_because": "predicate never changes within any name \u00b7 rows are not independent units",
+          "bh_q": 0.3672,
+          "significant_after_fdr": false
+        },
+        "cash_conversion_gt1": {
+          "with": {
+            "n": 342,
+            "n_tickers": 162,
+            "mean_fwd_pct": 0.786,
+            "median_fwd_pct": 0.456,
+            "win_rate_pct": 55.8,
+            "severe_loss_rate_pct": 7.3
+          },
+          "without": {
+            "n": 148,
+            "n_tickers": 74,
+            "mean_fwd_pct": -0.318,
+            "median_fwd_pct": -0.215,
+            "win_rate_pct": 47.3,
+            "severe_loss_rate_pct": 16.2
+          },
+          "delta_mean_pp": 1.104,
+          "delta_severe_pp": -8.9,
+          "mannwhitney_p_row_level": 0.047039,
+          "within_ticker": {
+            "n_tickers_paired": 0,
+            "verdict": "UNPAIRABLE \u00b7 fewer than 5 names carry both states"
+          },
+          "ticker_constant": false,
+          "unit_of_analysis": "row",
+          "mannwhitney_p": 0.047039,
+          "bh_q": 0.1411,
+          "significant_after_fdr": false
+        }
+      },
+      "multiple_testing": {
+        "n_tests": 6,
+        "method": "Benjamini-Hochberg FDR at q<0.05",
+        "n_significant": 0,
+        "n_tests_ticker_constant": 2,
+        "note": "2 of 6 dimensions never change within a name over this cohort \u00b7 for those, significance is computed on ticker means, not rows"
+      },
+      "interactions": {
+        "growth|roe_down|highlev": {
+          "n": 45,
+          "n_tickers": 21,
+          "mean_fwd_pct": 1.324,
+          "median_fwd_pct": 1.073,
+          "win_rate_pct": 73.3,
+          "severe_loss_rate_pct": 0.0
+        },
+        "growth|roe_up|highlev": {
+          "n": 81,
+          "n_tickers": 40,
+          "mean_fwd_pct": -0.743,
+          "median_fwd_pct": -0.848,
+          "win_rate_pct": 42.0,
+          "severe_loss_rate_pct": 17.3
+        },
+        "growth|roe_up|lowlev": {
+          "n": 52,
+          "n_tickers": 25,
+          "mean_fwd_pct": 1.0,
+          "median_fwd_pct": 2.333,
+          "win_rate_pct": 61.5,
+          "severe_loss_rate_pct": 15.4
+        },
+        "nogrowth|roe_down|highlev": {
+          "n": 82,
+          "n_tickers": 39,
+          "mean_fwd_pct": 0.599,
+          "median_fwd_pct": 0.506,
+          "win_rate_pct": 54.9,
+          "severe_loss_rate_pct": 6.1
+        },
+        "nogrowth|roe_down|lowlev": {
+          "n": 30,
+          "n_tickers": 15,
+          "mean_fwd_pct": -0.713,
+          "median_fwd_pct": 0.427,
+          "win_rate_pct": 50.0,
+          "severe_loss_rate_pct": 13.3
+        },
+        "nogrowth|roe_up|highlev": {
+          "n": 115,
+          "n_tickers": 55,
+          "mean_fwd_pct": 1.653,
+          "median_fwd_pct": 0.285,
+          "win_rate_pct": 56.5,
+          "severe_loss_rate_pct": 7.8
+        },
+        "nogrowth|roe_up|lowlev": {
+          "n": 67,
+          "n_tickers": 34,
+          "mean_fwd_pct": -0.378,
+          "median_fwd_pct": -0.799,
+          "win_rate_pct": 43.3,
+          "severe_loss_rate_pct": 9.0
+        }
+      },
+      "roe_exception": {
+        "rising_but_failing": {
+          "n": 283,
+          "n_tickers": 137,
+          "mean_fwd_pct": 0.474,
+          "median_fwd_pct": 0.073,
+          "win_rate_pct": 51.6,
+          "severe_loss_rate_pct": 12.4
+        },
+        "passing_but_falling": {
+          "n": 15,
+          "n_tickers": 8,
+          "mean_fwd_pct": 0.93,
+          "median_fwd_pct": 0.675,
+          "win_rate_pct": 60.0,
+          "severe_loss_rate_pct": 0.0
+        }
+      },
+      "failure_state_profile": {
+        "n": 49,
+        "n_tickers": 28,
+        "mean_filters_passed": 2.408,
+        "pct_roe_falling": 24.5,
+        "pct_sales_decelerating": 6.1,
+        "pct_negative_surprise": 12.2
+      },
+      "incremental_over_r2": {
+        "n_rows": 490,
+        "n_events": 49,
+        "n_event_tickers": 28,
+        "min_events_required": 40,
+        "min_event_tickers_required": 15,
+        "folds": "5 \u00b7 ticker-disjoint",
+        "auc_r2_features_only": 0.7458,
+        "auc_r2_plus_fundamentals": 0.7596,
+        "delta_auc": 0.0138,
+        "delta_auc_ci95_ticker_bootstrap": [
+          -0.0741,
+          0.1048
+        ],
+        "ci_excludes_zero": false,
+        "n_bootstrap": 400,
+        "verdict": "KILL MODEL \u00b7 delta AUC +0.0138 but the ticker-bootstrap 95% CI [-0.0741, 0.1048] spans zero. The point estimate is noise from 49 events across 28 names \u00b7 no incremental value is demonstrated."
+      }
+    },
+    "60": {
+      "lag_days": 60,
+      "n": 490,
+      "n_tickers": 235,
+      "severe_cut_pct": -6.32,
+      "population": {
+        "n": 490,
+        "n_tickers": 235,
+        "mean_fwd_pct": 0.453,
+        "median_fwd_pct": 0.185,
+        "win_rate_pct": 53.3,
+        "severe_loss_rate_pct": 10.0
+      },
+      "baseline_by_filters_passed": {
+        "0": {
+          "n": 11,
+          "n_tickers": 6,
+          "mean_fwd_pct": 1.337,
+          "median_fwd_pct": 0.522,
+          "win_rate_pct": 72.7,
+          "severe_loss_rate_pct": 0.0
+        },
+        "1": {
+          "n": 123,
+          "n_tickers": 62,
+          "mean_fwd_pct": 1.207,
+          "median_fwd_pct": 0.09,
+          "win_rate_pct": 51.2,
+          "severe_loss_rate_pct": 8.1
+        },
+        "2": {
+          "n": 181,
+          "n_tickers": 82,
+          "mean_fwd_pct": 0.43,
+          "median_fwd_pct": 0.526,
+          "win_rate_pct": 55.8,
+          "severe_loss_rate_pct": 10.5
+        },
+        "3": {
+          "n": 108,
+          "n_tickers": 55,
+          "mean_fwd_pct": -0.148,
+          "median_fwd_pct": -0.413,
+          "win_rate_pct": 47.2,
+          "severe_loss_rate_pct": 9.3
+        },
+        "4": {
+          "n": 58,
+          "n_tickers": 30,
+          "mean_fwd_pct": 0.134,
+          "median_fwd_pct": 1.432,
+          "win_rate_pct": 60.3,
+          "severe_loss_rate_pct": 17.2
+        },
+        "5": {
+          "n": 9,
+          "n_tickers": 3,
+          "mean_fwd_pct": -1.22,
+          "median_fwd_pct": -0.955,
+          "win_rate_pct": 33.3,
+          "severe_loss_rate_pct": 0.0
+        }
+      },
+      "baseline_caveat": "The seven filters are a MULTI-YEAR ownership thesis. This cohort measures fwd_10d_pct. A filter set can be entirely correct about five-year compounding and carry no signal - or an inverted one - over ten trading days, because short-horizon returns are dominated by momentum and flow. Any monotonicity seen here is a statement about this horizon only, and must NOT be read as a verdict on the filters themselves.",
+      "dimension_tests": {
+        "roe_rising": {
+          "with": {
+            "n": 315,
+            "n_tickers": 151,
+            "mean_fwd_pct": 0.497,
+            "median_fwd_pct": 0.034,
+            "win_rate_pct": 50.8,
+            "severe_loss_rate_pct": 11.7
+          },
+          "without": {
+            "n": 175,
+            "n_tickers": 84,
+            "mean_fwd_pct": 0.372,
+            "median_fwd_pct": 0.525,
+            "win_rate_pct": 57.7,
+            "severe_loss_rate_pct": 6.9
+          },
+          "delta_mean_pp": 0.125,
+          "delta_severe_pp": 4.8,
+          "mannwhitney_p_row_level": 0.333971,
+          "within_ticker": {
+            "n_tickers_paired": 0,
+            "verdict": "UNPAIRABLE \u00b7 fewer than 5 names carry both states"
+          },
+          "ticker_constant": true,
+          "unit_of_analysis": "ticker",
+          "ticker_level": {
+            "n_tickers_with": 151,
+            "n_tickers_without": 84,
+            "mean_of_ticker_means_with_pct": 0.291,
+            "mean_of_ticker_means_without_pct": 0.56,
+            "delta_pp": -0.269,
+            "mannwhitney_p_ticker_level": 0.461239
+          },
+          "mannwhitney_p": 0.461239,
+          "row_level_p_invalid_because": "predicate never changes within any name \u00b7 rows are not independent units",
+          "bh_q": 0.4612,
+          "significant_after_fdr": false
+        },
+        "roe_accelerating": {
+          "with": {
+            "n": 273,
+            "n_tickers": 132,
+            "mean_fwd_pct": -0.069,
+            "median_fwd_pct": -0.151,
+            "win_rate_pct": 48.4,
+            "severe_loss_rate_pct": 13.2
+          },
+          "without": {
+            "n": 217,
+            "n_tickers": 104,
+            "mean_fwd_pct": 1.109,
+            "median_fwd_pct": 0.531,
+            "win_rate_pct": 59.4,
+            "severe_loss_rate_pct": 6.0
+          },
+          "delta_mean_pp": -1.178,
+          "delta_severe_pp": 7.2,
+          "mannwhitney_p_row_level": 0.015362,
+          "within_ticker": {
+            "n_tickers_paired": 0,
+            "verdict": "UNPAIRABLE \u00b7 fewer than 5 names carry both states"
+          },
+          "ticker_constant": false,
+          "unit_of_analysis": "row",
+          "mannwhitney_p": 0.015362,
+          "bh_q": 0.0922,
+          "significant_after_fdr": false
+        },
+        "sales_accelerating": {
+          "with": {
+            "n": 316,
+            "n_tickers": 150,
+            "mean_fwd_pct": 0.134,
+            "median_fwd_pct": 0.185,
+            "win_rate_pct": 52.8,
+            "severe_loss_rate_pct": 13.0
+          },
+          "without": {
+            "n": 174,
+            "n_tickers": 86,
+            "mean_fwd_pct": 1.032,
+            "median_fwd_pct": 0.285,
+            "win_rate_pct": 54.0,
+            "severe_loss_rate_pct": 4.6
+          },
+          "delta_mean_pp": -0.898,
+          "delta_severe_pp": 8.4,
+          "mannwhitney_p_row_level": 0.305967,
+          "within_ticker": {
+            "n_tickers_paired": 0,
+            "verdict": "UNPAIRABLE \u00b7 fewer than 5 names carry both states"
+          },
+          "ticker_constant": false,
+          "unit_of_analysis": "row",
+          "mannwhitney_p": 0.305967,
+          "bh_q": 0.3672,
+          "significant_after_fdr": false
+        },
+        "leverage_falling": {
+          "with": {
+            "n": 271,
+            "n_tickers": 134,
+            "mean_fwd_pct": 0.029,
+            "median_fwd_pct": 0.204,
+            "win_rate_pct": 53.9,
+            "severe_loss_rate_pct": 11.1
+          },
+          "without": {
+            "n": 219,
+            "n_tickers": 104,
+            "mean_fwd_pct": 0.977,
+            "median_fwd_pct": 0.171,
+            "win_rate_pct": 52.5,
+            "severe_loss_rate_pct": 8.7
+          },
+          "delta_mean_pp": -0.948,
+          "delta_severe_pp": 2.4,
+          "mannwhitney_p_row_level": 0.089451,
+          "within_ticker": {
+            "n_tickers_paired": 0,
+            "verdict": "UNPAIRABLE \u00b7 fewer than 5 names carry both states"
+          },
+          "ticker_constant": false,
+          "unit_of_analysis": "row",
+          "mannwhitney_p": 0.089451,
+          "bh_q": 0.1789,
+          "significant_after_fdr": false
+        },
+        "positive_surprise": {
+          "with": {
+            "n": 435,
+            "n_tickers": 207,
+            "mean_fwd_pct": 0.498,
+            "median_fwd_pct": 0.46,
+            "win_rate_pct": 55.2,
+            "severe_loss_rate_pct": 9.9
+          },
+          "without": {
+            "n": 55,
+            "n_tickers": 28,
+            "mean_fwd_pct": 0.098,
+            "median_fwd_pct": -0.655,
+            "win_rate_pct": 38.2,
+            "severe_loss_rate_pct": 10.9
+          },
+          "delta_mean_pp": 0.4,
+          "delta_severe_pp": -1.0,
+          "mannwhitney_p_row_level": 0.073786,
+          "within_ticker": {
+            "n_tickers_paired": 0,
+            "verdict": "UNPAIRABLE \u00b7 fewer than 5 names carry both states"
+          },
+          "ticker_constant": true,
+          "unit_of_analysis": "ticker",
+          "ticker_level": {
+            "n_tickers_with": 207,
+            "n_tickers_without": 28,
+            "mean_of_ticker_means_with_pct": 0.41,
+            "mean_of_ticker_means_without_pct": 0.22,
+            "delta_pp": 0.19,
+            "mannwhitney_p_ticker_level": 0.275722
+          },
+          "mannwhitney_p": 0.275722,
+          "row_level_p_invalid_because": "predicate never changes within any name \u00b7 rows are not independent units",
+          "bh_q": 0.3672,
+          "significant_after_fdr": false
+        },
+        "cash_conversion_gt1": {
+          "with": {
+            "n": 342,
+            "n_tickers": 162,
+            "mean_fwd_pct": 0.786,
+            "median_fwd_pct": 0.456,
+            "win_rate_pct": 55.8,
+            "severe_loss_rate_pct": 7.3
+          },
+          "without": {
+            "n": 148,
+            "n_tickers": 74,
+            "mean_fwd_pct": -0.318,
+            "median_fwd_pct": -0.215,
+            "win_rate_pct": 47.3,
+            "severe_loss_rate_pct": 16.2
+          },
+          "delta_mean_pp": 1.104,
+          "delta_severe_pp": -8.9,
+          "mannwhitney_p_row_level": 0.047039,
+          "within_ticker": {
+            "n_tickers_paired": 0,
+            "verdict": "UNPAIRABLE \u00b7 fewer than 5 names carry both states"
+          },
+          "ticker_constant": false,
+          "unit_of_analysis": "row",
+          "mannwhitney_p": 0.047039,
+          "bh_q": 0.1411,
+          "significant_after_fdr": false
+        }
+      },
+      "multiple_testing": {
+        "n_tests": 6,
+        "method": "Benjamini-Hochberg FDR at q<0.05",
+        "n_significant": 0,
+        "n_tests_ticker_constant": 2,
+        "note": "2 of 6 dimensions never change within a name over this cohort \u00b7 for those, significance is computed on ticker means, not rows"
+      },
+      "interactions": {
+        "growth|roe_down|highlev": {
+          "n": 45,
+          "n_tickers": 21,
+          "mean_fwd_pct": 1.324,
+          "median_fwd_pct": 1.073,
+          "win_rate_pct": 73.3,
+          "severe_loss_rate_pct": 0.0
+        },
+        "growth|roe_up|highlev": {
+          "n": 81,
+          "n_tickers": 40,
+          "mean_fwd_pct": -0.743,
+          "median_fwd_pct": -0.848,
+          "win_rate_pct": 42.0,
+          "severe_loss_rate_pct": 17.3
+        },
+        "growth|roe_up|lowlev": {
+          "n": 52,
+          "n_tickers": 25,
+          "mean_fwd_pct": 1.0,
+          "median_fwd_pct": 2.333,
+          "win_rate_pct": 61.5,
+          "severe_loss_rate_pct": 15.4
+        },
+        "nogrowth|roe_down|highlev": {
+          "n": 82,
+          "n_tickers": 39,
+          "mean_fwd_pct": 0.599,
+          "median_fwd_pct": 0.506,
+          "win_rate_pct": 54.9,
+          "severe_loss_rate_pct": 6.1
+        },
+        "nogrowth|roe_down|lowlev": {
+          "n": 30,
+          "n_tickers": 15,
+          "mean_fwd_pct": -0.713,
+          "median_fwd_pct": 0.427,
+          "win_rate_pct": 50.0,
+          "severe_loss_rate_pct": 13.3
+        },
+        "nogrowth|roe_up|highlev": {
+          "n": 115,
+          "n_tickers": 55,
+          "mean_fwd_pct": 1.653,
+          "median_fwd_pct": 0.285,
+          "win_rate_pct": 56.5,
+          "severe_loss_rate_pct": 7.8
+        },
+        "nogrowth|roe_up|lowlev": {
+          "n": 67,
+          "n_tickers": 34,
+          "mean_fwd_pct": -0.378,
+          "median_fwd_pct": -0.799,
+          "win_rate_pct": 43.3,
+          "severe_loss_rate_pct": 9.0
+        }
+      },
+      "roe_exception": {
+        "rising_but_failing": {
+          "n": 283,
+          "n_tickers": 137,
+          "mean_fwd_pct": 0.474,
+          "median_fwd_pct": 0.073,
+          "win_rate_pct": 51.6,
+          "severe_loss_rate_pct": 12.4
+        },
+        "passing_but_falling": {
+          "n": 15,
+          "n_tickers": 8,
+          "mean_fwd_pct": 0.93,
+          "median_fwd_pct": 0.675,
+          "win_rate_pct": 60.0,
+          "severe_loss_rate_pct": 0.0
+        }
+      },
+      "failure_state_profile": {
+        "n": 49,
+        "n_tickers": 28,
+        "mean_filters_passed": 2.408,
+        "pct_roe_falling": 24.5,
+        "pct_sales_decelerating": 6.1,
+        "pct_negative_surprise": 12.2
+      },
+      "incremental_over_r2": {
+        "n_rows": 490,
+        "n_events": 49,
+        "n_event_tickers": 28,
+        "min_events_required": 40,
+        "min_event_tickers_required": 15,
+        "folds": "5 \u00b7 ticker-disjoint",
+        "auc_r2_features_only": 0.7458,
+        "auc_r2_plus_fundamentals": 0.7596,
+        "delta_auc": 0.0138,
+        "delta_auc_ci95_ticker_bootstrap": [
+          -0.0741,
+          0.1048
+        ],
+        "ci_excludes_zero": false,
+        "n_bootstrap": 400,
+        "verdict": "KILL MODEL \u00b7 delta AUC +0.0138 but the ticker-bootstrap 95% CI [-0.0741, 0.1048] spans zero. The point estimate is noise from 49 events across 28 names \u00b7 no incremental value is demonstrated."
+      }
+    }
+  }
+}

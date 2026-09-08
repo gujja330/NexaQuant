@@ -1,0 +1,298 @@
+{
+  "schema_version": "aegis.research.mr_failure_modes.v1",
+  "experiment_family": "MR_DEPENDENCY_EXPLORATORY_60D_V1",
+  "status": "DESCRIPTIVE \u00b7 no production rule \u00b7 measures what happened",
+  "market": "india",
+  "horizon": "fwd_10d_pct",
+  "generated_utc": "2026-09-08T10:05:39+00:00",
+  "definitions": {
+    "R": "stop_distance_pct = (entry - stop)/entry*100",
+    "mfe_r": "MFE / R \u00b7 upside offered in units of risk taken",
+    "mae_r": "|MAE| / R \u00b7 adverse travel in units of risk taken",
+    "ENTRY_FAILURE": "loser with mfe_r < 0.5",
+    "EXIT_FAILURE": "loser with mfe_r >= 1.0",
+    "PARTIAL_MIXED": "loser with 0.5 <= mfe_r < 1.0"
+  },
+  "n_population": 456,
+  "n_classified_losers": 311,
+  "split": {
+    "entry_failures": 277,
+    "exit_failures": 12,
+    "partial_mixed": 22,
+    "entry_failure_pct": 89.1,
+    "exit_failure_pct": 3.9
+  },
+  "avoidable_exit_loss_pct": -24.94,
+  "winners_with_full_R_drawdown": 9,
+  "n_winners": 128,
+  "cohorts": {
+    "ALL": {
+      "n": 456,
+      "n_losers": 328,
+      "expectancy_pct": -1.553,
+      "win_rate_pct": 28.1,
+      "mean_mfe_r": 0.458,
+      "mean_mae_r": 1.349,
+      "loser_modes": {
+        "ENTRY_FAILURE": 277,
+        "PARTIAL_MIXED": 22,
+        "EXIT_FAILURE": 12
+      },
+      "loser_mode_pct": {
+        "ENTRY_FAILURE": 84.5,
+        "PARTIAL_MIXED": 6.7,
+        "EXIT_FAILURE": 3.7
+      },
+      "flags": {
+        "STOP_TOO_TIGHT": 9
+      }
+    },
+    "ma200_-20..-10": {
+      "n": 61,
+      "n_losers": 61,
+      "expectancy_pct": -3.833,
+      "win_rate_pct": 0.0,
+      "mean_mfe_r": 0.216,
+      "mean_mae_r": 3.698,
+      "loser_modes": {
+        "ENTRY_FAILURE": 51,
+        "PARTIAL_MIXED": 1,
+        "EXIT_FAILURE": 7
+      },
+      "loser_mode_pct": {
+        "ENTRY_FAILURE": 83.6,
+        "PARTIAL_MIXED": 1.6,
+        "EXIT_FAILURE": 11.5
+      },
+      "flags": {}
+    },
+    "ma200_5..10": {
+      "n": 53,
+      "n_losers": 44,
+      "expectancy_pct": -1.912,
+      "win_rate_pct": 17.0,
+      "mean_mfe_r": 0.148,
+      "mean_mae_r": 0.814,
+      "loser_modes": {
+        "ENTRY_FAILURE": 42
+      },
+      "loser_mode_pct": {
+        "ENTRY_FAILURE": 95.5
+      },
+      "flags": {}
+    },
+    "ma200_>=20_conf<55": {
+      "n": 14,
+      "n_losers": 10,
+      "expectancy_pct": -2.176,
+      "win_rate_pct": 28.6,
+      "mean_mfe_r": 2.92,
+      "mean_mae_r": 2.702,
+      "loser_modes": {
+        "PARTIAL_MIXED": 3,
+        "ENTRY_FAILURE": 3,
+        "EXIT_FAILURE": 1
+      },
+      "loser_mode_pct": {
+        "PARTIAL_MIXED": 30.0,
+        "ENTRY_FAILURE": 30.0,
+        "EXIT_FAILURE": 10.0
+      },
+      "flags": {
+        "STOP_TOO_TIGHT": 2
+      }
+    },
+    "stop_hit": {
+      "n": 181,
+      "n_losers": 169,
+      "expectancy_pct": -3.945,
+      "win_rate_pct": 6.6,
+      "mean_mfe_r": 0.342,
+      "mean_mae_r": 2.813,
+      "loser_modes": {
+        "ENTRY_FAILURE": 146,
+        "PARTIAL_MIXED": 5,
+        "EXIT_FAILURE": 8
+      },
+      "loser_mode_pct": {
+        "ENTRY_FAILURE": 86.4,
+        "PARTIAL_MIXED": 3.0,
+        "EXIT_FAILURE": 4.7
+      },
+      "flags": {
+        "STOP_TOO_TIGHT": 9
+      }
+    },
+    "no_stop_hit": {
+      "n": 265,
+      "n_losers": 152,
+      "expectancy_pct": 0.068,
+      "win_rate_pct": 42.6,
+      "mean_mfe_r": 0.531,
+      "mean_mae_r": 0.421,
+      "loser_modes": {
+        "PARTIAL_MIXED": 17,
+        "ENTRY_FAILURE": 131,
+        "EXIT_FAILURE": 4
+      },
+      "loser_mode_pct": {
+        "PARTIAL_MIXED": 11.2,
+        "ENTRY_FAILURE": 86.2,
+        "EXIT_FAILURE": 2.6
+      },
+      "flags": {}
+    }
+  },
+  "worst_exit_failures": [
+    {
+      "ticker": "OFSS",
+      "prediction_date": "2026-08-07",
+      "ret_pct": -0.686,
+      "mfe_pct": 3.304,
+      "mae_pct": -3.676,
+      "stop_distance_pct": 0.466,
+      "mfe_r": 7.089,
+      "mae_r": 7.887,
+      "mode": "EXIT_FAILURE",
+      "flags": [],
+      "confidence_pct": 46.4,
+      "ma200_dist_pct": 37.221,
+      "stop_hit_within_20d": true
+    },
+    {
+      "ticker": "KOTAKBANK",
+      "prediction_date": "2026-08-05",
+      "ret_pct": -0.163,
+      "mfe_pct": 6.784,
+      "mae_pct": -2.601,
+      "stop_distance_pct": 2.877,
+      "mfe_r": 2.358,
+      "mae_r": 0.904,
+      "mode": "EXIT_FAILURE",
+      "flags": [],
+      "confidence_pct": 72.0,
+      "ma200_dist_pct": -1.327,
+      "stop_hit_within_20d": false
+    },
+    {
+      "ticker": "BATAINDIA",
+      "prediction_date": "2026-08-11",
+      "ret_pct": -2.15,
+      "mfe_pct": 8.323,
+      "mae_pct": -4.344,
+      "stop_distance_pct": 5.0,
+      "mfe_r": 1.665,
+      "mae_r": 0.869,
+      "mode": "EXIT_FAILURE",
+      "flags": [],
+      "confidence_pct": 24.0,
+      "ma200_dist_pct": -14.171,
+      "stop_hit_within_20d": false
+    },
+    {
+      "ticker": "BATAINDIA",
+      "prediction_date": "2026-08-12",
+      "ret_pct": -2.165,
+      "mfe_pct": 8.323,
+      "mae_pct": -4.344,
+      "stop_distance_pct": 5.0,
+      "mfe_r": 1.665,
+      "mae_r": 0.869,
+      "mode": "EXIT_FAILURE",
+      "flags": [],
+      "confidence_pct": 24.0,
+      "ma200_dist_pct": -13.933,
+      "stop_hit_within_20d": false
+    },
+    {
+      "ticker": "BRITANNIA",
+      "prediction_date": "2026-08-04",
+      "ret_pct": -0.028,
+      "mfe_pct": 3.502,
+      "mae_pct": -5.949,
+      "stop_distance_pct": 2.285,
+      "mfe_r": 1.533,
+      "mae_r": 2.604,
+      "mode": "EXIT_FAILURE",
+      "flags": [],
+      "confidence_pct": 66.0,
+      "ma200_dist_pct": -4.378,
+      "stop_hit_within_20d": true
+    },
+    {
+      "ticker": "INFY",
+      "prediction_date": "2026-08-05",
+      "ret_pct": -4.086,
+      "mfe_pct": 1.987,
+      "mae_pct": -4.857,
+      "stop_distance_pct": 1.336,
+      "mfe_r": 1.487,
+      "mae_r": 3.635,
+      "mode": "EXIT_FAILURE",
+      "flags": [],
+      "confidence_pct": 40.7,
+      "ma200_dist_pct": -13.594,
+      "stop_hit_within_20d": true
+    },
+    {
+      "ticker": "KOTAKBANK",
+      "prediction_date": "2026-08-04",
+      "ret_pct": -1.7,
+      "mfe_pct": 7.053,
+      "mae_pct": -2.355,
+      "stop_distance_pct": 5.244,
+      "mfe_r": 1.345,
+      "mae_r": 0.449,
+      "mode": "EXIT_FAILURE",
+      "flags": [],
+      "confidence_pct": 71.0,
+      "ma200_dist_pct": -1.615,
+      "stop_hit_within_20d": false
+    },
+    {
+      "ticker": "BATAINDIA",
+      "prediction_date": "2026-08-10",
+      "ret_pct": -1.473,
+      "mfe_pct": 6.348,
+      "mae_pct": -6.088,
+      "stop_distance_pct": 5.0,
+      "mfe_r": 1.27,
+      "mae_r": 1.218,
+      "mode": "EXIT_FAILURE",
+      "flags": [],
+      "confidence_pct": 24.0,
+      "ma200_dist_pct": -12.816,
+      "stop_hit_within_20d": true
+    },
+    {
+      "ticker": "IRCTC",
+      "prediction_date": "2026-08-05",
+      "ret_pct": -4.292,
+      "mfe_pct": 2.352,
+      "mae_pct": -7.379,
+      "stop_distance_pct": 1.954,
+      "mfe_r": 1.204,
+      "mae_r": 3.776,
+      "mode": "EXIT_FAILURE",
+      "flags": [],
+      "confidence_pct": 67.0,
+      "ma200_dist_pct": -13.852,
+      "stop_hit_within_20d": true
+    },
+    {
+      "ticker": "BATAINDIA",
+      "prediction_date": "2026-08-13",
+      "ret_pct": -4.999,
+      "mfe_pct": 6.006,
+      "mae_pct": -6.39,
+      "stop_distance_pct": 5.0,
+      "mfe_r": 1.201,
+      "mae_r": 1.278,
+      "mode": "EXIT_FAILURE",
+      "flags": [],
+      "confidence_pct": 24.0,
+      "ma200_dist_pct": -11.807,
+      "stop_hit_within_20d": true
+    }
+  ]
+}

@@ -115,9 +115,187 @@ R2_ITEMS: list[ResearchItem] = [
 
 # ── R3 ──────────────────────────────────────────────────────────────────────
 R3_ITEMS: list[ResearchItem] = [
+    # ── R3 = AEGIS RESEARCH & DECISION INTELLIGENCE LAYER · CEO 2026-09-08 ──
+    #
+    # > "R3 = AEGIS Research & Decision Intelligence Layer ... No individual
+    # >  technique is trusted as the sole decision authority. R3 produces
+    # >  probabilistic, evidence-ranked intelligence. Production R2 remains
+    # >  unchanged until a complete evidence chain demonstrates incremental
+    # >  value and the existing governance gates + explicit authorization
+    # >  are satisfied."
+    #
+    # These seven engines are registered HERE, in the existing registry,
+    # against the existing 13-stage Coverage Tracker. They deliberately do
+    # NOT introduce a parallel status vocabulary - that mistake was made
+    # once with R3_BASELINE_READINESS.md and corrected.
+    #
+    # Governing principle, recorded so it survives this session:
+    #   AI IS AN EVIDENCE GENERATOR, NOT AN AUTHORITY.
+    ResearchItem("R3-A-DESC", "R3", "Intelligence", "R3-A Descriptive Intelligence",
+                  "Per-variable panel (moments/percentiles/outliers) over "
+                  "ALL/WINNER/LOSER/SEVERE cohorts · every statistic carries "
+                  "n_tickers + effective_units + concentration warning",
+                  "Tier 1", remediation_priority=5,
+                  next_stp_action="BUILT 2026-09-08 · backend/research/cohort/descriptive_stats.py · needs cohort depth for T3+"),
+    ResearchItem("R3-B-STAT", "R3", "Intelligence", "R3-B Statistical Intelligence",
+                  "Mann-Whitney / Cohen's d / Wilson CI / BH-FDR across a "
+                  "preregistered confirmatory family · trials counted before "
+                  "results are read",
+                  "Tier 1", upstream_substrate=("R3-A-DESC",),
+                  remediation_priority=6,
+                  next_stp_action=(
+                      "EXECUTED 2026-09-08 · mr_dependency_v1 (40 trials / 2 BH-FDR "
+                      "survivors, both USA fwd_10d) + Wave 1C adversarial validation "
+                      "(sequence models KILLED by the date split) + Wave 1D-C "
+                      "corrected validator. Evidence status: NO promotion-eligible "
+                      "finding · needs OOS for T7")),
+    ResearchItem("R3-C-TEMP", "R3", "Intelligence", "R3-C Temporal Intelligence",
+                  "Lags 1/2/3/5/10/20 + rolling 3/5/10/20/60 + slopes + "
+                  "multi-horizon targets · PIT proven by poisoned-future test",
+                  "Tier 1", upstream_substrate=("R3-A-DESC",),
+                  remediation_priority=7,
+                  next_stp_action="BUILT 2026-09-08 · ml_discovery/temporal.py · lagged confidence beats current · needs time depth"),
+    ResearchItem("R3-D-FCST", "R3", "Intelligence", "R3-D Forecasting Intelligence",
+                  "P(win|h), P(severe_loss|h), P(reversal), P(stop_hit) per "
+                  "horizon · effective-sample gate refuses below 50 units",
+                  "Tier 1", upstream_substrate=("R3-C-TEMP",),
+                  remediation_priority=8,
+                  next_stp_action="PARTIAL 2026-09-08 · ml_discovery/runner.py · USA CROSS_SECTIONAL only · India REFUSES · needs walk-forward depth"),
+    ResearchItem("R3-E-FUND", "R3", "Intelligence", "R3-E Fundamental Intelligence",
+                  "Quality / growth / balance sheet / valuation / earnings / "
+                  "cash flow / governance as PIT features",
+                  "Tier 2", upstream_substrate=("R3-A-DESC",),
+                  remediation_priority=30,
+                  next_stp_action="BLOCKED · PIT fundamentals accumulator holds 2 dates (2026-09-03..04) · accumulate forward"),
+    ResearchItem("R3-F-MKT", "R3", "Intelligence", "R3-F Market Intelligence",
+                  "Sector / regime / flows / relative strength / breadth / "
+                  "liquidity / market structure",
+                  "Tier 2", upstream_substrate=("R3-A-DESC",),
+                  remediation_priority=32,
+                  next_stp_action="BLOCKED · sector is CURRENT-TIME not PIT · regime producer emits 'unknown' for all 19 observations"),
+    ResearchItem("R3-G-EXIT", "R3", "Intelligence", "R3-G Exit Intelligence",
+                  "P(continuation) / P(reversal) / P(stop_hit) / P(+1R) / "
+                  "P(+2R) / expected time-to-reversal from MAE-MFE paths",
+                  "Tier 1", upstream_substrate=("R3-C-TEMP", "R3-D-FCST"),
+                  remediation_priority=9,
+                  next_stp_action=(
+                      "EXECUTED 2026-09-08 · Wave 1A entry reconstruction (USA 12.4%"
+                      "->100%, stops deliberately NOT backfilled) · Wave 1B hazard "
+                      "(547 India / 79 USA episodes; peak +1.573R -> final +0.274R) · "
+                      "Wave 1D-C corrected validator (joint ticker x date holdout, "
+                      "real/default stop segmented) · Wave 1D-E stop-free "
+                      "falsification. BRANCH FROZEN 2026-09-08: no absolute target "
+                      "both beat its baseline and added economic value, so the "
+                      "R-multiple edge is an artefact of the R definition. NO further "
+                      "LightGBM/TCN/GRU/Transformer variants on this substrate. "
+                      "Reopens only on accumulated dates/tickers, and then as an "
+                      "R2 META-LABEL question, not a return forecast")),
+    ResearchItem("R3-H-UNSUP", "R3", "Intelligence", "R3-H Unsupervised intelligence",
+                  "Fundamental / technical / combined clustering (kmeans, GMM, "
+                  "hierarchical, k=3..6) + Isolation Forest and robust "
+                  "Mahalanobis anomaly detection", "Tier 1",
+                  remediation_priority=7,
+                  next_stp_action=(
+                      "EXECUTED 2026-09-08 · DESCRIPTIVE_ONLY both markets. All "
+                      "six cluster lanes separate outcomes in sample (0.6-5.1pp) "
+                      "and none survives a TICKER-BLOCK permutation of the "
+                      "ticker-disjoint OOS assignment. India technical "
+                      "clustering read p=0.013 under a row-level null and lost "
+                      "it entirely once whole names were permuted together - "
+                      "the same defect Wave 2C found. Outcome-trajectory "
+                      "clustering deliberately never emitted as a feature "
+                      "(it is built from the outcome). Clusters describe the "
+                      "cohort; they do not predict it")),
+    ResearchItem("R3-I-INTRADAY", "R3", "Intelligence", "R3-I Intraday intelligence",
+                  "Intraday LONG/SHORT/NO-TRADE classification", "Tier 2",
+                  remediation_priority=20,
+                  next_stp_action=(
+                      "BLOCKED 2026-09-08 · no intraday bar data exists on "
+                      "disk. backend/intraday carries engine scaffolding "
+                      "(feed, session_clock, signals, execution) but there is "
+                      "no timestamped price substrate, so no PIT intraday "
+                      "dataset can be constructed and there is nothing to "
+                      "validate. Engineering present, evidence absent. "
+                      "Unblocks on persisted 1m/5m bars with exchange "
+                      "timestamps + session-aware snapshots + cost "
+                      "assumptions. NOT fabricated, NOT downgraded")),
+    ResearchItem("R3-J-CALIB", "R3", "Intelligence", "R3-J Uncertainty & calibration",
+                  "Brier / ECE / calibration slope-intercept + first-class "
+                  "ABSTAIN band", "Tier 1", remediation_priority=11,
+                  next_stp_action=(
+                      "EXECUTED 2026-09-08 · RESEARCH_ONLY. Calibration is "
+                      "measured on every ladder rung in both markets and the "
+                      "ABSTAIN band is fixed in advance at the middle two "
+                      "deciles, never tuned on results. This is infrastructure "
+                      "for a surviving model and no model survived, so there "
+                      "is nothing to calibrate into production")),
+    ResearchItem("R3-K-META", "R3", "Intelligence", "R3-K Evidence-weighted decision synthesis",
+                  "R2 -> R3 meta-label TAKE/AVOID/ABSTAIN · baseline ladder "
+                  "confidence-rule -> logistic -> LightGBM -> +fundamentals",
+                  "Tier 1", upstream_substrate=("R3-E-FUND", "R3-H-UNSUP"),
+                  remediation_priority=5,
+                  next_stp_action=(
+                      "EXECUTED 2026-09-08 · INSUFFICIENT_SUBSTRATE. 16 trials "
+                      "per market (4 declared targets x 4 rungs). USA blocked "
+                      "at the gate: 93.5% of 1,040 rows fall on 2026-08-11 and "
+                      "2026-08-12, two consecutive mornings whose 10-day "
+                      "windows overlap - 495 names but ONE market episode, and "
+                      "ticker-disjoint folds are blind to it. An earlier run "
+                      "before that gate existed reported AUC 0.6079 and "
+                      "+1.57pp decision value with a CI excluding zero; that "
+                      "is a description of one episode, not evidence, and is "
+                      "recorded here so the number is never re-quoted as a "
+                      "result. India profitable_5d REJECTED on merit (AUC "
+                      "0.4926); the other three India targets sit below the "
+                      "40-event / 20-name floor. No committee was built: a "
+                      "committee may contain only validated specialists and "
+                      "there are none")),
+    ResearchItem("R3-PROGRAMME", "R3", "Governance", "R3 AI programme freeze",
+                  "Finite AI programme · 11 classes R3-A..K to final "
+                  "disposition, then freeze", "Tier 1",
+                  remediation_priority=1,
+                  next_stp_action=(
+                      "FROZEN 2026-09-08 · R3_AI_RESEARCH_COMPLETE=TRUE. 11/11 "
+                      "classes resolved: 0 VALIDATED, 0 CONDITIONAL, 2 "
+                      "RESEARCH_ONLY, 2 DESCRIPTIVE_ONLY, 1 REJECTED, 1 "
+                      "FROZEN, 1 BLOCKED, 4 INSUFFICIENT_SUBSTRATE. Governance "
+                      "audit 6/6 PASS. R2 production diff zero. The binding "
+                      "constraint is DATES, not models: India carries 2 and "
+                      "USA 1 independent date unit, so no temporal or "
+                      "decision-value claim is possible however many names or "
+                      "rows exist. Reopens only on 50+ scored prequential "
+                      "predictions, 10+ populated dates per market, real "
+                      "sector/regime columns, intraday bars, or an "
+                      "authorised new question")),
+    ResearchItem("R3-E-2C", "R3", "Intelligence", "Wave 2C seven-filter research",
+                  "Level / trend / acceleration / relative / surprise / quality / "
+                  "interactions / failure states over the retail seven-filter "
+                  "baseline · 30-45-60d PIT lag sensitivity built in",
+                  "Tier 1", upstream_substrate=("R3-E-FUND",),
+                  remediation_priority=6,
+                  next_stp_action=(
+                      "EXECUTED 2026-09-08 · India 333 rows/35 names, USA 490 "
+                      "rows/215 names, five of seven filters computable (no PIT "
+                      "share count for P/E, no governance dataset). PRIMARY "
+                      "RESULT is methodological: 4 of 4 India dimensions are "
+                      "TICKER-CONSTANT across a one-month cohort, so row-level "
+                      "significance was fiction - roe_rising went from row "
+                      "p=0.000 to ticker-level p=0.386, and 0 of 4 survive FDR. "
+                      "USA dimension 10 gives delta AUC +0.0138 over R2 features "
+                      "with a ticker-bootstrap CI of [-0.074, +0.105]: KILL "
+                      "MODEL. India dimension 10 REFUSED at 33 events/13 names. "
+                      "No production rule proposed. Reopens when the cohort "
+                      "spans multiple earnings dates per name")),
     ResearchItem("II.1-GBM", "R3", "II.1", "GBM primary model family",
                   "LightGBM WF 252/63/21/5 · SHAP importance", "Tier 1",
-                  remediation_priority=18, next_stp_action="STP T3+T4 · baseline-replicate gate first · then live shadow"),
+                  remediation_priority=18,
+                  next_stp_action=(
+                      "WAVE 1D RESULT INVALIDATED 2026-09-08 · the AUC 1.000 / 0.974 "
+                      "figures are AUDIT HISTORY, not evidence: R-multiple tautology "
+                      "(stop_distance alone = 0.853 on P(+2R)), 51.6% synthetic 5% "
+                      "default stops, and neither split controlling both ticker and "
+                      "date. Current corrected reference is WAVE 1D-C · see "
+                      "docs/aegis/AI_research.md")),
     ResearchItem("II.1-STK", "R3", "II.1", "Ensemble stacking",
                   "Meta-learner logistic on GBM+R2_base+KG scores", "Tier 2",
                   upstream_substrate=("II.1-GBM", "F01-05-OOS"),
