@@ -188,20 +188,35 @@ def test_contract_id_matches_the_frozen_contract():
     assert set(shadow.ACTIONS) == set(R3_DECISION_CONTRACT["allowed_actions"])
 
 
-def test_shadow_output_is_absent_from_production_workbooks():
-    """R3 must not appear in CURRENT or EXIT HISTORY."""
+def test_shadow_appears_only_as_a_separated_block_in_current():
+    """R3 is now VISIBLE in CURRENT · CEO 2026-09-08.
+
+    This test previously asserted R3 was absent from the workbook. That
+    was correct while R3 had no operator surface; it is now the opposite
+    of the requirement. What still must hold is the SEPARATION: R3 lives
+    in its own trailing block, never inside R2's columns, and never on
+    EXIT HISTORY - a closed trade has no decision to annotate.
+    """
     from openpyxl import load_workbook
+
+    from backend.delivery.sheets import workbook_two as w2
     for m in MARKETS:
         p = ROOT / "reports" / "telegram" / ("aegis_history_%s.xlsx" % m)
         if not p.exists():
             continue
         wb = load_workbook(p, read_only=True)
         assert wb.sheetnames == ["CURRENT", "EXIT HISTORY"]
-        for sn in wb.sheetnames:
-            ws = wb[sn]
-            for row in ws.iter_rows(min_row=1, max_row=min(ws.max_row, 12)):
-                for c in row:
-                    v = str(c.value or "")
-                    assert "r3_action" not in v.lower()
-                    assert "ABSTAIN" not in v
+
+        cur = [str(c.value).strip() if c.value else "" for c in wb["CURRENT"][7]]
+        r3_cols = [h for h in cur if h.startswith("R3 ")]
+        assert r3_cols, "R3 block missing from CURRENT"
+        first_r3 = min(cur.index(h) for h in r3_cols)
+        last_r2 = max(cur.index(h) for h in w2.CURRENT_COLUMNS_R2 if h in cur)
+        assert first_r3 > last_r2, "R3 column interleaved with R2 columns"
+
+        ex = [str(c.value).strip() if c.value else ""
+              for c in wb["EXIT HISTORY"][4]]
+        assert not [h for h in ex if h.startswith("R3 ")], (
+            "EXIT HISTORY carries R3 columns · a closed trade has no "
+            "decision to annotate")
         wb.close()

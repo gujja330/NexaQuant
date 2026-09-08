@@ -26,6 +26,7 @@ the only place to fix it.
 """
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Optional
 
@@ -38,11 +39,32 @@ from backend.delivery.lifecycle.canonical_daily_lifecycle import (  # noqa: E402
 
 TWO_SHEETS = ["CURRENT", "EXIT HISTORY"]
 
-CURRENT_COLUMNS = [
+# R2's own columns. Nothing in the R3 block below may ever be inserted
+# among these - the separation is the point.
+CURRENT_COLUMNS_R2 = [
     "Market", "Ticker", "Engine", "Action", "Entry Date", "Entry Price",
     "Current Price", "P&L %", "Confidence %", "Stop", "Stop State",
     "Dist to Stop %", "Max Loss if Stop %", "Target", "Position ID", "Reason",
 ]
+
+# R3 SHADOW INTELLIGENCE · research only.
+#
+# These columns describe an R2 candidate; they never alter one. R2 Action
+# is decided before this block is read and is not a function of anything
+# in it. Today every value is ABSTAIN / IMMATURE because no specialist has
+# validated - and that is the honest reading, not a placeholder.
+CURRENT_COLUMNS_R3 = [
+    "R3 Decision", "R3 Evidence", "R3 Risk", "R3 Fundamental",
+    "R3 Statistical", "R3 Temporal", "R3 Sector", "R3 Uncertainty",
+    "R3 Reason", "R3 As-of", "R3 Model",
+]
+
+CURRENT_COLUMNS = CURRENT_COLUMNS_R2 + CURRENT_COLUMNS_R3
+
+# R3 comments on R2 candidates only · it has nothing to say about an R1
+# advisory row and must not pretend otherwise.
+R3_ENGINES = ("R2", "MOMENTUM", "MOM")
+R3_NOT_APPLICABLE = "NOT_APPLICABLE"
 
 EXIT_COLUMNS = [
     "Exit Date", "Ticker", "Sector", "Market", "Engine", "Entry Date",
@@ -68,6 +90,69 @@ def load_funnel(root: Path, market: str) -> Optional[dict]:
     return wnc.load(root, market)
 
 
+def load_r3_shadow(root: Path, market: str, asof: str) -> dict:
+    """R3 decisions for this as-of, keyed by ticker · {} when absent.
+
+    Read as a FILE, exactly like `load_funnel` reads the reconciler's
+    verdict. The renderer still computes nothing; it renders a second
+    dataset alongside the first. Reading the ledger rather than importing
+    backend.research keeps the dependency one-way and file-based, so the
+    R3 isolation audit stays true in both directions.
+    """
+    p = (root / "reports" / "research" / "r3" / "shadow"
+         / f"ledger_{market.lower()}.jsonl")
+    if not p.exists():
+        return {}
+    out = {}
+    for line in p.read_text(encoding="utf-8", errors="replace").splitlines():
+        if not line.strip():
+            continue
+        try:
+            r = json.loads(line)
+        except Exception:
+            continue
+        if str(r.get("as_of"))[:10] != str(asof)[:10]:
+            continue
+        out[str(r.get("ticker") or "").upper()] = r
+    return out
+
+
+def r3_cells(rec: Optional[dict], engine: str) -> list:
+    """The R3 block for one row · never invents a value.
+
+    A missing specialist yields its declared state, not a blank and not a
+    zero. A zero here would be read as a confident forecast; a blank would
+    be read as an oversight.
+    """
+    if str(engine or "").upper() not in R3_ENGINES:
+        return [R3_NOT_APPLICABLE, R3_NOT_APPLICABLE, R3_NOT_APPLICABLE,
+                R3_NOT_APPLICABLE, R3_NOT_APPLICABLE, R3_NOT_APPLICABLE,
+                R3_NOT_APPLICABLE, R3_NOT_APPLICABLE,
+                "R3 evaluates R2 candidates · this row is R1 advisory",
+                "—", "—"]
+    if not rec:
+        return ["NOT_EVALUATED"] * 8 + [
+            "no R3 snapshot for this ticker on this date", "—", "—"]
+    sp = rec.get("specialists") or {}
+
+    def st(k):
+        return (sp.get(k) or {}).get("state") or "NOT_EVALUATED"
+    risk = st("R3-G")
+    return [
+        rec.get("r3_action") or "ABSTAIN",
+        rec.get("evidence_tier") or "OBSERVATION",
+        risk,
+        rec.get("fundamental_state") or st("R3-E"),
+        rec.get("technical_state") or st("R3-B"),
+        st("R3-C"),
+        rec.get("sector_state") or st("R3-F"),
+        rec.get("uncertainty") or "TOTAL",
+        (rec.get("r3_action_rationale") or "")[:180],
+        rec.get("as_of") or "—",
+        (rec.get("model_versions") or {}).get("programme", "—"),
+    ]
+
+
 def load_lifecycle(root: Path, market: str, asof: str) -> Optional[dict]:
     """The ONLY input. None when the upstream stage has not run.
 
@@ -91,6 +176,7 @@ def emit_current(wb, d: dict):
 
     rows = d.get("current") or []
     c = d.get("counts") or {}
+    _r3 = d.get("_r3") or {}
     ws = wb.create_sheet("CURRENT")
     n = len(CURRENT_COLUMNS)
     _banner(ws, "AEGIS %s · CURRENT · what is investable now · %s"
@@ -143,16 +229,31 @@ def emit_current(wb, d: dict):
     # India's recommendation artifact sat five days old while CURRENT was
     # rebuilt every cycle and looked entirely normal. Staleness that is not
     # displayed is indistinguishable from freshness.
+    # Row 6 carries BOTH the stale-input warning and the R3 notice. They
+    # are joined rather than written twice: a second _sub on the same row
+    # overwrites the first, and a stale-data warning silently replaced by
+    # an R3 banner is exactly the kind of quiet loss this sheet exists to
+    # prevent. If a third message ever needs row 6, add it to this list.
+    _row6 = []
     _st = d.get("stale_inputs") or []
     if _st:
-        _sub(ws, ("⛔ STALE INPUT · %s · CURRENT is built on decisions older "
-                  "than this report's as-of · treat NEW/ACTIVE with caution"
-                  % " · ".join("%s %s (%s day(s) old)"
-                               % (x["input"], x["verdict"], x["age_days"])
-                               for x in _st)), n, 6)
+        _row6.append("⛔ STALE INPUT · %s · CURRENT is built on decisions "
+                     "older than this report's as-of · treat NEW/ACTIVE with "
+                     "caution"
+                     % " · ".join("%s %s (%s day(s) old)"
+                                  % (x["input"], x["verdict"], x["age_days"])
+                                  for x in _st))
+    _n_r3 = sum(1 for k in _r3)
+    _row6.append("🤖 R3 = RESEARCH / SHADOW INTELLIGENCE · DOES NOT CHANGE "
+                 "R2 ACTION · %d candidate(s) evaluated · every specialist "
+                 "is currently unvalidated, so every decision is ABSTAIN and "
+                 "every probability is withheld rather than guessed" % _n_r3)
+    _sub(ws, "   ||   ".join(_row6), n, 6)
     _header(ws, CURRENT_COLUMNS, 7)
     for i, w in enumerate([9, 12, 10, 10, 12, 12, 13, 10, 12, 12, 13, 14,
-                           17, 12, 30, 50], 1):
+                           17, 12, 30, 50,
+                           # R3 shadow block
+                           13, 14, 22, 22, 22, 22, 22, 34, 60, 12, 22], 1):
         ws.column_dimensions[get_column_letter(i)].width = w
     r = 8
     for row in rows:
@@ -166,6 +267,11 @@ def emit_current(wb, d: dict):
             _fmt(row.get("dist_to_stop_pct")),
             _fmt(row.get("max_loss_if_stop_pct")), _fmt(row.get("target")),
             row.get("position_id"), row.get("reason"),
+            # ── R3 SHADOW · appended AFTER every R2 column, never among
+            #    them. R2 Action above was decided without reading any of
+            #    this and does not change because of it.
+            *r3_cells(_r3.get(str(row.get("ticker") or "").upper()),
+                      row.get("engine")),
         ], r, pnl_col_idx=8)
         r += 1
     if not rows:
@@ -173,6 +279,27 @@ def emit_current(wb, d: dict):
         r += 1
     r += 2
     _legend(ws, [
+        "R3 columns are RESEARCH / SHADOW INTELLIGENCE. They describe an R2 "
+        "candidate and never change one · R2 Action, Confidence and Stop in "
+        "this row were decided without reading any R3 value.",
+        "R3 Decision · TAKE / AVOID / ABSTAIN. Every row reads ABSTAIN today "
+        "because no R3 specialist has passed its evidence gate. ABSTAIN is "
+        "R3 stating that it does not know · it is not a neutral default and "
+        "not a placeholder.",
+        "R3 probabilities are deliberately absent rather than zero. An "
+        "unvalidated model reporting 0.5 is indistinguishable, months later, "
+        "from a validated one reporting 0.5.",
+        "R3 specialist states · NOT_VALIDATED (branch resolved, no usable "
+        "model) · INSUFFICIENT_SUBSTRATE (data cannot support the claim) · "
+        "NOT_AVAILABLE_AT_ASOF (input did not exist on this date) · BLOCKED "
+        "(no substrate at all) · DESCRIPTIVE_ONLY (real information, not "
+        "predictive).",
+        "NOT_APPLICABLE on an R1 row is correct · R3 evaluates R2 candidates "
+        "only, and R1 is retired advisory.",
+        "R3 can only ever become actionable through explicit authorisation "
+        "after out-of-sample and incremental-value evidence. It cannot "
+        "promote itself.",
+
         "CURRENT is the daily recommendation · everything AEGIS considers "
         "investable right now. Non-investable states (WATCH, REVIEW, AVOID, "
         "research-only) are filtered from this VIEW · they remain in the "
@@ -309,6 +436,11 @@ def build_two_sheet_workbook(root: Path, market: str, asof: str) -> dict:
     if f is not None:
         d = dict(d)
         d["_funnel"] = f
+    # R3 shadow intelligence · a THIRD dataset rendered alongside, never
+    # merged into, the lifecycle. Absent shadow ledger renders as
+    # NOT_EVALUATED rather than blanks.
+    d = dict(d)
+    d["_r3"] = load_r3_shadow(root, market, asof)
     wb = Workbook()
     wb.remove(wb.active)
     n_cur = emit_current(wb, d)

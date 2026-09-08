@@ -161,9 +161,16 @@ class XlsxValidator:
         # Auto-adjust for 3-sheet layout · caller's `first_data_row` is
         # respected but if the physical sheet is 3-sheet and caller
         # passed the legacy default (6), remap to 5.
+        # Honour the layout table for ANY value, not just 5. The old code
+        # remapped only when auto_row == 5, so on the two-sheet CURRENT
+        # sheet (data starts at 8) it began at the caller's default of 6
+        # and yielded the row-7 HEADER as a body row: I11 reported a
+        # position named "Ticker" with no entry price, and I23 reported a
+        # non-canonical Runner value of "ENGINE". Same one-value special
+        # case as _sheet_headers had.
         auto_row = self._row_offset(phys, "data")
-        if first_data_row == 6 and auto_row == 5:
-            first_data_row = 5
+        if first_data_row == 6 and auto_row != 6:
+            first_data_row = auto_row
         ws = wb[phys]
         # STOP AT THE FIRST BLANK ROW · CEO 2026-09-08.
         # This iterated to ws.max_row, so every blank row and every line of
@@ -184,12 +191,29 @@ class XlsxValidator:
         if wb is None: return []
         phys = self._resolve_sheet(sheet_name)
         if phys is None: return []
+        # Honour whatever _row_offset says for this layout. The old code
+        # special-cased exactly one value ("if auto_hdr == 4") and so kept
+        # reading row 5 on the two-sheet CURRENT sheet, whose header is at
+        # row 7 - every column resolved to None and I11/I16/I23/I27
+        # reported "missing header" for fields the sheet plainly carries.
+        # A layout table with one hardcoded exception is not a layout table.
         auto_hdr = self._row_offset(phys, "header")
-        if header_row == 5 and auto_hdr == 4:
-            header_row = 4
+        if header_row == 5 and auto_hdr != 5:
+            header_row = auto_hdr
         ws = wb[phys]
-        return [ws.cell(header_row, c).value
-                for c in range(1, ws.max_column + 1)]
+        hdr = [ws.cell(header_row, c).value
+               for c in range(1, ws.max_column + 1)]
+        # Last-resort: locate the header by CONTENT. A future rename or an
+        # extra banner line must degrade to "found it anyway", never to
+        # "the column does not exist".
+        if not any(str(h or "").strip() in ("Ticker", "Stock") for h in hdr):
+            for r in range(1, min(ws.max_row, 12) + 1):
+                probe = [str(ws.cell(r, c).value or "").strip()
+                         for c in range(1, ws.max_column + 1)]
+                if "Ticker" in probe or "Stock" in probe:
+                    return [ws.cell(r, c).value
+                            for c in range(1, ws.max_column + 1)]
+        return hdr
 
     def _col_index(self, sheet_name: str, header_name: str,
                    header_row: int = 5) -> Optional[int]:
@@ -205,7 +229,12 @@ class XlsxValidator:
     PORTFOLIO_FIELD_ALIASES = {
         "Position ID":   ["Position ID"],
         "Ticker":        ["Ticker", "Stock"],
-        "Runner":        ["Runner"],
+        # The two-sheet contract names this column "Engine" (R1 · R2 ·
+        # MOMENTUM). Requiring the literal legacy "Runner" made I11, I16,
+        # I23 and I27 report a schema failure on a sheet that carries the
+        # field under its current name - the same alias-drift that made
+        # A19/A23 fire on a renamed sheet. Alias it, do not branch on it.
+        "Runner":        ["Runner", "Engine"],
         "Entry Date":    ["Entry Date"],
         "Entry Price":   ["Entry Price", "Entry"],
         "Current Price": ["Current Price", "Current"],
@@ -220,7 +249,7 @@ class XlsxValidator:
         "Position ID":   ["Position ID"],
         "Ticker":        ["Stock", "Ticker"],
         "Sector":        ["Sector"],
-        "Runner":        ["Runner", "Source"],
+        "Runner":        ["Runner", "Engine", "Source"],
         "Market":        ["Market", "Country"],
         "Entry Date":    ["Entry Date"],
         "Exit Date":     ["Exit Date"],
@@ -742,10 +771,21 @@ class XlsxValidator:
             # literal legacy string would fail on a sheet that genuinely
             # carries the field.
             _logical = "Portfolio" if contract is PORTFOLIO_CONTRACT else "Exit History (90d)"
+            _amap = (self.PORTFOLIO_FIELD_ALIASES
+                     if contract is PORTFOLIO_CONTRACT
+                     else self.EXIT_HISTORY_FIELD_ALIASES)
             for req in contract.required_header_cells:
-                _alts = (self.PORTFOLIO_FIELD_ALIASES
-                         if contract is PORTFOLIO_CONTRACT
-                         else self.EXIT_HISTORY_FIELD_ALIASES).get(req, [req])
+                # A required name may be either the alias-map KEY or one of
+                # its VALUES. EXIT_HISTORY keys the ticker group under
+                # "Ticker" while the contract requires "Stock", so a
+                # key-only lookup fell through to ["Stock"] and reported a
+                # missing header on a sheet that carries "Ticker". Match on
+                # the whole group, whichever member the contract names.
+                _alts = set(_amap.get(req, [req]))
+                for _k, _vs in _amap.items():
+                    if req == _k or req in _vs:
+                        _alts.update([_k, *_vs])
+                _alts = sorted(_alts)
                 if not any(alt in headers for alt in _alts):
                     violations.append({"sheet": phys, "missing": req,
                                        "accepted_aliases": _alts})

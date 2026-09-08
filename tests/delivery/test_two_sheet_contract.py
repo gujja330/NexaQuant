@@ -288,13 +288,39 @@ def test_13_production_r2_logic_untouched():
 # ── TEST 14 · no R3 / research output in the investor workbook ────────
 @pytest.mark.parametrize("market", MARKETS)
 def test_14_no_r3_or_research_in_workbook(market):
+    """Research INTERNALS stay out · the sanctioned R3 block may stay in.
+
+    CEO 2026-09-08 directed R3 into CURRENT as a visible shadow-
+    intelligence block, so a blanket ban on the token "R3" is no longer
+    the contract. What this test still guards is the thing it was really
+    protecting: research plumbing (ledger names, statistics, trial
+    counts) must never surface on an investor sheet, and R3 must not
+    appear on EXIT HISTORY or inside R2's own columns.
+    """
+    from backend.delivery.sheets import workbook_two as w2
+
     wb = _wb(market)
     text = " ".join(str(c) for sn in wb.sheetnames
                     for r in _rows(wb[sn]) for c in r if c is not None)
+
+    # EXIT HISTORY carries no R3 at all · a closed trade has no decision.
+    ex_text = " ".join(str(c) for r in _rows(wb["EXIT HISTORY"])
+                       for c in r if c is not None)
+    assert "R3" not in ex_text.replace("·", " ").split(),         "R3 leaked into EXIT HISTORY"
+
+    # On CURRENT, R3 appears only as the declared trailing block.
+    hdr = [str(c.value).strip() if c.value else "" for c in wb["CURRENT"][7]]
     wb.close()
-    toks = text.replace("·", " ").replace("/", " ").split()
-    assert "R3" not in toks, "R3 leaked into the investor workbook"
-    for bad in ("shadow_ledger", "Tier-1", "FDR", "Brier", "trial_count"):
+    r3_hdr = [h for h in hdr if h.startswith("R3 ")]
+    assert set(r3_hdr) == set(w2.CURRENT_COLUMNS_R3), (
+        "R3 header block differs from the declared contract: %s" % r3_hdr)
+    first_r3 = min(hdr.index(h) for h in r3_hdr)
+    last_r2 = max(hdr.index(h) for h in w2.CURRENT_COLUMNS_R2 if h in hdr)
+    assert first_r3 > last_r2, "R3 column interleaved with R2 columns"
+
+    # Research plumbing never reaches an investor sheet · unchanged.
+    for bad in ("shadow_ledger", "Tier-1", "FDR", "Brier", "trial_count",
+                "p_value", "bootstrap", "AUC"):
         assert bad not in text, "research internal '%s' leaked" % bad
 
 
