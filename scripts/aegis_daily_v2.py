@@ -603,6 +603,35 @@ STEPS = [
         "optional": True,
     },
     {
+        # CEO 2026-09-08 · the forward-validation chain was ORPHANED - no
+        # pipeline step ran it, so its outcomes froze on 2026-08-27. USA
+        # fwd_5d sat at 192/1088 (18%) and fwd_10d at 8/1088 while the
+        # outcomes had long since matured. Re-running it moved USA to
+        # 1086/1156 (94%) and 1082/1156. This is the dataset the Entry
+        # Quality work depends on, so it now refreshes daily.
+        "name":       "mr_forward_outcomes_refresh",
+        "desc":       ("MR forward-validation refresh · recompute matured "
+                        "5/10/20d outcomes + re-enrich entry features "
+                        "(research-only · no production write)"),
+        "script":     "backend/research/mr_prediction_autopsy.py",
+        "script_args": ["--market", "both"],
+        "produces":   ["reports/research/mr_prediction_autopsy_india.jsonl",
+                        "reports/research/mr_prediction_autopsy_usa.jsonl"],
+        "requires":   [],
+        "optional":   True,
+    },
+    {
+        "name":       "mr_feature_enrich",
+        "desc":       ("MR entry-feature enrichment · PIT features joined to "
+                        "matured forward outcomes (research-only)"),
+        "script":     "backend/research/mr_feature_enricher.py",
+        "script_args": ["--market", "both"],
+        "produces":   ["reports/research/mr_prediction_autopsy_india_enriched.jsonl",
+                        "reports/research/mr_prediction_autopsy_usa_enriched.jsonl"],
+        "requires":   ["reports/research/mr_prediction_autopsy_india.jsonl"],
+        "optional":   True,
+    },
+    {
         # CEO 2026-09-07 · "i need a 100% solution". Six silent producer
         # outages were found in one day; each pipeline step went green
         # while its artifact stayed old. This measures EVERY artifact the
