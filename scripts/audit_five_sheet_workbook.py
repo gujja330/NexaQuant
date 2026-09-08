@@ -227,11 +227,22 @@ def audit(market: str, asof: str) -> dict:
     # Root cause was a stale producer artifact (as-of 2026-09-03 while the
     # workbook reported 2026-09-07), not a rendering bug. The sheet must
     # state the source as-of so this is visible without digging.
-    dr_head = " ".join(str(c) for r in dr_rows[:5] for c in r if c is not None)
-    declares = "Daily recommendations" in dr_head and "as-of" in dr_head
+    # Read ONLY the recommendations line. Scanning the whole header block
+    # produced a FALSE STALE: the DATA FRESHNESS banner legitimately
+    # contains the word "STALE <n>" as a count, and a substring check
+    # cannot tell that apart from the recommendation source being stale.
+    _rec_line = ""
+    for r in dr_rows[:6]:
+        for c in r:
+            if c is not None and "Daily recommendations" in str(c):
+                _rec_line = str(c)
+                break
+        if _rec_line:
+            break
+    declares = "Daily recommendations" in _rec_line and "as-of" in _rec_line
     chk("C9 · DAILY RECOMMENDATION declares its source as-of + freshness",
-        declares, _safe(dr_head)[:200])
-    rec_stale = "STALE" in dr_head
+        declares, _safe(_rec_line)[:200])
+    rec_stale = "STALE" in _rec_line
     res["counts"]["daily_recs_stale"] = rec_stale
     chk("C9b · daily recommendation source is FRESH", not rec_stale,
         "recommendation artifact is older than this report's as-of"

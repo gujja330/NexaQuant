@@ -154,9 +154,18 @@ class XlsxValidator:
         if first_data_row == 6 and auto_row == 5:
             first_data_row = 5
         ws = wb[phys]
+        # STOP AT THE FIRST BLANK ROW · CEO 2026-09-08.
+        # This iterated to ws.max_row, so every blank row and every line of
+        # the LEGEND block below the data was yielded as if it were a body
+        # row. I11 then counted 9 "ACTIVE rows missing entry price" on a
+        # sheet whose 8 real positions all had prices - blocking India
+        # delivery on legend prose. The body ends at the first blank row,
+        # which is the same rule A23 and the five-sheet reader already use.
         for r_idx in range(first_data_row, ws.max_row + 1):
             row = [ws.cell(r_idx, c).value
                    for c in range(1, ws.max_column + 1)]
+            if all(v is None or str(v).strip() == "" for v in row):
+                break
             yield r_idx, row
 
     def _sheet_headers(self, sheet_name: str, header_row: int = 5) -> list:
@@ -668,14 +677,20 @@ class XlsxValidator:
             return InvariantResult("I15", "Sheet title", "BLOCK", "SKIP",
                                    "workbook missing")
         violations = []
+        # CEO 2026-09-08 · resolve through the ALIAS resolver, not the raw
+        # contract name. This compared against "01_Portfolio" /
+        # "03_Exit_History" literally, so under the five-sheet layout both
+        # sheets read as "missing" and I15 blocked delivery on two phantom
+        # title issues while the titles were in fact correct.
         for contract in [PORTFOLIO_CONTRACT, EXIT_HISTORY_CONTRACT]:
-            if contract.name not in wb.sheetnames:
+            phys = self._resolve_sheet(contract.name)
+            if phys is None:
                 violations.append({"sheet": contract.name, "issue": "missing"})
                 continue
-            ws = wb[contract.name]
+            ws = wb[phys]
             _title = str(ws.cell(contract.title_row, 1).value or "")
             if contract.title_pattern not in _title.upper():
-                violations.append({"sheet": contract.name,
+                violations.append({"sheet": phys,
                                    "issue": f"title '{_title[:40]}' missing "
                                             f"'{contract.title_pattern}'"})
         return InvariantResult(
@@ -692,14 +707,37 @@ class XlsxValidator:
             return InvariantResult("I16", "Required headers", "BLOCK", "SKIP",
                                    "workbook missing")
         violations = []
+        # I16 carried the SAME raw-name bug as I15 but `continue`d instead
+        # of flagging, so it passed VACUOUSLY on a sheet it never found ·
+        # a silent pass is worse than a loud fail. Resolved and, where the
+        # header row differs by layout, located by content.
         for contract in [PORTFOLIO_CONTRACT, EXIT_HISTORY_CONTRACT]:
-            if contract.name not in wb.sheetnames: continue
-            ws = wb[contract.name]
-            headers = [str(ws.cell(contract.header_row, c).value or "").strip()
+            phys = self._resolve_sheet(contract.name)
+            if phys is None: continue
+            ws = wb[phys]
+            _hdr_r = self._row_offset(phys, "header")
+            for _try in range(1, min(ws.max_row, 12) + 1):
+                _probe = [str(ws.cell(_try, c).value or "").strip()
+                          for c in range(1, ws.max_column + 1)]
+                if "Stock" in _probe or "Ticker" in _probe:
+                    _hdr_r = _try
+                    break
+            headers = [str(ws.cell(_hdr_r, c).value or "").strip()
                        for c in range(1, ws.max_column + 1)]
+            # Resolve each required header through the SAME alias maps the
+            # rest of the validator uses. The five-sheet layout renamed
+            # Ticker->Stock (R2) and Runner->Source (EXIT, which is unified
+            # across runners); those aliases already exist, so requiring the
+            # literal legacy string would fail on a sheet that genuinely
+            # carries the field.
+            _logical = "Portfolio" if contract is PORTFOLIO_CONTRACT else "Exit History (90d)"
             for req in contract.required_header_cells:
-                if req not in headers:
-                    violations.append({"sheet": contract.name, "missing": req})
+                _alts = (self.PORTFOLIO_FIELD_ALIASES
+                         if contract is PORTFOLIO_CONTRACT
+                         else self.EXIT_HISTORY_FIELD_ALIASES).get(req, [req])
+                if not any(alt in headers for alt in _alts):
+                    violations.append({"sheet": phys, "missing": req,
+                                       "accepted_aliases": _alts})
         return InvariantResult(
             "I16", "Required headers present", "BLOCK",
             "FAIL" if violations else "PASS",

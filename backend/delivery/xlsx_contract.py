@@ -74,7 +74,10 @@ PORTFOLIO_CONTRACT = SheetContract(
 EXIT_HISTORY_CONTRACT = SheetContract(
     name="03_Exit_History",
     title_row=1,
-    title_pattern="EXIT HISTORY",
+    # CEO 2026-09-08 · the five-sheet tab is "EXIT" and its title reads
+    # "AEGIS <MKT> · EXIT · unified realized history". "EXIT" matches
+    # both that and the legacy "EXIT HISTORY (90d)" title.
+    title_pattern="EXIT",
     analysis_rows=[2],
     header_row=4,
     required_header_cells=[
