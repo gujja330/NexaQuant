@@ -221,15 +221,14 @@ def test_10_momentum_cannot_bypass_r2(market):
     investable. The momentum ledger sets production_impact=null on every
     entry by design, so momentum never opens a position on its own."""
     import inspect
-    from backend.delivery.sheets import workbook_two as wt
-    src = inspect.getsource(wt.build_views)
+    from backend.delivery.lifecycle import canonical_daily_lifecycle as lc
+    src = inspect.getsource(lc.compute)
     assert "momentum_investable" in src
-    # There must be no code path that appends a MOMENTUM row from the
-    # momentum ledger directly.
-    assert "ENGINE_MOM" not in src.split("EXIT HISTORY")[0].replace(
-        'v.counts["momentum_investable"] = 0', ""), (
-        "a momentum row is being added to CURRENT without passing R2 "
-        "eligibility")
+    # No code path may append a MOMENTUM row straight from the ledger ·
+    # momentum reaches CURRENT only by first becoming an R2 position.
+    body = src.split("_emit_exits")[0]
+    assert "_emit_current(o, ENGINE_MOM)" not in body, (
+        "a momentum row is added to CURRENT without passing R2 eligibility")
 
 
 # ── TEST 11 · no stale legacy sheet lookup ────────────────────────────
@@ -303,14 +302,14 @@ def test_14_no_r3_or_research_in_workbook(market):
 @pytest.mark.parametrize("market", MARKETS)
 def test_15_regeneration_is_content_stable(market):
     """Building twice must yield the same rows · only timestamps may move."""
-    from backend.delivery.sheets.workbook_two import build_views
-    a = build_views(ROOT, market, date.today().isoformat())
-    b = build_views(ROOT, market, date.today().isoformat())
-    assert a.counts == b.counts
-    assert [(r.ticker, r.engine, r.action) for r in a.current] == \
-           [(r.ticker, r.engine, r.action) for r in b.current]
-    assert [(e.position_id, e.exit_date) for e in a.exits] == \
-           [(e.position_id, e.exit_date) for e in b.exits]
+    from backend.delivery.lifecycle import canonical_daily_lifecycle as lc
+    a = lc.compute(ROOT, market, date.today().isoformat())
+    b = lc.compute(ROOT, market, date.today().isoformat())
+    assert a["counts"] == b["counts"]
+    assert [(r["ticker"], r["engine"], r["action"]) for r in a["current"]] == \
+           [(r["ticker"], r["engine"], r["action"]) for r in b["current"]]
+    assert [(e["position_id"], e["exit_date"]) for e in a["exits"]] == \
+           [(e["position_id"], e["exit_date"]) for e in b["exits"]]
 
 
 # ── canonical ACTION rule · reused, not invented ──────────────────────
@@ -327,12 +326,131 @@ def test_action_rule_matches_the_legacy_canonical_definition():
 
 def test_losing_positions_are_not_hidden():
     """A losing but still-active position must remain visible."""
-    from backend.delivery.sheets.workbook_two import build_views
+    from backend.delivery.lifecycle import canonical_daily_lifecycle as lc
     for market in MARKETS:
-        v = build_views(ROOT, market, date.today().isoformat())
-        losers = [r for r in v.current
-                  if isinstance(r.pnl_pct, (int, float)) and r.pnl_pct < 0]
+        v = lc.compute(ROOT, market, date.today().isoformat())
+        losers = [r for r in v["current"]
+                  if isinstance(r.get("pnl_pct"), (int, float))
+                  and r["pnl_pct"] < 0]
         # Not an assertion that losers must exist · an assertion that if
         # they exist they were NOT filtered out.
         for r in losers:
-            assert r.action in ("NEW", "ACTIVE", "ACTIVE+")
+            assert r["action"] in ("NEW", "ACTIVE", "ACTIVE+")
+
+
+# ── Pipeline integration · CEO 2026-09-08 ─────────────────────────────
+#
+# "The two-sheet lifecycle must be a first-class downstream stage of the
+#  canonical daily pipeline, not an independent workbook-only
+#  transformation. The pipeline must generate the canonical lifecycle
+#  dataset first and the XLSX must render only that dataset."
+
+
+def test_lifecycle_is_downstream_only():
+    """The lifecycle layer may READ engines · it may never WRITE to them.
+
+    This is what stops a delivery transformation from quietly becoming a
+    trading engine. Checked by verb, not by convention.
+    """
+    import inspect
+    from backend.delivery.lifecycle import canonical_daily_lifecycle as lc
+    src = inspect.getsource(lc)
+    code = "\n".join(l for l in src.splitlines()
+                     if not l.strip().startswith("#"))
+    forbidden = [
+        "oreg.close", "opportunity_registry.close", "oreg.get_or_create",
+        "opportunity_registry.get_or_create", "oreg.reject",
+        "publish_ssot", "update_from_recs", "dynamic_risk_v2.compute",
+        "drv.compute", ".emit(",
+    ]
+    hits = [f for f in forbidden if f in code]
+    assert not hits, (
+        "the lifecycle layer writes back into an engine: %s · it must be "
+        "downstream-only" % hits)
+
+
+def test_renderer_computes_nothing():
+    """The workbook renderer must own no business logic.
+
+    Every delivery defect this month came from a renderer recomputing what
+    an engine had decided - two sheets each deriving an R2 stop and
+    disagreeing. A renderer that cannot compute cannot disagree.
+    """
+    import inspect
+    from backend.delivery.sheets import workbook_two as wt
+    src = inspect.getsource(wt)
+    code = "\n".join(l for l in src.splitlines()
+                     if not l.strip().startswith("#"))
+    # No derivation of the values it displays.
+    for banned in ("_close_on_or_before", "_atr14_at_date", "_load_registry",
+                   "_load_dynamic_risk", "_target_from_registry",
+                   "classify_action(", "* 100", "/ entry"):
+        assert banned not in code, (
+            "renderer derives a value instead of rendering it: %r" % banned)
+    # And it must read the canonical dataset.
+    assert "load_lifecycle" in code and "canonical_daily_lifecycle" in code
+
+
+def test_renderer_refuses_to_run_without_the_dataset(tmp_path):
+    """A missing dataset must FAIL LOUDLY, never fall back to recomputing.
+
+    A silent fallback would recreate exactly the divergence this design
+    removes.
+    """
+    from backend.delivery.sheets.workbook_two import build_two_sheet_workbook
+    with pytest.raises(RuntimeError, match="canonical lifecycle dataset missing"):
+        build_two_sheet_workbook(tmp_path, "india", "2026-09-08")
+
+
+def test_lifecycle_stage_runs_before_the_workbook_in_the_pipeline():
+    """Ordering is the guarantee · the dataset must exist when rendering."""
+    import re
+    src = (ROOT / "scripts" / "aegis_daily_v2.py").read_text(encoding="utf-8")
+    names = re.findall(r'"name":\s*"([^"]+)"', src)
+    assert "canonical_daily_lifecycle" in names, "lifecycle stage not wired"
+    assert "aegis_3sheet_workbook" in names
+    assert names.index("canonical_daily_lifecycle") < names.index("aegis_3sheet_workbook"), (
+        "the workbook is built BEFORE the lifecycle dataset exists")
+    # And after exits are reconciled, so a same-day exit leaves CURRENT.
+    if "dynamic_exit_bridge" in names:
+        assert names.index("dynamic_exit_bridge") < names.index("canonical_daily_lifecycle")
+
+
+@pytest.mark.parametrize("market", MARKETS)
+def test_workbook_matches_the_lifecycle_dataset_exactly(market):
+    """The rendered sheet must equal the dataset · no drift, no extra rows."""
+    from backend.delivery.lifecycle import canonical_daily_lifecycle as lc
+    d = lc.load(ROOT, market)
+    if d is None:
+        pytest.skip("lifecycle dataset not produced")
+    wb = _wb(market)
+    cur = _table(wb["CURRENT"], ["Ticker", "Engine", "Action"])
+    ex = _table(wb["EXIT HISTORY"], ["Ticker", "Engine", "Exit Date"])
+    wb.close()
+    assert len(cur) == len(d["current"]), (
+        "CURRENT has %d rows but the dataset has %d"
+        % (len(cur), len(d["current"])))
+    assert len(ex) == len(d["exits"]), (
+        "EXIT HISTORY has %d rows but the dataset has %d"
+        % (len(ex), len(d["exits"])))
+    for sheet_row, data_row in zip(cur, d["current"]):
+        assert str(sheet_row.get("Ticker")) == data_row["ticker"]
+        assert str(sheet_row.get("Engine")) == data_row["engine"]
+        assert str(sheet_row.get("Action")) == data_row["action"]
+
+
+@pytest.mark.parametrize("market", MARKETS)
+def test_lifecycle_is_deterministic(market):
+    """Two computations of the same as-of must be byte-identical except
+    for the generation timestamp."""
+    import hashlib, json as _j
+    from backend.delivery.lifecycle import canonical_daily_lifecycle as lc
+    a = lc.compute(ROOT, market, date.today().isoformat())
+    b = lc.compute(ROOT, market, date.today().isoformat())
+
+    def _h(d):
+        c = dict(d)
+        c.pop("generated_utc", None)
+        return hashlib.sha256(
+            _j.dumps(c, sort_keys=True, default=str).encode()).hexdigest()
+    assert _h(a) == _h(b), "lifecycle aggregation is not deterministic"

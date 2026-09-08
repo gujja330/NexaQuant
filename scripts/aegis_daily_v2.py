@@ -632,6 +632,26 @@ STEPS = [
         "optional":   True,
     },
     {
+        # CEO 2026-09-08 · CANONICAL DAILY LIFECYCLE · first-class stage.
+        # Runs AFTER dynamic_exit_bridge (which fires exits) and BEFORE the
+        # workbook, so the XLSX renders a dataset the pipeline produced in
+        # the same run rather than reconstructing state itself. Every
+        # delivery defect this month came from a renderer recomputing what
+        # an engine had already decided.
+        # DOWNSTREAM-ONLY · reads R1/R2/Momentum/Registry, writes back to
+        # none of them.
+        "name":       "canonical_daily_lifecycle",
+        "desc":       ("Canonical lifecycle aggregation · R1+R2+Momentum -> "
+                        "CURRENT + EXIT events (downstream-only · no engine "
+                        "writes)"),
+        "script":     "backend/delivery/lifecycle/canonical_daily_lifecycle.py",
+        "script_args": ["--market", "both"],
+        "produces":   ["reports/context/canonical_lifecycle_india.json",
+                        "reports/context/canonical_lifecycle_usa.json"],
+        "requires":   [],
+        "optional":   False,
+    },
+    {
         # CEO 2026-09-07 · "i need a 100% solution". Six silent producer
         # outages were found in one day; each pipeline step went green
         # while its artifact stayed old. This measures EVERY artifact the
