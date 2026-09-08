@@ -30,7 +30,22 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 REPORTS = ROOT / "reports"
-NOTIFY = ROOT / "india" / "telegram_notify.py"
+# CEO 2026-09-08 · Option A · ONE canonical source for both surfaces.
+#
+# This pointed at india/telegram_notify.py, which renders from
+# data/aegis_today.csv - the retired R1 legacy generator. On 2026-09-08
+# that surface advised BUY on SBIN and TATAPOWER after both stop-breached
+# that morning, and "Continue HOLD" on three already-closed positions,
+# while the workbook showed the truth. Two engines, one chat.
+#
+# The message now renders from the SAME canonical lifecycle dataset that
+# builds the CURRENT sheet, so the two surfaces cannot disagree. The
+# legacy module is left in place, unmodified, for reference and for
+# anything else that still imports it - it simply no longer speaks to the
+# operator.
+NOTIFY = ROOT / "india" / "telegram_notify.py"          # legacy · not sent
+CANONICAL_MSG = ("backend.delivery.telegram.canonical_message",
+                 "--market", "both", "--send")
 AEGIS_TODAY = ROOT / "data" / "aegis_today.csv"
 
 
@@ -132,13 +147,13 @@ def _append_ledger(record: dict) -> Path:
 
 
 def _run_notify(python_exe: str) -> tuple[int, str, str]:
-    """Run telegram_notify.py once and return (exit_code, stdout, stderr)."""
+    """Send the CANONICAL daily message · returns (exit_code, out, err)."""
     r = subprocess.run(
-        [python_exe, str(NOTIFY)],
+        [python_exe, "-m", CANONICAL_MSG[0], *CANONICAL_MSG[1:]],
         cwd=str(ROOT),
         capture_output=True,
         text=True,
-        timeout=120,
+        timeout=180,
     )
     return r.returncode, r.stdout or "", r.stderr or ""
 
