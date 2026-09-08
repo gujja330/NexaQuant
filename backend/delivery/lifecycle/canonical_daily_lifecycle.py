@@ -98,6 +98,74 @@ def is_investable(action: str) -> bool:
             and str(action).upper() not in NON_INVESTABLE_STATES)
 
 
+BREACH_SOURCE = "lifecycle:stop-breach"
+
+
+def breach_ledger_path(root: Path, market: str) -> Path:
+    return (root / "reports" / "context"
+            / f"lifecycle_breach_ledger_{market.lower()}.jsonl")
+
+
+def load_breach_ledger(root: Path, market: str) -> dict:
+    """position_id -> the day its stop was FIRST seen broken.
+
+    A breach is LATCHED, and that is the whole reason this file exists.
+    The exit set is rebuilt from scratch on every run, so without a latch
+    the transition would be reversible: a position that breached yesterday
+    and ticked back above its stop today would silently leave EXIT HISTORY
+    and reappear in CURRENT. A permanent record that can un-record an exit
+    is not permanent, and that is the same class of silent restatement
+    this whole layer exists to remove.
+
+    Recovering back above the stop does not undo the fact that the stop
+    was passed. First observation wins and is never rewritten.
+    """
+    p = breach_ledger_path(root, market)
+    out: dict = {}
+    if not p.exists():
+        return out
+    for line in p.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        try:
+            r = json.loads(line)
+        except Exception:
+            continue                    # a torn line must not hide a breach
+        pid = str(r.get("position_id") or "")
+        if pid and pid not in out:
+            out[pid] = r
+    return out
+
+
+def record_breaches(root: Path, market: str, rows: list, asof: str) -> int:
+    """Append first-time breaches. Idempotent - a position_id is written once.
+
+    This writes lifecycle-owned state only. It opens nothing, closes
+    nothing, and touches no engine or registry: the position stays exactly
+    as R1/R2 left it.
+    """
+    known = load_breach_ledger(root, market)
+    new = [r for r in rows
+           if r.get("position_id") and r["position_id"] not in known]
+    if not new:
+        return 0
+    p = breach_ledger_path(root, market)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    with p.open("a", encoding="utf-8") as fh:
+        for r in new:
+            fh.write(json.dumps({
+                "position_id": r["position_id"], "ticker": r["ticker"],
+                "market": r["market"], "engine": r["engine"],
+                "entry_date": r["entry_date"], "breach_date": str(asof)[:10],
+                "stop": r["stop"], "stop_basis": r["stop_basis"],
+                "price_at_breach": r["current_price"],
+                "pnl_at_breach_pct": r["pnl_pct"],
+                "recorded_utc": datetime.now(timezone.utc)
+                                .isoformat(timespec="seconds"),
+            }, default=str) + "\n")
+    return len(new)
+
+
 def _num(x, nd=4) -> Optional[float]:
     try:
         return round(float(x), nd) if x is not None else None
@@ -120,7 +188,8 @@ def compute(root: Path, market: str, asof: str) -> dict:
     # CANONICAL R2 STOP · the one source. Nothing downstream recomputes it.
     dr_by_pid = _load_dynamic_risk(root, m)
 
-    current, exits, filtered = [], [], []
+    current, exits, filtered, breached = [], [], [], []
+    latched = load_breach_ledger(root, m)
 
     def _conf(o):
         c = getattr(o, "initial_score", None)
@@ -170,26 +239,76 @@ def compute(root: Path, market: str, asof: str) -> dict:
                     - date.fromisoformat(o.created_date)).days
         except Exception:
             pass
+        # STOP STATE · CEO 2026-09-08, from the visual audit of the first
+        # generated workbook.
+        #
+        # Nine R1 rows were ALREADY BELOW their advisory stop and nothing
+        # said so (India LUPIN -12.66% at 9.97% past its stop · USA EIX
+        # -20.50% at 16.85% past it). R1 carries no enforced exit by
+        # governance and that does not change here - but a breach that is
+        # invisible is the difference between "advisory" and "unmonitored".
+        # The breach is now an explicit column, NOT a new Action value, so
+        # the NEW/ACTIVE/ACTIVE+ contract is preserved exactly.
         dist = round((curr - stop) / curr * 100, 2) if (stop is not None and curr) else None
-        worst = round((stop / entry - 1.0) * 100, 2) if (stop is not None and entry) else None
-        current.append({
+        if stop is None:
+            stop_state = "NO STOP"
+        elif dist is not None and dist < 0:
+            stop_state = "BREACHED"
+        else:
+            stop_state = "INTACT"
+
+        # `max_loss_if_stop_pct` answers "how much can I still lose if the
+        # stop fires?". That question only has meaning while the stop is
+        # INTACT. Once price is through it the stop did not protect, and
+        # quoting (stop/entry - 1) understates the damage - LUPIN showed
+        # -3.95% against an actual -12.66%. When breached the field is
+        # therefore None and the real loss is the P&L column.
+        worst = None
+        if stop is not None and entry and stop_state == "INTACT":
+            worst = round((stop / entry - 1.0) * 100, 2)
+        row = {
             "market": m.upper(),
             "ticker": str(o.ticker).upper().split(".", 1)[0],
             "engine": engine, "action": action,
             "entry_date": o.created_date or "",
             "entry_price": _num(entry, 2), "current_price": _num(curr, 2),
             "pnl_pct": pnl, "confidence_pct": _conf(o),
-            "stop": stop, "stop_basis": basis,
+            "stop": stop, "stop_basis": basis, "stop_state": stop_state,
             "dist_to_stop_pct": dist, "max_loss_if_stop_pct": worst,
             "target": _num(target, 2),
             "position_id": getattr(o, "opportunity_id", ""),
             "holding_days": days,
-            "reason": ("R1 ADVISORY · stop is SUGGESTED only · never auto-exited"
-                       if engine == ENGINE_R1
-                       else f"{sig or 'signal'} · held {days if days is not None else '?'}d "
-                            f"· stop {basis}"),
+            "reason": (
+                ("⚠ STOP BREACHED · REVIEW · " if stop_state == "BREACHED" else "")
+                + ("R1 ADVISORY · suggested stop only · never auto-exited"
+                   if engine == ENGINE_R1
+                   else f"{sig or 'signal'} · held {days if days is not None else '?'}d "
+                        f"· stop {basis}")),
             "source": "registry:active",
-        })
+        }
+        # BREACHED IS AN EXIT TRANSITION - CEO 2026-09-08.
+        #
+        # > "Breached means EXIT transition, not CURRENT. Keeping a
+        # >  breached R1 position in CURRENT was wrong for the
+        # >  investor-facing lifecycle."
+        #
+        # CURRENT answers "what is investable now?". A position trading
+        # BELOW its stop is not investable, whatever the engine does with
+        # it, so it leaves the sheet. This is lifecycle presentation and
+        # nothing else: R1 keeps its advisory status, is still never
+        # auto-exited, and no registry record is written. The row carries
+        # its breach reason and its P&L into EXIT HISTORY so the loss
+        # stays visible rather than merely disappearing from the view.
+        _latch = latched.get(row["position_id"])
+        if stop_state == "BREACHED" or _latch:
+            if _latch and stop_state != "BREACHED":
+                # Price recovered above the stop after the latch was set.
+                # The exit stands - see load_breach_ledger.
+                row["stop_state"] = "BREACHED"
+                row["breach_recovered"] = True
+            breached.append(row)
+        else:
+            current.append(row)
 
     for o in (reg_data.get("active") or []):
         _emit_current(o, ENGINE_R2)
@@ -232,6 +351,48 @@ def compute(root: Path, market: str, asof: str) -> dict:
     _emit_exits(reg_data.get("closed_retired_90d"), ENGINE_R1, "registry:advisory")
     _emit_exits(reg_data.get("closed_admin_90d"), ENGINE_R2, "registry:administrative")
 
+    # BREACHED -> EXIT HISTORY.
+    #
+    # These are MARKS, not fills. The position is still open in its engine
+    # (R1 is advisory and never auto-exits), so `exit_price` is today's
+    # close and `realized_pnl_pct` is the live P&L. They therefore carry
+    # their OWN source: a breach mark must never be mixed into
+    # registry:production or registry:advisory, or it would contaminate
+    # the realized win-rate and average-return statistics with positions
+    # that have not actually been sold.
+    n_breach_new = record_breaches(root, m, breached, asof)
+    latched = load_breach_ledger(root, m)         # today's latches included
+    _closed_pids = {e["position_id"] for e in exits if e.get("position_id")}
+    for row in breached:
+        pid = row.get("position_id") or ""
+        if pid and pid in _closed_pids:
+            continue           # a real registry close outranks a mark
+        led = latched.get(pid) or {}
+        bdate = str(led.get("breach_date") or asof)[:10]
+        bdays = None
+        try:
+            bdays = (date.fromisoformat(bdate)
+                     - date.fromisoformat(row["entry_date"])).days
+        except Exception:
+            pass
+        exits.append({
+            "exit_date": bdate,
+            "ticker": row["ticker"], "market": row["market"],
+            "engine": row["engine"], "entry_date": row["entry_date"],
+            "entry_price": row["entry_price"],
+            "exit_price": row["current_price"],
+            "realized_pnl_pct": row["pnl_pct"], "holding_days": bdays,
+            "exit_reason": "Stop breached",
+            "entry_confidence_pct": row["confidence_pct"],
+            "exit_trigger": ("STOP BREACHED - stop %s - %s - MARK, position "
+                             "still open in %s"
+                             % (row["stop"], row["stop_basis"],
+                                row["engine"]))[:120],
+            "position_id": pid, "source": BREACH_SOURCE,
+            "stop": row["stop"], "stop_basis": row["stop_basis"],
+            "breach_recovered": bool(row.get("breach_recovered")),
+        })
+
     # Deterministic ordering · NEW, ACTIVE+, ACTIVE; R2 > MOMENTUM > R1.
     _a = {ACTION_NEW: 0, ACTION_ACTIVE_PLUS: 1, ACTION_ACTIVE: 2}
     _e = {ENGINE_R2: 0, ENGINE_MOM: 1, ENGINE_R1: 2}
@@ -249,6 +410,16 @@ def compute(root: Path, market: str, asof: str) -> dict:
         "active": sum(1 for r in current if r["action"] == ACTION_ACTIVE),
         "exit_history_total": len(exits),
         "filtered_non_investable": len(filtered),
+        # Invariant, not a statistic: CURRENT is breach-free by
+        # construction. Non-zero here means the routing above broke.
+        "stop_breached": sum(1 for r in current if r["stop_state"] == "BREACHED"),
+        "no_stop": sum(1 for r in current if r["stop_state"] == "NO STOP"),
+        "breach_exits": sum(1 for e in exits if e["source"] == BREACH_SOURCE),
+        "breach_exits_r1": sum(1 for e in exits if e["source"] == BREACH_SOURCE
+                               and e["engine"] == ENGINE_R1),
+        "breach_exits_r2": sum(1 for e in exits if e["source"] == BREACH_SOURCE
+                               and e["engine"] == ENGINE_R2),
+        "breach_exits_new_today": n_breach_new,
     }
     return {
         "schema_version": SCHEMA_VERSION,

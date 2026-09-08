@@ -454,3 +454,160 @@ def test_lifecycle_is_deterministic(market):
         return hashlib.sha256(
             _j.dumps(c, sort_keys=True, default=str).encode()).hexdigest()
     assert _h(a) == _h(b), "lifecycle aggregation is not deterministic"
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# BREACHED IS AN EXIT TRANSITION · CEO 2026-09-08
+#
+#   > "Breached means EXIT transition, not CURRENT. Keeping a breached R1
+#   >  position in CURRENT was wrong for the investor-facing lifecycle."
+#
+# These pin the rule AND the two ways it could quietly go wrong: a breach
+# mark leaking into the realized-P&L statistics, and a latch that lets an
+# exit un-exit when price recovers.
+# ═══════════════════════════════════════════════════════════════════════
+
+BREACH_SOURCE = "lifecycle:stop-breach"
+
+
+@pytest.mark.parametrize("market", MARKETS)
+def test_no_breached_row_survives_in_current(market):
+    """CURRENT is breach-free · dataset AND rendered sheet."""
+    from backend.delivery.lifecycle import canonical_daily_lifecycle as lc
+    d = lc.load(ROOT, market)
+    if d is None:
+        pytest.skip("lifecycle dataset not produced")
+    bad = [r["ticker"] for r in d["current"] if r.get("stop_state") == "BREACHED"]
+    assert not bad, "breached positions still in CURRENT: %s" % bad
+    assert d["counts"].get("stop_breached", 0) == 0
+
+    wb = _wb(market)
+    rows = _table(wb["CURRENT"], ["Ticker", "Stop State"])
+    wb.close()
+    on_sheet = [r["Ticker"] for r in rows if str(r.get("Stop State")) == "BREACHED"]
+    assert not on_sheet, "breached rows rendered into CURRENT: %s" % on_sheet
+
+
+@pytest.mark.parametrize("market", MARKETS)
+def test_breach_exit_preserves_reason_and_pnl(market):
+    """The loss must survive the transition · that is the whole point."""
+    from backend.delivery.lifecycle import canonical_daily_lifecycle as lc
+    d = lc.load(ROOT, market)
+    if d is None:
+        pytest.skip("lifecycle dataset not produced")
+    bx = [e for e in d["exits"] if e.get("source") == BREACH_SOURCE]
+    if not bx:
+        pytest.skip("no breached positions in %s today" % market)
+    for e in bx:
+        assert e["exit_reason"] == "Stop breached", e
+        assert "STOP BREACHED" in str(e["exit_trigger"]).upper(), e
+        assert e.get("stop") is not None, "breach exit lost its stop: %s" % e
+        assert e.get("realized_pnl_pct") is not None, (
+            "breach exit dropped the P&L · the loss would be hidden: %s" % e)
+
+
+@pytest.mark.parametrize("market", MARKETS)
+def test_breach_marks_never_pollute_realized_statistics(market):
+    """A mark is not a fill.
+
+    The position is still open in its engine, so counting it beside real
+    closes would silently mix unrealized losses into the realized
+    win-rate. Distinct source is what keeps the two apart.
+    """
+    from backend.delivery.lifecycle import canonical_daily_lifecycle as lc
+    d = lc.load(ROOT, market)
+    if d is None:
+        pytest.skip("lifecycle dataset not produced")
+    for e in d["exits"]:
+        if e.get("source") == BREACH_SOURCE:
+            assert not str(e["source"]).startswith("registry:")
+        else:
+            assert e.get("source", "").startswith("registry:"), e
+
+
+@pytest.mark.parametrize("market", MARKETS)
+def test_no_position_is_lost_in_the_transition(market):
+    """Conservation · every active position is in CURRENT or in a breach
+    exit, never in neither. A row that vanishes is the defect class this
+    whole layer exists to remove."""
+    from backend.delivery.lifecycle import canonical_daily_lifecycle as lc
+    d = lc.compute(ROOT, market, date.today().isoformat())
+    seen = {r["position_id"] for r in d["current"] if r.get("position_id")}
+    seen |= {e["position_id"] for e in d["exits"]
+             if e.get("source") == BREACH_SOURCE and e.get("position_id")}
+    ledger = lc.load_breach_ledger(ROOT, market)
+    closed = {e["position_id"] for e in d["exits"]
+              if str(e.get("source", "")).startswith("registry:")}
+    for pid in ledger:
+        assert pid in seen or pid in closed, (
+            "latched breach %s is in neither CURRENT, a breach exit, nor a "
+            "registry close · the position was silently dropped" % pid)
+
+
+@pytest.mark.parametrize("market", MARKETS)
+def test_breach_is_latched_and_idempotent(market):
+    """Recomputing must not duplicate a ledger entry or move an exit date.
+
+    Without the latch a recovery back above the stop would pull the row
+    out of EXIT HISTORY and back into CURRENT · a permanent record that
+    un-records is not permanent.
+    """
+    from backend.delivery.lifecycle import canonical_daily_lifecycle as lc
+    asof = date.today().isoformat()
+    before = lc.load_breach_ledger(ROOT, market)
+    a = lc.compute(ROOT, market, asof)
+    mid = lc.load_breach_ledger(ROOT, market)
+    b = lc.compute(ROOT, market, asof)
+    after = lc.load_breach_ledger(ROOT, market)
+    assert set(mid) == set(after), "recompute appended duplicate ledger rows"
+    for pid, rec in before.items():
+        assert after[pid]["breach_date"] == rec["breach_date"], (
+            "a latched breach date was rewritten for %s" % pid)
+    da = {e["position_id"]: e["exit_date"] for e in a["exits"]
+          if e.get("source") == BREACH_SOURCE}
+    db = {e["position_id"]: e["exit_date"] for e in b["exits"]
+          if e.get("source") == BREACH_SOURCE}
+    assert da == db, "breach exit dates are not stable across recomputes"
+
+
+def test_breach_transition_changed_no_engine():
+    """The directive was explicit: lifecycle/presentation only.
+
+    > "Do not change R1's advisory risk engine; this is lifecycle/
+    >  presentation behavior."
+
+    R1 must still derive an ADVISORY, non-enforced stop and must still
+    never be auto-exited by this layer.
+    """
+    import inspect
+    from backend.delivery.lifecycle import canonical_daily_lifecycle as lc
+    src = inspect.getsource(lc)
+    assert "ATR14 SUGGESTED · advisory · NOT enforced" in src, (
+        "R1's advisory stop basis was altered")
+    assert "dynamic_risk_v2 · ENFORCED" in src, "R2's canonical stop was altered"
+    code = "\n".join(l for l in src.splitlines()
+                     if not l.strip().startswith("#"))
+    for forbidden in ("oreg.close", "opportunity_registry.close",
+                      "reject(", "publish_ssot"):
+        assert forbidden not in code, (
+            "the breach transition closes a real position: %r" % forbidden)
+
+
+@pytest.mark.parametrize("market", MARKETS)
+def test_breach_exit_rows_are_rendered_and_labelled(market):
+    """An investor must be able to tell a mark from a completed trade."""
+    from backend.delivery.lifecycle import canonical_daily_lifecycle as lc
+    d = lc.load(ROOT, market)
+    if d is None:
+        pytest.skip("lifecycle dataset not produced")
+    n = sum(1 for e in d["exits"] if e.get("source") == BREACH_SOURCE)
+    if not n:
+        pytest.skip("no breached positions in %s today" % market)
+    wb = _wb(market)
+    ws = wb["EXIT HISTORY"]
+    rows = _table(ws, ["Ticker", "Source", "Exit Reason"])
+    head = "\n".join(str(ws.cell(r, 1).value or "") for r in range(1, 5))
+    wb.close()
+    assert sum(1 for r in rows if str(r.get("Source")) == BREACH_SOURCE) == n
+    assert "MARK" in head.upper() and "NOT sold".upper() in head.upper(), (
+        "EXIT HISTORY does not warn that breach rows are marks, not fills")
