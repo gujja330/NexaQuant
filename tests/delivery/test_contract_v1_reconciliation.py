@@ -97,8 +97,28 @@ def _is_5sheet_workbook() -> bool:
     except Exception:
         return False
 
+def _is_2sheet_workbook() -> bool:
+    """CEO 2026-09-08 · the TWO-sheet investor workbook (CURRENT +
+    EXIT HISTORY) supersedes the 3-sheet and 5-sheet specs in turn.
+    Detected the same way the guards above work · by the sheet names
+    actually present in the shipped file.
+
+    The live invariants are enforced against the current layout in
+    tests/delivery/test_two_sheet_contract.py (tests 1-15).
+    """
+    try:
+        from openpyxl import load_workbook
+        if not _XLSX_INDIA.exists(): return False
+        wb = load_workbook(_XLSX_INDIA, read_only=True)
+        result = "CURRENT" in wb.sheetnames and "EXIT HISTORY" in wb.sheetnames
+        wb.close()
+        return result
+    except Exception:
+        return False
+
+
 pytestmark = pytest.mark.skipif(
-    _is_3sheet_workbook() or _is_5sheet_workbook(),
+    _is_3sheet_workbook() or _is_5sheet_workbook() or _is_2sheet_workbook(),
     reason="Contract v1 (8-sheet) superseded by CEO 2026-09-01 3-sheet spec "
              "and then by the CEO 2026-09-07 5-sheet spec (R1 · R2 · MOMENTUM "
              "· DAILY RECOMMENDATION · EXIT). See "
@@ -106,7 +126,7 @@ pytestmark = pytest.mark.skipif(
              "backend/delivery/sheets/workbook_five.py. Contract v1 checks are "
              "preserved for audit history · the live invariants are enforced "
              "against the current layout in tests/delivery/"
-             "test_five_sheet_contract.py."
+             "test_two_sheet_contract.py."
 )
 
 

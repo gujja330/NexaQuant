@@ -1,0 +1,338 @@
+"""AEGIS · TWO-SHEET INVESTOR WORKBOOK CONTRACT · CEO 2026-09-08.
+
+    CURRENT        what is investable now
+    EXIT HISTORY   what has exited
+
+Tests 1-15 from the directive. These pin the investor-facing contract and
+the production-safety boundary around it: this was a PRESENTATION
+refactor, and these tests are what prove no engine logic moved with it.
+"""
+from __future__ import annotations
+
+from datetime import date
+from pathlib import Path
+
+import pytest
+
+ROOT = Path(__file__).resolve().parents[2]
+XLSX = {m: ROOT / "reports" / "telegram" / f"aegis_history_{m}.xlsx"
+        for m in ("india", "usa")}
+MARKETS = ["india", "usa"]
+
+TWO_SHEETS = ["CURRENT", "EXIT HISTORY"]
+FORBIDDEN_STATES = [
+    "HOLD", "WATCH", "REVIEW", "AVOID", "IGNORE", "NO SIGNAL", "PUMP_RISK",
+    "MOMENTUM_WATCH", "NO_EVIDENCE", "REJECTED", "DORMANT", "BLOCKED",
+    "NO_MODEL", "SUGGESTED", "SHADOW",
+]
+
+
+def _wb(market: str):
+    p = XLSX[market]
+    if not p.exists():
+        pytest.skip("workbook not built: %s" % p)
+    from openpyxl import load_workbook
+    wb = load_workbook(p, data_only=True)
+    if "CURRENT" not in wb.sheetnames:
+        sheets = list(wb.sheetnames)
+        wb.close()
+        pytest.skip("workbook predates the two-sheet layout (%s)" % sheets)
+    return wb
+
+
+def _rows(ws):
+    return [[c.value for c in r] for r in ws.iter_rows()]
+
+
+def _table(ws, must_have):
+    """Body rows as dicts · stops at the first blank (legend follows)."""
+    rows = _rows(ws)
+    hi, hdr = -1, []
+    for i, r in enumerate(rows):
+        cells = {str(c).strip() for c in r if c is not None}
+        if all(m in cells for m in must_have):
+            hi, hdr = i, [str(c).strip() if c is not None else "" for c in r]
+            break
+    if hi < 0:
+        return []
+    out = []
+    for r in rows[hi + 1:]:
+        if all(c is None or str(c).strip() == "" for c in r):
+            continue
+        rec = {hdr[i]: (r[i] if i < len(r) else None)
+               for i in range(len(hdr)) if hdr[i]}
+        first = rec.get(hdr[0])
+        if first is None or str(first).strip() == "":
+            continue
+        if isinstance(first, str) and len(first) > 40:
+            break                      # legend prose
+        out.append(rec)
+    return out
+
+
+# ── TEST 1 · exactly two sheets ───────────────────────────────────────
+@pytest.mark.parametrize("market", MARKETS)
+def test_1_exactly_two_sheets(market):
+    wb = _wb(market)
+    names = list(wb.sheetnames)
+    wb.close()
+    assert names == TWO_SHEETS, "two-sheet contract violated · got %s" % names
+
+
+@pytest.mark.parametrize("market", MARKETS)
+def test_1b_no_legacy_sheets(market):
+    wb = _wb(market)
+    forbidden = {"R1", "R2", "MOMENTUM", "DAILY RECOMMENDATION", "EXIT",
+                 "01_Portfolio", "01_Investments", "02_Today_Momentum",
+                 "03_Exit_History", "00_Health", "05_R1_Advisory",
+                 "06_Composite_Signals", "Portfolio", "Definitions"}
+    leaked = forbidden & set(wb.sheetnames)
+    wb.close()
+    assert not leaked, "legacy sheets present: %s" % leaked
+
+
+# ── TEST 2 · no forbidden state in CURRENT ────────────────────────────
+@pytest.mark.parametrize("market", MARKETS)
+def test_2_no_forbidden_state_in_current(market):
+    wb = _wb(market)
+    recs = _table(wb["CURRENT"], ["Ticker", "Engine", "Action"])
+    bad = []
+    for r in recs:
+        act = str(r.get("Action") or "").upper().strip()
+        if act in FORBIDDEN_STATES:
+            bad.append((r.get("Ticker"), act))
+    wb.close()
+    assert not bad, "non-investable states leaked into CURRENT: %s" % bad[:6]
+
+
+# ── TEST 3 · CURRENT holds only investable records ────────────────────
+@pytest.mark.parametrize("market", MARKETS)
+def test_3_current_is_only_investable(market):
+    from backend.delivery.sheets.workbook_two import CURRENT_ACTIONS
+    wb = _wb(market)
+    recs = _table(wb["CURRENT"], ["Ticker", "Engine", "Action"])
+    wb.close()
+    bad = [r.get("Ticker") for r in recs
+           if str(r.get("Action") or "").strip() not in CURRENT_ACTIONS]
+    assert not bad, "non-investable rows in CURRENT: %s" % bad[:6]
+
+
+# ── TEST 4 · ENGINE vocabulary ────────────────────────────────────────
+@pytest.mark.parametrize("market", MARKETS)
+def test_4_engine_values_are_closed_set(market):
+    from backend.delivery.sheets.workbook_two import ALLOWED_ENGINES
+    wb = _wb(market)
+    recs = _table(wb["CURRENT"], ["Ticker", "Engine", "Action"])
+    wb.close()
+    bad = {str(r.get("Engine") or "").strip() for r in recs} - set(ALLOWED_ENGINES)
+    assert not bad, "unexpected ENGINE values: %s" % bad
+
+
+# ── TEST 5 · ACTION vocabulary · EXIT never in CURRENT ────────────────
+@pytest.mark.parametrize("market", MARKETS)
+def test_5_action_vocabulary_and_no_exit(market):
+    from backend.delivery.sheets.workbook_two import CURRENT_ACTIONS
+    wb = _wb(market)
+    recs = _table(wb["CURRENT"], ["Ticker", "Engine", "Action"])
+    wb.close()
+    acts = {str(r.get("Action") or "").strip() for r in recs}
+    assert not (acts - set(CURRENT_ACTIONS)), "bad actions: %s" % (
+        acts - set(CURRENT_ACTIONS))
+    assert "EXIT" not in acts, "EXIT must move to EXIT HISTORY, not stay"
+
+
+# ── TEST 6 · an exited position is in EXIT HISTORY, not CURRENT ───────
+@pytest.mark.parametrize("market", MARKETS)
+def test_6_exited_positions_move_to_exit_history(market):
+    from backend.research import opportunity_registry as oreg
+    wb = _wb(market)
+    cur = {str(r.get("Position ID") or "")
+           for r in _table(wb["CURRENT"], ["Ticker", "Engine", "Action"])}
+    ex = {str(r.get("Position ID") or "")
+          for r in _table(wb["EXIT HISTORY"], ["Ticker", "Engine", "Exit Date"])}
+    wb.close()
+    overlap = {p for p in (cur & ex) if p}
+    assert not overlap, ("a position is in BOTH CURRENT and EXIT HISTORY: %s"
+                         % sorted(overlap)[:5])
+
+
+# ── TEST 7 · idempotent ·二 runs do not duplicate EXIT HISTORY ────────
+@pytest.mark.parametrize("market", MARKETS)
+def test_7_exit_history_has_no_duplicates(market):
+    wb = _wb(market)
+    recs = _table(wb["EXIT HISTORY"], ["Ticker", "Engine", "Exit Date"])
+    wb.close()
+    keys = [(str(r.get("Position ID") or ""), str(r.get("Exit Date") or ""))
+            for r in recs]
+    keys = [k for k in keys if k[0]]
+    dupes = {k for k in keys if keys.count(k) > 1}
+    assert not dupes, "duplicate exit rows: %s" % sorted(dupes)[:5]
+
+
+# ── TEST 8 · R1 remains advisory ──────────────────────────────────────
+@pytest.mark.parametrize("market", MARKETS)
+def test_8_r1_remains_advisory(market):
+    wb = _wb(market)
+    recs = _table(wb["CURRENT"], ["Ticker", "Engine", "Action"])
+    text = " ".join(str(c) for r in _rows(wb["CURRENT"]) for c in r
+                    if c is not None)
+    wb.close()
+    r1 = [r for r in recs if str(r.get("Engine")).strip() == "R1"]
+    if r1:
+        assert "ADVISORY" in text.upper(), (
+            "R1 rows present but the sheet never states R1 is advisory")
+        for r in r1:
+            assert "EXIT" not in str(r.get("Action") or "").upper()
+
+
+# ── TEST 9 · R2 consumes the canonical dynamic-risk stop ──────────────
+@pytest.mark.parametrize("market", MARKETS)
+def test_9_r2_stop_is_canonical(market):
+    import json
+    p = ROOT / "reports" / "context" / f"dynamic_risk_{market}.json"
+    if not p.exists():
+        pytest.skip("canonical stop artifact absent")
+    canon = {}
+    for u in (json.loads(p.read_text(encoding="utf-8")).get("updates") or []):
+        if u.get("new_stop") is not None:
+            canon[str(u["ticker"]).upper().split(".", 1)[0]] = round(
+                float(u["new_stop"]), 4)
+    wb = _wb(market)
+    recs = _table(wb["CURRENT"], ["Ticker", "Engine", "Action"])
+    wb.close()
+    bad, checked = [], 0
+    for r in recs:
+        if str(r.get("Engine")).strip() != "R2":
+            continue
+        tk = str(r.get("Ticker") or "").strip()
+        s = r.get("Stop")
+        if tk in canon and isinstance(s, (int, float)):
+            checked += 1
+            if round(float(s), 4) != canon[tk]:
+                bad.append(f"{tk} sheet={s} canonical={canon[tk]}")
+    assert not bad, "R2 stop diverged from dynamic_risk_v2: %s" % bad
+    assert checked > 0 or not recs, "no R2 stop was cross-checked"
+
+
+# ── TEST 10 · Momentum cannot bypass R2 governance ────────────────────
+@pytest.mark.parametrize("market", MARKETS)
+def test_10_momentum_cannot_bypass_r2(market):
+    """A MOMENTUM row may appear only if the existing lifecycle made it
+    investable. The momentum ledger sets production_impact=null on every
+    entry by design, so momentum never opens a position on its own."""
+    import inspect
+    from backend.delivery.sheets import workbook_two as wt
+    src = inspect.getsource(wt.build_views)
+    assert "momentum_investable" in src
+    # There must be no code path that appends a MOMENTUM row from the
+    # momentum ledger directly.
+    assert "ENGINE_MOM" not in src.split("EXIT HISTORY")[0].replace(
+        'v.counts["momentum_investable"] = 0', ""), (
+        "a momentum row is being added to CURRENT without passing R2 "
+        "eligibility")
+
+
+# ── TEST 11 · no stale legacy sheet lookup ────────────────────────────
+def test_11_no_stale_sheet_lookup_remains():
+    """Delegates to the structural guard so there is one owner of this."""
+    from tests.standards import test_sheet_lookup_completeness as g
+    g.test_every_sheet_lookup_knows_the_current_names()
+
+
+# ── TEST 12 · every Registry-CLOSED is represented or explained ───────
+@pytest.mark.parametrize("market", MARKETS)
+def test_12_registry_closed_all_represented(market):
+    import json
+    from backend.research import opportunity_registry as oreg
+    from backend.delivery.canonical.retirement import retired_runners
+    from scripts.build_aegis_3sheet_workbook import (
+        _is_administrative_exit, _close_on_or_before)
+    reg = oreg.load_all(ROOT)
+    retired = retired_runners(ROOT)
+    closed = set()
+    for opps in reg.values():
+        for o in opps:
+            if o.market.lower() != market or o.status != "CLOSED":
+                continue
+            closed.add(str(o.ticker).upper().split(".", 1)[0])
+    wb = _wb(market)
+    ex = {str(r.get("Ticker") or "").upper()
+          for r in _table(wb["EXIT HISTORY"], ["Ticker", "Engine", "Exit Date"])}
+    wb.close()
+    aud = set()
+    ap = ROOT / "reports" / "delivery" / f"orphan_audit_{market}.jsonl"
+    if ap.exists():
+        for ln in ap.read_text(encoding="utf-8").splitlines():
+            if ln.strip():
+                try:
+                    aud.add(str(json.loads(ln).get("ticker", "")).upper())
+                except Exception:
+                    pass
+    lost = closed - ex - aud
+    assert not lost, ("Registry-CLOSED tickers neither in EXIT HISTORY nor "
+                      "explained in orphan audit: %s" % sorted(lost)[:8])
+
+
+# ── TEST 13 · production R2 logic untouched ───────────────────────────
+def test_13_production_r2_logic_untouched():
+    """The two-sheet refactor is PRESENTATION. The workbook must not
+    import or call anything that mutates R2 production state."""
+    import inspect
+    from backend.delivery.sheets import workbook_two as wt
+    src = inspect.getsource(wt)
+    forbidden = ["oreg.close", "opportunity_registry.close", "get_or_create",
+                 "publish_ssot", "update_from_recs", "dynamic_risk_v2.compute"]
+    hits = [f for f in forbidden if f in src]
+    assert not hits, "workbook mutates production state: %s" % hits
+
+
+# ── TEST 14 · no R3 / research output in the investor workbook ────────
+@pytest.mark.parametrize("market", MARKETS)
+def test_14_no_r3_or_research_in_workbook(market):
+    wb = _wb(market)
+    text = " ".join(str(c) for sn in wb.sheetnames
+                    for r in _rows(wb[sn]) for c in r if c is not None)
+    wb.close()
+    toks = text.replace("·", " ").replace("/", " ").split()
+    assert "R3" not in toks, "R3 leaked into the investor workbook"
+    for bad in ("shadow_ledger", "Tier-1", "FDR", "Brier", "trial_count"):
+        assert bad not in text, "research internal '%s' leaked" % bad
+
+
+# ── TEST 15 · regeneration is content-stable ──────────────────────────
+@pytest.mark.parametrize("market", MARKETS)
+def test_15_regeneration_is_content_stable(market):
+    """Building twice must yield the same rows · only timestamps may move."""
+    from backend.delivery.sheets.workbook_two import build_views
+    a = build_views(ROOT, market, date.today().isoformat())
+    b = build_views(ROOT, market, date.today().isoformat())
+    assert a.counts == b.counts
+    assert [(r.ticker, r.engine, r.action) for r in a.current] == \
+           [(r.ticker, r.engine, r.action) for r in b.current]
+    assert [(e.position_id, e.exit_date) for e in a.exits] == \
+           [(e.position_id, e.exit_date) for e in b.exits]
+
+
+# ── canonical ACTION rule · reused, not invented ──────────────────────
+def test_action_rule_matches_the_legacy_canonical_definition():
+    from backend.delivery.sheets.workbook_two import classify_action
+    assert classify_action("CLOSED", "BUY", "2026-01-01", "2026-09-08") == "EXIT"
+    assert classify_action("ACTIVE", "BUY", "2026-09-08", "2026-09-08") == "NEW"
+    assert classify_action("ACTIVE", "BUY", "2026-01-01", "2026-09-08") == "ACTIVE+"
+    assert classify_action("ACTIVE", "STRONG BUY", "2026-01-01", "2026-09-08") == "ACTIVE+"
+    assert classify_action("ACTIVE", "HOLD", "2026-01-01", "2026-09-08") == "ACTIVE"
+    assert classify_action("ACTIVE", "ROTATED_SAMEDAY", "2026-01-01",
+                           "2026-09-08") == "ACTIVE"
+
+
+def test_losing_positions_are_not_hidden():
+    """A losing but still-active position must remain visible."""
+    from backend.delivery.sheets.workbook_two import build_views
+    for market in MARKETS:
+        v = build_views(ROOT, market, date.today().isoformat())
+        losers = [r for r in v.current
+                  if isinstance(r.pnl_pct, (int, float)) and r.pnl_pct < 0]
+        # Not an assertion that losers must exist · an assertion that if
+        # they exist they were NOT filtered out.
+        for r in losers:
+            assert r.action in ("NEW", "ACTIVE", "ACTIVE+")

@@ -952,10 +952,14 @@ def build_workbook(market: str, root: Path, asof: str) -> dict:
     # The legacy _emit_* helpers below remain only as the reference
     # implementation the five-sheet emitters were derived from and for the
     # loaders they still export · they are no longer part of delivery.
-    from backend.delivery.sheets.workbook_five import build_five_sheet_workbook
+    # CEO 2026-09-08 · TWO-SHEET INVESTOR WORKBOOK.
+    # Supersedes the five-sheet layout. The investor-facing workbook is
+    # exactly CURRENT + EXIT HISTORY · everything non-investable is
+    # filtered from the VIEW and remains in the backend artifacts.
+    # Presentation only · no engine logic is touched.
+    from backend.delivery.sheets.workbook_two import build_two_sheet_workbook
 
-    built = build_five_sheet_workbook(market, root, asof, reg_data,
-                                        momentum_ledger)
+    built = build_two_sheet_workbook(root, market, asof)
     wb = built["workbook"]
 
     xlsx_dated = root / "reports" / "telegram" / f"aegis_{market.lower()}_{asof}.xlsx"
