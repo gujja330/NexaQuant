@@ -173,6 +173,65 @@ def _num(x, nd=4) -> Optional[float]:
         return None
 
 
+# Inputs whose staleness would make CURRENT a lie. Each is (label,
+# path-template, critical). A CRITICAL input dated before the report's
+# as-of means the sheet is presenting old decisions as today's.
+_FRESHNESS_INPUTS = (
+    ("recommendations_v3", "reports/recommendations_v3.json",
+     "usa/reports/recommendations_v3.json", True),
+    ("ensemble", "reports/ensemble.json", "usa/reports/ensemble.json", True),
+    ("dynamic_risk", "reports/context/dynamic_risk_india.json",
+     "reports/context/dynamic_risk_usa.json", True),
+)
+
+
+def _artifact_asof(p: Path):
+    if not p.exists():
+        return None
+    try:
+        d = json.loads(p.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+    if not isinstance(d, dict):
+        return None
+    for k in ("asof", "as_of", "date", "reporting_date"):
+        v = d.get(k)
+        if v:
+            return str(v)[:10]
+    ru = d.get("run_utc") or d.get("generated_utc")
+    return str(ru)[:10] if ru else None
+
+
+def input_freshness(root: Path, market: str, asof: str) -> list:
+    """CEO 2026-09-08 · "Reject stale inputs from becoming CURRENT."
+
+    India's recommendation artifact sat at 2026-09-03 for five days while
+    CURRENT was rebuilt every cycle and said nothing. A sheet built from a
+    five-day-old decision set is not wrong-looking - it looks exactly like
+    a correct sheet, which is why this has to be measured rather than
+    noticed.
+    """
+    out = []
+    for label, ind_rel, usa_rel, critical in _FRESHNESS_INPUTS:
+        rel = usa_rel if market.lower() == "usa" else ind_rel
+        p = root / rel
+        a = _artifact_asof(p)
+        age = None
+        if a:
+            try:
+                age = (date.fromisoformat(str(asof)[:10])
+                       - date.fromisoformat(a)).days
+            except Exception:
+                age = None
+        out.append({
+            "input": label, "path": rel, "asof": a,
+            "age_days": age, "critical": critical,
+            "verdict": ("MISSING" if a is None else
+                        "STALE" if (age or 0) > 0 else "FRESH"),
+        })
+    return out
+
+
 def compute(root: Path, market: str, asof: str) -> dict:
     """Build the canonical lifecycle dataset for one market."""
     from scripts.build_aegis_3sheet_workbook import (
@@ -400,6 +459,10 @@ def compute(root: Path, market: str, asof: str) -> dict:
                                 -(r["pnl_pct"] or 0), r["ticker"]))
     exits.sort(key=lambda e: (e["exit_date"] or "", e["ticker"]), reverse=True)
 
+    freshness = input_freshness(root, m, asof)
+    stale = [f for f in freshness if f["verdict"] != "FRESH"]
+    stale_critical = [f for f in stale if f["critical"]]
+
     counts = {
         "current_total": len(current),
         "r1_investable": sum(1 for r in current if r["engine"] == ENGINE_R1),
@@ -420,6 +483,8 @@ def compute(root: Path, market: str, asof: str) -> dict:
         "breach_exits_r2": sum(1 for e in exits if e["source"] == BREACH_SOURCE
                                and e["engine"] == ENGINE_R2),
         "breach_exits_new_today": n_breach_new,
+        "stale_inputs": len(stale),
+        "stale_inputs_critical": len(stale_critical),
     }
     return {
         "schema_version": SCHEMA_VERSION,
@@ -427,6 +492,8 @@ def compute(root: Path, market: str, asof: str) -> dict:
         "generated_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "counts": counts, "current": current, "exits": exits,
         "filtered_out": filtered,
+        "input_freshness": freshness,
+        "stale_inputs": stale,
     }
 
 

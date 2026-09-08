@@ -491,6 +491,35 @@ STEPS = [
     # ── all optional=True · failure does not halt telegram delivery
     # ── audit-only default for the dynamic-exit bridge (no forced closes)
     # ── produces the five-sheet workbook alongside the legacy XLSX
+    {
+        # ── CEO 2026-09-08 · THE MOMENTUM QUALITY GATE WAS STARVED ──────
+        #
+        # backend/investability/shadow_runner.py had run() but NO __main__,
+        # so nothing could invoke it and
+        # reports/investability_shadow_{market}.json was never produced -
+        # not stale, never created.
+        #
+        # short_term_momentum._quality_band reads that file first, falling
+        # back to investability_{market}.json, which covers 42 India / 30
+        # USA names and was last written 2026-08-08. Every momentum
+        # candidate outside those names resolved to quality_band=UNKNOWN,
+        # and the ledger correctly recorded NO_EVIDENCE /
+        # R_QUALITY_UNAVAILABLE - 17 of USA's 18 in-universe candidates
+        # discarded as unknowable because the evidence was never generated.
+        #
+        # With the file present the SAME unchanged rules return
+        # 5 WATCH / 4 pump-risk / 9 low-quality. No threshold moved.
+        # MUST precede short_term_momentum_producer.
+        "name": "investability_shadow",
+        "desc": ("Full-universe investability scoring · feeds the momentum "
+                  "quality band (must precede short_term_momentum)"),
+        "module": "backend.investability.shadow_runner",
+        "script_args": ["--market", "both"],
+        "produces": ["reports/investability_shadow_india.json",
+                       "reports/investability_shadow_usa.json"],
+        "requires": [],
+        "optional": True,
+    },
     # CEO 2026-09-07 · P0 FIX · short_term_momentum was an ORPHANED PRODUCER.
     # momentum_ledger.py CONSUMES short_term_momentum_{market}.json daily but
     # nothing PRODUCED it · the file sat frozen at asof=2026-08-27 (India) /
@@ -650,6 +679,107 @@ STEPS = [
                         "reports/context/canonical_lifecycle_usa.json"],
         "requires":   [],
         "optional":   False,
+    },
+    {
+        # ── OPPORTUNITY-FUNNEL OBSERVABILITY · CEO 2026-09-08 ───────────
+        #
+        # > "Wire the diagnostics. Then every day we can mechanically see
+        # >  Universe -> evaluated -> scored -> candidate -> eligible ->
+        # >  NEW -> CURRENT. No more guessing why NEW = 0."
+        #
+        # Both diagnostics already existed and BOTH WERE ORPHANED: no
+        # pipeline step, no workflow. The momentum funnel last ran
+        # 2026-09-02 and the India R2 funnel 2026-07-30, so when CURRENT
+        # showed "NEW 0 · MOMENTUM 0" there was nothing to explain it and
+        # the numbers had to be reconstructed by hand.
+        #
+        # A count with no reason next to it is what made a dry funnel look
+        # like a delivery bug for six days.
+        "name":       "momentum_funnel_diagnostic",
+        "desc":       ("Momentum funnel · universe -> evaluated -> "
+                        "candidates -> in-universe -> classified -> accepted"),
+        "script":     "scripts/momentum_funnel_diagnostic.py",
+        "script_args": ["--market", "india"],
+        "produces":   ["reports/research/momentum_funnel/india/latest.json"],
+        "requires":   [],
+        "optional":   True,
+    },
+    {
+        "name":       "momentum_funnel_diagnostic_usa",
+        "desc":       "Momentum funnel · USA",
+        "script":     "scripts/momentum_funnel_diagnostic.py",
+        "script_args": ["--market", "usa"],
+        "produces":   ["reports/research/momentum_funnel/usa/latest.json"],
+        "requires":   [],
+        "optional":   True,
+    },
+    {
+        "name":       "r2_signal_funnel",
+        "desc":       ("R2 signal funnel · declared -> actual -> data -> "
+                        "scored -> non-HOLD -> confidence -> regime -> NEW"),
+        "script":     "scripts/r2_signal_funnel.py",
+        "script_args": ["--market", "india"],
+        "produces":   ["reports/research/r2_signal_funnel/india/latest.json"],
+        "requires":   [],
+        "optional":   True,
+    },
+    {
+        "name":       "r2_signal_funnel_usa",
+        "desc":       "R2 signal funnel · USA",
+        "script":     "scripts/r2_signal_funnel.py",
+        "script_args": ["--market", "usa"],
+        "produces":   ["reports/research/r2_signal_funnel/usa/latest.json"],
+        "requires":   [],
+        "optional":   True,
+    },
+    {
+        # ── FULL-UNIVERSE SHADOW · MEASUREMENT ONLY ─────────────────────
+        #
+        # > "Do not change confidence floors or trading rules. Instead
+        # >  create a shadow full-universe recommendation path ... This
+        # >  gives us the evidence before touching R2 production."
+        #
+        # model_factory scores the whole universe (n_scored 228 / 516) and
+        # then persists head(10)+tail(5). recommendation_intelligence reads
+        # exactly those 15, so R2 chooses from 15 of 228. This re-runs the
+        # SAME engine over ALL scored names with the SAME 0.55 floors and
+        # records what would have cleared them.
+        #
+        # It writes one research artifact and touches no production path:
+        # no ensemble.json, no recommendations_v3.json, no registry, no
+        # model registration. Nothing here can open a position.
+        "name":       "full_universe_shadow",
+        "desc":       ("SHADOW · full-universe recommendation evidence · "
+                        "unchanged thresholds · zero production impact"),
+        "module":     "backend.research.shadow.full_universe_shadow",
+        "script_args": ["--market", "both"],
+        "produces":   ["reports/research/shadow/full_universe_shadow_india.json",
+                        "reports/research/shadow/full_universe_shadow_usa.json"],
+        "requires":   [],
+        "optional":   True,
+    },
+    {
+        # ── LIFECYCLE RECONCILIATION · CEO 2026-09-08 ───────────────────
+        #
+        # > "Candidate -> R2 eligibility -> Registry NEW -> CURRENT. We
+        # >  need a single auditable answer to: 'Why isn't this stock in
+        # >  CURRENT?'"
+        #
+        # Runs AFTER the lifecycle and the shadow because it joins both,
+        # and BEFORE the workbook because CURRENT renders its verdict.
+        # Emits exactly one verdict per scored name, and flags the only
+        # verdict that is a defect rather than a decision:
+        # L7_eligible_no_registry - cleared every published gate, was
+        # inside the 15 production sees, and the registry has no entry.
+        "name":       "why_not_current",
+        "desc":       ("Lifecycle reconciliation · one auditable verdict per "
+                        "scored ticker · flags eligible-but-unregistered"),
+        "module":     "backend.delivery.lifecycle.why_not_current",
+        "script_args": ["--market", "both"],
+        "produces":   ["reports/context/why_not_current_india.json",
+                        "reports/context/why_not_current_usa.json"],
+        "requires":   [],
+        "optional":   True,
     },
     {
         # CEO 2026-09-07 · "i need a 100% solution". Six silent producer

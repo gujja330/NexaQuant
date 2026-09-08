@@ -2,8 +2,8 @@
   "engine": "aegis.recommendation.v3",
   "version": "1.0.0",
   "market": "india",
-  "run_utc": "2026-09-03T08:30:54+00:00",
-  "asof": "2026-09-03",
+  "run_utc": "2026-09-08T06:48:31+00:00",
+  "asof": "2026-09-08",
   "currency": "INR",
   "regime": "neutral",
   "n_tickers": 15,
@@ -14,14 +14,14 @@
     "SELL": 0,
     "STRONG_SELL": 0
   },
-  "n_disagreement_collapsed": 7,
+  "n_disagreement_collapsed": 8,
   "recommendations": [
     {
       "market": "india",
       "ticker": "MCX.NS",
-      "asof": "2026-09-03",
+      "asof": "2026-09-08",
       "action": "HOLD",
-      "ensemble_score": 0.302,
+      "ensemble_score": 0.3137,
       "raw_confidence": 0.6324,
       "calibrated_confidence": 0.4887,
       "regime_adjusted_confidence": 0.4643,
@@ -39,7 +39,7 @@
         },
         {
           "model_id": "aegis.momentum.v1",
-          "score": 0.6851
+          "score": 0.7237
         }
       ],
       "top_features": [
@@ -49,15 +49,15 @@
         "ca_days_since_last_split",
         "ca_last_dividend_amount",
         "ca_last_split_ratio",
-        "close",
-        "distance_from_52w_high_pct"
+        "distance_from_52w_high_pct",
+        "distance_from_52w_low_pct"
       ],
-      "bull_case": "1-month momentum +22.61%; 3-month momentum +16.37%; high ROE (+37.88%).",
+      "bull_case": "1-month momentum +14.96%; 3-month momentum +16.65%; high ROE (+37.88%).",
       "bear_case": "stretched valuation (P/E 54.084); negative news sentiment (-0.375).",
       "key_risks": [],
       "suggested_holding_period_days": 60,
       "entry_zone": {
-        "current": 3286.0,
+        "current": 3328.0,
         "note": "hold \u2014 no entry"
       },
       "exit_conditions": [
@@ -81,9 +81,9 @@
     {
       "market": "india",
       "ticker": "IEX.NS",
-      "asof": "2026-09-03",
+      "asof": "2026-09-08",
       "action": "HOLD",
-      "ensemble_score": 0.2849,
+      "ensemble_score": 0.2977,
       "raw_confidence": 0.6045,
       "calibrated_confidence": 0.3713,
       "regime_adjusted_confidence": 0.3527,
@@ -100,8 +100,8 @@
           "score": 0.9307
         },
         {
-          "model_id": "aegis.momentum.v1",
-          "score": -0.3947
+          "model_id": "aegis.ai_hybrid.v1",
+          "score": 0.4065
         }
       ],
       "top_features": [
@@ -109,17 +109,17 @@
         "atr_14_pct",
         "ca_days_since_last_dividend",
         "ca_last_dividend_amount",
-        "close",
         "distance_from_52w_high_pct",
         "distance_from_52w_low_pct",
-        "earn_days_to_next"
+        "earn_days_to_next",
+        "fund_debt_to_equity"
       ],
       "bull_case": "high ROE (+39.42%).",
-      "bear_case": "1-month drawdown -6.78%; oversold RSI (20.483) \u2014 momentum broken.",
+      "bear_case": "1-month drawdown -7.32%; oversold RSI (21.256) \u2014 momentum broken.",
       "key_risks": [],
       "suggested_holding_period_days": 60,
       "entry_zone": {
-        "current": 118.86,
+        "current": 117.05,
         "note": "hold \u2014 no entry"
       },
       "exit_conditions": [
@@ -142,108 +142,46 @@
     },
     {
       "market": "india",
-      "ticker": "UNIONBANK.NS",
-      "asof": "2026-09-03",
+      "ticker": "COALINDIA.NS",
+      "asof": "2026-09-08",
       "action": "HOLD",
-      "ensemble_score": 0.2832,
-      "raw_confidence": 0.5416,
-      "calibrated_confidence": 0.303,
-      "regime_adjusted_confidence": 0.2878,
-      "model_agreement": 0.4545,
-      "disagreement_flag": true,
+      "ensemble_score": 0.2849,
+      "raw_confidence": 0.6045,
+      "calibrated_confidence": 0.4058,
+      "regime_adjusted_confidence": 0.3855,
+      "model_agreement": 0.6364,
+      "disagreement_flag": false,
       "n_models_scoring": 11,
       "top_models": [
         {
           "model_id": "aegis.value.v1",
-          "score": 0.9388
-        },
-        {
-          "model_id": "aegis.trend.v1",
-          "score": 0.69
-        },
-        {
-          "model_id": "aegis.momentum.v1",
-          "score": 0.589
-        }
-      ],
-      "top_features": [
-        "adx_14",
-        "atr_14_pct",
-        "close",
-        "distance_from_52w_high_pct",
-        "distance_from_52w_low_pct",
-        "earn_days_to_next",
-        "fund_price_to_book",
-        "fund_profit_margin"
-      ],
-      "bull_case": "1-month momentum +7.39%; 3-month momentum +13.13%.",
-      "bear_case": "no material negative signals right now.",
-      "key_risks": [],
-      "suggested_holding_period_days": 60,
-      "entry_zone": {
-        "current": 186.86,
-        "note": "hold \u2014 no entry"
-      },
-      "exit_conditions": [
-        "no active exit trigger \u2014 HOLD position"
-      ],
-      "model_stamp": {
-        "model_id": "aegis.recommendation.v3",
-        "version": "1.0.0",
-        "engine": "recommendation_intelligence",
-        "market": "india",
-        "feature_set_version": "b65ceb49a83a",
-        "schema_version": "b65ceb49a83a",
-        "calibration_version": "",
-        "approval_status": "experimental",
-        "approved_by": "",
-        "approved_on": ""
-      },
-      "feature_set_version": "b65ceb49a83a",
-      "schema_fingerprint": "b65ceb49a83a"
-    },
-    {
-      "market": "india",
-      "ticker": "HEROMOTOCO.NS",
-      "asof": "2026-09-03",
-      "action": "HOLD",
-      "ensemble_score": 0.2677,
-      "raw_confidence": 0.6045,
-      "calibrated_confidence": 0.3833,
-      "regime_adjusted_confidence": 0.3641,
-      "model_agreement": 0.5455,
-      "disagreement_flag": true,
-      "n_models_scoring": 11,
-      "top_models": [
-        {
-          "model_id": "aegis.mean_reversion.v1",
-          "score": 0.6281
+          "score": 0.7314
         },
         {
           "model_id": "aegis.quality.v1",
-          "score": 0.5795
+          "score": 0.6051
         },
         {
-          "model_id": "aegis.growth.v1",
-          "score": 0.4463
+          "model_id": "aegis.ai_hybrid.v1",
+          "score": 0.4488
         }
       ],
       "top_features": [
         "adx_14",
         "atr_14_pct",
-        "close",
         "distance_from_52w_high_pct",
         "distance_from_52w_low_pct",
         "earn_days_to_next",
         "fund_debt_to_equity",
-        "fund_earnings_growth"
+        "fund_earnings_growth",
+        "fund_price_to_book"
       ],
-      "bull_case": "3-month momentum +10.98%; high ROE (+28.03%).",
-      "bear_case": "oversold RSI (8.873) \u2014 momentum broken; high leverage (D/E 3.570).",
+      "bull_case": "high ROE (+28.12%).",
+      "bear_case": "high leverage (D/E 11.629).",
       "key_risks": [],
       "suggested_holding_period_days": 60,
       "entry_zone": {
-        "current": 5300.0,
+        "current": 421.2,
         "note": "hold \u2014 no entry"
       },
       "exit_conditions": [
@@ -267,9 +205,9 @@
     {
       "market": "india",
       "ticker": "LUPIN.NS",
-      "asof": "2026-09-03",
+      "asof": "2026-09-08",
       "action": "HOLD",
-      "ensemble_score": 0.2667,
+      "ensemble_score": 0.2607,
       "raw_confidence": 0.6324,
       "calibrated_confidence": 0.4909,
       "regime_adjusted_confidence": 0.4664,
@@ -295,141 +233,17 @@
         "atr_14_pct",
         "ca_days_since_last_dividend",
         "ca_last_dividend_amount",
-        "close",
         "distance_from_52w_high_pct",
         "distance_from_52w_low_pct",
-        "earn_days_to_next"
+        "earn_days_to_next",
+        "fund_debt_to_equity"
       ],
       "bull_case": "high ROE (+26.91%); positive news sentiment (0.375).",
-      "bear_case": "1-month drawdown -10.22%; oversold RSI (15.047) \u2014 momentum broken; high leverage (D/E 29.388).",
+      "bear_case": "1-month drawdown -8.43%; oversold RSI (3.269) \u2014 momentum broken; high leverage (D/E 29.388).",
       "key_risks": [],
       "suggested_holding_period_days": 60,
       "entry_zone": {
-        "current": 2153.0,
-        "note": "hold \u2014 no entry"
-      },
-      "exit_conditions": [
-        "no active exit trigger \u2014 HOLD position"
-      ],
-      "model_stamp": {
-        "model_id": "aegis.recommendation.v3",
-        "version": "1.0.0",
-        "engine": "recommendation_intelligence",
-        "market": "india",
-        "feature_set_version": "b65ceb49a83a",
-        "schema_version": "b65ceb49a83a",
-        "calibration_version": "",
-        "approval_status": "experimental",
-        "approved_by": "",
-        "approved_on": ""
-      },
-      "feature_set_version": "b65ceb49a83a",
-      "schema_fingerprint": "b65ceb49a83a"
-    },
-    {
-      "market": "india",
-      "ticker": "COALINDIA.NS",
-      "asof": "2026-09-03",
-      "action": "HOLD",
-      "ensemble_score": 0.2507,
-      "raw_confidence": 0.6045,
-      "calibrated_confidence": 0.4058,
-      "regime_adjusted_confidence": 0.3855,
-      "model_agreement": 0.6364,
-      "disagreement_flag": false,
-      "n_models_scoring": 11,
-      "top_models": [
-        {
-          "model_id": "aegis.value.v1",
-          "score": 0.7314
-        },
-        {
-          "model_id": "aegis.quality.v1",
-          "score": 0.6051
-        },
-        {
-          "model_id": "aegis.mean_reversion.v1",
-          "score": 0.5545
-        }
-      ],
-      "top_features": [
-        "adx_14",
-        "atr_14_pct",
-        "close",
-        "distance_from_52w_high_pct",
-        "distance_from_52w_low_pct",
-        "earn_days_to_next",
-        "fund_debt_to_equity",
-        "fund_earnings_growth"
-      ],
-      "bull_case": "high ROE (+28.12%).",
-      "bear_case": "high leverage (D/E 11.629).",
-      "key_risks": [],
-      "suggested_holding_period_days": 60,
-      "entry_zone": {
-        "current": 417.85,
-        "note": "hold \u2014 no entry"
-      },
-      "exit_conditions": [
-        "no active exit trigger \u2014 HOLD position"
-      ],
-      "model_stamp": {
-        "model_id": "aegis.recommendation.v3",
-        "version": "1.0.0",
-        "engine": "recommendation_intelligence",
-        "market": "india",
-        "feature_set_version": "b65ceb49a83a",
-        "schema_version": "b65ceb49a83a",
-        "calibration_version": "",
-        "approval_status": "experimental",
-        "approved_by": "",
-        "approved_on": ""
-      },
-      "feature_set_version": "b65ceb49a83a",
-      "schema_fingerprint": "b65ceb49a83a"
-    },
-    {
-      "market": "india",
-      "ticker": "INDIANB.NS",
-      "asof": "2026-09-03",
-      "action": "HOLD",
-      "ensemble_score": 0.2354,
-      "raw_confidence": 0.5696,
-      "calibrated_confidence": 0.3499,
-      "regime_adjusted_confidence": 0.3324,
-      "model_agreement": 0.5455,
-      "disagreement_flag": true,
-      "n_models_scoring": 11,
-      "top_models": [
-        {
-          "model_id": "aegis.value.v1",
-          "score": 0.8581
-        },
-        {
-          "model_id": "aegis.momentum.v1",
-          "score": 0.4803
-        },
-        {
-          "model_id": "aegis.trend.v1",
-          "score": 0.4678
-        }
-      ],
-      "top_features": [
-        "adx_14",
-        "atr_14_pct",
-        "close",
-        "distance_from_52w_high_pct",
-        "distance_from_52w_low_pct",
-        "earn_days_to_next",
-        "fund_earnings_growth",
-        "fund_price_to_book"
-      ],
-      "bull_case": "no strong positive signals in the current feature snapshot.",
-      "bear_case": "no material negative signals right now.",
-      "key_risks": [],
-      "suggested_holding_period_days": 60,
-      "entry_zone": {
-        "current": 881.75,
+        "current": 2106.2,
         "note": "hold \u2014 no entry"
       },
       "exit_conditions": [
@@ -453,14 +267,14 @@
     {
       "market": "india",
       "ticker": "GNFC.NS",
-      "asof": "2026-09-03",
+      "asof": "2026-09-08",
       "action": "HOLD",
-      "ensemble_score": 0.2332,
+      "ensemble_score": 0.2583,
       "raw_confidence": 0.6045,
-      "calibrated_confidence": 0.3932,
-      "regime_adjusted_confidence": 0.3735,
-      "model_agreement": 0.6364,
-      "disagreement_flag": false,
+      "calibrated_confidence": 0.3713,
+      "regime_adjusted_confidence": 0.3527,
+      "model_agreement": 0.5455,
+      "disagreement_flag": true,
       "n_models_scoring": 11,
       "top_models": [
         {
@@ -468,30 +282,92 @@
           "score": 0.9223
         },
         {
-          "model_id": "aegis.trend.v1",
-          "score": 0.5913
+          "model_id": "aegis.momentum.v1",
+          "score": 0.7522
         },
         {
-          "model_id": "aegis.momentum.v1",
-          "score": 0.5031
+          "model_id": "aegis.trend.v1",
+          "score": 0.6091
         }
       ],
       "top_features": [
         "adx_14",
         "atr_14_pct",
-        "close",
         "distance_from_52w_high_pct",
         "distance_from_52w_low_pct",
         "fund_debt_to_equity",
         "fund_earnings_growth",
-        "fund_price_to_book"
+        "fund_price_to_book",
+        "fund_profit_margin"
       ],
-      "bull_case": "1-month momentum +11.19%; 3-month momentum +15.45%.",
+      "bull_case": "1-month momentum +8.67%; 3-month momentum +20.32%.",
       "bear_case": "no material negative signals right now.",
       "key_risks": [],
       "suggested_holding_period_days": 60,
       "entry_zone": {
-        "current": 576.95,
+        "current": 591.25,
+        "note": "hold \u2014 no entry"
+      },
+      "exit_conditions": [
+        "no active exit trigger \u2014 HOLD position"
+      ],
+      "model_stamp": {
+        "model_id": "aegis.recommendation.v3",
+        "version": "1.0.0",
+        "engine": "recommendation_intelligence",
+        "market": "india",
+        "feature_set_version": "b65ceb49a83a",
+        "schema_version": "b65ceb49a83a",
+        "calibration_version": "",
+        "approval_status": "experimental",
+        "approved_by": "",
+        "approved_on": ""
+      },
+      "feature_set_version": "b65ceb49a83a",
+      "schema_fingerprint": "b65ceb49a83a"
+    },
+    {
+      "market": "india",
+      "ticker": "HEROMOTOCO.NS",
+      "asof": "2026-09-08",
+      "action": "HOLD",
+      "ensemble_score": 0.2493,
+      "raw_confidence": 0.6045,
+      "calibrated_confidence": 0.3833,
+      "regime_adjusted_confidence": 0.3641,
+      "model_agreement": 0.5455,
+      "disagreement_flag": true,
+      "n_models_scoring": 11,
+      "top_models": [
+        {
+          "model_id": "aegis.quality.v1",
+          "score": 0.5795
+        },
+        {
+          "model_id": "aegis.mean_reversion.v1",
+          "score": 0.5641
+        },
+        {
+          "model_id": "aegis.trend.v1",
+          "score": 0.5113
+        }
+      ],
+      "top_features": [
+        "adx_14",
+        "atr_14_pct",
+        "distance_from_52w_high_pct",
+        "distance_from_52w_low_pct",
+        "earn_days_to_next",
+        "fund_debt_to_equity",
+        "fund_earnings_growth",
+        "fund_price_to_book"
+      ],
+      "bull_case": "high ROE (+28.03%).",
+      "bear_case": "1-month drawdown -9.06%; oversold RSI (16.055) \u2014 momentum broken; high leverage (D/E 3.570).",
+      "key_risks": [],
+      "suggested_holding_period_days": 60,
+      "entry_zone": {
+        "current": 5329.0,
         "note": "hold \u2014 no entry"
       },
       "exit_conditions": [
@@ -515,9 +391,9 @@
     {
       "market": "india",
       "ticker": "LICI.NS",
-      "asof": "2026-09-03",
+      "asof": "2026-09-08",
       "action": "HOLD",
-      "ensemble_score": 0.2302,
+      "ensemble_score": 0.2415,
       "raw_confidence": 0.6045,
       "calibrated_confidence": 0.3953,
       "regime_adjusted_confidence": 0.3755,
@@ -545,15 +421,15 @@
         "ca_days_since_last_split",
         "ca_last_dividend_amount",
         "ca_last_split_ratio",
-        "close",
-        "distance_from_52w_high_pct"
+        "distance_from_52w_high_pct",
+        "distance_from_52w_low_pct"
       ],
       "bull_case": "high ROE (+40.77%).",
       "bear_case": "no material negative signals right now.",
       "key_risks": [],
       "suggested_holding_period_days": 60,
       "entry_zone": {
-        "current": 408.25,
+        "current": 414.8,
         "note": "hold \u2014 no entry"
       },
       "exit_conditions": [
@@ -576,13 +452,75 @@
     },
     {
       "market": "india",
-      "ticker": "COLPAL.NS",
-      "asof": "2026-09-03",
+      "ticker": "MAZDOCK.NS",
+      "asof": "2026-09-08",
       "action": "HOLD",
-      "ensemble_score": 0.2133,
+      "ensemble_score": 0.2305,
       "raw_confidence": 0.6045,
-      "calibrated_confidence": 0.3833,
-      "regime_adjusted_confidence": 0.3641,
+      "calibrated_confidence": 0.372,
+      "regime_adjusted_confidence": 0.3534,
+      "model_agreement": 0.4545,
+      "disagreement_flag": true,
+      "n_models_scoring": 11,
+      "top_models": [
+        {
+          "model_id": "aegis.growth.v1",
+          "score": 0.794
+        },
+        {
+          "model_id": "aegis.mean_reversion.v1",
+          "score": 0.651
+        },
+        {
+          "model_id": "aegis.quality.v1",
+          "score": 0.6329
+        }
+      ],
+      "top_features": [
+        "adx_14",
+        "atr_14_pct",
+        "ca_days_since_last_dividend",
+        "ca_last_dividend_amount",
+        "distance_from_52w_high_pct",
+        "distance_from_52w_low_pct",
+        "fund_debt_to_equity",
+        "fund_earnings_growth"
+      ],
+      "bull_case": "high ROE (+28.77%).",
+      "bear_case": "oversold RSI (28.548) \u2014 momentum broken; high leverage (D/E 4.481).",
+      "key_risks": [],
+      "suggested_holding_period_days": 60,
+      "entry_zone": {
+        "current": 2457.0,
+        "note": "hold \u2014 no entry"
+      },
+      "exit_conditions": [
+        "no active exit trigger \u2014 HOLD position"
+      ],
+      "model_stamp": {
+        "model_id": "aegis.recommendation.v3",
+        "version": "1.0.0",
+        "engine": "recommendation_intelligence",
+        "market": "india",
+        "feature_set_version": "b65ceb49a83a",
+        "schema_version": "b65ceb49a83a",
+        "calibration_version": "",
+        "approval_status": "experimental",
+        "approved_by": "",
+        "approved_on": ""
+      },
+      "feature_set_version": "b65ceb49a83a",
+      "schema_fingerprint": "b65ceb49a83a"
+    },
+    {
+      "market": "india",
+      "ticker": "JIOFIN.NS",
+      "asof": "2026-09-08",
+      "action": "HOLD",
+      "ensemble_score": 0.2284,
+      "raw_confidence": 0.5416,
+      "calibrated_confidence": 0.303,
+      "regime_adjusted_confidence": 0.2878,
       "model_agreement": 0.4545,
       "disagreement_flag": true,
       "n_models_scoring": 11,
@@ -592,30 +530,30 @@
           "score": 1.0
         },
         {
-          "model_id": "aegis.quality.v1",
-          "score": 0.815
+          "model_id": "aegis.growth.v1",
+          "score": 0.5371
         },
         {
-          "model_id": "aegis.value.v1",
-          "score": -0.5315
+          "model_id": "aegis.quality.v1",
+          "score": 0.4785
         }
       ],
       "top_features": [
         "adx_14",
         "atr_14_pct",
-        "ca_days_since_last_dividend",
-        "ca_last_dividend_amount",
-        "close",
         "distance_from_52w_high_pct",
         "distance_from_52w_low_pct",
-        "earn_days_to_next"
+        "fund_debt_to_equity",
+        "fund_earnings_growth",
+        "fund_price_to_book",
+        "fund_profit_margin"
       ],
-      "bull_case": "high ROE (+81.59%).",
-      "bear_case": "1-month drawdown -9.08%; oversold RSI (25.673) \u2014 momentum broken; stretched valuation (P/E 43.253); high leverage (D/E 2.993).",
+      "bull_case": "no strong positive signals in the current feature snapshot.",
+      "bear_case": "1-month drawdown -7.93%; oversold RSI (28.556) \u2014 momentum broken; stretched valuation (P/E 75.633); high leverage (D/E 16.286).",
       "key_risks": [],
       "suggested_holding_period_days": 60,
       "entry_zone": {
-        "current": 1859.8,
+        "current": 233.86,
         "note": "hold \u2014 no entry"
       },
       "exit_conditions": [
@@ -638,35 +576,46 @@
     },
     {
       "market": "india",
-      "ticker": "ABCAPITAL.NS",
-      "asof": "2026-09-03",
+      "ticker": "ABBOTINDIA.NS",
+      "asof": "2026-09-08",
       "action": "HOLD",
-      "ensemble_score": -0.2682,
-      "raw_confidence": 0.6324,
-      "calibrated_confidence": 0.2594,
-      "regime_adjusted_confidence": 0.2464,
-      "model_agreement": 0.0,
-      "disagreement_flag": false,
-      "n_models_scoring": 0,
-      "top_models": [],
+      "ensemble_score": 0.2057,
+      "raw_confidence": 0.6045,
+      "calibrated_confidence": 0.3607,
+      "regime_adjusted_confidence": 0.3427,
+      "model_agreement": 0.4545,
+      "disagreement_flag": true,
+      "n_models_scoring": 11,
+      "top_models": [
+        {
+          "model_id": "aegis.mean_reversion.v1",
+          "score": 0.795
+        },
+        {
+          "model_id": "aegis.quality.v1",
+          "score": 0.6867
+        },
+        {
+          "model_id": "aegis.value.v1",
+          "score": -0.348
+        }
+      ],
       "top_features": [
         "adx_14",
         "atr_14_pct",
-        "close",
         "distance_from_52w_high_pct",
         "distance_from_52w_low_pct",
         "earn_days_to_next",
         "fund_debt_to_equity",
-        "fund_earnings_growth"
+        "fund_earnings_growth",
+        "fund_price_to_book"
       ],
-      "bull_case": "3-month momentum +10.34%.",
-      "bear_case": "1-month drawdown -6.51%; high leverage (D/E 495.936).",
-      "key_risks": [
-        "weak trend strength (ADX 12.388) \u2014 call may be premature"
-      ],
+      "bull_case": "high ROE (+34.46%).",
+      "bear_case": "1-month drawdown -7.13%; oversold RSI (28.247) \u2014 momentum broken; high leverage (D/E 3.602).",
+      "key_risks": [],
       "suggested_holding_period_days": 60,
       "entry_zone": {
-        "current": 394.45,
+        "current": 25850.0,
         "note": "hold \u2014 no entry"
       },
       "exit_conditions": [
@@ -690,9 +639,9 @@
     {
       "market": "india",
       "ticker": "INDIGO.NS",
-      "asof": "2026-09-03",
+      "asof": "2026-09-08",
       "action": "HOLD",
-      "ensemble_score": -0.2779,
+      "ensemble_score": -0.2224,
       "raw_confidence": 0.5137,
       "calibrated_confidence": 0.1976,
       "regime_adjusted_confidence": 0.1877,
@@ -703,19 +652,19 @@
       "top_features": [
         "adx_14",
         "atr_14_pct",
-        "close",
         "distance_from_52w_high_pct",
         "distance_from_52w_low_pct",
         "earn_days_to_next",
         "fund_debt_to_equity",
-        "fund_earnings_growth"
+        "fund_earnings_growth",
+        "fund_price_to_book"
       ],
-      "bull_case": "3-month momentum +12.74%.",
-      "bear_case": "high leverage (D/E 866.462).",
+      "bull_case": "3-month momentum +10.25%.",
+      "bear_case": "1-month drawdown -6.92%; oversold RSI (25.479) \u2014 momentum broken; high leverage (D/E 866.462).",
       "key_risks": [],
       "suggested_holding_period_days": 60,
       "entry_zone": {
-        "current": 5052.0,
+        "current": 4964.0,
         "note": "hold \u2014 no entry"
       },
       "exit_conditions": [
@@ -738,13 +687,13 @@
     },
     {
       "market": "india",
-      "ticker": "BHARATFORG.NS",
-      "asof": "2026-09-03",
+      "ticker": "DELHIVERY.NS",
+      "asof": "2026-09-08",
       "action": "HOLD",
-      "ensemble_score": -0.2804,
-      "raw_confidence": 0.6324,
-      "calibrated_confidence": 0.3,
-      "regime_adjusted_confidence": 0.285,
+      "ensemble_score": -0.2281,
+      "raw_confidence": 0.6045,
+      "calibrated_confidence": 0.248,
+      "regime_adjusted_confidence": 0.2356,
       "model_agreement": 0.0,
       "disagreement_flag": false,
       "n_models_scoring": 0,
@@ -752,68 +701,19 @@
       "top_features": [
         "adx_14",
         "atr_14_pct",
-        "ca_days_since_last_dividend",
-        "ca_last_dividend_amount",
-        "close",
         "distance_from_52w_high_pct",
         "distance_from_52w_low_pct",
-        "earn_days_to_next"
+        "earn_days_to_next",
+        "fund_debt_to_equity",
+        "fund_earnings_growth",
+        "fund_price_to_book"
       ],
       "bull_case": "no strong positive signals in the current feature snapshot.",
-      "bear_case": "1-month drawdown -7.44%; stretched valuation (P/E 97.722); high leverage (D/E 76.475).",
+      "bear_case": "1-month drawdown -5.30%; stretched valuation (P/E 239.257); high leverage (D/E 15.098).",
       "key_risks": [],
       "suggested_holding_period_days": 60,
       "entry_zone": {
-        "current": 2031.8,
-        "note": "hold \u2014 no entry"
-      },
-      "exit_conditions": [
-        "no active exit trigger \u2014 HOLD position"
-      ],
-      "model_stamp": {
-        "model_id": "aegis.recommendation.v3",
-        "version": "1.0.0",
-        "engine": "recommendation_intelligence",
-        "market": "india",
-        "feature_set_version": "b65ceb49a83a",
-        "schema_version": "b65ceb49a83a",
-        "calibration_version": "",
-        "approval_status": "experimental",
-        "approved_by": "",
-        "approved_on": ""
-      },
-      "feature_set_version": "b65ceb49a83a",
-      "schema_fingerprint": "b65ceb49a83a"
-    },
-    {
-      "market": "india",
-      "ticker": "BIOCON.NS",
-      "asof": "2026-09-03",
-      "action": "HOLD",
-      "ensemble_score": -0.2889,
-      "raw_confidence": 0.6324,
-      "calibrated_confidence": 0.3,
-      "regime_adjusted_confidence": 0.285,
-      "model_agreement": 0.0,
-      "disagreement_flag": false,
-      "n_models_scoring": 0,
-      "top_models": [],
-      "top_features": [
-        "adx_14",
-        "atr_14_pct",
-        "ca_days_since_last_dividend",
-        "ca_last_dividend_amount",
-        "close",
-        "distance_from_52w_high_pct",
-        "distance_from_52w_low_pct",
-        "earn_days_to_next"
-      ],
-      "bull_case": "no strong positive signals in the current feature snapshot.",
-      "bear_case": "1-month drawdown -5.66%; oversold RSI (29.471) \u2014 momentum broken; stretched valuation (P/E 154.489); high leverage (D/E 42.145).",
-      "key_risks": [],
-      "suggested_holding_period_days": 60,
-      "entry_zone": {
-        "current": 401.0,
+        "current": 453.0,
         "note": "hold \u2014 no entry"
       },
       "exit_conditions": [
@@ -837,9 +737,9 @@
     {
       "market": "india",
       "ticker": "INDUSINDBK.NS",
-      "asof": "2026-09-03",
+      "asof": "2026-09-08",
       "action": "HOLD",
-      "ensemble_score": -0.3021,
+      "ensemble_score": -0.2571,
       "raw_confidence": 0.5416,
       "calibrated_confidence": 0.2083,
       "regime_adjusted_confidence": 0.1979,
@@ -850,21 +750,119 @@
       "top_features": [
         "adx_14",
         "atr_14_pct",
-        "close",
         "distance_from_52w_high_pct",
         "distance_from_52w_low_pct",
         "earn_days_to_next",
         "fund_price_to_book",
+        "fund_profit_margin",
+        "fund_quality_score"
+      ],
+      "bull_case": "3-month momentum +8.67%.",
+      "bear_case": "stretched valuation (P/E 90.351).",
+      "key_risks": [],
+      "suggested_holding_period_days": 60,
+      "entry_zone": {
+        "current": 996.9,
+        "note": "hold \u2014 no entry"
+      },
+      "exit_conditions": [
+        "no active exit trigger \u2014 HOLD position"
+      ],
+      "model_stamp": {
+        "model_id": "aegis.recommendation.v3",
+        "version": "1.0.0",
+        "engine": "recommendation_intelligence",
+        "market": "india",
+        "feature_set_version": "b65ceb49a83a",
+        "schema_version": "b65ceb49a83a",
+        "calibration_version": "",
+        "approval_status": "experimental",
+        "approved_by": "",
+        "approved_on": ""
+      },
+      "feature_set_version": "b65ceb49a83a",
+      "schema_fingerprint": "b65ceb49a83a"
+    },
+    {
+      "market": "india",
+      "ticker": "AMBER.NS",
+      "asof": "2026-09-08",
+      "action": "HOLD",
+      "ensemble_score": -0.2585,
+      "raw_confidence": 0.6045,
+      "calibrated_confidence": 0.2403,
+      "regime_adjusted_confidence": 0.2283,
+      "model_agreement": 0.0,
+      "disagreement_flag": false,
+      "n_models_scoring": 0,
+      "top_models": [],
+      "top_features": [
+        "adx_14",
+        "atr_14_pct",
+        "distance_from_52w_high_pct",
+        "distance_from_52w_low_pct",
+        "fund_debt_to_equity",
+        "fund_earnings_growth",
+        "fund_price_to_book",
         "fund_profit_margin"
       ],
-      "bull_case": "3-month momentum +9.27%.",
-      "bear_case": "stretched valuation (P/E 90.351).",
+      "bull_case": "no strong positive signals in the current feature snapshot.",
+      "bear_case": "stretched valuation (P/E 156.967); high leverage (D/E 46.566).",
       "key_risks": [
-        "weak trend strength (ADX 17.110) \u2014 call may be premature"
+        "weak trend strength (ADX 17.219) \u2014 call may be premature"
       ],
       "suggested_holding_period_days": 60,
       "entry_zone": {
-        "current": 978.0,
+        "current": 7317.0,
+        "note": "hold \u2014 no entry"
+      },
+      "exit_conditions": [
+        "no active exit trigger \u2014 HOLD position"
+      ],
+      "model_stamp": {
+        "model_id": "aegis.recommendation.v3",
+        "version": "1.0.0",
+        "engine": "recommendation_intelligence",
+        "market": "india",
+        "feature_set_version": "b65ceb49a83a",
+        "schema_version": "b65ceb49a83a",
+        "calibration_version": "",
+        "approval_status": "experimental",
+        "approved_by": "",
+        "approved_on": ""
+      },
+      "feature_set_version": "b65ceb49a83a",
+      "schema_fingerprint": "b65ceb49a83a"
+    },
+    {
+      "market": "india",
+      "ticker": "BIOCON.NS",
+      "asof": "2026-09-08",
+      "action": "HOLD",
+      "ensemble_score": -0.3298,
+      "raw_confidence": 0.6324,
+      "calibrated_confidence": 0.3,
+      "regime_adjusted_confidence": 0.285,
+      "model_agreement": 0.0,
+      "disagreement_flag": false,
+      "n_models_scoring": 0,
+      "top_models": [],
+      "top_features": [
+        "adx_14",
+        "atr_14_pct",
+        "ca_days_since_last_dividend",
+        "ca_last_dividend_amount",
+        "distance_from_52w_high_pct",
+        "distance_from_52w_low_pct",
+        "earn_days_to_next",
+        "fund_debt_to_equity"
+      ],
+      "bull_case": "no strong positive signals in the current feature snapshot.",
+      "bear_case": "1-month drawdown -7.10%; stretched valuation (P/E 154.489); high leverage (D/E 42.145).",
+      "key_risks": [],
+      "suggested_holding_period_days": 60,
+      "entry_zone": {
+        "current": 395.85,
         "note": "hold \u2014 no entry"
       },
       "exit_conditions": [

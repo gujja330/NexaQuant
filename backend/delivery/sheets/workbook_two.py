@@ -55,6 +55,18 @@ def _fmt(x, dash="—"):
     return dash if x is None else x
 
 
+def load_funnel(root: Path, market: str) -> Optional[dict]:
+    """The reconciler's one-line verdict · rendered verbatim, never derived.
+
+    CEO 2026-09-08 · "Every NEW = 0 must show the exact bottleneck /
+    rejection reason." CURRENT stated a bare "NEW 0" for six days while
+    the explanation sat in artifacts nothing ran. The renderer still
+    computes nothing - it renders a second dataset alongside the first.
+    """
+    from backend.delivery.lifecycle import why_not_current as wnc
+    return wnc.load(root, market)
+
+
 def load_lifecycle(root: Path, market: str, asof: str) -> Optional[dict]:
     """The ONLY input. None when the upstream stage has not run.
 
@@ -120,11 +132,28 @@ def emit_current(wb, d: dict):
     if d.get("_stale"):
         _sub(ws, ("⚠ lifecycle dataset is dated %s, not this report's as-of "
                   "· rerun the pipeline" % d.get("asof")), n, 4)
-    _header(ws, CURRENT_COLUMNS, 5)
+
+    # WHY IS NEW ZERO? · rendered from the lifecycle reconciler.
+    fn = d.get("_funnel") or {}
+    if fn.get("headline"):
+        _sub(ws, "🔎 " + str(fn["headline"]), n, 5)
+
+    # STALE INPUTS · "Reject stale inputs from becoming CURRENT."
+    # India's recommendation artifact sat five days old while CURRENT was
+    # rebuilt every cycle and looked entirely normal. Staleness that is not
+    # displayed is indistinguishable from freshness.
+    _st = d.get("stale_inputs") or []
+    if _st:
+        _sub(ws, ("⛔ STALE INPUT · %s · CURRENT is built on decisions older "
+                  "than this report's as-of · treat NEW/ACTIVE with caution"
+                  % " · ".join("%s %s (%s day(s) old)"
+                               % (x["input"], x["verdict"], x["age_days"])
+                               for x in _st)), n, 6)
+    _header(ws, CURRENT_COLUMNS, 7)
     for i, w in enumerate([9, 12, 10, 10, 12, 12, 13, 10, 12, 12, 13, 14,
                            17, 12, 30, 50], 1):
         ws.column_dimensions[get_column_letter(i)].width = w
-    r = 6
+    r = 8
     for row in rows:
         _write_row(ws, [
             row.get("market"), row.get("ticker"), row.get("engine"),
@@ -170,6 +199,10 @@ def emit_current(wb, d: dict):
         "position was closed in the registry. Only the investor view moved.",
         "A losing position that is still active stays visible with its "
         "negative P&L. Losses are never hidden or restated.",
+        "The 🔎 line answers \"why is NEW zero today?\" from the lifecycle "
+        "reconciler · every scored name gets exactly one verdict "
+        "(reports/context/why_not_current_{market}.json). A zero here is "
+        "never presented without its reason.",
     ], r, n)
     return len(rows)
 
@@ -259,6 +292,10 @@ def build_two_sheet_workbook(root: Path, market: str, asof: str) -> dict:
             "`python -m backend.delivery.lifecycle.canonical_daily_lifecycle "
             "--market %s --asof %s` first. This renderer consumes that "
             "dataset and deliberately cannot rebuild it." % (market, market, asof))
+    f = load_funnel(root, market)
+    if f is not None:
+        d = dict(d)
+        d["_funnel"] = f
     wb = Workbook()
     wb.remove(wb.active)
     n_cur = emit_current(wb, d)
@@ -268,4 +305,6 @@ def build_two_sheet_workbook(root: Path, market: str, asof: str) -> dict:
     return {"workbook": wb, "market": market.lower(), "asof": asof,
             "sheets": list(wb.sheetnames), "current_rows": n_cur,
             "exit_rows": n_exit, "lifecycle_stale": bool(d.get("_stale")),
+            "stale_inputs": len(d.get("stale_inputs") or []),
+            "funnel_headline": (d.get("_funnel") or {}).get("headline"),
             **(d.get("counts") or {})}

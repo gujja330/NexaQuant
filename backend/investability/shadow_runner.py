@@ -223,3 +223,45 @@ def run(root: Path, market: str, asof: str) -> tuple:
     diag = compute_diagnostic(root, market, asof, scored)
     emit_diagnostic(root, diag)
     return (scored, diag)
+
+
+def main() -> int:
+    """CEO 2026-09-08 · MAKE THIS RUNNABLE.
+
+    This module had `run()` but no entry point, so nothing could invoke it
+    and `reports/investability_shadow_{market}.json` was never produced -
+    not stale, never created at all.
+
+    `short_term_momentum._quality_band` reads that file first and falls
+    back to the narrow `investability_{market}.json`, which covers 42
+    India / 30 USA names and was last written 2026-08-08. Every momentum
+    candidate outside those few names therefore resolved to
+    quality_band=UNKNOWN, and the ledger correctly classified it
+    NO_EVIDENCE / R_QUALITY_UNAVAILABLE.
+
+    That is how 17 of USA's 18 in-universe momentum candidates were
+    discarded as unknowable while the evidence simply had never been
+    generated. With the file present the same unchanged rules return
+    5 WATCH / 4 pump-risk / 9 low-quality instead of 17 shrugs.
+    """
+    import argparse
+    from datetime import date as _date
+    ap = argparse.ArgumentParser(
+        description="Investability shadow scoring · FULL universe")
+    ap.add_argument("--market", choices=["india", "usa", "both"],
+                    default="both")
+    ap.add_argument("--asof", default=_date.today().isoformat())
+    ap.add_argument("--root", default=None)
+    a = ap.parse_args()
+    root = Path(a.root) if a.root else Path(__file__).resolve().parents[2]
+    for m in (["india", "usa"] if a.market == "both" else [a.market]):
+        scored, diag = run(root, m, a.asof)
+        try:
+            print(summary_line(diag))
+        except Exception:
+            print(f"investability_shadow:{m} · scored {len(scored)}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

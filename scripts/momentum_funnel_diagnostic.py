@@ -20,7 +20,7 @@ import io
 import json
 import sys
 from collections import defaultdict
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 
 _ROOT = Path(__file__).resolve().parents[1]
@@ -31,12 +31,23 @@ except Exception:
     pass
 
 
+# CEO 2026-09-08 · M4 READ THE WRONG FIELD.
+#
+# It read `n_universe_scanned`, which the ledger itself labels
+# `n_universe_scanned_DEPRECATED_MEANING: "in-universe candidate count ·
+# NOT the number of tickers scanned"`. So a day where the producer
+# evaluated all 230 tickers and found 4 candidates - all of them outside
+# the declared NIFTY-50 production universe - was reported as
+# "CRITICAL · only 0 of 230 raw universe tickers actually scanned",
+# sending the investigation after a scan failure that never happened.
+#
+# The producer publishes its own truthful funnel; use it.
 MOMENTUM_STAGES = [
     "M1_universe_raw",              # n_universe_scanned_raw
     "M2_production_universe",        # n_production_universe
-    "M3_after_out_of_universe_drop", # M1 - n_out_of_universe_dropped
-    "M4_actually_scanned",           # n_universe_scanned
-    "M5_candidates_source",          # n_candidates_source
+    "M3_evaluated",                  # producer_funnel.n_evaluated · TRUTH
+    "M4_producer_candidates",        # producer_funnel.n_candidates
+    "M5_candidates_in_universe",     # n_candidates_source (after universe filter)
     "M6_classified",                 # n_candidates_classified
     "M7_accepted",                   # by_terminal_state.ACCEPTED
     "M8_watch",                      # by_terminal_state.WATCH
@@ -66,12 +77,16 @@ def compute_funnel(root: Path, market: str, asof: str) -> dict:
     n_accepted = int(bts.get("ACCEPTED", 0) or 0)
     n_watch = int(bts.get("WATCH", 0) or 0)
 
+    pf = d.get("producer_funnel") or {}
+    n_eval = int(pf.get("n_evaluated") or 0)
+    n_prod_cand = int(pf.get("n_candidates") or 0)
+
     counts = {
         "M1_universe_raw": raw,
         "M2_production_universe": prod,
-        "M3_after_out_of_universe_drop": max(0, raw - dropped),
-        "M4_actually_scanned": scanned,
-        "M5_candidates_source": candidates,
+        "M3_evaluated": n_eval,
+        "M4_producer_candidates": n_prod_cand,
+        "M5_candidates_in_universe": candidates,
         "M6_classified": classified,
         "M7_accepted": n_accepted,
         "M8_watch": n_watch,
@@ -89,21 +104,46 @@ def compute_funnel(root: Path, market: str, asof: str) -> dict:
 
     # Diagnosis
     diag = []
-    if scanned <= 5 and raw >= 50:
+    # A real evaluation failure · the producer did not look at the universe.
+    if n_eval <= 5 and raw >= 50:
         diag.append(
-            f"CRITICAL · only {scanned} of {raw} raw universe tickers actually scanned · "
-            f"investigate momentum-engine filter chain between raw universe and scan pool"
+            f"CRITICAL · producer evaluated only {n_eval} of {raw} tickers · "
+            f"this is a genuine scan failure · check the momentum producer"
+        )
+    # NOT a failure · candidates were found and then filtered out by the
+    # DECLARED production universe. Reported as its own line so it is never
+    # mistaken for a scan failure again.
+    elif n_prod_cand > 0 and candidates == 0:
+        diag.append(
+            f"UNIVERSE-BOUND · producer evaluated {n_eval} tickers and found "
+            f"{n_prod_cand} candidate(s), but ALL fall outside the declared "
+            f"production universe ({prod} names · configs/aegis_universes.yaml) "
+            f"· 0 reach classification · this is the declared constraint "
+            f"working, not a defect"
         )
     if n_accepted == 0 and n_watch == 0 and classified > 0:
         diag.append(
             f"WARN · {classified} classified but 0 ACCEPTED + 0 WATCH · "
             f"all rejected or NO_EVIDENCE · check score→terminal_state thresholds"
         )
+    # Surface the DOMINANT rejection reason · USA loses 17 of 18 in-universe
+    # candidates to R_QUALITY_UNAVAILABLE, which is a data-coverage defect
+    # and was invisible while only stage counts were reported.
+    _codes = d.get("by_reason_code") or {}
+    if classified > 0 and _codes:
+        _top, _n = max(_codes.items(), key=lambda kv: kv[1])
+        if _n >= max(2, classified * 0.5):
+            _kind = ("DATA" if "UNAVAILABLE" in _top or "MISSING" in _top
+                     else "RULE")
+            diag.append(
+                f"{_kind} · {_n} of {classified} classified candidate(s) end in "
+                f"{_top} · this single reason decides the day's momentum output"
+            )
     if raw - prod > raw * 0.4:
         diag.append(
             f"INFO · raw({raw}) → production({prod}) drops {raw-prod} tickers via universe filter (expected)"
         )
-    if worst_drop > 50:
+    if worst_drop > 50 and worst != "M3_evaluated→M4_producer_candidates":
         diag.append(f"BOTTLENECK · biggest drop at {worst} · lost {worst_drop} tickers")
     if not diag:
         diag.append("OK · funnel counts look consistent")
@@ -148,7 +188,11 @@ def _emit_md(root: Path, market: str, asof: str, payload: dict) -> Path:
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--market", choices=("india", "usa"), required=True)
-    ap.add_argument("--asof", required=True, help="YYYY-MM-DD")
+        # CEO 2026-09-08 · defaults to today so the daily pipeline can run
+    # this as a step · the runner passes script_args verbatim and does
+    # not inject --asof.
+    ap.add_argument("--asof", default=date.today().isoformat(),
+                    help="YYYY-MM-DD (default: today)")
     ap.add_argument("--root", default=str(_ROOT))
     args = ap.parse_args()
     root = Path(args.root)
