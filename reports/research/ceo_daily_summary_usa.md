@@ -1,6 +1,6 @@
-# 🎯 AEGIS · CEO DAILY · USA · 2026-08-25
+# 🎯 AEGIS · CEO DAILY · USA · 2026-09-08
 
-**Data state**: STALE  ·  **Lifecycle**: FAIL
+**Data state**: VALID  ·  **Lifecycle**: FAIL
 
 ## 🆕 NEW opportunities
 - (no new opportunities today)
@@ -12,7 +12,10 @@
 - (no risk-alert triggers today)
 
 ## ❌ LOSSES (yesterday cohort)
-- (no losing exits)
+- CHD · 0.0% · category THESIS_FAILURE
 
 ## 🏆 WINNERS (yesterday cohort)
 - (no winning exits)
+
+## 📚 LEARNING
+- top ticket · RT-2026-004 · impact 4.46 · OPEN

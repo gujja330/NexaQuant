@@ -1,37 +1,40 @@
 {
   "market": "usa",
-  "asof": "2026-08-25",
-  "generated_utc": "2026-08-25T12:51:05+00:00",
+  "asof": "2026-09-08",
+  "generated_utc": "2026-09-08T08:44:54+00:00",
   "engine": "aegis.sprint_m_lock_gate.v1.20260825",
-  "verdict": "READY_TO_LOCK",
-  "n_pass": 7,
-  "n_warn": 0,
-  "n_fail": 0,
-  "n_skip": 1,
+  "verdict": "NOT_READY",
+  "n_pass": 5,
+  "n_warn": 1,
+  "n_fail": 2,
+  "n_skip": 0,
   "checks": [
     {
       "id": "L1",
       "name": "Lifecycle clean PASS",
-      "status": "PASS",
-      "detail": "all 10 audits PASS",
+      "status": "FAIL",
+      "detail": "2 audits FAIL · ['A8', 'A9']",
       "evidence": {
-        "verdict": "PASS",
-        "PASS": 8,
-        "WARN": 0,
-        "FAIL": 0,
-        "fail_codes": []
+        "verdict": "FAIL",
+        "PASS": 5,
+        "WARN": 3,
+        "FAIL": 2,
+        "fail_codes": [
+          "A8",
+          "A9"
+        ]
       }
     },
     {
       "id": "L2",
       "name": "Stale-data semantics",
       "status": "PASS",
-      "detail": "state=STALE · correctly flagged (not masked as 0 opps)",
+      "detail": "VALID · 1 opps today · no stale masking",
       "evidence": {
-        "data_state": "STALE",
-        "recs_asof": "2026-08-21",
-        "stale_days": 4,
-        "n_total_today": 0
+        "data_state": "VALID",
+        "recs_asof": "2026-09-07",
+        "stale_days": 0,
+        "n_total_today": 1
       }
     },
     {
@@ -47,52 +50,52 @@
     {
       "id": "L4",
       "name": "Active vs Exit P&L discipline",
-      "status": "PASS",
-      "detail": "A8 (Active) + A9 (Exit) both PASS · formula clean",
+      "status": "FAIL",
+      "detail": "A8 · 1181 active rows · 35 violations; A9 · 61 exit rows · 2 violations",
       "evidence": {
-        "A8_status": "PASS",
-        "A9_status": "PASS",
-        "A8_detail": "1088 active rows · 0 violations",
-        "A9_detail": "38 exit rows · 0 violations"
+        "A8_status": "FAIL",
+        "A9_status": "FAIL",
+        "A8_detail": "1181 active rows · 35 violations",
+        "A9_detail": "61 exit rows · 2 violations"
       }
     },
     {
       "id": "L5",
       "name": "SKIP excluded from Portfolio + P&L",
-      "status": "PASS",
-      "detail": "A6 + A7 both PASS · no SKIP leakage",
+      "status": "WARN",
+      "detail": "audit(s) not run · re-run sender to populate",
       "evidence": {
-        "A6_status": "PASS",
+        "A6_status": "WARN",
         "A7_status": "PASS"
       }
     },
     {
       "id": "L6",
       "name": "R1_NEW / R2_NEW genuinely new",
-      "status": "SKIP",
-      "detail": "data_state=STALE · cannot validate freshness · wait for VALID cycle",
+      "status": "PASS",
+      "detail": "0 NEW + 1 RE-ENTRY · zero recycling · R1_new=0 R2_new=1",
       "evidence": {
         "n_new": 0,
-        "n_reentry": 0,
+        "n_reentry": 1,
         "n_existing": 0,
         "n_r1_new": 0,
-        "n_r2_new": 0,
+        "n_r2_new": 1,
         "contamination_count": 0,
-        "data_state": "STALE"
+        "data_state": "VALID"
       }
     },
     {
       "id": "L7",
       "name": "NEW vs EXISTING P&L comparison measurement",
       "status": "PASS",
-      "detail": "measurement active · 535 observations tracked ({'NEW': 535, 'EXISTING': 0, 'RE-ENTRY': 0})",
+      "detail": "measurement active · 563 observations tracked ({'NEW': 550, 'EXISTING': 0, 'RE-ENTRY': 13})",
       "evidence": {
         "cohort_n": {
-          "NEW": 535,
+          "NEW": 550,
           "EXISTING": 0,
-          "RE-ENTRY": 0
+          "RE-ENTRY": 13
         },
-        "n_total": 535
+        "n_total": 563
       }
     },
     {
@@ -108,5 +111,5 @@
       }
     }
   ],
-  "recommendation": "✅ Sprint M ready to lock · 7/8 PASS · 0 WARN · 0 FAIL"
+  "recommendation": "❌ Not ready · 2 FAIL · 1 WARN · fix + re-verify before lock"
 }

@@ -93,9 +93,33 @@ def classify_action(status: str, initial_signal: str, created_date: str,
     return ACTION_ACTIVE
 
 
-def is_investable(action: str) -> bool:
-    return (action in CURRENT_ACTIONS
-            and str(action).upper() not in NON_INVESTABLE_STATES)
+def is_investable(action: str, initial_signal: str = "") -> bool:
+    """CURRENT is investable-only. For a NEW row that means the SIGNAL too.
+
+    CEO 2026-09-08 · "CURRENT contains only investable names · no
+    artificial green stocks."
+
+    The registry creates an entry for EVERY recommendation row, including
+    HOLD and EXIT ones. `classify_action` then calls anything created
+    today NEW, because NEW is defined by entry date, not by conviction.
+    While the permanent exited-set bans were in place this never showed;
+    releasing the phantom bans exposed it immediately - India produced 11
+    NEW rows of which 10 were HOLD and one was EXIT, every one with no
+    stop and 0.0% P&L.
+
+    A NEW row is a new recommendation to BUY. If its signal is not in the
+    BUY family it is not one, and HOLD is already a declared
+    non-investable state. An EXISTING position on a HOLD signal is
+    untouched - it stays visible with its real P&L.
+    """
+    if action not in CURRENT_ACTIONS:
+        return False
+    if str(action).upper() in NON_INVESTABLE_STATES:
+        return False
+    if action == ACTION_NEW:
+        sig = str(initial_signal or "").upper().strip()
+        return sig in BUY_FAMILY
+    return True
 
 
 BREACH_SOURCE = "lifecycle:stop-breach"
@@ -260,11 +284,13 @@ def compute(root: Path, market: str, asof: str) -> dict:
         action = classify_action(o.status, o.initial_signal,
                                  o.created_date, asof)
         sig = str(o.initial_signal or "")
-        if not is_investable(action):
+        if not is_investable(action, o.initial_signal):
             filtered.append({"ticker": str(o.ticker).upper().split(".", 1)[0],
                              "engine": engine, "action": action,
                              "signal": sig,
-                             "reason": "action is not investable"})
+                             "reason": ("NEW without a BUY-family signal"
+                                        if action == ACTION_NEW
+                                        else "action is not investable")})
             return
         entry = _close_on_or_before(root, o.ticker, m, o.created_date or "")
         curr = _close_on_or_before(root, o.ticker, m, asof)
@@ -380,8 +406,26 @@ def compute(root: Path, market: str, asof: str) -> dict:
     # point it is already an R2 row above. Nothing is forced in.
     n_mom = 0
 
+    # CEO ruling 2026-09-08 · phantom admissions are registry
+    # contamination, not exits.
+    #
+    # > "They must NOT be recorded as investment exits, stop losses,
+    # >  rotation exits, or trading outcomes ... not counted as
+    # >  prediction/trading evidence."
+    #
+    # The 23 HOLD/EXIT positions opened by the admission bug were closed
+    # as ADMIN_PHANTOM_ADMISSION_*. They are retained in the registry for
+    # audit and excluded from the EXIT HISTORY view, because a position
+    # that was never legitimately opened cannot have legitimately exited.
+    PHANTOM_CLOSE_PREFIX = "ADMIN_PHANTOM_ADMISSION"
+    n_phantom_excluded = 0
+
     def _emit_exits(opps, engine, source):
+        nonlocal n_phantom_excluded
         for o in opps or []:
+            if PHANTOM_CLOSE_PREFIX in str(getattr(o, "closed_reason", "") or ""):
+                n_phantom_excluded += 1
+                continue
             entry = _close_on_or_before(root, o.ticker, m, o.created_date or "")
             exitp = _close_on_or_before(root, o.ticker, m, o.closed_date or "")
             pnl = round((exitp / entry - 1.0) * 100, 2) if (entry and exitp and entry > 0) else None
@@ -483,6 +527,7 @@ def compute(root: Path, market: str, asof: str) -> dict:
         "breach_exits_r2": sum(1 for e in exits if e["source"] == BREACH_SOURCE
                                and e["engine"] == ENGINE_R2),
         "breach_exits_new_today": n_breach_new,
+        "phantom_admissions_excluded": n_phantom_excluded,
         "stale_inputs": len(stale),
         "stale_inputs_critical": len(stale_critical),
     }

@@ -306,7 +306,10 @@ def test_reconciler_publishes_a_new_zero_reason(market):
     if d is None:
         pytest.skip("reconciliation not produced for %s" % market)
     h = d.get("headline") or ""
-    assert "WHY NEW=0" in h and "biggest blocker" in h, h
+    # The headline must state the ACTUAL count. It read "WHY NEW=0" on a
+    # day India produced NEW 1 (JIOFIN) - a false statement on the sheet.
+    assert ("WHY NEW=0" in h) or h.startswith("NEW="), h
+    assert "biggest blocker" in h, h
 
 
 def test_reconciler_is_downstream_only():
@@ -375,7 +378,8 @@ def test_stale_input_is_declared_on_the_sheet(market):
         assert "STALE INPUT" in head, (
             "%d stale input(s) but the sheet does not say so"
             % d["counts"]["stale_inputs"])
-    assert "WHY NEW=0" in head, "the sheet states counts without their reason"
+    assert ("WHY NEW=0" in head or "NEW=" in head), (
+        "the sheet states counts without their reason")
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -440,3 +444,119 @@ def test_momentum_no_longer_discards_candidates_as_unknowable():
     assert n_unknown <= n_class * 0.5, (
         "%d of %d candidates are R_QUALITY_UNAVAILABLE · the quality source "
         "is missing or too narrow again" % (n_unknown, n_class))
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# 7 · Pipeline ordering · a new position must exist before risk runs
+# ═══════════════════════════════════════════════════════════════════════
+
+def test_registry_materialization_precedes_risk_and_lifecycle():
+    """> "registry write -> step 74 · dynamic risk -> step 53 ·
+    >  lifecycle/CURRENT -> step 58. So a genuinely new candidate can be
+    >  created AFTER the system has already calculated risk and CURRENT."
+
+    A position admitted today did not exist when stops were computed, so
+    it arrived with `stop none` (JIOFIN 2026-09-08) and could never appear
+    on its own day.
+    """
+    names = [s["name"] for s in _steps()]
+    assert "registry_materializer" in names
+    i_mat = names.index("registry_materializer")
+    assert i_mat < names.index("dynamic_risk_v2_both_markets"), (
+        "stops are computed before today's positions exist")
+    assert i_mat < names.index("canonical_daily_lifecycle"), (
+        "CURRENT is rendered before today's positions exist")
+    assert i_mat < names.index("telegram"), (
+        "the delivery step must no longer be the first writer")
+
+
+def test_materializer_owns_no_decision_logic():
+    """It moves WHEN the transition happens, never WHAT is admitted.
+
+    Reimplementing admission here would create a second definition of
+    "is this admissible" - the exact failure this month's delivery rewrite
+    exists to remove. It must delegate to the existing path.
+    """
+    import ast
+    import inspect
+    from backend.delivery.lifecycle import registry_materializer as rm
+    tree = ast.parse(inspect.getsource(rm))
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.Module, ast.FunctionDef, ast.ClassDef)) \
+                and ast.get_docstring(node):
+            node.body = node.body[1:] or [ast.Pass()]
+    code = ast.unparse(tree)
+    assert "_collect_rows_for_market" in code, (
+        "the materializer must delegate to the existing admission path")
+    for forbidden in ("CONF_FLOOR", "should_rotate", "ROTATION_EDGE",
+                      "0.55", "get_or_create"):
+        assert forbidden not in code, (
+            "the materializer reimplements a decision: %r" % forbidden)
+
+
+@pytest.mark.parametrize("market", MARKETS)
+def test_materializer_is_idempotent(market):
+    """get_or_create returns an existing ACTIVE unchanged · running the
+    transition twice in a day must be a no-op the second time, which is
+    what makes moving it safe."""
+    from datetime import date as _date
+
+    from backend.delivery.lifecycle import registry_materializer as rm
+    if rm.load(ROOT, market) is None:
+        pytest.skip("materialization not produced for %s" % market)
+    # Idempotence is a property of the SECOND run, not of a stored artifact
+    # from a first run that legitimately admitted positions. Assert it by
+    # actually running the transition again.
+    second = rm.materialize(ROOT, market, _date.today().isoformat())
+    assert not second.get("error"), second.get("error")
+    assert second["n_active_before"] == second["n_active_after"], (
+        "a repeat run changed the active set: %d -> %d"
+        % (second["n_active_before"], second["n_active_after"]))
+    assert second["n_newly_materialized"] == 0, (
+        "a repeat run created %d position(s)"
+        % second["n_newly_materialized"])
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# 8 · A HOLD is not an admission
+# ═══════════════════════════════════════════════════════════════════════
+
+def test_only_buy_family_may_create_a_position():
+    """get_or_create ran for EVERY rendered row, so a HOLD - or an EXIT -
+    opened a brand-new registry position. The permanent bans masked it;
+    releasing them admitted 23 positions on non-BUY signals in one run.
+
+    They are filtered from CURRENT today because NEW requires a BUY-family
+    signal, but tomorrow they age into ACTIVE, which carries no such
+    requirement.
+    """
+    src = (ROOT / "backend" / "delivery" / "telegram"
+           / "detail_xlsx.py").read_text(encoding="utf-8")
+    assert "_BUY_FAMILY_ADMIT" in src, "no admission gate on position creation"
+    assert "_has_active" in src, (
+        "an EXISTING position must still be fetched on a HOLD signal")
+
+
+def test_lifecycle_new_requires_a_buy_family_signal():
+    from backend.delivery.lifecycle import canonical_daily_lifecycle as lc
+    assert lc.is_investable(lc.ACTION_NEW, "BUY")
+    assert lc.is_investable(lc.ACTION_NEW, "STRONG BUY")
+    assert not lc.is_investable(lc.ACTION_NEW, "HOLD")
+    assert not lc.is_investable(lc.ACTION_NEW, "EXIT")
+    assert not lc.is_investable(lc.ACTION_NEW, "")
+    # An EXISTING position keeps rendering whatever today's signal says.
+    assert lc.is_investable(lc.ACTION_ACTIVE, "HOLD")
+    assert lc.is_investable(lc.ACTION_ACTIVE_PLUS, "HOLD")
+
+
+@pytest.mark.parametrize("market", MARKETS)
+def test_no_new_row_lacks_a_buy_signal(market):
+    from backend.delivery.lifecycle import canonical_daily_lifecycle as lc
+    d = lc.load(ROOT, market)
+    if d is None:
+        pytest.skip("lifecycle not produced")
+    bad = [r["ticker"] for r in d["current"]
+           if r["action"] == "NEW"
+           and str(r.get("reason", "")).split("\u00b7")[0].strip().upper()
+           not in lc.BUY_FAMILY]
+    assert not bad, "NEW rows without a BUY-family signal: %s" % bad

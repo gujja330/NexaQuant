@@ -1,7 +1,7 @@
 {
   "market": "india",
-  "asof": "2026-08-27",
-  "generated_utc": "2026-08-27T02:41:27+00:00",
+  "asof": "2026-09-08",
+  "generated_utc": "2026-09-08T08:38:35+00:00",
   "engine": "aegis.sprint_m_lock_gate.v1.20260825",
   "verdict": "NOT_READY",
   "n_pass": 4,
@@ -16,8 +16,8 @@
       "detail": "1 audits FAIL · ['A8']",
       "evidence": {
         "verdict": "FAIL",
-        "PASS": 8,
-        "WARN": 1,
+        "PASS": 7,
+        "WARN": 2,
         "FAIL": 1,
         "fail_codes": [
           "A8"
@@ -45,35 +45,35 @@
       "id": "L4",
       "name": "Active vs Exit P&L discipline",
       "status": "FAIL",
-      "detail": "A8 · 562 active rows · 4 violations",
+      "detail": "A8 · 748 active rows · 4 violations",
       "evidence": {
         "A8_status": "FAIL",
         "A9_status": "PASS",
-        "A8_detail": "562 active rows · 4 violations",
-        "A9_detail": "35 exit rows · 0 violations"
+        "A8_detail": "748 active rows · 4 violations",
+        "A9_detail": "45 exit rows · 0 violations"
       }
     },
     {
       "id": "L5",
       "name": "SKIP excluded from Portfolio + P&L",
-      "status": "PASS",
-      "detail": "A6 + A7 both PASS · no SKIP leakage",
+      "status": "WARN",
+      "detail": "audit(s) not run · re-run sender to populate",
       "evidence": {
-        "A6_status": "PASS",
+        "A6_status": "WARN",
         "A7_status": "PASS"
       }
     },
     {
       "id": "L6",
       "name": "R1_NEW / R2_NEW genuinely new",
-      "status": "WARN",
-      "detail": "no NEW or RE-ENTRY today · legitimate but nothing to verify",
+      "status": "PASS",
+      "detail": "2 NEW + 11 RE-ENTRY · zero recycling · R1_new=0 R2_new=13",
       "evidence": {
-        "n_new": 0,
-        "n_reentry": 0,
+        "n_new": 2,
+        "n_reentry": 11,
         "n_existing": 0,
         "n_r1_new": 0,
-        "n_r2_new": 0,
+        "n_r2_new": 13,
         "contamination_count": 0,
         "data_state": "VALID"
       }
@@ -82,26 +82,26 @@
       "id": "L7",
       "name": "NEW vs EXISTING P&L comparison measurement",
       "status": "PASS",
-      "detail": "measurement active · 62 observations tracked ({'NEW': 62, 'EXISTING': 0, 'RE-ENTRY': 0})",
+      "detail": "measurement active · 82 observations tracked ({'NEW': 71, 'EXISTING': 0, 'RE-ENTRY': 11})",
       "evidence": {
         "cohort_n": {
-          "NEW": 62,
+          "NEW": 71,
           "EXISTING": 0,
-          "RE-ENTRY": 0
+          "RE-ENTRY": 11
         },
-        "n_total": 62
+        "n_total": 82
       }
     },
     {
       "id": "L8",
       "name": "Missed opportunities capturing",
       "status": "PASS",
-      "detail": "capturing active · capture rate 23.9% · successful reject rate 42.7%",
+      "detail": "capturing active · capture rate 23.9% · successful reject rate 57.7%",
       "evidence": {
         "missed_winners_n": 35,
         "capture_rate_pct": 23.9,
         "rejection_universe_n": 230,
-        "successful_reject_pct": 42.7
+        "successful_reject_pct": 57.7
       }
     }
   ],

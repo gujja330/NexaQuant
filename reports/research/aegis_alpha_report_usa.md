@@ -1,38 +1,42 @@
-# AEGIS Alpha Report · USA · asof 2026-08-25
+# AEGIS Alpha Report · USA · asof 2026-09-08
 
-**Data state**: STALE · **Lifecycle**: FAIL
+**Data state**: VALID · **Lifecycle**: FAIL
 **Capture rate** (universe winners we caught): 54.3%
 **Successful-reject rate**: 17.4%
 
 ## Headline metrics (25 CEO)
-- **Win rate**: 10.5%
-- **Profit factor**: 9.42
-- **Expectancy**: 0.05%
+- **Win rate**: 0.7%
+- **Profit factor**: 3.05
+- **Expectancy**: -1.71%
 - **Avg winner**: 5.37%
-- **Avg loser**: -0.57%
-- **Max drawdown (worst single exit)**: -3.45%
-- **N closed positions**: 38
+- **Avg loser**: -1.76%
+- **Max drawdown (worst single exit)**: -18.87%
+- **N closed positions**: 542
 
 ## Refresh + selectivity
-- Refresh rate today: NEW=0 · RE-ENTRY=0 · EXISTING=0 · freshness=0.0%
+- Refresh rate today: NEW=0 · RE-ENTRY=1 · EXISTING=0 · freshness=100.0%
 - Stale-recommendation rate: 0.0%
-- Re-entry rate: 0.0%
+- Re-entry rate: 100.0%
 
 ## Top winning patterns
 - MACRO_TAILWIND · n=3
 - EARNINGS_BEAT · n=1
 
 ## Top losing patterns
-- THESIS_FAILURE · n=32
-- MACRO_SHOCK · n=2
+- THESIS_FAILURE · n=308
+- MACRO_SHOCK · n=3
 
 ## Sectors (best → worst)
-- BEST · UNKNOWN · 38pos · P&L 2.06%
-- WORST · UNKNOWN · 38pos · P&L 2.06%
+- BEST · Healthcare · 62pos · P&L 282.69%
+- BEST · Consumer Defensive · 35pos · P&L 98.38%
+- BEST · Financial Services · 61pos · P&L 95.05%
+- WORST · Industrials · 81pos · P&L -188.17%
+- WORST · Consumer Cyclical · 50pos · P&L -76.98%
+- WORST · Technology · 80pos · P&L -40.09%
 
 ## Cap segments (best → worst)
-- BEST · UNKNOWN · PF 9.42 · n=38
-- WORST · UNKNOWN · PF 9.42 · n=38
+- BEST · UNKNOWN · PF 1.78 · n=542
+- WORST · UNKNOWN · PF 1.78 · n=542
 
 ## Ranking effectiveness
 - Monotonicity: insufficient-data · best rank None · need ≥ 3 rank buckets with N ≥ 5
@@ -41,14 +45,21 @@
 - (none surfaced today)
 
 ## Worst recurring losses
-- BLDR · -3.45% · MACRO_SHOCK · 3d held
-- UBER · -3.42% · MACRO_SHOCK · 4d held
-- TTWO · -2.99% · THESIS_FAILURE · 3d held
-- MCK · -2.55% · THESIS_FAILURE · 3d held
-- MOS · -2.16% · THESIS_FAILURE · 3d held
+- TPR · -18.87% · THESIS_FAILURE · 15d held
+- CRWD · -14.75% · THESIS_FAILURE · 15d held
+- AVGO · -14.54% · THESIS_FAILURE · 15d held
+- FSLR · -14.52% · THESIS_FAILURE · 15d held
+- TER · -13.3% · THESIS_FAILURE · 12d held
 
 ## Stop-loss backtest
 - Analyzed 9 losses · caught 0 · hit rate 0.0% · saved 0.0%
 
 ## Top-10 Research Tickets (ranked by impact)
-- (no tickets filed · attribution below N-threshold)
+- RT-2026-004 · impact 4.46 · OPEN · usa
+- RT-2026-008 · impact 4.46 · OPEN · usa
+- RT-2026-003 · impact 2.84 · OPEN · usa
+- RT-2026-007 · impact 2.84 · OPEN · usa
+- RT-2026-002 · impact 0.26 · OPEN · usa
+- RT-2026-006 · impact 0.26 · OPEN · usa
+- RT-2026-001 · impact 0.2 · OPEN · usa
+- RT-2026-005 · impact 0.2 · OPEN · usa

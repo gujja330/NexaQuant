@@ -1,14 +1,14 @@
 {
   "schema_fingerprint": "aegis.wave_regression.v1.20260821",
-  "asof": "2026-09-02",
+  "asof": "2026-09-07",
   "market": "usa",
-  "run_utc": "2026-09-02T13:42:28+00:00",
+  "run_utc": "2026-09-08T08:43:54+00:00",
   "checks": [
     {
       "code": "A1",
       "name": "No same-day NEW→EXIT (§5)",
       "status": "WARN",
-      "detail": "5 same-day rows in history (filtered from Portfolio)"
+      "detail": "1 same-day rows in history (filtered from Portfolio)"
     },
     {
       "code": "A2",
@@ -20,7 +20,7 @@
       "code": "A3",
       "name": "Canonical position per ticker (§7 LUPIN)",
       "status": "WARN",
-      "detail": "4 tickers ACTIVE in R1+R2 (display collapses via Wave 2): BMY, DXCM, IT, PLTR"
+      "detail": "5 tickers ACTIVE in R1+R2 (display collapses via Wave 2): BMY, DXCM, IT, MSFT, PLTR"
     },
     {
       "code": "A4",
@@ -32,7 +32,7 @@
       "code": "A5",
       "name": "Unique Position IDs (§9)",
       "status": "PASS",
-      "detail": "556 Position IDs, all unique"
+      "detail": "578 Position IDs, all unique"
     },
     {
       "code": "A6",
@@ -74,13 +74,13 @@
       "code": "A13",
       "name": "P0 outcome dataset present (§ 28.9)",
       "status": "WARN",
-      "detail": "outcome_dataset_summary.json missing/empty at reports\\research\\outcome_dataset_summary.json"
+      "detail": "outcome_dataset_summary.json missing/empty at C:\\Users\\GPraveenKumar\\Downloads\\prism\\reports\\research\\outcome_dataset_summary.json"
     },
     {
       "code": "A14",
       "name": "P1 attribution analysis present (§ 28.9)",
       "status": "PASS",
-      "detail": "attribution present · 60 positions"
+      "detail": "attribution present · 51 positions"
     },
     {
       "code": "A15",
@@ -109,14 +109,14 @@
     {
       "code": "A19",
       "name": "Exit History has Sector column",
-      "status": "PASS",
-      "detail": "Sector column present"
+      "status": "FAIL",
+      "detail": "Sector column missing from Exit History sheet"
     },
     {
       "code": "A20",
       "name": "SUGGESTED NEW strip visible when discoveries exist",
       "status": "PASS",
-      "detail": "no discoveries today · strip legitimately absent"
+      "detail": "5 discoveries available · strip renders"
     },
     {
       "code": "A21",
@@ -133,8 +133,8 @@
     {
       "code": "A23",
       "name": "Historical-lineage validation for Exit History",
-      "status": "PASS",
-      "detail": "479 rows lineage-valid · 45 orphan-audit rows · 479 Registry-CLOSED all tracked"
+      "status": "FAIL",
+      "detail": "17 Registry-CLOSED tickers silently lost (not in Exit History body AND not in orphan audit JSONL): ADBE, AJG, BLDR, CL, CRM"
     },
     {
       "code": "A24",
@@ -143,8 +143,8 @@
       "detail": "runner-aware lifecycle sync clean"
     }
   ],
-  "n_pass": 19,
-  "n_fail": 0,
+  "n_pass": 17,
+  "n_fail": 2,
   "n_warn": 4,
-  "verdict": "WARN"
+  "verdict": "FAIL"
 }

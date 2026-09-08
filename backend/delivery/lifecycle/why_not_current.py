@@ -176,11 +176,18 @@ def compute(root: Path, market: str) -> dict:
              ("SELL-family", t["L6_not_buy"])]
     top = max(gates, key=lambda kv: kv[1])
     n_scored = len(shadow.get("rows") or [])
+    # The headline must state the ACTUAL count · it read "WHY NEW=0" on a
+    # day India produced NEW 1 (JIOFIN), which is a false statement on the
+    # investor sheet.
+    n_new = sum(1 for r in (life.get("current") or [])
+                if str(r.get("action")) == "NEW")
+    _lead = (f"NEW={n_new} · " if n_new
+             else "WHY NEW=0 · ")
     headline = (
-        "WHY NEW=0 · %d scored · %d already in CURRENT · biggest blocker: "
+        "%s%d scored · %d already in CURRENT · biggest blocker: "
         "%s (%d) · lost to the 15-name ensemble truncation: %d · "
         "lifecycle defects: %d"
-        % (n_scored, t["L10_in_current"], top[0], top[1],
+        % (_lead, n_scored, t["L10_in_current"], top[0], top[1],
            t["L1_truncated"], len(defects)))
 
     return {

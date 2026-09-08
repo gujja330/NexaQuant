@@ -596,6 +596,39 @@ STEPS = [
         "optional": True,
     },
     {
+        # ── CEO 2026-09-08 · CANDIDATE -> REGISTRY, PROMOTED UPSTREAM ───
+        #
+        # > "registry write -> step 74 · dynamic risk -> step 53 ·
+        # >  lifecycle/CURRENT -> step 58. So a genuinely new candidate can
+        # >  be created AFTER the system has already calculated risk and
+        # >  CURRENT."
+        #
+        # The admission transition lived inside detail_xlsx, which runs in
+        # the telegram step. A position admitted today therefore did not
+        # exist when dynamic_risk computed stops and did not exist when
+        # CURRENT was rendered - so it could never appear on its own day,
+        # and when forced through by hand it arrived with `stop none`
+        # (JIOFIN, 2026-09-08).
+        #
+        # This runs the SAME transition via the SAME code path before both.
+        # get_or_create returns an existing ACTIVE opportunity unchanged,
+        # so the telegram step later finds them already admitted and
+        # changes nothing. No decision logic moves with it: no threshold,
+        # no gate, no ranking, no exit rule - only the MOMENT at which an
+        # already-decided admission is recorded.
+        #
+        # MUST precede dynamic_risk_v2_both_markets.
+        "name": "registry_materializer",
+        "desc": ("Materialize candidate -> registry BEFORE risk and "
+                  "lifecycle (idempotent · no decision logic)"),
+        "module": "backend.delivery.lifecycle.registry_materializer",
+        "script_args": ["--market", "both"],
+        "produces": ["reports/context/registry_materialization_india.json",
+                       "reports/context/registry_materialization_usa.json"],
+        "requires": [],
+        "optional": True,
+    },
+    {
         # CEO 2026-09-01 final closure · wrap dynamic_risk_v2.compute for BOTH
         # markets so USA has authoritative per-position stops (without which
         # the bridge below falls to non-authoritative fallback and can't

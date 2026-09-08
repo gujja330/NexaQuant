@@ -405,8 +405,27 @@ def _rec_to_row(rec: Mapping, market: str, root: Path,
     #   · Explicit sell/rotate signal  → EXIT
     #   · profit-protection alert on dead-loss / stop-loss threshold → EXIT
     #   · Otherwise (dropped from ranks but no exit trigger) → HOLD
-    if entry_action == "SELL" or if_holding in ("EXIT", "REDUCE", "SELL") \
-            or ri.get("should_rotate"):
+    # CEO 2026-09-08 · `should_rotate` REMOVED from the EXIT condition.
+    #
+    # `_rotation_for_rec` documents itself as a hypothetical - "treat every
+    # rec as 'if you owned this today'" - and compares each name against
+    # the single best-scoring BUY on the board:
+    #
+    #     edge = best_score - my_score
+    #     should_rotate = edge > 0.05
+    #
+    # So every candidate except the top scorer is rotated out BY
+    # CONSTRUCTION, and the top scorer is already held (GNFC since
+    # 2026-08-06 · PLTR since 2026-08-10). All 14 India rotations pointed
+    # at GNFC.NS. Combined with the registry close below this made a new
+    # entry structurally impossible: 35 of 35 USA and 21 of 21 India
+    # administrative closes were same-day open-and-close, and CURRENT
+    # showed NEW 0 for weeks while the engine was producing BUYs.
+    #
+    # The calculation is KEPT and still rendered - it is useful advisory
+    # information. It simply no longer decides a lifecycle transition.
+    # Genuine sell/exit signals below are untouched and still exit.
+    if entry_action == "SELL" or if_holding in ("EXIT", "REDUCE", "SELL"):
         status = "EXIT"
     elif entry_action == "BUY" and pct_action == "STRONG_BUY":
         status = "STRONG BUY"
@@ -422,12 +441,10 @@ def _rec_to_row(rec: Mapping, market: str, root: Path,
     if status == "EXIT":
         risks = (rec.get("why") or {}).get("top_risks") or []
         risk_first = str(risks[0])[:80] if risks else ""
-        if ri.get("should_rotate"):
-            to_t = ri.get("replacement_ticker") or ""
-            edge = ri.get("expected_alpha_delta_pct")
-            edge_str = f" (+{edge:.1f}pp)" if edge else ""
-            exit_reason = f"Rotation → {to_t}{edge_str}"
-        elif if_holding == "EXIT":
+        # The REAL trigger names the exit. Rotation is advisory context
+        # appended last · it no longer causes exits, so it must never be
+        # reported as the cause of one.
+        if if_holding == "EXIT":
             exit_reason = risk_first or "Exit signal (defensive)"
         elif if_holding == "REDUCE":
             exit_reason = risk_first or "Reduce position (defensive)"
@@ -435,6 +452,12 @@ def _rec_to_row(rec: Mapping, market: str, root: Path,
             exit_reason = risk_first or "Sell signal"
         else:
             exit_reason = risk_first or "Exit trigger"
+        if ri.get("should_rotate"):
+            to_t = ri.get("replacement_ticker") or ""
+            edge = ri.get("expected_alpha_delta_pct")
+            edge_str = f" (+{edge:.1f}pp)" if edge else ""
+            exit_reason = (f"{exit_reason} · advisory: better candidate "
+                           f"{to_t}{edge_str}")[:120]
 
     rank = rec.get("rank")
     conf_cal = rec.get("calibrated_confidence")
@@ -483,11 +506,39 @@ def _rec_to_row(rec: Mapping, market: str, root: Path,
         from backend.research import opportunity_registry as _oreg
         _r_clean = (runner or "").replace("_NEW", "").upper()
         _tk_bare = ticker.replace(".NS","").replace(".BO","").upper()
-        _opp = _oreg.get_or_create(
-            root, market, _r_clean, _tk_bare, asof,
-            initial_signal=status or "",
-            initial_rank=rank if isinstance(rank, int) else None,
-        )
+
+        # CEO 2026-09-08 · A HOLD IS NOT AN ADMISSION.
+        #
+        # get_or_create was called for EVERY rendered row, so a HOLD - or
+        # even an EXIT - opened a brand-new registry position. While the
+        # permanent exited-set bans were in place this never showed.
+        # Releasing the phantom bans exposed it at once: 24 positions were
+        # admitted in one run on HOLD/EXIT signals (India 9 HOLD + 1 EXIT,
+        # USA 13 HOLD). They are filtered from CURRENT today because a NEW
+        # row requires a BUY-family signal - but tomorrow they age into
+        # ACTIVE, which carries no such requirement, and the sheet fills
+        # with positions nobody ever recommended buying.
+        #
+        # An EXISTING position is always fetched, whatever today's signal
+        # is · a held name on a HOLD must still render with its real P&L.
+        # Only the CREATION of a new one requires a BUY-family signal.
+        _sig_up = str(status or "").upper().strip()
+        _has_active = False
+        try:
+            _reg_all = _oreg.load_all(root)
+            _has_active = any(
+                o.is_active() for o in
+                (_reg_all.get((market.lower(), _r_clean, _tk_bare)) or []))
+        except Exception:
+            _has_active = False
+        if not _has_active and _sig_up not in _BUY_FAMILY_ADMIT:
+            _opp = None
+        else:
+            _opp = _oreg.get_or_create(
+                root, market, _r_clean, _tk_bare, asof,
+                initial_signal=status or "",
+                initial_rank=rank if isinstance(rank, int) else None,
+            )
         # 2026-08-21 · Wave 3 · re-entry cooling gate. When cooling
         # blocks a re-entry get_or_create returns None · fall back to
         # the row's own first_seen (legacy) so the row still renders
@@ -500,7 +551,14 @@ def _rec_to_row(rec: Mapping, market: str, root: Path,
             # closed returns unchanged. Fixes 'registry never records
             # closes · re-entry logic can't distinguish new-vs-old on
             # future re-selection'.
-            if str(status or "").upper() == "EXIT" and _opp.is_active():
+            # A position opened by THIS pass must never be closed by it.
+            # get_or_create() above stamps created_date=asof, so an
+            # open-then-close in the same run produced a zero-delta
+            # "administrative" phantom that never reached CURRENT. A
+            # candidate we do not want is DECLINED, not opened and killed.
+            _same_day = str(_opp.created_date or "")[:10] == str(asof)[:10]
+            if (str(status or "").upper() == "EXIT"
+                    and _opp.is_active() and not _same_day):
                 _oreg.close(root, _opp.opportunity_id, asof,
                                 reason=str(exit_reason or "EXIT"))
     except Exception:
@@ -544,6 +602,22 @@ def _rec_to_row(rec: Mapping, market: str, root: Path,
                 from backend.research import opportunity_registry as _oreg
                 _r_clean = (runner or "").replace("_NEW", "").upper()
                 _tk_bare = ticker.replace(".NS","").replace(".BO","").upper()
+                # SECOND ADMISSION SITE · same gate as above.
+                # Gating only the first call left this one open, and it
+                # admitted 7 USA positions on HOLD/EXIT (ESS, GOOGL, GRMN,
+                # HOOD, MU, PKG, UBER) after the first gate was in place.
+                # A rule enforced at one of two doors is not enforced.
+                _sig_up2 = str(status or "").upper().strip()
+                _has_active2 = False
+                try:
+                    _reg2 = _oreg.load_all(root)
+                    _has_active2 = any(
+                        o.is_active() for o in
+                        (_reg2.get((market.lower(), _r_clean, _tk_bare)) or []))
+                except Exception:
+                    _has_active2 = False
+                if not _has_active2 and _sig_up2 not in _BUY_FAMILY_ADMIT:
+                    raise LookupError("not a BUY-family admission")
                 _opp = _oreg.get_or_create(
                     root, market, _r_clean, _tk_bare, asof,
                     initial_signal=status or "",
@@ -893,10 +967,66 @@ def _archived_tickers_for(root: Path, market: str, runner_key: str,
     return archived_recs
 
 
+def _phantom_only_tickers(root: Path, market: str) -> set:
+    """Tickers whose ONLY registry closes are administrative.
+
+    CEO 2026-09-08. An administrative close is a same-day, zero-delta
+    bookkeeping row - the registry and the EXIT HISTORY sheet already
+    classify it as `registry:administrative` and already exclude it from
+    production P&L because it is not a real trade.
+
+    The hypothetical-rotation bug produced 35 USA and 21 India of exactly
+    these, and every one of them wrote an EXIT row into the history
+    workbook. `_load_exited_set` then read those rows and banned the
+    ticker permanently. So a name was opened, closed the same day for
+    zero, and could never be recommended again - SMCI, VLO, INCY, OXY,
+    HOOD, UBER, GRMN, COP, IEX and JIOFIN all sit in that state today.
+
+    This does NOT weaken the no-repeat rule: a genuine EXIT still bans
+    re-emission, and the registry's own 7-day cooling gate still governs
+    real re-entries. It removes bans that were never earned by a real
+    exit.
+    """
+    try:
+        from backend.research import opportunity_registry as _oreg
+        reg = _oreg.load_all(root)
+    except Exception:
+        return set()
+    out = set()
+    for (mkt, runner, tk), opps in (reg or {}).items():
+        if str(mkt).lower() != market.lower():
+            continue
+        closed = [o for o in opps if o.is_terminal()]
+        if not closed:
+            continue
+        if any(o.is_active() for o in opps):
+            continue
+
+        def _admin(o) -> bool:
+            # Same-day open+close is the phantom signature.
+            return (str(getattr(o, "created_date", "") or "")[:10]
+                    == str(getattr(o, "closed_date", "") or "")[:10])
+        if all(_admin(o) for o in closed):
+            out.add((str(runner).upper().replace("_NEW", ""),
+                     str(tk).upper()))
+    return out
+
+
+# Admission vocabulary · mirrors canonical_daily_lifecycle.BUY_FAMILY.
+# Only these signals may CREATE a registry position.
+_BUY_FAMILY_ADMIT = {"BUY", "STRONG BUY", "STRONG_BUY",
+                     "ACCUMULATE", "ADD", "BUY BIG"}
+
+
 def _load_exited_set(root: Path, market: str) -> set:
     """2026-08-07 · operator directive: once a ticker EXITs, don't emit again.
     Reads historical XLSX and returns {(runner, ticker)} that have been
-    EXITed on any prior date. Used to suppress zombie/repeat rows."""
+    EXITed on any prior date. Used to suppress zombie/repeat rows.
+
+    CEO 2026-09-08 · bans backed ONLY by phantom same-day administrative
+    closes are removed · see _phantom_only_tickers. The rule itself is
+    unchanged for real exits.
+    """
     xlsx = root / "reports" / "telegram" / "aegis_history.xlsx"
     if not xlsx.exists(): return set()
     try:
@@ -917,6 +1047,29 @@ def _load_exited_set(root: Path, market: str) -> set:
                 tk = str(row[i_tk] or "").replace(".NS","").replace(".BO","").upper()
                 if rt and tk: exited.add((rt, tk))
         wb.close()
+        # CEO ruling 2026-09-08 · orphan bans are RECONSTRUCTED, not mass
+        # released. Only classes B (invalid admission) are lifted; class A
+        # (genuine position, real exit) and class C (ambiguous) keep their
+        # bans. See backend/delivery/lifecycle/orphan_ban_audit.py.
+        try:
+            from backend.delivery.lifecycle import orphan_ban_audit as _oba
+            _rel = _oba.releasable_keys(root, market)
+            if _rel:
+                _b4 = len(exited)
+                exited -= _rel
+                print(f"[exited_set:{market}] {_b4} -> {len(exited)} · "
+                      f"released {_b4 - len(exited)} ban(s) reconstructed as "
+                      f"class B (invalid admission) · class A/C retained")
+        except Exception as _e:
+            print(f"[exited_set:{market}] orphan-ban audit unavailable · "
+                  f"bans retained · {type(_e).__name__}")
+        phantom = _phantom_only_tickers(root, market)
+        if phantom:
+            _before = len(exited)
+            exited -= phantom
+            print(f"[exited_set:{market}] {_before} -> {len(exited)} · released "
+                  f"{_before - len(exited)} ban(s) held only by phantom "
+                  f"same-day administrative closes")
         return exited
     except Exception:
         return set()
