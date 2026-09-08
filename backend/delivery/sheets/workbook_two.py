@@ -45,9 +45,10 @@ CURRENT_COLUMNS = [
 ]
 
 EXIT_COLUMNS = [
-    "Exit Date", "Ticker", "Market", "Engine", "Entry Date", "Entry Price",
-    "Exit Price", "Realized P&L %", "Holding Days", "Exit Reason",
-    "Entry Confidence %", "Exit Trigger", "Position ID", "Source",
+    "Exit Date", "Ticker", "Sector", "Market", "Engine", "Entry Date",
+    "Entry Price", "Exit Price", "Realized P&L %", "Holding Days",
+    "Exit Reason", "Entry Confidence %", "Exit Trigger", "Position ID",
+    "Source",
 ]
 
 
@@ -238,20 +239,26 @@ def emit_exit_history(wb, d: dict):
                      (" · avg %+.2f%% · worst %+.2f%%"
                       % (sum(_p) / len(_p), min(_p))) if _p else "")), n, 3)
     _header(ws, EXIT_COLUMNS, 4)
-    for i, w in enumerate([12, 12, 9, 10, 12, 12, 12, 15, 13, 26, 15, 30,
-                           30, 24], 1):
+    for i, w in enumerate([12, 12, 20, 9, 10, 12, 12, 12, 15, 13, 26, 15,
+                           30, 30, 24], 1):
         ws.column_dimensions[get_column_letter(i)].width = w
     r = 5
     for e in rows:
         _write_row(ws, [
-            e.get("exit_date"), e.get("ticker"), e.get("market"),
+            e.get("exit_date"), e.get("ticker"),
+            # Rendered, not resolved · the lifecycle layer attached this
+            # from the canonical sector cache. Deriving it here would
+            # create a second sector source, which is what the renderer
+            # exists to avoid.
+            _fmt(e.get("sector"), "NOT_AVAILABLE"),
+            e.get("market"),
             e.get("engine"), e.get("entry_date"),
             _fmt(e.get("entry_price"), "UNAVAILABLE"),
             _fmt(e.get("exit_price"), "UNAVAILABLE"),
             _fmt(e.get("realized_pnl_pct")), _fmt(e.get("holding_days")),
             e.get("exit_reason"), _fmt(e.get("entry_confidence_pct")),
             e.get("exit_trigger"), e.get("position_id"), e.get("source"),
-        ], r, pnl_col_idx=8)
+        ], r, pnl_col_idx=9)
         r += 1
     if not rows:
         ws.cell(r, 1, "No exits recorded.").font = FONT_BODY
@@ -277,6 +284,12 @@ def emit_exit_history(wb, d: dict):
         "having passed the stop.",
         "UNAVAILABLE means the canonical price source had no value · never "
         "fabricated and never backfilled from today's state.",
+        "Sector · the company's CURRENT classification from the canonical "
+        "sector cache, not its sector as of the exit date. No "
+        "point-in-time sector history exists, so this column describes the "
+        "company today and must not be read as evidence about what the "
+        "sector was when the trade was live. NOT_AVAILABLE means the "
+        "canonical source has no entry · it is never guessed.",
     ], r, n)
     return len(rows)
 

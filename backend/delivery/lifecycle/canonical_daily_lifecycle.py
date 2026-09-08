@@ -503,6 +503,27 @@ def compute(root: Path, market: str, asof: str) -> dict:
                                 -(r["pnl_pct"] or 0), r["ticker"]))
     exits.sort(key=lambda e: (e["exit_date"] or "", e["ticker"]), reverse=True)
 
+    # ── canonical sector · attached HERE, at the single transformation
+    #    point, so the renderer keeps computing nothing.
+    #
+    # A19 failed because no exit or current record ever carried a sector
+    # at all - it was never "lost in presentation", it was never
+    # propagated. The value comes from reports/sector_cache.json, the
+    # same canonical source portfolio_source._sector_lookup already uses;
+    # no second source is introduced and nothing is derived here.
+    #
+    # IMPORTANT · this is the CURRENT classification of the company, not
+    # the sector as-of the exit date. No PIT sector history exists, and
+    # inventing one to fill the column would be fabricating historical
+    # data. Unknown stays NOT_AVAILABLE, never guessed.
+    _sect = _sector_cache(root, m)
+    for _row in current:
+        _row["sector"] = _sect.get(_norm_ticker(_row.get("ticker")),
+                                   SECTOR_UNAVAILABLE)
+    for _row in exits:
+        _row["sector"] = _sect.get(_norm_ticker(_row.get("ticker")),
+                                   SECTOR_UNAVAILABLE)
+
     freshness = input_freshness(root, m, asof)
     stale = [f for f in freshness if f["verdict"] != "FRESH"]
     stale_critical = [f for f in stale if f["critical"]]
@@ -540,6 +561,28 @@ def compute(root: Path, market: str, asof: str) -> dict:
         "input_freshness": freshness,
         "stale_inputs": stale,
     }
+
+
+# Honest absence · never an empty string, never a guessed sector.
+SECTOR_UNAVAILABLE = "NOT_AVAILABLE"
+
+
+def _norm_ticker(t) -> str:
+    return str(t or "").replace(".NS", "").replace(".BO", "").upper().strip()
+
+
+def _sector_cache(root: Path, market: str) -> dict:
+    """The canonical sector map · read-only, never written by this module."""
+    import json
+    try:
+        p = root / "reports" / "sector_cache.json"
+        if not p.exists():
+            return {}
+        d = json.loads(p.read_text(encoding="utf-8"))
+        return {_norm_ticker(k): v
+                for k, v in (d.get(str(market).lower()) or {}).items() if v}
+    except Exception:
+        return {}
 
 
 def artifact_path(root: Path, market: str) -> Path:

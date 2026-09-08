@@ -1,0 +1,133 @@
+{
+  "schema_version": "aegis.final_status.v1",
+  "generated_utc": "2026-09-08T14:22:30+00:00",
+  "delivery_status": "GREEN",
+  "delivery_by_market": {
+    "india": {
+      "gate_verdict": "ALLOW",
+      "override_used": false,
+      "blocking_codes": [],
+      "A19": "PASS",
+      "A23": "PASS",
+      "regression_verdict": "WARN",
+      "n_fail": 0,
+      "workbook_sheets": [
+        "CURRENT",
+        "EXIT HISTORY"
+      ],
+      "exit_sheet_resolved": "EXIT HISTORY",
+      "sector_column_present": true
+    },
+    "usa": {
+      "gate_verdict": "ALLOW",
+      "override_used": false,
+      "blocking_codes": [],
+      "A19": "PASS",
+      "A23": "PASS",
+      "regression_verdict": "WARN",
+      "n_fail": 0,
+      "workbook_sheets": [
+        "CURRENT",
+        "EXIT HISTORY"
+      ],
+      "exit_sheet_resolved": "EXIT HISTORY",
+      "sector_column_present": true
+    }
+  },
+  "lineage_reconciliation": {
+    "india": {
+      "registry_closed": 21,
+      "exit_history": 54,
+      "orphan_audit": 26,
+      "unaccounted_closed": [],
+      "reconciled": true
+    },
+    "usa": {
+      "registry_closed": 481,
+      "exit_history": 504,
+      "orphan_audit": 490,
+      "unaccounted_closed": [],
+      "reconciled": true
+    }
+  },
+  "ci_status": "1002 passed \u00b7 38 skipped \u00b7 0 failed",
+  "r1_status": "RETIRED / ADVISORY \u00b7 never auto-exited \u00b7 excluded from production P&L",
+  "r2_status": "PRODUCTION \u00b7 UNCHANGED \u00b7 zero R3 writes",
+  "r3_status": "SHADOW \u00b7 ISOLATED \u00b7 observational only",
+  "ai_program_status": "FROZEN \u00b7 R3_AI_RESEARCH_COMPLETE=True",
+  "validated_ai_components": [],
+  "conditional_ai_components": [],
+  "research_only_components": [
+    "R3-B Statistical Intelligence",
+    "R3-J Uncertainty / Calibration Intelligence",
+    "R3-A Descriptive Intelligence",
+    "R3-H Unsupervised Intelligence"
+  ],
+  "blocked_components": [
+    "R3-I Intraday Intelligence",
+    "R3-C Temporal Intelligence",
+    "R3-D Fundamental Forecasting Intelligence",
+    "R3-F Market / Sector Intelligence",
+    "R3-K Evidence-Weighted Decision Synthesis"
+  ],
+  "rejected_components": [
+    "R3-E Fundamental Intelligence"
+  ],
+  "invalidated_components": [
+    "II.1-GBM \u00b7 Wave 1D headline"
+  ],
+  "production_changes": {
+    "r2_engine_files_modified": [
+      " M backend/delivery/sheets/workbook_two.py",
+      " M backend/delivery/xlsx_contract.py",
+      " M backend/delivery/xlsx_validator.py"
+    ],
+    "r3_writes_to_production": 0,
+    "note": "delivery presentation and validators were repaired; no R2 decision logic, threshold, weight, exit or eligibility rule was touched"
+  },
+  "shadow_changes": {
+    "india": {
+      "ledger_records": 10,
+      "ledger_dates": 1,
+      "actions": {
+        "TAKE": 0,
+        "AVOID": 0,
+        "ABSTAIN": 10
+      },
+      "validated_specialists": [],
+      "production_writes": 0,
+      "any_probability_emitted": false
+    },
+    "usa": {
+      "ledger_records": 8,
+      "ledger_dates": 1,
+      "actions": {
+        "TAKE": 0,
+        "AVOID": 0,
+        "ABSTAIN": 8
+      },
+      "validated_specialists": [],
+      "production_writes": 0,
+      "any_probability_emitted": false
+    }
+  },
+  "remaining_evidence_requirements": [
+    "the prequential ledger reaching 50+ scored predictions",
+    "a decision cohort spanning 10+ well-populated dates per market",
+    "real sector and regime columns",
+    "persisted intraday bars",
+    "a genuinely new scientific question with predefined criteria"
+  ],
+  "git_status": {
+    "head": "e0f68dea",
+    "origin_main": "e970865e",
+    "dirty_files": 236,
+    "production_paths_dirty": 3
+  },
+  "freeze_status": {
+    "frozen": true,
+    "governance_audit_pass": true,
+    "classes_resolved": "11/11",
+    "after_freeze": "evidence refresh \u00b7 recalibration \u00b7 drift detection \u00b7 model health \u00b7 monitoring only. No new AI architecture search."
+  }
+}

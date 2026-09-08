@@ -108,8 +108,12 @@ class XlsxValidator:
             from backend.delivery.xlsx_contract import (
                 PORTFOLIO_SHEET_ALIASES, EXIT_HISTORY_SHEET_ALIASES)
         except Exception:
-            PORTFOLIO_SHEET_ALIASES = ("R2", "01_Portfolio", "Portfolio")
-            EXIT_HISTORY_SHEET_ALIASES = ("EXIT", "03_Exit_History",
+            # Kept in sync with xlsx_contract · a stale fallback here is
+            # how a renamed sheet silently becomes "sheet not found".
+            PORTFOLIO_SHEET_ALIASES = ("CURRENT", "R2", "01_Portfolio",
+                                        "Portfolio")
+            EXIT_HISTORY_SHEET_ALIASES = ("EXIT HISTORY", "EXIT",
+                                            "03_Exit_History",
                                             "Exit History (90d)")
         wb = self._wb_load()
         if wb is None: return None
@@ -126,6 +130,13 @@ class XlsxValidator:
     def _row_offset(self, physical_sheet_name: str, kind: str) -> int:
         """kind: 'header' or 'data' · 3-sheet layout uses header=4 data=5,
         legacy uses header=5 data=6."""
+        # Two-sheet contract · CURRENT carries a taller banner (header@7)
+        # and EXIT HISTORY a short one (header@4). Falling through to the
+        # legacy 5/6 offsets here would read the banner as the header row.
+        if physical_sheet_name == "EXIT HISTORY":
+            return 4 if kind == "header" else 5
+        if physical_sheet_name == "CURRENT":
+            return 7 if kind == "header" else 8
         is_new = physical_sheet_name in ("01_Portfolio", "02_Today_Momentum",
                                             "03_Exit_History")
         if kind == "header":

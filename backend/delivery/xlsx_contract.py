@@ -95,8 +95,46 @@ EXIT_HISTORY_CONTRACT = SheetContract(
 # history (successor to 03_Exit_History). New names first so the current
 # layout wins; legacy names retained so the validator still works against
 # an archived workbook.
-PORTFOLIO_SHEET_ALIASES = ("R2", "01_Portfolio", "Portfolio")
-EXIT_HISTORY_SHEET_ALIASES = ("EXIT", "03_Exit_History", "Exit History (90d)")
+# CEO 2026-09-08 · the two-sheet contract renamed these to "CURRENT" and
+# "EXIT HISTORY". Both were absent from the alias tuples below, so every
+# consumer that resolves a sheet BY NAME found nothing: A19 concluded the
+# Sector column was missing and A23 concluded 481 USA Registry-CLOSED
+# tickers had been silently lost. Neither was true.
+#
+# This is the SECOND time a sheet rename produced phantom validator
+# failures - the five-sheet rename did the same thing and the fix was to
+# patch each call site separately. Patching call sites again would invite
+# a third occurrence, so every consumer now resolves through
+# `resolve_sheet` below and there is exactly one list to update.
+PORTFOLIO_SHEET_ALIASES = ("CURRENT", "R2", "01_Portfolio", "Portfolio")
+EXIT_HISTORY_SHEET_ALIASES = ("EXIT HISTORY", "EXIT", "03_Exit_History",
+                              "Exit History (90d)")
+
+
+def resolve_sheet(wb, aliases) -> Optional[str]:
+    """The one place a sheet is located by name.
+
+    Returns the first alias present in the workbook, or None. Callers MUST
+    treat None as "this workbook has no such sheet" and never as "the
+    sheet is empty" - conflating those is precisely what turned a rename
+    into 481 phantom losses.
+    """
+    try:
+        names = set(wb.sheetnames)
+    except Exception:
+        return None
+    for a in aliases:
+        if a in names:
+            return a
+    return None
+
+
+def resolve_exit_history_sheet(wb) -> Optional[str]:
+    return resolve_sheet(wb, EXIT_HISTORY_SHEET_ALIASES)
+
+
+def resolve_portfolio_sheet(wb) -> Optional[str]:
+    return resolve_sheet(wb, PORTFOLIO_SHEET_ALIASES)
 
 
 # ─────────────────────────────────────────────────────────────────

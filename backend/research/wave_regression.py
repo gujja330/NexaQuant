@@ -377,13 +377,10 @@ def compute(root: Path, market: str, asof: str) -> WaveRegressionReport:
             wb = load_workbook(xp, read_only=True)
             _jargon = 0
             # CEO 2026-09-07 · "EXIT" is the unified exit sheet.
-            _eh_sheet = None
-            _hdr_row = 5
-            for _cand in ("EXIT", "03_Exit_History", "Exit History (90d)"):
-                if _cand in wb.sheetnames:
-                    _eh_sheet = _cand
-                    _hdr_row = 4 if _cand == "03_Exit_History" else 5
-                    break
+            from backend.delivery.xlsx_contract import (
+                resolve_exit_history_sheet as _res_eh18)
+            _eh_sheet = _res_eh18(wb)
+            _hdr_row = 4 if _eh_sheet == "03_Exit_History" else 5
             if _eh_sheet:
                 # Locate the header row by content · layouts differ.
                 _wsp = wb[_eh_sheet]
@@ -439,10 +436,12 @@ def compute(root: Path, market: str, asof: str) -> WaveRegressionReport:
             # exit sheet. Without it this lookup found nothing, _has_sector
             # stayed False, and A19 blocked USA delivery even though the
             # EXIT sheet does carry a Sector column.
-            _eh_name = None
-            for _cand in ("EXIT", "03_Exit_History", "Exit History (90d)"):
-                if _cand in wb.sheetnames:
-                    _eh_name = _cand; break
+            # CEO 2026-09-08 · resolve through the ONE canonical alias
+            # list. A private copy here is what made the two-sheet rename
+            # look like a missing Sector column.
+            from backend.delivery.xlsx_contract import (
+                resolve_exit_history_sheet as _res_eh)
+            _eh_name = _res_eh(wb)
             if _eh_name:
                 _ws = wb[_eh_name]
                 # Search first 10 rows for a header row · one that
@@ -454,12 +453,21 @@ def compute(root: Path, market: str, asof: str) -> WaveRegressionReport:
                     elif "Sector" in _hdr_row:
                         _has_sector = True; break
             wb.close()
-            if _has_sector:
+            if _eh_name is None:
+                # Never report this as a missing column · a workbook with
+                # no exit sheet at all is a different failure and saying
+                # "Sector missing" would send the next reader to the
+                # renderer instead of the sheet name.
+                rep.add("A19", "Exit History has Sector column", "FAIL",
+                            "no Exit History sheet found · workbook sheets "
+                            "did not match any known alias")
+            elif _has_sector:
                 rep.add("A19", "Exit History has Sector column", "PASS",
-                            "Sector column present")
+                            "Sector column present on sheet '%s'" % _eh_name)
             else:
                 rep.add("A19", "Exit History has Sector column", "FAIL",
-                            "Sector column missing from Exit History sheet")
+                            "Sector column missing from Exit History sheet "
+                            "'%s'" % _eh_name)
     except Exception as e:
         rep.add("A19", "Exit History has Sector column", "WARN",
                     f"could not verify · {type(e).__name__}: {e}")
@@ -529,13 +537,10 @@ def compute(root: Path, market: str, asof: str) -> WaveRegressionReport:
             # 3-sheet layout: 03_Exit_History · Ticker at header-lookup
             # legacy layout: Exit History (90d) · Ticker at col A
             # CEO 2026-09-07 · five-sheet spec · EXIT header is row 5.
-            _eh_sheet_a22 = None
-            _hdr_row_eh = 5
-            for _cand in ("EXIT", "03_Exit_History", "Exit History (90d)"):
-                if _cand in wb.sheetnames:
-                    _eh_sheet_a22 = _cand
-                    _hdr_row_eh = 4 if _cand == "03_Exit_History" else 5
-                    break
+            from backend.delivery.xlsx_contract import (
+                resolve_exit_history_sheet as _res_eh22)
+            _eh_sheet_a22 = _res_eh22(wb)
+            _hdr_row_eh = 4 if _eh_sheet_a22 == "03_Exit_History" else 5
             if _eh_sheet_a22:
                 from openpyxl import load_workbook as _lw_eh
                 _wb_eh = _lw_eh(xp, read_only=False, data_only=False)
@@ -596,6 +601,9 @@ def compute(root: Path, market: str, asof: str) -> WaveRegressionReport:
     except Exception as e:
         rep.add("A22", "No ticker in both Portfolio + Exit History", "WARN",
                     f"could not verify · {type(e).__name__}: {e}")
+
+    class _A23Handled(Exception):
+        """A23 already recorded its verdict · leave the block."""
 
     # A23 · Historical-lineage validation for Exit History rows
     #
@@ -666,6 +674,10 @@ def compute(root: Path, market: str, asof: str) -> WaveRegressionReport:
         # trailer rows ("── MONTHLY P&L SUMMARY ──", "Month" header,
         # per-month aggregate rows) that follow the body. Matches the
         # same skip pattern I28 uses in xlsx_validator.py:964-971.
+        # Distinguish "no exit sheet at all" from "sheet present, no rows".
+        # Only the first is a structural read failure; an empty sheet with
+        # Registry-CLOSED tickers IS silent loss and must still fail.
+        _eh_sheet_missing = False
         _in_eh = _exit_tks if 'FALLBACK' not in dir() and '_exit_tks' in dir() else set()
         if not _in_eh:
             from openpyxl import load_workbook as _lw
@@ -693,13 +705,17 @@ def compute(root: Path, market: str, asof: str) -> WaveRegressionReport:
                 # lost", blocking USA delivery on 17 phantom losses.
                 # Resolve the ticker column by HEADER NAME so a future
                 # column move cannot reproduce this.
-                _eh_sheet_name = None
-                _pid_col = False
-                for _cand in ("EXIT", "03_Exit_History", "Exit History (90d)"):
-                    if _cand in _wb2.sheetnames:
-                        _eh_sheet_name = _cand
-                        _pid_col = (_cand in ("EXIT", "03_Exit_History"))
-                        break
+                # CEO 2026-09-08 · same canonical resolver as A19. The
+                # private copy here reported 481 USA Registry-CLOSED
+                # tickers as "silently lost" when in truth the sheet was
+                # simply named "EXIT HISTORY". Reconciliation confirmed
+                # UNACCOUNTED_CLOSED = 0 in both markets.
+                from backend.delivery.xlsx_contract import (
+                    resolve_exit_history_sheet as _res_eh2)
+                _eh_sheet_name = _res_eh2(_wb2)
+                _pid_col = _eh_sheet_name in ("EXIT", "03_Exit_History")
+                if _eh_sheet_name is None:
+                    _eh_sheet_missing = True
                 if _eh_sheet_name:
                     _eh_ws = _wb2[_eh_sheet_name]
                     # Layout resolution · three layouts must all work:
@@ -754,6 +770,18 @@ def compute(root: Path, market: str, asof: str) -> WaveRegressionReport:
                         pass
         except Exception:
             pass
+        # A workbook with no exit sheet is a STRUCTURAL failure, not
+        # evidence that every closed ticker vanished. Conflating the two
+        # is exactly how a rename became "481 silently lost".
+        if _eh_sheet_missing and _closed_reg:
+            rep.add("A23", "Historical-lineage validation for Exit History",
+                        "FAIL",
+                        "no Exit History sheet found in the workbook · "
+                        "refusing to report %d Registry-CLOSED tickers as "
+                        "silently lost on that basis (a missing SHEET is a "
+                        "structural failure, not evidence of lost lineage)"
+                        % len(_closed_reg))
+            raise _A23Handled()
         # Check 1 · every Exit History row has historical lineage
         _fabricated = _in_eh - _historical_tickers
         # Check 2 · every Registry CLOSED is tracked SOMEWHERE (Exit
@@ -776,6 +804,8 @@ def compute(root: Path, market: str, asof: str) -> WaveRegressionReport:
                         f"{len(_in_eh)} rows lineage-valid · "
                         f"{len(_in_audit)} orphan-audit rows · "
                         f"{len(_closed_reg)} Registry-CLOSED all tracked")
+    except _A23Handled:
+        pass
     except Exception as e:
         rep.add("A23", "Historical-lineage validation for Exit History",
                     "WARN", f"could not verify · {type(e).__name__}: {e}")

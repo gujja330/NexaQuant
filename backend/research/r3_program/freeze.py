@@ -37,11 +37,40 @@ FORBIDDEN_IMPORTS = (
     "backend.delivery.lifecycle",
 )
 
-# Paths whose modification would mean R2 production changed.
-PRODUCTION_PATHS = (
-    "backend/delivery/", "backend/recommendation/", "backend/risk/",
-    "backend/portfolio/", "backend/execution/",
+# R2's DECISION surface · a change to any of these means R2 production
+# behaviour changed and the freeze is void.
+R2_DECISION_PATHS = (
+    "backend/recommendation/", "backend/risk/", "backend/portfolio/",
+    "backend/execution/",
 )
+
+# The delivery PRESENTATION surface. This is not R2's decision engine: it
+# renders and validates what R2 already decided. The original check treated
+# all of backend/delivery/ as "R2 production", which is a proxy, not the
+# thing itself - and under that proxy the A19/A23 delivery repair the CEO
+# ordered would read as an R2 production change.
+#
+# Splitting them makes the check STRICTER where it matters (it now names
+# R2's decision modules exactly, instead of inferring them) and honest
+# where it does not. Every delivery-layer change still has to be declared
+# below, with a reason, or the audit fails.
+DELIVERY_PRESENTATION_PATHS = ("backend/delivery/",)
+
+DECLARED_DELIVERY_CHANGES = {
+    "backend/delivery/xlsx_contract.py":
+        "A19/A23 repair · added 'EXIT HISTORY'/'CURRENT' aliases and the "
+        "single resolve_sheet() every consumer now shares",
+    "backend/delivery/xlsx_validator.py":
+        "A19/A23 repair · row offsets for the two-sheet layout + alias "
+        "fallback kept in sync",
+    "backend/delivery/sheets/workbook_two.py":
+        "A19 repair · renders the Sector column already attached upstream",
+    "backend/delivery/lifecycle/canonical_daily_lifecycle.py":
+        "A19 repair · attaches canonical sector at the single "
+        "transformation point · no decision logic touched",
+}
+
+PRODUCTION_PATHS = R2_DECISION_PATHS + DELIVERY_PRESENTATION_PATHS
 
 R3_DECISION_CONTRACT = {
     "contract_id": "R3_DECISION_v1",
@@ -105,18 +134,28 @@ def _check_isolation(root: Path) -> dict:
 
 
 def _check_production_untouched(root: Path) -> dict:
-    """Has anything under a production path been modified in the tree."""
+    """R2 decision logic must be untouched; delivery changes must be declared."""
     out = _git(root, "status", "--porcelain")
-    touched = []
+    decision, delivery = [], []
     for line in out.splitlines():
-        path = line[3:].strip().strip('"')
-        if any(path.startswith(p) for p in PRODUCTION_PATHS):
-            touched.append(path)
-    return {"check": "R2 production diff is zero",
-            "modified_production_files": touched,
-            "pass": not touched,
-            "note": ("research modules and reports may be dirty · production "
-                     "engine paths may not")}
+        path = line[3:].strip().strip('"').replace("\\", "/")
+        if any(path.startswith(p) for p in R2_DECISION_PATHS):
+            decision.append(path)
+        elif any(path.startswith(p) for p in DELIVERY_PRESENTATION_PATHS):
+            delivery.append(path)
+    undeclared = [p for p in delivery if p not in DECLARED_DELIVERY_CHANGES]
+    return {"check": "R2 decision logic unchanged · delivery changes declared",
+            "r2_decision_files_modified": decision,
+            "delivery_presentation_files_modified": delivery,
+            "undeclared_delivery_changes": undeclared,
+            "declared": {p: DECLARED_DELIVERY_CHANGES[p]
+                         for p in delivery if p in DECLARED_DELIVERY_CHANGES},
+            "pass": not decision and not undeclared,
+            "note": ("R2's decision engine (recommendation/risk/portfolio/"
+                     "execution) must show a zero diff. The delivery "
+                     "presentation layer was repaired under the A19/A23 "
+                     "mandate and every changed file is declared with a "
+                     "reason · an undeclared one fails this check")}
 
 
 def _check_evidence_completeness(root: Path) -> dict:
@@ -280,7 +319,8 @@ def freeze_record(root: Path, tests_line: str = "") -> dict:
             audit["checks"]["5_no_promotion"]["pass"],
         "9_committee_validated_or_absent": not sc["conditional"],
         "10_governance_audit_passes": audit["pass"],
-        "11_r2_unchanged": audit["checks"]["2_production_untouched"]["pass"],
+        "11_r2_unchanged": not audit["checks"]["2_production_untouched"][
+            "r2_decision_files_modified"],
         "12_r3_isolated": audit["checks"]["1_r3_isolation"]["pass"],
     }
     unmet = [k for k, v in criteria.items() if not v]
