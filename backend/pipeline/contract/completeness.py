@@ -90,6 +90,64 @@ def _blank(v, field: str, action: str = "") -> bool:
     return s.lower() in EMPTY_TOKENS
 
 
+# Rounding slack for the stop-distance identity. Displayed values are
+# rounded to 2dp, so anything inside this is presentation, not disagreement.
+STOP_DISTANCE_TOLERANCE_PCT = 0.05
+
+
+def stop_distance_invariant(root: Path, market: str) -> dict:
+    """Stop, price and distance must be able to agree ARITHMETICALLY.
+
+        distance = |price - stop| / price * 100
+
+    Displayed together, these three numbers are a claim about downside.
+    If they cannot be reconciled the reader cannot tell which is wrong,
+    and a stop is the one number on the sheet someone acts on in a hurry.
+
+    Nothing is repaired here. A row that cannot agree FAILS DELIVERY, so
+    a silently corrected display can never ship.
+
+    A `target` at or below the current price is also incoherent - it is a
+    target already passed - and is reported so it can be withheld rather
+    than shown.
+    """
+    import json
+    p = (Path(root) / "reports" / "context"
+         / ("canonical_lifecycle_%s.json" % market.lower()))
+    if not p.exists():
+        return {"error": "lifecycle dataset missing"}
+    d = json.loads(p.read_text(encoding="utf-8"))
+    rows = d.get("current") or []
+    out = {"rows_checked": len(rows), "rows_with_stop": 0, "mismatches": [],
+           "malformed_stops": [], "missing_stops": [],
+           "incoherent_targets": []}
+    for r in rows:
+        tk = str(r.get("ticker"))
+        stop, price = r.get("stop"), r.get("current_price")
+        if not isinstance(stop, (int, float)):
+            out["missing_stops"].append(tk)
+            continue
+        if stop <= 0 or not isinstance(price, (int, float)) or price <= 0:
+            out["malformed_stops"].append(
+                {"ticker": tk, "stop": stop, "price": price})
+            continue
+        out["rows_with_stop"] += 1
+        expected = abs(price - stop) / price * 100
+        shown = r.get("dist_to_stop_pct")
+        if isinstance(shown, (int, float)) and                 abs(expected - shown) > STOP_DISTANCE_TOLERANCE_PCT:
+            out["mismatches"].append({
+                "ticker": tk, "engine": r.get("engine"), "price": price,
+                "stop": stop, "displayed_distance": shown,
+                "expected_distance": round(expected, 4)})
+        t = r.get("target")
+        if isinstance(t, (int, float)) and t <= price:
+            out["incoherent_targets"].append({
+                "ticker": tk, "engine": r.get("engine"), "target": t,
+                "current_price": price})
+    out["pass"] = not (out["mismatches"] or out["malformed_stops"])
+    return out
+
+
 def scan_workbook(root: Path, market: str) -> dict:
     """Read the RENDERED sheet · what the operator will actually see."""
     from openpyxl import load_workbook
@@ -177,6 +235,24 @@ def check_fields_complete(ctx: RunContext) -> StageContract:
     c.detail["n_required_gaps"] = len(req)
     c.detail["required_gaps"] = req[:20]
     c.missing_count = len(req)
+
+    # ── stop / price / distance must agree · CEO 2026-09-09 ───────────
+    inv = stop_distance_invariant(root, m)
+    c.detail["stop_distance"] = {
+        k: inv.get(k) for k in
+        ("rows_checked", "rows_with_stop", "mismatches", "malformed_stops",
+         "missing_stops", "incoherent_targets")}
+    if inv.get("mismatches"):
+        c.block("STOP_DISTANCE_MISMATCH",
+                "%d row(s) where stop, price and distance cannot agree: %s · "
+                "a displayed stop that does not reconcile is not shippable"
+                % (len(inv["mismatches"]),
+                   ", ".join(x["ticker"] for x in inv["mismatches"][:5])))
+    if inv.get("malformed_stops"):
+        c.block("STOP_MALFORMED",
+                "%d row(s) carry a non-positive stop or price: %s"
+                % (len(inv["malformed_stops"]),
+                   ", ".join(x["ticker"] for x in inv["malformed_stops"][:5])))
 
     if req:
         by_field = {}

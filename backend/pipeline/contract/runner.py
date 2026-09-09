@@ -141,8 +141,13 @@ def refresh_market(root: Path, market: str, asof: str) -> dict:
     t0 = time.time()
     steps, ok = [], True
     for label, cmd in _REFRESH.get(market.lower(), ()):
+        t1 = time.time()
         rc, out, err = _sh(cmd, root)
+        # Per-stage timing · USA acquisition is 313s and "it must be the
+        # network" is a hypothesis. Recording each stage makes the
+        # dominant term visible instead of assumed.
         steps.append({"step": label, "returncode": rc,
+                      "elapsed_s": round(time.time() - t1, 1),
                       "tail": (out or err).strip().splitlines()[-1:]})
         if rc != 0:
             ok = False
@@ -212,6 +217,12 @@ def build_lifecycle(root: Path, market: str, asof: str) -> dict:
         ("r3_evidence_registry",
          ["python", "-W", "ignore", "-m",
           "backend.research.r3_program.evidence_registry"]),
+        # The clock answers what the registry cannot: did today MOVE
+        # anything, and did anything go backwards. A pipeline can certify
+        # green every morning while the evidence base sits still.
+        ("r3_evidence_clock",
+         ["python", "-W", "ignore", "-m",
+          "backend.research.r3_program.evidence_clock"]),
     ):
         rc, out, err = _sh(cmd, root)
         steps.append({"step": label, "returncode": rc})
@@ -380,6 +391,10 @@ def main() -> int:
               % (acq["elapsed_s"], acq["parallel"]))
         for m, r in acq["results"].items():
             print("   %-6s ok=%s  %.1fs" % (m, r["ok"], r["elapsed_s"]))
+            for st in r.get("steps", []):
+                print("      %-16s %6.1fs  rc=%s"
+                      % (st["step"], st.get("elapsed_s", 0.0),
+                         st["returncode"]))
 
     rc = 0
     for m in markets:

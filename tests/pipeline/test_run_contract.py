@@ -409,3 +409,157 @@ def test_breach_latches_reference_live_positions():
         assert not orphaned, (
             "%s breach ledger latches positions that no longer exist: %s"
             % (market, orphaned[:5]))
+
+
+# ── evidence clock · is the evidence actually accumulating ──────────────
+
+def test_clock_distinguishes_deduplication_from_loss():
+    """India fell 63 -> 53 rows · that was dedup, not ten lost predictions."""
+    from backend.research.r3_program import evidence_clock as ec
+    cur = {"markets": {"india": {"raw_rows": 53, "unique_predictions": 53,
+                                 "unique_tickers": 43, "matured_outcomes": 0,
+                                 "fundamental_periods": 265, "tickers": 45,
+                                 "tickers_ge_8q": 0, "median_quarters": 6},
+                       "usa": {}}, "registry_families": 12}
+    prev = {"markets": {"india": {"raw_rows": 63, "unique_predictions": 53,
+                                  "unique_tickers": 43, "matured_outcomes": 0,
+                                  "fundamental_periods": 265, "tickers": 45,
+                                  "tickers_ge_8q": 0, "median_quarters": 6},
+                        "usa": {}}, "registry_families": 12}
+    d = ec.deltas(cur, prev)
+    assert d["india"]["raw_rows"] == -10
+    assert d["india"]["dedup_not_loss"] is True
+    assert d["conserved"] is True, d["regressions"]
+
+
+def test_clock_fails_on_real_evidence_loss():
+    """A fall in UNIQUE identities is loss and must fail certification."""
+    from backend.research.r3_program import evidence_clock as ec
+    cur = {"markets": {"india": {"raw_rows": 40, "unique_predictions": 40,
+                                 "unique_tickers": 30, "matured_outcomes": 0,
+                                 "fundamental_periods": 200, "tickers": 40,
+                                 "tickers_ge_8q": 0, "median_quarters": 6},
+                       "usa": {}}, "registry_families": 12}
+    prev = {"markets": {"india": {"raw_rows": 53, "unique_predictions": 53,
+                                  "unique_tickers": 43, "matured_outcomes": 0,
+                                  "fundamental_periods": 265, "tickers": 45,
+                                  "tickers_ge_8q": 0, "median_quarters": 6},
+                        "usa": {}}, "registry_families": 12}
+    d = ec.deltas(cur, prev)
+    assert d["conserved"] is False
+    assert any("unique_predictions" in r for r in d["regressions"])
+    assert any("fundamental_periods" in r for r in d["regressions"])
+
+
+def test_no_new_model_guard_blocks_when_nothing_is_ready():
+    from backend.research.r3_program import evidence_clock as ec
+    g = ec.may_train({"ready_for_evaluation": []})
+    assert g["may_train"] is False
+    assert "do not train" in g["reason"]
+    g2 = ec.may_train({"ready_for_evaluation": ["R3-K-META:usa"]})
+    assert g2["may_train"] is True
+    assert "PREDEFINED" in g2["reason"]
+
+
+def test_clock_baseline_is_written_only_when_conservation_passes():
+    """A corrupt run must not become the baseline that hides the next
+    regression."""
+    from backend.research.r3_program import evidence_clock as ec
+    src = Path(ec.__file__).read_text(encoding="utf-8")
+    assert 'if rep["conservation"]["pass"]:' in src
+
+
+def test_calibration_reports_not_started_rather_than_a_fake_ece():
+    from backend.research.r3_program import evidence_clock as ec
+    c = ec._calibration(ROOT)
+    assert c["eligible_weekly_observations"] == 0
+    assert c["required_weeks"] == 4 and c["ece_threshold"] == 0.05
+
+
+def test_acquisition_profile_refuses_to_report_an_empty_sample():
+    """A profile where every fetch failed once read 0.000s network with 60
+    retries · a measurement that cannot fail loudly is worse than none."""
+    from backend.observability import acquisition_profile as ap
+    src = Path(ap.__file__).read_text(encoding="utf-8")
+    assert "every sampled fetch failed" in src
+    assert "t.get(\"symbol\")" in src
+
+
+def test_acquisition_records_per_stage_timing():
+    from backend.pipeline.contract import runner
+    src = Path(runner.__file__).read_text(encoding="utf-8")
+    assert '"elapsed_s": round(time.time() - t1, 1)' in src
+
+
+def test_clock_runs_in_the_daily_pipeline():
+    from backend.pipeline.contract import runner
+    src = Path(runner.__file__).read_text(encoding="utf-8")
+    assert "r3_evidence_clock" in src
+
+
+# ── stop / price / distance must agree · CEO 2026-09-09 ─────────────────
+
+@pytest.mark.parametrize("market", MARKETS)
+def test_stop_price_distance_reconcile(market):
+    """distance = |price - stop| / price * 100 · on every row with a stop."""
+    r = completeness.stop_distance_invariant(ROOT, market)
+    if r.get("error"):
+        pytest.skip(r["error"])
+    assert not r["mismatches"], r["mismatches"][:3]
+    assert not r["malformed_stops"], r["malformed_stops"][:3]
+    assert r["pass"] is True
+
+
+def test_stop_distance_mismatch_blocks_delivery():
+    src = Path(completeness.__file__).read_text(encoding="utf-8")
+    assert "STOP_DISTANCE_MISMATCH" in src
+    assert "not shippable" in src
+
+
+def test_stop_distance_is_never_silently_repaired():
+    """A displayed value that cannot reconcile must FAIL, not be fixed."""
+    src = Path(completeness.__file__).read_text(encoding="utf-8")
+    assert "Nothing is repaired here" in src
+
+
+def test_message_never_signs_stop_distance_as_upside():
+    """`dist +7.48%` reads as a profit target · it is downside."""
+    from backend.delivery.telegram import canonical_message as cm
+    for m in MARKETS:
+        text = cm.render(ROOT, m)
+        if not text:
+            continue
+        assert "dist +" not in text, "stop distance rendered with a + sign"
+        assert "Stop distance" in text
+        assert "NOT a profit target" in text
+
+
+def test_incoherent_target_is_withheld_not_shown():
+    """A target at or below the current price is a target already passed."""
+    src = (ROOT / "backend" / "delivery" / "sheets"
+           / "workbook_two.py").read_text(encoding="utf-8")
+    assert 'row["target"] <= row["current_price"]' in src
+
+
+@pytest.mark.parametrize("market", MARKETS)
+def test_no_row_displays_a_target_at_or_below_current_price(market):
+    from openpyxl import load_workbook
+    p = ROOT / "reports" / "telegram" / ("aegis_history_%s.xlsx" % market)
+    if not p.exists():
+        pytest.skip("workbook missing")
+    wb = load_workbook(p, read_only=True)
+    ws = wb["CURRENT"]
+    hdr = [str(c.value).strip() if c.value else "" for c in ws[7]]
+    ti, pi, gi = (hdr.index("Ticker"), hdr.index("Current Price"),
+                  hdr.index("Target"))
+    bad = []
+    for r in range(8, ws.max_row + 1):
+        t = ws.cell(r, ti + 1).value
+        if not t or str(t).startswith("─"):
+            break
+        cp, tg = ws.cell(r, pi + 1).value, ws.cell(r, gi + 1).value
+        if isinstance(cp, (int, float)) and isinstance(tg, (int, float)) \
+                and tg <= cp:
+            bad.append((str(t), tg, cp))
+    wb.close()
+    assert not bad, "targets at/below current price: %s" % bad[:4]

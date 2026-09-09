@@ -1,0 +1,38 @@
+{
+  "schema_version": "aegis.observability.acquisition_profile.v1",
+  "generated_utc": "2026-09-09T09:25:25+00:00",
+  "market": "usa",
+  "constants": {
+    "history_period": "5y",
+    "inter_request_sleep_sec": 0.05,
+    "backoff_sec": 1.5,
+    "max_attempts": 3
+  },
+  "universe_size": 516,
+  "sample_size": 20,
+  "measured": {
+    "network_median_s": 0.181,
+    "network_p90_s": 0.217,
+    "network_total_sample_s": 8.3,
+    "write_median_s": 0.0089,
+    "retries_in_sample": 0,
+    "failures_in_sample": []
+  },
+  "extrapolated_full_run_s": {
+    "network_wait": 93.5,
+    "parquet_write": 4.6,
+    "inter_request_sleep": 25.8,
+    "total_estimate": 123.9
+  },
+  "share_pct": {
+    "network_wait": 75.5,
+    "parquet_write": 3.7,
+    "inter_request_sleep": 20.8
+  },
+  "structure": {
+    "concurrency": "SERIAL \u00b7 one ticker at a time",
+    "cache": "none \u00b7 every run re-downloads the full 5y history for every ticker regardless of what is already on disk",
+    "repeated_download": true
+  },
+  "note": "estimate from a 20-ticker sample \u00b7 reported as an estimate, not a measured total \u00b7 no behaviour was changed and nothing was written to data/raw"
+}

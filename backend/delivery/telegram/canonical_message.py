@@ -125,10 +125,17 @@ def render(root: Path, market: str) -> Optional[str]:
                 L.append(f"    {_cur(r.get('entry_price'), m)} → "
                          f"{_cur(r.get('current_price'), m)}  "
                          f"{_pct(r.get('pnl_pct'))}")
+                # "dist +7.48%" reads as upside. It is the DOWNSIDE from
+                # the current price to the stop, and a leading + on that
+                # number invites exactly the wrong reading. Spelled out,
+                # signed as the loss it is, and never called a target.
                 _s = r.get("stop")
+                _d = r.get("dist_to_stop_pct")
+                _dtxt = ("—" if not isinstance(_d, (int, float))
+                         else f"-{abs(_d):.2f}% below")
                 L.append(f"    ⛔ Stop {_cur(_s, m)} "
-                         f"({r.get('stop_state') or '—'}) · "
-                         f"dist {_pct(r.get('dist_to_stop_pct'))}")
+                         f"({r.get('stop_state') or '—'})")
+                L.append(f"       Stop distance {_dtxt} current price")
 
     block(f"🟢 NEW ({len(new)})", new)
     block(f"🔵 ACTIVE+ ({len(aplus)})", aplus)
@@ -156,6 +163,8 @@ def render(root: Path, market: str) -> Optional[str]:
     L.append(f"  canonical_lifecycle_{m}.json · the SAME dataset behind the")
     L.append("  CURRENT sheet · this message cannot disagree with the XLSX")
     L.append(f"  {ADVISORY_NOTE}")
+    L.append("  Stop distance = downside from the current price to the")
+    L.append("  stop. It is NOT a profit target · no target is implied.")
     L.append("  Advisory only · PAPER_ONLY · Not investment advice")
     return "\n".join(L)
 

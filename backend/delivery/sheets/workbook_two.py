@@ -263,7 +263,15 @@ def emit_current(wb, d: dict):
             _fmt(row.get("stop"), "UNAVAILABLE"),
             row.get("stop_state") or "—",
             _fmt(row.get("dist_to_stop_pct")),
-            _fmt(row.get("max_loss_if_stop_pct")), _fmt(row.get("target")),
+            _fmt(row.get("max_loss_if_stop_pct")),
+            # A target at or below the current price is a target already
+            # passed · it is not a target and is withheld rather than
+            # shown. Four R1 advisory rows carried one on 2026-09-09
+            # (CRM: 221.57 against a current 249.12).
+            _fmt(None if (isinstance(row.get("target"), (int, float))
+                          and isinstance(row.get("current_price"), (int, float))
+                          and row["target"] <= row["current_price"])
+                 else row.get("target")),
             row.get("position_id"), row.get("reason"),
             # ── R3 SHADOW · appended AFTER every R2 column, never among
             #    them. R2 Action above was decided without reading any of
@@ -277,6 +285,10 @@ def emit_current(wb, d: dict):
         r += 1
     r += 2
     _legend(ws, [
+        "Stop distance % · the DOWNSIDE from the current price to the "
+        "stop. It is not a profit target and no target is implied by it.",
+        "Target · withheld (—) when the stored target sits at or below the "
+        "current price · a target already passed is not a target.",
         "R3 SHADOW is RESEARCH ONLY. It describes an R2 candidate and never "
         "changes one · R2 Action, Confidence and Stop in this row were "
         "decided without reading any R3 value.",
