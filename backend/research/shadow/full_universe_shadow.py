@@ -116,7 +116,18 @@ def _load_regime(root: Path, market: str) -> str:
 
 
 def _persisted_ensemble_tickers(root: Path, market: str) -> set:
-    """The 15 names production actually sees · the comparison baseline."""
+    """The names production actually OFFERS TO ELIGIBILITY.
+
+    This used to read top_10 + bottom_5 only, because that was all
+    ensemble.json persisted - and that was the defect, not the baseline.
+    Four qualified USA candidates (COP, DVN, MPC, TRV) were discarded
+    before any rule could judge them.
+
+    `all_candidates` now carries the full universe, so it is preferred.
+    The 15-row slice remains the fallback for an ensemble.json written by
+    an older run, and when that fallback is used the caller can tell,
+    because the set will be exactly 15 names wide.
+    """
     p = _reports(root, market) / "ensemble.json"
     if not p.exists():
         return set()
@@ -125,6 +136,12 @@ def _persisted_ensemble_tickers(root: Path, market: str) -> set:
     except Exception:
         return set()
     out = set()
+    for r in d.get("all_candidates") or []:
+        t = r.get("ticker")
+        if t:
+            out.add(str(t))
+    if out:
+        return out
     for key in ("top_10", "bottom_5"):
         for r in d.get(key) or []:
             t = r.get("ticker")

@@ -76,7 +76,19 @@ def main() -> int:
         print("  FATAL: reports/ensemble.json not found — run model_factory first"); return 1
     ens = json.loads(ENSEMBLE_PATH.read_text(encoding="utf-8"))
 
-    ens_rows = list(ens.get("top_10", [])) + list(ens.get("bottom_5", []))
+    # ── FULL UNIVERSE · CEO 2026-09-09 ──────────────────────────────
+    #
+    # This read top_10 + bottom_5, so the recommendation engine only ever
+    # judged 15 of the scored universe. Everything else was discarded
+    # before any rule saw it - COP, DVN, MPC and TRV cleared every gate at
+    # confidence 0.6045 and simply never appeared. The workbook that
+    # resulted looked correct, which is precisely why it went unnoticed.
+    #
+    # `all_candidates` carries the whole universe; the 15-row slice is
+    # kept as a fallback for an ensemble.json written before this change.
+    ens_rows = list(ens.get("all_candidates") or [])
+    if not ens_rows:
+        ens_rows = list(ens.get("top_10", [])) + list(ens.get("bottom_5", []))
     # If the ensemble only stored top/bottom, we still need FULL rows for a proper run.
     # Fall back: build synthetic full list from the parts we have, dedupe on ticker.
     seen = set(); ens_dedup = []

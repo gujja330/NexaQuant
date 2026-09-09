@@ -208,6 +208,33 @@ _FRESHNESS_INPUTS = (
      "reports/context/dynamic_risk_usa.json", True),
 )
 
+# ── SUBSTRATE · CEO 2026-09-09 ────────────────────────────────────────
+#
+# Every input above is an OUTPUT of scoring. None of them is the thing
+# scoring reads. A 50-day-old feature store still produces a
+# fresh-dated ensemble.json today, so the guard reported FRESH while the
+# entire universe was being scored against 2026-07-21 features - and the
+# result was "no new stocks", indistinguishable from a quiet market.
+#
+# Checking the derived artifact and calling it a freshness check is the
+# hole. The substrate is checked here.
+MAX_SUBSTRATE_AGE_DAYS = 5
+
+
+def _feature_store_asof(root: Path, market: str):
+    """Latest feature snapshot date · the substrate everything scores from."""
+    try:
+        from backend.feature_store.feature_history import list_snapshots
+        snaps = list_snapshots(root, market.lower())
+        return snaps[-1].isoformat() if snaps else None
+    except Exception:
+        return None
+
+
+_SUBSTRATE_INPUTS = (
+    ("feature_store", _feature_store_asof, True),
+)
+
 
 def _artifact_asof(p: Path):
     if not p.exists():
@@ -250,9 +277,49 @@ def input_freshness(root: Path, market: str, asof: str) -> list:
         out.append({
             "input": label, "path": rel, "asof": a,
             "age_days": age, "critical": critical,
+            "kind": "derived",
             "verdict": ("MISSING" if a is None else
                         "STALE" if (age or 0) > 0 else "FRESH"),
         })
+    # The substrate itself · a derived artifact can look current while the
+    # data under it is weeks old.
+    for label, resolver, critical in _SUBSTRATE_INPUTS:
+        a = resolver(root, market)
+        age = None
+        if a:
+            try:
+                age = (date.fromisoformat(str(asof)[:10])
+                       - date.fromisoformat(a)).days
+            except Exception:
+                age = None
+        out.append({
+            "input": label, "path": "features/%s/" % market.lower(),
+            "asof": a, "age_days": age, "critical": critical,
+            "kind": "substrate",
+            "max_age_days": MAX_SUBSTRATE_AGE_DAYS,
+            "verdict": ("MISSING" if a is None else
+                        "STALE" if (age or 0) > MAX_SUBSTRATE_AGE_DAYS
+                        else "FRESH"),
+        })
+    return out
+
+
+def blocking_freshness(freshness: list) -> list:
+    """Which freshness failures must STOP a delivery.
+
+    The guard already measured staleness today and delivery still shipped:
+    it annotated the sheet and the gate allowed the send anyway. A guard
+    that reports without gating is a log line, not a guard. Critical
+    substrate that is MISSING or beyond its age budget blocks.
+    """
+    out = []
+    for f in freshness or []:
+        if not f.get("critical"):
+            continue
+        if f.get("kind") != "substrate":
+            continue
+        if f.get("verdict") in ("MISSING", "STALE"):
+            out.append("SUBSTRATE:%s" % str(f.get("input", "?")).upper())
     return out
 
 
@@ -274,10 +341,26 @@ def compute(root: Path, market: str, asof: str) -> dict:
     current, exits, filtered, breached = [], [], [], []
     latched = load_breach_ledger(root, m)
 
+    _today_conf = _todays_confidence(root, m)
+
     def _conf(o):
         c = getattr(o, "initial_score", None)
         if isinstance(c, (int, float)):
             return round(float(c) * 100, 1) if 0 <= c <= 1 else round(float(c), 1)
+        # A position OPENED TODAY whose registry entry predates the
+        # initial_score field: today's confidence IS its entry confidence,
+        # so use it. The twelve USA NEW rows of 2026-09-09 rendered an
+        # em-dash while the SSOT held 0.5905 for AMGN - a NEW
+        # recommendation cannot be judged without one.
+        #
+        # Deliberately NOT applied to older positions. Showing today's
+        # confidence against an entry made weeks ago would silently
+        # restate history, which is the failure this file exists to
+        # prevent. Those keep the em-dash.
+        if str(getattr(o, "created_date", "") or "")[:10] == str(asof)[:10]:
+            v = _today_conf.get(_norm_ticker(getattr(o, "ticker", "")))
+            if isinstance(v, (int, float)):
+                return round(float(v) * 100, 1) if 0 <= v <= 1 else round(float(v), 1)
         return None
 
     def _emit_current(o, engine: str):
@@ -565,6 +648,28 @@ def compute(root: Path, market: str, asof: str) -> dict:
 
 # Honest absence · never an empty string, never a guessed sector.
 SECTOR_UNAVAILABLE = "NOT_AVAILABLE"
+
+
+def _todays_confidence(root: Path, market: str) -> dict:
+    """{ticker: calibrated confidence} from the canonical SSOT, if present."""
+    import json
+    rel = ("usa/reports/recommendations.json" if market.lower() == "usa"
+           else "reports/recommendations.json")
+    p = root / rel
+    if not p.exists():
+        return {}
+    try:
+        d = json.loads(p.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    out = {}
+    for r in d.get("recommendations") or []:
+        v = r.get("calibrated_confidence")
+        if not isinstance(v, (int, float)):
+            v = r.get("confidence")
+        if isinstance(v, (int, float)):
+            out[_norm_ticker(r.get("ticker"))] = v
+    return out
 
 
 def _norm_ticker(t) -> str:

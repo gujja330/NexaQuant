@@ -1,0 +1,1304 @@
+{
+  "schema_version": "aegis.observability.pipeline_audit.v1",
+  "generated_utc": "2026-09-09T02:57:26+00:00",
+  "stages": [
+    {
+      "stage": "1_SOURCE",
+      "description": "source acquisition \u00b7 prices, fundamentals, corp actions, FII/DII, news, macro"
+    },
+    {
+      "stage": "2_SNAPSHOT",
+      "description": "feature snapshot materialisation per market per asof"
+    },
+    {
+      "stage": "3_FEATURES",
+      "description": "feature selection / intelligence"
+    },
+    {
+      "stage": "4_SCORE",
+      "description": "model factory + ensemble over the FULL universe"
+    },
+    {
+      "stage": "5_ELIGIBILITY",
+      "description": "recommendation engine \u00b7 BUY/HOLD/SELL + gates"
+    },
+    {
+      "stage": "6_REGISTRY",
+      "description": "opportunity registry \u00b7 position creation"
+    },
+    {
+      "stage": "7_LIFECYCLE",
+      "description": "canonical daily lifecycle \u00b7 CURRENT + EXIT"
+    },
+    {
+      "stage": "8_DELIVERY",
+      "description": "workbook + Telegram"
+    }
+  ],
+  "steps": {
+    "n_steps": 80,
+    "n_optional": 60,
+    "n_declaring_nothing": 19,
+    "critical_substrate_steps_marked_optional": [],
+    "undeclared_outputs": [],
+    "steps": [
+      {
+        "index": 0,
+        "name": "ingest_fii_dii",
+        "optional": true,
+        "n_produces": 1,
+        "produces": [
+          "data/raw/india/fii_dii.parquet"
+        ],
+        "requires": [],
+        "staleness_skip_hours": null
+      },
+      {
+        "index": 1,
+        "name": "ingest_news_sentiment",
+        "optional": true,
+        "n_produces": 1,
+        "produces": [
+          "data/raw/india/news_sentiment.parquet"
+        ],
+        "requires": [],
+        "staleness_skip_hours": 6
+      },
+      {
+        "index": 2,
+        "name": "ingest_fundamentals",
+        "optional": true,
+        "n_produces": 1,
+        "produces": [
+          "data/raw/india/fundamentals.parquet"
+        ],
+        "requires": [],
+        "staleness_skip_hours": 20
+      },
+      {
+        "index": 3,
+        "name": "ingest_macro_summary",
+        "optional": true,
+        "n_produces": 2,
+        "produces": [
+          "reports/macro_summary.json",
+          "data/raw/india/macro_summary.json"
+        ],
+        "requires": [],
+        "staleness_skip_hours": null
+      },
+      {
+        "index": 4,
+        "name": "ingest_corporate_actions",
+        "optional": true,
+        "n_produces": 1,
+        "produces": [
+          "data/raw/india/corporate_actions.parquet"
+        ],
+        "requires": [],
+        "staleness_skip_hours": 20
+      },
+      {
+        "index": 5,
+        "name": "backend_validation",
+        "optional": true,
+        "n_produces": 2,
+        "produces": [
+          "reports/backend_validation.json",
+          "reports/backend_validation_summary.json"
+        ],
+        "requires": [],
+        "staleness_skip_hours": null
+      },
+      {
+        "index": 6,
+        "name": "macro_intel",
+        "optional": true,
+        "n_produces": 11,
+        "produces": [
+          "reports/macro_regime.json",
+          "reports/commodity_intelligence.json",
+          "reports/currency_intelligence.json",
+          "reports/bond_intelligence.json"
+        ],
+        "requires": [],
+        "staleness_skip_hours": null
+      },
+      {
+        "index": 7,
+        "name": "factor_library",
+        "optional": true,
+        "n_produces": 3,
+        "produces": [
+          "reports/factor_library.json",
+          "reports/factor_library.parquet",
+          "reports/factor_library_history.parquet"
+        ],
+        "requires": [
+          "reports/commodity_intelligence.json"
+        ],
+        "staleness_skip_hours": null
+      },
+      {
+        "index": 8,
+        "name": "market_intelligence",
+        "optional": true,
+        "n_produces": 3,
+        "produces": [
+          "reports/market_intelligence.json",
+          "reports/market_intelligence_summary.json",
+          "reports/ai_market_narrative.json"
+        ],
+        "requires": [],
+        "staleness_skip_hours": null
+      },
+      {
+        "index": 9,
+        "name": "feature_store",
+        "optional": false,
+        "n_produces": 3,
+        "produces": [
+          "features/india/{asof}.parquet",
+          "reports/feature_store_summary.json",
+          "reports/ai_feature_narrative.json"
+        ],
+        "requires": [
+          "reports/market_intelligence.json"
+        ],
+        "staleness_skip_hours": null,
+        "real_output": "features/<market>/<asof>.parquet",
+        "declares_real_output": true
+      },
+      {
+        "index": 10,
+        "name": "feature_intelligence",
+        "optional": true,
+        "n_produces": 4,
+        "produces": [
+          "reports/feature_intelligence.json",
+          "reports/feature_intelligence_summary.json",
+          "reports/selected_features.json",
+          "reports/ai_feature_research.json"
+        ],
+        "requires": [
+          "reports/feature_store_summary.json"
+        ],
+        "staleness_skip_hours": null
+      },
+      {
+        "index": 11,
+        "name": "model_factory",
+        "optional": false,
+        "n_produces": 4,
+        "produces": [
+          "reports/model_factory.json",
+          "reports/model_metrics.json",
+          "reports/ensemble.json",
+          "reports/ai_model_narrative.json"
+        ],
+        "requires": [
+          "reports/selected_features.json"
+        ],
+        "staleness_skip_hours": null,
+        "real_output": "reports/ensemble.json",
+        "declares_real_output": true
+      },
+      {
+        "index": 12,
+        "name": "recommendation_intelligence",
+        "optional": true,
+        "n_produces": 4,
+        "produces": [
+          "reports/recommendations_v3.json",
+          "reports/recommendations_v3_summary.json",
+          "reports/recommendations_v3_conflicts.json",
+          "reports/ai_recommendation_narrative.json"
+        ],
+        "requires": [
+          "reports/ensemble.json"
+        ],
+        "staleness_skip_hours": null
+      },
+      {
+        "index": 13,
+        "name": "recommendation_ssot",
+        "optional": false,
+        "n_produces": 2,
+        "produces": [
+          "reports/recommendations.json",
+          "reports/context/ssot_health.json"
+        ],
+        "requires": [
+          "reports/recommendations_v3.json"
+        ],
+        "staleness_skip_hours": null,
+        "real_output": "reports/recommendations.json",
+        "declares_real_output": true
+      },
+      {
+        "index": 14,
+        "name": "recommendation_lifecycle",
+        "optional": true,
+        "n_produces": 2,
+        "produces": [
+          "reports/recommendation_lifecycle.json",
+          "reports/recommendation_lifecycle_ledger.jsonl"
+        ],
+        "requires": [
+          "reports/recommendations.json"
+        ],
+        "staleness_skip_hours": null
+      },
+      {
+        "index": 15,
+        "name": "institutional_optimization",
+        "optional": false,
+        "n_produces": 3,
+        "produces": [
+          "reports/percentile_classification.json",
+          "reports/adaptive_ensemble_weights.json",
+          "reports/permutation_importance.json"
+        ],
+        "requires": [
+          "reports/recommendations.json",
+          "reports/learning.parquet"
+        ],
+        "staleness_skip_hours": null
+      },
+      {
+        "index": 16,
+        "name": "recommendation_deltas",
+        "optional": true,
+        "n_produces": 1,
+        "produces": [
+          "reports/recommendation_deltas.json"
+        ],
+        "requires": [
+          "reports/recommendations.json"
+        ],
+        "staleness_skip_hours": null
+      },
+      {
+        "index": 17,
+        "name": "dynamic_holding",
+        "optional": true,
+        "n_produces": 1,
+        "produces": [
+          "reports/dynamic_holding.json"
+        ],
+        "requires": [
+          "reports/recommendations.json"
+        ],
+        "staleness_skip_hours": null
+      },
+      {
+        "index": 18,
+        "name": "macro_decision_impact",
+        "optional": true,
+        "n_produces": 1,
+        "produces": [
+          "reports/macro_decision_impact.json"
+        ],
+        "requires": [
+          "reports/commodity_intelligence.json"
+        ],
+        "staleness_skip_hours": null
+      },
+      {
+        "index": 19,
+        "name": "portfolio_decision_impact",
+        "optional": true,
+        "n_produces": 1,
+        "produces": [
+          "reports/portfolio_decision_impact.json"
+        ],
+        "requires": [
+          "reports/recommendations.json",
+          "reports/portfolio_v3.json"
+        ],
+        "staleness_skip_hours": null
+      },
+      {
+        "index": 20,
+        "name": "consumer_audit",
+        "optional": true,
+        "n_produces": 1,
+        "produces": [
+          "reports/consumer_audit.json"
+        ],
+        "requires": [],
+        "staleness_skip_hours": null
+      },
+      {
+        "index": 21,
+        "name": "recommendation_quality",
+        "optional": true,
+        "n_produces": 1,
+        "produces": [
+          "reports/recommendation_quality.json"
+        ],
+        "requires": [
+          "reports/recommendations.json"
+        ],
+        "staleness_skip_hours": null
+      },
+      {
+        "index": 22,
+        "name": "repository_intelligence",
+        "optional": true,
+        "n_produces": 1,
+        "produces": [
+          "reports/repository_intelligence.json"
+        ],
+        "requires": [],
+        "staleness_skip_hours": null
+      },
+      {
+        "index": 23,
+        "name": "risk_engine",
+        "optional": true,
+        "n_produces": 3,
+        "produces": [
+          "reports/sized_positions.json",
+          "reports/risk_report.json",
+          "reports/ai_risk_narrative.json"
+        ],
+        "requires": [
+          "reports/recommendations_v3.json",
+          "configs/risk_budget.yaml"
+        ],
+        "staleness_skip_hours": null
+      },
+      {
+        "index": 24,
+        "name": "portfolio_engine",
+        "optional": true,
+        "n_produces": 4,
+        "produces": [
+          "reports/portfolio_v3.json",
+          "reports/portfolio_diff.json",
+          "reports/portfolio_state.json",
+          "reports/ai_portfolio_narrative.json"
+        ],
+        "requires": [
+          "reports/sized_positions.json",
+          "configs/portfolio_config.yaml"
+        ],
+        "staleness_skip_hours": null
+      },
+      {
+        "index": 25,
+        "name": "learning_engine",
+        "optional": true,
+        "n_produces": 5,
+        "produces": [
+          "reports/feature_attribution.json",
+          "reports/model_attribution.json",
+          "reports/failure_clusters.json",
+          "reports/confidence_calibration.json"
+        ],
+        "requires": [
+          "configs/learning_config.yaml"
+        ],
+        "staleness_skip_hours": null
+      },
+      {
+        "index": 26,
+        "name": "execution_simulator",
+        "optional": true,
+        "n_produces": 4,
+        "produces": [
+          "reports/execution_ledger.parquet",
+          "reports/execution_summary.json",
+          "reports/equity_curve.parquet",
+          "reports/ai_execution_narrative.json"
+        ],
+        "requires": [
+          "reports/portfolio_diff.json",
+          "configs/execution_config.yaml"
+        ],
+        "staleness_skip_hours": null
+      },
+      {
+        "index": 27,
+        "name": "adaptive_rec_v2",
+        "optional": false,
+        "n_produces": 1,
+        "produces": [
+          "reports/adaptive_rec_v2_signal.json"
+        ],
+        "requires": [
+          "reports/learning.parquet"
+        ],
+        "staleness_skip_hours": null
+      },
+      {
+        "index": 28,
+        "name": "validation_v2",
+        "optional": false,
+        "n_produces": 1,
+        "produces": [
+          "reports/validation_v2_latest.json"
+        ],
+        "requires": [
+          "reports/recommendations.json"
+        ],
+        "staleness_skip_hours": null
+      },
+      {
+        "index": 29,
+        "name": "risk_capital_v2",
+        "optional": false,
+        "n_produces": 1,
+        "produces": [
+          "reports/risk_capital_v2_latest.json"
+        ],
+        "requires": [
+          "reports/recommendations.json",
+          "reports/global_context.json"
+        ],
+        "staleness_skip_hours": null
+      },
+      {
+        "index": 30,
+        "name": "dna_feedback",
+        "optional": false,
+        "n_produces": 1,
+        "produces": [
+          "reports/recommendation_dna_feedback.json"
+        ],
+        "requires": [
+          "reports/recommendation_dna.parquet"
+        ],
+        "staleness_skip_hours": null
+      },
+      {
+        "index": 31,
+        "name": "knowledge_graph",
+        "optional": false,
+        "n_produces": 3,
+        "produces": [
+          "reports/knowledge_graph.json",
+          "reports/stress_scenarios.json",
+          "reports/community_clusters.json"
+        ],
+        "requires": [
+          "reports/recommendations.json"
+        ],
+        "staleness_skip_hours": null
+      },
+      {
+        "index": 32,
+        "name": "fusion",
+        "optional": false,
+        "n_produces": 3,
+        "produces": [
+          "reports/investment_intelligence.json",
+          "reports/intelligence_summary.json",
+          "reports/intelligence_conflicts.json"
+        ],
+        "requires": [],
+        "staleness_skip_hours": null
+      },
+      {
+        "index": 33,
+        "name": "stock_validation",
+        "optional": false,
+        "n_produces": 1,
+        "produces": [
+          "reports/stock_validation.json"
+        ],
+        "requires": [
+          "reports/learning.parquet"
+        ],
+        "staleness_skip_hours": null
+      },
+      {
+        "index": 34,
+        "name": "price_context",
+        "optional": false,
+        "n_produces": 1,
+        "produces": [
+          "reports/price_context.json"
+        ],
+        "requires": [
+          "reports/recommendations.json"
+        ],
+        "staleness_skip_hours": null
+      },
+      {
+        "index": 35,
+        "name": "decision_center",
+        "optional": false,
+        "n_produces": 2,
+        "produces": [
+          "reports/decision_center_today.json",
+          "reports/decision_center_notifications.json"
+        ],
+        "requires": [],
+        "staleness_skip_hours": null
+      },
+      {
+        "index": 36,
+        "name": "capital_rotation",
+        "optional": true,
+        "n_produces": 1,
+        "produces": [
+          "reports/rotation_plan.json"
+        ],
+        "requires": [
+          "reports/recommendations_v3.json",
+          "reports/portfolio_v3.json"
+        ],
+        "staleness_skip_hours": null
+      },
+      {
+        "index": 37,
+        "name": "opportunity_cost",
+        "optional": true,
+        "n_produces": 1,
+        "produces": [
+          "reports/opportunity_cost.json"
+        ],
+        "requires": [
+          "reports/recommendations_v3.json"
+        ],
+        "staleness_skip_hours": null
+      },
+      {
+        "index": 38,
+        "name": "portfolio_attribution",
+        "optional": true,
+        "n_produces": 1,
+        "produces": [
+          "reports/portfolio_attribution.json"
+        ],
+        "requires": [
+          "reports/portfolio_v3.json"
+        ],
+        "staleness_skip_hours": null
+      },
+      {
+        "index": 39,
+        "name": "institutional_memory",
+        "optional": false,
+        "n_produces": 3,
+        "produces": [
+          "reports/recommendation_lifecycle.json",
+          "reports/missed_opportunities.json",
+          "reports/recommendation_history.json"
+        ],
+        "requires": [
+          "reports/recommendations.json"
+        ],
+        "staleness_skip_hours": null
+      },
+      {
+        "index": 40,
+        "name": "winner_genome",
+        "optional": false,
+        "n_produces": 1,
+        "produces": [
+          "reports/winner_genome.json"
+        ],
+        "requires": [
+          "reports/learning.parquet",
+          "reports/recommendations.json"
+        ],
+        "staleness_skip_hours": null
+      },
+      {
+        "index": 41,
+        "name": "decision_attribution",
+        "optional": false,
+        "n_produces": 1,
+        "produces": [
+          "reports/decision_attribution.json"
+        ],
+        "requires": [
+          "reports/recommendations.json"
+        ],
+        "staleness_skip_hours": null
+      },
+      {
+        "index": 42,
+        "name": "benchmark",
+        "optional": false,
+        "n_produces": 1,
+        "produces": [
+          "reports/benchmark.json"
+        ],
+        "requires": [
+          "reports/learning.parquet",
+          "data/raw/india/NSEI_D1.parquet"
+        ],
+        "staleness_skip_hours": null
+      },
+      {
+        "index": 43,
+        "name": "morning_report",
+        "optional": false,
+        "n_produces": 2,
+        "produces": [
+          "reports/morning_latest.md",
+          "reports/morning_latest.html"
+        ],
+        "requires": [
+          "reports/recommendations.json",
+          "reports/benchmark.json"
+        ],
+        "staleness_skip_hours": null
+      },
+      {
+        "index": 44,
+        "name": "ops_check",
+        "optional": false,
+        "n_produces": 1,
+        "produces": [
+          "reports/ops_check.json"
+        ],
+        "requires": [],
+        "staleness_skip_hours": null
+      },
+      {
+        "index": 45,
+        "name": "investability_shadow",
+        "optional": true,
+        "n_produces": 2,
+        "produces": [
+          "reports/investability_shadow_india.json",
+          "reports/investability_shadow_usa.json"
+        ],
+        "requires": [],
+        "staleness_skip_hours": null
+      },
+      {
+        "index": 46,
+        "name": "short_term_momentum_producer",
+        "optional": true,
+        "n_produces": 2,
+        "produces": [
+          "reports/research/short_term_momentum_india.json",
+          "reports/research/short_term_momentum_usa.json"
+        ],
+        "requires": [],
+        "staleness_skip_hours": null
+      },
+      {
+        "index": 47,
+        "name": "multi_layer_momentum_ledger",
+        "optional": true,
+        "n_produces": 0,
+        "produces": [],
+        "requires": [
+          "reports/research/short_term_momentum_india.json",
+          "reports/research/short_term_momentum_usa.json"
+        ],
+        "staleness_skip_hours": null,
+        "undeclared": true
+      },
+      {
+        "index": 48,
+        "name": "multi_layer_stress_regime",
+        "optional": true,
+        "n_produces": 0,
+        "produces": [],
+        "requires": [],
+        "staleness_skip_hours": null,
+        "undeclared": true
+      },
+      {
+        "index": 49,
+        "name": "multi_layer_crash_resilience",
+        "optional": true,
+        "n_produces": 0,
+        "produces": [],
+        "requires": [],
+        "staleness_skip_hours": null,
+        "undeclared": true
+      },
+      {
+        "index": 50,
+        "name": "multi_layer_runner_india",
+        "optional": true,
+        "n_produces": 0,
+        "produces": [],
+        "requires": [],
+        "staleness_skip_hours": null,
+        "undeclared": true
+      },
+      {
+        "index": 51,
+        "name": "multi_layer_runner_usa",
+        "optional": true,
+        "n_produces": 0,
+        "produces": [],
+        "requires": [],
+        "staleness_skip_hours": null,
+        "undeclared": true
+      },
+      {
+        "index": 52,
+        "name": "multi_layer_forward_outcomes",
+        "optional": true,
+        "n_produces": 0,
+        "produces": [],
+        "requires": [],
+        "staleness_skip_hours": null,
+        "undeclared": true
+      },
+      {
+        "index": 53,
+        "name": "registry_materializer",
+        "optional": true,
+        "n_produces": 2,
+        "produces": [
+          "reports/context/registry_materialization_india.json",
+          "reports/context/registry_materialization_usa.json"
+        ],
+        "requires": [],
+        "staleness_skip_hours": null
+      },
+      {
+        "index": 54,
+        "name": "dynamic_risk_v2_both_markets",
+        "optional": true,
+        "n_produces": 2,
+        "produces": [
+          "reports/context/dynamic_risk_india.json",
+          "reports/context/dynamic_risk_usa.json"
+        ],
+        "requires": [],
+        "staleness_skip_hours": null
+      },
+      {
+        "index": 55,
+        "name": "dynamic_exit_bridge",
+        "optional": true,
+        "n_produces": 0,
+        "produces": [],
+        "requires": [
+          "reports/context/dynamic_risk_india.json"
+        ],
+        "staleness_skip_hours": null,
+        "undeclared": true
+      },
+      {
+        "index": 56,
+        "name": "aegis_r1_producer_audit",
+        "optional": true,
+        "n_produces": 0,
+        "produces": [],
+        "requires": [],
+        "staleness_skip_hours": null,
+        "undeclared": true
+      },
+      {
+        "index": 57,
+        "name": "mr_forward_outcomes_refresh",
+        "optional": true,
+        "n_produces": 2,
+        "produces": [
+          "reports/research/mr_prediction_autopsy_india.jsonl",
+          "reports/research/mr_prediction_autopsy_usa.jsonl"
+        ],
+        "requires": [],
+        "staleness_skip_hours": null
+      },
+      {
+        "index": 58,
+        "name": "mr_feature_enrich",
+        "optional": true,
+        "n_produces": 2,
+        "produces": [
+          "reports/research/mr_prediction_autopsy_india_enriched.jsonl",
+          "reports/research/mr_prediction_autopsy_usa_enriched.jsonl"
+        ],
+        "requires": [
+          "reports/research/mr_prediction_autopsy_india.jsonl"
+        ],
+        "staleness_skip_hours": null
+      },
+      {
+        "index": 59,
+        "name": "canonical_daily_lifecycle",
+        "optional": false,
+        "n_produces": 2,
+        "produces": [
+          "reports/context/canonical_lifecycle_india.json",
+          "reports/context/canonical_lifecycle_usa.json"
+        ],
+        "requires": [],
+        "staleness_skip_hours": null
+      },
+      {
+        "index": 60,
+        "name": "r3_shadow",
+        "optional": true,
+        "n_produces": 2,
+        "produces": [
+          "reports/research/r3/shadow/ledger_india.jsonl",
+          "reports/research/r3/shadow/ledger_usa.jsonl"
+        ],
+        "requires": [
+          "reports/context/canonical_lifecycle_india.json"
+        ],
+        "staleness_skip_hours": null
+      },
+      {
+        "index": 61,
+        "name": "momentum_funnel_diagnostic",
+        "optional": true,
+        "n_produces": 1,
+        "produces": [
+          "reports/research/momentum_funnel/india/latest.json"
+        ],
+        "requires": [],
+        "staleness_skip_hours": null
+      },
+      {
+        "index": 62,
+        "name": "momentum_funnel_diagnostic_usa",
+        "optional": true,
+        "n_produces": 1,
+        "produces": [
+          "reports/research/momentum_funnel/usa/latest.json"
+        ],
+        "requires": [],
+        "staleness_skip_hours": null
+      },
+      {
+        "index": 63,
+        "name": "r2_signal_funnel",
+        "optional": true,
+        "n_produces": 1,
+        "produces": [
+          "reports/research/r2_signal_funnel/india/latest.json"
+        ],
+        "requires": [],
+        "staleness_skip_hours": null
+      },
+      {
+        "index": 64,
+        "name": "r2_signal_funnel_usa",
+        "optional": true,
+        "n_produces": 1,
+        "produces": [
+          "reports/research/r2_signal_funnel/usa/latest.json"
+        ],
+        "requires": [],
+        "staleness_skip_hours": null
+      },
+      {
+        "index": 65,
+        "name": "full_universe_shadow",
+        "optional": true,
+        "n_produces": 2,
+        "produces": [
+          "reports/research/shadow/full_universe_shadow_india.json",
+          "reports/research/shadow/full_universe_shadow_usa.json"
+        ],
+        "requires": [],
+        "staleness_skip_hours": null
+      },
+      {
+        "index": 66,
+        "name": "why_not_current",
+        "optional": true,
+        "n_produces": 2,
+        "produces": [
+          "reports/context/why_not_current_india.json",
+          "reports/context/why_not_current_usa.json"
+        ],
+        "requires": [],
+        "staleness_skip_hours": null
+      },
+      {
+        "index": 67,
+        "name": "data_freshness_monitor",
+        "optional": true,
+        "n_produces": 1,
+        "produces": [
+          "reports/context/data_freshness.json"
+        ],
+        "requires": [],
+        "staleness_skip_hours": null
+      },
+      {
+        "index": 68,
+        "name": "aegis_3sheet_workbook",
+        "optional": true,
+        "n_produces": 0,
+        "produces": [],
+        "requires": [],
+        "staleness_skip_hours": null,
+        "undeclared": true
+      },
+      {
+        "index": 69,
+        "name": "five_sheet_workbook_audit",
+        "optional": true,
+        "n_produces": 0,
+        "produces": [],
+        "requires": [],
+        "staleness_skip_hours": null,
+        "undeclared": true
+      },
+      {
+        "index": 70,
+        "name": "aegis_provenance_companion",
+        "optional": true,
+        "n_produces": 0,
+        "produces": [],
+        "requires": [],
+        "staleness_skip_hours": null,
+        "undeclared": true
+      },
+      {
+        "index": 71,
+        "name": "aegis_overlap_classifier",
+        "optional": true,
+        "n_produces": 0,
+        "produces": [],
+        "requires": [],
+        "staleness_skip_hours": null,
+        "undeclared": true
+      },
+      {
+        "index": 72,
+        "name": "aegis_visual_signoff",
+        "optional": true,
+        "n_produces": 0,
+        "produces": [],
+        "requires": [],
+        "staleness_skip_hours": null,
+        "undeclared": true
+      },
+      {
+        "index": 73,
+        "name": "aegis_determinism_hash",
+        "optional": true,
+        "n_produces": 0,
+        "produces": [],
+        "requires": [],
+        "staleness_skip_hours": null,
+        "undeclared": true
+      },
+      {
+        "index": 74,
+        "name": "aegis_final_reconciler",
+        "optional": true,
+        "n_produces": 0,
+        "produces": [],
+        "requires": [],
+        "staleness_skip_hours": null,
+        "undeclared": true
+      },
+      {
+        "index": 75,
+        "name": "aegis_local_certification",
+        "optional": true,
+        "n_produces": 0,
+        "produces": [],
+        "requires": [],
+        "staleness_skip_hours": null,
+        "undeclared": true
+      },
+      {
+        "index": 76,
+        "name": "telegram",
+        "optional": true,
+        "n_produces": 0,
+        "produces": [],
+        "requires": [],
+        "staleness_skip_hours": null,
+        "undeclared": true
+      },
+      {
+        "index": 77,
+        "name": "monthly_rollups",
+        "optional": true,
+        "n_produces": 0,
+        "produces": [],
+        "requires": [],
+        "staleness_skip_hours": null,
+        "undeclared": true
+      },
+      {
+        "index": 78,
+        "name": "runner3_shadow",
+        "optional": true,
+        "n_produces": 0,
+        "produces": [],
+        "requires": [
+          "reports/recommendations.json"
+        ],
+        "staleness_skip_hours": null,
+        "undeclared": true
+      },
+      {
+        "index": 79,
+        "name": "r3_canonical_daily_shadow",
+        "optional": true,
+        "n_produces": 1,
+        "produces": [
+          "reports/research/r3/shadow_ledger.jsonl"
+        ],
+        "requires": [
+          "reports/recommendations.json"
+        ],
+        "staleness_skip_hours": null
+      }
+    ]
+  },
+  "guards": {
+    "n_guards": 9,
+    "n_blocking": 4,
+    "by_layer": {
+      "DELIVERY": [
+        "delivery_gate",
+        "wave_regression",
+        "xlsx_validator"
+      ],
+      "ARTIFACT": [
+        "data_freshness",
+        "health_monitor"
+      ],
+      "DERIVED": [
+        "input_freshness"
+      ],
+      "SCORING": [
+        "ssot_guard",
+        "full_universe_shadow"
+      ],
+      "ELIGIBILITY": [
+        "why_not_current"
+      ]
+    },
+    "layers_with_no_blocking_guard": [
+      "DERIVED",
+      "ELIGIBILITY",
+      "SCORING"
+    ],
+    "guards": [
+      {
+        "guard": "delivery_gate",
+        "path": "backend/delivery/delivery_gate.py",
+        "layer": "DELIVERY",
+        "inspects": "consumes wave_regression + data-quality verdicts",
+        "blocks_delivery": true,
+        "exists": true
+      },
+      {
+        "guard": "wave_regression",
+        "path": "backend/research/wave_regression.py",
+        "layer": "DELIVERY",
+        "inspects": "A1-A24 acceptance checks on the rendered workbook",
+        "blocks_delivery": true,
+        "exists": true
+      },
+      {
+        "guard": "xlsx_validator",
+        "path": "backend/delivery/xlsx_validator.py",
+        "layer": "DELIVERY",
+        "inspects": "I1-I28 workbook invariants",
+        "blocks_delivery": true,
+        "exists": true
+      },
+      {
+        "guard": "data_freshness",
+        "path": "backend/observability/data_freshness.py",
+        "layer": "ARTIFACT",
+        "inspects": "95 artifacts \u00b7 inventory derived from STEPS.produces",
+        "blocks_delivery": false,
+        "exists": true
+      },
+      {
+        "guard": "input_freshness",
+        "path": "backend/delivery/lifecycle/canonical_daily_lifecycle.py",
+        "layer": "DERIVED",
+        "inspects": "recommendations_v3 / ensemble / dynamic_risk",
+        "blocks_delivery": false,
+        "exists": true
+      },
+      {
+        "guard": "ssot_guard",
+        "path": "backend/recommendation/ssot/guard.py",
+        "layer": "SCORING",
+        "inspects": "pre/post flight around recommendations.json + fallback to previous day",
+        "blocks_delivery": false,
+        "exists": true
+      },
+      {
+        "guard": "health_monitor",
+        "path": "backend/context/health_monitor.py",
+        "layer": "ARTIFACT",
+        "inspects": "context health \u00b7 blocks send on RED",
+        "blocks_delivery": true,
+        "exists": true
+      },
+      {
+        "guard": "why_not_current",
+        "path": "backend/delivery/lifecycle/why_not_current.py",
+        "layer": "ELIGIBILITY",
+        "inspects": "per-ticker verdict L0..L10",
+        "blocks_delivery": false,
+        "exists": true
+      },
+      {
+        "guard": "full_universe_shadow",
+        "path": "backend/research/shadow/full_universe_shadow.py",
+        "layer": "SCORING",
+        "inspects": "scores the full universe outside the 15-row limit",
+        "blocks_delivery": false,
+        "exists": true
+      }
+    ]
+  },
+  "leaks": {
+    "counts": {
+      "LATEST_AVAILABLE_FALLBACK": 19,
+      "BARE_EXCEPT_PASS": 222,
+      "SILENT_EMPTY_DEFAULT": 534
+    },
+    "descriptions": {
+      "LATEST_AVAILABLE_FALLBACK": "takes the newest snapshot that EXISTS \u00b7 no assertion that it is the requested asof \u00b7 this is the exact July-21 path",
+      "BARE_EXCEPT_PASS": "a failure is swallowed and the caller proceeds as if it succeeded",
+      "SILENT_EMPTY_DEFAULT": "a missing artifact becomes an empty result \u00b7 downstream reads it as 'nothing to report' rather than 'nothing was produced'"
+    },
+    "critical_fallback_sites": [
+      {
+        "path": "backend/delivery/lifecycle/canonical_daily_lifecycle.py",
+        "line": 229
+      },
+      {
+        "path": "backend/research/shadow/full_universe_shadow.py",
+        "line": 185
+      }
+    ],
+    "samples": {
+      "LATEST_AVAILABLE_FALLBACK": [
+        {
+          "path": "backend/observability/pipeline_audit.py",
+          "line": 235
+        },
+        {
+          "path": "backend/observability/pipeline_audit.py",
+          "line": 289
+        },
+        {
+          "path": "backend/delivery/lifecycle/canonical_daily_lifecycle.py",
+          "line": 229
+        },
+        {
+          "path": "backend/pipeline/contract/readiness.py",
+          "line": 9
+        },
+        {
+          "path": "backend/pipeline/contract/readiness.py",
+          "line": 131
+        },
+        {
+          "path": "backend/research/shadow/full_universe_shadow.py",
+          "line": 185
+        }
+      ],
+      "BARE_EXCEPT_PASS": [
+        {
+          "path": "backend/analytics/scorecard.py",
+          "line": 200
+        },
+        {
+          "path": "backend/benchmark/report.py",
+          "line": 254
+        },
+        {
+          "path": "backend/canonical/adapters.py",
+          "line": 379
+        },
+        {
+          "path": "backend/canonical/adapters.py",
+          "line": 488
+        },
+        {
+          "path": "backend/certification/institutional_optimization_run.py",
+          "line": 155
+        },
+        {
+          "path": "backend/certification/proof_report.py",
+          "line": 149
+        }
+      ],
+      "SILENT_EMPTY_DEFAULT": [
+        {
+          "path": "backend/analytics/attribution.py",
+          "line": 65
+        },
+        {
+          "path": "backend/analytics/attribution.py",
+          "line": 105
+        },
+        {
+          "path": "backend/analytics/attribution.py",
+          "line": 187
+        },
+        {
+          "path": "backend/analytics/backtrack.py",
+          "line": 86
+        },
+        {
+          "path": "backend/analytics/backtrack.py",
+          "line": 87
+        },
+        {
+          "path": "backend/analytics/backtrack.py",
+          "line": 88
+        }
+      ]
+    }
+  },
+  "five_gates": {
+    "GATE_1_DATA_READY": {
+      "required": "correct date \u00b7 market \u00b7 source freshness \u00b7 expected universe \u00b7 coverage \u00b7 no unexplained gaps",
+      "exists": "PARTIAL",
+      "evidence": "data_freshness monitors 95 artifacts but its inventory comes from STEPS.produces, and feature_store does not declare its parquet",
+      "blocking": false
+    },
+    "GATE_2_FEATURES_READY": {
+      "required": "snapshot_asof == requested_asof \u00b7 expected rows / tickers \u00b7 required features populated \u00b7 NO stale fallback",
+      "exists": "MISSING",
+      "evidence": "list_snapshots()[-1] takes the newest file that exists \u00b7 2 fallback site(s) feed scoring",
+      "blocking": false
+    },
+    "GATE_3_SCORES_READY": {
+      "required": "full universe evaluated \u00b7 no unexplained score loss \u00b7 model/weights recorded",
+      "exists": "PARTIAL",
+      "evidence": "full_universe_shadow measures it but is research only \u00b7 production persists head(10)+tail(5) = 15 BEFORE eligibility",
+      "blocking": false
+    },
+    "GATE_4_DECISION_READY": {
+      "required": "every scored ticker has exactly one terminal disposition \u00b7 conservation of candidates",
+      "exists": "PARTIAL",
+      "evidence": "why_not_current assigns L0..L10 per ticker and found OXY as L7_eligible_no_registry \u00b7 it reports, it does not block",
+      "blocking": false
+    },
+    "GATE_5_DELIVERY_READY": {
+      "required": "only the canonical lifecycle may produce CURRENT / EXIT / XLSX / Telegram",
+      "exists": "YES",
+      "evidence": "delivery_gate + wave_regression + xlsx_validator",
+      "blocking": true
+    },
+    "summary": {
+      "gates_blocking_today": 1,
+      "gates_required": 5,
+      "critical_steps_optional": [],
+      "steps_not_declaring_real_output": [],
+      "layers_without_a_blocking_guard": [
+        "DERIVED",
+        "ELIGIBILITY",
+        "SCORING"
+      ]
+    }
+  },
+  "root_cause_2026_09_09": "The feature_store step is optional=True and declares reports/feature_store_summary.json instead of the parquet it writes. When it did not run, nothing failed, data_freshness had no reason to look at the snapshot, and full_universe_shadow.compute() called list_snapshots()[-1] - which returned 2026-07-21. Every downstream guard then correctly reported that its own derived artifact was fresh."
+}

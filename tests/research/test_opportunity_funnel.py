@@ -218,16 +218,28 @@ def test_shadow_gives_every_name_a_reason(market):
 
 @pytest.mark.parametrize("market", MARKETS)
 def test_shadow_sees_more_than_production(market):
-    """The defect being measured: production is offered 15 names."""
+    """RE-BASELINED 2026-09-09 · the defect this measured is now fixed.
+
+    This asserted `F2_persisted_to_production <= 15`, encoding the
+    truncation as expected behaviour: production was offered only
+    top_10 + bottom_5, and the shadow existed to show what it was
+    missing. On 2026-09-09 that truncation discarded four qualified USA
+    BUYs before any rule saw them, so ensemble.json now persists
+    `all_candidates` and the eligibility engine reads it.
+
+    The invariant worth keeping is the opposite one: production must now
+    see the WHOLE universe the shadow scores. A gap reopening means the
+    truncation came back.
+    """
     from backend.research.shadow import full_universe_shadow as fus
     d = fus.load(ROOT, market)
     if d is None:
         pytest.skip("shadow not produced for %s" % market)
     f = d["funnel"]
-    assert f["F1_universe_scored"] > f["F2_persisted_to_production"], (
-        "shadow is not actually wider than production")
-    assert f["F2_persisted_to_production"] <= 15, (
-        "production breadth changed · re-baseline this test deliberately")
+    assert f["F2_persisted_to_production"] == f["F1_universe_scored"], (
+        "production sees %d of the %d names the shadow scored · "
+        "pre-eligibility truncation has returned"
+        % (f["F2_persisted_to_production"], f["F1_universe_scored"]))
 
 
 # ═══════════════════════════════════════════════════════════════════════

@@ -538,6 +538,21 @@ def _rec_to_row(rec: Mapping, market: str, root: Path,
                 root, market, _r_clean, _tk_bare, asof,
                 initial_signal=status or "",
                 initial_rank=rank if isinstance(rank, int) else None,
+                # ENTRY CONFIDENCE · CEO 2026-09-09.
+                #
+                # This was never passed, so every newly admitted position
+                # carried initial_score=None and the workbook rendered
+                # Confidence % as an em-dash - on the twelve USA NEW rows
+                # of 2026-09-09, while the SSOT held 0.5905 for AMGN all
+                # along. A NEW recommendation without a confidence cannot
+                # be judged by the person acting on it.
+                #
+                # Recorded AT ADMISSION, not read later: this is the
+                # confidence the position was opened on, and it must not
+                # drift when the model re-scores tomorrow.
+                initial_score=(conf_cal if isinstance(conf_cal, (int, float))
+                               else conf_raw if isinstance(conf_raw, (int, float))
+                               else None),
             )
         # 2026-08-21 · Wave 3 · re-entry cooling gate. When cooling
         # blocks a re-entry get_or_create returns None · fall back to
@@ -622,6 +637,10 @@ def _rec_to_row(rec: Mapping, market: str, root: Path,
                     root, market, _r_clean, _tk_bare, asof,
                     initial_signal=status or "",
                     initial_rank=rank if isinstance(rank, int) else None,
+                    # entry confidence · same reason as the site above
+                    initial_score=(conf_cal if isinstance(conf_cal, (int, float))
+                                   else conf_raw if isinstance(conf_raw, (int, float))
+                                   else None),
                 )
                 first_seen = _opp.created_date or asof
             except Exception:

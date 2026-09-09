@@ -52,6 +52,37 @@ LEDGER = _ROOT / "reports" / "aegis_daily_v2_history.jsonl"
 STEPS = [
     # ── Sprint 1B · Data Ingestion (runs BEFORE backend_validation) ─────
     {
+        # ── GLOBAL CONTEXT · CEO 2026-09-09 ────────────────────────────
+        #
+        # india/global_risk.py fetches SPX / VIX / DXY / OIL / GOLD /
+        # US10Y / USDINR and was never a pipeline step. The series froze
+        # on 2026-06-19 and India scored for three months without current
+        # knowledge of the world its stocks trade inside, while every
+        # downstream artifact reported itself fresh.
+        #
+        # Collected here ONLY · none of it is fed to R2. Cross-market
+        # transmission stays D17 evidence-BLOCKED until it earns OOS and
+        # incremental value.
+        "name": "global_context_bars",
+        "desc": ("Global context series for India · S&P / VIX / DXY / oil / "
+                  "gold / US10Y / USDINR (collection + freshness only)"),
+        "script": "india/global_risk.py",
+        # --fetch is REQUIRED. Without it the script short-circuits when
+        # SPX.parquet already exists and only PRINTS the exposure, so the
+        # step would run green every day and refresh nothing - recreating
+        # the exact three-month staleness it was added to end.
+        "script_args": ["--fetch"],
+        "produces": ["data/raw/india/global/SPX.parquet",
+                      "data/raw/india/global/USVIX.parquet",
+                      "data/raw/india/global/DXY.parquet",
+                      "data/raw/india/global/USDINR.parquet",
+                      "data/raw/india/global/US10Y.parquet",
+                      "data/raw/india/global/OIL.parquet",
+                      "data/raw/india/global/GOLD.parquet"],
+        "requires": [],
+        "optional": False,
+    },
+    {
         "name": "ingest_fii_dii",
         "desc": "Sprint 1B · FII/DII cash flow ingest (NSE endpoint · appends latest)",
         "script": "india/fii_dii.py",
@@ -149,10 +180,19 @@ STEPS = [
         "name": "feature_store",
         "desc": "Sprint 2.5 · Feature Store snapshot + AI (anomaly + quality + importance + conflict)",
         "script": "india/feature_store/run.py",
-        "produces": ["reports/feature_store_summary.json",
+        # CEO 2026-09-09 · declare the artifact this step ACTUALLY writes.
+        # It declared only the summary JSON, and data_freshness derives its
+        # 95-artifact inventory from these declarations - so nothing ever
+        # looked at the snapshot. The summary was written every day while
+        # the substrate underneath went 50 days stale, and every downstream
+        # guard truthfully reported its own artifact fresh.
+        "produces": ["features/india/{asof}.parquet",
+                       "reports/feature_store_summary.json",
                        "reports/ai_feature_narrative.json"],
         "requires": ["reports/market_intelligence.json"],   # market_intel joined into features
-        "optional": True,
+        # CRITICAL SUBSTRATE · not optional. A silent failure here makes the
+        # next stage score yesterday's data and look healthy doing it.
+        "optional": False,
     },
     {
         "name": "feature_intelligence",
@@ -174,7 +214,10 @@ STEPS = [
                        "reports/ensemble.json",
                        "reports/ai_model_narrative.json"],
         "requires": ["reports/selected_features.json"],
-        "optional": True,
+        # CRITICAL SUBSTRATE · ensemble.json is what eligibility consumes.
+        # If this step fails quietly the next stage reads yesterday's
+        # scores and produces a workbook that looks entirely correct.
+        "optional": False,
     },
     {
         "name": "recommendation_intelligence",

@@ -124,6 +124,35 @@ def decide(root: Path, market: str) -> GateDecision:
                 d.blocking_codes.append(_code)
                 d.reasons.append(f"[{_code}] {chk.get('name','')} · {chk.get('detail','')}")
 
+    # ── SUBSTRATE FRESHNESS · CEO 2026-09-09 ──────────────────────────
+    #
+    # On 2026-09-09 the feature store had silently fallen back to
+    # 2026-07-21. Every name scored DISAGREEMENT, the universe produced
+    # "no new stocks", and this gate said ALLOW - because the freshness
+    # guard measured staleness, annotated the sheet, and blocked nothing.
+    #
+    # A guard that reports without gating is a log line. Stale SUBSTRATE
+    # now blocks the send: a workbook built on seven-week-old features is
+    # indistinguishable from a correct one, which is exactly why it must
+    # never ship.
+    try:
+        from backend.delivery.lifecycle import canonical_daily_lifecycle as _lc
+        _life = _lc.load(root, market) or {}
+        _fresh = _life.get("input_freshness") or []
+        for _code in _lc.blocking_freshness(_fresh):
+            d.blocking_codes.append(_code)
+            _det = next((f for f in _fresh
+                         if "SUBSTRATE:%s" % str(f.get("input", "")).upper()
+                         == _code), {})
+            d.reasons.append(
+                "[%s] scoring substrate is %s · asof=%s age=%s day(s) · "
+                "budget %s · a workbook built on this looks correct and is "
+                "not" % (_code, _det.get("verdict"), _det.get("asof"),
+                         _det.get("age_days"), _det.get("max_age_days")))
+    except Exception as e:
+        d.reasons.append("[SUBSTRATE] freshness check failed · %s: %s"
+                         % (type(e).__name__, e))
+
     # NEW-Opp Guard hard RED
     _guard = _load_json(ctx / f"new_opp_guard_health_{market}.json")
     if _guard.get("verdict") == "RED":

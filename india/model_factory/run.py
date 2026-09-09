@@ -178,6 +178,36 @@ def main() -> int:
              "ensemble_confidence": float(r["ensemble_confidence"])}
             for _, r in ens.predictions.tail(5).iterrows()
         ],
+        # ── FULL UNIVERSE · CEO 2026-09-09 ────────────────────────────
+        #
+        # top_10 + bottom_5 is a PRESENTATION slice. Persisting only those
+        # 15 rows meant the eligibility engine never saw the rest of the
+        # universe: on 2026-09-09 that silently discarded COP, DVN, MPC
+        # and TRV - four BUY-family candidates at confidence 0.6045 that
+        # had cleared every published gate. They did not fail a rule. They
+        # were never offered to the rule, and the workbook that resulted
+        # looked entirely correct.
+        #
+        # Ranking to 15 for display stays. Ranking to 15 BEFORE the
+        # decision does not. Downstream eligibility must read
+        # `all_candidates`; top_10/bottom_5 remain for existing readers.
+        "all_candidates": [
+            {"ticker": str(r["ticker"]),
+             "ensemble_score": float(r["ensemble_score"]),
+             "ensemble_confidence": float(r["ensemble_confidence"]),
+             "n_models_scoring": int(r["n_models_scoring"]),
+             # per_model_score is REQUIRED, not decorative · the engine
+             # reads it to decide whether the models agree. Omitting it
+             # made every row look like a disagreement and collapse to
+             # HOLD, which is a far worse failure than the truncation it
+             # was added to fix.
+             "per_model_score": r.get("per_model_score")}
+            for _, r in ens.predictions.iterrows()
+        ],
+        "n_all_candidates": int(len(ens.predictions)),
+        "presentation_slice_note": (
+            "top_10 / bottom_5 are for display only · eligibility must "
+            "consume all_candidates or it will discard qualified names"),
     }, indent=2, default=str), encoding="utf-8")
     print(f"  wrote {OUT_ENSEMBLE.relative_to(_ROOT)}")
 

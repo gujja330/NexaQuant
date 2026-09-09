@@ -1,143 +1,229 @@
-# AEGIS · How to Run the Pipeline
+# How to run the AEGIS pipeline
 
-Locked 2026-08-21. One page. Two commands.
-
----
-
-## Daily runs
+One command runs everything. The same command runs in CI, so there is no
+"manual version" that can drift from the scheduled one.
 
 ```bash
-python scripts/run_india.py         # ONLY India · impossible to touch USA
-python scripts/run_usa.py           # ONLY USA   · impossible to touch India
+python -m backend.pipeline.contract.runner --market both --refresh
 ```
 
-Both wrappers strip stray `--market` / `--india` / `--usa` / `--both`
-flags from the args before invoking the orchestrator, so country cannot
-leak through. Each prints a banner at the top:
-
-```
-==================================================================
-  [INDIA ONLY] USA pipeline WILL NOT run
-==================================================================
-```
-
-If you see `[BOTH MARKETS]` you called the wrong entrypoint.
+That acquires today's data, checks eight gates, and prints a certification.
+It ships nothing unless every gate passes.
 
 ---
 
-## Common flags (forwarded to `aegis_run_all.py`)
+## The everyday commands
 
-| Flag | What it does |
+| What you want | Command |
 |---|---|
-| `--skip-refresh` | skip stage 1 (market data refresh) |
-| `--skip-regen` | skip stages 2+3 (regenerate recs + SSoT enrichment) |
-| `--skip-xlsx` | skip stage 4 (rebuild unified XLSX) |
-| `--skip-research` | skip stages 7+8 (P0 outcome + P1 attribution refresh) |
-| `--dry-run` | preview Telegram message · do NOT send |
-| `--preview-only` | stages 4+5 only · no data mutation · no send |
-| `--force-stale` | bypass Guards 5+6 (SEND_FORCE_STALE=1) |
-| `--asof YYYY-MM-DD` | date stamp (default: today) |
-| `--open-xlsx` | open the XLSX in Excel when done (Windows) |
+| **Morning / evening run** | `python -m backend.pipeline.contract.runner --market both --refresh` |
+| **Run and deliver** | `... --market both --refresh --send` |
+| **India only** | `... --market india --refresh` |
+| **USA only** | `... --market usa --refresh` |
+| **Check without touching data** | `... --market both` |
+| **Replay a past date** | `... --market both --asof 2026-09-08` |
 
-Examples:
+`--refresh` acquires data first. Without it the run judges whatever is
+already on disk — useful for re-checking, never for a real daily run.
+
+`--send` delivers the message and the dated XLSX **only if every gate
+passes**. Without it nothing leaves the machine.
+
+### Running one market
+
+Each market is fully independent — its own data, its own gates, its own
+certification and lineage record. India blocking never stops USA.
 
 ```bash
-python scripts/run_india.py                          # full India pipeline
-python scripts/run_india.py --dry-run                # preview India, do not send
-python scripts/run_india.py --skip-refresh           # rerun without touching market data
-python scripts/run_usa.py --preview-only --open-xlsx # USA XLSX only + open in Excel
+# India
+python -m backend.pipeline.contract.runner --market india --refresh --send
+
+# USA
+python -m backend.pipeline.contract.runner --market usa --refresh --send
 ```
+
+Use this when one market is already certified and you only need the other,
+or when you are diagnosing a single market and want a fast loop.
+
+`--market both` runs the two markets' **acquisition concurrently** (they
+share nothing) and then gates each one separately. Two single-market runs
+back to back are correct but slower.
 
 ---
 
-## Dual-market run (rare · CI + operator override only)
+## What comes back
 
-```bash
-python scripts/aegis_run_all.py --market both
+```
+════════════════════════════════════════════════════════════
+AEGIS DAILY RUN CERTIFICATION
+Run: AEGIS-2026-09-09-USA-0532
+Requested ASOF: 2026-09-09   ·   trigger: manual
+════════════════════════════════════════════════════════════
+
+DATA_READY          feature_snapshot / price_bars / macro / universe
+INTERMARKET         S&P · VIX · DXY · USD/INR · US10Y · oil · gold …
+FEATURES_READY      snapshot for THIS date · coverage · duplicates
+SCORES_READY        full universe scored · nothing cut before eligibility
+DECISION_READY      N scored → N terminal dispositions · orphans 0
+LIFECYCLE_READY     CURRENT / EXIT counts
+FIELDS_COMPLETE     every actionable row has entry · stop · confidence
+DELIVERY_READY      gate ALLOW · override false · A19 / A23
+
+FINAL: ✅ CERTIFIED
 ```
 
-`aegis_run_all.py` requires `--market` explicitly · running it with no
-flag will error out (fixes the 2026-08-21 "bare call defaulted to
-both" trap). Prefer `run_india.py` / `run_usa.py` for daily use.
+Exit code `0` certified, `1` blocked.
+
+When something fails it stops at the **first** failure and says so:
+
+```
+FINAL: ❌ BLOCKED
+FIRST FAILURE: FEATURE_SNAPSHOT_ASOF_MISMATCH  (FEATURES_READY)
+No downstream stages executed. No XLSX. No Telegram.
+```
+
+Everything after the first failure is a consequence, so it is reported as
+`downstream NOT RUN` rather than as more red crosses to read through.
 
 ---
 
-## Force a fresh fetch (bypass Part 29 staleness skip)
+## Where the output goes
 
-By default the orchestrator skips ingest steps whose artifacts are still
-fresh (within their `staleness_skip_hours` window · see
-`configs/opportunity_registry.yaml`). To force a full refetch (news
-broke mid-day · schema changed upstream · etc):
-
-```bash
-python scripts/aegis_daily_v2.py --force-fresh    # India orchestrator direct
-```
-
-The wrappers pass through the flag transparently:
-
-```bash
-python scripts/run_india.py --force-fresh
-```
-
----
-
-## Where the output lands
-
-| Path | What |
+| File | What it is |
 |---|---|
-| `reports/recommendations.json` | India · today's SSoT rec set (all runners collapsed) |
-| `usa/reports/recommendations.json` | USA · same schema |
-| `reports/telegram/aegis_history_india.xlsx` | India Portfolio + Exit History (90d) + full history |
-| `reports/telegram/aegis_history_usa.xlsx` | USA · same three sheets |
-| `reports/context/new_opportunity_diagnostic_{market}.json` | NEW funnel + zero-reason narrative |
-| `reports/context/rotation_suggestions_{market}.json` | Weakest-existing vs strongest-new pairs |
-| `reports/context/daily_ops_diagnostic_{market}.json` | Wave 6 diagnostic + warnings |
-| `reports/context/wave_regression_{market}.json` | Wave 7 acceptance-gate verdict |
-| `reports/context/new_opp_guard_health_{market}.json` | Strong Guard verdict + attempts + penalty status |
-| `reports/context/data_quality_gate_{market}.json` | Part 20 hard gate verdict |
-| `reports/context/context_sector_gate_{market}.json` | Parts 10 + 13 gate verdicts |
-| `reports/context/dynamic_risk_{market}.json` | Parts 8 + 15 · per-position stop updates |
-| `reports/context/rec_review_{market}.json` | Parts 9 + 14 · confidence trajectory + review actions |
-| `reports/research/opportunity_registry.jsonl` | Persistent event-sourced Opportunity Registry |
+| `reports/context/run_certification_<market>.txt` | the report above |
+| `reports/context/lineage/AEGIS-<date>-<MARKET>-<HHMM>.json` | every stage's contract |
+| `reports/context/lineage/latest_<market>.json` | pointer to the most recent run |
+| `reports/telegram/AEGIS_<MARKET>_<date>.xlsx` | the dated workbook |
+| `reports/telegram/canonical_message_<market>.txt` | the message text |
+
+The lineage file answers "where did this stock come from" without
+detective work: it records `run_id`, `asof`, row and ticker counts,
+coverage, source as-ofs and the status of every stage.
 
 ---
 
-## Telegram delivery
+## The eight gates, and why each exists
 
-Per operator policy 2026-08-18 · Telegram gets ONLY the per-market XLSX
-(`aegis_history_india.xlsx` OR `aegis_history_usa.xlsx`). Never the
-unified `aegis_history.xlsx`. Never preview / validation reports.
+Each one was added because it had already failed silently in production.
 
-If you want to preview WITHOUT sending: `--dry-run`.
+**1 · DATA_READY** — sources present and inside their freshness budget.
+The feature snapshot budget is **0 days**: today's scoring needs today's
+features. On 2026-09-09 the feature store had fallen back to 2026-07-21
+and every downstream guard truthfully reported its own artifact fresh.
+
+**2 · INTERMARKET** — S&P, VIX, DXY, USD/INR, US 10Y, oil, gold, India
+VIX, Nifty Bank, commodities, currencies, bonds, sector rotation, macro
+regime, FII/DII. India's global set had frozen on 2026-06-19 and sat
+three months stale. Regime multiplies into the confidence that gates
+entry, so a stale regime moves every threshold silently.
+
+**3 · FEATURES_READY** — the snapshot for **this date**, not the latest
+one that exists. Plus coverage, duplicates, and shrinkage against the
+previous snapshot.
+
+**4 · SCORES_READY** — the full universe was scored and nothing was cut
+before eligibility. Persisting only `top_10 + bottom_5` once discarded
+COP, DVN, MPC and TRV — four qualified BUYs that never reached a rule.
+
+**5 · DECISION_READY** — conservation. If 516 are scored, 516 must hold
+exactly one terminal disposition. 515 is red, not "probably fine".
+
+**6 · LIFECYCLE_READY** — the canonical lifecycle is the only producer of
+CURRENT and EXIT HISTORY.
+
+**7 · FIELDS_COMPLETE** — every actionable row carries entry price, stop
+and confidence. Twelve NEW rows once shipped with a blank stop.
+
+**8 · DELIVERY_READY** — gate ALLOW, no override, A19/A23 pass, R3
+production writes zero.
 
 ---
 
-## Scheduled CI cadence (GitHub Actions)
+## Refreshing one domain by hand
 
-| Workflow | Cron | IST |
+The single command covers all of these. They are listed for when you are
+diagnosing one stage and want to run only it.
+
+```bash
+# India
+python india/global_risk.py                        # S&P VIX DXY USDINR US10Y oil gold
+python india/macro_intel/run.py                    # commodities · currencies · bonds · regime
+python india/market_intelligence/run.py            # regime · breadth · sector rotation
+python india/fii_dii.py                            # flows
+python india/feature_store/run.py                  # feature snapshot
+python india/model_factory/run.py                  # ensemble
+python india/recommendation_intelligence/run.py    # recommendations
+python -m backend.recommendation.ssot.run --market india --force
+
+# USA
+python usa/scripts/refresh_market_data.py          # bars + index series
+python usa/research/macro_intel/run.py
+python usa/research/market_intelligence/run.py
+python usa/research/model_factory/run.py
+python usa/research/recommendation_intelligence/run.py
+python -m backend.recommendation.ssot.run --market usa --force
+
+# both
+python scripts/run_dynamic_risk_v2.py --market both   # stops
+```
+
+`--force` on the SSOT is required to regenerate a snapshot that already
+exists for today. That lock is deliberate: it stops a re-run silently
+overwriting the morning's picks. Pass it only when you intend to replace
+them.
+
+---
+
+## Diagnostics
+
+```bash
+# where every scored ticker ended up, and why
+python -m backend.delivery.lifecycle.why_not_current --market both
+
+# what production sees vs the full universe
+python -m backend.research.shadow.full_universe_shadow --market both
+
+# every guard, every stale/fallback entry point, the five gates
+python -m backend.observability.pipeline_audit
+
+# freshness of all 95 tracked artifacts
+python backend/observability/data_freshness.py
+```
+
+---
+
+## Measured runtime
+
+| | India | USA |
 |---|---|---|
-| AEGIS Daily (India) | `30 0/1 * * 1-5` + `0 1/1 * * 1-5` + `30 1 * * 1-5` | 6:00 · 6:30 · 7:00 AM |
-| AEGIS USA | `0 12 * * 1-5` + `30 12 * * 1-5` + `0 13 * * 1-5` | 5:30 · 6:00 · 6:30 PM (pre-market) |
+| Acquisition (parallel) | 36s | 361s |
+| Gates | ~1s | ~1s |
+| **Wall clock, both markets, full refresh** | **8m 49s** | |
+| Gates only, no refresh | | **~2m 20s** |
 
-Both also run on push to `main` for immediate validation of new commits.
+USA acquisition dominates: 520 tickers of bars from yfinance. The two
+markets run concurrently, so the total is USA's time, not the sum.
 
 ---
 
-## Troubleshooting
+## Rules the runner enforces
 
-**"I ran India but USA showed in output"** → check the banner. If it
-says `[BOTH MARKETS]` you called `aegis_run_all.py` without `--market`
-(now errors) or with `--market both`. Use `scripts/run_india.py` next
-time.
+**Fail closed.** A stage refuses to run when its upstream contract is
+invalid. There is no "use the latest file" path anywhere on the
+production route.
 
-**"Same 15 tickers every day"** → NEW-Opp Strong Guard's held-penalty
-fires when ≥ 60% of recs overlap with holdings. Tune in
-`configs/opportunity_registry.yaml::new_opp_guard.held_penalty_pp`.
+**One as-of.** The run's date is chosen once at the top and handed to
+every stage. No stage decides for itself which day it is working on.
 
-**"Pipeline took 60 min"** → first run of the day. Rerun the same day
-hits Lever A cache and finishes in ~5 min. Full 60→15 min first-pass
-target needs the remaining 6 ingest modules migrated to `parallel_map`
-(only news is done so far).
+**Parallel only across independent work.** India and USA acquire
+concurrently because they share nothing. Scoring never starts before its
+own market's features exist.
 
-**"XLSX shows old vocab (BUY/HOLD/PROTECT)"** → CI ran BEFORE the vocab
-v5.0 collapse commits landed. Next CI run uses vocab v5.0.
+**Collection is not promotion.** The intermarket series are collected and
+freshness-gated; not one of them is fed to R2. Cross-market transmission
+stays evidence-blocked until it earns out-of-sample and incremental
+value.
+
+**R3 is shadow.** It annotates R2 candidates and changes nothing. Every
+row reads `ABSTAIN` until a specialist passes its evidence gate.

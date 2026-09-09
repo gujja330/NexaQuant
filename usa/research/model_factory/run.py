@@ -158,6 +158,32 @@ def main() -> int:
              "ensemble_confidence": float(r["ensemble_confidence"])}
             for _, r in ens.predictions.tail(5).iterrows()
         ],
+        # ── FULL UNIVERSE · CEO 2026-09-09 · mirrors the India change ──
+        #
+        # Persisting only top_10 + bottom_5 meant the eligibility engine
+        # saw 15 of 516 names. COP, DVN, MPC and TRV cleared every
+        # published gate at confidence 0.6045 and were discarded before
+        # any rule could judge them - and the resulting workbook looked
+        # entirely correct, which is what made it dangerous.
+        #
+        # Display keeps its 15. The decision gets all 516.
+        "all_candidates": [
+            {"ticker": str(r["ticker"]),
+             "ensemble_score": float(r["ensemble_score"]),
+             "ensemble_confidence": float(r["ensemble_confidence"]),
+             "n_models_scoring": int(r["n_models_scoring"]),
+             # per_model_score is REQUIRED, not decorative · the engine
+             # reads it to decide whether the models agree. Omitting it
+             # made every row look like a disagreement and collapse to
+             # HOLD, which is a far worse failure than the truncation it
+             # was added to fix.
+             "per_model_score": r.get("per_model_score")}
+            for _, r in ens.predictions.iterrows()
+        ],
+        "n_all_candidates": int(len(ens.predictions)),
+        "presentation_slice_note": (
+            "top_10 / bottom_5 are for display only · eligibility must "
+            "consume all_candidates or it will discard qualified names"),
     }, indent=2, default=str), encoding="utf-8")
 
     OUT_NARRATIVE.write_text(json.dumps({

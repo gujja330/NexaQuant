@@ -112,12 +112,20 @@ jobs:
         if: always()
         run: python -m pytest tests/delivery/ -v --tb=short
 
+      # ── AEGIS RUN CONTRACT · CEO 2026-09-09 ─────────────────────────
+      # The SAME five gates the manual run executes. A separate "CI check"
+      # is how two answers to one question start to exist, and only one of
+      # them stays true. A blocked gate skips the send below.
+      - name: AEGIS run contract (5 gates · blocks delivery)
+        id: run_contract_usa
+        run: python -m backend.pipeline.contract.runner --market usa --trigger ci
+
       - name: Telegram Command Center (USA · cycle 6 · single crisp message)
         # Consumes usa/reports/recommendations.json enriched by cycles 3-4.
         # First USA-side Telegram delivery · matches India parity.
         # 2026-08-25 · gated on delivery_tests_usa outcome per product-grade fix.
         id: send_usa
-        if: always() && steps.delivery_tests_usa.outcome == 'success'
+        if: always() && steps.delivery_tests_usa.outcome == 'success' && steps.run_contract_usa.outcome == 'success'
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
