@@ -289,9 +289,38 @@ def run_market(root: Path, market: str, asof: str, trigger: str,
     return ctx
 
 
+def _load_telegram_env(root: Path) -> tuple:
+    """Read credentials from .env.telegram the way every other sender does.
+
+    The runner previously read os.environ only, so `--send` from a plain
+    shell reported `message=False xlsx=False` and stopped there - a
+    delivery that fails without saying why is the exact silent-failure
+    pattern this whole contract exists to remove.
+    """
+    import os
+    for name in (".env.telegram", ".env"):
+        f = Path(root) / name
+        if not f.exists():
+            continue
+        for line in f.read_text(encoding="utf-8", errors="ignore").splitlines():
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                k, v = line.split("=", 1)
+                os.environ.setdefault(k.strip(),
+                                      v.strip().strip('"').strip("'"))
+    return (os.environ.get("TELEGRAM_BOT_TOKEN", ""),
+            os.environ.get("TELEGRAM_CHAT_ID", ""))
+
+
 def send(root: Path, market: str, asof: str) -> dict:
     """Only reached when every gate passed."""
     out = {}
+    tok, chat = _load_telegram_env(root)
+    if not tok or not chat:
+        why = ("TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID not found in the "
+               "environment or in .env.telegram")
+        return {"message": {"ok": False, "detail": why},
+                "xlsx": {"ok": False, "detail": why}}
     try:
         from backend.delivery.telegram import canonical_message as cm
         ok, detail = cm.send(root, market)
@@ -305,10 +334,14 @@ def send(root: Path, market: str, asof: str) -> dict:
         from scripts.telegram_command_center_send import _send_document
         p = (root / "reports" / "telegram"
              / ("AEGIS_%s_%s.xlsx" % (market.upper(), asof)))
-        ok, d = _send_document(os.environ.get("TELEGRAM_BOT_TOKEN", ""),
-                               os.environ.get("TELEGRAM_CHAT_ID", ""), p,
-                               "AEGIS %s · %s" % (market.upper(), asof))
-        out["xlsx"] = {"ok": ok, "file": p.name}
+        if not p.exists():
+            out["xlsx"] = {"ok": False, "detail": "workbook not found: %s"
+                           % p.name}
+        else:
+            ok, d = _send_document(tok, chat, p,
+                                   "AEGIS %s · %s" % (market.upper(), asof))
+            out["xlsx"] = {"ok": ok, "file": p.name,
+                           "detail": ("" if ok else str(d)[:160])}
     except Exception as e:
         out["xlsx"] = {"ok": False, "detail": str(e)[:120]}
     return out
@@ -352,9 +385,17 @@ def main() -> int:
             continue
         if a.send:
             s = send(root, m, asof)
-            print("  DELIVERED · message=%s · xlsx=%s"
-                  % (s.get("message", {}).get("ok"),
-                     s.get("xlsx", {}).get("ok")))
+            msg, xl = s.get("message", {}), s.get("xlsx", {})
+            if msg.get("ok") and xl.get("ok"):
+                print("  DELIVERED · message ✓ · xlsx %s ✓" % xl.get("file"))
+            else:
+                # Never report a bare False · say which half failed and why.
+                print("  DELIVERY FAILED")
+                if not msg.get("ok"):
+                    print("    message: %s" % (msg.get("detail") or "unknown"))
+                if not xl.get("ok"):
+                    print("    xlsx   : %s" % (xl.get("detail") or "unknown"))
+                rc = 1
     print("\nWALL CLOCK %.1fs" % (time.time() - t0))
     return rc
 

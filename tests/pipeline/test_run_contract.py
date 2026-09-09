@@ -295,3 +295,34 @@ def test_global_context_step_actually_fetches():
     src = Path(runner.__file__).read_text(encoding="utf-8")
     assert '"india/global_risk.py",\n                            "--fetch"' in src \
         or '"--fetch"' in src
+
+
+# ── evidence persistence · an accumulator that evaporates accumulates
+#    nothing ──────────────────────────────────────────────────────────
+
+def test_fundamental_substrate_is_tracked_in_git():
+    """498 USA tickers / 3,431 quarterly periods survived only in a stash.
+
+    The substrate had never been committed. Hours of accumulation sat in
+    the working tree, and `git stash -u` swept it three separate times.
+    R3 evidence accumulation is impossible if the evidence base is not
+    persisted, so its presence in the index is asserted here.
+    """
+    import subprocess
+    tracked = subprocess.run(
+        ["git", "ls-files", "reports/research/substrate/"],
+        cwd=str(ROOT), capture_output=True, text=True).stdout
+    for m in ("india", "usa"):
+        assert "fundamental_timeseries_%s.json" % m in tracked, (
+            "%s fundamental substrate is not tracked · it will be lost" % m)
+
+
+def test_send_loads_credentials_from_file():
+    """`--send` reported message=False xlsx=False with no reason because
+    it read os.environ only · a delivery that fails silently is the
+    pattern this contract exists to remove."""
+    from backend.pipeline.contract import runner
+    src = Path(runner.__file__).read_text(encoding="utf-8")
+    assert "_load_telegram_env" in src
+    assert ".env.telegram" in src
+    assert "DELIVERY FAILED" in src
