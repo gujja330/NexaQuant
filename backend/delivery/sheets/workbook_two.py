@@ -53,11 +53,18 @@ CURRENT_COLUMNS_R2 = [
 # is decided before this block is read and is not a function of anything
 # in it. Today every value is ABSTAIN / IMMATURE because no specialist has
 # validated - and that is the honest reading, not a placeholder.
-CURRENT_COLUMNS_R3 = [
-    "R3 Decision", "R3 Evidence", "R3 Risk", "R3 Fundamental",
-    "R3 Statistical", "R3 Temporal", "R3 Sector", "R3 Uncertainty",
-    "R3 Reason", "R3 As-of", "R3 Model",
-]
+# CEO 2026-09-08 · ONE column. The first version exposed eleven -
+# Decision, Evidence, Risk, Fundamental, Statistical, Temporal, Sector,
+# Uncertainty, Reason, As-of, Model - to communicate a single fact: R3 is
+# not yet validated. That is research plumbing sitting beside a trader's
+# Stop column, and terms like INSUFFICIENT_SUBSTRATE and
+# NOT_AVAILABLE_AT_ASOF are audit language, not decision language.
+#
+# The full specialist decomposition is NOT deleted. It lives in the shadow
+# ledger and the research artifacts, where auditability belongs. What
+# reaches the operational sheet is the governed disposition and a short
+# human-readable reason.
+CURRENT_COLUMNS_R3 = ["R3 SHADOW"]
 
 CURRENT_COLUMNS = CURRENT_COLUMNS_R2 + CURRENT_COLUMNS_R3
 
@@ -118,39 +125,25 @@ def load_r3_shadow(root: Path, market: str, asof: str) -> dict:
 
 
 def r3_cells(rec: Optional[dict], engine: str) -> list:
-    """The R3 block for one row · never invents a value.
+    """The single R3 cell for one row · never invents a value.
 
-    A missing specialist yields its declared state, not a blank and not a
-    zero. A zero here would be read as a confident forecast; a blank would
-    be read as an oversight.
+    ABSTAIN means INSUFFICIENT VALIDATED EVIDENCE. It is not HOLD, not
+    BUY, not AVOID, and not a 50/50 probability. No probability is
+    rendered at all: producing "52%" from an uncalibrated model would be
+    false precision, and months later nobody could tell it apart from a
+    number that meant something.
     """
     if str(engine or "").upper() not in R3_ENGINES:
-        return [R3_NOT_APPLICABLE, R3_NOT_APPLICABLE, R3_NOT_APPLICABLE,
-                R3_NOT_APPLICABLE, R3_NOT_APPLICABLE, R3_NOT_APPLICABLE,
-                R3_NOT_APPLICABLE, R3_NOT_APPLICABLE,
-                "R3 evaluates R2 candidates · this row is R1 advisory",
-                "—", "—"]
+        return ["N/A · R3 evaluates R2 candidates only"]
     if not rec:
-        return ["NOT_EVALUATED"] * 8 + [
-            "no R3 snapshot for this ticker on this date", "—", "—"]
-    sp = rec.get("specialists") or {}
-
-    def st(k):
-        return (sp.get(k) or {}).get("state") or "NOT_EVALUATED"
-    risk = st("R3-G")
-    return [
-        rec.get("r3_action") or "ABSTAIN",
-        rec.get("evidence_tier") or "OBSERVATION",
-        risk,
-        rec.get("fundamental_state") or st("R3-E"),
-        rec.get("technical_state") or st("R3-B"),
-        st("R3-C"),
-        rec.get("sector_state") or st("R3-F"),
-        rec.get("uncertainty") or "TOTAL",
-        (rec.get("r3_action_rationale") or "")[:180],
-        rec.get("as_of") or "—",
-        (rec.get("model_versions") or {}).get("programme", "—"),
-    ]
+        return ["NOT_EVALUATED · no R3 snapshot for this date"]
+    action = str(rec.get("r3_action") or "ABSTAIN").upper()
+    if action == "ABSTAIN":
+        return ["ABSTAIN · R3 not yet validated"]
+    # Once a specialist earns evidence the cell names it. AVOID is a
+    # research annotation and never implies an R2 EXIT.
+    who = ", ".join(rec.get("contributing_specialists") or []) or "R3"
+    return ["%s · %s" % (action, who)]
 
 
 def load_lifecycle(root: Path, market: str, asof: str) -> Optional[dict]:
@@ -244,16 +237,21 @@ def emit_current(wb, d: dict):
                                   % (x["input"], x["verdict"], x["age_days"])
                                   for x in _st))
     _n_r3 = sum(1 for k in _r3)
-    _row6.append("🤖 R3 = RESEARCH / SHADOW INTELLIGENCE · DOES NOT CHANGE "
-                 "R2 ACTION · %d candidate(s) evaluated · every specialist "
-                 "is currently unvalidated, so every decision is ABSTAIN and "
-                 "every probability is withheld rather than guessed" % _n_r3)
+    _row6.append(
+        "🤖 R3 SHADOW INTELLIGENCE — RESEARCH ONLY. R3 reviews R2 "
+        "candidates but does NOT change R2 Action, Confidence, Stop or "
+        "Position. ABSTAIN means R3 has no validated opinion yet — it is "
+        "NOT Hold, Buy, Avoid, or a 50/50 probability. A future AVOID is a "
+        "research annotation and never implies an R2 EXIT. R3 can become "
+        "actionable only after out-of-sample validation, calibration, "
+        "incremental-value evidence and explicit authorisation. "
+        "%d candidate(s) evaluated today." % _n_r3)
     _sub(ws, "   ||   ".join(_row6), n, 6)
     _header(ws, CURRENT_COLUMNS, 7)
     for i, w in enumerate([9, 12, 10, 10, 12, 12, 13, 10, 12, 12, 13, 14,
                            17, 12, 30, 50,
-                           # R3 shadow block
-                           13, 14, 22, 22, 22, 22, 22, 34, 60, 12, 22], 1):
+                           # R3 shadow · one column
+                           40], 1):
         ws.column_dimensions[get_column_letter(i)].width = w
     r = 8
     for row in rows:
@@ -279,26 +277,22 @@ def emit_current(wb, d: dict):
         r += 1
     r += 2
     _legend(ws, [
-        "R3 columns are RESEARCH / SHADOW INTELLIGENCE. They describe an R2 "
-        "candidate and never change one · R2 Action, Confidence and Stop in "
-        "this row were decided without reading any R3 value.",
-        "R3 Decision · TAKE / AVOID / ABSTAIN. Every row reads ABSTAIN today "
-        "because no R3 specialist has passed its evidence gate. ABSTAIN is "
-        "R3 stating that it does not know · it is not a neutral default and "
-        "not a placeholder.",
-        "R3 probabilities are deliberately absent rather than zero. An "
-        "unvalidated model reporting 0.5 is indistinguishable, months later, "
-        "from a validated one reporting 0.5.",
-        "R3 specialist states · NOT_VALIDATED (branch resolved, no usable "
-        "model) · INSUFFICIENT_SUBSTRATE (data cannot support the claim) · "
-        "NOT_AVAILABLE_AT_ASOF (input did not exist on this date) · BLOCKED "
-        "(no substrate at all) · DESCRIPTIVE_ONLY (real information, not "
-        "predictive).",
-        "NOT_APPLICABLE on an R1 row is correct · R3 evaluates R2 candidates "
-        "only, and R1 is retired advisory.",
-        "R3 can only ever become actionable through explicit authorisation "
-        "after out-of-sample and incremental-value evidence. It cannot "
-        "promote itself.",
+        "R3 SHADOW is RESEARCH ONLY. It describes an R2 candidate and never "
+        "changes one · R2 Action, Confidence and Stop in this row were "
+        "decided without reading any R3 value.",
+        "ABSTAIN = insufficient validated evidence. It is NOT Hold, Buy, "
+        "Avoid, or a 50/50 probability. Every row reads ABSTAIN today "
+        "because no R3 specialist has passed its evidence gate.",
+        "A future AVOID is a research annotation · it never implies an R2 "
+        "EXIT. Only explicit authorisation can make R3 actionable.",
+        "No probability is shown. An uncalibrated model can always produce "
+        "a number; months later nobody could tell it apart from one that "
+        "meant something.",
+        "The full specialist decomposition (fundamental · statistical · "
+        "temporal · sector · risk · uncertainty · model version · evidence "
+        "tier · OOS · calibration · provenance) is kept in the R3 shadow "
+        "ledger and research artifacts · it belongs in the audit trail, not "
+        "beside a Stop price.",
 
         "CURRENT is the daily recommendation · everything AEGIS considers "
         "investable right now. Non-investable states (WATCH, REVIEW, AVOID, "

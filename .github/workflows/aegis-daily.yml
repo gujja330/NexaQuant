@@ -319,6 +319,12 @@ jobs:
           # green pipeline run did not equal accumulated evidence. Without
           # persistence no Day-30/60/90 gate can ever fire.
           git add reports/research/r3/shadow_ledger.jsonl 2>/dev/null || true
+          # CEO 2026-09-08 · R3_DECISION_v1 ledger + summary · one append-only
+          # record per R2 candidate per day. Without these the ledger dies with
+          # the runner, R3 renders NOT_EVALUATED in every CI-built workbook,
+          # and no forward evidence ever accumulates.
+          git add reports/research/r3/shadow/ledger_india.jsonl reports/research/r3/shadow/ledger_usa.jsonl 2>/dev/null || true
+          git add reports/research/r3/shadow/summary_india.json reports/research/r3/shadow/summary_usa.json 2>/dev/null || true
           git add reports/research/r3/models/*.json reports/research/r3/models/*.pkl 2>/dev/null || true
           git add reports/research/runner3/shadow_ledger.jsonl 2>/dev/null || true
           git add reports/context/opportunity_violations.json reports/context/daily_opportunity_discovery.json 2>/dev/null || true

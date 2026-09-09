@@ -505,16 +505,28 @@ def test_materializer_is_idempotent(market):
     if rm.load(ROOT, market) is None:
         pytest.skip("materialization not produced for %s" % market)
     # Idempotence is a property of the SECOND run, not of a stored artifact
-    # from a first run that legitimately admitted positions. Assert it by
-    # actually running the transition again.
-    second = rm.materialize(ROOT, market, _date.today().isoformat())
+    # from a first run that legitimately admitted positions.
+    #
+    # This previously called materialize ONCE and assumed some earlier run
+    # had already covered today's date. That assumption broke the moment
+    # the calendar rolled over: on a fresh date the first call correctly
+    # admits the day's candidates, so the test failed on a system working
+    # exactly as designed. Run it twice here and compare the second to the
+    # first · then the property is tested, not the environment.
+    asof = _date.today().isoformat()
+    first = rm.materialize(ROOT, market, asof)
+    assert not first.get("error"), first.get("error")
+    second = rm.materialize(ROOT, market, asof)
     assert not second.get("error"), second.get("error")
     assert second["n_active_before"] == second["n_active_after"], (
         "a repeat run changed the active set: %d -> %d"
         % (second["n_active_before"], second["n_active_after"]))
     assert second["n_newly_materialized"] == 0, (
-        "a repeat run created %d position(s)"
-        % second["n_newly_materialized"])
+        "a repeat run created %d position(s) (first run created %d)"
+        % (second["n_newly_materialized"], first.get("n_newly_materialized", 0)))
+    assert second["n_active_before"] == first["n_active_after"], (
+        "the second run did not start from where the first ended: %d vs %d"
+        % (second["n_active_before"], first["n_active_after"]))
 
 
 # ═══════════════════════════════════════════════════════════════════════

@@ -714,6 +714,31 @@ STEPS = [
         "optional":   False,
     },
     {
+        # ── R3 SHADOW INTELLIGENCE · CEO 2026-09-08 ─────────────────────
+        #
+        # Runs AFTER the canonical lifecycle (whose artifact it reads) and
+        # BEFORE the workbook (which renders its ledger). Without this step
+        # the ledger is never regenerated, so the R3 columns render
+        # NOT_EVALUATED every day and no forward evidence ever accrues.
+        #
+        # OPTIONAL BY DESIGN. R3 is shadow-only research; it must never be
+        # able to block a production delivery. If this step fails the
+        # workbook still renders - the R3 columns simply say NOT_EVALUATED,
+        # which is the honest reading of "no snapshot was taken".
+        #
+        # It writes ONLY to reports/research/r3/shadow/ and touches no
+        # engine, registry or production artifact.
+        "name":       "r3_shadow",
+        "desc":       ("R3 shadow decision snapshot per R2 candidate · "
+                        "append-only · TAKE/AVOID/ABSTAIN · research only"),
+        "script":     "backend/research/r3_program/shadow.py",
+        "script_args": ["--market", "both", "--score"],
+        "produces":   ["reports/research/r3/shadow/ledger_india.jsonl",
+                        "reports/research/r3/shadow/ledger_usa.jsonl"],
+        "requires":   ["reports/context/canonical_lifecycle_india.json"],
+        "optional":   True,
+    },
+    {
         # ── OPPORTUNITY-FUNNEL OBSERVABILITY · CEO 2026-09-08 ───────────
         #
         # > "Wire the diagnostics. Then every day we can mechanically see

@@ -87,6 +87,15 @@ reports/research/r2_upgrades/
 # Everything else under r3/ stays ignored (scratch, intermediate frames).
 reports/research/r3/*
 !reports/research/r3/shadow_ledger.jsonl
+# CEO 2026-09-08 · the R3_DECISION_v1 shadow ledger and its daily summary
+# are the forward-evidence base: one append-only record per R2 candidate
+# per day. They were caught by the wildcard above, so `git add` silently
+# added nothing, the ledger never reached CI, and every R3 column in a
+# CI-built workbook rendered NOT_EVALUATED. Excepted explicitly.
+!reports/research/r3/shadow/
+reports/research/r3/shadow/*
+!reports/research/r3/shadow/*.jsonl
+!reports/research/r3/shadow/*.json
 !reports/research/r3/models/
 reports/research/r3/models/*
 !reports/research/r3/models/*.json
