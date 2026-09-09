@@ -1,19 +1,19 @@
 # AEGIS R1/R2/R3 Research Summary · Mechanically Recomputed
 
-*Recomputed: 2026-09-08 · single source: `backend/research/research_registry.py`*
+*Recomputed: 2026-09-09 · single source: `backend/research/research_registry.py`*
 
-**Total items in registry:** 73
+**Total items in registry:** 86
 
 ## Grand totals (mechanical · sums equal total)
 
 | State | Count |
 |---|---:|
 | WORKED_LEGACY | 38 |
-| PENDING | 24 |
+| PENDING | 37 |
 | REJECTED | 9 |
 | CONDITIONAL | 1 |
 | BLOCKED | 1 |
-| **Sum** | **73** |
+| **Sum** | **86** |
 | Reconciles? | **✅ YES** |
 
 ## Per runner
@@ -25,7 +25,7 @@
 | FUNDAMENTALS | 0 | 0 | 0 | 3 | 1 | **4** |
 | R1 | 0 | 0 | 0 | 0 | 7 | **7** |
 | R2 | 0 | 1 | 0 | 2 | 9 | **12** |
-| R3 | 0 | 0 | 24 | 1 | 8 | **33** |
+| R3 | 0 | 0 | 37 | 1 | 8 | **46** |
 | STANDALONE | 1 | 0 | 0 | 0 | 4 | **5** |
 
 ## STP verdict → 13-stage Coverage Tracker mapping (single vocabulary)
@@ -60,6 +60,19 @@
 | P5.5 | R2 | P5 | Standing post-R1 fixed comparator | **WORKED_LEGACY** |
 | R2-USA-PARQUET | R2 | Data | USA price parquet drift root fix | **WORKED_LEGACY** |
 | R2-ZERO-DIAG | R2 | Diagnostic | R2 zero-entry diagnosis | **WORKED_LEGACY** |
+| R3-A-DESC | R3 | Intelligence | R3-A Descriptive Intelligence | **PENDING** |
+| R3-B-STAT | R3 | Intelligence | R3-B Statistical Intelligence | **PENDING** |
+| R3-C-TEMP | R3 | Intelligence | R3-C Temporal Intelligence | **PENDING** |
+| R3-D-FCST | R3 | Intelligence | R3-D Forecasting Intelligence | **PENDING** |
+| R3-E-FUND | R3 | Intelligence | R3-E Fundamental Intelligence | **PENDING** |
+| R3-F-MKT | R3 | Intelligence | R3-F Market Intelligence | **PENDING** |
+| R3-G-EXIT | R3 | Intelligence | R3-G Exit Intelligence | **PENDING** |
+| R3-H-UNSUP | R3 | Intelligence | R3-H Unsupervised intelligence | **PENDING** |
+| R3-I-INTRADAY | R3 | Intelligence | R3-I Intraday intelligence | **PENDING** |
+| R3-J-CALIB | R3 | Intelligence | R3-J Uncertainty & calibration | **PENDING** |
+| R3-K-META | R3 | Intelligence | R3-K Evidence-weighted decision synthesis | **PENDING** |
+| R3-PROGRAMME | R3 | Governance | R3 AI programme freeze | **PENDING** |
+| R3-E-2C | R3 | Intelligence | Wave 2C seven-filter research | **PENDING** |
 | II.1-GBM | R3 | II.1 | GBM primary model family | **WORKED_LEGACY** |
 | II.1-STK | R3 | II.1 | Ensemble stacking | **PENDING** |
 | II.1-GNN | R3 | II.1 | GraphSAGE on KG | **PENDING** |
