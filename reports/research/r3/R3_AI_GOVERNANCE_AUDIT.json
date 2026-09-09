@@ -1,0 +1,71 @@
+{
+  "schema_version": "aegis.r3.freeze.v1",
+  "generated_utc": "2026-09-08T13:44:09+00:00",
+  "head": "e0f68dea",
+  "origin_main": "e970865e",
+  "checks": {
+    "1_r3_isolation": {
+      "check": "R3 isolation \u00b7 no production imports",
+      "files_scanned": 8,
+      "violations": [],
+      "pass": true
+    },
+    "2_production_untouched": {
+      "check": "R2 decision logic unchanged \u00b7 delivery changes declared",
+      "r2_decision_files_modified": [],
+      "delivery_presentation_files_modified": [
+        "backend/delivery/sheets/workbook_two.py",
+        "backend/delivery/xlsx_contract.py",
+        "backend/delivery/xlsx_validator.py"
+      ],
+      "undeclared_delivery_changes": [],
+      "declared": {
+        "backend/delivery/sheets/workbook_two.py": "A19 repair \u00b7 renders the Sector column already attached upstream",
+        "backend/delivery/xlsx_contract.py": "A19/A23 repair \u00b7 added 'EXIT HISTORY'/'CURRENT' aliases and the single resolve_sheet() every consumer now shares",
+        "backend/delivery/xlsx_validator.py": "A19/A23 repair \u00b7 row offsets for the two-sheet layout + alias fallback kept in sync"
+      },
+      "pass": true,
+      "note": "R2's decision engine (recommendation/risk/portfolio/execution) must show a zero diff. The delivery presentation layer was repaired under the A19/A23 mandate and every changed file is declared with a reason \u00b7 an undeclared one fails this check"
+    },
+    "3_evidence_fields": {
+      "check": "evidence fields present on every experiment",
+      "files_checked": 4,
+      "missing": [],
+      "pass": true
+    },
+    "4_preservation": {
+      "check": "invalidated / rejected / frozen results preserved",
+      "preserved_entries": 10,
+      "dispositions_present": [
+        "ACCEPTED",
+        "DESCRIPTIVE_ONLY",
+        "FROZEN",
+        "INVALIDATED",
+        "PARTIAL",
+        "REJECTED",
+        "RESEARCH_ONLY"
+      ],
+      "registry_still_marks_wave1d_invalidated": true,
+      "registry_still_marks_r3g_frozen": true,
+      "pass": true
+    },
+    "5_no_promotion": {
+      "check": "no R3 class asserts production impact",
+      "classes_with_impact": [],
+      "pass": true
+    },
+    "6_tests_collect": {
+      "check": "test suite collects cleanly",
+      "returncode": 0,
+      "tail": [
+        "tests/standards/test_sheet_lookup_completeness.py::test_allowlist_entries_all_exist",
+        "",
+        "1040 tests collected in 1.36s"
+      ],
+      "pass": true,
+      "note": "full pass/fail is run separately and recorded in the freeze record"
+    }
+  },
+  "failed_checks": [],
+  "pass": true
+}

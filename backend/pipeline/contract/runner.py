@@ -205,6 +205,13 @@ def build_lifecycle(root: Path, market: str, asof: str) -> dict:
         ("r3_shadow", ["python", "-W", "ignore", "-m",
                        "backend.research.r3_program.shadow",
                        "--market", market, "--score"]),
+        # § "research status update" · the last step of the daily run.
+        # The registry is DERIVED from the artifacts each branch actually
+        # produced, so "which branch is ready" is arithmetic rather than
+        # an opinion someone has to maintain by hand.
+        ("r3_evidence_registry",
+         ["python", "-W", "ignore", "-m",
+          "backend.research.r3_program.evidence_registry"]),
     ):
         rc, out, err = _sh(cmd, root)
         steps.append({"step": label, "returncode": rc})

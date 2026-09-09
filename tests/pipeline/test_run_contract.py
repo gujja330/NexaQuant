@@ -326,3 +326,86 @@ def test_send_loads_credentials_from_file():
     assert "_load_telegram_env" in src
     assert ".env.telegram" in src
     assert "DELIVERY FAILED" in src
+
+
+# ── R3 evidence registry · readiness is arithmetic, not opinion ─────────
+
+def test_registry_uses_only_declared_terminal_states():
+    from backend.research.r3_program import evidence_registry as er
+    rep = er.load(ROOT) or er.build(ROOT)
+    for r in rep["families"]:
+        assert r["current_verdict"] in er.STATES, r["current_verdict"]
+
+
+def test_disposed_branches_stay_disposed():
+    """A failed branch is a research result, not a retry invitation."""
+    from backend.research.r3_program import evidence_registry as er
+    rep = er.load(ROOT) or er.build(ROOT)
+    by = {}
+    for r in rep["families"]:
+        by.setdefault(r["research_id"], set()).add(r["current_verdict"])
+    assert by["R3-E-2C"] == {"NO_INCREMENTAL_VALUE"}
+    assert by["II.1-GBM"] == {"REJECTED"}
+    assert by["R3-H-UNSUP"] == {"REJECTED"}
+    assert by["R3-C-SEQ"] == {"FROZEN"}
+    assert by["R3-G-EXIT"] == {"FROZEN"}
+
+
+def test_no_branch_is_ready_without_meeting_its_gate():
+    from backend.research.r3_program import evidence_registry as er
+    rep = er.load(ROOT) or er.build(ROOT)
+    for r in rep["families"]:
+        if r["research_id"] == "R3-D-FCST" and r["ready_for_evaluation"]:
+            assert r["effective_sample"] >= er.GATE_FUNDAMENTAL_TICKERS
+        if r["research_id"] == "R3-K-META" and r["ready_for_evaluation"]:
+            assert r["effective_sample"] >= er.GATE_METALABEL_OUTCOMES
+
+
+def test_gates_are_preregistered_not_tuned():
+    from backend.research.r3_program import evidence_registry as er
+    assert er.GATE_FUNDAMENTAL_QUARTERS == 8
+    assert er.GATE_METALABEL_OUTCOMES == 50
+    assert er.GATE_CALIBRATION_ECE == 0.05
+
+
+def test_registry_runs_in_the_daily_pipeline():
+    from backend.pipeline.contract import runner
+    src = Path(runner.__file__).read_text(encoding="utf-8")
+    assert "r3_evidence_registry" in src
+
+
+def test_breach_latches_reference_live_positions():
+    """A latch whose position no longer exists protects nothing.
+
+    On 2026-09-09 a `git checkout HEAD` of the opportunity registry
+    rolled back that day's admissions while the breach ledger kept its
+    latches, orphaning USA-R2-AMGN-20260909-69465a. The transition check
+    then reported a position "silently dropped".
+
+    The two files are coupled and must be repaired together. Genuine
+    latches for LIVE positions are never removed - un-latching a real
+    breach would be far worse than a failing test.
+    """
+    import json
+
+    from backend.research import opportunity_registry as oreg
+    reg = oreg.load_all(ROOT)
+    live = {o.opportunity_id for opps in reg.values() for o in opps}
+    for market in MARKETS:
+        p = (ROOT / "reports" / "context"
+             / ("lifecycle_breach_ledger_%s.jsonl" % market))
+        if not p.exists():
+            continue
+        orphaned = []
+        for line in p.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            try:
+                pid = json.loads(line).get("position_id")
+            except Exception:
+                continue
+            if pid and pid not in live:
+                orphaned.append(pid)
+        assert not orphaned, (
+            "%s breach ledger latches positions that no longer exist: %s"
+            % (market, orphaned[:5]))

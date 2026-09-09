@@ -77,17 +77,54 @@ def ledger_path(root: Path, market: str) -> Path:
             / f"ledger_{market.lower()}.jsonl")
 
 
-def load_ledger(root: Path, market: str) -> list:
+def load_ledger(root: Path, market: str, raw: bool = False) -> list:
+    """The ledger as EVIDENCE · one prediction per (as_of, ticker).
+
+    The write path already skips a key it has seen, but that only holds
+    while the file is the single source of truth. Git operations - a
+    stash, a checkout, a rebase restoring an older copy - can hand a run
+    a ledger that is missing rows it already wrote, and the next append
+    then duplicates them. India carried 10 such pairs on 2026-09-09
+    (GNFC recorded at 02:19 and again at 06:06).
+
+    A duplicated prediction is not harmless: it inflates the sample and
+    double-counts one opinion in any evidence tally built on top.
+
+    So identity is enforced on READ, and the EARLIEST record wins. The
+    first prediction is the honest one - a later re-prediction for the
+    same date has seen more of that day, which is precisely the hindsight
+    an append-only ledger exists to prevent.
+
+    `raw=True` returns every physical row, for auditing the duplication
+    itself rather than reasoning over it.
+    """
     p = ledger_path(root, market)
     if not p.exists():
         return []
-    out = []
+    rows = []
     for line in p.read_text(encoding="utf-8", errors="replace").splitlines():
         if line.strip():
             try:
-                out.append(json.loads(line))
+                rows.append(json.loads(line))
             except Exception:
                 continue
+    if raw:
+        return rows
+    best = {}
+    for r in rows:
+        key = (r.get("as_of"), r.get("ticker"))
+        prev = best.get(key)
+        if prev is None or str(r.get("recorded_utc") or "") < str(
+                prev.get("recorded_utc") or ""):
+            best[key] = r
+    # Preserve first-seen file order · the ledger reads chronologically.
+    seen, out = set(), []
+    for r in rows:
+        key = (r.get("as_of"), r.get("ticker"))
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(best[key])
     return out
 
 

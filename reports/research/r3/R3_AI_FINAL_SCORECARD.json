@@ -1,0 +1,134 @@
+{
+  "schema_version": "aegis.r3.freeze.v1",
+  "title": "R3_AI_FINAL_SCORECARD",
+  "generated_utc": "2026-09-08T13:44:07+00:00",
+  "rows": [
+    {
+      "domain": "R3-A Descriptive Intelligence",
+      "question": "does the cohort description support a decision claim",
+      "substrate": "india 361 rows/37 names/15 dates \u00b7 usa 1040/495/7",
+      "effective_units": "india 46 ticker / 2 date \u00b7 usa 495 / 1",
+      "disposition": "DESCRIPTIVE_ONLY",
+      "reason": "cohort description, funnel diagnostics and failure-mode profiling are complete and used as description \u00b7 no decision claim was made from them, which is the correct terminal state for this class",
+      "production_impact": "none"
+    },
+    {
+      "domain": "R3-B Statistical Intelligence",
+      "question": "is R2 confidence informative",
+      "substrate": "india 361 rows/37 names/15 dates \u00b7 usa 1040/495/7",
+      "effective_units": "india 46 ticker / 2 date \u00b7 usa 495 / 1",
+      "disposition": "RESEARCH_ONLY",
+      "reason": "confidence robustness answered its question: the pooled anti-predictive signal is largely ticker mix, and within names USA is structurally positive. The finding informs interpretation; it was never a decision rule and the 0.55 confidence floor is untouched",
+      "production_impact": "none"
+    },
+    {
+      "domain": "R3-C Temporal Intelligence",
+      "question": "does temporal structure predict outcomes",
+      "substrate": "india 361 rows/37 names/15 dates \u00b7 usa 1040/495/7",
+      "effective_units": "india 46 ticker / 2 date \u00b7 usa 495 / 1",
+      "disposition": "INSUFFICIENT_SUBSTRATE",
+      "reason": "sequence models were REJECTED for date leakage and stay rejected. The prequential ledger is built, running and correctly refusing to issue a verdict below 50 scored predictions \u00b7 this is the class's accruing state, not a failure",
+      "production_impact": "none"
+    },
+    {
+      "domain": "R3-D Fundamental Forecasting Intelligence",
+      "question": "does forecasting fundamentals improve a decision",
+      "substrate": "india 361 rows/37 names/15 dates \u00b7 usa 1040/495/7",
+      "effective_units": "india 46 ticker / 2 date \u00b7 usa 495 / 1",
+      "disposition": "INSUFFICIENT_SUBSTRATE",
+      "reason": "Median quarterly history is 6 periods (India) and 7 (USA). A forecast can be fitted on that, and beating naive persistence would be easy to report - but the mandate's test is whether the forecast improves a DECISION, and the decision cohort supplies 2 and 1 independent date unit(s). The decision-value test is therefore not computable, so a forecast accuracy number would be a metric without a conclusion.",
+      "production_impact": "none"
+    },
+    {
+      "domain": "R3-E Fundamental Intelligence",
+      "question": "do fundamentals add value beyond the 7 filters and R2",
+      "substrate": "india 361 rows/37 names/15 dates \u00b7 usa 1040/495/7",
+      "effective_units": "india 46 ticker / 2 date \u00b7 usa 495 / 1",
+      "disposition": "REJECTED",
+      "reason": "Wave 2B built the substrate (India 45/265, USA 498/3431 with read-time PIT lag). Wave 2C then tested it and 0 of 4 India and 0 of 6 USA dimensions survived moving significance to ticker units; incremental value over R2 was +0.0138 AUC with a CI of [-0.074, +0.105]. The substrate is ACCEPTED and retained; the fundamental DECISION OVERLAY is rejected",
+      "production_impact": "none"
+    },
+    {
+      "domain": "R3-F Market / Sector Intelligence",
+      "question": "do sector and regime condition outcomes",
+      "substrate": "india 361 rows/37 names/15 dates \u00b7 usa 1040/495/7",
+      "effective_units": "india 46 ticker / 2 date \u00b7 usa 495 / 1",
+      "disposition": "INSUFFICIENT_SUBSTRATE",
+      "reason": "USA reports 'Large-Cap' on 96.5% of rows - a capitalisation bucket, not a sector - and regime is null on every row in both markets. India carries usable sector labels on only 40.7% of rows. Sector- and regime-conditioned findings cannot be computed from data that does not encode sector or regime.",
+      "production_impact": "none"
+    },
+    {
+      "domain": "R3-G Risk / Exit Intelligence",
+      "question": "can R3 predict exits / severe adverse paths",
+      "substrate": "india 361 rows/37 names/15 dates \u00b7 usa 1040/495/7",
+      "effective_units": "india 46 ticker / 2 date \u00b7 usa 495 / 1",
+      "disposition": "FROZEN",
+      "reason": "branch frozen 2026-09-08 \u00b7 Wave 1D INVALIDATED and preserved as audit history, Wave 1D-E REJECTED. No absolute target both beat its baseline and added economic value. Hazard and survival statistics are retained as descriptive",
+      "production_impact": "none \u00b7 R2 exits untouched"
+    },
+    {
+      "domain": "R3-H Unsupervised Intelligence",
+      "question": "do unsupervised states carry decision information",
+      "substrate": "india 361 rows/37 names/15 dates \u00b7 usa 1040/495/7",
+      "effective_units": "india 46 ticker / 2 date \u00b7 usa 495 / 1",
+      "disposition": "DESCRIPTIVE_ONLY",
+      "reason": "all six cluster lanes separate outcomes in sample and none survives a ticker-block permutation of the ticker-disjoint out-of-sample assignment. Clusters describe the cohort; they do not predict it. Outcome- trajectory clustering was deliberately never emitted as a feature",
+      "production_impact": "none"
+    },
+    {
+      "domain": "R3-I Intraday Intelligence",
+      "question": "can intraday state be classified profitably",
+      "substrate": "india 361 rows/37 names/15 dates \u00b7 usa 1040/495/7",
+      "effective_units": "india 46 ticker / 2 date \u00b7 usa 495 / 1",
+      "disposition": "BLOCKED",
+      "reason": "No intraday bar data exists on disk. `backend/intraday` holds engine scaffolding (feed, session_clock, signals, execution) but there is no timestamped price substrate to build a PIT intraday dataset from, so there is nothing to validate. Engineering is present; evidence is absent.",
+      "production_impact": "none \u00b7 intraday remains isolated from delivery"
+    },
+    {
+      "domain": "R3-J Uncertainty / Calibration Intelligence",
+      "question": "can R3 know when it does not know",
+      "substrate": "india 361 rows/37 names/15 dates \u00b7 usa 1040/495/7",
+      "effective_units": "india 46 ticker / 2 date \u00b7 usa 495 / 1",
+      "disposition": "RESEARCH_ONLY",
+      "reason": "calibration (Brier, ECE, slope/intercept) and a first-class ABSTAIN band are implemented and measured on every ladder rung. They are infrastructure for a surviving model, and no model survived, so there is nothing to calibrate into production",
+      "production_impact": "none"
+    },
+    {
+      "domain": "R3-K Evidence-Weighted Decision Synthesis",
+      "question": "does an R3 committee beat R2 alone",
+      "substrate": "india 361 rows/37 names/15 dates \u00b7 usa 1040/495/7",
+      "effective_units": "india 46 ticker / 2 date \u00b7 usa 495 / 1",
+      "disposition": "INSUFFICIENT_SUBSTRATE",
+      "reason": "a committee may contain only validated specialists. Every specialist branch resolved to REJECTED, DESCRIPTIVE_ONLY, FROZEN or INSUFFICIENT_SUBSTRATE, so there is nothing eligible to combine. Building a committee from unvalidated members would manufacture confidence, which is the failure mode this programme exists to prevent",
+      "production_impact": "none"
+    }
+  ],
+  "validated": [],
+  "conditional": [],
+  "research_only": [
+    "R3-B Statistical Intelligence",
+    "R3-J Uncertainty / Calibration Intelligence"
+  ],
+  "descriptive_only": [
+    "R3-A Descriptive Intelligence",
+    "R3-H Unsupervised Intelligence"
+  ],
+  "rejected": [
+    "R3-E Fundamental Intelligence"
+  ],
+  "invalidated": [
+    "II.1-GBM \u00b7 Wave 1D headline"
+  ],
+  "blocked": [
+    "R3-I Intraday Intelligence"
+  ],
+  "insufficient_substrate": [
+    "R3-C Temporal Intelligence",
+    "R3-D Fundamental Forecasting Intelligence",
+    "R3-F Market / Sector Intelligence",
+    "R3-K Evidence-Weighted Decision Synthesis"
+  ],
+  "frozen": [
+    "R3-G Risk / Exit Intelligence"
+  ]
+}

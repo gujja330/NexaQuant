@@ -1,0 +1,53 @@
+{
+  "contract_id": "R3_DECISION_v1",
+  "status": "DEFINED \u00b7 NOT ACTIVE \u00b7 no component is eligible to emit it",
+  "input": "an existing R2 BUY candidate \u00b7 R3 never generates BUY",
+  "allowed_actions": [
+    "TAKE",
+    "AVOID",
+    "ABSTAIN"
+  ],
+  "forbidden_actions": [
+    "generate BUY independently",
+    "write R2",
+    "alter R2 thresholds",
+    "alter R2 exits",
+    "alter R2 adaptive ensemble weights",
+    "create production registry entries",
+    "create production position IDs",
+    "modify production delivery"
+  ],
+  "fields": [
+    "ticker",
+    "market",
+    "as_of",
+    "r2_signal",
+    "r3_action",
+    "take_probability",
+    "avoid_probability",
+    "abstain_probability",
+    "severe_loss_probability",
+    "survival_probability",
+    "expected_horizon",
+    "fundamental_state",
+    "technical_state",
+    "cluster_state",
+    "sector_state",
+    "regime_state",
+    "uncertainty",
+    "evidence_tier",
+    "model_versions",
+    "experiment_family_ids",
+    "known_failure_modes",
+    "PIT_status",
+    "OOS_status"
+  ],
+  "activation_requirements": [
+    "at least one specialist at VALIDATED or CONDITIONAL disposition",
+    "a decision-value delta whose ticker-bootstrap CI excludes zero",
+    "survival of a date-disjoint holdout, not only ticker-disjoint",
+    "prequential confirmation on 50+ scored predictions",
+    "explicit CEO authorisation"
+  ],
+  "why_not_active": "No specialist reached VALIDATED or CONDITIONAL. The contract is defined so that a future validated component has a stable shape to emit into, and so that the shape cannot be negotiated later under pressure from a result."
+}
