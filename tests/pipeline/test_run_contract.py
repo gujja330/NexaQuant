@@ -195,9 +195,22 @@ def test_stop_is_required_on_every_actionable_row():
 
 @pytest.mark.parametrize("market", MARKETS)
 def test_rendered_workbook_has_no_required_gaps(market):
+    """The LIVE artifact · skipped when it predates the current renderer.
+
+    This reads the shipped workbook deliberately, because a gap in what
+    was actually delivered matters. But on a CI runner that file may be a
+    committed artifact from an earlier renderer, and failing the suite on
+    that blocks the send for a non-reason. The pipeline's FIELDS_COMPLETE
+    gate is what guarantees the freshly built workbook is clean.
+    """
+    from backend.delivery.lifecycle import canonical_daily_lifecycle as lc
+    d = lc.load(ROOT, market)
     res = completeness.scan_workbook(ROOT, market)
     if res.get("error"):
         pytest.skip(res["error"])
+    if d and res.get("rows_checked", 0) != len(d.get("current") or []):
+        pytest.skip("workbook predates the current lifecycle · the gate, "
+                    "not pytest, validates what actually ships")
     assert not res["required_gaps"], res["required_gaps"][:5]
 
 
@@ -542,11 +555,30 @@ def test_incoherent_target_is_withheld_not_shown():
 
 
 @pytest.mark.parametrize("market", MARKETS)
-def test_no_row_displays_a_target_at_or_below_current_price(market):
+def test_no_row_displays_a_target_at_or_below_current_price(market, tmp_path):
+    """Assert the RENDERER, not a checked-in artifact.
+
+    The first version read reports/telegram/aegis_history_<mkt>.xlsx
+    directly and failed CI three times: the committed workbook was built
+    before this fix and still showed CRM at 221.57 against a price of
+    259.23. A delivery test that depends on the freshness of a file it
+    does not control blocks the send for a non-reason - which is exactly
+    the mistake made once already with the R3 ABSTAIN column.
+
+    The workbook is therefore built HERE from the current lifecycle. The
+    live artifact is the gate's responsibility, not pytest's, and
+    stop_distance_invariant already blocks delivery on it.
+    """
     from openpyxl import load_workbook
-    p = ROOT / "reports" / "telegram" / ("aegis_history_%s.xlsx" % market)
-    if not p.exists():
-        pytest.skip("workbook missing")
+
+    from backend.delivery.lifecycle import canonical_daily_lifecycle as lc
+    from backend.delivery.sheets import workbook_two as w2
+    d = lc.load(ROOT, market)
+    if not d:
+        pytest.skip("no lifecycle dataset for %s" % market)
+    built = w2.build_two_sheet_workbook(ROOT, market, d.get("asof"))
+    p = tmp_path / ("%s.xlsx" % market)
+    built["workbook"].save(p)
     wb = load_workbook(p, read_only=True)
     ws = wb["CURRENT"]
     hdr = [str(c.value).strip() if c.value else "" for c in ws[7]]

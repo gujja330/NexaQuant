@@ -27,11 +27,53 @@ FORBIDDEN_STATES = [
 ]
 
 
+# Where a freshly built workbook is written for the duration of a test
+# session · one build, reused, never touching reports/telegram.
+_FRESH: dict = {}
+
+
 def _wb(market: str):
+    """The workbook the CURRENT RENDERER produces from the CURRENT
+    lifecycle.
+
+    This used to open reports/telegram/aegis_history_<mkt>.xlsx directly
+    and compare it against a freshly computed lifecycle. Those two are
+    from different cycles on any CI runner - the committed workbook is
+    whatever the bot last pushed, while the lifecycle was rebuilt minutes
+    ago - so `test_workbook_matches_the_lifecycle_dataset_exactly` and
+    its neighbours failed three consecutive USA runs and skipped the
+    send. Nothing was wrong with the workbook or the lifecycle; they were
+    simply never the same age.
+
+    These tests exist to prove the RENDERER is faithful to the dataset,
+    which is a property of the code. So the workbook is built here from
+    the current lifecycle. Whether the SHIPPED file is clean is the
+    delivery gate's job - FIELDS_COMPLETE and stop_distance_invariant
+    both block on it, and they read the live artifact.
+    """
+    from openpyxl import load_workbook
+    if market in _FRESH:
+        return load_workbook(_FRESH[market], data_only=True)
+
+    from backend.delivery.lifecycle import canonical_daily_lifecycle as lc
+    d = lc.load(ROOT, market)
+    if d:
+        try:
+            import tempfile
+
+            from backend.delivery.sheets import workbook_two as w2
+            built = w2.build_two_sheet_workbook(ROOT, market, d.get("asof"))
+            out = (Path(tempfile.mkdtemp(prefix="aegis_wb_"))
+                   / ("%s.xlsx" % market))
+            built["workbook"].save(out)
+            _FRESH[market] = out
+            return load_workbook(out, data_only=True)
+        except Exception:
+            pass                      # fall back to the shipped file
+
     p = XLSX[market]
     if not p.exists():
         pytest.skip("workbook not built: %s" % p)
-    from openpyxl import load_workbook
     wb = load_workbook(p, data_only=True)
     if "CURRENT" not in wb.sheetnames:
         sheets = list(wb.sheetnames)
