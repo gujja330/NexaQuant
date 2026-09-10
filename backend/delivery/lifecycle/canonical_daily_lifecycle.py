@@ -124,6 +124,48 @@ def is_investable(action: str, initial_signal: str = "") -> bool:
 
 BREACH_SOURCE = "lifecycle:stop-breach"
 
+# ── RECORD TYPE · four populations that must never be summed together ──
+#
+# CEO 2026-09-10, after the lock audit found 463 USA rows carrying
+# `source = registry:production` whose reason was "Auto-close · orphaned
+# position", 489 of 490 of them with a NON-ZERO realized P&L. The EXIT
+# banner therefore presented 517 rows as realized production exits when
+# the genuine count was 18. An orphan auto-close is a reconstructed
+# record for a position that was never properly tracked; it is
+# administrative in nature and must not enter realized performance.
+#
+# `source` says WHERE the record came from. `record_type` says WHAT IT
+# IS, which is the question any performance statistic is really asking.
+RT_REALIZED = "REALIZED EXIT"
+RT_ADMIN = "ADMINISTRATIVE"
+RT_ADVISORY = "ADVISORY/HISTORICAL"
+RT_BREACH = "STOP-BREACH MARK"
+RT_ORPHAN = "ORPHAN AUTO-CLOSE"
+
+# Only this one counts as realized production performance.
+REALIZED_RECORD_TYPES = (RT_REALIZED,)
+
+ORPHAN_MARKERS = ("ORPHAN_AUTO_CLOSE", "ORPHANED", "AUTO-CLOSE")
+
+
+def _record_type(source: str, raw_reason: str) -> str:
+    """Classify one exit record · from the RAW registry reason.
+
+    Keyed off the raw `closed_reason` rather than the normalized display
+    string, because the display string is presentation and can be
+    rewritten without anyone realising a population moved with it.
+    """
+    if source == BREACH_SOURCE:
+        return RT_BREACH
+    r = str(raw_reason or "").upper()
+    if any(k in r for k in ORPHAN_MARKERS):
+        return RT_ORPHAN
+    if source == "registry:administrative":
+        return RT_ADMIN
+    if source == "registry:advisory":
+        return RT_ADVISORY
+    return RT_REALIZED
+
 
 def breach_ledger_path(root: Path, market: str) -> Path:
     return (root / "reports" / "context"
@@ -531,6 +573,7 @@ def compute(root: Path, market: str, asof: str) -> dict:
                 "exit_trigger": raw[:60],
                 "position_id": getattr(o, "opportunity_id", ""),
                 "source": source,
+                "record_type": _record_type(source, raw),
             })
 
     _emit_exits(reg_data.get("closed_90d"), ENGINE_R2, "registry:production")
@@ -575,6 +618,7 @@ def compute(root: Path, market: str, asof: str) -> dict:
                              % (row["stop"], row["stop_basis"],
                                 row["engine"]))[:120],
             "position_id": pid, "source": BREACH_SOURCE,
+            "record_type": RT_BREACH,
             "stop": row["stop"], "stop_basis": row["stop_basis"],
             "breach_recovered": bool(row.get("breach_recovered")),
         })
@@ -600,12 +644,50 @@ def compute(root: Path, market: str, asof: str) -> dict:
     # inventing one to fill the column would be fabricating historical
     # data. Unknown stays NOT_AVAILABLE, never guessed.
     _sect = _sector_cache(root, m)
+    # Sector labels arrive from more than one upstream vintage. USA
+    # carried BOTH "Technology" (8 rows) and "Tech" (1) on 2026-09-10 -
+    # one sector wearing two names, which silently splits any
+    # sector-level tally. Normalized at the canonical layer so every
+    # consumer sees one spelling.
     for _row in current:
-        _row["sector"] = _sect.get(_norm_ticker(_row.get("ticker")),
-                                   SECTOR_UNAVAILABLE)
+        _row["sector"] = _norm_sector(
+            _sect.get(_norm_ticker(_row.get("ticker")), SECTOR_UNAVAILABLE))
     for _row in exits:
-        _row["sector"] = _sect.get(_norm_ticker(_row.get("ticker")),
-                                   SECTOR_UNAVAILABLE)
+        _row["sector"] = _norm_sector(
+            _sect.get(_norm_ticker(_row.get("ticker")), SECTOR_UNAVAILABLE))
+
+    # ── CURRENT MARKET CAP · only where a source actually exists ───────
+    #
+    # CEO 2026-09-10: "do not fabricate it · explicitly report
+    # MARKET_CAP_UNAVAILABLE · never substitute avg_dv_60d silently."
+    # Measured coverage of `fund_market_cap_log` in today's snapshot:
+    # USA 504/516, INDIA 0/228 - the India fundamentals feed carries no
+    # capitalisation at all. So USA shows a real number and India says so.
+    #
+    # This is TODAY's capitalisation, not the capitalisation at entry.
+    # No PIT cap history exists, so the column is labelled CURRENT and
+    # never implies it held on the entry date.
+    _caps, _cap_asof = _market_cap_map(root, m)
+    for _row in current:
+        _row["market_cap"] = _caps.get(_norm_ticker(_row.get("ticker")))
+        _row["market_cap_basis"] = "CURRENT" if _row["market_cap"] else None
+        # The cap's OWN as-of, which is the feature snapshot it came from
+        # - not the price date and not the workbook date. Stated so the
+        # reader cannot infer this capitalisation held at entry: no PIT
+        # cap history exists for either market.
+        _row["market_cap_asof"] = _cap_asof if _row["market_cap"] else None
+        _row["size"] = _size_bucket(_row["market_cap"], m)
+
+    # ── ADMISSION STATUS · why a name admitted yesterday reads ACTIVE+ ──
+    #
+    # 33 India names were admitted 2026-09-09 and render ACTIVE+ on the
+    # 2026-09-10 sheet. Their lifecycle Action is correct, but nothing on
+    # the sheet showed the cohort, so yesterday's NEW appeared to vanish.
+    for _row in current:
+        _ed = str(_row.get("entry_date") or "")[:10]
+        _row["admission_status"] = (
+            "NEW today" if _ed == str(asof)[:10]
+            else ("Admitted %s" % _ed) if _ed else "Admission date unknown")
 
     freshness = input_freshness(root, m, asof)
     stale = [f for f in freshness if f["verdict"] != "FRESH"]
@@ -635,9 +717,35 @@ def compute(root: Path, market: str, asof: str) -> dict:
         "stale_inputs": len(stale),
         "stale_inputs_critical": len(stale_critical),
     }
+    # ── MARKET DATA AS-OF · the date the prices actually come from ─────
+    #
+    # The 2026-09-10 workbook showed 2026-09-09 closes under a 2026-09-10
+    # header with nothing stating the difference. That is correct data -
+    # a 09:15 IST run cannot hold the 09-10 close - but an unlabelled
+    # price invites the reader to assume it is today's.
+    #
+    # Read from the SAME function DATA_READY certifies with, so the sheet
+    # and the gate can never disagree about what day the prices are.
+    _md_asof, _md_median, _md_scope = None, None, None
+    try:
+        from backend.pipeline.contract.readiness import (_price_bars_truth,
+                                                         _universe_list)
+        _b = _price_bars_truth(Path(root), m, _universe_list(Path(root), m))
+        _md_asof, _md_median = _b.get("asof"), _b.get("median_asof")
+        _md_scope = "%s/%s files (%s)" % (_b.get("n_readable"),
+                                          _b.get("n_files"), _b.get("scope"))
+    except Exception:
+        pass
+    for _row in current:
+        _row["market_data_asof"] = _md_asof
+
     return {
         "schema_version": SCHEMA_VERSION,
         "market": m, "asof": asof,
+        "market_data_asof": _md_asof,
+        "market_data_median_asof": _md_median,
+        "market_data_scope": _md_scope,
+        "price_basis": "last completed daily close",
         "generated_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "counts": counts, "current": current, "exits": exits,
         "filtered_out": filtered,
@@ -674,6 +782,88 @@ def _todays_confidence(root: Path, market: str) -> dict:
 
 def _norm_ticker(t) -> str:
     return str(t or "").replace(".NS", "").replace(".BO", "").upper().strip()
+
+
+# One sector, one spelling. Extend deliberately; never guess a mapping.
+_SECTOR_ALIASES = {
+    "tech": "Technology",
+    "technology": "Technology",
+    "information technology": "Technology",
+    "financials": "Financial Services",
+    "financial services": "Financial Services",
+    "health care": "Healthcare",
+    "healthcare": "Healthcare",
+    "consumer staples": "Consumer Defensive",
+    "consumer defensive": "Consumer Defensive",
+    "consumer discretionary": "Consumer Cyclical",
+    "consumer cyclical": "Consumer Cyclical",
+}
+
+# A capitalisation label is NOT a sector, and a liquidity bucket is NOT a
+# capitalisation. Both substitutions have been made in this codebase
+# before, so they are rejected explicitly rather than by convention.
+_NOT_A_SECTOR = ("large-cap", "mid-cap", "small-cap", "micro-cap",
+                 "large cap", "mid cap", "small cap", "liquid", "illiquid")
+
+
+def _norm_sector(v) -> str:
+    s = str(v or "").strip()
+    if not s:
+        return SECTOR_UNAVAILABLE
+    if s.lower() in _NOT_A_SECTOR:
+        return SECTOR_UNAVAILABLE
+    return _SECTOR_ALIASES.get(s.lower(), s)
+
+
+def _market_cap_map(root: Path, market: str) -> tuple:
+    """{ticker: market cap} from the feature snapshot · {} when absent.
+
+    Derived from `fund_market_cap_log`, which is log10(cap). Never from
+    `avg_dv_60d` or `liquidity_bucket_60d`: those measure how much of a
+    name trades, not how large it is, and the two are not substitutes.
+    """
+    try:
+        from backend.feature_store.feature_history import (list_snapshots,
+                                                           read_snapshot)
+        snaps = list_snapshots(Path(root), market.lower())
+        if not snaps:
+            return {}, None
+        asof = str(snaps[-1])[:10]
+        df = read_snapshot(Path(root), market.lower(), snaps[-1])
+        if df is None or not len(df) or "fund_market_cap_log" not in df.columns:
+            return {}, asof
+        tcol = next((c for c in ("ticker", "symbol", "Ticker")
+                     if c in df.columns), None)
+        if tcol is None:
+            return {}, asof
+        out = {}
+        for t, lg in zip(df[tcol], df["fund_market_cap_log"]):
+            try:
+                if lg is None or float(lg) != float(lg):   # NaN
+                    continue
+                out[_norm_ticker(t)] = float(10 ** float(lg))
+            except Exception:
+                continue
+        return out, asof
+    except Exception:
+        return {}, None
+
+
+# Thresholds in the market's own currency. India in INR crore terms,
+# USA in USD. Reported alongside the cap, never instead of it.
+_SIZE_BANDS = {
+    "india": ((2e11, "Large"), (5e10, "Mid"), (0, "Small")),
+    "usa": ((1e10, "Large"), (2e9, "Mid"), (0, "Small")),
+}
+
+
+def _size_bucket(cap, market: str):
+    if not isinstance(cap, (int, float)) or cap <= 0:
+        return None
+    for floor, label in _SIZE_BANDS.get(market.lower(), ()):
+        if cap >= floor:
+            return label
+    return None
 
 
 def _sector_cache(root: Path, market: str) -> dict:

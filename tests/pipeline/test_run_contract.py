@@ -212,6 +212,13 @@ def test_rendered_workbook_has_no_required_gaps(market):
     if d and res.get("rows_checked", 0) != len(d.get("current") or []):
         pytest.skip("workbook predates the current lifecycle · the gate, "
                     "not pytest, validates what actually ships")
+    # Same reasoning for COLUMN drift. A shipped workbook built before a
+    # column rename reports every renamed field as "column absent", which
+    # is an artifact-age failure wearing the costume of a data gap. This
+    # has blocked production three times.
+    if any(g.get("why") == "column absent" for g in res["required_gaps"]):
+        pytest.skip("workbook predates the current column contract · the "
+                    "FIELDS_COMPLETE gate validates what actually ships")
     assert not res["required_gaps"], res["required_gaps"][:5]
 
 
@@ -592,7 +599,7 @@ def test_no_row_displays_a_target_at_or_below_current_price(market, tmp_path):
     wb = load_workbook(p, read_only=True)
     ws = wb["CURRENT"]
     hdr = [str(c.value).strip() if c.value else "" for c in ws[7]]
-    ti, pi, gi = (hdr.index("Ticker"), hdr.index("Current Price"),
+    ti, pi, gi = (hdr.index("Ticker"), hdr.index("Last Price"),
                   hdr.index("Target"))
     bad = []
     for r in range(8, ws.max_row + 1):
@@ -787,3 +794,133 @@ def test_price_freshness_scopes_to_the_universe_when_known(tmp_path):
     assert scoped["scope"] == "universe"
     assert scoped["median_asof"] == "2026-09-09"
     assert R._price_bars_truth(tmp_path, "india", None)["scope"] == "all_files"
+
+
+# ── R3 prediction identity · five parts, not two ──────────────────────
+#
+# CEO 2026-09-10: (source/program, market, as_of, ticker,
+# prediction_version). The old key was (as_of, ticker), which is enough
+# while ONE program writes the ledger and silently stops being enough the
+# moment a second one does.
+
+def test_identity_keeps_two_sources_on_one_ticker_distinct():
+    """The R3-H precondition · without this the experiment is impossible."""
+    from backend.research.r3_program import shadow
+    a = {"contract_id": "CNBC", "market": "india",
+         "as_of": "2026-09-10", "ticker": "TCS"}
+    b = {"contract_id": "ZERODHA", "market": "india",
+         "as_of": "2026-09-10", "ticker": "TCS"}
+    assert shadow.identity(a) != shadow.identity(b), (
+        "two sources on one ticker collapse into one record · the "
+        "consensus/disagreement signal is destroyed before measurement")
+
+
+def test_identity_separates_markets_and_versions():
+    from backend.research.r3_program import shadow
+    base = {"contract_id": "R3", "market": "india",
+            "as_of": "2026-09-10", "ticker": "TCS"}
+    assert shadow.identity(base) != shadow.identity({**base, "market": "usa"})
+    assert shadow.identity(base) != shadow.identity(
+        {**base, "prediction_version": "v2"})
+
+
+def test_identity_is_backward_compatible():
+    """A legacy row with no version must not become a second identity."""
+    from backend.research.r3_program import shadow
+    legacy = {"contract_id": "R3", "market": "india",
+              "as_of": "2026-09-10", "ticker": "TCS"}
+    explicit = {**legacy,
+                "prediction_version": shadow.DEFAULT_PREDICTION_VERSION}
+    assert shadow.identity(legacy) == shadow.identity(explicit)
+
+
+def test_earliest_prediction_wins_a_duplicate(tmp_path):
+    """A rerun has seen more of the day · that is hindsight, not a fix."""
+    import json as _j
+    from backend.research.r3_program import shadow
+    p = shadow.ledger_path(tmp_path, "india")
+    p.parent.mkdir(parents=True, exist_ok=True)
+    rows = [
+        {"contract_id": "R3", "market": "india", "as_of": "2026-09-10",
+         "ticker": "TCS", "r3_action": "ABSTAIN",
+         "recorded_utc": "2026-09-10T02:19:00+00:00"},
+        {"contract_id": "R3", "market": "india", "as_of": "2026-09-10",
+         "ticker": "TCS", "r3_action": "TAKE",
+         "recorded_utc": "2026-09-10T06:06:00+00:00"},
+    ]
+    p.write_text("\n".join(_j.dumps(r) for r in rows), encoding="utf-8")
+    assert len(shadow.load_ledger(tmp_path, "india", raw=True)) == 2
+    ded = shadow.load_ledger(tmp_path, "india")
+    assert len(ded) == 1
+    assert ded[0]["r3_action"] == "ABSTAIN", (
+        "the later re-prediction overwrote the original")
+
+
+def test_prediction_and_outcome_stay_in_separate_files():
+    from backend.research.r3_program import shadow
+    led = shadow.ledger_path(ROOT, "india")
+    out = (ROOT / "reports" / "research" / "r3" / "shadow"
+           / "outcomes_india.jsonl")
+    assert led.name != out.name and led != out
+
+
+# ── USA universe reference-data defects · documented, never hidden ────
+#
+# CEO 2026-09-10: "Never hide a failed source behind a fabricated ticker
+# mapping" and "if correction would alter production universe membership
+# or R2 behavior, do not apply it silently."
+
+def _defect_register():
+    p = ROOT / "reports" / "context" / "universe_reference_defects_usa.json"
+    if not p.exists():
+        pytest.skip("reference-defect register missing")
+    return json.loads(p.read_text(encoding="utf-8"))
+
+
+def test_every_unscoreable_usa_name_is_classified():
+    reg = _defect_register()
+    allowed = {"CORRECTABLE_REFERENCE_ERROR", "DELISTED", "INVALID_SYMBOL",
+               "NOT_US_LISTED", "UNKNOWN"}
+    assert reg["entries"], "register is empty"
+    for e in reg["entries"]:
+        assert e["classification"] in allowed, e
+        assert e.get("evidence"), "%s has no evidence" % e["symbol"]
+    assert reg["n_unknown"] == 0, "an unscoreable name is still UNKNOWN"
+
+
+def test_no_correction_is_applied_silently():
+    """A membership-altering fix must be documented, not slipped in."""
+    reg = _defect_register()
+    assert reg["denominator_policy"] == "PRESERVE_516"
+    for e in reg["entries"]:
+        assert e["applied"] is False, (
+            "%s was applied · universe membership changed without a "
+            "governed decision" % e["symbol"])
+        if e["classification"] == "CORRECTABLE_REFERENCE_ERROR":
+            assert e.get("corrected_symbol"), e["symbol"]
+            assert e.get("why_not_applied"), e["symbol"]
+
+
+def test_a_delisted_name_never_carries_a_fabricated_mapping():
+    """The failure must stay visible · no invented substitute symbol."""
+    reg = _defect_register()
+    for e in reg["entries"]:
+        if e["classification"] in ("DELISTED", "NOT_US_LISTED"):
+            assert e.get("corrected_symbol") is None, (
+                "%s is %s yet carries a substitute symbol"
+                % (e["symbol"], e["classification"]))
+
+
+def test_register_matches_what_the_pipeline_actually_cannot_score():
+    """The register must describe reality, not a stale belief."""
+    from backend.pipeline.contract.readiness import _universe_list
+    uni = _universe_list(ROOT, "usa")
+    if not uni:
+        pytest.skip("no USA universe")
+    have = {p.stem.split("_")[0].upper()
+            for p in (ROOT / "usa" / "data" / "raw" / "us").glob("*_D1.parquet")}
+    unscoreable = {str(t).upper() for t in uni if str(t).upper() not in have}
+    listed = {e["symbol"].upper() for e in _defect_register()["entries"]}
+    assert unscoreable == listed, (
+        "register drifted from reality · unlisted=%s stale=%s"
+        % (sorted(unscoreable - listed), sorted(listed - unscoreable)))

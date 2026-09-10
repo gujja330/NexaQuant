@@ -291,3 +291,118 @@ def test_two_sheet_contract_still_holds(tmp_path):
         wb = load_workbook(out, read_only=True)
         assert wb.sheetnames == ["CURRENT", "EXIT HISTORY"], wb.sheetnames
         wb.close()
+
+
+# ── exit populations must never be summed together ────────────────────
+#
+# The 2026-09-10 lock audit found 463 USA rows carrying
+# `source = registry:production` whose reason was "Auto-close · orphaned
+# position", 489 of 490 with a NON-ZERO realized P&L. The banner
+# presented 517 rows as realized production exits; the genuine count was
+# 18. `source` says where a record came from; `record_type` says what it
+# is, and only the second is safe to build a performance statistic on.
+
+def test_orphan_auto_close_is_not_a_realized_exit():
+    from backend.delivery.lifecycle.canonical_daily_lifecycle import (
+        RT_ORPHAN, RT_REALIZED, _record_type)
+    assert _record_type("registry:production",
+                        "ORPHAN_AUTO_CLOSE") == RT_ORPHAN
+    assert _record_type("registry:production",
+                        "Rotation swap") == RT_REALIZED
+
+
+def test_every_population_is_classified_distinctly():
+    from backend.delivery.lifecycle.canonical_daily_lifecycle import (
+        BREACH_SOURCE, RT_ADMIN, RT_ADVISORY, RT_BREACH, _record_type)
+    assert _record_type(BREACH_SOURCE, "Stop breached") == RT_BREACH
+    assert _record_type("registry:administrative", "x") == RT_ADMIN
+    assert _record_type("registry:advisory", "x") == RT_ADVISORY
+    # A breach mark stays a mark even when its reason mentions an orphan.
+    assert _record_type(BREACH_SOURCE, "ORPHAN_AUTO_CLOSE") == RT_BREACH
+
+
+@pytest.mark.parametrize("market", MARKETS)
+def test_realized_population_excludes_reconstructions(market):
+    """No orphan, admin or breach record may carry REALIZED EXIT."""
+    from backend.delivery.lifecycle import canonical_daily_lifecycle as lc
+    d = lc.load(ROOT, market)
+    if not d:
+        pytest.skip("no lifecycle dataset for %s" % market)
+    rows = d.get("exits") or []
+    if not rows:
+        pytest.skip("no exits")
+    assert all(e.get("record_type") for e in rows), "unclassified exit row"
+    bad = [e["ticker"] for e in rows
+           if e.get("record_type") == "REALIZED EXIT"
+           and ("orphan" in str(e.get("exit_reason", "")).lower()
+                or e.get("source") == "lifecycle:stop-breach"
+                or e.get("source") == "registry:administrative")]
+    assert not bad, "reconstructions counted as realized: %s" % bad[:6]
+
+
+@pytest.mark.parametrize("market", MARKETS)
+def test_populations_sum_to_the_sheet(market):
+    """Every row belongs to exactly one population · nothing double-counted."""
+    from collections import Counter
+    from backend.delivery.lifecycle import canonical_daily_lifecycle as lc
+    d = lc.load(ROOT, market)
+    if not d:
+        pytest.skip("no lifecycle dataset for %s" % market)
+    rows = d.get("exits") or []
+    if not rows:
+        pytest.skip("no exits")
+    assert sum(Counter(e["record_type"] for e in rows).values()) == len(rows)
+
+
+@pytest.mark.parametrize("market", MARKETS)
+def test_exit_sheet_never_claims_every_closed_position(market):
+    """Coverage is partial and must say so."""
+    p = ROOT / "reports" / "telegram" / ("aegis_history_%s.xlsx" % market)
+    if not p.exists():
+        pytest.skip("workbook missing")
+    wb = load_workbook(p, read_only=True)
+    name = resolve_exit_history_sheet(wb)
+    if name is None:
+        wb.close()
+        pytest.skip("no exit sheet")
+    ws = wb[name]
+    banner = " ".join(str(ws.cell(r, 1).value or "") for r in (1, 2, 3))
+    hdr = [str(ws.cell(4, c).value or "").strip()
+           for c in range(1, ws.max_column + 1)]
+    wb.close()
+    assert "every closed position" not in banner.lower(), (
+        "the sheet claims complete history it does not have")
+    assert "coverage begins" in banner.lower(), (
+        "historical coverage start is not stated")
+    assert "Record Type" in hdr, "populations are not separable by a reader"
+    assert "Realized P&L %" not in hdr, (
+        "a column header claims 'realized' for rows that are marks")
+
+
+@pytest.mark.parametrize("market", MARKETS)
+def test_legend_does_not_restate_the_removed_overclaim(market):
+    """A legend is read as authoritative.
+
+    The banner's "every closed position" was corrected while the LEGEND
+    kept saying "Permanent record of every closed ... position", and kept
+    naming a "Realized P&L %" column that no longer exists.
+    """
+    p = ROOT / "reports" / "telegram" / ("aegis_history_%s.xlsx" % market)
+    if not p.exists():
+        pytest.skip("workbook missing")
+    wb = load_workbook(p, read_only=True)
+    name = resolve_exit_history_sheet(wb)
+    if name is None:
+        wb.close()
+        pytest.skip("no exit sheet")
+    ws = wb[name]
+    text = " ".join(str(ws.cell(r, 1).value or "")
+                    for r in range(1, ws.max_row + 1)).lower()
+    hdr = [str(ws.cell(4, c).value or "").strip()
+           for c in range(1, ws.max_column + 1)]
+    wb.close()
+    assert "every closed" not in text, "the legend restates the overclaim"
+    assert "realized p&l %" not in text, (
+        "the legend names a column that no longer exists")
+    assert "coverage begins" in text
+    assert "Record Type" in hdr

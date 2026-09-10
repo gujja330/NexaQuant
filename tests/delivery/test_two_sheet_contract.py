@@ -679,3 +679,85 @@ def test_breach_exit_rows_are_rendered_and_labelled(market):
     assert sum(1 for r in rows if str(r.get("Source")) == BREACH_SOURCE) == n
     assert "MARK" in head.upper() and "NOT sold".upper() in head.upper(), (
         "EXIT HISTORY does not warn that breach rows are marks, not fills")
+
+
+# ── CURRENT · the columns added by the 2026-09-10 lock audit ──────────
+
+@pytest.mark.parametrize("market", ("india", "usa"))
+def test_current_states_both_dates(market):
+    """The workbook date and the PRICE date are different questions.
+
+    The 2026-09-10 sheet showed 2026-09-09 closes under a 2026-09-10
+    header with nothing stating the difference.
+    """
+    from backend.delivery.lifecycle import canonical_daily_lifecycle as lc
+    d = lc.load(ROOT, market)
+    if not d:
+        pytest.skip("no lifecycle dataset")
+    ws = _wb(market)["CURRENT"]
+    banner = str(ws.cell(1, 1).value or "")
+    assert "workbook" in banner and "close" in banner, banner
+    assert str(d.get("market_data_asof") or "") in banner, (
+        "the price date is not on the sheet")
+
+
+@pytest.mark.parametrize("market", ("india", "usa"))
+def test_current_carries_sector_cap_and_admission(market):
+    ws = _wb(market)["CURRENT"]
+    hdr = [str(ws.cell(7, c).value or "").strip()
+           for c in range(1, ws.max_column + 1)]
+    for col in ("Sector", "Current Market Cap", "Size", "Admission Status",
+                "Market Data As-of", "Last Price", "Stop Distance %"):
+        assert col in hdr, "%s missing from CURRENT" % col
+    # The renames must be complete, not additive.
+    assert "Current Price" not in hdr
+    assert "Dist to Stop %" not in hdr
+    # Exactly one R3 column, still last.
+    assert hdr.count("R3 SHADOW") == 1
+    assert hdr[len([h for h in hdr if h]) - 1] == "R3 SHADOW"
+
+
+@pytest.mark.parametrize("market", ("india", "usa"))
+def test_market_cap_is_never_a_liquidity_bucket(market):
+    """Cap is a size, not a turnover. Absence is stated, never substituted."""
+    ws = _wb(market)["CURRENT"]
+    hdr = [str(ws.cell(7, c).value or "").strip()
+           for c in range(1, ws.max_column + 1)]
+    ci = hdr.index("Current Market Cap") + 1
+    seen = []
+    for r in range(8, ws.max_row + 1):
+        t = ws.cell(r, 1).value
+        if not t or str(t).startswith("─"):
+            break
+        seen.append(ws.cell(r, ci).value)
+    for v in seen:
+        s = str(v)
+        assert not any(k in s.lower() for k in
+                       ("liquid", "large-cap", "mid-cap", "small-cap",
+                        "bucket")), "a liquidity label is sitting in the cap column: %r" % v
+        if s != "MARKET_CAP_UNAVAILABLE":
+            assert isinstance(v, (int, float)), (
+                "cap must be a number or the explicit unavailable token, got %r" % v)
+
+
+@pytest.mark.parametrize("market", ("india", "usa"))
+def test_admission_status_keeps_yesterdays_new_visible(market):
+    """A name admitted yesterday must not become anonymous today."""
+    from backend.delivery.lifecycle import canonical_daily_lifecycle as lc
+    d = lc.load(ROOT, market)
+    if not d:
+        pytest.skip("no lifecycle dataset")
+    ws = _wb(market)["CURRENT"]
+    hdr = [str(ws.cell(7, c).value or "").strip()
+           for c in range(1, ws.max_column + 1)]
+    ai = hdr.index("Admission Status") + 1
+    vals = []
+    for r in range(8, ws.max_row + 1):
+        t = ws.cell(r, 1).value
+        if not t or str(t).startswith("─"):
+            break
+        vals.append(str(ws.cell(r, ai).value or ""))
+    assert vals, "no rows"
+    assert all(v.strip() for v in vals), "an admission status cell is blank"
+    assert all(v == "NEW today" or v.startswith("Admitted")
+               or v == "Admission date unknown" for v in vals), set(vals)

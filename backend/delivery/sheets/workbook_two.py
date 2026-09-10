@@ -41,10 +41,28 @@ TWO_SHEETS = ["CURRENT", "EXIT HISTORY"]
 
 # R2's own columns. Nothing in the R3 block below may ever be inserted
 # among these - the separation is the point.
+# CEO 2026-09-10 lock audit. Five columns added and two renamed:
+#
+#   Admission Status   · 33 India names admitted 09-09 rendered ACTIVE+
+#                        with no cohort visible, so yesterday's NEW looked
+#                        like it had vanished.
+#   Market Data As-of  · the sheet showed 09-09 closes under a 09-10
+#                        header and said nothing about the difference.
+#   Sector             · carried at 100% in canonical and simply not
+#                        rendered.
+#   Current Market Cap · labelled CURRENT because no PIT cap history
+#                        exists. Never liquidity.
+#   Size               · reported beside the cap, never instead of it.
+#
+#   "Current Price"   -> "Last Price"        (it is the last close, not a live quote)
+#   "Dist to Stop %"  -> "Stop Distance %"
 CURRENT_COLUMNS_R2 = [
-    "Market", "Ticker", "Engine", "Action", "Entry Date", "Entry Price",
-    "Current Price", "P&L %", "Confidence %", "Stop", "Stop State",
-    "Dist to Stop %", "Max Loss if Stop %", "Target", "Position ID", "Reason",
+    "Market", "Ticker", "Engine", "Action", "Admission Status",
+    "Entry Date", "Entry Price", "Last Price", "Market Data As-of",
+    "P&L %", "Confidence %", "Sector", "Current Market Cap",
+    "Market Cap As-of", "Size",
+    "Stop", "Stop State", "Stop Distance %", "Max Loss if Stop %",
+    "Target", "Position ID", "Reason",
 ]
 
 # R3 SHADOW INTELLIGENCE · research only.
@@ -73,9 +91,16 @@ CURRENT_COLUMNS = CURRENT_COLUMNS_R2 + CURRENT_COLUMNS_R3
 R3_ENGINES = ("R2", "MOMENTUM", "MOM")
 R3_NOT_APPLICABLE = "NOT_APPLICABLE"
 
+# `Record Type` is the population; `Source` is the provenance. They are
+# different questions and the audit proved they disagree: 463 USA rows
+# came from `registry:production` but were orphan auto-closes.
+#
+# `Realized P&L %` was renamed to `P&L %` because 529 of USA's 547 rows
+# are NOT realized - 490 orphan reconstructions and 5 open breach marks.
+# A column header is a claim, and that one was false for 97% of the sheet.
 EXIT_COLUMNS = [
-    "Exit Date", "Ticker", "Sector", "Market", "Engine", "Entry Date",
-    "Entry Price", "Exit Price", "Realized P&L %", "Holding Days",
+    "Exit Date", "Ticker", "Sector", "Market", "Engine", "Record Type",
+    "Entry Date", "Entry Price", "Exit Price", "P&L %", "Holding Days",
     "Exit Reason", "Entry Confidence %", "Exit Trigger", "Position ID",
     "Source",
 ]
@@ -172,14 +197,35 @@ def emit_current(wb, d: dict):
     _r3 = d.get("_r3") or {}
     ws = wb.create_sheet("CURRENT")
     n = len(CURRENT_COLUMNS)
-    _banner(ws, "AEGIS %s · CURRENT · what is investable now · %s"
-            % (str(d.get("market", "")).upper(), d.get("asof")), n)
+    # The header date is the WORKBOOK date. The prices are the last
+    # completed close, which on a pre-close run is the previous session.
+    # Both are stated, because showing only the first invites the reader
+    # to assume the prices are today's.
+    _mda = d.get("market_data_asof")
+    _banner(ws, ("AEGIS %s · CURRENT · what is investable now · "
+                 "workbook %s · prices = %s close"
+                 % (str(d.get("market", "")).upper(), d.get("asof"),
+                    _mda or "UNKNOWN")), n)
+    # SAME-CLOSE ADMISSION · why a row can read exactly 0.00%.
+    #
+    # 33 India rows showed 0.00% on 2026-09-10. They were admitted at the
+    # 2026-09-09 close and are still marked at that same close, so entry
+    # and last price are the same number. Verified against the bars
+    # (ABBOTINDIA entry 25455.0 = 09-09 close 25455.0). That is correct,
+    # but a screen full of zeros looks like a broken price feed, so it is
+    # named rather than left for the reader to work out.
+    _same = [r for r in rows
+             if r.get("pnl_pct") == 0
+             and str(r.get("entry_date") or "")[:10] == str(_mda or "")[:10]]
+    _same_note = ("   ·   %d row(s) read 0.00%%: admitted at the %s close "
+                  "and still marked at it (same-close admission, not a "
+                  "stale price)" % (len(_same), _mda)) if _same else ""
     _sub(ws, ("%d investable · NEW %d · ACTIVE+ %d · ACTIVE %d   ·   "
-              "R2 %d · MOMENTUM %d · R1 %d (advisory)"
+              "R2 %d · MOMENTUM %d · R1 %d (advisory)%s"
               % (c.get("current_total", 0), c.get("new", 0),
                  c.get("active_plus", 0), c.get("active", 0),
                  c.get("r2_investable", 0), c.get("momentum_investable", 0),
-                 c.get("r1_investable", 0))), n, 2)
+                 c.get("r1_investable", 0), _same_note)), n, 2)
     worsts = [r["max_loss_if_stop_pct"] for r in rows
               if isinstance(r.get("max_loss_if_stop_pct"), (int, float))]
     n_breach = c.get("stop_breached", 0)
@@ -248,8 +294,13 @@ def emit_current(wb, d: dict):
         "%d candidate(s) evaluated today." % _n_r3)
     _sub(ws, "   ||   ".join(_row6), n, 6)
     _header(ws, CURRENT_COLUMNS, 7)
-    for i, w in enumerate([9, 12, 10, 10, 12, 12, 13, 10, 12, 12, 13, 14,
-                           17, 12, 30, 50,
+    # A capitalisation is a 12-digit number. Left raw it reads as noise
+    # (213353612143.8); grouped it reads as a size. The stored value is
+    # unchanged - this is display only, so a reader can still compute on
+    # the cell.
+    _cap_col = CURRENT_COLUMNS.index("Current Market Cap") + 1
+    for i, w in enumerate([9, 12, 10, 10, 20, 12, 12, 13, 17, 10, 22,
+                           20, 18, 16, 8, 12, 13, 15, 17, 12, 30, 50,
                            # R3 shadow · one column
                            40], 1):
         ws.column_dimensions[get_column_letter(i)].width = w
@@ -257,9 +308,23 @@ def emit_current(wb, d: dict):
     for row in rows:
         _write_row(ws, [
             row.get("market"), row.get("ticker"), row.get("engine"),
-            row.get("action"), row.get("entry_date"),
+            row.get("action"),
+            row.get("admission_status") or "—",
+            row.get("entry_date"),
             _fmt(row.get("entry_price")), _fmt(row.get("current_price")),
-            _fmt(row.get("pnl_pct")), _fmt(row.get("confidence_pct")),
+            _fmt(row.get("market_data_asof"), "UNAVAILABLE"),
+            _fmt(row.get("pnl_pct")),
+            # A bare em-dash on a confidence cell reads as a rendering
+            # gap. Where the registry genuinely holds no entry score the
+            # cell says so instead of leaving the reader to guess.
+            _fmt(row.get("confidence_pct"), "Historical score unavailable"),
+            _fmt(row.get("sector"), "NOT_AVAILABLE"),
+            # Never a liquidity bucket wearing a cap label. India's
+            # fundamentals feed carries no capitalisation at all (0/228),
+            # so India says so rather than borrowing avg_dv_60d.
+            _fmt(row.get("market_cap"), "MARKET_CAP_UNAVAILABLE"),
+            _fmt(row.get("market_cap_asof"), "—"),
+            _fmt(row.get("size"), "—"),
             _fmt(row.get("stop"), "UNAVAILABLE"),
             row.get("stop_state") or "—",
             _fmt(row.get("dist_to_stop_pct")),
@@ -278,7 +343,10 @@ def emit_current(wb, d: dict):
             #    this and does not change because of it.
             *r3_cells(_r3.get(str(row.get("ticker") or "").upper()),
                       row.get("engine")),
-        ], r, pnl_col_idx=8)
+        ], r, pnl_col_idx=10)
+        _c = ws.cell(r, _cap_col)
+        if isinstance(_c.value, (int, float)):
+            _c.number_format = "#,##0"
         r += 1
     if not rows:
         ws.cell(r, 1, "Nothing investable today.").font = FONT_BODY
@@ -349,31 +417,50 @@ def emit_exit_history(wb, d: dict):
     rows = d.get("exits") or []
     ws = wb.create_sheet("EXIT HISTORY")
     n = len(EXIT_COLUMNS)
-    _banner(ws, "AEGIS %s · EXIT HISTORY · every closed position · %s"
+    # "every closed position" was an overclaim: canonical coverage starts
+    # 2026-08-04 (India) / 2026-08-10 (USA). Nothing before that exists in
+    # a provable source, so the claim is narrowed rather than the history
+    # invented.
+    _banner(ws, "AEGIS %s · EXIT HISTORY · %s"
             % (str(d.get("market", "")).upper(), d.get("asof")), n)
-    by = {}
+    _dates = sorted(str(e.get("exit_date"))[:10] for e in rows
+                    if e.get("exit_date"))
+    _cov = ("Canonical lifecycle historical coverage begins %s · earlier "
+            "closures are not held in any provable AEGIS source"
+            % _dates[0]) if _dates else "No closure history recorded."
+
+    # The four populations, never summed. Realized production performance
+    # is reported on its own line and on its own denominator.
+    _by_rt = {}
     for e in rows:
-        by[e.get("engine")] = by.get(e.get("engine"), 0) + 1
-    _sub(ws, ("%d exits · %s   ·   R1 rows are ADVISORY and are excluded "
-              "from production P&L"
+        k = e.get("record_type") or "UNCLASSIFIED"
+        _by_rt[k] = _by_rt.get(k, 0) + 1
+    _real = [e for e in rows if e.get("record_type") == "REALIZED EXIT"]
+    _rp = [e["realized_pnl_pct"] for e in _real
+           if isinstance(e.get("realized_pnl_pct"), (int, float))]
+    _sub(ws, ("%d records · %s   ·   %s"
               % (len(rows),
-                 " · ".join(f"{k} {v}" for k, v in sorted(by.items())))),
-         n, 2)
-    # A breach mark is not a fill. Saying so on the sheet is the only
-    # thing that stops an unrealized loss being read as a closed trade.
-    _bx = [e for e in rows if e.get("source") == "lifecycle:stop-breach"]
-    if _bx:
-        _p = [e["realized_pnl_pct"] for e in _bx
-              if isinstance(e.get("realized_pnl_pct"), (int, float))]
-        _sub(ws, ("🔴 %d of these are STOP-BREACH exits · the stop was passed "
-                  "and the position left CURRENT, but it is NOT sold · price "
-                  "and P&L are today's MARK%s"
-                  % (len(_bx),
-                     (" · avg %+.2f%% · worst %+.2f%%"
-                      % (sum(_p) / len(_p), min(_p))) if _p else "")), n, 3)
+                 " · ".join("%s %d" % (k, v)
+                            for k, v in sorted(_by_rt.items())),
+                 _cov)), n, 2)
+    # A breach mark is not a fill, and an orphan auto-close is not a
+    # trade. Both are named here rather than on their own banner row,
+    # because the header must stay on row 4 - three consumers still hold
+    # a private copy of that offset, which is the A19/A23 bug class.
+    _bx = [e for e in rows if e.get("record_type") == "STOP-BREACH MARK"]
+    _sub(ws, ("📊 REALIZED PRODUCTION PERFORMANCE · %d closed trade(s)%s   "
+              "·   EXCLUDED from this line: orphan auto-closes, "
+              "administrative records, advisory rows, and %d STOP-BREACH "
+              "MARK(s) whose stop was passed but which are NOT sold - "
+              "their price and P&L are today's mark, not a realized result"
+              % (len(_real),
+                 (" · win %d/%d · avg %+.2f%%"
+                  % (sum(1 for x in _rp if x > 0), len(_rp),
+                     sum(_rp) / len(_rp))) if _rp else "",
+                 len(_bx))), n, 3)
     _header(ws, EXIT_COLUMNS, 4)
-    for i, w in enumerate([12, 12, 20, 9, 10, 12, 12, 12, 15, 13, 26, 15,
-                           30, 30, 24], 1):
+    for i, w in enumerate([12, 12, 20, 9, 10, 20, 12, 12, 12, 15, 13, 26,
+                           15, 30, 30, 24], 1):
         ws.column_dimensions[get_column_letter(i)].width = w
     r = 5
     for e in rows:
@@ -385,32 +472,51 @@ def emit_exit_history(wb, d: dict):
             # exists to avoid.
             _fmt(e.get("sector"), "NOT_AVAILABLE"),
             e.get("market"),
-            e.get("engine"), e.get("entry_date"),
+            e.get("engine"),
+            e.get("record_type") or "UNCLASSIFIED",
+            e.get("entry_date"),
             _fmt(e.get("entry_price"), "UNAVAILABLE"),
             _fmt(e.get("exit_price"), "UNAVAILABLE"),
             _fmt(e.get("realized_pnl_pct")), _fmt(e.get("holding_days")),
-            e.get("exit_reason"), _fmt(e.get("entry_confidence_pct")),
+            e.get("exit_reason"),
+            # A bare em-dash reads as "nothing here". The registry holds
+            # NO entry score for any closed position (0/57 India, 0/562
+            # USA), so the honest cell says why it is empty.
+            _fmt(e.get("entry_confidence_pct"), "Historical score unavailable"),
             e.get("exit_trigger"), e.get("position_id"), e.get("source"),
-        ], r, pnl_col_idx=9)
+        ], r, pnl_col_idx=10)
         r += 1
     if not rows:
         ws.cell(r, 1, "No exits recorded.").font = FONT_BODY
         r += 1
     r += 2
     _legend(ws, [
-        "Permanent record of every closed R1 / R2 / Momentum position, "
-        "rendered from the canonical lifecycle dataset.",
-        "Realized P&L % · (Exit − Entry) / Entry · the trade's own result.",
-        "Source · registry:production (a real R2 trade) · registry:advisory "
-        "(R1 · never counted in production P&L) · registry:administrative "
-        "(same-day or zero-delta bookkeeping · not a real trade) · "
-        "lifecycle:stop-breach (price passed the stop · the row left "
-        "CURRENT and is recorded here).",
-        "lifecycle:stop-breach rows are MARKS, not fills. The position is "
-        "still open in its engine, Exit Price is the latest close, and "
-        "Realized P&L % is the live unrealized figure. They carry their own "
-        "source precisely so they are never counted in the realized "
-        "win-rate or average return alongside trades that actually closed.",
+        # The banner's overclaim was removed and this line still carried
+        # it. A legend is read as authoritative and must not restate a
+        # coverage claim the data cannot support.
+        "Closed positions held by the canonical lifecycle dataset. Coverage "
+        "begins on the date named in the banner · AEGIS had no position "
+        "registry before then, only a recommendation list with expiry "
+        "semantics, so earlier closures cannot be proven and are not "
+        "invented.",
+        "P&L % · (Exit − Entry) / Entry. It is a REALIZED result only on a "
+        "REALIZED EXIT row · on every other Record Type it is a mark.",
+        "Record Type is the population; Source is the provenance. They are "
+        "different questions and they disagree: 463 USA rows arrived from "
+        "registry:production yet are ORPHAN AUTO-CLOSE. Build performance "
+        "statistics on Record Type, never on Source.",
+        "REALIZED EXIT · a trade that actually closed · the only population "
+        "in the realized performance line. ORPHAN AUTO-CLOSE · a "
+        "reconstructed record for a position that was never properly "
+        "tracked · not a trade. ADMINISTRATIVE · same-day or zero-delta "
+        "bookkeeping · not a trade. ADVISORY/HISTORICAL · retired R1 · "
+        "never counted in production P&L. STOP-BREACH MARK · the price "
+        "passed the stop and the row left CURRENT.",
+        "STOP-BREACH MARK rows are MARKS, not fills. The position is still "
+        "open in its engine, Exit Price is the latest close, and P&L % is "
+        "the live unrealized figure. They carry their own Record Type "
+        "precisely so they are never counted in the realized win-rate or "
+        "average return alongside trades that actually closed.",
         "Exit Date on a breach row is the day the breach was FIRST "
         "observed, not today, and it never moves. A position that later "
         "recovers above its stop stays here · recovering does not undo "

@@ -77,6 +77,38 @@ def ledger_path(root: Path, market: str) -> Path:
             / f"ledger_{market.lower()}.jsonl")
 
 
+# ── PREDICTION IDENTITY · five parts, not two ─────────────────────────
+#
+# CEO 2026-09-10:
+#   (source/program, market, as_of, ticker, prediction_version)
+#
+# The key was (as_of, ticker). That is sufficient while ONE program
+# writes the ledger, and it silently stops being sufficient the moment a
+# second one does. R3-H ingests CNBC, Zerodha, Angel One and Moneycontrol,
+# any of which may publish on the same ticker on the same day: under the
+# old key those four opinions collapse into one row and the
+# consensus/disagreement variance - the entire object of the experiment -
+# is deleted before it can be measured.
+#
+# `prediction_version` distinguishes a deliberate, pre-registered
+# re-prediction from an accidental duplicate. It is NOT a revision
+# channel: a later rerun of the same version is still a duplicate and
+# still loses to the earliest record, because a later run has seen more
+# of the day and that is hindsight.
+DEFAULT_PREDICTION_VERSION = "v1"
+
+
+def identity(rec: dict) -> tuple:
+    """The five-part identity of one prediction."""
+    return (
+        str(rec.get("contract_id") or rec.get("source") or CONTRACT_ID),
+        str(rec.get("market") or "").lower(),
+        str(rec.get("as_of") or "")[:10],
+        str(rec.get("ticker") or "").upper(),
+        str(rec.get("prediction_version") or DEFAULT_PREDICTION_VERSION),
+    )
+
+
 def load_ledger(root: Path, market: str, raw: bool = False) -> list:
     """The ledger as EVIDENCE · one prediction per (as_of, ticker).
 
@@ -112,7 +144,7 @@ def load_ledger(root: Path, market: str, raw: bool = False) -> list:
         return rows
     best = {}
     for r in rows:
-        key = (r.get("as_of"), r.get("ticker"))
+        key = identity(r)
         prev = best.get(key)
         if prev is None or str(r.get("recorded_utc") or "") < str(
                 prev.get("recorded_utc") or ""):
@@ -120,7 +152,7 @@ def load_ledger(root: Path, market: str, raw: bool = False) -> list:
     # Preserve first-seen file order · the ledger reads chronologically.
     seen, out = set(), []
     for r in rows:
-        key = (r.get("as_of"), r.get("ticker"))
+        key = identity(r)
         if key in seen:
             continue
         seen.add(key)
@@ -196,6 +228,7 @@ def build_decision(root: Path, market: str, cand: dict, asof: str) -> dict:
     rec = {
         "schema_version": SCHEMA_VERSION,
         "contract_id": CONTRACT_ID,
+        "prediction_version": DEFAULT_PREDICTION_VERSION,
         "ticker": cand.get("ticker"),
         "market": market.lower(),
         "as_of": asof,
@@ -255,6 +288,7 @@ def run(root: Path, market: str) -> dict:
     return {
         "schema_version": SCHEMA_VERSION,
         "contract_id": CONTRACT_ID,
+        "prediction_version": DEFAULT_PREDICTION_VERSION,
         "market": market.lower(),
         "as_of": asof,
         "generated_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),

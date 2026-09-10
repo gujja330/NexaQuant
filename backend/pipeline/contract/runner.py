@@ -122,9 +122,29 @@ _REFRESH = {
 }
 
 # Runs once for both markets · reads each market's registry.
+#
+# The two reconciliation audits were NOT in this table and had frozen at
+# 2026-09-08 while the certification went green for two more days. They
+# are the artifacts the A23 "UNACCOUNTED = 0" proof is built on, so a
+# stale copy means the proof is about a state that no longer exists.
+#
+# Order matters: materialize first (it can admit positions into the
+# registry), then audit the orphans that materialisation leaves behind.
 _REFRESH_SHARED = (
+    # MUST precede dynamic_risk: a position admitted today does not exist
+    # when stops are computed, so it arrives with `stop none` and can
+    # never appear on its own day (JIOFIN, 2026-09-08). Idempotent -
+    # get_or_create returns an existing ACTIVE opportunity unchanged, and
+    # the module owns no decision logic.
+    ("registry_materializer", ["python", "-W", "ignore", "-m",
+                               "backend.delivery.lifecycle."
+                               "registry_materializer", "--market", "both"]),
     ("dynamic_risk", ["python", "-W", "ignore",
                       "scripts/run_dynamic_risk_v2.py", "--market", "both"]),
+    # Audits what materialisation left behind · read-only.
+    ("orphan_ban_audit", ["python", "-W", "ignore", "-m",
+                          "backend.delivery.lifecycle.orphan_ban_audit",
+                          "--market", "both"]),
 )
 
 

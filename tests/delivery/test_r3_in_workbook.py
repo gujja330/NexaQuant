@@ -67,10 +67,16 @@ def test_r3_columns_come_after_every_r2_column():
 
 def test_r2_column_set_is_unchanged_by_the_r3_block():
     assert w2.CURRENT_COLUMNS_R2 == [
-        "Market", "Ticker", "Engine", "Action", "Entry Date", "Entry Price",
-        "Current Price", "P&L %", "Confidence %", "Stop", "Stop State",
-        "Dist to Stop %", "Max Loss if Stop %", "Target", "Position ID",
-        "Reason"]
+        "Market", "Ticker", "Engine", "Action", "Admission Status",
+        "Entry Date", "Entry Price", "Last Price", "Market Data As-of",
+        "P&L %", "Confidence %", "Sector", "Current Market Cap",
+        "Market Cap As-of", "Size",
+        "Stop", "Stop State", "Stop Distance %", "Max Loss if Stop %",
+        "Target", "Position ID", "Reason"]
+    # The point of this test is that R3 adds exactly ONE column and does
+    # not reorder or rename anything among the R2 block.
+    assert w2.CURRENT_COLUMNS_R3 == ["R3 SHADOW"]
+    assert w2.CURRENT_COLUMNS == w2.CURRENT_COLUMNS_R2 + ["R3 SHADOW"]
 
 
 def test_r2_action_does_not_read_any_r3_value():

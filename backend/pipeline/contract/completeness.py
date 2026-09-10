@@ -48,14 +48,15 @@ EMPTY_TOKENS = {"", "none", "nan", "null", "n/a", "na", "-",
 
 # Fields an actionable row cannot ship without.
 REQUIRED_BY_ACTION = {
-    "NEW":      ("Entry Price", "Current Price", "Stop", "Confidence %"),
-    "ACTIVE+":  ("Entry Price", "Current Price", "Stop", "P&L %"),
-    "ACTIVE":   ("Entry Price", "Current Price", "Stop", "P&L %"),
+    "NEW":      ("Entry Price", "Last Price", "Stop", "Confidence %"),
+    "ACTIVE+":  ("Entry Price", "Last Price", "Stop", "P&L %"),
+    "ACTIVE":   ("Entry Price", "Last Price", "Stop", "P&L %"),
 }
 
 # Fields that should be present but whose absence is upstream, not a bug
 # worth stopping a delivery for.
-EXPECTED = ("Target", "Dist to Stop %", "Stop State", "Reason")
+EXPECTED = ("Target", "Stop Distance %", "Stop State", "Reason",
+            "Sector", "Market Data As-of", "Admission Status")
 
 # Fields where the delivery contract explicitly governs an em-dash.
 #
@@ -65,7 +66,14 @@ EXPECTED = ("Target", "Dist to Stop %", "Stop State", "Reason")
 # Path-A HOLDING whose confidence genuinely predates the field; it is
 # never legitimate on a NEW recommendation, which cannot be judged
 # without one.
-DASH_ALLOWED = {"Target", "Dist to Stop %"}
+DASH_ALLOWED = {"Target", "Stop Distance %", "Size"}
+
+# Explicit "we have no value" strings. They are honest for a HOLDING
+# whose score predates the field, and they must NEVER satisfy a NEW
+# recommendation - a name being proposed today cannot be judged without
+# a confidence, and a sentence explaining its absence is not a value.
+UNAVAILABLE_TOKENS = {"historical score unavailable",
+                      "market_cap_unavailable"}
 
 # Per-action exemptions · an em-dash here is governed, not a gap.
 DASH_ALLOWED_BY_ACTION = {
@@ -87,6 +95,9 @@ def _blank(v, field: str, action: str = "") -> bool:
             return False
         return field not in DASH_ALLOWED_BY_ACTION.get(
             str(action).upper(), set())
+    if s.lower() in UNAVAILABLE_TOKENS:
+        # Governed absence · acceptable on a holding, never on a NEW row.
+        return str(action).upper() == "NEW"
     return s.lower() in EMPTY_TOKENS
 
 
