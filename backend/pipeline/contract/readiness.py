@@ -160,6 +160,55 @@ _UNIVERSE_FILES = {
 }
 
 
+def _universe_list(root: Path, market: str) -> Optional[list]:
+    """The market's declared tickers · None when it cannot be resolved.
+
+    Used to scope price freshness to the names that actually trade. The
+    USA raw directory holds 915 parquets of which only ~516 are in the
+    S&P universe; judging the median bar date over all of them would
+    report a stale book that production never reads.
+    """
+    import json
+    for rel in _UNIVERSE_FILES.get(market.lower(), ()):
+        p = Path(root) / rel
+        if not p.exists():
+            continue
+        try:
+            d = json.loads(p.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        if isinstance(d, list) and d:
+            return [str(x) for x in d if isinstance(x, str)] or None
+        for k in ("tickers", "universe", "symbols", "members",
+                  "active_universe"):
+            v = d.get(k)
+            if isinstance(v, list) and v:
+                out = [x if isinstance(x, str)
+                       else (x.get("ticker") or x.get("symbol"))
+                       for x in v]
+                out = [str(x) for x in out if x]
+                if out:
+                    return out
+    # India declares no universe file · fall back to the feature
+    # snapshot's own breadth, exactly as _universe_size does.
+    try:
+        from backend.feature_store.feature_history import (list_snapshots,
+                                                           read_snapshot)
+        snaps = list_snapshots(Path(root), market.lower())
+        if snaps:
+            df = read_snapshot(Path(root), market.lower(), snaps[-1])
+            if df is not None and len(df):
+                col = next((c for c in ("ticker", "symbol", "Ticker")
+                            if c in df.columns), None)
+                if col:
+                    out = [str(x) for x in df[col].tolist() if x]
+                    if out:
+                        return out
+    except Exception:
+        pass
+    return None
+
+
 def _universe_size(root: Path, market: str) -> Optional[int]:
     import json
     for rel in _UNIVERSE_FILES.get(market.lower(), ()):
@@ -212,6 +261,129 @@ def _prev_feature_rows(root: Path, market: str, asof: str) -> Optional[int]:
         return None
 
 
+
+# ── PRICE BARS · freshness read from the DATA, never from the clock ────
+#
+# This block used to be:
+#
+#     newest = max(f.stat().st_mtime for f in fs)
+#     bars_asof = date.fromtimestamp(newest).isoformat()
+#
+# which had two independent defects, both found in the 2026-09-10 lock
+# audit and both invisible from the certification output.
+#
+# 1 · IT MEASURED THE FILE, NOT THE DATA. A refresh that writes every
+#     parquet but adds no new bar - a holiday, a cache-serving API, a
+#     partial failure - advances every mtime, so the gate certifies
+#     "price_bars asof today · age 0" over data that ended days ago.
+#     This is the one guard whose entire purpose is catching stale
+#     prices, and it could not see them.
+#
+# 2 · IT WAS MARKET-BLIND. The loop broke on the first path that
+#     EXISTED, ignoring the market argument entirely. `usa/data/raw/us`
+#     exists, so INDIA's price freshness was read from USA's 915 files
+#     and India's own 234 parquets were never opened. India's prices
+#     could have been a month stale and the gate would have passed on
+#     USA's refresh.
+#
+# So: each market reads its own directory, and the as-of is the newest
+# BAR DATE inside the files. The universe-median is reported alongside,
+# because a single fresh ticker must not certify a stale book.
+_BAR_DIRS = {
+    "india": ("data/raw/india", "india/data/raw"),
+    "usa": ("usa/data/raw/us", "usa/data/raw", "data/raw/usa"),
+}
+
+# The parquets carry the timestamp as a named index, which lands in the
+# file as a column: `time` for India, `date` for USA. Matched case
+# insensitively so a producer-side rename cannot silently return None.
+_DATE_COLS = ("date", "time", "datetime", "timestamp", "__index_level_0__")
+
+
+def _is_iso_date(v: str) -> bool:
+    try:
+        date.fromisoformat(str(v)[:10])
+        return True
+    except Exception:
+        return False
+
+
+def _bar_date(f: Path) -> Optional[str]:
+    """Newest bar date inside one parquet · None when unreadable.
+
+    The value is VALIDATED as a real ISO date before it is believed. The
+    India raw directory also holds `fundamentals.parquet`, whose pandas
+    index is the TICKER - reading its last row returned the string
+    "PEL", which sorted above every real date and would have become the
+    market's certified as-of. A freshness signal that can be poisoned by
+    a neighbouring file is not a freshness signal.
+    """
+    try:
+        import pyarrow.parquet as pq
+        sch = pq.read_schema(f)
+        col = next((n for n in sch.names
+                    if n.lower() in _DATE_COLS), None)
+        if col is None:
+            return None
+        t = pq.read_table(f, columns=[col])
+        if not t.num_rows:
+            return None
+        # max(), not the last row · never assume the file is sorted.
+        best = None
+        for v in t.column(col).to_pylist():
+            sv = str(v)[:10]
+            if _is_iso_date(sv) and (best is None or sv > best):
+                best = sv
+        return best
+    except Exception:
+        return None
+
+
+def _price_bars_truth(root: Path, market: str,
+                      universe: Optional[list] = None) -> dict:
+    """What the price data ACTUALLY contains, per market."""
+    out = {"asof": None, "median_asof": None, "n_files": 0,
+           "n_readable": 0, "n_unreadable": 0, "dir": None,
+           "scope": "all_files"}
+    m = str(market).lower()
+    for rel in _BAR_DIRS.get(m, ()):
+        d = root / rel
+        if not d.exists():
+            continue
+        # DAILY BARS ONLY, top level only. `data/raw/india` also holds
+        # corporate_actions / fii_dii / fundamentals / news_sentiment and
+        # `intraday/` + `global/` subtrees; sweeping those made 265 files
+        # out of a 234-name book and let a non-price file set the as-of.
+        fs = sorted(d.glob("*_D1.parquet")) or sorted(d.glob("*.parquet"))
+        if not fs:
+            continue
+        out["dir"] = rel
+        # Judge the UNIVERSE when we know it · a stale extended history
+        # is not a reason to block, and a fresh one is not a licence.
+        keep = fs
+        if universe:
+            want = {str(t).upper().split(".")[0] for t in universe}
+            sel = [f for f in fs
+                   if f.stem.split("_")[0].upper() in want]
+            if sel:
+                keep, out["scope"] = sel, "universe"
+        out["n_files"] = len(keep)
+        dates = []
+        for f in keep:
+            bd = _bar_date(f)
+            if bd:
+                dates.append(bd)
+            else:
+                out["n_unreadable"] += 1
+        out["n_readable"] = len(dates)
+        if dates:
+            dates.sort()
+            out["asof"] = dates[-1]
+            out["median_asof"] = dates[len(dates) // 2]
+        break
+    return out
+
+
 def check_data_ready(ctx: RunContext) -> StageContract:
     """GATE 1 · sources present and inside their governed budgets."""
     import time
@@ -227,21 +399,22 @@ def check_data_ready(ctx: RunContext) -> StageContract:
     sources["feature_snapshot"] = {"asof": fa, "age_days": fa_age,
                                    "budget_days": SOURCE_BUDGETS["feature_snapshot"]}
 
-    # ── price bars · newest raw file mtime is the honest signal here ────
-    bars_asof, n_bars = None, 0
-    for rel in ("usa/data/raw/us", "data/raw/india", "india/data/raw"):
-        p = root / rel
-        if p.exists():
-            fs = list(p.rglob("*.parquet"))
-            n_bars = max(n_bars, len(fs))
-            if fs:
-                newest = max(f.stat().st_mtime for f in fs)
-                bars_asof = date.fromtimestamp(newest).isoformat()
-                break
+    # ── price bars · the newest BAR DATE, from this market's own files ──
+    uni_list = _universe_list(root, m)
+    bars = _price_bars_truth(root, m, uni_list)
+    bars_asof, n_bars = bars["asof"], bars["n_files"]
     sources["price_bars"] = {"asof": bars_asof,
                              "age_days": _age_days(asof, bars_asof),
                              "budget_days": SOURCE_BUDGETS["price_bars"],
-                             "n_files": n_bars}
+                             "n_files": n_bars,
+                             "median_asof": bars["median_asof"],
+                             "median_age_days": _age_days(
+                                 asof, bars["median_asof"]),
+                             "n_readable": bars["n_readable"],
+                             "n_unreadable": bars["n_unreadable"],
+                             "dir": bars["dir"],
+                             "scope": bars["scope"],
+                             "measured_from": "bar_date"}
 
     uni = _universe_size(root, m)
     sources["universe"] = {"size": uni}

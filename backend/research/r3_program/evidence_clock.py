@@ -60,7 +60,7 @@ CONSERVED = ("unique_predictions", "matured_outcomes", "fundamental_periods",
              "tickers_ge_8q", "registry_families")
 
 
-def _shadow_counts(root: Path, market: str) -> dict:
+def _shadow_counts(root: Path, market: str, asof: str = "") -> dict:
     from backend.research.r3_program import shadow
     raw = shadow.load_ledger(root, market, raw=True)
     ded = shadow.load_ledger(root, market)
@@ -71,6 +71,19 @@ def _shadow_counts(root: Path, market: str) -> dict:
         matured = sum(1 for l in p.read_text(encoding="utf-8").splitlines()
                       if l.strip())
     dates = sorted({r.get("as_of") for r in ded if r.get("as_of")})
+    # STATELESS INTAKE · how many identities carry TODAY's as-of stamp.
+    #
+    # This is the one accumulation number that cannot be destroyed by a
+    # second invocation, because it is recomputed from the ledger itself
+    # rather than diffed against a saved file. When the baseline was
+    # consumed on 2026-09-10 the snapshot diff read +0 while this read
+    # +43, and this was the correct answer.
+    #
+    # It measures INTAKE only. It cannot see loss - a deleted old row
+    # simply disappears from both sides of the sum - so conservation is
+    # still judged on the saved baseline, never on this.
+    today = str(asof)[:10]
+    n_today = sum(1 for r in ded if str(r.get("as_of"))[:10] == today) if today else 0
     return {
         "raw_rows": len(raw),
         "unique_predictions": len(ded),
@@ -78,6 +91,8 @@ def _shadow_counts(root: Path, market: str) -> dict:
         "unique_tickers": len({r.get("ticker") for r in ded}),
         "prediction_dates": dates,
         "matured_outcomes": matured,
+        "predictions_stamped_today": n_today,
+        "predictions_carried_in": len(ded) - n_today,
     }
 
 
@@ -141,15 +156,16 @@ def _calibration(root: Path) -> dict:
 def snapshot(root: Path) -> dict:
     from backend.research.r3_program import evidence_registry as er
     reg = er.load(root) or er.build(root)
+    asof = date.today().isoformat()
     per = {}
     for m in MARKETS:
-        s = _shadow_counts(root, m)
+        s = _shadow_counts(root, m, asof)
         f = _fundamental_counts(root, m)
         per[m] = {**s, **f}
     return {
         "schema_version": SCHEMA_VERSION,
         "generated_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "asof": date.today().isoformat(),
+        "asof": asof,
         "markets": per,
         "registry_families": reg.get("n_families", 0),
         "ready_for_evaluation": reg.get("ready_for_evaluation") or [],
@@ -162,11 +178,91 @@ def _prev_path(root: Path) -> Path:
             / "R3_EVIDENCE_CLOCK_PREVIOUS.json")
 
 
+def _hist_path(root: Path) -> Path:
+    return (root / "reports" / "research" / "r3"
+            / "R3_EVIDENCE_CLOCK_HISTORY.json")
+
+
+HISTORY_DAYS = 30
+
+
+def _history(root: Path) -> dict:
+    """Snapshots keyed by as-of · one entry per day, never overwritten
+    except for TODAY's own entry.
+
+    A single overwritten baseline file cannot survive this pipeline. The
+    clock runs once per market, so the first market's write rolls the
+    baseline to today and the second market then compares today against
+    itself. Day-scoping the write does not help: the damage is done by
+    the first invocation, not the third.
+
+    Keying by day removes the race entirely. Yesterday's entry is never
+    touched, so every invocation today - India, USA, or a manual re-run -
+    compares against the same fixed prior day and gets the same answer.
+    """
+    h = {}
+    p = _hist_path(root)
+    if p.exists():
+        try:
+            h = json.loads(p.read_text(encoding="utf-8")) or {}
+        except Exception:
+            h = {}
+    if not isinstance(h, dict):
+        h = {}
+    # One-time seed from the legacy single-file baseline, so the first run
+    # after this change does not silently lose the day already recorded.
+    if not h:
+        lp = _prev_path(root)
+        if lp.exists():
+            try:
+                legacy = json.loads(lp.read_text(encoding="utf-8"))
+                if isinstance(legacy, dict) and legacy.get("asof"):
+                    h[str(legacy["asof"])] = legacy
+            except Exception:
+                pass
+    return h
+
+
+def previous_snapshot(root: Path, asof: str) -> Optional[dict]:
+    """The most recent snapshot from a day STRICTLY BEFORE `asof`."""
+    h = _history(root)
+    prior = sorted(k for k in h if str(k) < str(asof))
+    return h[prior[-1]] if prior else None
+
+
+def _stateless_intake(cur: dict) -> dict:
+    """Today's intake, recomputed from as-of stamps · needs no baseline."""
+    return {m: {"predictions_stamped_today":
+                int(cur["markets"].get(m, {}).get(
+                    "predictions_stamped_today", 0) or 0),
+                "predictions_carried_in":
+                int(cur["markets"].get(m, {}).get(
+                    "predictions_carried_in", 0) or 0)}
+            for m in MARKETS}
+
+
 def deltas(cur: dict, prev: Optional[dict]) -> dict:
-    """Run-to-run movement · never manufactured, never flattered."""
+    """Run-to-run movement · never manufactured, never flattered.
+
+    Two independent measurements, deliberately not merged:
+
+    * STATELESS INTAKE - identities stamped with today's as-of, recomputed
+      from the ledger every time. Survives repeated invocation. Sees
+      arrivals, and cannot see losses.
+    * BASELINE DIFF - this snapshot against the previous DAY's. Sees
+      losses, which is what conservation is for, but depends on a file
+      that a second run within the same day must not overwrite.
+
+    Reporting only the diff is how a genuine +43 came to display as +0.
+    Reporting only the intake would let a silent deletion pass. Both.
+    """
+    intake = _stateless_intake(cur)
     if not prev:
         return {"first_run": True,
-                "note": "no previous certified snapshot · nothing to compare"}
+                "stateless_intake": intake,
+                "note": ("no previous certified snapshot · baseline diff "
+                         "unavailable · today's intake is still measured "
+                         "from as-of stamps")}
     out, regressions = {}, []
     for m in MARKETS:
         c, p = cur["markets"].get(m, {}), prev.get("markets", {}).get(m, {})
@@ -190,6 +286,15 @@ def deltas(cur: dict, prev: Optional[dict]) -> dict:
         regressions.append("registry_families %+d" % fam)
     out["regressions"] = regressions
     out["conserved"] = not regressions
+    out["stateless_intake"] = intake
+    out["baseline_asof"] = prev.get("asof")
+    out["baseline_is_same_day"] = bool(prev.get("asof") == cur.get("asof"))
+    if out["baseline_is_same_day"]:
+        # Say so rather than let a row of +0 imply a still day.
+        out["note"] = ("baseline carries TODAY's as-of · the diff below "
+                       "measures movement since the last run today, not "
+                       "since yesterday · read stateless_intake for the "
+                       "day's accumulation")
     return out
 
 
@@ -233,13 +338,7 @@ def may_train(cur: dict) -> dict:
 
 def build(root: Path) -> dict:
     cur = snapshot(root)
-    prev = None
-    p = _prev_path(root)
-    if p.exists():
-        try:
-            prev = json.loads(p.read_text(encoding="utf-8"))
-        except Exception:
-            prev = None
+    prev = previous_snapshot(root, cur["asof"])
     d = deltas(cur, prev)
     g = guards(cur, d)
 
@@ -286,16 +385,39 @@ def emit(root: Path, rep: dict) -> Path:
     d.mkdir(parents=True, exist_ok=True)
     p = d / "R3_EVIDENCE_CLOCK.json"
     p.write_text(json.dumps(rep, indent=2, default=str), encoding="utf-8")
-    # The comparison baseline for the NEXT run · written only when
-    # conservation passed, so a corrupt run cannot become the baseline
-    # that hides the next regression.
-    if rep["conservation"]["pass"]:
-        _prev_path(root).write_text(
-            json.dumps(rep["snapshot"], indent=2, default=str),
+
+    snap = rep.get("snapshot") or {}
+    asof = str(snap.get("asof") or "")
+    if not asof:
+        return p
+
+    # Record TODAY's entry in the day-keyed history.
+    #
+    # Two rules, both learned the hard way:
+    #
+    # 1 · Only TODAY's key is written. Prior days are never touched, so
+    #     the first market's invocation cannot consume the delta the
+    #     second market is about to measure.
+    #
+    # 2 · Written only when conservation passed, so a run that lost
+    #     evidence cannot become the baseline that hides the loss
+    #     tomorrow.
+    if rep.get("conservation", {}).get("pass"):
+        h = _history(root)
+        h[asof] = snap
+        for k in sorted(h)[:-HISTORY_DAYS]:
+            h.pop(k, None)
+        _hist_path(root).write_text(
+            json.dumps(h, indent=2, default=str, sort_keys=True),
             encoding="utf-8")
+        # Derived convenience view · the day actually compared against.
+        # Nothing reads this to make a decision; it exists so an operator
+        # can see the baseline without parsing the history.
+        prev = previous_snapshot(root, asof)
+        if prev is not None:
+            _prev_path(root).write_text(
+                json.dumps(prev, indent=2, default=str), encoding="utf-8")
     return p
-
-
 def load(root: Path) -> Optional[dict]:
     p = root / "reports" / "research" / "r3" / "R3_EVIDENCE_CLOCK.json"
     if not p.exists():
@@ -333,11 +455,28 @@ def render(rep: dict) -> str:
           "", "READY_FOR_EVALUATION: %s"
           % (c["READY_FOR_EVALUATION"]
              if c["READY_FOR_EVALUATION"] != [] else "NONE"),
-          "", "DELTAS vs previous certified snapshot"]
+          ""]
     d = rep["deltas"]
+
+    # ACCUMULATED TODAY comes first and is never suppressed. It is the
+    # question the clock exists to answer, and it is the line that read
+    # "+0" on 2026-09-10 while India had taken in 43 new predictions.
+    si = d.get("stateless_intake") or {}
+    L.append("ACCUMULATED TODAY · counted from as-of stamps")
+    for m in MARKETS:
+        x = si.get(m) or {}
+        L.append("  %-6s %+d new prediction(s) today · %d carried in"
+                 % (m, x.get("predictions_stamped_today", 0),
+                    x.get("predictions_carried_in", 0)))
+    L += ["", "DELTAS vs %s" % (d.get("baseline_asof") or "previous snapshot")]
     if d.get("first_run"):
-        L.append("  first run · no baseline")
-    else:
+        L.append("  no prior day recorded · baseline diff unavailable")
+        L.append("  (accumulation above is still measured · it needs no "
+                 "baseline)")
+    elif d.get("baseline_is_same_day"):
+        L.append("  baseline carries TODAY's as-of · diff below is movement")
+        L.append("  since the last run today, NOT since yesterday")
+    if not d.get("first_run"):
         for m in MARKETS:
             x = d.get(m, {})
             L.append("  %-6s pred %+d · unique %+d · tickers %+d · matured "

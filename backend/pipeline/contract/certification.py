@@ -165,8 +165,20 @@ def render(ctx: RunContext) -> str:
         if name == "DATA_READY":
             for src, info in (c.detail.get("sources") or {}).items():
                 if "asof" in info:
-                    L.append(_row(src, "asof %s · age %s"
-                                  % (info.get("asof"), info.get("age_days"))))
+                    txt = "asof %s · age %s" % (info.get("asof"),
+                                                  info.get("age_days"))
+                    # Price bars state WHERE the date came from and how
+                    # broad it is. "asof 2026-09-10 · age 0" was printed
+                    # for two days over data that ended 2026-09-09,
+                    # because the old check read file mtimes. An operator
+                    # must be able to see the bar date itself.
+                    if src == "price_bars" and info.get("measured_from"):
+                        txt += (" · median %s · %s/%s files (%s)"
+                                % (info.get("median_asof"),
+                                   info.get("n_readable"),
+                                   info.get("n_files"),
+                                   info.get("scope")))
+                    L.append(_row(src, txt))
                 else:
                     L.append(_row(src, info.get("size")))
         elif name == "INTERMARKET":

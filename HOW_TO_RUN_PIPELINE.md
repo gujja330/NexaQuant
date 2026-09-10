@@ -87,6 +87,89 @@ Everything after the first failure is a consequence, so it is reported as
 
 ---
 
+## Running it daily on this machine
+
+Two runs a day. Both markets, both with `--refresh`.
+
+```powershell
+# Morning · before the India open
+python -m backend.pipeline.contract.runner --market both --refresh --send
+
+# Evening · after the US close
+python -m backend.pipeline.contract.runner --market both --refresh --send
+```
+
+`--refresh` is not optional for a daily run. Without it the stops are
+never recomputed, and the run judges whatever happens to be on disk. A
+no-refresh run on 2026-09-10 admitted 8 NEW USA names with no Stop and
+was correctly BLOCKED at FIELDS_COMPLETE — nothing shipped, which is the
+contract working, but it is not a run you want to depend on.
+
+### Scheduling it (Windows Task Scheduler)
+
+```powershell
+$py  = (Get-Command python).Source
+$dir = "C:\Users\GPraveenKumar\Downloads\prism"
+$act = New-ScheduledTaskAction -Execute $py `
+         -Argument "-m backend.pipeline.contract.runner --market both --refresh --send" `
+         -WorkingDirectory $dir
+$am  = New-ScheduledTaskTrigger -Daily -At 8:30am
+$pm  = New-ScheduledTaskTrigger -Daily -At 6:30pm
+Register-ScheduledTask -TaskName "AEGIS daily" -Action $act -Trigger $am,$pm
+```
+
+Check what it did:
+
+```powershell
+Get-ScheduledTaskInfo "AEGIS daily"      # last run time + result (0 = certified)
+Get-Content reports\context\run_certification_india.txt
+```
+
+A scheduled run that returns `1` shipped nothing. That is the design: the
+task failing is the system telling you it refused to publish.
+
+---
+
+## Verifying a run without taking anyone's word for it
+
+Read these six lines. They are the run's own evidence, not a summary of it.
+
+```
+price_bars       asof 2026-09-09 · age 1 · median 2026-09-09 · 225/225 files (universe)
+feature_snapshot asof 2026-09-10 · age 0
+DECISION_READY   scored N → N terminal dispositions · orphans 0
+FIELDS_COMPLETE  required gaps 0
+DELIVERY_READY   override False
+FINAL: ✅ CERTIFIED
+```
+
+What each one is protecting you from:
+
+| Line | Reads wrong when |
+|---|---|
+| `price_bars ... median ... (universe)` | the price feed ran but added no bar |
+| `feature_snapshot age 0` | today is being scored on an older snapshot |
+| `scored N → N` | a candidate vanished without a disposition |
+| `required gaps 0` | an actionable row is missing a Stop or Entry |
+| `override False` | a gate was bypassed rather than passed |
+
+**`price_bars` is the one to read first.** Until 2026-09-10 it reported
+the newest *file timestamp*, so it printed `asof 2026-09-10 · age 0` over
+data that ended 2026-09-09 — and it read USA's directory when certifying
+India, because the path loop ignored the market. It now reports the newest
+**bar date inside this market's own files**, plus the universe median, so
+one fresh ticker cannot certify a stale book. If that line ever disagrees
+with the workbook's dates, stop and investigate.
+
+### Prices are the last completed close
+
+`price_bars asof 2026-09-09` on a 2026-09-10 workbook is **correct** when
+the run fires before the session closes. The morning run at 09:15 IST
+cannot have the 09-10 close, because it does not exist yet. What you
+should never see is that line claiming a date the data does not contain.
+
+---
+
 ## Where the output goes
 
 | File | What it is |

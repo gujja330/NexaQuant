@@ -11,6 +11,7 @@ Each test below corresponds to a failure that actually shipped:
 The point of every one is the same: the pipeline must REFUSE, not report.
 """
 from __future__ import annotations
+import json
 
 from datetime import date, timedelta
 from pathlib import Path
@@ -474,12 +475,21 @@ def test_no_new_model_guard_blocks_when_nothing_is_ready():
     assert "PREDEFINED" in g2["reason"]
 
 
-def test_clock_baseline_is_written_only_when_conservation_passes():
+def test_clock_baseline_is_written_only_when_conservation_passes(tmp_path):
     """A corrupt run must not become the baseline that hides the next
-    regression."""
+    regression.
+
+    Asserted behaviourally. This was a grep for a source string, which
+    broke on a refactor that preserved the behaviour exactly - a test
+    that fails when nothing is wrong teaches people to ignore it.
+    """
     from backend.research.r3_program import evidence_clock as ec
-    src = Path(ec.__file__).read_text(encoding="utf-8")
-    assert 'if rep["conservation"]["pass"]:' in src
+    (tmp_path / "reports" / "research" / "r3").mkdir(parents=True)
+    ec.emit(tmp_path, {"snapshot": _snap("2026-09-09", 53, 30),
+                       "conservation": {"pass": True}})
+    ec.emit(tmp_path, {"snapshot": _snap("2026-09-10", 5, 2),
+                       "conservation": {"pass": False}})
+    assert ec.previous_snapshot(tmp_path, "2026-09-11")["asof"] == "2026-09-09"
 
 
 def test_calibration_reports_not_started_rather_than_a_fake_ece():
@@ -595,3 +605,185 @@ def test_no_row_displays_a_target_at_or_below_current_price(market, tmp_path):
             bad.append((str(t), tg, cp))
     wb.close()
     assert not bad, "targets at/below current price: %s" % bad[:4]
+
+
+# ── evidence clock · the baseline must survive a second invocation ────
+#
+# The clock is wired into a per-market loop, so it runs twice per pipeline
+# run. India's invocation used to overwrite the baseline and USA's then
+# compared against it: on 2026-09-10 the report read +0 for both markets
+# while India had genuinely gone 53 -> 96 unique predictions. The delta
+# was consumed into the baseline and never displayed.
+
+def _snap(asof, india_unique, usa_unique, today_stamped=0):
+    def mk(n, t):
+        return {"raw_rows": n, "unique_predictions": n, "unique_tickers": n,
+                "matured_outcomes": 0, "fundamental_periods": 0,
+                "tickers": 0, "tickers_ge_8q": 0, "median_quarters": 0,
+                "predictions_stamped_today": t,
+                "predictions_carried_in": n - t}
+    return {"asof": asof, "registry_families": 0,
+            "markets": {"india": mk(india_unique, today_stamped),
+                        "usa": mk(usa_unique, today_stamped)}}
+
+
+def test_clock_baseline_is_not_overwritten_within_the_same_day(tmp_path):
+    """A second invocation on the same as-of must not consume the delta."""
+    from backend.research.r3_program import evidence_clock as ec
+    d = tmp_path / "reports" / "research" / "r3"
+    d.mkdir(parents=True)
+    base = _snap("2026-09-09", 53, 30)
+    (d / "R3_EVIDENCE_CLOCK_PREVIOUS.json").write_text(
+        json.dumps(base), encoding="utf-8")
+
+    cur = _snap("2026-09-10", 96, 38, today_stamped=43)
+    for _ in range(3):                       # india, usa, and a manual re-run
+        rep = {"snapshot": cur, "conservation": {"pass": True}}
+        ec.emit(tmp_path, rep)
+        held = json.loads(
+            (d / "R3_EVIDENCE_CLOCK_PREVIOUS.json").read_text(encoding="utf-8"))
+        assert held["asof"] == "2026-09-09", (
+            "baseline rolled forward within the same day · the day-over-day "
+            "delta has been consumed and can never be displayed")
+        assert ec.deltas(cur, held)["india"]["unique_predictions"] == 43
+
+
+def test_clock_baseline_rolls_when_the_day_moves(tmp_path):
+    """Today's entry is recorded, and tomorrow compares against it."""
+    from backend.research.r3_program import evidence_clock as ec
+    d = tmp_path / "reports" / "research" / "r3"
+    d.mkdir(parents=True)
+    (d / "R3_EVIDENCE_CLOCK_PREVIOUS.json").write_text(
+        json.dumps(_snap("2026-09-09", 53, 30)), encoding="utf-8")
+    ec.emit(tmp_path, {"snapshot": _snap("2026-09-10", 96, 38),
+                       "conservation": {"pass": True}})
+    # Yesterday is still the baseline for TODAY ...
+    assert ec.previous_snapshot(tmp_path, "2026-09-10")["asof"] == "2026-09-09"
+    # ... and today has been recorded as the baseline for TOMORROW.
+    nxt = ec.previous_snapshot(tmp_path, "2026-09-11")
+    assert nxt["asof"] == "2026-09-10"
+    assert nxt["markets"]["india"]["unique_predictions"] == 96
+
+
+def test_clock_never_baselines_a_failed_conservation(tmp_path):
+    from backend.research.r3_program import evidence_clock as ec
+    d = tmp_path / "reports" / "research" / "r3"
+    d.mkdir(parents=True)
+    (d / "R3_EVIDENCE_CLOCK_PREVIOUS.json").write_text(
+        json.dumps(_snap("2026-09-09", 53, 30)), encoding="utf-8")
+    ec.emit(tmp_path, {"snapshot": _snap("2026-09-10", 12, 4),
+                       "conservation": {"pass": False}})
+    held = json.loads(
+        (d / "R3_EVIDENCE_CLOCK_PREVIOUS.json").read_text(encoding="utf-8"))
+    assert held["asof"] == "2026-09-09", (
+        "a run that lost evidence became the baseline · the loss would be "
+        "invisible tomorrow")
+
+
+def test_clock_reports_intake_without_any_baseline(tmp_path):
+    """Stateless intake survives a consumed or absent baseline."""
+    from backend.research.r3_program import evidence_clock as ec
+    cur = _snap("2026-09-10", 96, 38, today_stamped=43)
+    first = ec.deltas(cur, None)
+    assert first["first_run"] is True
+    assert first["stateless_intake"]["india"]["predictions_stamped_today"] == 43
+    same_day = ec.deltas(cur, _snap("2026-09-10", 96, 38, today_stamped=43))
+    assert same_day["baseline_is_same_day"] is True
+    assert same_day["india"]["unique_predictions"] == 0      # diff is blind
+    assert same_day["stateless_intake"]["india"][
+        "predictions_stamped_today"] == 43                   # intake is not
+    assert "not since yesterday" in same_day["note"]
+
+
+def test_clock_conservation_still_catches_loss(tmp_path):
+    """Intake must not be allowed to mask a deletion."""
+    from backend.research.r3_program import evidence_clock as ec
+    cur = _snap("2026-09-10", 40, 38, today_stamped=43)
+    d = ec.deltas(cur, _snap("2026-09-09", 53, 30))
+    assert d["conserved"] is False
+    assert any("india.unique_predictions" in r for r in d["regressions"])
+
+
+# ── price freshness must come from the DATA, per market ───────────────
+#
+# Two defects found in the 2026-09-10 lock audit, both invisible in the
+# certification output:
+#   1 · freshness was the newest FILE MTIME, so a refresh that wrote every
+#       parquet without adding a bar certified "age 0" over stale data;
+#   2 · the directory loop ignored the market and broke on the first path
+#       that existed, so INDIA's freshness was read from USA's files.
+
+def _bars(tmp_path, rel, rows):
+    """rows = {ticker: [iso dates]} written as <TICKER>_D1.parquet."""
+    import pandas as pd
+    d = tmp_path / rel
+    d.mkdir(parents=True, exist_ok=True)
+    for tk, dates in rows.items():
+        df = pd.DataFrame({"close": [1.0] * len(dates)},
+                          index=pd.DatetimeIndex(
+                              [pd.Timestamp(x) for x in dates], name="date"))
+        df.to_parquet(d / ("%s_D1.parquet" % tk))
+    return d
+
+
+def test_price_freshness_reads_bar_dates_not_file_mtime(tmp_path):
+    from backend.pipeline.contract import readiness as R
+    _bars(tmp_path, "data/raw/india",
+          {"AAA": ["2026-09-01", "2026-09-02"], "BBB": ["2026-09-02"]})
+    b = R._price_bars_truth(tmp_path, "india", None)
+    # The files were written just now; their mtime is today. The DATA
+    # ends 2026-09-02, and that is what freshness must report.
+    assert b["asof"] == "2026-09-02", (
+        "freshness followed the file clock instead of the bar dates")
+
+
+def test_price_freshness_is_per_market(tmp_path):
+    """India must never be certified by USA's files."""
+    from backend.pipeline.contract import readiness as R
+    _bars(tmp_path, "usa/data/raw/us", {"MSFT": ["2026-09-09"]})
+    _bars(tmp_path, "data/raw/india", {"AAA": ["2026-08-01"]})
+    assert R._price_bars_truth(tmp_path, "india", None)["asof"] == "2026-08-01"
+    assert R._price_bars_truth(tmp_path, "usa", None)["asof"] == "2026-09-09"
+
+
+def test_price_freshness_ignores_non_price_parquets(tmp_path):
+    """A neighbouring file must not be able to set the as-of.
+
+    `fundamentals.parquet` is indexed by TICKER; reading its last row
+    returned the string "PEL", which sorted above every real date.
+    """
+    import pandas as pd
+    from backend.pipeline.contract import readiness as R
+    d = _bars(tmp_path, "data/raw/india", {"AAA": ["2026-09-09"]})
+    pd.DataFrame({"returnOnEquity": [0.2, 0.3]},
+                 index=pd.Index(["PEL", "ZZZ"], name=None)
+                 ).to_parquet(d / "fundamentals.parquet")
+    (d / "intraday").mkdir(exist_ok=True)
+    pd.DataFrame({"close": [1.0]},
+                 index=pd.DatetimeIndex([pd.Timestamp("2027-01-01")],
+                                        name="date")
+                 ).to_parquet(d / "intraday" / "AAA_M5.parquet")
+    b = R._price_bars_truth(tmp_path, "india", None)
+    assert b["asof"] == "2026-09-09", (
+        "a non-price or intraday file set the market's certified as-of")
+
+
+def test_price_freshness_reports_the_median_not_just_the_newest(tmp_path):
+    """One fresh ticker must not certify a stale book."""
+    from backend.pipeline.contract import readiness as R
+    _bars(tmp_path, "data/raw/india",
+          {"AAA": ["2026-09-09"], "BBB": ["2026-08-01"],
+           "CCC": ["2026-08-01"], "DDD": ["2026-08-01"]})
+    b = R._price_bars_truth(tmp_path, "india", None)
+    assert b["asof"] == "2026-09-09"
+    assert b["median_asof"] == "2026-08-01"
+
+
+def test_price_freshness_scopes_to_the_universe_when_known(tmp_path):
+    from backend.pipeline.contract import readiness as R
+    _bars(tmp_path, "data/raw/india",
+          {"AAA": ["2026-09-09"], "OLD": ["2026-01-01"]})
+    scoped = R._price_bars_truth(tmp_path, "india", ["AAA"])
+    assert scoped["scope"] == "universe"
+    assert scoped["median_asof"] == "2026-09-09"
+    assert R._price_bars_truth(tmp_path, "india", None)["scope"] == "all_files"
