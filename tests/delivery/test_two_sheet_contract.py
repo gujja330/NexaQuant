@@ -14,6 +14,8 @@ from pathlib import Path
 
 import pytest
 
+from conftest import lifecycle   # computes from SOURCE, never a committed artifact
+
 ROOT = Path(__file__).resolve().parents[2]
 XLSX = {m: ROOT / "reports" / "telegram" / f"aegis_history_{m}.xlsx"
         for m in ("india", "usa")}
@@ -56,7 +58,7 @@ def _wb(market: str):
         return load_workbook(_FRESH[market], data_only=True)
 
     from backend.delivery.lifecycle import canonical_daily_lifecycle as lc
-    d = lc.load(ROOT, market)
+    d = lifecycle(market)
     if d:
         try:
             import tempfile
@@ -356,9 +358,15 @@ def test_14_no_r3_or_research_in_workbook(market):
     r3_hdr = [h for h in hdr if h.startswith("R3 ")]
     assert set(r3_hdr) == set(w2.CURRENT_COLUMNS_R3), (
         "R3 header block differs from the declared contract: %s" % r3_hdr)
-    first_r3 = min(hdr.index(h) for h in r3_hdr)
-    last_r2 = max(hdr.index(h) for h in w2.CURRENT_COLUMNS_R2 if h in hdr)
-    assert first_r3 > last_r2, "R3 column interleaved with R2 columns"
+    # SUPERSEDED 2026-09-10 · R3 used to be pinned after every R2 column.
+    # The CEO moved it beside Action so the shadow opinion is read next to
+    # the decision it annotates. What must still hold is that there is
+    # exactly ONE R3 column and it sits directly after Action — position,
+    # not precedence. R2 Action is still decided before any R3 value is
+    # read, and R3 still writes nothing.
+    assert len(r3_hdr) == 1, "more than one R3 column"
+    assert hdr.index(r3_hdr[0]) == hdr.index("Action") + 1, (
+        "R3 is not beside Action")
 
     # Research plumbing never reaches an investor sheet · unchanged.
     for bad in ("shadow_ledger", "Tier-1", "FDR", "Brier", "trial_count",
@@ -488,7 +496,7 @@ def test_lifecycle_stage_runs_before_the_workbook_in_the_pipeline():
 def test_workbook_matches_the_lifecycle_dataset_exactly(market):
     """The rendered sheet must equal the dataset · no drift, no extra rows."""
     from backend.delivery.lifecycle import canonical_daily_lifecycle as lc
-    d = lc.load(ROOT, market)
+    d = lifecycle(market)
     if d is None:
         pytest.skip("lifecycle dataset not produced")
     wb = _wb(market)
@@ -542,7 +550,7 @@ BREACH_SOURCE = "lifecycle:stop-breach"
 def test_no_breached_row_survives_in_current(market):
     """CURRENT is breach-free · dataset AND rendered sheet."""
     from backend.delivery.lifecycle import canonical_daily_lifecycle as lc
-    d = lc.load(ROOT, market)
+    d = lifecycle(market)
     if d is None:
         pytest.skip("lifecycle dataset not produced")
     bad = [r["ticker"] for r in d["current"] if r.get("stop_state") == "BREACHED"]
@@ -560,7 +568,7 @@ def test_no_breached_row_survives_in_current(market):
 def test_breach_exit_preserves_reason_and_pnl(market):
     """The loss must survive the transition · that is the whole point."""
     from backend.delivery.lifecycle import canonical_daily_lifecycle as lc
-    d = lc.load(ROOT, market)
+    d = lifecycle(market)
     if d is None:
         pytest.skip("lifecycle dataset not produced")
     bx = [e for e in d["exits"] if e.get("source") == BREACH_SOURCE]
@@ -583,7 +591,7 @@ def test_breach_marks_never_pollute_realized_statistics(market):
     win-rate. Distinct source is what keeps the two apart.
     """
     from backend.delivery.lifecycle import canonical_daily_lifecycle as lc
-    d = lc.load(ROOT, market)
+    d = lifecycle(market)
     if d is None:
         pytest.skip("lifecycle dataset not produced")
     for e in d["exits"]:
@@ -665,7 +673,7 @@ def test_breach_transition_changed_no_engine():
 def test_breach_exit_rows_are_rendered_and_labelled(market):
     """An investor must be able to tell a mark from a completed trade."""
     from backend.delivery.lifecycle import canonical_daily_lifecycle as lc
-    d = lc.load(ROOT, market)
+    d = lifecycle(market)
     if d is None:
         pytest.skip("lifecycle dataset not produced")
     n = sum(1 for e in d["exits"] if e.get("source") == BREACH_SOURCE)
@@ -691,7 +699,7 @@ def test_current_states_both_dates(market):
     header with nothing stating the difference.
     """
     from backend.delivery.lifecycle import canonical_daily_lifecycle as lc
-    d = lc.load(ROOT, market)
+    d = lifecycle(market)
     if not d:
         pytest.skip("no lifecycle dataset")
     ws = _wb(market)["CURRENT"]
@@ -712,9 +720,9 @@ def test_current_carries_sector_cap_and_admission(market):
     # The renames must be complete, not additive.
     assert "Current Price" not in hdr
     assert "Dist to Stop %" not in hdr
-    # Exactly one R3 column, still last.
+    # Exactly one R3 column, now immediately after Action.
     assert hdr.count("R3 SHADOW") == 1
-    assert hdr[len([h for h in hdr if h]) - 1] == "R3 SHADOW"
+    assert hdr.index("R3 SHADOW") == hdr.index("Action") + 1
 
 
 @pytest.mark.parametrize("market", ("india", "usa"))
@@ -744,7 +752,7 @@ def test_market_cap_is_never_a_liquidity_bucket(market):
 def test_admission_status_keeps_yesterdays_new_visible(market):
     """A name admitted yesterday must not become anonymous today."""
     from backend.delivery.lifecycle import canonical_daily_lifecycle as lc
-    d = lc.load(ROOT, market)
+    d = lifecycle(market)
     if not d:
         pytest.skip("no lifecycle dataset")
     ws = _wb(market)["CURRENT"]

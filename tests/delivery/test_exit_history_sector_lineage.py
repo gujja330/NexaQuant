@@ -29,6 +29,8 @@ from backend.delivery.xlsx_contract import (EXIT_HISTORY_SHEET_ALIASES,
                                             resolve_exit_history_sheet,
                                             resolve_portfolio_sheet)
 
+from conftest import lifecycle   # computes from SOURCE, never a committed artifact
+
 ROOT = Path(__file__).resolve().parents[2]
 MARKETS = ("india", "usa")
 
@@ -76,7 +78,7 @@ def test_validators_do_not_keep_private_alias_lists():
 
 def test_lifecycle_attaches_sector_to_every_record():
     for m in MARKETS:
-        d = lc.load(ROOT, m)
+        d = lifecycle(m)
         if not d:
             pytest.skip("no lifecycle dataset for %s" % m)
         for key in ("current", "exits"):
@@ -89,7 +91,7 @@ def test_lifecycle_attaches_sector_to_every_record():
 def test_sector_is_never_blank_or_guessed():
     """Absence is stated, not left empty and not filled in."""
     for m in MARKETS:
-        d = lc.load(ROOT, m)
+        d = lifecycle(m)
         if not d:
             continue
         for r in (d.get("exits") or []):
@@ -109,7 +111,7 @@ def test_sector_comes_from_the_canonical_cache_only():
 def test_canonical_sector_reaches_the_rendered_xlsx(tmp_path):
     """The full path the mandate names: canonical -> dataframe -> sheet."""
     for m in MARKETS:
-        d = lc.load(ROOT, m)
+        d = lifecycle(m)
         if not d:
             continue
         built = w2.build_two_sheet_workbook(ROOT, m, d.get("asof"))
@@ -143,7 +145,7 @@ def test_canonical_sector_reaches_the_rendered_xlsx(tmp_path):
 def test_a19_validates_the_rendered_sheet_not_the_dataframe():
     from backend.research.wave_regression import compute
     for m in MARKETS:
-        rep = compute(ROOT, m, lc.load(ROOT, m).get("asof"))
+        rep = compute(ROOT, m, lifecycle(m).get("asof"))
         a19 = [c for c in rep.checks if c["code"] == "A19"]
         assert a19 and a19[0]["status"] == "PASS", a19
 
@@ -257,7 +259,7 @@ def test_a23_refuses_to_call_a_missing_sheet_a_silent_loss():
 @pytest.mark.parametrize("market", MARKETS)
 def test_a23_passes(market):
     from backend.research.wave_regression import compute
-    rep = compute(ROOT, market, lc.load(ROOT, market).get("asof"))
+    rep = compute(ROOT, market, lifecycle(market).get("asof"))
     a23 = [c for c in rep.checks if c["code"] == "A23"]
     assert a23 and a23[0]["status"] == "PASS", a23
 
@@ -281,7 +283,7 @@ def test_two_sheet_contract_still_holds(tmp_path):
     property of the BUILDER, so build one and check that.
     """
     for m in MARKETS:
-        d = lc.load(ROOT, m)
+        d = lifecycle(m)
         if not d:
             continue
         built = w2.build_two_sheet_workbook(ROOT, m, d.get("asof"))
@@ -325,7 +327,7 @@ def test_every_population_is_classified_distinctly():
 def test_realized_population_excludes_reconstructions(market):
     """No orphan, admin or breach record may carry REALIZED EXIT."""
     from backend.delivery.lifecycle import canonical_daily_lifecycle as lc
-    d = lc.load(ROOT, market)
+    d = lifecycle(market)
     if not d:
         pytest.skip("no lifecycle dataset for %s" % market)
     rows = d.get("exits") or []
@@ -345,7 +347,7 @@ def test_populations_sum_to_the_sheet(market):
     """Every row belongs to exactly one population · nothing double-counted."""
     from collections import Counter
     from backend.delivery.lifecycle import canonical_daily_lifecycle as lc
-    d = lc.load(ROOT, market)
+    d = lifecycle(market)
     if not d:
         pytest.skip("no lifecycle dataset for %s" % market)
     rows = d.get("exits") or []

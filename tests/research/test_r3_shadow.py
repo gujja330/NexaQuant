@@ -210,9 +210,17 @@ def test_shadow_appears_only_as_a_separated_block_in_current():
         cur = [str(c.value).strip() if c.value else "" for c in wb["CURRENT"][7]]
         r3_cols = [h for h in cur if h.startswith("R3 ")]
         assert r3_cols, "R3 block missing from CURRENT"
-        first_r3 = min(cur.index(h) for h in r3_cols)
-        last_r2 = max(cur.index(h) for h in w2.CURRENT_COLUMNS_R2 if h in cur)
-        assert first_r3 > last_r2, "R3 column interleaved with R2 columns"
+        # SUPERSEDED 2026-09-10 · R3 used to be pinned after every R2
+        # column. The CEO moved it beside Action so the shadow opinion is
+        # read next to the decision it annotates. The invariant that
+        # matters is unchanged: exactly ONE R3 column, and it comments on
+        # Action rather than sitting inside the R2 decision fields.
+        # Position is not precedence - R2 Action is still decided before
+        # any R3 value is read and R3 still writes nothing.
+        assert len(r3_cols) == 1, "more than one R3 column: %s" % r3_cols
+        assert cur.index(r3_cols[0]) == cur.index("Action") + 1, (
+            "R3 is not beside Action")
+        assert [h for h in cur if h and h != r3_cols[0]] ==             w2.CURRENT_COLUMNS_R2, "an R2 column was changed by the move"
 
         ex = [str(c.value).strip() if c.value else ""
               for c in wb["EXIT HISTORY"][4]]

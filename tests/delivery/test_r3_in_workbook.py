@@ -21,6 +21,8 @@ from openpyxl import load_workbook
 from backend.delivery.lifecycle import canonical_daily_lifecycle as lc
 from backend.delivery.sheets import workbook_two as w2
 
+from conftest import lifecycle   # computes from SOURCE, never a committed artifact
+
 ROOT = Path(__file__).resolve().parents[2]
 MARKETS = ("india", "usa")
 HDR = 7
@@ -42,7 +44,7 @@ def _current(path: Path):
 
 
 def _built(market: str, tmp_path: Path) -> Path:
-    d = lc.load(ROOT, market)
+    d = lifecycle(market)
     if not d:
         pytest.skip("no lifecycle dataset for %s" % market)
     b = w2.build_two_sheet_workbook(ROOT, market, d.get("asof"))
@@ -58,11 +60,18 @@ def test_r3_surface_is_exactly_one_column():
     assert w2.CURRENT_COLUMNS_R3 == ["R3 SHADOW"], w2.CURRENT_COLUMNS_R3
 
 
-def test_r3_columns_come_after_every_r2_column():
+def test_r3_column_sits_beside_action():
+    # SUPERSEDED 2026-09-10 · R3 used to be pinned after every R2 column.
+    # The CEO moved it beside Action so the shadow opinion is read next to
+    # the decision it annotates. What must still hold is that there is
+    # exactly ONE R3 column and it sits directly after Action — position,
+    # not precedence. R2 Action is still decided before any R3 value is
+    # read, and R3 still writes nothing.
     cols = w2.CURRENT_COLUMNS
-    first_r3 = min(cols.index(c) for c in w2.CURRENT_COLUMNS_R3)
-    last_r2 = max(cols.index(c) for c in w2.CURRENT_COLUMNS_R2)
-    assert first_r3 > last_r2, "an R3 column is interleaved with R2 columns"
+    assert len(w2.CURRENT_COLUMNS_R3) == 1
+    assert cols.index("R3 SHADOW") == cols.index("Action") + 1
+    # No R2 column was dropped, renamed or reordered by the move.
+    assert [c for c in cols if c != "R3 SHADOW"] == w2.CURRENT_COLUMNS_R2
 
 
 def test_r2_column_set_is_unchanged_by_the_r3_block():
@@ -76,7 +85,15 @@ def test_r2_column_set_is_unchanged_by_the_r3_block():
     # The point of this test is that R3 adds exactly ONE column and does
     # not reorder or rename anything among the R2 block.
     assert w2.CURRENT_COLUMNS_R3 == ["R3 SHADOW"]
-    assert w2.CURRENT_COLUMNS == w2.CURRENT_COLUMNS_R2 + ["R3 SHADOW"]
+    # R3 sits BESIDE Action (CEO 2026-09-10) rather than at the end, so
+    # the shadow opinion is read next to the decision it comments on.
+    # Position is not precedence: the R2 column set is unchanged, R2
+    # Action is still decided before any R3 value is read, and R3 still
+    # writes nothing.
+    assert w2.CURRENT_COLUMNS == w2._with_r3(w2.CURRENT_COLUMNS_R2)
+    assert w2.CURRENT_COLUMNS.index("R3 SHADOW") ==         w2.CURRENT_COLUMNS.index("Action") + 1
+    assert w2.CURRENT_COLUMNS.count("R3 SHADOW") == 1
+    assert [c for c in w2.CURRENT_COLUMNS if c != "R3 SHADOW"] ==         w2.CURRENT_COLUMNS_R2
 
 
 def test_r2_action_does_not_read_any_r3_value():
@@ -119,7 +136,7 @@ def test_every_r2_row_reads_abstain_or_not_evaluated(tmp_path):
     be a fabricated value.
     """
     for m in MARKETS:
-        d = lc.load(ROOT, m)
+        d = lifecycle(m)
         if not d:
             continue
         led = w2.load_r3_shadow(ROOT, m, d.get("asof"))
@@ -130,12 +147,17 @@ def test_every_r2_row_reads_abstain_or_not_evaluated(tmp_path):
         for r in r2:
             tk = str(r.get("Ticker") or "").upper()
             cell = str(r["R3 SHADOW"])
-            want = led[tk]["r3_action"] if tk in led else "NOT_EVALUATED"
-            assert cell.startswith(want), (
-                "%s: rendered %r, ledger says %r" % (tk, cell, want))
+            # The sheet now speaks plain English (CEO 2026-09-10), so the
+            # ledger's state name is mapped to its investor wording rather
+            # than compared verbatim. The internal state is unchanged.
+            state = led[tk]["r3_action"] if tk in led else None
+            want = (w2.R3_TEXT.get(str(state).upper())
+                    if state else w2.R3_NO_SNAPSHOT_TEXT)
+            assert cell == want, (
+                "%s: rendered %r, ledger says %r" % (tk, cell, state))
             # Whatever the ledger state, no verdict may be invented.
-            assert cell.split(" · ")[0] in {
-                "TAKE", "AVOID", "ABSTAIN", "NOT_EVALUATED"}, cell
+            assert cell in set(w2.R3_TEXT.values()) | {
+                w2.R3_NO_SNAPSHOT_TEXT}, cell
 
 
 def test_r1_rows_are_not_applicable(tmp_path):
@@ -143,7 +165,8 @@ def test_r1_rows_are_not_applicable(tmp_path):
         hdr, rows = _current(_built(m, tmp_path))
         for r in rows:
             if str(r.get("Engine") or "").upper() == "R1":
-                assert str(r["R3 SHADOW"]).startswith("N/A"), r["R3 SHADOW"]
+                assert str(r["R3 SHADOW"]) == w2.R3_NOT_APPLICABLE_TEXT, (
+                    r["R3 SHADOW"])
 
 
 def test_no_r3_cell_is_ever_blank(tmp_path):
@@ -170,7 +193,7 @@ def test_no_r3_cell_renders_a_bare_zero(tmp_path):
 def test_r3_cells_match_the_shadow_ledger(tmp_path):
     """Rendered, not derived."""
     for m in MARKETS:
-        d = lc.load(ROOT, m)
+        d = lifecycle(m)
         if not d:
             continue
         led = w2.load_r3_shadow(ROOT, m, d.get("asof"))
@@ -181,7 +204,10 @@ def test_r3_cells_match_the_shadow_ledger(tmp_path):
         for r in rows:
             rec = led.get(str(r.get("Ticker") or "").upper())
             if rec and str(r.get("Engine") or "").upper() in w2.R3_ENGINES:
-                assert str(r["R3 SHADOW"]).startswith(rec["r3_action"])
+                # Plain-English wording maps 1:1 from the ledger state;
+                # the mapping is the only thing between them.
+                assert str(r["R3 SHADOW"]) == w2.R3_TEXT[
+                    str(rec["r3_action"]).upper()]
                 checked += 1
         assert checked > 0, "no R3 rows verified for %s" % m
 
@@ -195,7 +221,11 @@ def test_sheet_states_r3_does_not_change_r2(tmp_path):
         text = " ".join(str(ws.cell(r, 1).value or "")
                         for r in range(1, HDR))
         wb.close()
-        assert "does NOT change R2 Action" in text, text[:300]
+        # Wording changed 2026-09-10; the CLAIM must still be on the sheet.
+        assert "does NOT change" in text and "RESEARCH ONLY" in text, text[:300]
+        for field in ("Action", "Confidence", "Stop", "Position"):
+            assert field in text, "%s not named in the R3 note" % field
+        assert "Not rated yet" in text, "the note does not explain the state"
 
 
 def test_stale_warning_is_not_overwritten_by_the_r3_notice():
@@ -233,3 +263,47 @@ def test_exit_history_carries_no_r3_columns(tmp_path):
                for c in wb["EXIT HISTORY"][4]]
         wb.close()
         assert not [h for h in hdr if h.startswith("R3 ")], hdr
+
+
+# ── plain-English R3 wording · CEO 2026-09-10 "abstain is confusing" ──
+
+def test_r3_cell_never_shows_audit_jargon():
+    """The investor sheet must not carry state-machine vocabulary."""
+    for eng in ("R2", "MOMENTUM", "R1"):
+        for rec in (None, {"r3_action": "ABSTAIN"}, {"r3_action": "TAKE"},
+                    {"r3_action": "AVOID"}, {"r3_action": "WEIRD_STATE"}):
+            cell = w2.r3_cells(rec, eng)[0]
+            for jargon in ("ABSTAIN", "NOT_EVALUATED", "N/A",
+                           "INSUFFICIENT_SUBSTRATE", "NOT_AVAILABLE_AT_ASOF"):
+                assert jargon not in cell, "%r leaked into %r" % (jargon, cell)
+
+
+def test_no_r3_state_reads_as_a_neutral_opinion():
+    """"No view"/"Neutral" would be heard as a mild HOLD.
+
+    That is precisely the misreading ABSTAIN existed to prevent, so the
+    cell must say the RATING IS ABSENT, not that it is middling.
+    """
+    cell = w2.r3_cells({"r3_action": "ABSTAIN"}, "R2")[0]
+    assert "Not rated yet" in cell
+    for wrong in ("hold", "neutral", "50/50", "no view", "unsure",
+                  "buy", "sell"):
+        assert wrong not in cell.lower(), "%r reads as an opinion" % cell
+
+
+def test_caution_never_reads_as_exit_and_supports_never_as_buy():
+    avoid = w2.r3_cells({"r3_action": "AVOID"}, "R2")[0]
+    take = w2.r3_cells({"r3_action": "TAKE"}, "R2")[0]
+    assert "not an exit" in avoid.lower(), avoid
+    assert "exit" not in take.lower() and "buy" not in take.lower(), take
+
+
+def test_r1_rows_are_marked_not_reviewed_not_abstaining():
+    """R1 is out of R3's scope · that is different from having no view."""
+    cell = w2.r3_cells({"r3_action": "ABSTAIN"}, "R1")[0]
+    assert "Not reviewed" in cell and "R2 candidates only" in cell
+
+
+def test_an_unknown_r3_state_is_never_dressed_up_as_a_decision():
+    cell = w2.r3_cells({"r3_action": "SOMETHING_NEW"}, "R2")[0]
+    assert cell.startswith("Not rated yet"), cell

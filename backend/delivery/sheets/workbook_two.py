@@ -84,7 +84,23 @@ CURRENT_COLUMNS_R2 = [
 # human-readable reason.
 CURRENT_COLUMNS_R3 = ["R3 SHADOW"]
 
-CURRENT_COLUMNS = CURRENT_COLUMNS_R2 + CURRENT_COLUMNS_R3
+# Where the R3 column sits · CEO 2026-09-10: "R3 must be near Action, not
+# buried at the end."
+#
+# Position, not precedence. R3 is rendered beside Action so the reader
+# sees the shadow opinion next to the decision it comments on. It is
+# still computed from a separate dataset, still writes nothing, and R2
+# Action is still decided before any R3 value is read. Moving a column
+# left does not move authority left.
+R3_INSERT_AFTER = "Action"
+
+
+def _with_r3(base: list) -> list:
+    i = base.index(R3_INSERT_AFTER) + 1
+    return base[:i] + list(CURRENT_COLUMNS_R3) + base[i:]
+
+
+CURRENT_COLUMNS = _with_r3(CURRENT_COLUMNS_R2)
 
 # R3 comments on R2 candidates only · it has nothing to say about an R1
 # advisory row and must not pretend otherwise.
@@ -149,26 +165,48 @@ def load_r3_shadow(root: Path, market: str, asof: str) -> dict:
     return out
 
 
+# PLAIN ENGLISH · CEO 2026-09-10: "abstain word is confusing".
+#
+# ABSTAIN, NOT_EVALUATED and N/A are audit vocabulary. They are precise
+# and they are unreadable, sitting next to a Stop column that someone
+# acts on quickly. The internal state names are unchanged in the ledger
+# and the research artifacts, where auditability belongs; only the words
+# an investor reads change here.
+#
+# The hard part is saying "no opinion" WITHOUT it reading as a neutral
+# opinion. "No view" or "Neutral" would both be heard as a mild HOLD,
+# which is exactly the misreading ABSTAIN exists to prevent. So the cell
+# says NOT RATED - the absence of a rating, not a rating of "middling".
+R3_TEXT = {
+    # no validated evidence yet · NOT hold, NOT buy, NOT avoid, NOT 50/50
+    "ABSTAIN": "Not rated yet · R3 is still gathering evidence",
+    # a specialist has earned evidence · still advisory, never an order
+    "TAKE": "Supports · R3 evidence backs this position",
+    # a research flag · it is NOT an exit instruction
+    "AVOID": "Caution · R3 flags downside risk (not an exit)",
+}
+R3_NOT_APPLICABLE_TEXT = "Not reviewed · R3 covers R2 candidates only"
+R3_NO_SNAPSHOT_TEXT = "Not rated yet · no R3 record for this date"
+
+
 def r3_cells(rec: Optional[dict], engine: str) -> list:
     """The single R3 cell for one row · never invents a value.
 
-    ABSTAIN means INSUFFICIENT VALIDATED EVIDENCE. It is not HOLD, not
-    BUY, not AVOID, and not a 50/50 probability. No probability is
-    rendered at all: producing "52%" from an uncalibrated model would be
-    false precision, and months later nobody could tell it apart from a
-    number that meant something.
+    "Not rated yet" means INSUFFICIENT VALIDATED EVIDENCE. It is not
+    HOLD, not BUY, not AVOID, and not a 50/50 probability. No probability
+    is rendered at all: producing "52%" from an uncalibrated model would
+    be false precision, and months later nobody could tell it apart from
+    a number that meant something.
     """
     if str(engine or "").upper() not in R3_ENGINES:
-        return ["N/A · R3 evaluates R2 candidates only"]
+        return [R3_NOT_APPLICABLE_TEXT]
     if not rec:
-        return ["NOT_EVALUATED · no R3 snapshot for this date"]
+        return [R3_NO_SNAPSHOT_TEXT]
     action = str(rec.get("r3_action") or "ABSTAIN").upper()
-    if action == "ABSTAIN":
-        return ["ABSTAIN · R3 not yet validated"]
-    # Once a specialist earns evidence the cell names it. AVOID is a
-    # research annotation and never implies an R2 EXIT.
-    who = ", ".join(rec.get("contributing_specialists") or []) or "R3"
-    return ["%s · %s" % (action, who)]
+    if action in R3_TEXT:
+        return [R3_TEXT[action]]
+    # An unknown state must not be dressed up as a decision.
+    return ["Not rated yet · unrecognised R3 state (%s)" % action[:20]]
 
 
 def load_lifecycle(root: Path, market: str, asof: str) -> Optional[dict]:
@@ -284,14 +322,16 @@ def emit_current(wb, d: dict):
                                   for x in _st))
     _n_r3 = sum(1 for k in _r3)
     _row6.append(
-        "🤖 R3 SHADOW INTELLIGENCE — RESEARCH ONLY. R3 reviews R2 "
-        "candidates but does NOT change R2 Action, Confidence, Stop or "
-        "Position. ABSTAIN means R3 has no validated opinion yet — it is "
-        "NOT Hold, Buy, Avoid, or a 50/50 probability. A future AVOID is a "
-        "research annotation and never implies an R2 EXIT. R3 can become "
-        "actionable only after out-of-sample validation, calibration, "
-        "incremental-value evidence and explicit authorisation. "
-        "%d candidate(s) evaluated today." % _n_r3)
+        "🤖 R3 SHADOW — RESEARCH ONLY, sits beside Action so you can see "
+        "it next to the decision it comments on. R3 does NOT change "
+        "Action, Confidence, Stop or Position. \"Not rated yet\" means R3 "
+        "has no validated evidence on this name — it is the ABSENCE of a "
+        "rating, NOT a Hold, a Buy, a mild negative, or a 50/50. A future "
+        "\"Caution\" is a research flag and never means EXIT; a future "
+        "\"Supports\" never means BUY. R3 becomes actionable only after "
+        "out-of-sample validation, calibration, incremental-value evidence "
+        "and explicit authorisation. %d candidate(s) reviewed today."
+        % _n_r3)
     _sub(ws, "   ||   ".join(_row6), n, 6)
     _header(ws, CURRENT_COLUMNS, 7)
     # A capitalisation is a 12-digit number. Left raw it reads as noise
@@ -299,16 +339,19 @@ def emit_current(wb, d: dict):
     # unchanged - this is display only, so a reader can still compute on
     # the cell.
     _cap_col = CURRENT_COLUMNS.index("Current Market Cap") + 1
-    for i, w in enumerate([9, 12, 10, 10, 20, 12, 12, 13, 17, 10, 22,
-                           20, 18, 16, 8, 12, 13, 15, 17, 12, 30, 50,
-                           # R3 shadow · one column
-                           40], 1):
+    for i, w in enumerate([9, 12, 10, 10,
+                           40,          # R3 SHADOW · beside Action
+                           20, 12, 12, 13, 17, 10, 22,
+                           20, 18, 16, 8, 12, 13, 15, 17, 12, 30, 50], 1):
         ws.column_dimensions[get_column_letter(i)].width = w
     r = 8
     for row in rows:
         _write_row(ws, [
             row.get("market"), row.get("ticker"), row.get("engine"),
             row.get("action"),
+            # ── R3 SHADOW · beside Action, never above it ──────────────
+            *r3_cells(_r3.get(str(row.get("ticker") or "").upper()),
+                      row.get("engine")),
             row.get("admission_status") or "—",
             row.get("entry_date"),
             _fmt(row.get("entry_price")), _fmt(row.get("current_price")),
@@ -338,12 +381,7 @@ def emit_current(wb, d: dict):
                           and row["target"] <= row["current_price"])
                  else row.get("target")),
             row.get("position_id"), row.get("reason"),
-            # ── R3 SHADOW · appended AFTER every R2 column, never among
-            #    them. R2 Action above was decided without reading any of
-            #    this and does not change because of it.
-            *r3_cells(_r3.get(str(row.get("ticker") or "").upper()),
-                      row.get("engine")),
-        ], r, pnl_col_idx=10)
+        ], r, pnl_col_idx=11)
         _c = ws.cell(r, _cap_col)
         if isinstance(_c.value, (int, float)):
             _c.number_format = "#,##0"
