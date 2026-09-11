@@ -53,6 +53,8 @@ class DynamicRiskReport:
     n_trailing_lifted: int = 0
     n_vol_scaled:   int = 0
     n_unchanged:    int = 0
+    n_held:         int = 0    # monotonic floor kept yesterday's stop
+    monotonic:      bool = False   # is the floor authorized for this market
     updates:        list = field(default_factory=list)
 
 
@@ -96,6 +98,36 @@ def _atr(df, period: int = 14) -> float | None:
         return None
 
 
+def load_prior_stops(root: Path, market: str) -> dict:
+    """Yesterday's stop per opportunity_id · {} when unavailable.
+
+    Read from the sidecar this module already writes, BEFORE it is
+    overwritten. No new file, no new schema, no registry mutation - the
+    prior stop was always on disk, it simply was never read back.
+
+    A missing or unreadable sidecar returns {} and every position
+    initialises normally. That is deliberate and documented: a stop that
+    cannot be proven to have existed is not invented.
+    """
+    p = root / "reports" / "context" / ("dynamic_risk_%s.json" % market.lower())
+    if not p.exists():
+        return {}
+    try:
+        d = json.loads(p.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    out = {}
+    for u in (d.get("updates") or []):
+        oid = u.get("opportunity_id")
+        v = u.get("new_stop")
+        # A malformed prior must fail SAFE - ignored, never propagated as
+        # a floor. A corrupt huge value would otherwise pin a stop above
+        # the price and force an instant exit.
+        if oid and isinstance(v, (int, float)) and v > 0:
+            out[str(oid)] = float(v)
+    return out
+
+
 def compute(root: Path, market: str, asof: str) -> DynamicRiskReport:
     """Recompute stops for every ACTIVE opportunity in this market."""
     market = market.lower()
@@ -111,6 +143,13 @@ def compute(root: Path, market: str, asof: str) -> DynamicRiskReport:
         generated_utc=datetime.now(timezone.utc).isoformat(timespec="seconds"),
     )
     reg = oreg.load_all(root)
+    # PER-MARKET AUTHORIZATION · India enabled, USA deliberately not.
+    # Absent config defaults to FALSE: a market is never silently
+    # switched onto a corrected risk policy it was not authorized for.
+    _mono = bool((cfg.get("monotonic_stops") or {}).get(market, False))
+    rep.monotonic = _mono
+    # Loaded ONCE, before emit() overwrites the sidecar this reads.
+    _prior = load_prior_stops(root, market) if _mono else {}
 
     for opps in reg.values():
         for opp in opps:
@@ -127,10 +166,24 @@ def compute(root: Path, market: str, asof: str) -> DynamicRiskReport:
             atr = _atr(df, period=14)
             if atr is None:
                 continue
+            prior = _prior.get(str(opp.opportunity_id))
             u = StopUpdate(
                 opportunity_id=opp.opportunity_id, ticker=opp.ticker,
                 current_price=current,
-                original_stop=None,        # registry doesn't hold stop · sender does
+                # THE DEFECT, AND THE FIX.
+                #
+                # This was `None` with the comment "registry doesn't hold
+                # stop · sender does". Because the prior stop was never
+                # loaded, the monotonic guard below compared today's
+                # candidate against TODAY'S OWN freshly computed stop, so
+                # the documented contract - "Never move stop DOWN · lift
+                # is monotonic" - could not be enforced by construction.
+                #
+                # A sustained decline therefore walked the stop down with
+                # the price: ITC 276.10 -> 253.72 and CHAMBLFERT 435.59
+                # -> 401.16 over 25 sessions, each INTACT the whole way,
+                # because the gap to the stop is constant by design.
+                original_stop=_prior.get(str(opp.opportunity_id)),
             )
             atr_pct = (atr / current * 100.0) if current else 0.0
 
@@ -178,6 +231,28 @@ def compute(root: Path, market: str, asof: str) -> DynamicRiskReport:
                                 rep.n_trailing_lifted += 1
                 except Exception:
                     pass
+
+            # ── MONOTONIC FLOOR · the restored contract ────────────────
+            #
+            #     stop_t = max(stop_(t-1), candidate_t)
+            #
+            # Applied LAST so it floors every path - standard ATR,
+            # vol-scaled and trailing lift alike. A stop may hold or
+            # rise; it can no longer fall.
+            #
+            # This restores the behaviour the module has always claimed
+            # ("Never move stop DOWN · lift is monotonic"). It is not a
+            # new policy: the ATR period, the multiplier, the high-vol
+            # semantics and the trailing threshold are all untouched.
+            if _mono and prior is not None and u.new_stop is not None:
+                if prior > u.new_stop:
+                    _cand = u.new_stop
+                    u.new_stop = round(prior, 4)
+                    u.stop_type = "held"
+                    u.reason = ("candidate %.4f below prior stop %.4f · prior "
+                                "HELD · a stop never moves down"
+                                % (_cand, prior))
+                    rep.n_held += 1
 
             if u.stop_type == "":
                 rep.n_unchanged += 1

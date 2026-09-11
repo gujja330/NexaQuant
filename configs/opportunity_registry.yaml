@@ -57,6 +57,24 @@ gates:
 # Parts 8 + 15 · Dynamic Risk (ATR) + Profit Protection (trailing lift)
 # ─────────────────────────────────────────────────────────────
 risk_engine:
+  # MONOTONIC STOPS · per-market, explicitly authorized.
+  #
+  # The engine has always documented "Never move stop DOWN · lift is
+  # monotonic" and could not honour it: the prior stop was never loaded,
+  # so the stop was recomputed daily from the CURRENT price and walked
+  # down with a declining position. Live footprint on 2026-09-11:
+  # 49 of 64 India stops and 18 of 30 USA stops were being lowered.
+  #
+  # INDIA is authorized (CEO 2026-09-11). Replay n=62: severe <=-8%
+  # 8 -> 0, worst -11.07% -> -5.79%, ZERO Class-C winner sacrifice.
+  #
+  # USA is NOT authorized. The same correction helps its tails
+  # (117 -> 19 severe) but costs 28 Class-C sacrifices, worst -22.67pp,
+  # and the multiplier frontier rests on ~6 effective date units. It
+  # stays on the legacy path until that evidence exists.
+  monotonic_stops:
+    india:                true
+    usa:                  false
   atr_multiplier:         2.0    # standard stop = current - ATR14 × 2.0
   trailing_lift_min_pct:  5.0    # only lift trailing stop when profit ≥ 5%
   high_vol_scale:         1.5    # wider stop multiplier in high-vol regimes
