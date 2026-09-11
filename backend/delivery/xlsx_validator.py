@@ -237,7 +237,14 @@ class XlsxValidator:
         "Runner":        ["Runner", "Engine"],
         "Entry Date":    ["Entry Date"],
         "Entry Price":   ["Entry Price", "Entry"],
-        "Current Price": ["Current Price", "Current"],
+        # RENAMED 2026-09-10 · "Current Price" -> "Last Price", because
+        # the cell holds the last completed CLOSE, not a live quote. The
+        # validator kept a PRIVATE copy of the old name and blocked
+        # delivery on 2026-09-11 with "I16 · 1 headers missing" - the
+        # same alias-drift that fired A19/A23 on a renamed sheet. Alias
+        # it; never branch on it.
+        "Current Price": ["Current Price", "Current", "Last Price"],
+        "Dist to Stop %": ["Dist to Stop %", "Stop Distance %"],
         "Stop":          ["Dynamic Stop", "Stop Loss", "Stop"],
         "P&L %":         ["Unrealized P&L %", "P&L %", "P&L"],
         "Holding Days":  ["Holding Days", "Days"],
@@ -258,6 +265,9 @@ class XlsxValidator:
         "Holding Days":  ["Holding Days", "Days Held", "Days"],
         "Entry Price":   ["Entry Price", "Entry"],
         "Exit Price":    ["Exit Price", "Exit"],
+        # "Realized P&L %" -> "P&L %": 529 of 547 USA rows are NOT
+        # realized (orphan auto-closes and open breach marks), so the old
+        # header was false for 97% of the sheet.
         "P&L %":         ["Realized P&L %", "P&L %", "P&L"],
         "Exit Reason":   ["Exit Reason", "Reason"],
     }
