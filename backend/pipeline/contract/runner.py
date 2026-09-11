@@ -79,6 +79,19 @@ def _sh(cmd: list, cwd: Path, timeout: int = 3600) -> tuple:
 # domain is mandatory it belongs in this table, not in someone's memory.
 _REFRESH = {
     "india": (
+        # PRICE BARS FIRST · this step was MISSING.
+        #
+        # USA's chain begins with `market_data`; India's did not, so the
+        # certified run never fetched a single India price bar. On
+        # 2026-09-11 India's newest bar was still 2026-09-09 and
+        # DATA_READY blocked on SOURCE_STALE:FEATURE_SNAPSHOT - the
+        # feature store cannot build a snapshot for a day whose close
+        # does not exist.
+        #
+        # The daily workflow has always run this script; only the
+        # contract runner omitted it, so `--refresh` was refreshing
+        # everything downstream of data it had not refreshed.
+        ("market_data", ["python", "-W", "ignore", "india/refresh_data.py"]),
         # ── context · independent of each other, all feed the gate ──
         # --fetch or it silently no-ops when the parquets already exist.
         ("global_context", ["python", "-W", "ignore", "india/global_risk.py",
