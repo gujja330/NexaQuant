@@ -42,7 +42,11 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
-SCHEMA_VERSION = "aegis.memory.daily.v1"
+# v2 (2026-09-15): the snapshot persists the CONSUMED matrices as parquet
+# sidecars (technical_features, r2_scores, decisions) whose hashes enter the
+# seal, and adds the r2_scores family. v1 stored only a description of the
+# features, which is not the features.
+SCHEMA_VERSION = "aegis.memory.daily.v2"
 ROOT_DIRNAME = "history"
 
 PIT_OK = "PIT_OK"
@@ -122,7 +126,18 @@ class DailySnapshot:
     families: dict = field(default_factory=dict)      # family -> payload
     provenance: dict = field(default_factory=dict)    # family -> Provenance
     fingerprints: dict = field(default_factory=dict)
+    sidecars: dict = field(default_factory=dict)   # filename -> sha256
     content_hash: Optional[str] = None
+    _frames: dict = field(default_factory=dict, repr=False)   # filename -> DataFrame
+
+    def attach_frame(self, filename: str, df) -> None:
+        """Persist a real consumed matrix beside the manifest.
+
+        A description of the features R2 used is not the features R2 used.
+        These are written as parquet and their sha256 enters the seal, so the
+        matrix is as tamper-evident as the manifest itself.
+        """
+        self._frames[filename] = df
 
     def add(self, prov: Provenance, payload: Any) -> None:
         errs = prov.validate()
@@ -138,6 +153,7 @@ class DailySnapshot:
             "asof": self.asof,
             "sealed_utc": self.sealed_utc,
             "fingerprints": self.fingerprints,
+            "sidecars": self.sidecars,
             "provenance": self.provenance,
             "families": self.families,
         }
@@ -161,6 +177,20 @@ def seal(root: Path, snap: DailySnapshot, *, allow_revision: bool = False) -> Pa
     d = snapshot_dir(root, snap.market, snap.asof)
     now = datetime.now(timezone.utc)
     snap.sealed_utc = now.isoformat(timespec="seconds")
+    # Sidecars are written first so their hashes are inside the manifest, and
+    # the manifest hash is inside the seal. Tampering with a matrix therefore
+    # breaks verification exactly as tampering with the manifest does.
+    if snap._frames:
+        d.mkdir(parents=True, exist_ok=True)
+        existing = (d / "SEALED").exists()
+        target = d
+        if existing and allow_revision:
+            target = d / "revisions" / now.strftime("%Y%m%dT%H%M%S.%fZ")
+            target.mkdir(parents=True, exist_ok=True)
+        for name, frame in snap._frames.items():
+            fp = target / name
+            frame.to_parquet(fp, index=False)
+            snap.sidecars[name] = file_sha256(fp)
     body = snap.to_dict()
     snap.content_hash = sha256_of(body)
     body["content_hash"] = snap.content_hash
@@ -192,7 +222,8 @@ def seal(root: Path, snap: DailySnapshot, *, allow_revision: bool = False) -> Pa
     _write(p, json.dumps(body, indent=1, default=str))
     _write(d / "SEALED", json.dumps({"sealed_utc": snap.sealed_utc,
                                      "content_hash": snap.content_hash,
-                                     "file_sha256": file_sha256(p)}, indent=1))
+                                     "file_sha256": file_sha256(p),
+                                     "sidecars": snap.sidecars}, indent=1))
     return p
 
 
@@ -220,6 +251,12 @@ def verify_seal(root: Path, market: str, asof: str) -> tuple[bool, str]:
     meta = json.loads(s.read_text(encoding="utf-8"))
     if file_sha256(p) != meta.get("file_sha256"):
         return False, "TAMPERED: snapshot.json no longer matches its seal"
+    for name, sha in (meta.get("sidecars") or {}).items():
+        sp = d / name
+        if not sp.exists():
+            return False, "MISSING SIDECAR: %s" % name
+        if file_sha256(sp) != sha:
+            return False, "TAMPERED: %s no longer matches its seal" % name
     return True, "ok"
 
 
@@ -227,7 +264,7 @@ def verify_seal(root: Path, market: str, asof: str) -> tuple[bool, str]:
 REQUIRED_FAMILIES = (
     "universe", "sector", "market_cap", "prices", "technical",
     "fundamentals", "earnings", "macro", "intermarket",
-    "r2_config", "r2_decision",
+    "r2_config", "r2_scores", "r2_decision",
 )
 
 
@@ -260,3 +297,70 @@ def check_contract(snap_dict: dict) -> dict:
         "verdict": "NO_HISTORICAL_EVIDENCE" if missing else
                    ("PROVENANCE_VIOLATION" if invalid else "CONTRACT_MET"),
     }
+
+
+# ── evidence certification (memory must fail LOUDLY, not silently) ────
+#
+# Production delivery and historical evidence are separate concerns. A memory
+# failure must never stop today's XLSX or Telegram — but it must also never
+# pass unnoticed, because the failure mode it guards against is precisely
+# "the clock reads zero forever and nothing says so".
+#
+#   MEMORY FAILURE -> production R2 may still run
+#                  -> EVIDENCE CERTIFICATION = BLOCKED
+#                  -> no historical research claim may be made for that day
+
+MEMORY_CERT_OK = "EVIDENCE_CERTIFIED"
+MEMORY_CERT_BLOCKED = "EVIDENCE_BLOCKED"
+
+
+def certification_path(root: Path, market: str) -> Path:
+    return Path(root) / "reports" / "context" / ("memory_certification_%s.json" % market.lower())
+
+
+def write_certification(root: Path, market: str, asof: str, result: dict) -> Path:
+    """Persist the outcome of the day's memory step, pass or fail."""
+    status = result.get("status")
+    certified = status in ("SEALED", "ALREADY_SEALED")
+    body = {
+        "schema_version": "aegis.memory.certification.v1",
+        "market": market.lower(),
+        "asof": asof,
+        "memory_status": status,
+        "evidence_certification": MEMORY_CERT_OK if certified else MEMORY_CERT_BLOCKED,
+        "detail": result,
+        "written_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "note": ("production delivery is unaffected by this result; only the "
+                 "right to make a historical evidence claim for this date is"),
+    }
+    p = certification_path(root, market)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    _write(p, json.dumps(body, indent=1))
+    return p
+
+
+def check_evidence_certified(root: Path, market: str, asof: str) -> tuple[bool, str]:
+    """Gate for anything that wants to treat a date as historical evidence.
+
+    Returns (certified, reason). A missing certification is BLOCKED, not a
+    pass: absence of evidence about the memory step is not evidence that it ran.
+    """
+    p = certification_path(root, market)
+    if not p.exists():
+        return False, "no memory certification for %s; the day was never recorded" % market
+    try:
+        d = json.loads(p.read_text(encoding="utf-8"))
+    except Exception as e:
+        return False, "memory certification unreadable: %s" % e
+    if d.get("asof") != asof:
+        return False, ("memory certification covers %s, not %s"
+                       % (d.get("asof"), asof))
+    if d.get("evidence_certification") != MEMORY_CERT_OK:
+        return False, ("memory step reported %s for %s"
+                       % (d.get("memory_status"), asof))
+    if not is_sealed(root, market, asof):
+        return False, "certification claims sealed but no SEALED marker exists"
+    ok, msg = verify_seal(root, market, asof)
+    if not ok:
+        return False, "seal verification failed: %s" % msg
+    return True, "evidence certified for %s %s" % (market, asof)

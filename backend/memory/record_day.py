@@ -108,13 +108,30 @@ def record(root: Path, market: str, asof: date, *,
         revision_status="MIXED_ADJUSTMENT_BASIS" if m == "india" else "ORIGINAL",
         blocked_reason=None if n_sym else "no bars on or before asof"), px)
 
-    # ── technical (derived from dated bars) ───────────────────────────
-    snap.add(Provenance(
-        family="technical", source="derived:adapt_all(cutoff)+FeatureBuilder",
-        pit_status=PIT_OK if n_sym else PIT_BLOCKED, asof=a,
-        observation_date=obs, effective_date=obs, retrieval_timestamp=NOW(),
-        blocked_reason=None if n_sym else "no bars"),
-        {"derived_from": "prices", "cutoff_rule": "rows >= cutoff+1 dropped"})
+    # ── technical features: the matrix R2 ACTUALLY CONSUMED ───────────
+    # Read the production snapshot rather than recomputing. A rebuild is a
+    # reconstruction of what we could derive today; only features/<market>/
+    # <asof>.parquet is what the engine was handed on the day. If it is
+    # absent there is no record of what was consumed, and that is BLOCKED —
+    # not an invitation to recompute one.
+    feat_p = root / "features" / m / ("%s.parquet" % a)
+    if feat_p.exists():
+        fdf = pd.read_parquet(feat_p)
+        snap.attach_frame("technical_features.parquet", fdf.reset_index(drop=True))
+        snap.add(Provenance(
+            family="technical", source="features/%s/%s.parquet" % (m, a),
+            pit_status=PIT_OK, asof=a, observation_date=obs or a,
+            effective_date=obs, retrieval_timestamp=NOW(), n_records=len(fdf)),
+            {"sidecar": "technical_features.parquet", "n_rows": int(len(fdf)),
+             "n_cols": int(fdf.shape[1]),
+             "source": "production feature snapshot consumed by R2"})
+    else:
+        snap.add(Provenance(
+            family="technical", source="features/%s/%s.parquet" % (m, a),
+            pit_status=PIT_BLOCKED, asof=a, retrieval_timestamp=NOW(),
+            blocked_reason="no production feature snapshot for this asof; what "
+                           "R2 consumed was not recorded and must not be recomputed"),
+            None)
 
     # ── market cap ────────────────────────────────────────────────────
     if m == "india":
@@ -220,6 +237,34 @@ def record(root: Path, market: str, asof: date, *,
          "selected_fingerprint": sha256_of(sel.get("selected", []))[:12],
          "schema_fingerprint": sel.get("schema_fingerprint")})
 
+    # ── R2 scores actually emitted ────────────────────────────────────
+    sc = root / "reports" / "research" / "shadow" / ("full_universe_shadow_%s.json" % m)
+    sc_asof, sc_rows = None, []
+    if sc.exists():
+        try:
+            _d = json.loads(sc.read_text(encoding="utf-8"))
+            sc_asof, sc_rows = _d.get("asof"), (_d.get("rows") or [])
+        except Exception:
+            sc_asof, sc_rows = None, []
+    if sc_rows and sc_asof == a:
+        sdf = pd.DataFrame(sc_rows)
+        snap.attach_frame("r2_scores.parquet", sdf)
+        snap.add(Provenance(
+            family="r2_scores",
+            source="reports/research/shadow/full_universe_shadow_%s.json" % m,
+            pit_status=PIT_OK, asof=a, observation_date=sc_asof,
+            effective_date=sc_asof, retrieval_timestamp=NOW(), n_records=len(sdf)),
+            {"sidecar": "r2_scores.parquet", "n_rows": int(len(sdf)),
+             "columns": list(sdf.columns)})
+    else:
+        snap.add(Provenance(
+            family="r2_scores",
+            source="reports/research/shadow/full_universe_shadow_%s.json" % m,
+            pit_status=PIT_BLOCKED, asof=a, observation_date=sc_asof,
+            retrieval_timestamp=NOW(),
+            blocked_reason=("scores describe %s, not %s" % (sc_asof, a)) if sc_rows
+                           else "no R2 score artifact for this market"), None)
+
     lc = root / "reports" / "context" / ("canonical_lifecycle_%s.json" % m)
     dec = None
     if lc.exists():
@@ -255,6 +300,8 @@ def record(root: Path, market: str, asof: date, *,
         retrieval_timestamp=NOW(),
         n_records=len((dec or {}).get("current", [])) if dec_is_pit else 0,
         blocked_reason=reason), dec_payload)
+    if dec_is_pit and (dec or {}).get("current"):
+        snap.attach_frame("decisions.parquet", pd.DataFrame(dec["current"]))
 
     snap.fingerprints = {
         "schema_version": snap.schema_version,

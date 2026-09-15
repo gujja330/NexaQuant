@@ -313,16 +313,29 @@ def record_historical_memory(root: Path, market: str, asof: str) -> dict:
         from datetime import date as _date
         from backend.memory.daily_snapshot import is_sealed, check_contract
         from backend.memory.record_day import record
+        from backend.memory.daily_snapshot import write_certification
         if is_sealed(root, market, asof):
-            return {"status": "ALREADY_SEALED", "asof": asof}
-        _, snap = record(root, market, _date.fromisoformat(asof))
-        c = check_contract(snap.to_dict())
-        return {"status": "SEALED", "asof": asof, "verdict": c["verdict"],
-                "pit_ok": len(c["pit_ok"]), "pit_blocked": len(c["pit_blocked"]),
-                "elapsed_s": round(time.time() - t0, 2)}
+            res = {"status": "ALREADY_SEALED", "asof": asof}
+        else:
+            _, snap = record(root, market, _date.fromisoformat(asof))
+            c = check_contract(snap.to_dict())
+            res = {"status": "SEALED", "asof": asof, "verdict": c["verdict"],
+                   "pit_ok": len(c["pit_ok"]), "pit_blocked": len(c["pit_blocked"]),
+                   "elapsed_s": round(time.time() - t0, 2)}
+        write_certification(root, market, asof, res)
+        return res
     except Exception as e:                      # never block production
-        return {"status": "MEMORY_SKIPPED", "asof": asof,
-                "error": "%s: %s" % (type(e).__name__, str(e)[:160])}
+        res = {"status": "MEMORY_SKIPPED", "asof": asof,
+               "error": "%s: %s" % (type(e).__name__, str(e)[:160])}
+        # Record the failure so it is LOUD in evidence certification even
+        # though delivery continues. Silence here is the exact failure mode
+        # this layer exists to prevent.
+        try:
+            from backend.memory.daily_snapshot import write_certification
+            write_certification(root, market, asof, res)
+        except Exception:
+            pass
+        return res
 
 
 # ── the run ─────────────────────────────────────────────────────────────

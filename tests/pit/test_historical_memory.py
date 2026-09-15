@@ -106,7 +106,7 @@ def test_historical_reconstruction(tmp_path):
     seal(tmp_path, s)
     d = load(tmp_path, "india", "2026-01-02")
     body = {k: d[k] for k in ("schema_version", "market", "asof", "sealed_utc",
-                              "fingerprints", "provenance", "families")}
+                              "fingerprints", "sidecars", "provenance", "families")}
     assert sha256_of(body) == d["content_hash"], "snapshot is not reproducible"
     ok, msg = verify_seal(tmp_path, "india", "2026-01-02")
     assert ok, msg
@@ -330,3 +330,79 @@ def test_trigger_state_transitions_at_the_declared_gate(tmp_path):
     assert t["state"] == "READY_FOR_VALIDATION"
     assert t["dates_needed_for_ready"] == 0
     assert {x["family"]: x for x in triggers(tmp_path, "india")}["macro"]["state"] == "BLOCKED"
+
+
+# 16 · the snapshot must persist what R2 CONSUMED, not a description --------
+def test_snapshot_persists_real_consumed_matrices():
+    """A description of the features R2 used is not the features R2 used."""
+    import pandas as pd
+    d = ROOT / "history" / "india" / "2026-09-15"
+    if not (d / "SEALED").exists():
+        pytest.skip("no sealed day recorded")
+    s = load(ROOT, "india", "2026-09-15")
+    assert "technical_features.parquet" in s["sidecars"]
+    assert "r2_scores.parquet" in s["sidecars"]
+    tf = pd.read_parquet(d / "technical_features.parquet")
+    assert tf.shape[0] > 100 and tf.shape[1] > 50, "feature matrix is not real"
+    sc = pd.read_parquet(d / "r2_scores.parquet")
+    assert "ensemble_score" in sc.columns and len(sc) > 100
+    # provenance must point at the PRODUCTION artifact, not a rebuild
+    assert s["provenance"]["technical"]["source"].startswith("features/")
+    assert "full_universe_shadow" in s["provenance"]["r2_scores"]["source"]
+
+
+def test_sidecar_tampering_breaks_the_seal(tmp_path):
+    """The matrices are as tamper-evident as the manifest."""
+    import pandas as pd
+    s = _minimal(asof="2026-05-01")
+    s.attach_frame("m.parquet", pd.DataFrame({"a": [1, 2, 3]}))
+    seal(tmp_path, s)
+    assert verify_seal(tmp_path, "india", "2026-05-01")[0]
+    p = snapshot_dir(tmp_path, "india", "2026-05-01") / "m.parquet"
+    pd.DataFrame({"a": [9, 9, 9]}).to_parquet(p, index=False)
+    ok, msg = verify_seal(tmp_path, "india", "2026-05-01")
+    assert not ok and "TAMPERED" in msg and "m.parquet" in msg
+
+
+def test_missing_sidecar_breaks_the_seal(tmp_path):
+    import pandas as pd
+    s = _minimal(asof="2026-05-02")
+    s.attach_frame("m.parquet", pd.DataFrame({"a": [1]}))
+    seal(tmp_path, s)
+    (snapshot_dir(tmp_path, "india", "2026-05-02") / "m.parquet").unlink()
+    ok, msg = verify_seal(tmp_path, "india", "2026-05-02")
+    assert not ok and "MISSING SIDECAR" in msg
+
+
+# 17 · memory failure blocks EVIDENCE, never DELIVERY ----------------------
+def test_memory_failure_blocks_evidence_but_not_production():
+    from backend.pipeline.contract.runner import record_historical_memory
+    from backend.memory.daily_snapshot import check_evidence_certified
+    # a failing memory step must return, not raise — production continues
+    r = record_historical_memory(ROOT, "india", "not-a-date")
+    assert r["status"] == "MEMORY_SKIPPED"
+    # ...and must be LOUD in evidence certification
+    ok, why = check_evidence_certified(ROOT, "india", "not-a-date")
+    assert not ok and "MEMORY_SKIPPED" in why
+    # restore a good certification so the repo is left certified
+    record_historical_memory(ROOT, "india", "2026-09-15")
+
+
+def test_absent_certification_is_blocked_not_passed():
+    """Absence of evidence about the memory step is not evidence it ran."""
+    from backend.memory.daily_snapshot import check_evidence_certified
+    ok, why = check_evidence_certified(ROOT, "india", "1999-01-04")
+    assert not ok, "an unrecorded date must never certify"
+
+
+def test_evidence_certification_requires_an_intact_seal(tmp_path):
+    from backend.memory.daily_snapshot import (
+        write_certification, check_evidence_certified)
+    seal(tmp_path, _minimal(asof="2026-05-03"))
+    write_certification(tmp_path, "india", "2026-05-03",
+                        {"status": "SEALED", "asof": "2026-05-03"})
+    assert check_evidence_certified(tmp_path, "india", "2026-05-03")[0]
+    p = snapshot_dir(tmp_path, "india", "2026-05-03") / "snapshot.json"
+    p.write_text(p.read_text(encoding="utf-8") + " ", encoding="utf-8")
+    ok, why = check_evidence_certified(tmp_path, "india", "2026-05-03")
+    assert not ok and "seal verification failed" in why
