@@ -2,36 +2,31 @@
   "engine": "ai_execution_narrative",
   "version": "v1.0",
   "market": "usa",
-  "run_utc": "2026-09-08T13:26:20+00:00",
-  "asof": "2026-09-08",
+  "run_utc": "2026-09-15T12:27:09+00:00",
+  "asof": "2026-09-15",
   "output": {
     "agent": "execution_analyst",
     "version": "v1.0",
     "market": "usa",
-    "asof": "2026-09-08",
-    "headline": "fills=0 \u00b7 trade_instructions=0 \u00b7 equity=1000000.00 \u00b7 cash=1000000.00 \u00b7 honest_empty",
-    "narrative": "fills=0 \u00b7 trade_instructions=0 \u00b7 equity=1000000.00 \u00b7 cash=1000000.00 \u00b7 honest_empty.\n\nExecution Simulator audit. This engine turns portfolio trade instructions into realistic fills (slippage + commission + partial fills + gaps + corp actions) and marks the book to market. Does NOT approve or promote \u2014 every fill is EXPERIMENTAL until promoted via backend.promotion.promotion_gate.approve_model.",
+    "asof": "2026-09-15",
+    "headline": "fills=7 \u00b7 trade_instructions=7 \u00b7 equity=1575074.76 \u00b7 cash=999375.76",
+    "narrative": "fills=7 \u00b7 trade_instructions=7 \u00b7 equity=1575074.76 \u00b7 cash=999375.76.\n\nExecution Simulator audit. This engine turns portfolio trade instructions into realistic fills (slippage + commission + partial fills + gaps + corp actions) and marks the book to market. Does NOT approve or promote \u2014 every fill is EXPERIMENTAL until promoted via backend.promotion.promotion_gate.approve_model.",
     "findings": [
       {
         "type": "execution_composition",
         "starting_aum": 1000000.0,
-        "n_trade_instructions": 0,
-        "n_fills_generated": 0,
+        "n_trade_instructions": 7,
+        "n_fills_generated": 7,
         "n_fills_partial": 0,
-        "total_commission": 0,
-        "total_slippage_currency": 0,
-        "equity_value_end": 1000000.0,
-        "cash_end": 1000000.0,
-        "long_notional": 0.0,
+        "total_commission": 115.1403,
+        "total_slippage_currency": 509.135,
+        "equity_value_end": 1575074.7597,
+        "cash_end": 999375.7597,
+        "long_notional": 575699.0,
         "short_notional": 0.0,
-        "n_open_positions": 0,
-        "n_closed_positions_today": 0,
-        "turnover_today": 0.0
-      },
-      {
-        "type": "honest_empty",
-        "reason": "0 executable trade instructions from portfolio_diff.json (all trades were HOLD/no-op). Upstream portfolio produced 0 active positions today.",
-        "note": "Execution simulator ran successfully but produced no fills \u2014 this reflects upstream state (portfolio produced 0 trades), not a simulator defect. Empty artifacts are valid."
+        "n_open_positions": 3,
+        "n_closed_positions_today": 3,
+        "turnover_today": 0.28785
       },
       {
         "type": "insufficient_history_for_metrics",
@@ -40,10 +35,10 @@
     ],
     "evidence": {
       "starting_aum": 1000000.0,
-      "n_fills_generated": 0,
-      "n_trade_instructions": 0,
-      "honest_empty": true,
-      "equity_value_end": 1000000.0
+      "n_fills_generated": 7,
+      "n_trade_instructions": 7,
+      "honest_empty": false,
+      "equity_value_end": 1575074.7597
     },
     "citations": [
       "backend/execution/engine.py",
