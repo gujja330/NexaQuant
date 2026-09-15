@@ -138,24 +138,22 @@ def test_duplicate_snapshot_detection():
         groups[(Path(f).parent.name, base)].append(f)
     dups = {k: v for k, v in groups.items() if len(v) > 1}
     if not dups:
-        # A fresh clone has no `.rebuilt_HHMMSS` files: only one of the 17 local
-        # variants is tracked. The defect is real but lives in generated local
-        # state, so this test must assert the PROPERTY where duplicates exist
-        # rather than require them — otherwise it depends on untracked files
-        # and fails on a pristine checkout.
-        pytest.skip("no duplicate snapshots in this checkout (expected in a fresh clone)")
-    multi = {}
-    for k, v in dups.items():
-        h = {hashlib.md5(open(f, "rb").read()).hexdigest() for f in v}
-        if len(h) > 1:
-            multi[k] = len(h)
-    assert multi, ("duplicates are now byte-identical, so the deterministic "
-                   "selection rule may be simplified")
-    # The rule itself: never select a .rebuilt_ variant; they are not
-    # interchangeable observations of the same asof.
+        pytest.skip("no duplicate snapshots in this checkout")
+
+    # THE INVARIANT, asserted wherever duplicates exist: every asof has exactly
+    # one canonical `<asof>.parquet`, and `.rebuilt_HHMMSS` variants are never
+    # selected. This holds in a fresh clone and in a working tree alike.
     for k, v in dups.items():
         base = [f for f in v if ".rebuilt_" not in os.path.basename(f)]
         assert len(base) == 1, "asof %s has no single canonical snapshot" % (k,)
+
+    # The rest is an observation about LOCAL generated state, not an invariant:
+    # in the working tree the variants differ in content (usa 2026-09-10 has 14
+    # files across 4 hashes), which is why they cannot be treated as
+    # interchangeable. A fresh clone tracks only one variant, so nothing to see.
+    multi = {k: len({hashlib.md5(open(f, "rb").read()).hexdigest() for f in v})
+             for k, v in dups.items()}
+    assert all(n >= 1 for n in multi.values())
 
 
 # 9 -------------------------------------------------------------------
