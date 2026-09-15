@@ -397,14 +397,28 @@ def adapt_macro(repo_root: Path, market: MarketProfile,
         except Exception:
             per_sym = {}
     df = pd.read_parquet(p)
-    # last row per symbol
     df["date"] = pd.to_datetime(df["date"], errors="coerce")
     df = df.dropna(subset=["date"]).sort_values(["symbol", "date"])
     for sym, g in df.groupby("symbol", sort=True):
+        # PIT 2026-09-15: select the latest observation ON OR BEFORE cutoff.
+        # The previous code took g.iloc[-1] (the globally latest row) and THEN
+        # tested _within(), so at any historical asof every symbol was dropped
+        # instead of falling back to the row that was actually knowable then.
+        # At cutoff=None/today this selects the same row as before, so
+        # production behaviour is unchanged.
+        newest = g.iloc[-1]["date"]
+        if cutoff is not None:
+            g = g[g["date"].dt.date <= cutoff]
+            if g.empty: continue
         latest = g.iloc[-1]
         d = _parse_date(latest["date"])
         if not _within(d, cutoff): continue
-        trend = per_sym.get(sym, {})
+        # `per_sym` comes from macro_summary.json, a CURRENT snapshot with no
+        # observation date, so it only describes the MOST RECENT observation.
+        # Attaching its chg_* fields to an older row would inject present-day
+        # trend into the past. Production always selects the newest row, so it
+        # keeps the trend fields exactly as before.
+        trend = per_sym.get(sym, {}) if latest["date"] == newest else {}
         rows.append(CanonicalMacro(
             market=market.name, symbol=str(sym),
             label=str(latest.get("label") or trend.get("label") or ""),

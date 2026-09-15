@@ -22,12 +22,34 @@ from backend.feature_store.features import (
 
 
 class FeatureBuilder:
-    def __init__(self, repo_root: Path, market: MarketProfile):
+    """`pit_mode` is OFF by default and production never enables it.
+
+    With pit_mode=False every code path below is byte-identical to the
+    pre-remediation builder: universe and sector come from today's files.
+
+    With pit_mode=True (research replay only) universe and sector are
+    resolved from git provenance at `asof`, and a date with no committed
+    record raises instead of silently borrowing today's membership.
+    """
+
+    def __init__(self, repo_root: Path, market: MarketProfile,
+                 pit_mode: bool = False):
         self.repo_root = Path(repo_root)
         self.market = market
+        self.pit_mode = bool(pit_mode)
+        self.pit_provenance: dict = {}
 
     # ── Load the market's universe symbols ──────────────────────
-    def _universe(self) -> list[str]:
+    def _universe(self, asof: "date | None" = None) -> list[str]:
+        if self.pit_mode and asof is not None:
+            from backend.canonical.pit_provenance import universe_asof, PIT_UNAVAILABLE
+            members, prov = universe_asof(self.repo_root, self.market.name, asof)
+            self.pit_provenance["universe"] = prov
+            if members is PIT_UNAVAILABLE or members == PIT_UNAVAILABLE:
+                raise ValueError(
+                    "PIT_UNAVAILABLE: no committed universe for %s on or before %s (%s)"
+                    % (self.market.name, asof, prov.get("reason")))
+            return sorted(members)
         if self.market.name == "usa":
             import json
             p = self.repo_root / "usa" / "reports" / "universe.json"
@@ -44,7 +66,16 @@ class FeatureBuilder:
             return []
 
     # ── Ticker → sector lookup, used to fill identity.sector ────
-    def _ticker_sector(self) -> dict[str, str]:
+    def _ticker_sector(self, asof: "date | None" = None) -> dict[str, str]:
+        if self.pit_mode and asof is not None:
+            from backend.canonical.pit_provenance import sector_asof, PIT_UNAVAILABLE
+            mapping, prov = sector_asof(self.repo_root, self.market.name, asof)
+            self.pit_provenance["sector"] = prov
+            if mapping is PIT_UNAVAILABLE or mapping == PIT_UNAVAILABLE:
+                raise ValueError(
+                    "PIT_UNAVAILABLE: no committed sector map for %s on or before %s (%s)"
+                    % (self.market.name, asof, prov.get("reason")))
+            return mapping
         import json
         if self.market.name == "usa":
             p = self.repo_root / "usa" / "reports" / "universe.json"
@@ -66,7 +97,7 @@ class FeatureBuilder:
     # ── The main call ───────────────────────────────────────────
     def build(self, asof: date | None = None) -> pd.DataFrame:
         cutoff = asof                  # walk-forward: asof is the freeze date
-        universe = self._universe()
+        universe = self._universe(asof)
         if not universe:
             return pd.DataFrame()
 
@@ -85,7 +116,7 @@ class FeatureBuilder:
         universe_tolerant = list(dict.fromkeys(list(universe) + universe_bare))
 
         # Identity columns (always filled)
-        sec_map = self._ticker_sector()
+        sec_map = self._ticker_sector(asof)
         as_iso = (asof or date.today()).isoformat()
         rows: dict[str, dict] = {}
         for t in universe:

@@ -297,6 +297,34 @@ def validate(root: Path, market: str, asof: str) -> dict:
                 "elapsed_s": round(time.time() - t0, 2)}
 
 
+def record_historical_memory(root: Path, market: str, asof: str) -> dict:
+    """Seal today's information state. Never raises into the run.
+
+    Contract:
+        NO SNAPSHOT   -> NO HISTORICAL EVIDENCE
+        NO PROVENANCE -> PIT_BLOCKED
+        CURRENT DATA  -> NEVER AUTOMATICALLY HISTORICAL
+
+    A day already sealed is left alone: sealed days are immutable, and a
+    re-run must not rewrite what was recorded the first time.
+    """
+    t0 = time.time()
+    try:
+        from datetime import date as _date
+        from backend.memory.daily_snapshot import is_sealed, check_contract
+        from backend.memory.record_day import record
+        if is_sealed(root, market, asof):
+            return {"status": "ALREADY_SEALED", "asof": asof}
+        _, snap = record(root, market, _date.fromisoformat(asof))
+        c = check_contract(snap.to_dict())
+        return {"status": "SEALED", "asof": asof, "verdict": c["verdict"],
+                "pit_ok": len(c["pit_ok"]), "pit_blocked": len(c["pit_blocked"]),
+                "elapsed_s": round(time.time() - t0, 2)}
+    except Exception as e:                      # never block production
+        return {"status": "MEMORY_SKIPPED", "asof": asof,
+                "error": "%s: %s" % (type(e).__name__, str(e)[:160])}
+
+
 # ── the run ─────────────────────────────────────────────────────────────
 
 def run_market(root: Path, market: str, asof: str, trigger: str,
@@ -328,6 +356,17 @@ def run_market(root: Path, market: str, asof: str, trigger: str,
     cert.check_lifecycle_ready(ctx)
     if ctx.blocked:
         return ctx
+
+    # ── HISTORICAL MEMORY · CEO 2026-09-15 ──────────────────────────
+    # Seal what AEGIS actually knew today, with provenance, before any
+    # downstream step can lose it. This is the layer whose absence made
+    # India un-replayable before 2026-06-19: price bars survived, but the
+    # information STATE did not.
+    #
+    # It is deliberately non-fatal. Historical evidence and production
+    # readiness are separate concerns, and a research gap must never stop
+    # today's delivery.
+    record_historical_memory(root, market, asof)
 
     build_workbook(root, market, asof)
     # Field completeness is checked on the RENDERED sheet, after the
