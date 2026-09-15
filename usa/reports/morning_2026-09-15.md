@@ -1,4 +1,4 @@
-# AEGIS USA · Morning Research · 2026-09-15 08:28 EDT
+# AEGIS USA · Morning Research · 2026-09-15 10:11 EDT
 
 _Currency: USD ($) · Benchmark: S&P 500_
 
@@ -8,7 +8,7 @@ _Currency: USD ($) · Benchmark: S&P 500_
 
 ## Risk & Capital
 - **Positions:** 4  ·  **Total deployment:** 30.00%  ·  **Cash:** 70.00%
-- **Portfolio vol:** 23.16% annualised  ·  **Verdict:** PASS
+- **Portfolio vol:** 26.72% annualised  ·  **Verdict:** PASS
 
 ## Alpha vs S&P 500
 - Trades benchmarked: 0
@@ -23,4 +23,4 @@ _Currency: USD ($) · Benchmark: S&P 500_
 - **29** trading days until Winner Genome activates
 
 ---
-_Generated 2026-09-15 08:28 EDT · AEGIS USA v1.0 · USD_
+_Generated 2026-09-15 10:11 EDT · AEGIS USA v1.0 · USD_
