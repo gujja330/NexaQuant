@@ -248,6 +248,14 @@ jobs:
           _add_safe "usa/reports/*.jsonl"
           _add_safe "reports/telegram/aegis_history.xlsx"
           _add_safe "reports/telegram/aegis_daily_*.xlsx"
+          # The canonical lifecycle must advance WITH the registry · see
+          # aegis-daily.yml for the 2026-09-15 A23 failure this prevents.
+          # A registry that moves while its rendered lifecycle stays
+          # frozen guarantees a reconciliation break that worsens daily.
+          _add_safe "reports/context/canonical_lifecycle_usa.json"
+          _add_safe "reports/context/canonical_lifecycle_india.json"
+          _add_safe "reports/context/dynamic_risk_usa.json"
+          _add_safe "reports/telegram/aegis_history_usa.xlsx"
           _add_safe "reports/research/opportunity_registry.jsonl"
           _add_safe "reports/context/opportunity_violations.json"
           _add_safe "reports/context/daily_opportunity_discovery.json"

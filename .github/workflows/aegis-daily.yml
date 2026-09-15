@@ -321,6 +321,25 @@ jobs:
           # 2026-08-20 · Sprint K Part 30 · Registry MUST persist across CI runs
           # or every fresh checkout treats every ticker as first-time NEW (bug).
           git add reports/research/opportunity_registry.jsonl 2>/dev/null || true
+          # THE CANONICAL LIFECYCLE MUST ADVANCE WITH THE REGISTRY.
+          #
+          # This workflow committed the registry but NOT the lifecycle
+          # rendered from it, so every day the registry moved forward and
+          # the committed lifecycle stayed frozen. By 2026-09-15 the
+          # artifact was 4 days stale and still showed seven positions as
+          # CURRENT that the registry had closed on 2026-09-11
+          # (BAJAJHLDNG, BATAINDIA, CHAMBLFERT, GNFC, PERSISTENT, PNB,
+          # TIINDIA · all EXIT_HORIZON).
+          #
+          # A23 compares exactly those two, so it failed permanently and
+          # got worse daily - and because the USA job runs the whole
+          # tests/delivery suite, an INDIA divergence reddened USA CI.
+          #
+          # They are one state and must be committed together.
+          git add reports/context/canonical_lifecycle_india.json 2>/dev/null || true
+          git add reports/context/canonical_lifecycle_usa.json 2>/dev/null || true
+          git add reports/context/dynamic_risk_india.json reports/context/dynamic_risk_usa.json 2>/dev/null || true
+          git add reports/telegram/aegis_history_india.xlsx reports/telegram/aegis_history_usa.xlsx 2>/dev/null || true
           # 2026-09-07 · R3 Sprint 1 · the canonical R3 shadow ledger MUST
           # persist across CI runs for the same reason the Registry must.
           # Before this line the R3 step reported SUCCESS on every run while
