@@ -269,6 +269,16 @@ jobs:
           _add_safe "reports/context/canonical_lifecycle_usa.json"
           _add_safe "reports/context/canonical_lifecycle_india.json"
           _add_safe "reports/context/dynamic_risk_usa.json"
+          # HISTORICAL MEMORY MUST PERSIST ACROSS CI RUNS.
+          # Same defect class as the lifecycle gap: the memory step seals a day
+          # inside the runner, the runner is destroyed, and the snapshot never
+          # reaches main. history/ was in no add line, so the evidence clock
+          # would read 0 forever while every run reported the day as sealed.
+          # Sealed days are immutable, so this only ever ADDS new dates.
+          _add_safe "history/usa/*/snapshot.json"
+          _add_safe "history/usa/*/SEALED"
+          _add_safe "history/usa/*/*.parquet"
+          _add_safe "reports/context/memory_certification_usa.json"
           _add_safe "reports/telegram/aegis_history_usa.xlsx"
           _add_safe "reports/research/opportunity_registry.jsonl"
           _add_safe "reports/context/opportunity_violations.json"

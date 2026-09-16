@@ -353,6 +353,17 @@ jobs:
           git add reports/context/canonical_lifecycle_india.json 2>/dev/null || true
           git add reports/context/canonical_lifecycle_usa.json 2>/dev/null || true
           git add reports/context/dynamic_risk_india.json reports/context/dynamic_risk_usa.json 2>/dev/null || true
+          # HISTORICAL MEMORY MUST PERSIST ACROSS CI RUNS.
+          #
+          # Same defect class as the lifecycle gap documented above: the memory
+          # step seals a day inside the runner, the runner is destroyed, and the
+          # snapshot never reaches main. history/ and the certification were in
+          # no git add line, so the evidence clock would have read 0 forever
+          # while every run reported the day as sealed.
+          #
+          # Sealed days are immutable, so this only ever ADDS new dates.
+          git add history/ 2>/dev/null || true
+          git add reports/context/memory_certification_india.json reports/context/memory_certification_usa.json 2>/dev/null || true
           git add reports/telegram/aegis_history_india.xlsx reports/telegram/aegis_history_usa.xlsx 2>/dev/null || true
           # 2026-09-07 · R3 Sprint 1 · the canonical R3 shadow ledger MUST
           # persist across CI runs for the same reason the Registry must.
