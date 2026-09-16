@@ -1,0 +1,296 @@
+"""R3 HISTORICAL REPLAY DATASET - assembled from sealed memory only.
+
+THE RULE THIS MODULE EXISTS TO ENFORCE
+--------------------------------------
+A replay row may contain only what was sealed on its as_of date, plus outcomes
+measured strictly after it. Nothing is recomputed from current data. If the
+sealed evidence for a date is absent or fails verification, that date produces
+no rows at all - it is never backfilled from the live working tree.
+
+That sounds obvious and is exactly the rule the evidence-vector probe originally
+broke: it read `features/<market>/<asof>.parquet`, an ephemeral path that the
+next run overwrites. A dataset built that way describes the present wearing a
+past date. Here the only admissible input is
+`history/<market>/<asof>/technical_features.parquet`, whose sha256 lives inside
+SEALED, and the builder calls verify_seal() before reading a single row.
+
+THE OUTCOME SIDE
+----------------
+Forward returns are computed from bars with index strictly greater than the
+as_of timestamp. A horizon with fewer than n available bars yields None, never a
+shorter window silently relabelled. On a young memory layer most long horizons
+are legitimately empty; reporting that emptiness is the point, because it is the
+difference between "no signal" and "no data".
+
+SCOPE
+-----
+Research only. Writes under reports/research/r3/ and data/research/r3/.
+R3 production writes remain 0.
+"""
+from __future__ import annotations
+
+from datetime import date
+from pathlib import Path
+from typing import Optional
+
+import pandas as pd
+
+SCHEMA_VERSION = "aegis.r3.replay_dataset.v1"
+
+HORIZONS = (1, 3, 5, 10, 20)
+BARS = {"india": "data/raw/india/%s_D1.parquet",
+        "usa": "usa/data/raw/us/%s_D1.parquet"}
+
+_BARS: dict = {}
+
+
+def _bars(root: Path, market: str, ticker: str) -> Optional[pd.DataFrame]:
+    key = (str(root), market, ticker)
+    if key in _BARS:
+        return _BARS[key]
+    t = str(ticker).upper().replace(".NS", "").replace(".BO", "")
+    p = root / (BARS[market] % t)
+    d = None
+    if p.exists():
+        try:
+            d = pd.read_parquet(p)
+            d.index = pd.to_datetime(d.index)
+            d = d.sort_index()
+        except Exception:
+            d = None
+    _BARS[key] = d
+    return d
+
+
+def _forward(root: Path, market: str, ticker: str, asof: str) -> dict:
+    """Outcomes measured strictly AFTER asof. Short history gives None, not a
+    truncated window relabelled as a full one."""
+    out: dict = {"fwd_%dd" % h: None for h in HORIZONS}
+    out["n_fwd_bars"] = 0
+    out["asof_close"] = None
+    b = _bars(root, market, ticker)
+    if b is None:
+        return out
+    a = pd.Timestamp(asof)
+    past, fut = b[b.index <= a], b[b.index > a]
+    if past.empty or fut.empty:
+        return out
+    p0 = float(past["close"].iloc[-1])
+    if not p0:
+        return out
+    out["n_fwd_bars"] = len(fut)
+    out["asof_close"] = p0
+    for h in HORIZONS:
+        if len(fut) >= h:
+            out["fwd_%dd" % h] = 100.0 * (float(fut["close"].iloc[h - 1]) - p0) / p0
+    return out
+
+
+def build_date(root: Path, market: str, asof: str) -> tuple[pd.DataFrame, dict]:
+    """One as_of -> (rows, provenance). Refuses anything not sealed and valid."""
+    from backend.memory.daily_snapshot import snapshot_dir, verify_seal, load
+    from backend.research.r3_program.evidence_vector import replay_ready
+
+    prov: dict = {"market": market, "as_of": asof, "rows": 0, "admitted": False}
+    gate = replay_ready(root, market, date.fromisoformat(asof))
+    prov["replay_gate"] = gate["R3_HISTORICAL_REPLAY_READY"]
+    prov["blockers"] = gate["blockers"]
+    if not gate["R3_HISTORICAL_REPLAY_READY"]:
+        prov["refused"] = "GATE_NOT_MET"
+        return pd.DataFrame(), prov
+
+    ok, msg = verify_seal(root, market, asof)
+    prov["seal_verified"] = ok
+    if not ok:
+        prov["refused"] = "SEAL_%s" % msg.split(":")[0]
+        return pd.DataFrame(), prov
+
+    d = snapshot_dir(root, market, asof)
+    feat_p, dec_p = d / "technical_features.parquet", d / "decisions.parquet"
+    if not feat_p.exists():
+        prov["refused"] = "NO_SEALED_TECHNICAL"
+        return pd.DataFrame(), prov
+
+    df = pd.read_parquet(feat_p)
+    df["ticker"] = df["ticker"].astype(str)
+    prov["technical_rows"] = len(df)
+    prov["technical_cols"] = len(df.columns)
+
+    # sealed decisions: which of those names R2 actually acted on that day
+    if dec_p.exists():
+        dec = pd.read_parquet(dec_p)
+        dec["ticker"] = dec["ticker"].astype(str)
+        prov["decision_rows"] = len(dec)
+
+        # `ticker` is NOT the key of this sidecar; `position_id` is. The same
+        # name can be held simultaneously by a legacy R1 position and an R2 one
+        # (KOTAKBANK, COALINDIA, CRM, GRMN, VLO all were on 2026-09-15). A plain
+        # merge on ticker fans one feature row into two and silently inflates
+        # every downstream count - USA produced 521 rows from a 516-row matrix.
+        eng = dec.get("engine", pd.Series([""] * len(dec))).astype(str).str.upper()
+        r2 = dec[eng.str.startswith("R2")].copy()
+        r1_names = set(dec.loc[eng.str.startswith("R1"), "ticker"])
+        prov["decision_rows_r2"] = len(r2)
+        prov["decision_rows_legacy_r1"] = len(dec) - len(r2)
+
+        if r2["ticker"].duplicated().any():
+            prov["admitted"] = False
+            prov["refused"] = "R2_TICKER_NOT_UNIQUE_%s" % sorted(
+                r2.loc[r2["ticker"].duplicated(), "ticker"])[:5]
+            return pd.DataFrame(), prov
+
+        dup = [c for c in r2.columns if c in df.columns and c != "ticker"]
+        r2 = r2.rename(columns={c: "dec_%s" % c for c in dup})
+        before = len(df)
+        df = df.merge(r2, on="ticker", how="left")
+        assert len(df) == before, "decision merge changed the row count"
+        df["in_sealed_decisions"] = df["ticker"].isin(set(r2["ticker"])).astype(int)
+        # kept as a flag, never as an extra row
+        df["legacy_r1_open"] = df["ticker"].isin(r1_names).astype(int)
+    else:
+        df["in_sealed_decisions"] = 0
+        df["legacy_r1_open"] = 0
+        prov["decision_rows"] = 0
+        prov["decision_rows_r2"] = 0
+        prov["decision_rows_legacy_r1"] = 0
+
+    snap = load(root, market, asof) or {}
+    prov["snapshot_schema"] = snap.get("schema_version")
+    prov["feature_schema_fingerprint"] = (snap.get("fingerprints") or {}).get(
+        "feature_schema_fingerprint")
+
+    fwd = pd.DataFrame([_forward(root, market, t, asof) for t in df["ticker"]])
+    # On a young memory layer every long horizon is legitimately all-NA. Pin the
+    # dtype so those columns stay float64 instead of object, and so concat does
+    # not change its mind about them in a later pandas.
+    for h in HORIZONS:
+        fwd["fwd_%dd" % h] = pd.to_numeric(fwd["fwd_%dd" % h], errors="coerce").astype("float64")
+    fwd["asof_close"] = pd.to_numeric(fwd["asof_close"], errors="coerce").astype("float64")
+    df = pd.concat([df.reset_index(drop=True), fwd.reset_index(drop=True)], axis=1)
+    # The sealed matrix may already carry these. Overwrite in place rather than
+    # inserting a second column of the same name - two `market` columns would
+    # make every later groupby ambiguous.
+    for i, (col, val) in enumerate((("as_of", asof), ("market", market))):
+        if col in df.columns:
+            # A sealed matrix labelled with a different date than the directory
+            # it sits in is a provenance failure, not something to paper over.
+            present = set(df[col].dropna().astype(str).unique())
+            if present and present != {str(val)}:
+                prov["admitted"] = False
+                prov["refused"] = "PROVENANCE_MISMATCH_%s=%s" % (
+                    col, sorted(present)[:3])
+                return pd.DataFrame(), prov
+            df[col] = val
+        else:
+            df.insert(i, col, val)
+
+    prov["rows"] = len(df)
+    prov["admitted"] = True
+    prov["outcome_coverage"] = {
+        "fwd_%dd" % h: int(df["fwd_%dd" % h].notna().sum()) for h in HORIZONS}
+    return df, prov
+
+
+def _align_concat(frames: list) -> pd.DataFrame:
+    """Union the columns explicitly before stacking.
+
+    India and USA seal different decision columns, so a plain concat leaves
+    whole columns all-NA for one market and pandas then infers their dtype from
+    nothing - it currently drops them from the dtype decision and warns that a
+    future version will not. Deciding the dtype here, from the frame that
+    actually has the column, keeps the result stable across pandas versions
+    instead of leaving a silent schema change waiting in an upgrade.
+    """
+    if not frames:
+        return pd.DataFrame()
+    cols: list = []
+    for f in frames:
+        for c in f.columns:
+            if c not in cols:
+                cols.append(c)
+    # The dtype a column SHOULD have, taken from a frame that actually holds
+    # values. A column of all-None arrives as `object`, not float64 - which is
+    # how a numeric feature that happens to be empty for one market (India has
+    # no earnings, institutional or insider coverage in sealed memory) silently
+    # turns the stacked column into object and makes concat guess.
+    dtypes = {}
+    for c in cols:
+        for f in frames:
+            if c in f.columns and not f[c].isna().all():
+                dtypes[c] = f[c].dtype
+                break
+    fixed = []
+    for f in frames:
+        g = f.reindex(columns=cols)
+        for c, dt in dtypes.items():
+            if g[c].isna().all() and g[c].dtype != dt:
+                try:
+                    g[c] = g[c].astype(dt)
+                except (TypeError, ValueError):
+                    pass
+        fixed.append(g)
+    return pd.concat(fixed, ignore_index=True)
+
+
+def substrate_holes(df: pd.DataFrame) -> dict:
+    """Which feature columns are structurally empty, per market.
+
+    This is evidence in its own right. `sector` being 100% null for India on
+    every sealed date is the known SECTOR-1 defect; `sma_200` being null in BOTH
+    markets means the column exists but was never populated. A research wave that
+    reads such a column gets nulls, not a signal, and the difference between
+    "no relationship" and "no data" is the whole game.
+    """
+    if df.empty:
+        return {}
+    out: dict = {}
+    for m, g in df.groupby("market"):
+        empty = sorted(c for c in g.columns if g[c].isna().all())
+        out[str(m)] = {
+            "columns": len(g.columns),
+            "fully_empty": len(empty),
+            "fully_empty_columns": empty,
+        }
+    both = set.intersection(*[set(v["fully_empty_columns"]) for v in out.values()]) \
+        if len(out) > 1 else set(next(iter(out.values()))["fully_empty_columns"])
+    out["_empty_in_every_market"] = sorted(both)
+    return out
+
+
+def build(root: Path) -> tuple[pd.DataFrame, dict]:
+    """Every replay-ready as_of across both markets."""
+    root = Path(root)
+    frames, provs = [], []
+    for market in ("india", "usa"):
+        d = root / "history" / market
+        if not d.exists():
+            continue
+        for p in sorted(x for x in d.iterdir()
+                        if x.is_dir() and (x / "SEALED").exists()):
+            df, prov = build_date(root, market, p.name)
+            provs.append(prov)
+            if not df.empty:
+                frames.append(df)
+    out = _align_concat(frames)
+    manifest = {
+        "schema_version": SCHEMA_VERSION,
+        "dates_considered": len(provs),
+        "dates_admitted": sum(1 for p in provs if p["admitted"]),
+        "dates_refused": [
+            {"market": p["market"], "as_of": p["as_of"],
+             "reason": p.get("refused"), "blockers": p.get("blockers")}
+            for p in provs if not p["admitted"]],
+        "rows": len(out),
+        # THE BINDING UNIT. Rows are names; dates are bets.
+        "effective_units": len({(p["market"], p["as_of"])
+                                for p in provs if p["admitted"]}),
+        "per_date": provs,
+    }
+    if not out.empty:
+        manifest["outcome_coverage"] = {
+            "fwd_%dd" % h: int(out["fwd_%dd" % h].notna().sum()) for h in HORIZONS}
+        manifest["outcome_coverage_pct"] = {
+            "fwd_%dd" % h: round(100.0 * out["fwd_%dd" % h].notna().sum() / len(out), 1)
+            for h in HORIZONS}
+        manifest["substrate_holes"] = substrate_holes(out)
+    return out, manifest
