@@ -1,0 +1,80 @@
+{
+ "schema_version": "aegis.r3.substrate_defects.v1",
+ "generated_utc": "2026-09-16T11:12:11+00:00",
+ "status": "DIAGNOSED - NOT FIXED. Every candidate fix changes R2 inputs and therefore production behaviour.",
+ "authority": "CEO decision required. Same class as the deferred SECTOR-1/SECTOR-2 items.",
+ "findings": [
+  {
+   "id": "CANON-1",
+   "severity": "MEDIUM",
+   "title": "Every 200-day feature is structurally impossible",
+   "where": "backend/canonical/adapters.py:70",
+   "what": "adapt_prices(lookback_days=90). No caller overrides it, so the canonical bar set is 90 rows per symbol.",
+   "evidence": {
+    "sma_20_populated_pct": 99,
+    "sma_50_populated_pct": 99,
+    "sma_200_populated_pct": 0,
+    "raw_bars_available_median": {
+     "india": 1418,
+     "usa": 1255
+    },
+    "tickers_with_ge_200_bars_pct": {
+     "india": 100,
+     "usa": 99
+    },
+    "note": "The builder's own guard `if len(closes) >= 200` is correct. It never fires because it is handed 90 bars."
+   },
+   "refutes": "An insufficient-history explanation. The parquets hold roughly 1,300 bars; the truncation is the adapter's."
+  },
+  {
+   "id": "CANON-2",
+   "severity": "HIGH",
+   "title": "Historical replay windows shrink to zero as the as_of recedes",
+   "where": "backend/canonical/adapters.py:108",
+   "what": "`df.tail(lookback_days)` is applied BEFORE the `cutoff` filter. The last 90 rows of the FILE are taken first, then anything after the as_of is dropped - so a past-dated request keeps only the overlap.",
+   "measured_bars_per_symbol": {
+    "2026-09-16": 90,
+    "2026-08-16": 67,
+    "2026-06-16": 25,
+    "2026-03-16": 0,
+    "2025-09-16": 0
+   },
+   "consequence": "Past-dated feature computation degrades silently and returns NOTHING beyond roughly four months. No error is raised.",
+   "significance": "This is the mechanical explanation for the BLOCKED-INSUFFICIENT HISTORY verdict returned by every historical R3 wave. The constraint was read as a data-depth limit; it is an ordering defect in one line."
+  },
+  {
+   "id": "CANON-3",
+   "severity": "LOW-MEDIUM",
+   "title": "Sector relatives are empty in BOTH markets, independent of the India sector defect",
+   "where": "sealed memory-v2 technical matrices",
+   "evidence": {
+    "usa_sector_label_populated_pct": 100,
+    "usa_sector_rank_populated_pct": 0,
+    "india_sector_label_populated_pct": 0,
+    "india_sector_rank_populated_pct": 0
+   },
+   "what": "USA carries a sector label for all 516 names yet sector_rank, sector_return_1m_pct, sector_is_leader and sector_is_laggard are 0% populated. So the sector-relative computation fails for a reason separate from SECTOR-1, which is about India's missing labels."
+  }
+ ],
+ "production_impact": {
+  "assessment": "REAL BUT NOT RANKING-DISTORTING TODAY",
+  "reasoning": "These columns are null for EVERY ticker, not a subset. trend.py adds 0.15*s200.fillna(0) and sector_rotation.py resolves to score 0 / confidence 0 for the whole universe, so the effect is a constant offset rather than a per-ticker distortion. Relative ranking on a given day is therefore intact.",
+  "what_is_genuinely_lost": [
+   "sector_rotation contributes nothing at all: score 0 and confidence 0 for every name, so one of eleven models is inert.",
+   "momentum carries a 0.10 weight on price_above_sma200 that can never fire.",
+   "trend's score magnitude is deflated by up to 0.15 for every name, which matters wherever an ABSOLUTE threshold is applied rather than a rank.",
+   "trend's confidence counts only adx and s50, so it does not report the missing s200 - the model looks more confident than its inputs justify."
+  ]
+ },
+ "explicitly_not_done": [
+  "No fix applied. Raising lookback_days or reordering tail/cutoff would populate sma_200 and the sector relatives, which changes momentum, trend and sector_rotation inputs and therefore R2 scoring.",
+  "No rejected research family reopened. Whether prior MA200 and peer/sector rejections were decided against structurally empty columns is a question for the CEO, not a licence to re-run them.",
+  "No threshold, weight, gate or eligibility rule touched."
+ ],
+ "recommended_sequence_if_authorised": [
+  "1. Fix CANON-2 alone (cutoff before tail). It is the historical-replay blocker and does NOT change today's live window, which already ends at the as_of.",
+  "2. Re-measure how far back replay can actually reach once the ordering is correct.",
+  "3. Treat CANON-1 separately. Raising the window DOES change live R2 inputs and needs its own authorisation and a before/after decision diff."
+ ],
+ "r3_production_writes": 0
+}
