@@ -157,6 +157,9 @@ def _load_registry(root, market, retired):
              "closed_admin_90d": closed_admin}
 
 
+import re
+
+
 def _normalize_exit_reason(raw: str) -> str:
     """CEO 2026-09-02 · I18 jargon-free presentation.
     Translate raw registry event codes/arrows/ticker suffixes into
@@ -180,6 +183,24 @@ def _normalize_exit_reason(raw: str) -> str:
     # Category 4: orphan auto-close
     if "orphan_auto" in r_l or "orphan auto" in r_l:
         return "Auto-close · orphaned position"
+    # Category 5a: dynamic-exit engine event codes · 2026-09-16
+    #
+    # apply_dynamic_exits writes the registry close reason as
+    #     "<EVENT> · trigger crossed <date> · stop_source=... · enforced_on=..."
+    # Of the three events it emits, only EXIT_HORIZON was translated, and only
+    # by luck because the word "horizon" appears. EXIT_STOP and EXIT_TARGET
+    # matched none of the patterns below ("_stop_" does not occur in
+    # "exit_stop ·") and fell through to the default branch, which strips
+    # arrows and ticker suffixes but leaves the middots. Three middots trips
+    # I18, so India delivery blocked on every run once stops began firing.
+    #
+    # Presentation only: the registry keeps the full audit string.
+    if "exit_stop" in r_l:
+        return "Stop-loss triggered"
+    if "exit_target" in r_l:
+        return "Target hit"
+    if "exit_horizon" in r_l:
+        return "Holding horizon reached"
     # Category 5: stop-loss / target / horizon triggers
     if "stop_loss_hit" in r_l or "stop loss hit" in r_l or "_stop_" in r_l:
         return "Stop-loss triggered"
@@ -193,15 +214,34 @@ def _normalize_exit_reason(raw: str) -> str:
         return "Risk signal exit"
     if "missing_from_signals" in r_l:
         return "Signal dropped"
-    # Default: strip jargon chars but keep the sentence · truncate to 40 char
-    cleaned = (r.replace("→", "·")
+    # ── DEFAULT · MUST BE I18-SAFE BY CONSTRUCTION · 2026-09-16 ──────
+    #
+    # This function was a PARTIAL function: any producer token without an
+    # explicit mapping fell through to a default that stripped arrows and
+    # ticker suffixes but left raw event codes and middots intact. Worse, it
+    # rewrote "→" AS "·", which INCREASED the middot count and manufactured
+    # the very violation I18 exists to catch. Measured: 4 of 8 realistic
+    # unmapped strings rendered as I18-blocking jargon, which is how
+    # EXIT_STOP took India delivery down.
+    #
+    # A translator must be TOTAL. Whatever a producer emits now or in future,
+    # the fallback below yields operator-safe text. This does NOT weaken I18:
+    # the validator still inspects the rendered sheet and still blocks
+    # anything that reaches it dirty by another path.
+    cleaned = (r.replace("→", " ")
                  .replace(".NS", "")
                  .replace(".BO", "")
                  .replace("alpha", "gain"))
-    # Collapse repeated middots
-    while "· ·" in cleaned:
-        cleaned = cleaned.replace("· ·", "·")
-    return cleaned.strip("· ").strip()[:40] or "—"
+    # Drop trailing machine key=value detail (stop_source=..., enforced_on=...)
+    cleaned = re.sub(r"\s*·?\s*\b[a-z_]+=[^·]+", "", cleaned)
+    # Raw SCREAMING_SNAKE event codes are not operator language
+    cleaned = re.sub(r"\b[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+\b",
+                     lambda m: m.group(0).replace("_", " ").capitalize(), cleaned)
+    # At most ONE middot survives · I18 blocks at two
+    parts = [s.strip() for s in cleaned.split("·") if s.strip()]
+    cleaned = " · ".join(parts[:2]) if parts else ""
+    out = cleaned.strip("· ").strip()[:40]
+    return out or "—"
 
 
 def _extract_relative_pp(raw: str):
