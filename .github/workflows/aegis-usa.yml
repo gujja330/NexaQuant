@@ -43,7 +43,21 @@ jobs:
     # min · giving 75 min headroom for yfinance retries + macro fetch spikes.
     timeout-minutes: 75
     steps:
+      # fetch-depth: 0 is REQUIRED by the historical-memory layer.
+      # backend/canonical/pit_provenance resolves universe and sector membership
+      # from GIT HISTORY (`git log --before` + `git show <rev>:<path>`), which is
+      # how a replay learns what AEGIS was actually configured with on a past
+      # date rather than borrowing today's list. actions/checkout defaults to a
+      # shallow depth-1 clone with no history, under which universe_asof() and
+      # sector_asof() return PIT_UNAVAILABLE and every sealed day would record
+      # those two families as PIT_BLOCKED while still reporting CONTRACT_MET.
+      # filter: blob:none keeps the full commit graph but fetches file contents
+      # on demand: 132MB instead of 477MB, and only a handful of old blobs are
+      # ever read.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          filter: blob:none
 
       - uses: actions/setup-python@v5
         with:
