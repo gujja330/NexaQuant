@@ -44,6 +44,15 @@ BARS = {"india": "data/raw/india/%s_D1.parquet",
 _BARS: dict = {}
 
 
+def _tkey(t) -> str:
+    """The ONE canonical join key for a ticker in this module.
+
+    Defined once, on purpose. Every alias-drift incident in this repo has come
+    from two consumers each keeping a private idea of what a ticker looks like.
+    """
+    return str(t).upper().strip().replace(".NS", "").replace(".BO", "")
+
+
 def _bars(root: Path, market: str, ticker: str) -> Optional[pd.DataFrame]:
     key = (str(root), market, ticker)
     if key in _BARS:
@@ -62,12 +71,24 @@ def _bars(root: Path, market: str, ticker: str) -> Optional[pd.DataFrame]:
     return d
 
 
-def _forward(root: Path, market: str, ticker: str, asof: str) -> dict:
+def _forward(root: Path, market: str, ticker: str, asof: str,
+             mfe_window: int = 60) -> dict:
     """Outcomes measured strictly AFTER asof. Short history gives None, not a
-    truncated window relabelled as a full one."""
-    out: dict = {"fwd_%dd" % h: None for h in HORIZONS}
-    out["n_fwd_bars"] = 0
-    out["asof_close"] = None
+    truncated window relabelled as a full one.
+
+    Each horizon carries its OWN outcome_date. The mandate is explicit that a
+    prediction date and an outcome date must never be merged into one field:
+    once they are, nothing downstream can tell whether a row leaked, because the
+    only evidence of the gap has been overwritten.
+    """
+    out: dict = {}
+    for h in HORIZONS:
+        out["fwd_%dd" % h] = None
+        out["fwd_%dd_outcome_date" % h] = None
+    out.update({"n_fwd_bars": 0, "asof_close": None,
+                "mae_pct": None, "mfe_pct": None,
+                "time_to_mae_d": None, "time_to_mfe_d": None,
+                "mae_mfe_window_bars": 0})
     b = _bars(root, market, ticker)
     if b is None:
         return out
@@ -83,6 +104,18 @@ def _forward(root: Path, market: str, ticker: str, asof: str) -> dict:
     for h in HORIZONS:
         if len(fut) >= h:
             out["fwd_%dd" % h] = 100.0 * (float(fut["close"].iloc[h - 1]) - p0) / p0
+            out["fwd_%dd_outcome_date" % h] = fut.index[h - 1].date().isoformat()
+
+    # MAE/MFE over whatever forward window exists, reported WITH its length so a
+    # 2-bar excursion is never read as a 60-bar one.
+    w = fut.iloc[:mfe_window]
+    if len(w) and {"low", "high"} <= set(w.columns):
+        lo, hi = w["low"].astype(float), w["high"].astype(float)
+        out["mae_pct"] = 100.0 * (float(lo.min()) - p0) / p0
+        out["mfe_pct"] = 100.0 * (float(hi.max()) - p0) / p0
+        out["time_to_mae_d"] = int(lo.reset_index(drop=True).idxmin()) + 1
+        out["time_to_mfe_d"] = int(hi.reset_index(drop=True).idxmax()) + 1
+        out["mae_mfe_window_bars"] = len(w)
     return out
 
 
@@ -113,6 +146,12 @@ def build_date(root: Path, market: str, asof: str) -> tuple[pd.DataFrame, dict]:
 
     df = pd.read_parquet(feat_p)
     df["ticker"] = df["ticker"].astype(str)
+    # ONE join key, derived in one place. The India technical matrix stores
+    # `AARTIIND.NS` while the decisions sidecar stores `AARTIIND`, so a join on
+    # the raw column matched 0 of 56 India decisions and silently produced an
+    # empty portfolio link on every India date - while USA, which has no
+    # suffix, matched perfectly and made the join look correct.
+    df["_tkey"] = df["ticker"].map(_tkey)
     prov["technical_rows"] = len(df)
     prov["technical_cols"] = len(df.columns)
 
@@ -127,26 +166,40 @@ def build_date(root: Path, market: str, asof: str) -> tuple[pd.DataFrame, dict]:
         # (KOTAKBANK, COALINDIA, CRM, GRMN, VLO all were on 2026-09-15). A plain
         # merge on ticker fans one feature row into two and silently inflates
         # every downstream count - USA produced 521 rows from a 516-row matrix.
+        dec["_tkey"] = dec["ticker"].map(_tkey)
         eng = dec.get("engine", pd.Series([""] * len(dec))).astype(str).str.upper()
         r2 = dec[eng.str.startswith("R2")].copy()
-        r1_names = set(dec.loc[eng.str.startswith("R1"), "ticker"])
+        r1_keys = set(dec.loc[eng.str.startswith("R1"), "_tkey"])
         prov["decision_rows_r2"] = len(r2)
         prov["decision_rows_legacy_r1"] = len(dec) - len(r2)
 
-        if r2["ticker"].duplicated().any():
+        if r2["_tkey"].duplicated().any():
             prov["admitted"] = False
             prov["refused"] = "R2_TICKER_NOT_UNIQUE_%s" % sorted(
-                r2.loc[r2["ticker"].duplicated(), "ticker"])[:5]
+                r2.loc[r2["_tkey"].duplicated(), "_tkey"])[:5]
             return pd.DataFrame(), prov
 
-        dup = [c for c in r2.columns if c in df.columns and c != "ticker"]
+        # A join that matches NOTHING is a broken key, not an empty book. It
+        # must refuse rather than emit a dataset whose portfolio link is
+        # uniformly absent - that reads downstream as "no positions held".
+        matched = len(set(r2["_tkey"]) & set(df["_tkey"]))
+        prov["decision_match"] = matched
+        prov["decision_match_rate_pct"] = (
+            round(100.0 * matched / len(r2), 1) if len(r2) else None)
+        if len(r2) and matched == 0:
+            prov["admitted"] = False
+            prov["refused"] = "DECISION_JOIN_MATCHED_0_OF_%d" % len(r2)
+            return pd.DataFrame(), prov
+
+        dup = [c for c in r2.columns if c in df.columns and c not in ("ticker", "_tkey")]
         r2 = r2.rename(columns={c: "dec_%s" % c for c in dup})
+        r2 = r2.drop(columns=["ticker"])
         before = len(df)
-        df = df.merge(r2, on="ticker", how="left")
+        df = df.merge(r2, on="_tkey", how="left")
         assert len(df) == before, "decision merge changed the row count"
-        df["in_sealed_decisions"] = df["ticker"].isin(set(r2["ticker"])).astype(int)
+        df["in_sealed_decisions"] = df["_tkey"].isin(set(r2["_tkey"])).astype(int)
         # kept as a flag, never as an extra row
-        df["legacy_r1_open"] = df["ticker"].isin(r1_names).astype(int)
+        df["legacy_r1_open"] = df["_tkey"].isin(r1_keys).astype(int)
     else:
         df["in_sealed_decisions"] = 0
         df["legacy_r1_open"] = 0
@@ -165,7 +218,8 @@ def build_date(root: Path, market: str, asof: str) -> tuple[pd.DataFrame, dict]:
     # not change its mind about them in a later pandas.
     for h in HORIZONS:
         fwd["fwd_%dd" % h] = pd.to_numeric(fwd["fwd_%dd" % h], errors="coerce").astype("float64")
-    fwd["asof_close"] = pd.to_numeric(fwd["asof_close"], errors="coerce").astype("float64")
+    for c in ("asof_close", "mae_pct", "mfe_pct", "time_to_mae_d", "time_to_mfe_d"):
+        fwd[c] = pd.to_numeric(fwd[c], errors="coerce").astype("float64")
     df = pd.concat([df.reset_index(drop=True), fwd.reset_index(drop=True)], axis=1)
     # The sealed matrix may already carry these. Overwrite in place rather than
     # inserting a second column of the same name - two `market` columns would
@@ -183,6 +237,25 @@ def build_date(root: Path, market: str, asof: str) -> tuple[pd.DataFrame, dict]:
             df[col] = val
         else:
             df.insert(i, col, val)
+
+    # §2 identity/provenance. prediction_as_of is deliberately a SEPARATE column
+    # from as_of so that a later join cannot quietly reuse one for the other.
+    df["prediction_as_of"] = asof
+    df["run_id"] = "%s:%s" % (market, asof)
+    df["source"] = "memory-v2 sealed snapshot"
+    df["feature_schema_version"] = prov.get("feature_schema_fingerprint")
+    df["snapshot_schema_version"] = prov.get("snapshot_schema")
+
+    # LEAKAGE ASSERTION. Every outcome date must strictly postdate the
+    # prediction date. This is cheap and it is the one error that would
+    # invalidate every number downstream, so it is checked rather than assumed.
+    for h in HORIZONS:
+        col = "fwd_%dd_outcome_date" % h
+        bad = df[df[col].notna() & (df[col].astype(str) <= asof)]
+        if len(bad):
+            prov["admitted"] = False
+            prov["refused"] = "LEAKAGE_%s_ON_OR_BEFORE_ASOF_n=%d" % (col, len(bad))
+            return pd.DataFrame(), prov
 
     prov["rows"] = len(df)
     prov["admitted"] = True

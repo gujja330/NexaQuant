@@ -193,3 +193,62 @@ def test_a_stacked_column_keeps_a_real_dtype(built):
             continue
         assert pd.api.types.is_numeric_dtype(df[c]), \
             "%s stacked to %s instead of a numeric dtype" % (c, df[c].dtype)
+
+
+# 6 · THE TICKER-KEY REGRESSION ──────────────────────────────────────
+def test_india_decisions_actually_join(built):
+    """India's technical matrix stores AARTIIND.NS; the decisions sidecar stores
+    AARTIIND. Joining on the raw column matched 0 of 56 India decisions and
+    produced an empty portfolio link on every India date - while USA, which has
+    no suffix, matched perfectly and made the join look correct.
+
+    A silent 0-match join is indistinguishable downstream from "held nothing".
+    """
+    df, man = built
+    if df.empty:
+        pytest.skip("empty dataset")
+    for p in man["per_date"]:
+        if not p["admitted"] or not p.get("decision_rows_r2"):
+            continue
+        assert p["decision_match"] > 0, (
+            "%s/%s joined 0 of %d R2 decisions - broken key, not an empty book"
+            % (p["market"], p["as_of"], p["decision_rows_r2"]))
+        got = int(df[(df["market"] == p["market"])
+                     & (df["prediction_as_of"] == p["as_of"])]["in_sealed_decisions"].sum())
+        assert got > 0, "%s/%s has %d sealed R2 decisions but 0 joined rows" % (
+            p["market"], p["as_of"], p["decision_rows_r2"])
+
+
+def test_join_key_is_suffix_invariant():
+    from backend.research.r3_program.replay_dataset import _tkey
+    assert _tkey("AARTIIND.NS") == _tkey("AARTIIND") == "AARTIIND"
+    assert _tkey("acc.bo") == "ACC"
+    assert _tkey(" CRM ") == "CRM"
+
+
+# 7 · OUTCOME DATES ARE NEVER MERGED WITH PREDICTION DATES ───────────
+def test_every_outcome_date_strictly_postdates_the_prediction(built):
+    df, _ = built
+    if df.empty:
+        pytest.skip("empty dataset")
+    for h in HORIZONS:
+        c = "fwd_%dd_outcome_date" % h
+        assert c in df.columns, "%s has no outcome_date column" % c
+        have = df[df[c].notna()]
+        if have.empty:
+            continue
+        assert (have[c].astype(str) > have["prediction_as_of"].astype(str)).all(), \
+            "%s contains an outcome dated on or before its prediction" % c
+
+
+def test_mae_mfe_report_their_own_window_length(built):
+    """A 2-bar excursion must never be readable as a 60-bar one."""
+    df, _ = built
+    if df.empty:
+        pytest.skip("empty dataset")
+    have = df[df["mfe_pct"].notna()]
+    if have.empty:
+        pytest.skip("no forward window yet")
+    assert (have["mae_mfe_window_bars"] > 0).all()
+    assert (have["time_to_mfe_d"] <= have["mae_mfe_window_bars"]).all()
+    assert (have["time_to_mae_d"] <= have["mae_mfe_window_bars"]).all()

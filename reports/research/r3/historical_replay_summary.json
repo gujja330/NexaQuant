@@ -1,0 +1,507 @@
+{
+ "schema_version": "aegis.r3.historical_replay.v1",
+ "generated_utc": "2026-09-16T11:21:49+00:00",
+ "as_of_dates": [
+  "2026-09-15",
+  "2026-09-16"
+ ],
+ "markets": [
+  "india",
+  "usa"
+ ],
+ "source": "memory-v2 sealed snapshots",
+ "pit_status": "PIT_OK",
+ "sample_size": 972,
+ "date_depth": 3,
+ "evidence_tier": "OBSERVATION",
+ "disposition": "INSUFFICIENT EVIDENCE",
+ "inventory": {
+  "schema_version": "aegis.r3.historical_replay.v1",
+  "markets": {
+   "india": {
+    "sealed_days": 3,
+    "replay_ready_days": 2,
+    "detail": [
+     {
+      "market": "india",
+      "as_of": "2026-09-11",
+      "run_id": "india:2026-09-11",
+      "families": {
+       "technical": "AVAILABLE",
+       "fundamental": "BLOCKED_PIT",
+       "temporal": "AVAILABLE",
+       "sector": "PARTIAL",
+       "peer": "REJECTED",
+       "cross_sector": "BLOCKED_DATA",
+       "macro": "BLOCKED_DATA",
+       "market_structure": "PARTIAL",
+       "exit": "PARTIAL",
+       "portfolio": "BLOCKED_PIT"
+      },
+      "family_reasons": {
+       "technical": "hash-sealed matrix actually consumed by R2 on this as_of",
+       "fundamental": "India fundamentals are a single undated cross-section: 228 rows, no period_end, no filing_date. The adapter stamps asof=cutoff, so any historical use assigns today's values to the past",
+       "temporal": "derived from date-indexed bars truncated at cutoff",
+       "sector": "sector map as committed at this date",
+       "peer": "peer lead/lag produced no FDR-surviving predictive family; contemporaneous correlation is descriptive only",
+       "cross_sector": "depends on PIT sector plus macro; both unavailable for India and macro trend fields are undated for USA",
+       "macro": "India macro source reports/macro_summary.json does not exist; the adapter returns 0 rows and stamps asof=cutoff",
+       "market_structure": "universe membership as AEGIS was configured at this date; NOT exchange index membership, and no delisting or IPO history exists",
+       "exit": "dynamic-risk sidecar is authoritative for R2 stops, but only the current file exists \u2014 no per-date history",
+       "portfolio": "no sealed decisions for 2026-09-11 and the live lifecycle describes 2026-09-16; a past portfolio state cannot be recovered from the current file"
+      },
+      "seal_status": "VERIFIED",
+      "schema_status": "aegis.memory.daily.v2",
+      "feature_schema_fingerprint": "b65ceb49a83a",
+      "sidecars": [
+       "SEALED",
+       "snapshot.json",
+       "technical_features.parquet"
+      ],
+      "replay_ready": false,
+      "blockers": [
+       "portfolio=BLOCKED_PIT (no sealed decisions for 2026-09-11 and the live lifecycle describes 20)"
+      ],
+      "usable_families": 5
+     },
+     {
+      "market": "india",
+      "as_of": "2026-09-15",
+      "run_id": "india:2026-09-15",
+      "families": {
+       "technical": "AVAILABLE",
+       "fundamental": "BLOCKED_PIT",
+       "temporal": "AVAILABLE",
+       "sector": "PARTIAL",
+       "peer": "REJECTED",
+       "cross_sector": "BLOCKED_DATA",
+       "macro": "BLOCKED_DATA",
+       "market_structure": "PARTIAL",
+       "exit": "PARTIAL",
+       "portfolio": "AVAILABLE"
+      },
+      "family_reasons": {
+       "technical": "hash-sealed matrix actually consumed by R2 on this as_of",
+       "fundamental": "India fundamentals are a single undated cross-section: 228 rows, no period_end, no filing_date. The adapter stamps asof=cutoff, so any historical use assigns today's values to the past",
+       "temporal": "derived from date-indexed bars truncated at cutoff",
+       "sector": "sector map as committed at this date",
+       "peer": "peer lead/lag produced no FDR-surviving predictive family; contemporaneous correlation is descriptive only",
+       "cross_sector": "depends on PIT sector plus macro; both unavailable for India and macro trend fields are undated for USA",
+       "macro": "India macro source reports/macro_summary.json does not exist; the adapter returns 0 rows and stamps asof=cutoff",
+       "market_structure": "universe membership as AEGIS was configured at this date; NOT exchange index membership, and no delisting or IPO history exists",
+       "exit": "dynamic-risk sidecar is authoritative for R2 stops, but only the current file exists \u2014 no per-date history",
+       "portfolio": "hash-sealed decision state for this as_of"
+      },
+      "seal_status": "VERIFIED",
+      "schema_status": "aegis.memory.daily.v2",
+      "feature_schema_fingerprint": "b65ceb49a83a",
+      "sidecars": [
+       "SEALED",
+       "decisions.parquet",
+       "r2_scores.parquet",
+       "snapshot.json",
+       "technical_features.parquet"
+      ],
+      "replay_ready": true,
+      "blockers": [],
+      "usable_families": 6
+     },
+     {
+      "market": "india",
+      "as_of": "2026-09-16",
+      "run_id": "india:2026-09-16",
+      "families": {
+       "technical": "AVAILABLE",
+       "fundamental": "BLOCKED_PIT",
+       "temporal": "AVAILABLE",
+       "sector": "PARTIAL",
+       "peer": "REJECTED",
+       "cross_sector": "BLOCKED_DATA",
+       "macro": "BLOCKED_DATA",
+       "market_structure": "PARTIAL",
+       "exit": "PARTIAL",
+       "portfolio": "AVAILABLE"
+      },
+      "family_reasons": {
+       "technical": "hash-sealed matrix actually consumed by R2 on this as_of",
+       "fundamental": "India fundamentals are a single undated cross-section: 228 rows, no period_end, no filing_date. The adapter stamps asof=cutoff, so any historical use assigns today's values to the past",
+       "temporal": "derived from date-indexed bars truncated at cutoff",
+       "sector": "sector map as committed at this date",
+       "peer": "peer lead/lag produced no FDR-surviving predictive family; contemporaneous correlation is descriptive only",
+       "cross_sector": "depends on PIT sector plus macro; both unavailable for India and macro trend fields are undated for USA",
+       "macro": "India macro source reports/macro_summary.json does not exist; the adapter returns 0 rows and stamps asof=cutoff",
+       "market_structure": "universe membership as AEGIS was configured at this date; NOT exchange index membership, and no delisting or IPO history exists",
+       "exit": "dynamic-risk sidecar is authoritative for R2 stops, but only the current file exists \u2014 no per-date history",
+       "portfolio": "hash-sealed decision state for this as_of"
+      },
+      "seal_status": "VERIFIED",
+      "schema_status": "aegis.memory.daily.v2",
+      "feature_schema_fingerprint": "b65ceb49a83a",
+      "sidecars": [
+       "SEALED",
+       "decisions.parquet",
+       "r2_scores.parquet",
+       "snapshot.json",
+       "technical_features.parquet"
+      ],
+      "replay_ready": true,
+      "blockers": [],
+      "usable_families": 6
+     }
+    ]
+   },
+   "usa": {
+    "sealed_days": 2,
+    "replay_ready_days": 1,
+    "detail": [
+     {
+      "market": "usa",
+      "as_of": "2026-09-11",
+      "run_id": "usa:2026-09-11",
+      "families": {
+       "technical": "AVAILABLE",
+       "fundamental": "AVAILABLE",
+       "temporal": "AVAILABLE",
+       "sector": "AVAILABLE",
+       "peer": "REJECTED",
+       "cross_sector": "BLOCKED_DATA",
+       "macro": "PARTIAL",
+       "market_structure": "PARTIAL",
+       "exit": "PARTIAL",
+       "portfolio": "BLOCKED_PIT"
+      },
+      "family_reasons": {
+       "technical": "hash-sealed matrix actually consumed by R2 on this as_of",
+       "fundamental": "SEC XBRL first-filing values; availability is the observed `filed` date",
+       "temporal": "derived from date-indexed bars truncated at cutoff",
+       "sector": "sector map as committed at this date",
+       "peer": "peer lead/lag produced no FDR-surviving predictive family; contemporaneous correlation is descriptive only",
+       "cross_sector": "depends on PIT sector plus macro; both unavailable for India and macro trend fields are undated for USA",
+       "macro": "levels carry real observation dates; derived chg_* trend fields come from an undated current summary and are withheld historically",
+       "market_structure": "universe membership as AEGIS was configured at this date; NOT exchange index membership, and no delisting or IPO history exists",
+       "exit": "dynamic-risk sidecar is authoritative for R2 stops, but only the current file exists \u2014 no per-date history",
+       "portfolio": "no sealed decisions for 2026-09-11 and the live lifecycle describes 2026-09-16; a past portfolio state cannot be recovered from the current file"
+      },
+      "seal_status": "VERIFIED",
+      "schema_status": "aegis.memory.daily.v2",
+      "feature_schema_fingerprint": "b65ceb49a83a",
+      "sidecars": [
+       "SEALED",
+       "snapshot.json",
+       "technical_features.parquet"
+      ],
+      "replay_ready": false,
+      "blockers": [
+       "portfolio=BLOCKED_PIT (no sealed decisions for 2026-09-11 and the live lifecycle describes 20)"
+      ],
+      "usable_families": 7
+     },
+     {
+      "market": "usa",
+      "as_of": "2026-09-15",
+      "run_id": "usa:2026-09-15",
+      "families": {
+       "technical": "AVAILABLE",
+       "fundamental": "AVAILABLE",
+       "temporal": "AVAILABLE",
+       "sector": "AVAILABLE",
+       "peer": "REJECTED",
+       "cross_sector": "BLOCKED_DATA",
+       "macro": "PARTIAL",
+       "market_structure": "PARTIAL",
+       "exit": "PARTIAL",
+       "portfolio": "AVAILABLE"
+      },
+      "family_reasons": {
+       "technical": "hash-sealed matrix actually consumed by R2 on this as_of",
+       "fundamental": "SEC XBRL first-filing values; availability is the observed `filed` date",
+       "temporal": "derived from date-indexed bars truncated at cutoff",
+       "sector": "sector map as committed at this date",
+       "peer": "peer lead/lag produced no FDR-surviving predictive family; contemporaneous correlation is descriptive only",
+       "cross_sector": "depends on PIT sector plus macro; both unavailable for India and macro trend fields are undated for USA",
+       "macro": "levels carry real observation dates; derived chg_* trend fields come from an undated current summary and are withheld historically",
+       "market_structure": "universe membership as AEGIS was configured at this date; NOT exchange index membership, and no delisting or IPO history exists",
+       "exit": "dynamic-risk sidecar is authoritative for R2 stops, but only the current file exists \u2014 no per-date history",
+       "portfolio": "hash-sealed decision state for this as_of"
+      },
+      "seal_status": "VERIFIED",
+      "schema_status": "aegis.memory.daily.v2",
+      "feature_schema_fingerprint": "b65ceb49a83a",
+      "sidecars": [
+       "SEALED",
+       "decisions.parquet",
+       "r2_scores.parquet",
+       "snapshot.json",
+       "technical_features.parquet"
+      ],
+      "replay_ready": true,
+      "blockers": [],
+      "usable_families": 8
+     }
+    ]
+   }
+  }
+ },
+ "dataset_manifest": {
+  "schema_version": "aegis.r3.replay_dataset.v1",
+  "dates_considered": 5,
+  "dates_admitted": 3,
+  "dates_refused": [
+   {
+    "market": "india",
+    "as_of": "2026-09-11",
+    "reason": "GATE_NOT_MET",
+    "blockers": [
+     "portfolio=BLOCKED_PIT (no sealed decisions for 2026-09-11 and the live lifecycle describes 20)"
+    ]
+   },
+   {
+    "market": "usa",
+    "as_of": "2026-09-11",
+    "reason": "GATE_NOT_MET",
+    "blockers": [
+     "portfolio=BLOCKED_PIT (no sealed decisions for 2026-09-11 and the live lifecycle describes 20)"
+    ]
+   }
+  ],
+  "rows": 972,
+  "effective_units": 3,
+  "per_date": [
+   {
+    "market": "india",
+    "as_of": "2026-09-11",
+    "rows": 0,
+    "admitted": false,
+    "replay_gate": false,
+    "blockers": [
+     "portfolio=BLOCKED_PIT (no sealed decisions for 2026-09-11 and the live lifecycle describes 20)"
+    ],
+    "refused": "GATE_NOT_MET"
+   },
+   {
+    "market": "india",
+    "as_of": "2026-09-15",
+    "rows": 228,
+    "admitted": true,
+    "replay_gate": true,
+    "blockers": [],
+    "seal_verified": true,
+    "technical_rows": 228,
+    "technical_cols": 82,
+    "decision_rows": 54,
+    "decision_rows_r2": 49,
+    "decision_rows_legacy_r1": 5,
+    "decision_match": 49,
+    "decision_match_rate_pct": 100.0,
+    "snapshot_schema": "aegis.memory.daily.v2",
+    "feature_schema_fingerprint": "b65ceb49a83a",
+    "outcome_coverage": {
+     "fwd_1d": 224,
+     "fwd_3d": 0,
+     "fwd_5d": 0,
+     "fwd_10d": 0,
+     "fwd_20d": 0
+    }
+   },
+   {
+    "market": "india",
+    "as_of": "2026-09-16",
+    "rows": 228,
+    "admitted": true,
+    "replay_gate": true,
+    "blockers": [],
+    "seal_verified": true,
+    "technical_rows": 228,
+    "technical_cols": 82,
+    "decision_rows": 58,
+    "decision_rows_r2": 53,
+    "decision_rows_legacy_r1": 5,
+    "decision_match": 53,
+    "decision_match_rate_pct": 100.0,
+    "snapshot_schema": "aegis.memory.daily.v2",
+    "feature_schema_fingerprint": "b65ceb49a83a",
+    "outcome_coverage": {
+     "fwd_1d": 0,
+     "fwd_3d": 0,
+     "fwd_5d": 0,
+     "fwd_10d": 0,
+     "fwd_20d": 0
+    }
+   },
+   {
+    "market": "usa",
+    "as_of": "2026-09-11",
+    "rows": 0,
+    "admitted": false,
+    "replay_gate": false,
+    "blockers": [
+     "portfolio=BLOCKED_PIT (no sealed decisions for 2026-09-11 and the live lifecycle describes 20)"
+    ],
+    "refused": "GATE_NOT_MET"
+   },
+   {
+    "market": "usa",
+    "as_of": "2026-09-15",
+    "rows": 516,
+    "admitted": true,
+    "replay_gate": true,
+    "blockers": [],
+    "seal_verified": true,
+    "technical_rows": 516,
+    "technical_cols": 82,
+    "decision_rows": 35,
+    "decision_rows_r2": 20,
+    "decision_rows_legacy_r1": 15,
+    "decision_match": 20,
+    "decision_match_rate_pct": 100.0,
+    "snapshot_schema": "aegis.memory.daily.v2",
+    "feature_schema_fingerprint": "b65ceb49a83a",
+    "outcome_coverage": {
+     "fwd_1d": 0,
+     "fwd_3d": 0,
+     "fwd_5d": 0,
+     "fwd_10d": 0,
+     "fwd_20d": 0
+    }
+   }
+  ],
+  "outcome_coverage": {
+   "fwd_1d": 224,
+   "fwd_3d": 0,
+   "fwd_5d": 0,
+   "fwd_10d": 0,
+   "fwd_20d": 0
+  },
+  "outcome_coverage_pct": {
+   "fwd_1d": 23.0,
+   "fwd_3d": 0.0,
+   "fwd_5d": 0.0,
+   "fwd_10d": 0.0,
+   "fwd_20d": 0.0
+  },
+  "substrate_holes": {
+   "india": {
+    "columns": 115,
+    "fully_empty": 25,
+    "fully_empty_columns": [
+     "earn_last_eps_estimate",
+     "earn_last_eps_reported",
+     "earn_last_surprise_pct",
+     "fund_market_cap_log",
+     "fwd_10d",
+     "fwd_10d_outcome_date",
+     "fwd_20d",
+     "fwd_20d_outcome_date",
+     "fwd_3d",
+     "fwd_3d_outcome_date",
+     "fwd_5d",
+     "fwd_5d_outcome_date",
+     "insider_buy_90d",
+     "insider_net_90d",
+     "insider_sell_90d",
+     "inst_pct_owned",
+     "inst_top_holder_pct",
+     "news_polarity_ratio",
+     "price_above_sma200",
+     "sector",
+     "sector_is_laggard",
+     "sector_is_leader",
+     "sector_rank",
+     "sector_return_1m_pct",
+     "sma_200"
+    ]
+   },
+   "usa": {
+    "columns": 115,
+    "fully_empty": 26,
+    "fully_empty_columns": [
+     "asof_close",
+     "dii_net_5d",
+     "fii_net_5d",
+     "fwd_10d",
+     "fwd_10d_outcome_date",
+     "fwd_1d",
+     "fwd_1d_outcome_date",
+     "fwd_20d",
+     "fwd_20d_outcome_date",
+     "fwd_3d",
+     "fwd_3d_outcome_date",
+     "fwd_5d",
+     "fwd_5d_outcome_date",
+     "hist_ticker_avg_return_pct",
+     "hist_ticker_n_trades",
+     "hist_ticker_win_rate",
+     "mae_pct",
+     "mfe_pct",
+     "price_above_sma200",
+     "sector_is_laggard",
+     "sector_is_leader",
+     "sector_rank",
+     "sector_return_1m_pct",
+     "sma_200",
+     "time_to_mae_d",
+     "time_to_mfe_d"
+    ]
+   },
+   "_empty_in_every_market": [
+    "fwd_10d",
+    "fwd_10d_outcome_date",
+    "fwd_20d",
+    "fwd_20d_outcome_date",
+    "fwd_3d",
+    "fwd_3d_outcome_date",
+    "fwd_5d",
+    "fwd_5d_outcome_date",
+    "price_above_sma200",
+    "sector_is_laggard",
+    "sector_is_leader",
+    "sector_rank",
+    "sector_return_1m_pct",
+    "sma_200"
+   ]
+  }
+ },
+ "quality_gate": {
+  "rows": 972,
+  "tickers": 744,
+  "prediction_dates": 2,
+  "markets": [
+   "india",
+   "usa"
+  ],
+  "effective_date_units": 3,
+  "duplicate_rows": 0,
+  "duplicate_rate_pct": 0.0,
+  "pit_violations": 0,
+  "future_data_violations": 0,
+  "schema_versions": [
+   "b65ceb49a83a"
+  ],
+  "schema_violations": 0,
+  "fully_empty_columns": 14,
+  "columns": 115,
+  "missingness_median_pct": 23.46,
+  "outcome_coverage": {
+   "fwd_1d": 224,
+   "fwd_3d": 0,
+   "fwd_5d": 0,
+   "fwd_10d": 0,
+   "fwd_20d": 0
+  },
+  "verdict": "PASS"
+ },
+ "oos_gate": {
+  "attempted": false,
+  "effective_date_units": 3,
+  "required": 20,
+  "embargo_days": 5,
+  "disposition": "BLOCKED_INSUFFICIENT_DATE_DEPTH",
+  "reason": "3 effective date units cannot support a chronological train/embargo/test split. A random row split would report a number, and that number would be a description of one or two mornings."
+ },
+ "decision_utility": {
+  "attempted": false,
+  "disposition": "BLOCKED_INSUFFICIENT_DATE_DEPTH",
+  "reason": "No family reached ACCUMULATE with a closed outcome window, so there is no candidate signal to add to the frozen R2 baseline. A utility number computed now would be arithmetic on 3 dates.",
+  "r2_baseline_modified": false
+ }
+}
