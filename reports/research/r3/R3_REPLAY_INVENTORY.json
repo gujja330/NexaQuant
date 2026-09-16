@@ -1,0 +1,156 @@
+{
+ "schema_version": "aegis.r3.replay_inventory.v1",
+ "markets": {
+  "india": {
+   "sealed_days": 3,
+   "days": [
+    "2026-09-11",
+    "2026-09-15",
+    "2026-09-16"
+   ],
+   "replay_ready_days": 2,
+   "replay_ready": [
+    "2026-09-15",
+    "2026-09-16"
+   ],
+   "earliest_ready": "2026-09-15",
+   "latest_ready": "2026-09-16",
+   "gaps": [
+    "2026-09-11..2026-09-15 (4d)"
+   ],
+   "blocker_frequency": {
+    "portfolio": 1
+   },
+   "detail": [
+    {
+     "as_of": "2026-09-11",
+     "ready": false,
+     "usable": 5,
+     "families": {
+      "technical": "AVAILABLE",
+      "fundamental": "BLOCKED_PIT",
+      "temporal": "AVAILABLE",
+      "sector": "PARTIAL",
+      "peer": "REJECTED",
+      "cross_sector": "BLOCKED_DATA",
+      "macro": "BLOCKED_DATA",
+      "market_structure": "PARTIAL",
+      "exit": "PARTIAL",
+      "portfolio": "BLOCKED_PIT"
+     },
+     "blockers": [
+      "portfolio=BLOCKED_PIT (no sealed decisions for 2026-09-11 and the live lifecycle describes 20)"
+     ]
+    },
+    {
+     "as_of": "2026-09-15",
+     "ready": true,
+     "usable": 6,
+     "families": {
+      "technical": "AVAILABLE",
+      "fundamental": "BLOCKED_PIT",
+      "temporal": "AVAILABLE",
+      "sector": "PARTIAL",
+      "peer": "REJECTED",
+      "cross_sector": "BLOCKED_DATA",
+      "macro": "BLOCKED_DATA",
+      "market_structure": "PARTIAL",
+      "exit": "PARTIAL",
+      "portfolio": "AVAILABLE"
+     },
+     "blockers": []
+    },
+    {
+     "as_of": "2026-09-16",
+     "ready": true,
+     "usable": 6,
+     "families": {
+      "technical": "AVAILABLE",
+      "fundamental": "BLOCKED_PIT",
+      "temporal": "AVAILABLE",
+      "sector": "PARTIAL",
+      "peer": "REJECTED",
+      "cross_sector": "BLOCKED_DATA",
+      "macro": "BLOCKED_DATA",
+      "market_structure": "PARTIAL",
+      "exit": "PARTIAL",
+      "portfolio": "AVAILABLE"
+     },
+     "blockers": []
+    }
+   ]
+  },
+  "usa": {
+   "sealed_days": 2,
+   "days": [
+    "2026-09-11",
+    "2026-09-15"
+   ],
+   "replay_ready_days": 1,
+   "replay_ready": [
+    "2026-09-15"
+   ],
+   "earliest_ready": "2026-09-15",
+   "latest_ready": "2026-09-15",
+   "gaps": [
+    "2026-09-11..2026-09-15 (4d)"
+   ],
+   "blocker_frequency": {
+    "portfolio": 1
+   },
+   "detail": [
+    {
+     "as_of": "2026-09-11",
+     "ready": false,
+     "usable": 7,
+     "families": {
+      "technical": "AVAILABLE",
+      "fundamental": "AVAILABLE",
+      "temporal": "AVAILABLE",
+      "sector": "AVAILABLE",
+      "peer": "REJECTED",
+      "cross_sector": "BLOCKED_DATA",
+      "macro": "PARTIAL",
+      "market_structure": "PARTIAL",
+      "exit": "PARTIAL",
+      "portfolio": "BLOCKED_PIT"
+     },
+     "blockers": [
+      "portfolio=BLOCKED_PIT (no sealed decisions for 2026-09-11 and the live lifecycle describes 20)"
+     ]
+    },
+    {
+     "as_of": "2026-09-15",
+     "ready": true,
+     "usable": 8,
+     "families": {
+      "technical": "AVAILABLE",
+      "fundamental": "AVAILABLE",
+      "temporal": "AVAILABLE",
+      "sector": "AVAILABLE",
+      "peer": "REJECTED",
+      "cross_sector": "BLOCKED_DATA",
+      "macro": "PARTIAL",
+      "market_structure": "PARTIAL",
+      "exit": "PARTIAL",
+      "portfolio": "AVAILABLE"
+     },
+     "blockers": []
+    }
+   ]
+  }
+ },
+ "totals": {
+  "sealed_days": 5,
+  "replay_ready_days": 3
+ },
+ "R3_HISTORICAL_REPLAY_READY_dates": 3,
+ "R3_RESEARCH_EVIDENCE_READY": false,
+ "research_clock": {
+  "replay_ready_dates": 3,
+  "research_threshold": 30,
+  "validation_threshold": 50,
+  "shortfall_to_research": 27,
+  "reason": "replay-ready means the evidence can be RECONSTRUCTED. It says nothing about whether there is ENOUGH of it. Thresholds unchanged."
+ }
+}
