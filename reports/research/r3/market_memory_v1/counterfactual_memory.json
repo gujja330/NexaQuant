@@ -1,0 +1,158 @@
+{
+ "schema_version": "aegis.r3.market_memory.v1",
+ "generated_utc": "2026-09-16T12:47:20+00:00",
+ "seed": 20260916,
+ "stride_trading_days": 5,
+ "embargo_days": 5,
+ "methods": [
+  "euclidean",
+  "cosine",
+  "correlation",
+  "pca"
+ ],
+ "top_k": [
+  5,
+  10,
+  20,
+  50
+ ],
+ "stability_floor": 0.3,
+ "panels": {
+  "india": {
+   "market": "india",
+   "tickers": 230,
+   "rows": 62031,
+   "dates": 1245,
+   "date_min": "2020-09-10",
+   "date_max": "2026-09-16",
+   "stride_trading_days": 5,
+   "window": 60,
+   "shape_points": 12,
+   "survivorship": "ticker files are TODAY's names; delisted names absent, which biases long-horizon statistics upward",
+   "panel_hash": "30bc83465a921320"
+  },
+  "usa": {
+   "market": "usa",
+   "tickers": 900,
+   "rows": 213057,
+   "dates": 1009,
+   "date_min": "2021-11-01",
+   "date_max": "2026-09-14",
+   "stride_trading_days": 5,
+   "window": 60,
+   "shape_points": 12,
+   "survivorship": "ticker files are TODAY's names; delisted names absent, which biases long-horizon statistics upward",
+   "panel_hash": "c5376809154e2b5d"
+  }
+ },
+ "family_coverage": {
+  "india": {
+   "A_stock_trajectory": {
+    "status": "FULL",
+    "columns": [
+     "ret_1d",
+     "ret_5d",
+     "ret_10d",
+     "ret_20d",
+     "ret_60d",
+     "vol_20",
+     "vol_60",
+     "vol_ratio",
+     "dd_60",
+     "pos_60",
+     "skew_20",
+     "kurt_20",
+     "slope_20",
+     "vol_ratio_5v20"
+    ]
+   },
+   "B_r2_trajectory": {
+    "status": "BLOCKED_DEPTH",
+    "reason": "confidence/rank movement needs sealed memory; 3 dates exist"
+   },
+   "C_sector": {
+    "status": "BLOCKED_DATA",
+    "reason": "India null, USA literally 'Unknown'"
+   },
+   "D_peers": {
+    "status": "PROXY",
+    "reason": "discovered co-movement community, leave-target-out"
+   },
+   "E_market": {
+    "status": "FULL",
+    "reason": "derived from the cross-section"
+   },
+   "F_intermarket": {
+    "status": "PARTIAL_USA_ONLY",
+    "reason": "macro columns null across India"
+   },
+   "G_portfolio": {
+    "status": "BLOCKED_DEPTH",
+    "reason": "sealed decisions only, 3 dates"
+   }
+  },
+  "usa": {
+   "A_stock_trajectory": {
+    "status": "FULL",
+    "columns": [
+     "ret_1d",
+     "ret_5d",
+     "ret_10d",
+     "ret_20d",
+     "ret_60d",
+     "vol_20",
+     "vol_60",
+     "vol_ratio",
+     "dd_60",
+     "pos_60",
+     "skew_20",
+     "kurt_20",
+     "slope_20",
+     "vol_ratio_5v20"
+    ]
+   },
+   "B_r2_trajectory": {
+    "status": "BLOCKED_DEPTH",
+    "reason": "confidence/rank movement needs sealed memory; 3 dates exist"
+   },
+   "C_sector": {
+    "status": "BLOCKED_DATA",
+    "reason": "India null, USA literally 'Unknown'"
+   },
+   "D_peers": {
+    "status": "PROXY",
+    "reason": "discovered co-movement community, leave-target-out"
+   },
+   "E_market": {
+    "status": "FULL",
+    "reason": "derived from the cross-section"
+   },
+   "F_intermarket": {
+    "status": "PARTIAL_USA_ONLY",
+    "reason": "macro columns null across India"
+   },
+   "G_portfolio": {
+    "status": "BLOCKED_DEPTH",
+    "reason": "sealed decisions only, 3 dates"
+   }
+  }
+ },
+ "governance": {
+  "r2_modified": false,
+  "r1_modified": false,
+  "r3_production_writes": 0,
+  "universe_changed": false,
+  "ranking_changed": false,
+  "stops_changed": false,
+  "exits_changed": false,
+  "workbook_changed": false
+ },
+ "leakage_controls": [
+  "features and fingerprints use bars <= as_of only",
+  "robust scaler and PCA basis fitted on an EARLY window; queries drawn strictly after it, so no future normalisation statistic enters a historical fingerprint",
+  "twin references exclude the query ticker and any date inside the 5-day embargo"
+ ],
+ "survivorship": "ticker files are TODAY's names; delisted names are absent and every long-horizon statistic is biased upward",
+ "status": "BLOCKED_INSUFFICIENT_DATE_DEPTH",
+ "reason": "Counterfactual twins compare an entry against itself at T-3..T+3. That needs sealed R2 entries, of which there are 3 date units; price history does not lift this bound."
+}
