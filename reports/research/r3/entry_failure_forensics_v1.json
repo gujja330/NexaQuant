@@ -1,6 +1,6 @@
 {
  "schema_version": "aegis.r3.historical_replay.v1",
- "generated_utc": "2026-09-16T11:41:18+00:00",
+ "generated_utc": "2026-09-16T11:47:18+00:00",
  "as_of_dates": [
   "2026-09-15",
   "2026-09-16"
@@ -501,5 +501,116 @@
    }
   ],
   "caveat": "A loss does not by itself indicate a defective stop policy. These are descriptive reconstructions over a very short window."
+ },
+ "family_associations": {
+  "outcome_column": "fwd_1d",
+  "effective_outcome_dates": 1,
+  "families": {
+   "technical": {
+    "n_columns_tested": 20,
+    "strongest": [
+     {
+      "column": "return_5d_pct",
+      "spearman_rho": -0.2445,
+      "n_rows": 224
+     },
+     {
+      "column": "rsi_14",
+      "spearman_rho": -0.243,
+      "n_rows": 224
+     },
+     {
+      "column": "position_in_52w_range",
+      "spearman_rho": -0.2026,
+      "n_rows": 224
+     },
+     {
+      "column": "distance_from_52w_low_pct",
+      "spearman_rho": -0.1965,
+      "n_rows": 224
+     },
+     {
+      "column": "return_10d_pct",
+      "spearman_rho": -0.196,
+      "n_rows": 224
+     }
+    ],
+    "disposition": "BLOCKED_INSUFFICIENT_DATE_DEPTH",
+    "reason": "1 outcome date unit(s): a cross-sectional correlation here describes that day, not a relationship. No p-value is computed and none is implied."
+   },
+   "fundamental": {
+    "n_columns_tested": 8,
+    "strongest": [
+     {
+      "column": "earn_days_to_next",
+      "spearman_rho": 0.1023,
+      "n_rows": 206
+     },
+     {
+      "column": "fund_profit_margin",
+      "spearman_rho": -0.052,
+      "n_rows": 223
+     },
+     {
+      "column": "fund_earnings_growth",
+      "spearman_rho": 0.0413,
+      "n_rows": 209
+     },
+     {
+      "column": "fund_trailing_pe",
+      "spearman_rho": 0.0196,
+      "n_rows": 220
+     },
+     {
+      "column": "fund_debt_to_equity",
+      "spearman_rho": 0.0157,
+      "n_rows": 202
+     }
+    ],
+    "disposition": "BLOCKED_INSUFFICIENT_DATE_DEPTH",
+    "reason": "1 outcome date unit(s): a cross-sectional correlation here describes that day, not a relationship. No p-value is computed and none is implied."
+   },
+   "portfolio": {
+    "n_columns_tested": 4,
+    "strongest": [
+     {
+      "column": "entry_price",
+      "spearman_rho": 0.2026,
+      "n_rows": 49
+     },
+     {
+      "column": "entry_mae_pct",
+      "spearman_rho": 0.1803,
+      "n_rows": 49
+     },
+     {
+      "column": "confidence_pct",
+      "spearman_rho": -0.1399,
+      "n_rows": 47
+     },
+     {
+      "column": "entry_mfe_pct",
+      "spearman_rho": 0.1339,
+      "n_rows": 49
+     }
+    ],
+    "disposition": "BLOCKED_INSUFFICIENT_DATE_DEPTH",
+    "reason": "1 outcome date unit(s): a cross-sectional correlation here describes that day, not a relationship. No p-value is computed and none is implied."
+   },
+   "exit": {
+    "n_columns_tested": 1,
+    "strongest": [
+     {
+      "column": "stop",
+      "spearman_rho": 0.1948,
+      "n_rows": 49
+     }
+    ],
+    "disposition": "BLOCKED_INSUFFICIENT_DATE_DEPTH",
+    "reason": "1 outcome date unit(s): a cross-sectional correlation here describes that day, not a relationship. No p-value is computed and none is implied."
+   }
+  },
+  "status": "DESCRIPTIVE_ONLY",
+  "warning": "These correlations are NOT findings. They exist so the association machinery is exercised and auditable before there is enough history to test anything."
  }
 }

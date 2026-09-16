@@ -17,7 +17,7 @@ import pandas as pd
 from backend.research.r3_program.replay_dataset import build, HORIZONS
 from backend.research.r3_program.historical_replay import (
     inventory, quality_gate, forensics, oos_gate, tier_for, buckets,
-    severe_cases, SCHEMA_VERSION, F_SPECS, MIN_DATES_FOR_OOS)
+    severe_cases, family_associations, SCHEMA_VERSION, F_SPECS, MIN_DATES_FOR_OOS)
 
 ROOT = Path(__file__).resolve().parents[1]
 REP = ROOT / "reports" / "research" / "r3"
@@ -50,6 +50,13 @@ def main() -> None:
                      r["usable_families"], ",".join(avail) or "-"))
             for b in r["blockers"]:
                 print("        blocker: %s" % b[:92])
+
+    inv_hdr = {"schema_version": SCHEMA_VERSION, "generated_utc": NOW,
+               "source": "memory-v2 sealed snapshots",
+               "note": ("Availability is read from the seal on disk. It is never "
+                        "inferred from a file being present, and current data is "
+                        "never substituted for a historical date.")}
+    w("replay_inventory_v1.json", {**inv_hdr, **inv})
 
     # §2-4 -------------------------------------------------------------
     print("\n[2-4] MASTER REPLAY DATASET")
@@ -101,6 +108,18 @@ def main() -> None:
                          v["mean_outcome_pct"], v["win_rate_pct"]))
     print("     horizon     " + "  ".join(
         "%s:%s" % (k.replace("fwd_", ""), v["status"]) for k, v in bk.get("horizon", {}).items()))
+
+    fa = family_associations(t, out_col)
+    print("\n   EVIDENCE-FAMILY ASSOCIATIONS (§4)  status=%s  outcome_dates=%s"
+          % (fa.get("status"), fa.get("effective_outcome_dates")))
+    for fam, v in sorted((fa.get("families") or {}).items()):
+        top = v["strongest"][0] if v["strongest"] else None
+        print("     %-17s cols=%-3d %-32s %s"
+              % (fam, v["n_columns_tested"],
+                 ("strongest %s rho=%+.3f" % (top["column"], top["spearman_rho"]))
+                 if top else "-", v["disposition"]))
+    if fa.get("warning"):
+        print("     NOTE: %s" % fa["warning"])
 
     sc = severe_cases(t, out_col)
     print("\n   SEVERE-LOSS CASES (§8)  status=%s" % sc.get("status"))
@@ -207,7 +226,8 @@ def main() -> None:
       {**hdr, "inventory": inv, "dataset_manifest": man, "quality_gate": q,
        "oos_gate": g, "decision_utility": du})
     w("entry_failure_forensics_v1.json",
-      {**hdr, "forensics": fs, "buckets": bk, "severe_loss_cases": sc})
+      {**hdr, "forensics": fs, "buckets": bk, "severe_loss_cases": sc,
+       "family_associations": fa})
     w("evidence_clock_v1.json", {**hdr, **clock})
     w("hypothesis_ledger_v1.json", {**hdr, "hypotheses": ledger})
 

@@ -1,0 +1,230 @@
+{
+ "schema_version": "aegis.r3.historical_replay.v1",
+ "generated_utc": "2026-09-16T11:47:18+00:00",
+ "source": "memory-v2 sealed snapshots",
+ "note": "Availability is read from the seal on disk. It is never inferred from a file being present, and current data is never substituted for a historical date.",
+ "markets": {
+  "india": {
+   "sealed_days": 3,
+   "replay_ready_days": 2,
+   "detail": [
+    {
+     "market": "india",
+     "as_of": "2026-09-11",
+     "run_id": "india:2026-09-11",
+     "families": {
+      "technical": "AVAILABLE",
+      "fundamental": "BLOCKED_PIT",
+      "temporal": "AVAILABLE",
+      "sector": "PARTIAL",
+      "peer": "REJECTED",
+      "cross_sector": "BLOCKED_DATA",
+      "macro": "BLOCKED_DATA",
+      "market_structure": "PARTIAL",
+      "exit": "PARTIAL",
+      "portfolio": "BLOCKED_PIT"
+     },
+     "family_reasons": {
+      "technical": "hash-sealed matrix actually consumed by R2 on this as_of",
+      "fundamental": "India fundamentals are a single undated cross-section: 228 rows, no period_end, no filing_date. The adapter stamps asof=cutoff, so any historical use assigns today's values to the past",
+      "temporal": "derived from date-indexed bars truncated at cutoff",
+      "sector": "sector map as committed at this date",
+      "peer": "peer lead/lag produced no FDR-surviving predictive family; contemporaneous correlation is descriptive only",
+      "cross_sector": "depends on PIT sector plus macro; both unavailable for India and macro trend fields are undated for USA",
+      "macro": "India macro source reports/macro_summary.json does not exist; the adapter returns 0 rows and stamps asof=cutoff",
+      "market_structure": "universe membership as AEGIS was configured at this date; NOT exchange index membership, and no delisting or IPO history exists",
+      "exit": "dynamic-risk sidecar is authoritative for R2 stops, but only the current file exists \u2014 no per-date history",
+      "portfolio": "no sealed decisions for 2026-09-11 and the live lifecycle describes 2026-09-16; a past portfolio state cannot be recovered from the current file"
+     },
+     "seal_status": "VERIFIED",
+     "schema_status": "aegis.memory.daily.v2",
+     "feature_schema_fingerprint": "b65ceb49a83a",
+     "sidecars": [
+      "SEALED",
+      "snapshot.json",
+      "technical_features.parquet"
+     ],
+     "replay_ready": false,
+     "blockers": [
+      "portfolio=BLOCKED_PIT (no sealed decisions for 2026-09-11 and the live lifecycle describes 20)"
+     ],
+     "usable_families": 5
+    },
+    {
+     "market": "india",
+     "as_of": "2026-09-15",
+     "run_id": "india:2026-09-15",
+     "families": {
+      "technical": "AVAILABLE",
+      "fundamental": "BLOCKED_PIT",
+      "temporal": "AVAILABLE",
+      "sector": "PARTIAL",
+      "peer": "REJECTED",
+      "cross_sector": "BLOCKED_DATA",
+      "macro": "BLOCKED_DATA",
+      "market_structure": "PARTIAL",
+      "exit": "PARTIAL",
+      "portfolio": "AVAILABLE"
+     },
+     "family_reasons": {
+      "technical": "hash-sealed matrix actually consumed by R2 on this as_of",
+      "fundamental": "India fundamentals are a single undated cross-section: 228 rows, no period_end, no filing_date. The adapter stamps asof=cutoff, so any historical use assigns today's values to the past",
+      "temporal": "derived from date-indexed bars truncated at cutoff",
+      "sector": "sector map as committed at this date",
+      "peer": "peer lead/lag produced no FDR-surviving predictive family; contemporaneous correlation is descriptive only",
+      "cross_sector": "depends on PIT sector plus macro; both unavailable for India and macro trend fields are undated for USA",
+      "macro": "India macro source reports/macro_summary.json does not exist; the adapter returns 0 rows and stamps asof=cutoff",
+      "market_structure": "universe membership as AEGIS was configured at this date; NOT exchange index membership, and no delisting or IPO history exists",
+      "exit": "dynamic-risk sidecar is authoritative for R2 stops, but only the current file exists \u2014 no per-date history",
+      "portfolio": "hash-sealed decision state for this as_of"
+     },
+     "seal_status": "VERIFIED",
+     "schema_status": "aegis.memory.daily.v2",
+     "feature_schema_fingerprint": "b65ceb49a83a",
+     "sidecars": [
+      "SEALED",
+      "decisions.parquet",
+      "r2_scores.parquet",
+      "snapshot.json",
+      "technical_features.parquet"
+     ],
+     "replay_ready": true,
+     "blockers": [],
+     "usable_families": 6
+    },
+    {
+     "market": "india",
+     "as_of": "2026-09-16",
+     "run_id": "india:2026-09-16",
+     "families": {
+      "technical": "AVAILABLE",
+      "fundamental": "BLOCKED_PIT",
+      "temporal": "AVAILABLE",
+      "sector": "PARTIAL",
+      "peer": "REJECTED",
+      "cross_sector": "BLOCKED_DATA",
+      "macro": "BLOCKED_DATA",
+      "market_structure": "PARTIAL",
+      "exit": "PARTIAL",
+      "portfolio": "AVAILABLE"
+     },
+     "family_reasons": {
+      "technical": "hash-sealed matrix actually consumed by R2 on this as_of",
+      "fundamental": "India fundamentals are a single undated cross-section: 228 rows, no period_end, no filing_date. The adapter stamps asof=cutoff, so any historical use assigns today's values to the past",
+      "temporal": "derived from date-indexed bars truncated at cutoff",
+      "sector": "sector map as committed at this date",
+      "peer": "peer lead/lag produced no FDR-surviving predictive family; contemporaneous correlation is descriptive only",
+      "cross_sector": "depends on PIT sector plus macro; both unavailable for India and macro trend fields are undated for USA",
+      "macro": "India macro source reports/macro_summary.json does not exist; the adapter returns 0 rows and stamps asof=cutoff",
+      "market_structure": "universe membership as AEGIS was configured at this date; NOT exchange index membership, and no delisting or IPO history exists",
+      "exit": "dynamic-risk sidecar is authoritative for R2 stops, but only the current file exists \u2014 no per-date history",
+      "portfolio": "hash-sealed decision state for this as_of"
+     },
+     "seal_status": "VERIFIED",
+     "schema_status": "aegis.memory.daily.v2",
+     "feature_schema_fingerprint": "b65ceb49a83a",
+     "sidecars": [
+      "SEALED",
+      "decisions.parquet",
+      "r2_scores.parquet",
+      "snapshot.json",
+      "technical_features.parquet"
+     ],
+     "replay_ready": true,
+     "blockers": [],
+     "usable_families": 6
+    }
+   ]
+  },
+  "usa": {
+   "sealed_days": 2,
+   "replay_ready_days": 1,
+   "detail": [
+    {
+     "market": "usa",
+     "as_of": "2026-09-11",
+     "run_id": "usa:2026-09-11",
+     "families": {
+      "technical": "AVAILABLE",
+      "fundamental": "AVAILABLE",
+      "temporal": "AVAILABLE",
+      "sector": "AVAILABLE",
+      "peer": "REJECTED",
+      "cross_sector": "BLOCKED_DATA",
+      "macro": "PARTIAL",
+      "market_structure": "PARTIAL",
+      "exit": "PARTIAL",
+      "portfolio": "BLOCKED_PIT"
+     },
+     "family_reasons": {
+      "technical": "hash-sealed matrix actually consumed by R2 on this as_of",
+      "fundamental": "SEC XBRL first-filing values; availability is the observed `filed` date",
+      "temporal": "derived from date-indexed bars truncated at cutoff",
+      "sector": "sector map as committed at this date",
+      "peer": "peer lead/lag produced no FDR-surviving predictive family; contemporaneous correlation is descriptive only",
+      "cross_sector": "depends on PIT sector plus macro; both unavailable for India and macro trend fields are undated for USA",
+      "macro": "levels carry real observation dates; derived chg_* trend fields come from an undated current summary and are withheld historically",
+      "market_structure": "universe membership as AEGIS was configured at this date; NOT exchange index membership, and no delisting or IPO history exists",
+      "exit": "dynamic-risk sidecar is authoritative for R2 stops, but only the current file exists \u2014 no per-date history",
+      "portfolio": "no sealed decisions for 2026-09-11 and the live lifecycle describes 2026-09-16; a past portfolio state cannot be recovered from the current file"
+     },
+     "seal_status": "VERIFIED",
+     "schema_status": "aegis.memory.daily.v2",
+     "feature_schema_fingerprint": "b65ceb49a83a",
+     "sidecars": [
+      "SEALED",
+      "snapshot.json",
+      "technical_features.parquet"
+     ],
+     "replay_ready": false,
+     "blockers": [
+      "portfolio=BLOCKED_PIT (no sealed decisions for 2026-09-11 and the live lifecycle describes 20)"
+     ],
+     "usable_families": 7
+    },
+    {
+     "market": "usa",
+     "as_of": "2026-09-15",
+     "run_id": "usa:2026-09-15",
+     "families": {
+      "technical": "AVAILABLE",
+      "fundamental": "AVAILABLE",
+      "temporal": "AVAILABLE",
+      "sector": "AVAILABLE",
+      "peer": "REJECTED",
+      "cross_sector": "BLOCKED_DATA",
+      "macro": "PARTIAL",
+      "market_structure": "PARTIAL",
+      "exit": "PARTIAL",
+      "portfolio": "AVAILABLE"
+     },
+     "family_reasons": {
+      "technical": "hash-sealed matrix actually consumed by R2 on this as_of",
+      "fundamental": "SEC XBRL first-filing values; availability is the observed `filed` date",
+      "temporal": "derived from date-indexed bars truncated at cutoff",
+      "sector": "sector map as committed at this date",
+      "peer": "peer lead/lag produced no FDR-surviving predictive family; contemporaneous correlation is descriptive only",
+      "cross_sector": "depends on PIT sector plus macro; both unavailable for India and macro trend fields are undated for USA",
+      "macro": "levels carry real observation dates; derived chg_* trend fields come from an undated current summary and are withheld historically",
+      "market_structure": "universe membership as AEGIS was configured at this date; NOT exchange index membership, and no delisting or IPO history exists",
+      "exit": "dynamic-risk sidecar is authoritative for R2 stops, but only the current file exists \u2014 no per-date history",
+      "portfolio": "hash-sealed decision state for this as_of"
+     },
+     "seal_status": "VERIFIED",
+     "schema_status": "aegis.memory.daily.v2",
+     "feature_schema_fingerprint": "b65ceb49a83a",
+     "sidecars": [
+      "SEALED",
+      "decisions.parquet",
+      "r2_scores.parquet",
+      "snapshot.json",
+      "technical_features.parquet"
+     ],
+     "replay_ready": true,
+     "blockers": [],
+     "usable_families": 8
+    }
+   ]
+  }
+ }
+}

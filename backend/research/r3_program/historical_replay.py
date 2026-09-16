@@ -370,6 +370,84 @@ def buckets(df: pd.DataFrame, outcome: str) -> dict:
     return out
 
 
+# ── §4 EVIDENCE-FAMILY ASSOCIATIONS ───────────────────────────────────
+FAMILY_PREFIXES = {
+    "technical": ("rsi_", "adx_", "atr_", "macd", "sma_", "price_above_",
+                  "return_", "volatility_", "volume", "distance_from_52w",
+                  "position_in_52w"),
+    "temporal": ("days_", "age_", "since_", "holding_"),
+    "sector": ("sector_",),
+    "fundamental": ("fund_", "earn_", "inst_", "insider_"),
+    "macro": ("macro_",),
+    "market_structure": ("mi_", "breadth", "regime"),
+    "exit": ("stop", "exit_", "target"),
+    "portfolio": ("confidence_pct", "entry_", "action", "admission_"),
+}
+
+
+def family_of(col: str) -> Optional[str]:
+    for fam, pres in FAMILY_PREFIXES.items():
+        if any(col.startswith(p) or col == p for p in pres):
+            return fam
+    return None
+
+
+def family_associations(df: pd.DataFrame, outcome: str,
+                        min_dates: int = 5) -> dict:
+    """§4 descriptive association between each evidence family and the outcome.
+
+    Correlations are computed so the machinery is exercised and auditable, then
+    every row is dispositioned by DATE depth. At one outcome date a correlation
+    is a description of one morning's cross-section: it is arithmetic, not a
+    finding, and it is labelled that way rather than omitted or promoted.
+    """
+    if df.empty or outcome not in df.columns:
+        return {"status": "EMPTY"}
+    y = df[outcome]
+    if y.notna().sum() < 3:
+        return {"status": "NO_CLOSED_OUTCOME_WINDOW",
+                "reason": "fewer than 3 rows carry an outcome"}
+    n_dates = int(len(df[y.notna()][["market", "prediction_as_of"]].drop_duplicates()))
+    fams: dict = {}
+    for col in df.columns:
+        if col == outcome or col.startswith("fwd_"):
+            continue
+        fam = family_of(col)
+        if fam is None:
+            continue
+        s = pd.to_numeric(df[col], errors="coerce")
+        pair = pd.concat([s, y], axis=1).dropna()
+        if len(pair) < 10 or pair.iloc[:, 0].nunique() < 3:
+            continue
+        try:
+            rho = float(pair.iloc[:, 0].corr(pair.iloc[:, 1], method="spearman"))
+        except Exception:
+            continue
+        if pd.isna(rho):
+            continue
+        fams.setdefault(fam, []).append(
+            {"column": col, "spearman_rho": round(rho, 4), "n_rows": int(len(pair))})
+    out: dict = {"outcome_column": outcome, "effective_outcome_dates": n_dates,
+                 "families": {}}
+    for fam, cols in fams.items():
+        cols.sort(key=lambda c: -abs(c["spearman_rho"]))
+        out["families"][fam] = {
+            "n_columns_tested": len(cols),
+            "strongest": cols[:5],
+            "disposition": ("BLOCKED_INSUFFICIENT_DATE_DEPTH" if n_dates < min_dates
+                            else "ACCUMULATE"),
+            "reason": ("%d outcome date unit(s): a cross-sectional correlation here "
+                       "describes that day, not a relationship. No p-value is "
+                       "computed and none is implied." % n_dates)
+            if n_dates < min_dates else "sufficient dates to begin testing",
+        }
+    out["status"] = "DESCRIPTIVE_ONLY" if n_dates < min_dates else "TESTABLE"
+    out["warning"] = ("These correlations are NOT findings. They exist so the "
+                      "association machinery is exercised and auditable before "
+                      "there is enough history to test anything.")
+    return out
+
+
 # ── §8 SEVERE-LOSS CASE STUDIES ───────────────────────────────────────
 def severe_cases(df: pd.DataFrame, outcome: str, limit: int = 10) -> dict:
     """Reconstruct the worst R2 positions actually present in sealed memory.

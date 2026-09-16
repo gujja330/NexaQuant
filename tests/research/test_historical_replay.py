@@ -93,3 +93,57 @@ def test_quality_gate_catches_an_outcome_dated_before_its_prediction():
     q = quality_gate(df)
     assert q["pit_violations"] == 1
     assert q["verdict"] == "FAIL"
+
+
+# 5 · ASSOCIATIONS ARE DISPOSITIONED BY DATE DEPTH, NOT BY rho ────────
+def test_associations_are_blocked_at_shallow_date_depth():
+    """A cross-sectional correlation at one outcome date describes that
+    morning. It must be computed (so the machinery is auditable) and then
+    blocked - never reported as a relationship."""
+    from backend.research.r3_program.historical_replay import family_associations
+    df = pd.DataFrame({
+        "market": ["india"] * 40, "prediction_as_of": ["2026-09-15"] * 40,
+        "ticker": ["T%d" % i for i in range(40)],
+        "rsi_14": list(range(40)),
+        "fwd_1d": [i * 0.1 for i in range(40)],
+    })
+    fa = family_associations(df, "fwd_1d")
+    assert fa["status"] == "DESCRIPTIVE_ONLY"
+    assert fa["effective_outcome_dates"] == 1
+    tech = fa["families"]["technical"]
+    # a perfect monotone relationship still does not become a finding
+    assert abs(tech["strongest"][0]["spearman_rho"]) > 0.99
+    assert tech["disposition"] == "BLOCKED_INSUFFICIENT_DATE_DEPTH"
+    assert "NOT findings" in fa["warning"]
+
+
+def test_associations_never_emit_a_p_value():
+    from backend.research.r3_program.historical_replay import family_associations
+    df = pd.DataFrame({
+        "market": ["usa"] * 30, "prediction_as_of": ["2026-09-15"] * 30,
+        "ticker": ["T%d" % i for i in range(30)],
+        "macro_vix": list(range(30)), "fwd_1d": [i * 0.2 for i in range(30)]})
+    fa = family_associations(df, "fwd_1d")
+    blob = str(fa).lower()
+    assert "p_value" not in blob and "raw_p" not in blob
+
+
+def test_family_of_maps_columns_to_the_right_family():
+    from backend.research.r3_program.historical_replay import family_of
+    assert family_of("rsi_14") == "technical"
+    assert family_of("macro_vix") == "macro"
+    assert family_of("sector_rank") == "sector"
+    assert family_of("fund_market_cap_log") == "fundamental"
+    assert family_of("confidence_pct") == "portfolio"
+    assert family_of("totally_unknown_column") is None
+
+
+# 6 · UNINFORMATIVE COLUMNS ARE NOT BUCKETED ─────────────────────────
+def test_a_constant_column_is_not_treated_as_a_grouping():
+    """`sector` is the literal string 'Unknown' on all 516 USA rows and null on
+    all 456 India rows. Bucketing on it would invent groups."""
+    from backend.research.r3_program.historical_replay import _informative
+    assert not _informative(pd.Series(["Unknown"] * 100))
+    assert not _informative(pd.Series([None] * 100))
+    assert not _informative(pd.Series(["IT"] * 100))
+    assert _informative(pd.Series(["IT", "BANK", "IT"]))
