@@ -1,0 +1,878 @@
+{
+ "schema_version": "aegis.r3.failure_intelligence.v1",
+ "generated_utc": "2026-09-16T13:19:21+00:00",
+ "seed": 20260916,
+ "severe_pct": -5.0,
+ "deep_mae_pct": -8.0,
+ "governance": {
+  "r2_modified": false,
+  "r1_modified": false,
+  "r3_production_writes": 0,
+  "stops_changed": false,
+  "exits_changed": false,
+  "workbook_changed": false,
+  "max_verdict": "READY_FOR_AUTHORIZATION"
+ },
+ "markets": {
+  "india": {
+   "models": {
+    "y_severe": {
+     "status": "OK",
+     "label": "y_severe",
+     "split": {
+      "train_end": "2024-10-29",
+      "test_start": "2024-11-03",
+      "embargo_days": 5,
+      "n_train_dates": 678,
+      "n_test_dates": 361
+     },
+     "n_train": 40378,
+     "n_test": 20066,
+     "base_rate_train_pct": 20.22,
+     "base_rate_test_pct": 23.76,
+     "auc_train": 0.8617,
+     "auc_test": 0.5064,
+     "ap_test": 0.2343,
+     "operating_points_test": [
+      {
+       "flag_rate_pct": 5.0,
+       "precision_pct": 19.62,
+       "base_rate_pct": 23.76,
+       "lift": 0.826,
+       "recall_pct": 4.13,
+       "n_flagged": 1004
+      },
+      {
+       "flag_rate_pct": 10.0,
+       "precision_pct": 21.03,
+       "base_rate_pct": 23.76,
+       "lift": 0.885,
+       "recall_pct": 8.85,
+       "n_flagged": 2007
+      },
+      {
+       "flag_rate_pct": 20.0,
+       "precision_pct": 23.34,
+       "base_rate_pct": 23.76,
+       "lift": 0.982,
+       "recall_pct": 19.65,
+       "n_flagged": 4014
+      },
+      {
+       "flag_rate_pct": 30.0,
+       "precision_pct": 23.39,
+       "base_rate_pct": 23.76,
+       "lift": 0.984,
+       "recall_pct": 29.53,
+       "n_flagged": 6020
+      }
+     ]
+    },
+    "y_deep_mae": {
+     "status": "OK",
+     "label": "y_deep_mae",
+     "split": {
+      "train_end": "2024-10-29",
+      "test_start": "2024-11-03",
+      "embargo_days": 5,
+      "n_train_dates": 678,
+      "n_test_dates": 361
+     },
+     "n_train": 40378,
+     "n_test": 20066,
+     "base_rate_train_pct": 29.37,
+     "base_rate_test_pct": 29.86,
+     "auc_train": 0.8686,
+     "auc_test": 0.5789,
+     "ap_test": 0.3513,
+     "operating_points_test": [
+      {
+       "flag_rate_pct": 5.0,
+       "precision_pct": 39.84,
+       "base_rate_pct": 29.86,
+       "lift": 1.334,
+       "recall_pct": 6.68,
+       "n_flagged": 1004
+      },
+      {
+       "flag_rate_pct": 10.0,
+       "precision_pct": 38.81,
+       "base_rate_pct": 29.86,
+       "lift": 1.3,
+       "recall_pct": 13.0,
+       "n_flagged": 2007
+      },
+      {
+       "flag_rate_pct": 20.0,
+       "precision_pct": 35.97,
+       "base_rate_pct": 29.86,
+       "lift": 1.205,
+       "recall_pct": 24.1,
+       "n_flagged": 4014
+      },
+      {
+       "flag_rate_pct": 30.0,
+       "precision_pct": 35.27,
+       "base_rate_pct": 29.86,
+       "lift": 1.181,
+       "recall_pct": 35.44,
+       "n_flagged": 6020
+      }
+     ]
+    }
+   },
+   "panel": {
+    "market": "india",
+    "tickers": 230,
+    "rows": 62031,
+    "dates": 1245,
+    "date_min": "2020-09-10",
+    "date_max": "2026-09-16",
+    "stride_trading_days": 5,
+    "window": 60,
+    "shape_points": 12,
+    "survivorship": "ticker files are TODAY's names; delisted names absent, which biases long-horizon statistics upward",
+    "features": [
+     "ret_1d",
+     "ret_5d",
+     "ret_10d",
+     "ret_20d",
+     "ret_60d",
+     "vol_20",
+     "vol_60",
+     "vol_ratio",
+     "dd_60",
+     "pos_60",
+     "skew_20",
+     "kurt_20",
+     "slope_20",
+     "vol_ratio_5v20",
+     "mkt_median_ret20",
+     "mkt_dispersion_ret20",
+     "mkt_breadth_pos",
+     "mkt_median_vol20",
+     "mkt_median_dd60",
+     "div_ret20_vs_mkt",
+     "div_vol20_vs_mkt"
+    ]
+   },
+   "trial_count": 2,
+   "labels_evaluated": [
+    "y_severe",
+    "y_deep_mae"
+   ],
+   "per_label": {
+    "y_severe": {
+     "permutation": {
+      "status": "OK",
+      "n_permutations": 20,
+      "observed_auc_test": 0.5064,
+      "null_auc_mean": 0.4897,
+      "null_auc_sd": 0.0111,
+      "null_auc_max": 0.5123,
+      "z_vs_null": 1.5,
+      "above_null": false
+     },
+     "leave_ticker_out": {
+      "status": "OK",
+      "n_folds": 5,
+      "auc_mean": 0.509,
+      "auc_min": 0.4902,
+      "auc_max": 0.5348,
+      "all_above_half": false
+     },
+     "decision_value": {
+      "status": "OK",
+      "flag_rate_pct": 20.0,
+      "n_total": 20066,
+      "n_flagged": 4014,
+      "n_dates": 361,
+      "severe_rate_baseline_pct": 23.76,
+      "severe_rate_after_avoiding_pct": 23.87,
+      "severe_losses_avoided": 937,
+      "winners_sacrificed": 2112,
+      "avoided_to_sacrificed_ratio": 0.444,
+      "expectancy_baseline_pct": 0.383,
+      "expectancy_after_pct": 0.2369,
+      "expectancy_delta_pct": -0.1461,
+      "mean_outcome_of_flagged_pct": 0.9675,
+      "turnover_note": "4014 of 20066 candidates declined"
+     },
+     "cost_sensitivity": {
+      "status": "OK",
+      "points": [
+       {
+        "cost_bps": 0,
+        "expectancy_delta_after_cost_pct": -0.1461,
+        "survives": false
+       },
+       {
+        "cost_bps": 10,
+        "expectancy_delta_after_cost_pct": -0.1661,
+        "survives": false
+       },
+       {
+        "cost_bps": 25,
+        "expectancy_delta_after_cost_pct": -0.1961,
+        "survives": false
+       },
+       {
+        "cost_bps": 50,
+        "expectancy_delta_after_cost_pct": -0.2461,
+        "survives": false
+       }
+      ],
+      "survives_all_costs": false
+     },
+     "flag_rate_sweep": {
+      "status": "OK",
+      "points": [
+       {
+        "flag_rate_pct": 2.0,
+        "severe_rate_baseline_pct": 23.76,
+        "severe_rate_after_avoiding_pct": 23.83,
+        "severe_losses_avoided": 82,
+        "winners_sacrificed": 245,
+        "avoided_to_sacrificed_ratio": 0.335,
+        "expectancy_delta_pct": -0.0362
+       },
+       {
+        "flag_rate_pct": 5.0,
+        "severe_rate_baseline_pct": 23.76,
+        "severe_rate_after_avoiding_pct": 23.98,
+        "severe_losses_avoided": 197,
+        "winners_sacrificed": 596,
+        "avoided_to_sacrificed_ratio": 0.331,
+        "expectancy_delta_pct": -0.0929
+       },
+       {
+        "flag_rate_pct": 10.0,
+        "severe_rate_baseline_pct": 23.76,
+        "severe_rate_after_avoiding_pct": 24.07,
+        "severe_losses_avoided": 422,
+        "winners_sacrificed": 1132,
+        "avoided_to_sacrificed_ratio": 0.373,
+        "expectancy_delta_pct": -0.1508
+       },
+       {
+        "flag_rate_pct": 15.0,
+        "severe_rate_baseline_pct": 23.76,
+        "severe_rate_after_avoiding_pct": 24.08,
+        "severe_losses_avoided": 661,
+        "winners_sacrificed": 1651,
+        "avoided_to_sacrificed_ratio": 0.4,
+        "expectancy_delta_pct": -0.1676
+       },
+       {
+        "flag_rate_pct": 20.0,
+        "severe_rate_baseline_pct": 23.76,
+        "severe_rate_after_avoiding_pct": 23.87,
+        "severe_losses_avoided": 937,
+        "winners_sacrificed": 2112,
+        "avoided_to_sacrificed_ratio": 0.444,
+        "expectancy_delta_pct": -0.1461
+       }
+      ],
+      "any_operating_point_profitable": false,
+      "verdict": "VALUE_DESTRUCTIVE_AT_EVERY_OPERATING_POINT"
+     },
+     "risk_decile_profile": {
+      "flagged": {
+       "n": 2007,
+       "mean_fwd20_pct": 1.7395,
+       "median_fwd20_pct": 1.1492,
+       "sd_fwd20": 8.8069,
+       "win_rate_pct": 56.4,
+       "severe_le_m5_pct": 21.03,
+       "big_gain_ge_p10_pct": 14.7,
+       "mean_vol_20": 33.45
+      },
+      "rest": {
+       "n": 18059,
+       "mean_fwd20_pct": 0.2323,
+       "median_fwd20_pct": -0.1003,
+       "sd_fwd20": 8.2505,
+       "win_rate_pct": 49.5,
+       "severe_le_m5_pct": 24.07,
+       "big_gain_ge_p10_pct": 10.4,
+       "mean_vol_20": 28.43
+      },
+      "status": "OK",
+      "interpretation": "The flagged cohort has higher volatility AND a higher mean forward return. The model is a volatility detector, and volatility is symmetric enough that avoidance costs more upside than it saves downside.",
+      "implication": "The next label should be vol-NORMALISED downside - asymmetry conditional on volatility - not raw deep MAE. That is a NEW pre-registered hypothesis for a future wave, deliberately not run here: choosing it after seeing these results would be selection."
+     }
+    },
+    "y_deep_mae": {
+     "permutation": {
+      "status": "OK",
+      "n_permutations": 20,
+      "observed_auc_test": 0.5789,
+      "null_auc_mean": 0.531,
+      "null_auc_sd": 0.0096,
+      "null_auc_max": 0.549,
+      "z_vs_null": 4.99,
+      "above_null": true
+     },
+     "leave_ticker_out": {
+      "status": "OK",
+      "n_folds": 5,
+      "auc_mean": 0.5804,
+      "auc_min": 0.5647,
+      "auc_max": 0.6037,
+      "all_above_half": true
+     },
+     "decision_value": {
+      "status": "OK",
+      "flag_rate_pct": 20.0,
+      "n_total": 20066,
+      "n_flagged": 4014,
+      "n_dates": 361,
+      "severe_rate_baseline_pct": 23.76,
+      "severe_rate_after_avoiding_pct": 23.64,
+      "severe_losses_avoided": 973,
+      "winners_sacrificed": 2151,
+      "avoided_to_sacrificed_ratio": 0.452,
+      "expectancy_baseline_pct": 0.383,
+      "expectancy_after_pct": 0.201,
+      "expectancy_delta_pct": -0.182,
+      "mean_outcome_of_flagged_pct": 1.1108,
+      "turnover_note": "4014 of 20066 candidates declined"
+     },
+     "cost_sensitivity": {
+      "status": "OK",
+      "points": [
+       {
+        "cost_bps": 0,
+        "expectancy_delta_after_cost_pct": -0.182,
+        "survives": false
+       },
+       {
+        "cost_bps": 10,
+        "expectancy_delta_after_cost_pct": -0.202,
+        "survives": false
+       },
+       {
+        "cost_bps": 25,
+        "expectancy_delta_after_cost_pct": -0.232,
+        "survives": false
+       },
+       {
+        "cost_bps": 50,
+        "expectancy_delta_after_cost_pct": -0.282,
+        "survives": false
+       }
+      ],
+      "survives_all_costs": false
+     },
+     "flag_rate_sweep": {
+      "status": "OK",
+      "points": [
+       {
+        "flag_rate_pct": 2.0,
+        "severe_rate_baseline_pct": 23.76,
+        "severe_rate_after_avoiding_pct": 23.79,
+        "severe_losses_avoided": 89,
+        "winners_sacrificed": 241,
+        "avoided_to_sacrificed_ratio": 0.369,
+        "expectancy_delta_pct": -0.0413
+       },
+       {
+        "flag_rate_pct": 5.0,
+        "severe_rate_baseline_pct": 23.76,
+        "severe_rate_after_avoiding_pct": 23.84,
+        "severe_losses_avoided": 223,
+        "winners_sacrificed": 575,
+        "avoided_to_sacrificed_ratio": 0.388,
+        "expectancy_delta_pct": -0.0944
+       },
+       {
+        "flag_rate_pct": 10.0,
+        "severe_rate_baseline_pct": 23.76,
+        "severe_rate_after_avoiding_pct": 23.81,
+        "severe_losses_avoided": 469,
+        "winners_sacrificed": 1123,
+        "avoided_to_sacrificed_ratio": 0.418,
+        "expectancy_delta_pct": -0.1407
+       },
+       {
+        "flag_rate_pct": 15.0,
+        "severe_rate_baseline_pct": 23.76,
+        "severe_rate_after_avoiding_pct": 23.69,
+        "severe_losses_avoided": 727,
+        "winners_sacrificed": 1643,
+        "avoided_to_sacrificed_ratio": 0.442,
+        "expectancy_delta_pct": -0.164
+       },
+       {
+        "flag_rate_pct": 20.0,
+        "severe_rate_baseline_pct": 23.76,
+        "severe_rate_after_avoiding_pct": 23.64,
+        "severe_losses_avoided": 973,
+        "winners_sacrificed": 2151,
+        "avoided_to_sacrificed_ratio": 0.452,
+        "expectancy_delta_pct": -0.182
+       }
+      ],
+      "any_operating_point_profitable": false,
+      "verdict": "VALUE_DESTRUCTIVE_AT_EVERY_OPERATING_POINT"
+     },
+     "risk_decile_profile": {
+      "flagged": {
+       "n": 2007,
+       "mean_fwd20_pct": 1.6495,
+       "median_fwd20_pct": 1.0971,
+       "sd_fwd20": 9.6059,
+       "win_rate_pct": 55.95,
+       "severe_le_m5_pct": 23.37,
+       "big_gain_ge_p10_pct": 16.79,
+       "mean_vol_20": 37.14
+      },
+      "rest": {
+       "n": 18059,
+       "mean_fwd20_pct": 0.2423,
+       "median_fwd20_pct": -0.0848,
+       "sd_fwd20": 8.1526,
+       "win_rate_pct": 49.55,
+       "severe_le_m5_pct": 23.81,
+       "big_gain_ge_p10_pct": 10.17,
+       "mean_vol_20": 28.02
+      },
+      "status": "OK",
+      "interpretation": "The flagged cohort has higher volatility AND a higher mean forward return. The model is a volatility detector, and volatility is symmetric enough that avoidance costs more upside than it saves downside.",
+      "implication": "The next label should be vol-NORMALISED downside - asymmetry conditional on volatility - not raw deep MAE. That is a NEW pre-registered hypothesis for a future wave, deliberately not run here: choosing it after seeing these results would be selection."
+     }
+    }
+   }
+  },
+  "usa": {
+   "models": {
+    "y_severe": {
+     "status": "OK",
+     "label": "y_severe",
+     "split": {
+      "train_end": "2025-02-20",
+      "test_start": "2025-02-25",
+      "embargo_days": 5,
+      "n_train_dates": 554,
+      "n_test_dates": 296
+     },
+     "n_train": 144611,
+     "n_test": 64093,
+     "base_rate_train_pct": 24.47,
+     "base_rate_test_pct": 22.28,
+     "auc_train": 0.8135,
+     "auc_test": 0.5429,
+     "ap_test": 0.2449,
+     "operating_points_test": [
+      {
+       "flag_rate_pct": 5.0,
+       "precision_pct": 25.99,
+       "base_rate_pct": 22.28,
+       "lift": 1.166,
+       "recall_pct": 5.83,
+       "n_flagged": 3205
+      },
+      {
+       "flag_rate_pct": 10.0,
+       "precision_pct": 25.41,
+       "base_rate_pct": 22.28,
+       "lift": 1.14,
+       "recall_pct": 11.41,
+       "n_flagged": 6410
+      },
+      {
+       "flag_rate_pct": 20.0,
+       "precision_pct": 24.99,
+       "base_rate_pct": 22.28,
+       "lift": 1.121,
+       "recall_pct": 22.43,
+       "n_flagged": 12819
+      },
+      {
+       "flag_rate_pct": 30.0,
+       "precision_pct": 24.82,
+       "base_rate_pct": 22.28,
+       "lift": 1.114,
+       "recall_pct": 33.42,
+       "n_flagged": 19228
+      }
+     ]
+    },
+    "y_deep_mae": {
+     "status": "OK",
+     "label": "y_deep_mae",
+     "split": {
+      "train_end": "2025-02-20",
+      "test_start": "2025-02-25",
+      "embargo_days": 5,
+      "n_train_dates": 554,
+      "n_test_dates": 296
+     },
+     "n_train": 144611,
+     "n_test": 64093,
+     "base_rate_train_pct": 31.97,
+     "base_rate_test_pct": 31.58,
+     "auc_train": 0.8288,
+     "auc_test": 0.6233,
+     "ap_test": 0.4236,
+     "operating_points_test": [
+      {
+       "flag_rate_pct": 5.0,
+       "precision_pct": 53.17,
+       "base_rate_pct": 31.58,
+       "lift": 1.684,
+       "recall_pct": 8.42,
+       "n_flagged": 3205
+      },
+      {
+       "flag_rate_pct": 10.0,
+       "precision_pct": 50.19,
+       "base_rate_pct": 31.58,
+       "lift": 1.589,
+       "recall_pct": 15.89,
+       "n_flagged": 6410
+      },
+      {
+       "flag_rate_pct": 20.0,
+       "precision_pct": 45.9,
+       "base_rate_pct": 31.58,
+       "lift": 1.453,
+       "recall_pct": 29.07,
+       "n_flagged": 12819
+      },
+      {
+       "flag_rate_pct": 30.0,
+       "precision_pct": 42.4,
+       "base_rate_pct": 31.58,
+       "lift": 1.343,
+       "recall_pct": 40.28,
+       "n_flagged": 19228
+      }
+     ]
+    }
+   },
+   "panel": {
+    "market": "usa",
+    "tickers": 900,
+    "rows": 213057,
+    "dates": 1009,
+    "date_min": "2021-11-01",
+    "date_max": "2026-09-14",
+    "stride_trading_days": 5,
+    "window": 60,
+    "shape_points": 12,
+    "survivorship": "ticker files are TODAY's names; delisted names absent, which biases long-horizon statistics upward",
+    "features": [
+     "ret_1d",
+     "ret_5d",
+     "ret_10d",
+     "ret_20d",
+     "ret_60d",
+     "vol_20",
+     "vol_60",
+     "vol_ratio",
+     "dd_60",
+     "pos_60",
+     "skew_20",
+     "kurt_20",
+     "slope_20",
+     "vol_ratio_5v20",
+     "mkt_median_ret20",
+     "mkt_dispersion_ret20",
+     "mkt_breadth_pos",
+     "mkt_median_vol20",
+     "mkt_median_dd60",
+     "div_ret20_vs_mkt",
+     "div_vol20_vs_mkt"
+    ]
+   },
+   "trial_count": 2,
+   "labels_evaluated": [
+    "y_severe",
+    "y_deep_mae"
+   ],
+   "per_label": {
+    "y_severe": {
+     "permutation": {
+      "status": "OK",
+      "n_permutations": 20,
+      "observed_auc_test": 0.5429,
+      "null_auc_mean": 0.5088,
+      "null_auc_sd": 0.0056,
+      "null_auc_max": 0.5193,
+      "z_vs_null": 6.13,
+      "above_null": true
+     },
+     "leave_ticker_out": {
+      "status": "OK",
+      "n_folds": 5,
+      "auc_mean": 0.5428,
+      "auc_min": 0.5327,
+      "auc_max": 0.5533,
+      "all_above_half": true
+     },
+     "decision_value": {
+      "status": "OK",
+      "flag_rate_pct": 20.0,
+      "n_total": 64093,
+      "n_flagged": 12819,
+      "n_dates": 296,
+      "severe_rate_baseline_pct": 22.28,
+      "severe_rate_after_avoiding_pct": 21.61,
+      "severe_losses_avoided": 3203,
+      "winners_sacrificed": 7349,
+      "avoided_to_sacrificed_ratio": 0.436,
+      "expectancy_baseline_pct": 1.7614,
+      "expectancy_after_pct": 1.5369,
+      "expectancy_delta_pct": -0.2246,
+      "mean_outcome_of_flagged_pct": 2.6597,
+      "turnover_note": "12819 of 64093 candidates declined"
+     },
+     "cost_sensitivity": {
+      "status": "OK",
+      "points": [
+       {
+        "cost_bps": 0,
+        "expectancy_delta_after_cost_pct": -0.2246,
+        "survives": false
+       },
+       {
+        "cost_bps": 10,
+        "expectancy_delta_after_cost_pct": -0.2446,
+        "survives": false
+       },
+       {
+        "cost_bps": 25,
+        "expectancy_delta_after_cost_pct": -0.2746,
+        "survives": false
+       },
+       {
+        "cost_bps": 50,
+        "expectancy_delta_after_cost_pct": -0.3246,
+        "survives": false
+       }
+      ],
+      "survives_all_costs": false
+     },
+     "flag_rate_sweep": {
+      "status": "OK",
+      "points": [
+       {
+        "flag_rate_pct": 2.0,
+        "severe_rate_baseline_pct": 22.28,
+        "severe_rate_after_avoiding_pct": 22.21,
+        "severe_losses_avoided": 333,
+        "winners_sacrificed": 758,
+        "avoided_to_sacrificed_ratio": 0.439,
+        "expectancy_delta_pct": -0.0599
+       },
+       {
+        "flag_rate_pct": 5.0,
+        "severe_rate_baseline_pct": 22.28,
+        "severe_rate_after_avoiding_pct": 22.09,
+        "severe_losses_avoided": 833,
+        "winners_sacrificed": 1833,
+        "avoided_to_sacrificed_ratio": 0.454,
+        "expectancy_delta_pct": -0.0906
+       },
+       {
+        "flag_rate_pct": 10.0,
+        "severe_rate_baseline_pct": 22.28,
+        "severe_rate_after_avoiding_pct": 21.94,
+        "severe_losses_avoided": 1629,
+        "winners_sacrificed": 3699,
+        "avoided_to_sacrificed_ratio": 0.44,
+        "expectancy_delta_pct": -0.1665
+       },
+       {
+        "flag_rate_pct": 15.0,
+        "severe_rate_baseline_pct": 22.28,
+        "severe_rate_after_avoiding_pct": 21.69,
+        "severe_losses_avoided": 2469,
+        "winners_sacrificed": 5499,
+        "avoided_to_sacrificed_ratio": 0.449,
+        "expectancy_delta_pct": -0.1929
+       },
+       {
+        "flag_rate_pct": 20.0,
+        "severe_rate_baseline_pct": 22.28,
+        "severe_rate_after_avoiding_pct": 21.61,
+        "severe_losses_avoided": 3203,
+        "winners_sacrificed": 7349,
+        "avoided_to_sacrificed_ratio": 0.436,
+        "expectancy_delta_pct": -0.2246
+       }
+      ],
+      "any_operating_point_profitable": false,
+      "verdict": "VALUE_DESTRUCTIVE_AT_EVERY_OPERATING_POINT"
+     },
+     "risk_decile_profile": {
+      "flagged": {
+       "n": 6410,
+       "mean_fwd20_pct": 3.2594,
+       "median_fwd20_pct": 2.1007,
+       "sd_fwd20": 15.3271,
+       "win_rate_pct": 57.71,
+       "severe_le_m5_pct": 25.41,
+       "big_gain_ge_p10_pct": 24.4,
+       "mean_vol_20": 54.01
+      },
+      "rest": {
+       "n": 57683,
+       "mean_fwd20_pct": 1.595,
+       "median_fwd20_pct": 1.0681,
+       "sd_fwd20": 10.6447,
+       "win_rate_pct": 55.58,
+       "severe_le_m5_pct": 21.94,
+       "big_gain_ge_p10_pct": 15.44,
+       "mean_vol_20": 32.9
+      },
+      "status": "OK",
+      "interpretation": "The flagged cohort has higher volatility AND a higher mean forward return. The model is a volatility detector, and volatility is symmetric enough that avoidance costs more upside than it saves downside.",
+      "implication": "The next label should be vol-NORMALISED downside - asymmetry conditional on volatility - not raw deep MAE. That is a NEW pre-registered hypothesis for a future wave, deliberately not run here: choosing it after seeing these results would be selection."
+     }
+    },
+    "y_deep_mae": {
+     "permutation": {
+      "status": "OK",
+      "n_permutations": 20,
+      "observed_auc_test": 0.6233,
+      "null_auc_mean": 0.5346,
+      "null_auc_sd": 0.0047,
+      "null_auc_max": 0.5437,
+      "z_vs_null": 18.72,
+      "above_null": true
+     },
+     "leave_ticker_out": {
+      "status": "OK",
+      "n_folds": 5,
+      "auc_mean": 0.623,
+      "auc_min": 0.6183,
+      "auc_max": 0.6292,
+      "all_above_half": true
+     },
+     "decision_value": {
+      "status": "OK",
+      "flag_rate_pct": 20.0,
+      "n_total": 64093,
+      "n_flagged": 12819,
+      "n_dates": 296,
+      "severe_rate_baseline_pct": 22.28,
+      "severe_rate_after_avoiding_pct": 21.13,
+      "severe_losses_avoided": 3448,
+      "winners_sacrificed": 7456,
+      "avoided_to_sacrificed_ratio": 0.462,
+      "expectancy_baseline_pct": 1.7614,
+      "expectancy_after_pct": 1.328,
+      "expectancy_delta_pct": -0.4334,
+      "mean_outcome_of_flagged_pct": 3.4951,
+      "turnover_note": "12819 of 64093 candidates declined"
+     },
+     "cost_sensitivity": {
+      "status": "OK",
+      "points": [
+       {
+        "cost_bps": 0,
+        "expectancy_delta_after_cost_pct": -0.4334,
+        "survives": false
+       },
+       {
+        "cost_bps": 10,
+        "expectancy_delta_after_cost_pct": -0.4534,
+        "survives": false
+       },
+       {
+        "cost_bps": 25,
+        "expectancy_delta_after_cost_pct": -0.4834,
+        "survives": false
+       },
+       {
+        "cost_bps": 50,
+        "expectancy_delta_after_cost_pct": -0.5334,
+        "survives": false
+       }
+      ],
+      "survives_all_costs": false
+     },
+     "flag_rate_sweep": {
+      "status": "OK",
+      "points": [
+       {
+        "flag_rate_pct": 2.0,
+        "severe_rate_baseline_pct": 22.28,
+        "severe_rate_after_avoiding_pct": 22.1,
+        "severe_losses_avoided": 402,
+        "winners_sacrificed": 727,
+        "avoided_to_sacrificed_ratio": 0.553,
+        "expectancy_delta_pct": -0.0725
+       },
+       {
+        "flag_rate_pct": 5.0,
+        "severe_rate_baseline_pct": 22.28,
+        "severe_rate_after_avoiding_pct": 21.88,
+        "severe_losses_avoided": 961,
+        "winners_sacrificed": 1818,
+        "avoided_to_sacrificed_ratio": 0.529,
+        "expectancy_delta_pct": -0.1293
+       },
+       {
+        "flag_rate_pct": 10.0,
+        "severe_rate_baseline_pct": 22.28,
+        "severe_rate_after_avoiding_pct": 21.67,
+        "severe_losses_avoided": 1783,
+        "winners_sacrificed": 3704,
+        "avoided_to_sacrificed_ratio": 0.481,
+        "expectancy_delta_pct": -0.2354
+       },
+       {
+        "flag_rate_pct": 15.0,
+        "severe_rate_baseline_pct": 22.28,
+        "severe_rate_after_avoiding_pct": 21.39,
+        "severe_losses_avoided": 2629,
+        "winners_sacrificed": 5590,
+        "avoided_to_sacrificed_ratio": 0.47,
+        "expectancy_delta_pct": -0.3393
+       },
+       {
+        "flag_rate_pct": 20.0,
+        "severe_rate_baseline_pct": 22.28,
+        "severe_rate_after_avoiding_pct": 21.13,
+        "severe_losses_avoided": 3448,
+        "winners_sacrificed": 7456,
+        "avoided_to_sacrificed_ratio": 0.462,
+        "expectancy_delta_pct": -0.4334
+       }
+      ],
+      "any_operating_point_profitable": false,
+      "verdict": "VALUE_DESTRUCTIVE_AT_EVERY_OPERATING_POINT"
+     },
+     "risk_decile_profile": {
+      "flagged": {
+       "n": 6410,
+       "mean_fwd20_pct": 3.8794,
+       "median_fwd20_pct": 2.6281,
+       "sd_fwd20": 17.4261,
+       "win_rate_pct": 57.78,
+       "severe_le_m5_pct": 27.82,
+       "big_gain_ge_p10_pct": 29.0,
+       "mean_vol_20": 62.27
+      },
+      "rest": {
+       "n": 57683,
+       "mean_fwd20_pct": 1.5261,
+       "median_fwd20_pct": 1.0523,
+       "sd_fwd20": 10.2661,
+       "win_rate_pct": 55.57,
+       "severe_le_m5_pct": 21.67,
+       "big_gain_ge_p10_pct": 14.93,
+       "mean_vol_20": 31.99
+      },
+      "status": "OK",
+      "interpretation": "The flagged cohort has higher volatility AND a higher mean forward return. The model is a volatility detector, and volatility is symmetric enough that avoidance costs more upside than it saves downside.",
+      "implication": "The next label should be vol-NORMALISED downside - asymmetry conditional on volatility - not raw deep MAE. That is a NEW pre-registered hypothesis for a future wave, deliberately not run here: choosing it after seeing these results would be selection."
+     }
+    }
+   }
+  }
+ }
+}

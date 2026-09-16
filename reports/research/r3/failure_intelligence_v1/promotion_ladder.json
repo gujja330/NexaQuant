@@ -1,0 +1,471 @@
+{
+ "schema_version": "aegis.r3.failure_intelligence.v1",
+ "generated_utc": "2026-09-16T13:19:21+00:00",
+ "seed": 20260916,
+ "severe_pct": -5.0,
+ "deep_mae_pct": -8.0,
+ "governance": {
+  "r2_modified": false,
+  "r1_modified": false,
+  "r3_production_writes": 0,
+  "stops_changed": false,
+  "exits_changed": false,
+  "workbook_changed": false,
+  "max_verdict": "READY_FOR_AUTHORIZATION"
+ },
+ "ladder_definition": [
+  {
+   "gate": "DISCOVERY",
+   "question": "Did AI discover non-random structure?"
+  },
+  {
+   "gate": "REPEATABILITY",
+   "question": "Does it recur across historical periods?"
+  },
+  {
+   "gate": "TEMPORAL",
+   "question": "Does it survive chronological / OOS testing?"
+  },
+  {
+   "gate": "ROBUSTNESS",
+   "question": "Does it survive ticker / date / regime perturbation?"
+  },
+  {
+   "gate": "INCREMENTAL",
+   "question": "Does it add information beyond R2?"
+  },
+  {
+   "gate": "DECISION",
+   "question": "Does it improve actual R2 decisions?"
+  },
+  {
+   "gate": "ECONOMICS",
+   "question": "Does the improvement survive costs and turnover?"
+  },
+  {
+   "gate": "SHADOW",
+   "question": "Does it behave correctly beside live R2 without controlling it?"
+  },
+  {
+   "gate": "AUTHORIZATION",
+   "question": "Explicit human approval"
+  },
+  {
+   "gate": "INTEGRATION",
+   "question": "Entry into the major pipeline"
+  }
+ ],
+ "human_gates": [
+  "AUTHORIZATION",
+  "INTEGRATION"
+ ],
+ "results": [
+  {
+   "schema_version": "aegis.r3.promotion_ladder.v1",
+   "discovery_id": "R3-FAILURE-INTEL-INDIA-Y_SEVERE",
+   "market": "india",
+   "evaluated_utc": "2026-09-16T13:20:20+00:00",
+   "gates": [
+    {
+     "gate": "DISCOVERY",
+     "question": "Did AI discover non-random structure?",
+     "status": "FAIL",
+     "evidence": {
+      "auc_test": 0.5064,
+      "null_auc_max": 0.5123,
+      "z_vs_null": 1.5
+     },
+     "reason": "AUC is inside the within-date permutation null"
+    },
+    {
+     "gate": "REPEATABILITY",
+     "question": "Does it recur across historical periods?",
+     "status": "NOT_REACHED",
+     "evidence": null,
+     "reason": ""
+    },
+    {
+     "gate": "TEMPORAL",
+     "question": "Does it survive chronological / OOS testing?",
+     "status": "NOT_REACHED",
+     "evidence": null,
+     "reason": ""
+    },
+    {
+     "gate": "ROBUSTNESS",
+     "question": "Does it survive ticker / date / regime perturbation?",
+     "status": "NOT_REACHED",
+     "evidence": null,
+     "reason": ""
+    },
+    {
+     "gate": "INCREMENTAL",
+     "question": "Does it add information beyond R2?",
+     "status": "NOT_REACHED",
+     "evidence": null,
+     "reason": ""
+    },
+    {
+     "gate": "DECISION",
+     "question": "Does it improve actual R2 decisions?",
+     "status": "NOT_REACHED",
+     "evidence": null,
+     "reason": ""
+    },
+    {
+     "gate": "ECONOMICS",
+     "question": "Does the improvement survive costs and turnover?",
+     "status": "NOT_REACHED",
+     "evidence": null,
+     "reason": ""
+    },
+    {
+     "gate": "SHADOW",
+     "question": "Does it behave correctly beside live R2 without controlling it?",
+     "status": "NOT_REACHED",
+     "evidence": null,
+     "reason": ""
+    },
+    {
+     "gate": "AUTHORIZATION",
+     "question": "Explicit human approval",
+     "status": "NOT_REACHED",
+     "evidence": null,
+     "reason": ""
+    },
+    {
+     "gate": "INTEGRATION",
+     "question": "Entry into the major pipeline",
+     "status": "NOT_REACHED",
+     "evidence": null,
+     "reason": ""
+    }
+   ],
+   "highest_gate_passed": null,
+   "halted_at": "DISCOVERY",
+   "verdict": "HALTED_AT_DISCOVERY",
+   "can_enter_pipeline": false,
+   "queue": "RESEARCH_DISCOVERY"
+  },
+  {
+   "schema_version": "aegis.r3.promotion_ladder.v1",
+   "discovery_id": "R3-FAILURE-INTEL-INDIA-Y_DEEP_MAE",
+   "market": "india",
+   "evaluated_utc": "2026-09-16T13:20:47+00:00",
+   "gates": [
+    {
+     "gate": "DISCOVERY",
+     "question": "Did AI discover non-random structure?",
+     "status": "PASS",
+     "evidence": {
+      "auc_test": 0.5789,
+      "null_auc_max": 0.549,
+      "z_vs_null": 4.99
+     },
+     "reason": "AUC exceeds every within-date permutation"
+    },
+    {
+     "gate": "REPEATABILITY",
+     "question": "Does it recur across historical periods?",
+     "status": "PASS",
+     "evidence": {
+      "leave_ticker_out_auc_min": 0.5647,
+      "n_folds": 5
+     },
+     "reason": "holds on every held-out ticker fold"
+    },
+    {
+     "gate": "TEMPORAL",
+     "question": "Does it survive chronological / OOS testing?",
+     "status": "PASS",
+     "evidence": {
+      "auc_train": 0.8686,
+      "auc_test": 0.5789,
+      "split": {
+       "train_end": "2024-10-29",
+       "test_start": "2024-11-03",
+       "embargo_days": 5,
+       "n_train_dates": 678,
+       "n_test_dates": 361
+      }
+     },
+     "reason": "chronological split with 5-day embargo"
+    },
+    {
+     "gate": "ROBUSTNESS",
+     "question": "Does it survive ticker / date / regime perturbation?",
+     "status": "PASS",
+     "evidence": {
+      "best_lift": 1.334
+     },
+     "reason": "best lift over base rate across operating points"
+    },
+    {
+     "gate": "INCREMENTAL",
+     "question": "Does it add information beyond R2?",
+     "status": "FAIL",
+     "evidence": {},
+     "reason": "NOT MEASURABLE: incremental value over R2 needs R2 scores on the same rows, and sealed R2 memory covers 3 dates against this panel's 1063."
+    },
+    {
+     "gate": "DECISION",
+     "question": "Does it improve actual R2 decisions?",
+     "status": "NOT_REACHED",
+     "evidence": null,
+     "reason": ""
+    },
+    {
+     "gate": "ECONOMICS",
+     "question": "Does the improvement survive costs and turnover?",
+     "status": "NOT_REACHED",
+     "evidence": null,
+     "reason": ""
+    },
+    {
+     "gate": "SHADOW",
+     "question": "Does it behave correctly beside live R2 without controlling it?",
+     "status": "NOT_REACHED",
+     "evidence": null,
+     "reason": ""
+    },
+    {
+     "gate": "AUTHORIZATION",
+     "question": "Explicit human approval",
+     "status": "NOT_REACHED",
+     "evidence": null,
+     "reason": ""
+    },
+    {
+     "gate": "INTEGRATION",
+     "question": "Entry into the major pipeline",
+     "status": "NOT_REACHED",
+     "evidence": null,
+     "reason": ""
+    }
+   ],
+   "highest_gate_passed": "ROBUSTNESS",
+   "halted_at": "INCREMENTAL",
+   "verdict": "HALTED_AT_INCREMENTAL",
+   "can_enter_pipeline": false,
+   "queue": "RESEARCH_DISCOVERY"
+  },
+  {
+   "schema_version": "aegis.r3.promotion_ladder.v1",
+   "discovery_id": "R3-FAILURE-INTEL-USA-Y_SEVERE",
+   "market": "usa",
+   "evaluated_utc": "2026-09-16T13:23:46+00:00",
+   "gates": [
+    {
+     "gate": "DISCOVERY",
+     "question": "Did AI discover non-random structure?",
+     "status": "PASS",
+     "evidence": {
+      "auc_test": 0.5429,
+      "null_auc_max": 0.5193,
+      "z_vs_null": 6.13
+     },
+     "reason": "AUC exceeds every within-date permutation"
+    },
+    {
+     "gate": "REPEATABILITY",
+     "question": "Does it recur across historical periods?",
+     "status": "PASS",
+     "evidence": {
+      "leave_ticker_out_auc_min": 0.5327,
+      "n_folds": 5
+     },
+     "reason": "holds on every held-out ticker fold"
+    },
+    {
+     "gate": "TEMPORAL",
+     "question": "Does it survive chronological / OOS testing?",
+     "status": "FAIL",
+     "evidence": {
+      "auc_train": 0.8135,
+      "auc_test": 0.5429,
+      "split": {
+       "train_end": "2025-02-20",
+       "test_start": "2025-02-25",
+       "embargo_days": 5,
+       "n_train_dates": 554,
+       "n_test_dates": 296
+      }
+     },
+     "reason": "chronological split with 5-day embargo"
+    },
+    {
+     "gate": "ROBUSTNESS",
+     "question": "Does it survive ticker / date / regime perturbation?",
+     "status": "NOT_REACHED",
+     "evidence": null,
+     "reason": ""
+    },
+    {
+     "gate": "INCREMENTAL",
+     "question": "Does it add information beyond R2?",
+     "status": "NOT_REACHED",
+     "evidence": null,
+     "reason": ""
+    },
+    {
+     "gate": "DECISION",
+     "question": "Does it improve actual R2 decisions?",
+     "status": "NOT_REACHED",
+     "evidence": null,
+     "reason": ""
+    },
+    {
+     "gate": "ECONOMICS",
+     "question": "Does the improvement survive costs and turnover?",
+     "status": "NOT_REACHED",
+     "evidence": null,
+     "reason": ""
+    },
+    {
+     "gate": "SHADOW",
+     "question": "Does it behave correctly beside live R2 without controlling it?",
+     "status": "NOT_REACHED",
+     "evidence": null,
+     "reason": ""
+    },
+    {
+     "gate": "AUTHORIZATION",
+     "question": "Explicit human approval",
+     "status": "NOT_REACHED",
+     "evidence": null,
+     "reason": ""
+    },
+    {
+     "gate": "INTEGRATION",
+     "question": "Entry into the major pipeline",
+     "status": "NOT_REACHED",
+     "evidence": null,
+     "reason": ""
+    }
+   ],
+   "highest_gate_passed": "REPEATABILITY",
+   "halted_at": "TEMPORAL",
+   "verdict": "HALTED_AT_TEMPORAL",
+   "can_enter_pipeline": false,
+   "queue": "RESEARCH_DISCOVERY"
+  },
+  {
+   "schema_version": "aegis.r3.promotion_ladder.v1",
+   "discovery_id": "R3-FAILURE-INTEL-USA-Y_DEEP_MAE",
+   "market": "usa",
+   "evaluated_utc": "2026-09-16T13:25:01+00:00",
+   "gates": [
+    {
+     "gate": "DISCOVERY",
+     "question": "Did AI discover non-random structure?",
+     "status": "PASS",
+     "evidence": {
+      "auc_test": 0.6233,
+      "null_auc_max": 0.5437,
+      "z_vs_null": 18.72
+     },
+     "reason": "AUC exceeds every within-date permutation"
+    },
+    {
+     "gate": "REPEATABILITY",
+     "question": "Does it recur across historical periods?",
+     "status": "PASS",
+     "evidence": {
+      "leave_ticker_out_auc_min": 0.6183,
+      "n_folds": 5
+     },
+     "reason": "holds on every held-out ticker fold"
+    },
+    {
+     "gate": "TEMPORAL",
+     "question": "Does it survive chronological / OOS testing?",
+     "status": "PASS",
+     "evidence": {
+      "auc_train": 0.8288,
+      "auc_test": 0.6233,
+      "split": {
+       "train_end": "2025-02-20",
+       "test_start": "2025-02-25",
+       "embargo_days": 5,
+       "n_train_dates": 554,
+       "n_test_dates": 296
+      }
+     },
+     "reason": "chronological split with 5-day embargo"
+    },
+    {
+     "gate": "ROBUSTNESS",
+     "question": "Does it survive ticker / date / regime perturbation?",
+     "status": "PASS",
+     "evidence": {
+      "best_lift": 1.684
+     },
+     "reason": "best lift over base rate across operating points"
+    },
+    {
+     "gate": "INCREMENTAL",
+     "question": "Does it add information beyond R2?",
+     "status": "FAIL",
+     "evidence": {},
+     "reason": "NOT MEASURABLE: incremental value over R2 needs R2 scores on the same rows, and sealed R2 memory covers 3 dates against this panel's 872."
+    },
+    {
+     "gate": "DECISION",
+     "question": "Does it improve actual R2 decisions?",
+     "status": "NOT_REACHED",
+     "evidence": null,
+     "reason": ""
+    },
+    {
+     "gate": "ECONOMICS",
+     "question": "Does the improvement survive costs and turnover?",
+     "status": "NOT_REACHED",
+     "evidence": null,
+     "reason": ""
+    },
+    {
+     "gate": "SHADOW",
+     "question": "Does it behave correctly beside live R2 without controlling it?",
+     "status": "NOT_REACHED",
+     "evidence": null,
+     "reason": ""
+    },
+    {
+     "gate": "AUTHORIZATION",
+     "question": "Explicit human approval",
+     "status": "NOT_REACHED",
+     "evidence": null,
+     "reason": ""
+    },
+    {
+     "gate": "INTEGRATION",
+     "question": "Entry into the major pipeline",
+     "status": "NOT_REACHED",
+     "evidence": null,
+     "reason": ""
+    }
+   ],
+   "highest_gate_passed": "ROBUSTNESS",
+   "halted_at": "INCREMENTAL",
+   "verdict": "HALTED_AT_INCREMENTAL",
+   "can_enter_pipeline": false,
+   "queue": "RESEARCH_DISCOVERY"
+  }
+ ],
+ "summary": {
+  "n_discoveries": 4,
+  "verdicts": {
+   "HALTED_AT_DISCOVERY": 1,
+   "HALTED_AT_INCREMENTAL": 2,
+   "HALTED_AT_TEMPORAL": 1
+  },
+  "halted_at": {
+   "DISCOVERY": 1,
+   "INCREMENTAL": 2,
+   "TEMPORAL": 1
+  },
+  "ready_for_authorization": [],
+  "in_pipeline": [],
+  "note": "`in_pipeline` can only become non-empty through a human authorization act recorded outside this module."
+ }
+}

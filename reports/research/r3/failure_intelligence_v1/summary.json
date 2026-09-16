@@ -1,0 +1,66 @@
+{
+ "schema_version": "aegis.r3.failure_intelligence.v1",
+ "generated_utc": "2026-09-16T13:19:21+00:00",
+ "seed": 20260916,
+ "severe_pct": -5.0,
+ "deep_mae_pct": -8.0,
+ "governance": {
+  "r2_modified": false,
+  "r1_modified": false,
+  "r3_production_writes": 0,
+  "stops_changed": false,
+  "exits_changed": false,
+  "workbook_changed": false,
+  "max_verdict": "READY_FOR_AUTHORIZATION"
+ },
+ "ladder_summary": {
+  "n_discoveries": 4,
+  "verdicts": {
+   "HALTED_AT_DISCOVERY": 1,
+   "HALTED_AT_INCREMENTAL": 2,
+   "HALTED_AT_TEMPORAL": 1
+  },
+  "halted_at": {
+   "DISCOVERY": 1,
+   "INCREMENTAL": 2,
+   "TEMPORAL": 1
+  },
+  "ready_for_authorization": [],
+  "in_pipeline": [],
+  "note": "`in_pipeline` can only become non-empty through a human authorization act recorded outside this module."
+ },
+ "per_ladder": [
+  {
+   "discovery_id": "R3-FAILURE-INTEL-INDIA-Y_SEVERE",
+   "halted_at": "DISCOVERY",
+   "verdict": "HALTED_AT_DISCOVERY",
+   "highest_gate_passed": null
+  },
+  {
+   "discovery_id": "R3-FAILURE-INTEL-INDIA-Y_DEEP_MAE",
+   "halted_at": "INCREMENTAL",
+   "verdict": "HALTED_AT_INCREMENTAL",
+   "highest_gate_passed": "ROBUSTNESS"
+  },
+  {
+   "discovery_id": "R3-FAILURE-INTEL-USA-Y_SEVERE",
+   "halted_at": "TEMPORAL",
+   "verdict": "HALTED_AT_TEMPORAL",
+   "highest_gate_passed": "REPEATABILITY"
+  },
+  {
+   "discovery_id": "R3-FAILURE-INTEL-USA-Y_DEEP_MAE",
+   "halted_at": "INCREMENTAL",
+   "verdict": "HALTED_AT_INCREMENTAL",
+   "highest_gate_passed": "ROBUSTNESS"
+  }
+ ],
+ "trial_accounting": {
+  "labels_pre_registered": [
+   "y_severe",
+   "y_deep_mae"
+  ],
+  "trials_run": 4,
+  "note": "Both labels were defined before any result was seen. Reporting only the stronger one would have been selection."
+ }
+}
