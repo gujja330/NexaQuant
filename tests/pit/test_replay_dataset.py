@@ -241,14 +241,32 @@ def test_every_outcome_date_strictly_postdates_the_prediction(built):
             "%s contains an outcome dated on or before its prediction" % c
 
 
-def test_mae_mfe_report_their_own_window_length(built):
+def test_excursions_report_their_own_window_length(built):
     """A 2-bar excursion must never be readable as a 60-bar one."""
     df, _ = built
     if df.empty:
         pytest.skip("empty dataset")
-    have = df[df["mfe_pct"].notna()]
+    have = df[df["excursion_high_pct"].notna()]
     if have.empty:
         pytest.skip("no forward window yet")
-    assert (have["mae_mfe_window_bars"] > 0).all()
-    assert (have["time_to_mfe_d"] <= have["mae_mfe_window_bars"]).all()
-    assert (have["time_to_mae_d"] <= have["mae_mfe_window_bars"]).all()
+    assert (have["excursion_window_bars"] > 0).all()
+    assert (have["time_to_high_d"] <= have["excursion_window_bars"]).all()
+    assert (have["time_to_low_d"] <= have["excursion_window_bars"]).all()
+
+
+def test_true_mae_mfe_exist_only_where_there_was_an_entry(built):
+    """MAE/MFE are ENTRY-relative. Computing them from the as_of close for the
+    whole universe produced 30 rows with a POSITIVE 'maximum adverse excursion'
+    - a name nobody bought cannot have moved adversely to an entry it never had.
+    """
+    df, _ = built
+    if df.empty or "entry_mae_pct" not in df.columns:
+        pytest.skip("empty dataset")
+    have = df[df["entry_mae_pct"].notna()]
+    if have.empty:
+        pytest.skip("no sealed entry prices with a forward window")
+    assert (have["in_sealed_decisions"] == 1).all(),         "an entry-relative excursion was computed for a name that was never held"
+    assert have["entry_price"].notna().all()
+    # and the universe-wide excursion columns stay separate from them
+    assert "excursion_low_pct" in df.columns
+    assert df["entry_mae_pct"].notna().sum() < df["excursion_low_pct"].notna().sum()

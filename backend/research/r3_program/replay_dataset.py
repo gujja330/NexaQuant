@@ -86,9 +86,9 @@ def _forward(root: Path, market: str, ticker: str, asof: str,
         out["fwd_%dd" % h] = None
         out["fwd_%dd_outcome_date" % h] = None
     out.update({"n_fwd_bars": 0, "asof_close": None,
-                "mae_pct": None, "mfe_pct": None,
-                "time_to_mae_d": None, "time_to_mfe_d": None,
-                "mae_mfe_window_bars": 0})
+                "excursion_low_pct": None, "excursion_high_pct": None,
+                "time_to_low_d": None, "time_to_high_d": None,
+                "excursion_window_bars": 0})
     b = _bars(root, market, ticker)
     if b is None:
         return out
@@ -106,16 +106,25 @@ def _forward(root: Path, market: str, ticker: str, asof: str,
             out["fwd_%dd" % h] = 100.0 * (float(fut["close"].iloc[h - 1]) - p0) / p0
             out["fwd_%dd_outcome_date" % h] = fut.index[h - 1].date().isoformat()
 
-    # MAE/MFE over whatever forward window exists, reported WITH its length so a
-    # 2-bar excursion is never read as a 60-bar one.
+    # Excursion from the as_of CLOSE, over whatever forward window exists and
+    # reported WITH its length so a 2-bar move is never read as a 60-bar one.
+    #
+    # These are deliberately NOT called MAE/MFE. MAE and MFE are entry-relative:
+    # they measure how far a POSITION went against or in favour of its entry.
+    # Most rows here are universe names that were never entered, so there is no
+    # entry to be adverse to - and indeed 30 of 224 rows had a positive "MAE"
+    # because the low simply never traded below the as_of close. True MAE/MFE
+    # are computed separately, only for rows carrying a real entry_price.
     w = fut.iloc[:mfe_window]
     if len(w) and {"low", "high"} <= set(w.columns):
         lo, hi = w["low"].astype(float), w["high"].astype(float)
-        out["mae_pct"] = 100.0 * (float(lo.min()) - p0) / p0
-        out["mfe_pct"] = 100.0 * (float(hi.max()) - p0) / p0
-        out["time_to_mae_d"] = int(lo.reset_index(drop=True).idxmin()) + 1
-        out["time_to_mfe_d"] = int(hi.reset_index(drop=True).idxmax()) + 1
-        out["mae_mfe_window_bars"] = len(w)
+        out["excursion_low_pct"] = 100.0 * (float(lo.min()) - p0) / p0
+        out["excursion_high_pct"] = 100.0 * (float(hi.max()) - p0) / p0
+        out["time_to_low_d"] = int(lo.reset_index(drop=True).idxmin()) + 1
+        out["time_to_high_d"] = int(hi.reset_index(drop=True).idxmax()) + 1
+        out["excursion_window_bars"] = len(w)
+        out["_low_abs"] = float(lo.min())
+        out["_high_abs"] = float(hi.max())
     return out
 
 
@@ -218,8 +227,10 @@ def build_date(root: Path, market: str, asof: str) -> tuple[pd.DataFrame, dict]:
     # not change its mind about them in a later pandas.
     for h in HORIZONS:
         fwd["fwd_%dd" % h] = pd.to_numeric(fwd["fwd_%dd" % h], errors="coerce").astype("float64")
-    for c in ("asof_close", "mae_pct", "mfe_pct", "time_to_mae_d", "time_to_mfe_d"):
-        fwd[c] = pd.to_numeric(fwd[c], errors="coerce").astype("float64")
+    for c in ("asof_close", "excursion_low_pct", "excursion_high_pct",
+              "time_to_low_d", "time_to_high_d", "_low_abs", "_high_abs"):
+        if c in fwd.columns:
+            fwd[c] = pd.to_numeric(fwd[c], errors="coerce").astype("float64")
     df = pd.concat([df.reset_index(drop=True), fwd.reset_index(drop=True)], axis=1)
     # The sealed matrix may already carry these. Overwrite in place rather than
     # inserting a second column of the same name - two `market` columns would
@@ -237,6 +248,29 @@ def build_date(root: Path, market: str, asof: str) -> tuple[pd.DataFrame, dict]:
             df[col] = val
         else:
             df.insert(i, col, val)
+
+    # TRUE MAE/MFE — entry-relative, and therefore only defined for rows that
+    # actually carry an entry price from the sealed decisions. For every other
+    # name in the universe these stay null rather than silently reusing the
+    # as_of close as a pseudo-entry, which is what makes a "maximum ADVERSE
+    # excursion" come out positive.
+    ep = None
+    for c in ("entry_price", "dec_entry_price"):
+        if c in df.columns and df[c].notna().any():
+            ep = c
+            break
+    df["entry_mae_pct"] = pd.NA
+    df["entry_mfe_pct"] = pd.NA
+    if ep and "_low_abs" in df.columns:
+        m = df[ep].notna() & (pd.to_numeric(df[ep], errors="coerce") > 0) \
+            & df["_low_abs"].notna()
+        e = pd.to_numeric(df.loc[m, ep], errors="coerce")
+        df.loc[m, "entry_mae_pct"] = 100.0 * (df.loc[m, "_low_abs"] - e) / e
+        df.loc[m, "entry_mfe_pct"] = 100.0 * (df.loc[m, "_high_abs"] - e) / e
+    df["entry_mae_pct"] = pd.to_numeric(df["entry_mae_pct"], errors="coerce").astype("float64")
+    df["entry_mfe_pct"] = pd.to_numeric(df["entry_mfe_pct"], errors="coerce").astype("float64")
+    prov["entry_relative_mae_rows"] = int(df["entry_mae_pct"].notna().sum())
+    df = df.drop(columns=[c for c in ("_low_abs", "_high_abs") if c in df.columns])
 
     # §2 identity/provenance. prediction_as_of is deliberately a SEPARATE column
     # from as_of so that a later join cannot quietly reuse one for the other.

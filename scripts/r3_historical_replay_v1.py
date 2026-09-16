@@ -16,8 +16,8 @@ import pandas as pd
 
 from backend.research.r3_program.replay_dataset import build, HORIZONS
 from backend.research.r3_program.historical_replay import (
-    inventory, quality_gate, forensics, oos_gate, tier_for,
-    SCHEMA_VERSION, F_SPECS, MIN_DATES_FOR_OOS)
+    inventory, quality_gate, forensics, oos_gate, tier_for, buckets,
+    severe_cases, SCHEMA_VERSION, F_SPECS, MIN_DATES_FOR_OOS)
 
 ROOT = Path(__file__).resolve().parents[1]
 REP = ROOT / "reports" / "research" / "r3"
@@ -86,6 +86,33 @@ def main() -> None:
     for k, v in fs["severe_bands"].items():
         print("     %-12s rows=%d tickers=%d dates=%d"
               % (k, v["n_rows"], v["n_tickers"], v["n_dates"]))
+
+    out_col = fs.get("outcome_column")
+    bk = buckets(t, out_col)
+    print("\n   BUCKETS (§6)")
+    for name in ("confidence", "sector", "regime"):
+        b = bk.get(name, {})
+        if b.get("status"):
+            print("     %-11s %s - %s" % (name, b["status"], b["reason"][:70]))
+        else:
+            for k, v in b.get("buckets", {}).items():
+                print("     %-11s %-10s rows=%4d dates=%d out=%s win%%=%s"
+                      % (name, k, v["n_rows"], v["n_dates"],
+                         v["mean_outcome_pct"], v["win_rate_pct"]))
+    print("     horizon     " + "  ".join(
+        "%s:%s" % (k.replace("fwd_", ""), v["status"]) for k, v in bk.get("horizon", {}).items()))
+
+    sc = severe_cases(t, out_col)
+    print("\n   SEVERE-LOSS CASES (§8)  status=%s" % sc.get("status"))
+    if sc.get("status") == "OK":
+        print("     sealed positions=%d  with outcome=%d  date units=%d"
+              % (sc["n_sealed_positions"], sc["n_with_outcome"], sc["date_units"]))
+        for c in sc["cases"][:8]:
+            print("     %-6s %-12s out=%7s entryMFE=%7s entryMAE=%7s  %s"
+                  % (c["market"], c["ticker"], c["outcome_pct"],
+                     c["entry_mfe_pct"], c["entry_mae_pct"], c["classification"]))
+    else:
+        print("     %s" % sc.get("reason", ""))
 
     # §10-11 -----------------------------------------------------------
     print("\n[10-11] STATISTICAL + DATE-AWARE VALIDATION")
@@ -179,7 +206,8 @@ def main() -> None:
     w("historical_replay_summary.json",
       {**hdr, "inventory": inv, "dataset_manifest": man, "quality_gate": q,
        "oos_gate": g, "decision_utility": du})
-    w("entry_failure_forensics_v1.json", {**hdr, "forensics": fs})
+    w("entry_failure_forensics_v1.json",
+      {**hdr, "forensics": fs, "buckets": bk, "severe_loss_cases": sc})
     w("evidence_clock_v1.json", {**hdr, **clock})
     w("hypothesis_ledger_v1.json", {**hdr, "hypotheses": ledger})
 

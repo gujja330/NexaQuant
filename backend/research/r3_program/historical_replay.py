@@ -154,14 +154,14 @@ class FactorSpec:
 
 
 F_SPECS = [
-    FactorSpec("F1", "never profitable", "MFE never reached +2% in the observed window"),
-    FactorSpec("F2", "profitable then reversed", "MFE >= +2% and the outcome still went severely negative"),
+    FactorSpec("F1", "never profitable", "held position: entry MFE never reached +2%"),
+    FactorSpec("F2", "profitable then reversed", "held position: entry MFE >= +2% and the outcome still went severely negative"),
     FactorSpec("F3", "immediate adverse move", "fwd_3d <= -2%"),
     FactorSpec("F4", "sector-wide failure", "the name's sector fell on the same window (leave-target-out)"),
     FactorSpec("F5", "peer-relative failure", "REJECTED family - not computed"),
     FactorSpec("F6", "market/regime failure", "the market aggregate fell on the same window"),
     FactorSpec("F7", "confidence failure", "R2 entry confidence below 40"),
-    FactorSpec("F8", "volatility/liquidity failure", "high 20d volatility or thin liquidity bucket at entry"),
+    FactorSpec("F8", "volatility failure", "top-quintile 20d volatility; liquidity_bucket_60d is ABSENT so the liquidity half is not computed"),
     FactorSpec("F9", "correlated portfolio failure", ">=5 admissions share the entry date"),
     FactorSpec("F10", "data-quality failure", "a feature the decision depended on was null at entry"),
     FactorSpec("F11", "stop/exit failure", "exit reason indicates stop or horizon rather than thesis"),
@@ -194,10 +194,15 @@ def forensics(df: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
     t["_outcome"] = t[out_col]
     t["_outcome_col"] = out_col
 
-    mfe, mae = t.get("mfe_pct"), t.get("mae_pct")
-    t["F1"] = ((mfe.notna()) & (mfe < 2.0)).astype(int)
-    t["F2"] = ((mfe.notna()) & (mfe >= 2.0)
-               & (t["_outcome"].notna()) & (t["_outcome"] <= -5.0)).astype(int)
+    # F1/F2 are POSITION properties. They ask what a held position was offered,
+    # so they use the entry-relative excursion and apply only to rows that were
+    # actually held. Applying them to every universe name would score 850 stocks
+    # nobody bought as "never profitable".
+    held = t.get("in_sealed_decisions", pd.Series(0, index=t.index)) == 1
+    mfe = t.get("entry_mfe_pct", pd.Series(pd.NA, index=t.index))
+    t["F1"] = (held & mfe.notna() & (mfe < 2.0)).astype(int)
+    t["F2"] = (held & mfe.notna() & (mfe >= 2.0)
+               & t["_outcome"].notna() & (t["_outcome"] <= -5.0)).astype(int)
     t["F3"] = ((t["fwd_3d"].notna()) & (t["fwd_3d"] <= -2.0)).astype(int)
 
     sec = "sector" if "sector" in t.columns else None
@@ -264,10 +269,12 @@ def forensics(df: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
             "n_dates": int(len(sub[["market", "prediction_as_of"]].drop_duplicates()))
             if len(sub) else 0,
             "mean_outcome_pct": round(float(o.mean()), 3) if len(o) else None,
-            "mean_mae_pct": round(float(sub["mae_pct"].dropna().mean()), 3)
-            if "mae_pct" in sub and sub["mae_pct"].notna().any() else None,
-            "mean_mfe_pct": round(float(sub["mfe_pct"].dropna().mean()), 3)
-            if "mfe_pct" in sub and sub["mfe_pct"].notna().any() else None,
+            "mean_entry_mae_pct": round(float(sub["entry_mae_pct"].dropna().mean()), 3)
+            if "entry_mae_pct" in sub and sub["entry_mae_pct"].notna().any() else None,
+            "mean_entry_mfe_pct": round(float(sub["entry_mfe_pct"].dropna().mean()), 3)
+            if "entry_mfe_pct" in sub and sub["entry_mfe_pct"].notna().any() else None,
+            "mean_excursion_low_pct": round(float(sub["excursion_low_pct"].dropna().mean()), 3)
+            if "excursion_low_pct" in sub and sub["excursion_low_pct"].notna().any() else None,
             "n_with_outcome": int(len(o)),
         })
     for b in SEVERE_BANDS:
@@ -281,6 +288,144 @@ def forensics(df: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
     summary["note"] = ("Bands are RESEARCH bands. No production loss threshold "
                        "is defined or implied by this table.")
     return t, summary
+
+
+# ── §6 BUCKET ANALYSIS ────────────────────────────────────────────────
+def _informative(s: pd.Series) -> bool:
+    """A column is informative only if it carries more than one real value.
+
+    `sector` is populated on 516 USA rows with the single literal string
+    'Unknown', and is null on all 456 India rows. A column can be 100% present
+    and still carry zero information; bucketing on it would manufacture groups
+    that do not exist.
+    """
+    v = s.dropna()
+    v = v[~v.astype(str).str.lower().isin(("unknown", "none", "nan", ""))]
+    return v.nunique() > 1
+
+
+def buckets(df: pd.DataFrame, outcome: str) -> dict:
+    """§6 descriptive buckets. Every cell carries its own date depth."""
+    if df.empty or outcome not in df.columns:
+        return {"status": "EMPTY"}
+    out: dict = {}
+
+    def _s(g: pd.DataFrame) -> dict:
+        o = g[outcome].dropna()
+        return {"n_rows": int(len(g)),
+                "n_tickers": int(g["ticker"].nunique()),
+                "n_dates": int(len(g[["market", "prediction_as_of"]].drop_duplicates())),
+                "n_with_outcome": int(len(o)),
+                "mean_outcome_pct": round(float(o.mean()), 4) if len(o) else None,
+                "win_rate_pct": round(100.0 * float((o > 0).mean()), 1) if len(o) else None}
+
+    conf = next((c for c in ("confidence_pct", "dec_confidence_pct")
+                 if c in df.columns and df[c].notna().any()), None)
+    if conf:
+        b = pd.cut(df[conf], [0, 30, 40, 50, 60, 100],
+                   labels=["<30", "30-40", "40-50", "50-60", "60+"])
+        out["confidence"] = {"column": conf,
+                             "buckets": {str(k): _s(g)
+                                         for k, g in df.groupby(b, observed=True)}}
+    else:
+        out["confidence"] = {"status": "BLOCKED_DATA", "reason": "no confidence column"}
+
+    if "sector" in df.columns and _informative(df["sector"]):
+        out["sector"] = {"buckets": {str(k): _s(g)
+                                     for k, g in df.groupby("sector", observed=True)},
+                         "note": "Descriptive only. No sector is ranked for production."}
+    else:
+        out["sector"] = {"status": "BLOCKED_DATA",
+                         "reason": ("sector carries no information: India is null on "
+                                    "every row and USA is the literal string 'Unknown' "
+                                    "on all 516. Bucketing would invent groups that do "
+                                    "not exist.")}
+
+    med = df.groupby(["market", "prediction_as_of"])[outcome].transform("median")
+    if med.notna().any():
+        r = pd.Series(pd.NA, index=df.index, dtype="object")
+        r[med > 0] = "up_day"
+        r[med <= 0] = "down_day"
+        out["regime"] = {"proxy": "market x as_of median forward return",
+                         "buckets": {str(k): _s(g)
+                                     for k, g in df.groupby(r, observed=True)},
+                         "caveat": ("A regime read off the same outcome it buckets is "
+                                    "descriptive only, never predictive.")}
+    else:
+        out["regime"] = {"status": "BLOCKED_DATA", "reason": "no closed outcome window"}
+
+    from backend.research.r3_program.replay_dataset import HORIZONS
+    out["horizon"] = {}
+    for h in HORIZONS:
+        c = "fwd_%dd" % h
+        if c not in df.columns:
+            continue
+        o = df[c].dropna()
+        out["horizon"][c] = {
+            "n_with_outcome": int(len(o)),
+            "n_dates": int(len(df[df[c].notna()][["market", "prediction_as_of"]]
+                               .drop_duplicates())) if len(o) else 0,
+            "mean_outcome_pct": round(float(o.mean()), 4) if len(o) else None,
+            "status": "OPEN_WINDOW" if len(o) == 0 else "MEASURED"}
+    return out
+
+
+# ── §8 SEVERE-LOSS CASE STUDIES ───────────────────────────────────────
+def severe_cases(df: pd.DataFrame, outcome: str, limit: int = 10) -> dict:
+    """Reconstruct the worst R2 positions actually present in sealed memory.
+
+    ENTRY failure and EXIT failure are separated by the excursion shape, not by
+    the P&L sign: a position that never offered a meaningful favourable move is
+    a different failure from one that ran up and gave it back. A loss alone is
+    not evidence that a stop policy is defective.
+    """
+    if df.empty or "in_sealed_decisions" not in df.columns:
+        return {"status": "EMPTY"}
+    held = df[df["in_sealed_decisions"] == 1].copy()
+    if held.empty:
+        return {"status": "NO_SEALED_POSITIONS"}
+    scored = held[held[outcome].notna()]
+    if scored.empty:
+        return {"status": "NO_CLOSED_OUTCOME_WINDOW",
+                "n_sealed_positions": int(len(held)),
+                "reason": ("%d positions are sealed but none has a closed forward "
+                           "window yet, so no case can be reconstructed." % len(held))}
+    sel = scored.sort_values(outcome).head(limit)
+
+    def _r(v, n=3):
+        return None if v is None or pd.isna(v) else round(float(v), n)
+
+    cases = []
+    for _, r in sel.iterrows():
+        mfe, mae = r.get("entry_mfe_pct"), r.get("entry_mae_pct")
+        if pd.notna(mfe):
+            cls = "ENTRY FAILURE" if float(mfe) < 2.0 else "EXIT / HOLDING FAILURE"
+            why = ("never offered a meaningful favourable excursion"
+                   if float(mfe) < 2.0
+                   else "ran to +%.2f%% before reversing" % float(mfe))
+        else:
+            cls, why = "UNCLASSIFIED", "no entry-relative excursion available"
+        cases.append({
+            "ticker": r["ticker"], "market": r["market"],
+            "prediction_as_of": r["prediction_as_of"],
+            "entry_date": r.get("entry_date"), "entry_price": _r(r.get("entry_price")),
+            "confidence_pct": _r(r.get("confidence_pct"), 1),
+            "sector": r.get("sector"), "action": r.get("action"),
+            "admission_status": r.get("admission_status"),
+            "entry_mae_pct": _r(mae), "entry_mfe_pct": _r(mfe),
+            "excursion_low_pct": _r(r.get("excursion_low_pct")),
+            "excursion_high_pct": _r(r.get("excursion_high_pct")),
+            "excursion_window_bars": int(r.get("excursion_window_bars") or 0),
+            "outcome_pct": _r(r[outcome]), "outcome_column": outcome,
+            "classification": cls, "reasoning": why})
+    return {"status": "OK", "outcome_column": outcome,
+            "n_sealed_positions": int(len(held)),
+            "n_with_outcome": int(len(scored)),
+            "date_units": int(len(sel[["market", "prediction_as_of"]].drop_duplicates())),
+            "cases": cases,
+            "caveat": ("A loss does not by itself indicate a defective stop policy. "
+                       "These are descriptive reconstructions over a very short "
+                       "window.")}
 
 
 # ── §11 DATE-AWARE VALIDATION GATE ────────────────────────────────────
