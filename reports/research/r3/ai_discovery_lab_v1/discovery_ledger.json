@@ -1,0 +1,503 @@
+{
+ "schema_version": "aegis.r3.discovery_lab.v1",
+ "generated_utc": "2026-09-16T12:17:49+00:00",
+ "seed": 20260916,
+ "stride_trading_days": 5,
+ "window": 60,
+ "outcome": "fwd_20d",
+ "embargo_days": 5,
+ "markets": {
+  "india": {
+   "market": "india",
+   "tickers": 230,
+   "rows": 62031,
+   "dates": 1245,
+   "date_min": "2020-09-10",
+   "date_max": "2026-09-16",
+   "stride_trading_days": 5,
+   "window": 60,
+   "shape_points": 12,
+   "survivorship": "ticker files are TODAY's names; delisted names absent, which biases long-horizon statistics upward",
+   "panel_hash": "30bc83465a921320"
+  },
+  "usa": {
+   "market": "usa",
+   "tickers": 900,
+   "rows": 213057,
+   "dates": 1009,
+   "date_min": "2021-11-01",
+   "date_max": "2026-09-14",
+   "stride_trading_days": 5,
+   "window": 60,
+   "shape_points": 12,
+   "survivorship": "ticker files are TODAY's names; delisted names absent, which biases long-horizon statistics upward",
+   "panel_hash": "c5376809154e2b5d"
+  }
+ },
+ "governance": {
+  "r2_modified": false,
+  "r3_production_writes": 0,
+  "max_disposition": "CANDIDATE_FOR_CONFIRMATORY_VALIDATION"
+ },
+ "survivorship": "ticker files are TODAY's names; delisted names are absent and every long-horizon statistic here is biased upward as a result",
+ "discoveries": [
+  {
+   "discovery_id": "DL1-INDIA-ARCHETYPE",
+   "method": "KMeans on shape path",
+   "market": "india",
+   "dataset": "price bars",
+   "date_range": "2020-09-10..2026-09-16",
+   "n_rows": 62031,
+   "n_tickers": 230,
+   "n_dates": 1245,
+   "features": [
+    "normalised 12-point cumulative return path"
+   ],
+   "representation": "shape",
+   "seed": 20260916,
+   "trial_count": 3,
+   "hypothesis": "Recurring trajectory shapes separate forward 20d outcomes.",
+   "stage": "DISCOVERY",
+   "test": "chronological train/embargo/test, rank correlation of archetype outcome ordering",
+   "result": {
+    "k_sweep": [
+     {
+      "k": 6,
+      "silhouette": 0.1448,
+      "linear_r2": 0.1186,
+      "non_obvious": true,
+      "rank_corr": -0.0857,
+      "spread_train": 1.4796,
+      "spread_test": 0.791
+     },
+     {
+      "k": 8,
+      "silhouette": 0.1415,
+      "linear_r2": 0.1186,
+      "non_obvious": true,
+      "rank_corr": -0.3571,
+      "spread_train": 1.8371,
+      "spread_test": 1.8709
+     },
+     {
+      "k": 10,
+      "silhouette": 0.1031,
+      "linear_r2": 0.1186,
+      "non_obvious": true,
+      "rank_corr": -0.297,
+      "spread_train": 2.5993,
+      "spread_test": 1.6229
+     }
+    ]
+   },
+   "oos_status": "TESTED",
+   "adversarial": {
+    "linear_reproducibility_r2": 0.1186,
+    "silhouette": 0.1415
+   },
+   "survivorship_exposure": "PRESENT",
+   "disposition": "REJECTED",
+   "notes": "Outcome ordering does not persist out of sample."
+  },
+  {
+   "discovery_id": "DL1-INDIA-LATENTSTATE",
+   "method": "GaussianMixture on cross-sectional breadth/dispersion/vol",
+   "market": "india",
+   "dataset": "price bars",
+   "date_range": "2020-09-10..2026-09-16",
+   "n_rows": 62031,
+   "n_tickers": 230,
+   "n_dates": 1063,
+   "features": [
+    "median_vol20",
+    "dispersion_ret20",
+    "breadth_pos",
+    "median_dd60",
+    "median_pos60"
+   ],
+   "representation": "market-level state",
+   "seed": 20260916,
+   "trial_count": 20,
+   "hypothesis": "Discovered market states separate forward outcomes.",
+   "stage": "DISCOVERY",
+   "test": "chronological split, rank correlation of state outcome ordering",
+   "result": {
+    "rank_corr_single_config": -0.4,
+    "robustness": {
+     "verdict": "FRAGILE",
+     "rank_corr_min": -0.8,
+     "rank_corr_max": 0.9,
+     "sign_flips_across_configs": true,
+     "median_run_length_samples": 1.0,
+     "n_configs": 20
+    }
+   },
+   "oos_status": "TESTED",
+   "adversarial": {
+    "seed_and_state_sweep": "FRAGILE",
+    "reason": "Rank correlation changes sign across seeds and/or the state changes at nearly every observation, so the apparent ordering is not a property of the data."
+   },
+   "survivorship_exposure": "PRESENT",
+   "disposition": "REJECTED",
+   "notes": "Single-config rank_corr was +0.8; the seed sweep turns it to -0.2 on identical data and the state changes at nearly every observation."
+  },
+  {
+   "discovery_id": "DL1-INDIA-CONTRADICTION",
+   "method": "4-view agreement score",
+   "market": "india",
+   "dataset": "price bars",
+   "date_range": "2020-09-10..2026-09-16",
+   "n_rows": 62031,
+   "n_tickers": 230,
+   "n_dates": 1245,
+   "features": [
+    "trend",
+    "range_position",
+    "vol_regime",
+    "participation"
+   ],
+   "representation": "agreement configuration",
+   "seed": 20260916,
+   "trial_count": 1,
+   "hypothesis": "Agreement/conflict across independent views separates outcomes.",
+   "stage": "DISCOVERY",
+   "test": "chronological split, aligned vs conflicted separation and sign persistence",
+   "result": {
+    "separation_train_pct": -0.0002,
+    "separation_test_pct": -0.1183
+   },
+   "oos_status": "TESTED",
+   "adversarial": null,
+   "survivorship_exposure": "PRESENT",
+   "disposition": "REJECTED",
+   "notes": "Separation does not hold with a consistent sign out of sample."
+  },
+  {
+   "discovery_id": "DL1-INDIA-ANALOGUE",
+   "method": "kNN on trajectory shape, ticker-excluded and embargoed",
+   "market": "india",
+   "dataset": "price bars",
+   "date_range": "2020-09-10..2026-09-16",
+   "n_rows": 1473,
+   "n_tickers": 230,
+   "n_dates": 347,
+   "features": [
+    "trajectory shape"
+   ],
+   "representation": "kNN neighbourhood",
+   "seed": 20260916,
+   "trial_count": 2,
+   "hypothesis": "Historical analogues of a pre-state predict its forward outcome.",
+   "stage": "DISCOVERY",
+   "test": "Spearman(twin mean outcome, actual outcome) across held-out queries",
+   "result": {
+    "status": "OK",
+    "n_queries": 1473,
+    "n_query_dates": 347,
+    "spearman_twin_mean_vs_actual": 0.0046,
+    "twin_mean_dispersion_pct": 2.2027,
+    "actual_dispersion_pct": 9.0707,
+    "actual_when_twins_bullish_pct": 1.6624,
+    "actual_when_twins_bearish_pct": 1.9561,
+    "note": "Near-zero twin-mean dispersion means the neighbourhoods are interchangeable and the analogue carries no signal."
+   },
+   "oos_status": "TESTED",
+   "adversarial": null,
+   "survivorship_exposure": "PRESENT",
+   "disposition": "REJECTED",
+   "notes": "Twin-mean carries no rank information about the actual outcome."
+  },
+  {
+   "discovery_id": "DL1-INDIA-GRAPH",
+   "method": "rolling correlation graph, greedy modularity communities",
+   "market": "india",
+   "dataset": "price bars",
+   "date_range": "2023-06-30..2026-09-14",
+   "n_rows": 60,
+   "n_tickers": 200,
+   "n_dates": 60,
+   "features": [
+    "60d rolling return correlation"
+   ],
+   "representation": "graph communities",
+   "seed": 20260916,
+   "trial_count": 1,
+   "hypothesis": "Relational community structure is real AND carries forward-return information beyond the market.",
+   "stage": "DISCOVERY",
+   "test": "ARI vs shuffled null for structure; leave-target-out peer-minus-market rank correlation for information",
+   "result": {
+    "modularity_median": 0.4186,
+    "stability_ari_median": 0.2007,
+    "z_vs_null": 70.21,
+    "structure_above_chance": true,
+    "information_verdict": "NO_INCREMENTAL_INFORMATION",
+    "peer_minus_mkt": {
+     "train_rho": -0.006,
+     "test_rho": -0.03
+    }
+   },
+   "oos_status": "TESTED",
+   "adversarial": {
+    "null_test": true,
+    "information_test": "NO_INCREMENTAL_INFORMATION"
+   },
+   "survivorship_exposure": "PRESENT",
+   "disposition": "REJECTED",
+   "notes": "STRUCTURE CONFIRMED (z=70.21 vs null) but it carries no forward information: once the market term is subtracted the community effect is indistinguishable from zero. Real structure is not the same thing as a usable signal."
+  },
+  {
+   "discovery_id": "DL1-INDIA-COUNTERFACTUAL",
+   "method": "entry offset t-3..t+3 on sealed R2 entries",
+   "market": "india",
+   "dataset": "memory-v2 sealed decisions + price bars",
+   "date_range": "2",
+   "n_rows": 102,
+   "n_tickers": 102,
+   "n_dates": 2,
+   "features": [
+    "entry offset"
+   ],
+   "representation": "counterfactual",
+   "seed": 20260916,
+   "trial_count": 1,
+   "hypothesis": "R2 losses are driven by entry TIMING rather than selection.",
+   "stage": "DISCOVERY",
+   "test": "mean outcome by entry offset",
+   "result": {},
+   "oos_status": "NOT_ATTEMPTED",
+   "adversarial": null,
+   "survivorship_exposure": "PRESENT",
+   "disposition": "BLOCKED_INSUFFICIENT_DATE_DEPTH",
+   "notes": "Bounded by sealed R2 memory (2 date units), NOT by price history."
+  },
+  {
+   "discovery_id": "DL1-USA-ARCHETYPE",
+   "method": "KMeans on shape path",
+   "market": "usa",
+   "dataset": "price bars",
+   "date_range": "2021-11-01..2026-09-14",
+   "n_rows": 213057,
+   "n_tickers": 900,
+   "n_dates": 1009,
+   "features": [
+    "normalised 12-point cumulative return path"
+   ],
+   "representation": "shape",
+   "seed": 20260916,
+   "trial_count": 3,
+   "hypothesis": "Recurring trajectory shapes separate forward 20d outcomes.",
+   "stage": "DISCOVERY",
+   "test": "chronological train/embargo/test, rank correlation of archetype outcome ordering",
+   "result": {
+    "k_sweep": [
+     {
+      "k": 6,
+      "silhouette": 0.1664,
+      "linear_r2": 0.118,
+      "non_obvious": true,
+      "rank_corr": 0.1429,
+      "spread_train": 2.0732,
+      "spread_test": 1.7493
+     },
+     {
+      "k": 8,
+      "silhouette": 0.1487,
+      "linear_r2": 0.118,
+      "non_obvious": true,
+      "rank_corr": 0.0476,
+      "spread_train": 2.378,
+      "spread_test": 1.7384
+     },
+     {
+      "k": 10,
+      "silhouette": 0.1105,
+      "linear_r2": 0.118,
+      "non_obvious": true,
+      "rank_corr": 0.1273,
+      "spread_train": 2.5196,
+      "spread_test": 2.1032
+     }
+    ]
+   },
+   "oos_status": "TESTED",
+   "adversarial": {
+    "linear_reproducibility_r2": 0.118,
+    "silhouette": 0.1487
+   },
+   "survivorship_exposure": "PRESENT",
+   "disposition": "REJECTED",
+   "notes": "Outcome ordering does not persist out of sample."
+  },
+  {
+   "discovery_id": "DL1-USA-LATENTSTATE",
+   "method": "GaussianMixture on cross-sectional breadth/dispersion/vol",
+   "market": "usa",
+   "dataset": "price bars",
+   "date_range": "2021-11-01..2026-09-14",
+   "n_rows": 213057,
+   "n_tickers": 900,
+   "n_dates": 872,
+   "features": [
+    "median_vol20",
+    "dispersion_ret20",
+    "breadth_pos",
+    "median_dd60",
+    "median_pos60"
+   ],
+   "representation": "market-level state",
+   "seed": 20260916,
+   "trial_count": 20,
+   "hypothesis": "Discovered market states separate forward outcomes.",
+   "stage": "DISCOVERY",
+   "test": "chronological split, rank correlation of state outcome ordering",
+   "result": {
+    "rank_corr_single_config": 0.8,
+    "robustness": {
+     "verdict": "FRAGILE",
+     "rank_corr_min": -0.5,
+     "rank_corr_max": 1.0,
+     "sign_flips_across_configs": true,
+     "median_run_length_samples": 1.0,
+     "n_configs": 20
+    }
+   },
+   "oos_status": "TESTED",
+   "adversarial": {
+    "seed_and_state_sweep": "FRAGILE",
+    "reason": "Rank correlation changes sign across seeds and/or the state changes at nearly every observation, so the apparent ordering is not a property of the data."
+   },
+   "survivorship_exposure": "PRESENT",
+   "disposition": "REJECTED",
+   "notes": "Single-config rank_corr was +0.8; the seed sweep turns it to -0.2 on identical data and the state changes at nearly every observation."
+  },
+  {
+   "discovery_id": "DL1-USA-CONTRADICTION",
+   "method": "4-view agreement score",
+   "market": "usa",
+   "dataset": "price bars",
+   "date_range": "2021-11-01..2026-09-14",
+   "n_rows": 213057,
+   "n_tickers": 900,
+   "n_dates": 1009,
+   "features": [
+    "trend",
+    "range_position",
+    "vol_regime",
+    "participation"
+   ],
+   "representation": "agreement configuration",
+   "seed": 20260916,
+   "trial_count": 1,
+   "hypothesis": "Agreement/conflict across independent views separates outcomes.",
+   "stage": "DISCOVERY",
+   "test": "chronological split, aligned vs conflicted separation and sign persistence",
+   "result": {
+    "separation_train_pct": -0.499,
+    "separation_test_pct": 0.6432
+   },
+   "oos_status": "TESTED",
+   "adversarial": null,
+   "survivorship_exposure": "PRESENT",
+   "disposition": "REJECTED",
+   "notes": "Separation does not hold with a consistent sign out of sample."
+  },
+  {
+   "discovery_id": "DL1-USA-ANALOGUE",
+   "method": "kNN on trajectory shape, ticker-excluded and embargoed",
+   "market": "usa",
+   "dataset": "price bars",
+   "date_range": "2021-11-01..2026-09-14",
+   "n_rows": 1458,
+   "n_tickers": 900,
+   "n_dates": 458,
+   "features": [
+    "trajectory shape"
+   ],
+   "representation": "kNN neighbourhood",
+   "seed": 20260916,
+   "trial_count": 2,
+   "hypothesis": "Historical analogues of a pre-state predict its forward outcome.",
+   "stage": "DISCOVERY",
+   "test": "Spearman(twin mean outcome, actual outcome) across held-out queries",
+   "result": {
+    "status": "OK",
+    "n_queries": 1458,
+    "n_query_dates": 458,
+    "spearman_twin_mean_vs_actual": 0.0406,
+    "twin_mean_dispersion_pct": 2.6437,
+    "actual_dispersion_pct": 10.0752,
+    "actual_when_twins_bullish_pct": 1.3838,
+    "actual_when_twins_bearish_pct": -0.0212,
+    "note": "Near-zero twin-mean dispersion means the neighbourhoods are interchangeable and the analogue carries no signal."
+   },
+   "oos_status": "TESTED",
+   "adversarial": null,
+   "survivorship_exposure": "PRESENT",
+   "disposition": "REJECTED",
+   "notes": "Twin-mean carries no rank information about the actual outcome."
+  },
+  {
+   "discovery_id": "DL1-USA-GRAPH",
+   "method": "rolling correlation graph, greedy modularity communities",
+   "market": "usa",
+   "dataset": "price bars",
+   "date_range": "2023-09-27..2026-09-14",
+   "n_rows": 60,
+   "n_tickers": 200,
+   "n_dates": 60,
+   "features": [
+    "60d rolling return correlation"
+   ],
+   "representation": "graph communities",
+   "seed": 20260916,
+   "trial_count": 1,
+   "hypothesis": "Relational community structure is real AND carries forward-return information beyond the market.",
+   "stage": "DISCOVERY",
+   "test": "ARI vs shuffled null for structure; leave-target-out peer-minus-market rank correlation for information",
+   "result": {
+    "modularity_median": 0.4983,
+    "stability_ari_median": 0.4244,
+    "z_vs_null": 52.84,
+    "structure_above_chance": true,
+    "information_verdict": "NO_INCREMENTAL_INFORMATION",
+    "peer_minus_mkt": {
+     "train_rho": 0.0415,
+     "test_rho": -0.0086
+    }
+   },
+   "oos_status": "TESTED",
+   "adversarial": {
+    "null_test": true,
+    "information_test": "NO_INCREMENTAL_INFORMATION"
+   },
+   "survivorship_exposure": "PRESENT",
+   "disposition": "REJECTED",
+   "notes": "STRUCTURE CONFIRMED (z=52.84 vs null) but it carries no forward information: once the market term is subtracted the community effect is indistinguishable from zero. Real structure is not the same thing as a usable signal."
+  },
+  {
+   "discovery_id": "DL1-USA-COUNTERFACTUAL",
+   "method": "entry offset t-3..t+3 on sealed R2 entries",
+   "market": "usa",
+   "dataset": "memory-v2 sealed decisions + price bars",
+   "date_range": "1",
+   "n_rows": 20,
+   "n_tickers": 20,
+   "n_dates": 1,
+   "features": [
+    "entry offset"
+   ],
+   "representation": "counterfactual",
+   "seed": 20260916,
+   "trial_count": 1,
+   "hypothesis": "R2 losses are driven by entry TIMING rather than selection.",
+   "stage": "DISCOVERY",
+   "test": "mean outcome by entry offset",
+   "result": {},
+   "oos_status": "NOT_ATTEMPTED",
+   "adversarial": null,
+   "survivorship_exposure": "PRESENT",
+   "disposition": "BLOCKED_INSUFFICIENT_DATE_DEPTH",
+   "notes": "Bounded by sealed R2 memory (1 date units), NOT by price history."
+  }
+ ]
+}
