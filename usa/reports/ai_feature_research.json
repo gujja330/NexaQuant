@@ -2,13 +2,13 @@
   "engine": "ai_feature_research",
   "version": "v1.0",
   "market": "usa",
-  "run_utc": "2026-09-08T13:26:14+00:00",
-  "asof": "2026-09-08",
+  "run_utc": "2026-09-15T14:10:34+00:00",
+  "asof": "2026-09-15",
   "output": {
     "agent": "feature_research",
     "version": "v1.0",
     "market": "usa",
-    "asof": "2026-09-08",
+    "asof": "2026-09-15",
     "headline": "5/5 feature hypotheses ready to backtest \u00b7 2 governance actions \u00b7 1 deprecation batches",
     "narrative": "5/5 feature hypotheses ready to backtest \u00b7 2 governance actions \u00b7 1 deprecation batches.\n\nThe AI Research Agent proposes candidate features \u2014 it does NOT promote them. Each hypothesis carries a formula + business rationale + economic intuition, matching the governance schema. Route each accepted candidate through: backtest \u2192 walk-forward \u2192 statistical validation \u2192 promotion gate \u2192 active feature set.\n\nNote: this template bank is deterministic. A later swap to an LLM-driven hypothesis generator can plug in with the same output shape \u2014 see backend/ai/base.py `determinism` field.",
     "findings": [
@@ -148,6 +148,7 @@
         "recommended_step": "review_for_deprecation",
         "affected": [
           "sma_200",
+          "price_above_sma20",
           "price_above_sma200",
           "news_n_headlines",
           "macro_10y",
@@ -160,10 +161,9 @@
           "macro_move",
           "insider_buy_90d",
           "mi_composite_score",
-          "mi_breadth_above_20ma_pct",
-          "mi_breadth_at_52w_high_pct"
+          "mi_breadth_above_20ma_pct"
         ],
-        "count": 20,
+        "count": 21,
         "note": "Low dispersion \u00d7 low uniqueness = redundant. Consider marking these features EXPERIMENTAL and testing whether removing them hurts walk-forward."
       }
     ],

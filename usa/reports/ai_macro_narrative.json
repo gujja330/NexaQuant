@@ -2,47 +2,47 @@
   "engine": "ai_macro_narrative",
   "version": "v1.0",
   "market": "usa",
-  "run_utc": "2026-09-08T13:25:59+00:00",
-  "asof": "2026-09-08",
+  "run_utc": "2026-09-15T14:10:10+00:00",
+  "asof": "2026-09-15",
   "output": {
     "agent": "macro_analyst",
     "version": "v1.0",
     "market": "usa",
-    "asof": "2026-09-08",
-    "headline": "regime=unknown \u00b7 vol=normal \u00b7 active_impacts=2 \u00b7 macro_score=-0.10",
-    "narrative": "regime=unknown \u00b7 vol=normal \u00b7 active_impacts=2 \u00b7 macro_score=-0.10.\n\nAEGIS Macro & Intermarket Intelligence audit. Combines commodity moves, currency pressures, yield curve, VIX regime, and sector rotation into a single macro regime call. Emits an impact matrix + knowledge graph that downstream engines (Recommendation, Risk, Portfolio, Learning, AI Auditor) will consume from Sprint 8 onward.\n\nDoes NOT approve or promote \u2014 every commodity impact, sector rotation call, and regime label is DESCRIPTIVE and requires operator interpretation. AI never trades on macro alone.",
+    "asof": "2026-09-15",
+    "headline": "regime=unknown \u00b7 vol=normal \u00b7 active_impacts=2 \u00b7 macro_score=-0.05",
+    "narrative": "regime=unknown \u00b7 vol=normal \u00b7 active_impacts=2 \u00b7 macro_score=-0.05.\n\nAEGIS Macro & Intermarket Intelligence audit. Combines commodity moves, currency pressures, yield curve, VIX regime, and sector rotation into a single macro regime call. Emits an impact matrix + knowledge graph that downstream engines (Recommendation, Risk, Portfolio, Learning, AI Auditor) will consume from Sprint 8 onward.\n\nDoes NOT approve or promote \u2014 every commodity impact, sector rotation call, and regime label is DESCRIPTIVE and requires operator interpretation. AI never trades on macro alone.",
     "findings": [
       {
         "type": "macro_regime",
         "primary": "unknown",
-        "secondary": "inflationary",
+        "secondary": null,
         "confidence": 0.9,
-        "macro_score": -0.1,
+        "macro_score": -0.05,
         "evidence": {
           "vol_regime": "normal",
-          "oil_1w_pct": 7.647,
-          "gold_1w_pct": 0.449,
-          "usd_1w_pct": -0.355,
+          "oil_1w_pct": 4.31,
+          "gold_1w_pct": -2.35,
+          "usd_1w_pct": 0.732,
           "yield_curve_inversion": false,
-          "ten_year_1m_bps": 16.12688
+          "ten_year_1m_bps": 40.54121
         }
       },
       {
         "type": "volatility",
         "symbol": "^VIX",
-        "level": 15.4,
+        "level": 17.08,
         "regime": "normal",
-        "chg_1m_pct": -25.46
+        "chg_1m_pct": 8.033
       },
       {
         "type": "central_bank_state",
         "bank": "Fed",
-        "rate_cycle": "neutral",
-        "yield_curve_slope": 22.8,
+        "rate_cycle": "tightening",
+        "yield_curve_slope": 18.0,
         "inversion": false,
-        "liquidity_score": 0.0,
+        "liquidity_score": -0.7,
         "notes": [
-          "Fed: cycle=neutral \u00b7 short_1m=-0.0bps"
+          "Fed: cycle=tightening \u00b7 short_1m=23.85656bps"
         ]
       },
       {
@@ -89,32 +89,32 @@
         "leaders": [
           {
             "sector": "Energy",
-            "return_pct": 9.77
-          },
-          {
-            "sector": "Technology",
-            "return_pct": 7.45
+            "return_pct": 11.85
           },
           {
             "sector": "Healthcare",
-            "return_pct": 4.93
+            "return_pct": 2.89
+          },
+          {
+            "sector": "Communication Services",
+            "return_pct": 1.91
           }
         ],
         "laggards": [
           {
-            "sector": "Utilities",
-            "return_pct": -5.69
-          },
-          {
             "sector": "Industrials",
-            "return_pct": -4.33
+            "return_pct": -9.19
           },
           {
-            "sector": "Real Estate",
-            "return_pct": -4.0
+            "sector": "Consumer Discretionary",
+            "return_pct": -5.6
+          },
+          {
+            "sector": "Utilities",
+            "return_pct": -5.38
           }
         ],
-        "rotation_strength": 0.445
+        "rotation_strength": 0.453
       },
       {
         "type": "knowledge_graph_summary",
@@ -142,7 +142,7 @@
       "primary_regime": "unknown",
       "vol_regime": "normal",
       "n_active_impacts": 2,
-      "macro_score": -0.1
+      "macro_score": -0.05
     },
     "citations": [
       "backend/macro_intel/engine.py",
