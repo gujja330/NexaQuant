@@ -2,130 +2,107 @@
   "engine": "ai_macro_narrative",
   "version": "v1.0",
   "market": "usa",
-  "run_utc": "2026-09-15T14:10:10+00:00",
-  "asof": "2026-09-15",
+  "run_utc": "2026-09-17T12:28:24+00:00",
+  "asof": "2026-09-17",
   "output": {
     "agent": "macro_analyst",
     "version": "v1.0",
     "market": "usa",
-    "asof": "2026-09-15",
-    "headline": "regime=unknown \u00b7 vol=normal \u00b7 active_impacts=2 \u00b7 macro_score=-0.05",
-    "narrative": "regime=unknown \u00b7 vol=normal \u00b7 active_impacts=2 \u00b7 macro_score=-0.05.\n\nAEGIS Macro & Intermarket Intelligence audit. Combines commodity moves, currency pressures, yield curve, VIX regime, and sector rotation into a single macro regime call. Emits an impact matrix + knowledge graph that downstream engines (Recommendation, Risk, Portfolio, Learning, AI Auditor) will consume from Sprint 8 onward.\n\nDoes NOT approve or promote \u2014 every commodity impact, sector rotation call, and regime label is DESCRIPTIVE and requires operator interpretation. AI never trades on macro alone.",
+    "asof": "2026-09-17",
+    "headline": "regime=unknown \u00b7 vol=normal \u00b7 active_impacts=1 \u00b7 macro_score=-0.15",
+    "narrative": "regime=unknown \u00b7 vol=normal \u00b7 active_impacts=1 \u00b7 macro_score=-0.15.\n\nAEGIS Macro & Intermarket Intelligence audit. Combines commodity moves, currency pressures, yield curve, VIX regime, and sector rotation into a single macro regime call. Emits an impact matrix + knowledge graph that downstream engines (Recommendation, Risk, Portfolio, Learning, AI Auditor) will consume from Sprint 8 onward.\n\nDoes NOT approve or promote \u2014 every commodity impact, sector rotation call, and regime label is DESCRIPTIVE and requires operator interpretation. AI never trades on macro alone.",
     "findings": [
       {
         "type": "macro_regime",
         "primary": "unknown",
-        "secondary": null,
+        "secondary": "deflationary",
         "confidence": 0.9,
-        "macro_score": -0.05,
+        "macro_score": -0.15,
         "evidence": {
           "vol_regime": "normal",
-          "oil_1w_pct": 4.31,
-          "gold_1w_pct": -2.35,
-          "usd_1w_pct": 0.732,
+          "oil_1w_pct": -8.557,
+          "gold_1w_pct": -0.306,
+          "usd_1w_pct": 1.501,
           "yield_curve_inversion": false,
-          "ten_year_1m_bps": 40.54121
+          "ten_year_1m_bps": 42.17555000000001
         }
       },
       {
         "type": "volatility",
         "symbol": "^VIX",
-        "level": 17.08,
+        "level": 15.7,
         "regime": "normal",
-        "chg_1m_pct": 8.033
+        "chg_1m_pct": 5.369
       },
       {
         "type": "central_bank_state",
         "bank": "Fed",
         "rate_cycle": "tightening",
-        "yield_curve_slope": 18.0,
+        "yield_curve_slope": 14.7,
         "inversion": false,
         "liquidity_score": -0.7,
         "notes": [
-          "Fed: cycle=tightening \u00b7 short_1m=23.85656bps"
+          "Fed: cycle=tightening \u00b7 short_1m=26.11069bps"
         ]
       },
       {
         "type": "commodity_impact",
         "commodity": "Brent Crude",
-        "direction": "up",
+        "direction": "down",
         "positive_sectors": [
-          "Energy",
-          "Oil Producers"
-        ],
-        "negative_sectors": [
           "Airlines",
           "Transportation",
           "Auto",
           "Paints"
         ],
-        "confidence": 0.9,
-        "rationale": ""
-      },
-      {
-        "type": "commodity_impact",
-        "commodity": "WTI Crude",
-        "direction": "up",
-        "positive_sectors": [
-          "Energy",
-          "Oil Producers",
-          "Oil Services"
-        ],
         "negative_sectors": [
-          "Airlines",
-          "Transportation",
-          "Consumer Discretionary",
-          "Paints",
-          "FMCG",
-          "Auto",
-          "Logistics",
-          "Chemicals"
+          "Energy",
+          "Oil Producers"
         ],
-        "confidence": 0.92,
-        "rationale": "Rising oil raises transportation + input costs; erodes margins for downstream consumers; boosts upstream producers. Historically the single most reliable commodity \u2192 sector relationship."
+        "confidence": 0.88,
+        "rationale": ""
       },
       {
         "type": "sector_rotation",
         "leaders": [
           {
             "sector": "Energy",
-            "return_pct": 11.85
+            "return_pct": 11.73
           },
           {
             "sector": "Healthcare",
-            "return_pct": 2.89
+            "return_pct": 2.2
           },
           {
             "sector": "Communication Services",
-            "return_pct": 1.91
+            "return_pct": 1.92
           }
         ],
         "laggards": [
           {
             "sector": "Industrials",
-            "return_pct": -9.19
+            "return_pct": -9.47
           },
           {
             "sector": "Consumer Discretionary",
-            "return_pct": -5.6
+            "return_pct": -7.13
           },
           {
             "sector": "Utilities",
-            "return_pct": -5.38
+            "return_pct": -5.36
           }
         ],
-        "rotation_strength": 0.453
+        "rotation_strength": 0.495
       },
       {
         "type": "knowledge_graph_summary",
-        "n_entries": 3,
+        "n_entries": 2,
         "factor_kinds": [
           "commodity",
           "rate"
         ],
         "top_factors": [
           "Brent Crude",
-          "WTI Crude",
           "10Y Treasury Yield"
         ]
       },
@@ -134,15 +111,15 @@
         "n_commodities": 3,
         "n_currencies": 1,
         "n_bonds": 4,
-        "n_active_impacts": 2,
-        "n_kg_entries": 3
+        "n_active_impacts": 1,
+        "n_kg_entries": 2
       }
     ],
     "evidence": {
       "primary_regime": "unknown",
       "vol_regime": "normal",
-      "n_active_impacts": 2,
-      "macro_score": -0.05
+      "n_active_impacts": 1,
+      "macro_score": -0.15
     },
     "citations": [
       "backend/macro_intel/engine.py",
