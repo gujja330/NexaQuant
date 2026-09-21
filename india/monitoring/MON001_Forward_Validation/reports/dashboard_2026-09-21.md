@@ -1,8 +1,8 @@
 # MON001 · Operator Dashboard — 2026-09-21
-_Auto-generated 2026-09-21T16:53:03+00:00_
+_Auto-generated 2026-09-21T18:41:42+00:00_
 ## Summary
-- **State**: `DIVERGED`
-- **HALT_REVIEW_REQUIRED**: `False`
+- **State**: `HALT_REVIEW_REQUIRED`
+- **HALT_REVIEW_REQUIRED**: `True`
 - **Forward boundary**: `2026-03-28`
 - **Forward trading days accumulated**: 63
 - **Days until first Sharpe reading (T30)**: 0
@@ -36,7 +36,7 @@ _Auto-generated 2026-09-21T16:53:03+00:00_
 - `mon001_diagnostics_2026-09-16.json` — state=`HALT_REVIEW_REQUIRED` halt=`True` recs=780
 - `mon001_diagnostics_2026-09-17.json` — state=`HALT_REVIEW_REQUIRED` halt=`True` recs=780
 - `mon001_diagnostics_2026-09-18.json` — state=`HALT_REVIEW_REQUIRED` halt=`True` recs=794
-- `mon001_diagnostics_2026-09-21.json` — state=`DIVERGED` halt=`False` recs=808
+- `mon001_diagnostics_2026-09-21.json` — state=`HALT_REVIEW_REQUIRED` halt=`True` recs=808
 ## Governance reminder
 - MON001 does NOT modify production.
 - HALT_REVIEW_REQUIRED is an operator-review signal only.
