@@ -30,9 +30,14 @@ on:
   schedule:
     # Morning-IST slots · 6-7 AM per operator lock 2026-08-14.
     # Yesterday's NSE close (15:30 IST) has published to yfinance by 06:00 IST.
-    - cron: "30 0 * * 1-5"    # ~06:00 IST — primary (2h 15m before market open)
-    - cron: "0 1 * * 1-5"     # ~06:30 IST — backup 1
-    - cron: "30 1 * * 1-5"    # ~07:00 IST — backup 2 (last of morning window)
+    # CEO 2026-10-17 · same stacking defect found in aegis-usa.yml. India runs
+    # measured 29, 32, 32, 36, 38, 38, 39, 43 and 49 minutes across #296-#304,
+    # against backups spaced 30 minutes apart — so a slow primary was still
+    # running when backup 1 fired. Spaced past the slowest observed run while
+    # keeping all three inside the pre-open window (market opens 09:15 IST).
+    - cron: "30 0 * * 1-5"    # ~06:00 IST — primary (3h 15m before market open)
+    - cron: "30 1 * * 1-5"    # ~07:00 IST — backup 1 (+60m)
+    - cron: "30 2 * * 1-5"    # ~08:00 IST — backup 2 (+60m, 1h 15m before open)
   workflow_dispatch:
   # 2026-08-28 · CEO directive · push trigger RESTORED with IST-time-
   # of-day guard (2026-08-28 morning: GitHub scheduled cron was
