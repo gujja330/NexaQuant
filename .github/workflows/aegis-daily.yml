@@ -331,6 +331,15 @@ jobs:
           # already in the stale dh.json snapshot. Committing these ensures
           # tomorrow's CI reads TODAY's canonical horizons + recs.
           git add reports/recommendations.json reports/dynamic_holding.json 2>/dev/null || true
+          # CEO 2026-10-17 · same missing-git-add class as the history/ line
+          # below. `recommendation_intelligence` runs inside the Phase 2
+          # orchestrator every day and writes these three, but no git add line
+          # ever existed for them, so India's recommendations_v3.json stayed
+          # frozen at the last MANUAL commit (2026-09-08, 15 tickers) while
+          # USA's advanced daily — USA adds them via a `usa/reports/*.json`
+          # wildcard, India enumerates files and these were never enumerated.
+          git add reports/recommendations_v3.json reports/recommendations_v3_summary.json reports/recommendations_v3_conflicts.json 2>/dev/null || true
+          git add reports/ensemble.json reports/model_metrics.json reports/model_factory.json 2>/dev/null || true
           git add reports/research/portfolio_snapshot_*.json reports/research/portfolio_ledger.jsonl reports/research/rotation_ledger.jsonl 2>/dev/null || true
           # 2026-08-20 · Sprint K Part 30 · Registry MUST persist across CI runs
           # or every fresh checkout treats every ticker as first-time NEW (bug).

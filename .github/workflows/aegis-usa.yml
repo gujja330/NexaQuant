@@ -16,9 +16,18 @@ name: AEGIS USA
 
 on:
   schedule:
+    # CEO 2026-10-17 · backups moved out past the observed runtime.
+    # They were 12:00 / 12:30 / 13:00 — thirty minutes apart for a job that
+    # measured 54, 74, 101, 117 and 147 minutes across runs #155-#162. With
+    # `cancel-in-progress: false` the backups could not overlap, so they
+    # queued: #161 started late and was cancelled at 14:24, #162 ran 147
+    # minutes. Each late run then pushed its commit-back against a `main`
+    # that had moved on, which is why three consecutive USA runs committed
+    # nothing. Spacing them beyond the slowest observed run keeps the backup
+    # intent and removes the stacking.
     - cron: "0 12 * * 1-5"    # 12:00 UTC = 5:30 PM IST · 8:00 AM EDT (primary)
-    - cron: "30 12 * * 1-5"   # 12:30 UTC = 6:00 PM IST (backup 1)
-    - cron: "0 13 * * 1-5"    # 13:00 UTC = 6:30 PM IST (backup 2)
+    - cron: "0 15 * * 1-5"    # 15:00 UTC = 8:30 PM IST (backup 1 · +3h)
+    - cron: "0 18 * * 1-5"    # 18:00 UTC = 11:30 PM IST (backup 2 · +6h)
   workflow_dispatch:
   # 2026-08-28 · CEO directive · revert of 2026-08-18 temporary push
   # trigger. Same rationale as aegis-daily.yml removal: pushes should
@@ -73,6 +82,7 @@ jobs:
           pip install pandas numpy pyarrow pyyaml yfinance scikit-learn openpyxl scipy pytest
 
       - name: Run USA daily orchestrator
+        id: usa_orchestrator
         # CEO cycle 4: pass Telegram secrets so usa/scripts/telegram_send.py
         # (STEPS[40]) actually delivers instead of silently no-op skipping.
         # Same TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID secrets as India — one
@@ -223,7 +233,22 @@ jobs:
           fi
 
       - name: Commit USA artifacts
-        if: success()
+        # CEO 2026-10-17 · DEADLOCK FIX. This was `if: success()`, which skips
+        # the commit whenever ANY earlier step failed - including the delivery
+        # classifier tests. That froze canonical_lifecycle_usa.json at
+        # 2026-10-08 while the opportunity registry kept advancing and closed
+        # PLTR (10-09) and BMY (10-12). A23 then compared a CURRENT registry
+        # against a FROZEN exit history, reported both as "silently lost",
+        # failed the delivery tests, and so skipped the very commit that would
+        # have refreshed the lifecycle. Three weeks of USA runs could not pass.
+        #
+        # The gate itself was right and is UNCHANGED: Telegram delivery is
+        # still blocked on delivery_tests_usa + run_contract_usa below. What
+        # changes is that a delivery failure no longer freezes STATE. That is
+        # exactly the pattern aegis-daily.yml already uses for India
+        # ("Mark published + commit report/data": always() + engine success),
+        # which is why India advanced to 10-16 while USA stalled.
+        if: always() && steps.usa_orchestrator.outcome == 'success'
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
