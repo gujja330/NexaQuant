@@ -131,6 +131,20 @@ jobs:
       # when delivery tests fail. Downstream send/commit steps still
       # gate on `outcome == 'success'` so behavior on failure is
       # unchanged (Telegram send still blocked · alert still fires).
+      # CEO 2026-10-17 · SELF-HEAL before validation. The 2026-10-02 deadlock
+      # began as pure staleness: the registry closed PLTR and BMY while the
+      # lifecycle stayed frozen, so A23 called two real exits "silently lost".
+      # This reconciles the derived artifacts with the registry FIRST, so a
+      # staleness divergence repairs itself instead of failing the run. It
+      # regenerates only derived state and exits non-zero if the invariant
+      # still breaks - a divergence regeneration cannot explain is a real
+      # defect and must stop the run.
+      - name: Self-heal · reconcile lifecycle with registry (USA)
+        id: selfheal_usa
+        if: always()
+        continue-on-error: true
+        run: python scripts/ci_selfheal_lifecycle.py --market usa
+
       - name: Delivery classifier tests (blocks Telegram if red)
         id: delivery_tests_usa
         if: always()
@@ -324,12 +338,28 @@ jobs:
           # if still fails, print explicit error + Telegram alert · but
           # do NOT fail the workflow step (delivery already succeeded ·
           # this is an artifact-commit-back · non-critical).
-          if git push 2>&1; then
-              echo "[commit-artifacts] push OK"
-          elif git pull --rebase origin main 2>&1 && git push 2>&1; then
-              echo "[commit-artifacts] push OK (after rebase)"
+          # CEO 2026-10-17 · ONE retry was not enough. Three consecutive USA
+          # runs lost their artifacts to concurrent pushes, because a single
+          # rebase+retry still loses if main moves again in the seconds
+          # between. Retry with backoff until it lands.
+          _push_retry() {
+              local label="$1" n=0
+              until [ "$n" -ge 5 ]; do
+                  if git push 2>&1; then
+                      echo "[$label] push OK (attempt $((n + 1)))"
+                      return 0
+                  fi
+                  n=$((n + 1))
+                  echo "[$label] push rejected · attempt $n/5 · rebasing onto origin/main"
+                  git pull --rebase --autostash origin main 2>&1 || true
+                  sleep $((n * 5))
+              done
+              return 1
+          }
+          if _push_retry commit-artifacts; then
+              :
           else
-              echo "::error::[commit-artifacts] push FAILED after retry · artifacts stayed local"
+              echo "::error::[commit-artifacts] push FAILED after 5 attempts · artifacts stayed local"
               if [ -n "$TELEGRAM_BOT_TOKEN" ] && [ -n "$TELEGRAM_CHAT_ID" ]; then
                   MSG="🇺🇸 CI ARTIFACT PUSH FAILED · run ${{ github.run_id }}%0A · commit ${{ github.sha }}%0A · aegis-bot commit-back did NOT reach main · check for 100MB-file / concurrency issues"
                   curl -sS -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
@@ -402,12 +432,25 @@ jobs:
               exit 0
           fi
           git commit -m "AEGIS research USA: refresh P0 + P1 [skip ci]"
-          if git push 2>&1; then
-              echo "[research-commit] push OK"
-          elif git pull --rebase origin main 2>&1 && git push 2>&1; then
-              echo "[research-commit] push OK (after rebase)"
+          # CEO 2026-10-17 · see commit-artifacts above · retry with backoff.
+          _push_retry_research() {
+              local n=0
+              until [ "$n" -ge 5 ]; do
+                  if git push 2>&1; then
+                      echo "[research-commit] push OK (attempt $((n + 1)))"
+                      return 0
+                  fi
+                  n=$((n + 1))
+                  echo "[research-commit] push rejected · attempt $n/5 · rebasing"
+                  git pull --rebase --autostash origin main 2>&1 || true
+                  sleep $((n * 5))
+              done
+              return 1
+          }
+          if _push_retry_research; then
+              :
           else
-              echo "::error::[research-commit] push FAILED · research state stayed local"
+              echo "::error::[research-commit] push FAILED after 5 attempts · research state stayed local"
               if [ -n "$TELEGRAM_BOT_TOKEN" ] && [ -n "$TELEGRAM_CHAT_ID" ]; then
                   MSG="🇺🇸 CI RESEARCH PUSH FAILED · run ${{ github.run_id }}%0A · commit ${{ github.sha }}%0A · research artifacts stayed local"
                   curl -sS -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \

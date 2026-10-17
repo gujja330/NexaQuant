@@ -273,6 +273,17 @@ jobs:
         if: steps.guard.outputs.run == 'true'
         run: python -m backend.pipeline.contract.runner --market india --trigger ci
 
+      # CEO 2026-10-17 · SELF-HEAL before validation. India runs the SAME
+      # full delivery suite as USA, including the [usa] parametrised tests -
+      # which is why a USA staleness divergence silenced INDIA's Telegram too.
+      # Reconciling both markets here means neither can block the other on
+      # stale derived state.
+      - name: Self-heal · reconcile lifecycle with registry (both markets)
+        id: selfheal_india
+        if: steps.guard.outputs.run == 'true'
+        continue-on-error: true
+        run: python scripts/ci_selfheal_lifecycle.py --market both
+
       - name: Delivery classifier tests (blocks Telegram if red)
         id: delivery_tests
         if: steps.guard.outputs.run == 'true' && steps.freshcheck.outputs.verified == 'true'
@@ -408,7 +419,33 @@ jobs:
           git add reports/knowledge_graph.json reports/knowledge_graph.parquet reports/community_clusters.json reports/stress_scenarios.json reports/graph_statistics.json reports/entity_network.json reports/company_network.json reports/sector_network.json reports/relationship_matrix.json reports/recommendation_paths.json reports/influence_propagation.json reports/graph_timeline.json 2>/dev/null || true
           git add reports/aegis_daily_v2_history.jsonl 2>/dev/null || true
           git diff --cached --quiet || git commit -m "AEGIS daily: append market data + refresh report + DB [skip ci]"
-          git push || true
+          # CEO 2026-10-17 · was `git push || true`, the exact anti-pattern
+          # aegis-usa.yml documents as removed on 2026-08-28: a rejected push
+          # was swallowed and India's artifacts stayed local with no error and
+          # no alert. Retry with rebase + backoff, and shout if it still fails.
+          _push_retry() {
+              local label="$1" n=0
+              until [ "$n" -ge 5 ]; do
+                  if git push 2>&1; then
+                      echo "[$label] push OK (attempt $((n + 1)))"
+                      return 0
+                  fi
+                  n=$((n + 1))
+                  echo "[$label] push rejected · attempt $n/5 · rebasing onto origin/main"
+                  git pull --rebase --autostash origin main 2>&1 || true
+                  sleep $((n * 5))
+              done
+              return 1
+          }
+          if ! _push_retry commit-artifacts; then
+              echo "::error::[commit-artifacts] push FAILED after 5 attempts · India artifacts stayed local"
+              if [ -n "$TELEGRAM_BOT_TOKEN" ] && [ -n "$TELEGRAM_CHAT_ID" ]; then
+                  MSG="🇮🇳 CI ARTIFACT PUSH FAILED · run ${{ github.run_id }}%0A · aegis-bot commit-back did NOT reach main"
+                  curl -sS -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
+                      -d "chat_id=$TELEGRAM_CHAT_ID" -d "text=$MSG" \
+                      -d "disable_web_page_preview=true" || true
+              fi
+          fi
 
       # 2026-08-25 · SILENT-RED-ALERT for India · mirrors USA workflow.
       # If delivery_tests block or send fails, operator gets a plain-text
@@ -480,4 +517,20 @@ jobs:
           git add reports/research/outcome_dataset.parquet reports/research/outcome_dataset_summary.json 2>/dev/null || true
           git add reports/research/attribution_analysis.json reports/research/attribution_report.md 2>/dev/null || true
           git diff --cached --quiet || git commit -m "AEGIS research: refresh P0 outcome + P1 attribution [skip ci]"
-          git push || true
+          # CEO 2026-10-17 · see commit-artifacts above · same silent-|| true
+          # removal, same retry.
+          _push_retry_research() {
+              local n=0
+              until [ "$n" -ge 5 ]; do
+                  if git push 2>&1; then
+                      echo "[research-commit] push OK (attempt $((n + 1)))"
+                      return 0
+                  fi
+                  n=$((n + 1))
+                  echo "[research-commit] push rejected · attempt $n/5 · rebasing"
+                  git pull --rebase --autostash origin main 2>&1 || true
+                  sleep $((n * 5))
+              done
+              return 1
+          }
+          _push_retry_research || echo "::error::[research-commit] push FAILED after 5 attempts · research state stayed local"
