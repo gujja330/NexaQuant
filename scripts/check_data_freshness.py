@@ -67,6 +67,60 @@ def latest_bar_date():
     return (max(dates) if dates else None), len(files)
 
 
+def _write_diagnostic(latest, expected, gap, n_files):
+    """Record WHICH tickers are stale and by how much, in the repo.
+
+    The aggregate "latest bar" hides the shape of the problem: 3 lagging
+    tickers out of 230 and a whole-universe fetch failure look identical from
+    one date. This writes the per-ticker picture so the next failure is
+    diagnosable from the committed artifact instead of inaccessible CI logs.
+    """
+    import json
+    import pandas as pd
+    rows = []
+    for p in sorted(RAW.glob("*_D1.parquet")):
+        try:
+            d = pd.read_parquet(p)
+            d.index = pd.to_datetime(d.index)
+            nb = d.index.max().date()
+            rows.append({"ticker": p.stem.replace("_D1", ""),
+                         "newest_bar": str(nb),
+                         "lag_days": (expected - nb).days,
+                         "rows": int(len(d))})
+        except Exception as e:
+            rows.append({"ticker": p.stem.replace("_D1", ""),
+                         "newest_bar": None, "lag_days": None,
+                         "error": str(e)[:120]})
+    stale = [r for r in rows if (r.get("lag_days") or 0) >= 1]
+    broken = [r for r in rows if r.get("newest_bar") is None]
+    out = {
+        "schema_version": "aegis.freshness_diagnostic.v1",
+        "verdict": "STALE",
+        "expected_session": str(expected),
+        "aggregate_latest_bar": str(latest),
+        "gap_days": gap,
+        "files_scanned": n_files,
+        "n_stale_tickers": len(stale),
+        "n_unreadable_tickers": len(broken),
+        "worst_lag_days": max([r["lag_days"] for r in stale], default=0),
+        "stale_tickers": sorted(stale, key=lambda r: -(r["lag_days"] or 0))[:40],
+        "unreadable_tickers": broken[:20],
+        "interpretation": (
+            "A handful of stale tickers with the rest current means a partial "
+            "fetch failure - the universe-wide refresh worked. Most or all "
+            "tickers stale means the data fetch itself failed, and the retry "
+            "in india/refresh_data.py should be the first thing checked."),
+    }
+    try:
+        p = ROOT / "reports" / "context" / "freshness_diagnostic_india.json"
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(json.dumps(out, indent=1), encoding="utf-8")
+        print("  wrote %s · %d stale ticker(s), worst lag %dd"
+              % (p.relative_to(ROOT), len(stale), out["worst_lag_days"]))
+    except Exception as e:
+        print("  (diagnostic write failed: %s)" % e)
+
+
 def send_stale_alert(latest, expected, gap):
     """Publish a DATA STALE notice via Telegram. Non-fatal if creds absent."""
     token = os.environ.get("TELEGRAM_BOT_TOKEN")
@@ -107,6 +161,12 @@ def main():
     print(f"  latest bar: {latest}  expected session: {expected}  gap: {gap}d  ({n} files scanned)")
     if gap >= 1:
         print(f"  STALE — refusing to publish stale recommendations.")
+        # CEO 2026-10-20 · SELF-DIAGNOSING FAILURE. On 2026-10-20 this gate
+        # aborted the India run and the cause could not be established at all:
+        # GitHub returns 403 on Actions logs for this repo, so "the pipeline
+        # failed" was the entire available evidence. A gate that stops the run
+        # must leave behind WHY, in the repository, where it survives.
+        _write_diagnostic(latest, expected, gap, n)
         send_stale_alert(latest, expected, gap)
         sys.exit(2)
     print("  FRESH — proceed with recommendation_generator.")

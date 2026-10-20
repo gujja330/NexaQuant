@@ -11,7 +11,7 @@ NSEBANK->^NSEBANK, SP500->^GSPC), maps Yahoo's OHLCV onto the existing schema
 Run:  python india/refresh_data.py            # refresh everything, then run the engine
       python india/refresh_data.py --limit 5  # quick test on a few symbols
 """
-import sys, glob, warnings
+import sys, glob, time, warnings
 from pathlib import Path
 import pandas as pd
 
@@ -116,11 +116,35 @@ def refresh(limit=None):
 
     for i in range(0, len(tickers), CHUNK):
         batch = tickers[i:i + CHUNK]
-        try:
-            data = yf.download(batch, period="1mo", group_by="ticker", progress=False,
-                               auto_adjust=False, threads=True)   # 1mo covers gaps from missed runs
-        except Exception:
-            failed += batch; continue
+        # CEO 2026-10-20 · RETRY. This was a bare `except Exception: failed +=
+        # batch; continue` - one transient yfinance error (rate limit, DNS,
+        # 5xx) abandoned an ENTIRE batch of tickers with no second attempt. A
+        # few unlucky batches leave the data stale, the freshness gate then
+        # correctly aborts the run, and the operator gets no workbook for the
+        # day because of a blip that a retry would have absorbed. yfinance
+        # rate-limits aggressively, so retry with backoff before giving up.
+        data = None
+        for _attempt in range(4):
+            try:
+                data = yf.download(batch, period="1mo", group_by="ticker",
+                                   progress=False, auto_adjust=False,
+                                   threads=True)   # 1mo covers gaps from missed runs
+                if data is not None and not data.empty:
+                    break
+                data = None
+            except Exception as _e:
+                data = None
+            if _attempt < 3:
+                _wait = 5 * (_attempt + 1)
+                print("  [refresh] batch %d-%d attempt %d failed · retrying in %ds"
+                      % (i, i + len(batch), _attempt + 1, _wait))
+                time.sleep(_wait)
+        if data is None:
+            print("  [refresh] batch %d-%d FAILED after 4 attempts · %d ticker(s) "
+                  "left to the Angel fallback / freshness gate"
+                  % (i, i + len(batch), len(batch)))
+            failed += batch
+            continue
         for tkr in batch:
             sym = tmap[tkr]
             path = RAW / f"{sym}_D1.parquet"
