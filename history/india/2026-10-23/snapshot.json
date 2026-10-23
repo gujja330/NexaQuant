@@ -1,0 +1,1963 @@
+{
+ "schema_version": "aegis.memory.daily.v2",
+ "market": "india",
+ "asof": "2026-10-23",
+ "sealed_utc": "2026-10-23T05:29:49+00:00",
+ "fingerprints": {
+  "schema_version": "aegis.memory.daily.v2",
+  "feature_schema_fingerprint": "b65ceb49a83a",
+  "selected_feature_fingerprint": "c26b0afdb611",
+  "r2_config_fingerprint": "3801497baa8c"
+ },
+ "sidecars": {
+  "technical_features.parquet": "9a21d40a5ca65de7671d3bba37ab68a519463c80f946a815c322ce7fdddc5e55",
+  "r2_scores.parquet": "3ca07c7b90da00b6722ea340eea5ffb5cf68f6decb584d068e392d8644280b15",
+  "decisions.parquet": "5c37b2866cadb16fbc902a3c6c939dc342816cd84be90fcf9056988573f457b6"
+ },
+ "provenance": {
+  "universe": {
+   "family": "universe",
+   "source": "git:india/data_nse.py@c41b9e57c0ff",
+   "pit_status": "PIT_OK",
+   "observation_date": "2026-08-25",
+   "publication_date": null,
+   "effective_date": null,
+   "ingestion_date": "2026-08-25",
+   "asof": "2026-10-23",
+   "source_timestamp": "2026-08-25",
+   "retrieval_timestamp": "2026-10-23T05:29:49+00:00",
+   "revision_status": "ORIGINAL",
+   "schema_fingerprint": null,
+   "config_fingerprint": null,
+   "blocked_reason": null,
+   "n_records": 228
+  },
+  "sector": {
+   "family": "sector",
+   "source": "git:india/sectors.py@3ba23b03170e",
+   "pit_status": "PIT_OK",
+   "observation_date": "2026-06-19",
+   "publication_date": null,
+   "effective_date": null,
+   "ingestion_date": "2026-06-19",
+   "asof": "2026-10-23",
+   "source_timestamp": null,
+   "retrieval_timestamp": "2026-10-23T05:29:49+00:00",
+   "revision_status": "ORIGINAL",
+   "schema_fingerprint": null,
+   "config_fingerprint": null,
+   "blocked_reason": null,
+   "n_records": 228
+  },
+  "prices": {
+   "family": "prices",
+   "source": "data/raw/india",
+   "pit_status": "PIT_OK",
+   "observation_date": "2026-10-23",
+   "publication_date": null,
+   "effective_date": null,
+   "ingestion_date": null,
+   "asof": "2026-10-23",
+   "source_timestamp": null,
+   "retrieval_timestamp": "2026-10-23T05:29:49+00:00",
+   "revision_status": "MIXED_ADJUSTMENT_BASIS",
+   "schema_fingerprint": null,
+   "config_fingerprint": null,
+   "blocked_reason": null,
+   "n_records": 225
+  },
+  "technical": {
+   "family": "technical",
+   "source": "features/india/2026-10-23.parquet",
+   "pit_status": "PIT_OK",
+   "observation_date": "2026-10-23",
+   "publication_date": null,
+   "effective_date": "2026-10-23",
+   "ingestion_date": null,
+   "asof": "2026-10-23",
+   "source_timestamp": null,
+   "retrieval_timestamp": "2026-10-23T05:29:49+00:00",
+   "revision_status": "ORIGINAL",
+   "schema_fingerprint": null,
+   "config_fingerprint": null,
+   "blocked_reason": null,
+   "n_records": 228
+  },
+  "market_cap": {
+   "family": "market_cap",
+   "source": "data/raw/india/fundamentals.parquet",
+   "pit_status": "PIT_BLOCKED",
+   "observation_date": null,
+   "publication_date": null,
+   "effective_date": null,
+   "ingestion_date": null,
+   "asof": "2026-10-23",
+   "source_timestamp": null,
+   "retrieval_timestamp": "2026-10-23T05:29:49+00:00",
+   "revision_status": "ORIGINAL",
+   "schema_fingerprint": null,
+   "config_fingerprint": null,
+   "blocked_reason": "no market-cap column exists (0/228)",
+   "n_records": 0
+  },
+  "fundamentals": {
+   "family": "fundamentals",
+   "source": "data/raw/india/fundamentals.parquet",
+   "pit_status": "PIT_BLOCKED",
+   "observation_date": null,
+   "publication_date": null,
+   "effective_date": null,
+   "ingestion_date": null,
+   "asof": "2026-10-23",
+   "source_timestamp": null,
+   "retrieval_timestamp": "2026-10-23T05:29:49+00:00",
+   "revision_status": "ORIGINAL",
+   "schema_fingerprint": null,
+   "config_fingerprint": null,
+   "blocked_reason": "single undated cross-section; no period_end/filing_date/announcement_date",
+   "n_records": 0
+  },
+  "earnings": {
+   "family": "earnings",
+   "source": "data/raw/india/fundamentals.parquet",
+   "pit_status": "PIT_BLOCKED",
+   "observation_date": null,
+   "publication_date": null,
+   "effective_date": null,
+   "ingestion_date": null,
+   "asof": "2026-10-23",
+   "source_timestamp": null,
+   "retrieval_timestamp": "2026-10-23T05:29:49+00:00",
+   "revision_status": "ORIGINAL",
+   "schema_fingerprint": null,
+   "config_fingerprint": null,
+   "blocked_reason": "only a forward next_earnings field; no announcement history",
+   "n_records": 0
+  },
+  "macro": {
+   "family": "macro",
+   "source": "reports/macro_summary.json",
+   "pit_status": "PIT_BLOCKED",
+   "observation_date": null,
+   "publication_date": null,
+   "effective_date": null,
+   "ingestion_date": null,
+   "asof": "2026-10-23",
+   "source_timestamp": null,
+   "retrieval_timestamp": "2026-10-23T05:29:49+00:00",
+   "revision_status": "ORIGINAL",
+   "schema_fingerprint": null,
+   "config_fingerprint": null,
+   "blocked_reason": "source file does not exist; adapter stamps asof=cutoff at row level",
+   "n_records": 0
+  },
+  "intermarket": {
+   "family": "intermarket",
+   "source": "reports/macro_history.parquet",
+   "pit_status": "PIT_BLOCKED",
+   "observation_date": null,
+   "publication_date": null,
+   "effective_date": null,
+   "ingestion_date": null,
+   "asof": "2026-10-23",
+   "source_timestamp": null,
+   "retrieval_timestamp": "2026-10-23T05:29:49+00:00",
+   "revision_status": "ORIGINAL",
+   "schema_fingerprint": null,
+   "config_fingerprint": null,
+   "blocked_reason": "regime log only (6 rows), not a feature substrate",
+   "n_records": 0
+  },
+  "r2_config": {
+   "family": "r2_config",
+   "source": "configs/opportunity_registry.yaml + selected_features.json",
+   "pit_status": "PIT_OK",
+   "observation_date": "2026-09-11",
+   "publication_date": null,
+   "effective_date": "2026-09-08",
+   "ingestion_date": "2026-09-11",
+   "asof": "2026-10-23",
+   "source_timestamp": null,
+   "retrieval_timestamp": "2026-10-23T05:29:49+00:00",
+   "revision_status": "ORIGINAL",
+   "schema_fingerprint": "b65ceb49a83a",
+   "config_fingerprint": "3801497baa8c",
+   "blocked_reason": null,
+   "n_records": 0
+  },
+  "r2_scores": {
+   "family": "r2_scores",
+   "source": "reports/research/shadow/full_universe_shadow_india.json",
+   "pit_status": "PIT_OK",
+   "observation_date": "2026-10-23",
+   "publication_date": null,
+   "effective_date": "2026-10-23",
+   "ingestion_date": null,
+   "asof": "2026-10-23",
+   "source_timestamp": null,
+   "retrieval_timestamp": "2026-10-23T05:29:49+00:00",
+   "revision_status": "ORIGINAL",
+   "schema_fingerprint": null,
+   "config_fingerprint": null,
+   "blocked_reason": null,
+   "n_records": 228
+  },
+  "r2_decision": {
+   "family": "r2_decision",
+   "source": "reports/context/canonical_lifecycle_india.json",
+   "pit_status": "PIT_OK",
+   "observation_date": "2026-10-23",
+   "publication_date": null,
+   "effective_date": "2026-10-23",
+   "ingestion_date": null,
+   "asof": "2026-10-23",
+   "source_timestamp": null,
+   "retrieval_timestamp": "2026-10-23T05:29:49+00:00",
+   "revision_status": "ORIGINAL",
+   "schema_fingerprint": null,
+   "config_fingerprint": null,
+   "blocked_reason": null,
+   "n_records": 28
+  }
+ },
+ "families": {
+  "universe": [
+   "AARTIIND.NS",
+   "ABB.NS",
+   "ABBOTINDIA.NS",
+   "ABCAPITAL.NS",
+   "ACC.NS",
+   "ADANIENT.NS",
+   "ADANIGREEN.NS",
+   "ADANIPORTS.NS",
+   "ADANIPOWER.NS",
+   "AIAENG.NS",
+   "AJANTPHARM.NS",
+   "ALKEM.NS",
+   "AMBER.NS",
+   "AMBUJACEM.NS",
+   "ANGELONE.NS",
+   "APLAPOLLO.NS",
+   "APOLLOHOSP.NS",
+   "APOLLOTYRE.NS",
+   "ASHOKLEY.NS",
+   "ASIANPAINT.NS",
+   "ASTRAL.NS",
+   "ATUL.NS",
+   "AUBANK.NS",
+   "AUROPHARMA.NS",
+   "AXISBANK.NS",
+   "BAJAJ-AUTO.NS",
+   "BAJAJFINSV.NS",
+   "BAJAJHLDNG.NS",
+   "BAJFINANCE.NS",
+   "BALKRISIND.NS",
+   "BALRAMCHIN.NS",
+   "BANDHANBNK.NS",
+   "BANKBARODA.NS",
+   "BATAINDIA.NS",
+   "BEL.NS",
+   "BHARATFORG.NS",
+   "BHARTIARTL.NS",
+   "BIOCON.NS",
+   "BLUESTARCO.NS",
+   "BOSCHLTD.NS",
+   "BPCL.NS",
+   "BRITANNIA.NS",
+   "BSE.NS",
+   "CAMS.NS",
+   "CANBK.NS",
+   "CDSL.NS",
+   "CESC.NS",
+   "CGPOWER.NS",
+   "CHAMBLFERT.NS",
+   "CHOLAFIN.NS",
+   "CHOLAHLDNG.NS",
+   "CIPLA.NS",
+   "COALINDIA.NS",
+   "COFORGE.NS",
+   "COLPAL.NS",
+   "CONCOR.NS",
+   "COROMANDEL.NS",
+   "CROMPTON.NS",
+   "CUMMINSIND.NS",
+   "DABUR.NS",
+   "DALBHARAT.NS",
+   "DEEPAKNTR.NS",
+   "DELHIVERY.NS",
+   "DIXON.NS",
+   "DLF.NS",
+   "DMART.NS",
+   "DRREDDY.NS",
+   "EICHERMOT.NS",
+   "EMAMILTD.NS",
+   "ESCORTS.NS",
+   "EXIDEIND.NS",
+   "FEDERALBNK.NS",
+   "FORTIS.NS",
+   "GAIL.NS",
+   "GLAND.NS",
+   "GLENMARK.NS",
+   "GMRAIRPORT.NS",
+   "GNFC.NS",
+   "GODREJCP.NS",
+   "GODREJIND.NS",
+   "GODREJPROP.NS",
+   "GRASIM.NS",
+   "GUJGASLTD.NS",
+   "HAL.NS",
+   "HAVELLS.NS",
+   "HCLTECH.NS",
+   "HDFCBANK.NS",
+   "HDFCLIFE.NS",
+   "HEROMOTOCO.NS",
+   "HINDALCO.NS",
+   "HINDUNILVR.NS",
+   "HINDZINC.NS",
+   "ICICIBANK.NS",
+   "ICICIGI.NS",
+   "ICICIPRULI.NS",
+   "IDFCFIRSTB.NS",
+   "IEX.NS",
+   "IGL.NS",
+   "INDHOTEL.NS",
+   "INDIANB.NS",
+   "INDIGO.NS",
+   "INDUSINDBK.NS",
+   "INDUSTOWER.NS",
+   "INFY.NS",
+   "IOC.NS",
+   "IPCALAB.NS",
+   "IRB.NS",
+   "IRCTC.NS",
+   "IRFC.NS",
+   "ITC.NS",
+   "JINDALSAW.NS",
+   "JINDALSTEL.NS",
+   "JIOFIN.NS",
+   "JKCEMENT.NS",
+   "JSWENERGY.NS",
+   "JSWSTEEL.NS",
+   "JUBLFOOD.NS",
+   "KAJARIACER.NS",
+   "KALYANKJIL.NS",
+   "KEI.NS",
+   "KFINTECH.NS",
+   "KOTAKBANK.NS",
+   "KPITTECH.NS",
+   "LALPATHLAB.NS",
+   "LAURUSLABS.NS",
+   "LICHSGFIN.NS",
+   "LICI.NS",
+   "LODHA.NS",
+   "LT.NS",
+   "LTIM.NS",
+   "LTTS.NS",
+   "LUPIN.NS",
+   "MANAPPURAM.NS",
+   "MARICO.NS",
+   "MARUTI.NS",
+   "MAXHEALTH.NS",
+   "MAZDOCK.NS",
+   "MCX.NS",
+   "METROPOLIS.NS",
+   "MFSL.NS",
+   "MGL.NS",
+   "MM.NS",
+   "MOTHERSON.NS",
+   "MPHASIS.NS",
+   "MRF.NS",
+   "MUTHOOTFIN.NS",
+   "NATCOPHARM.NS",
+   "NATIONALUM.NS",
+   "NAUKRI.NS",
+   "NAVINFLUOR.NS",
+   "NESTLEIND.NS",
+   "NHPC.NS",
+   "NLCINDIA.NS",
+   "NMDC.NS",
+   "NTPC.NS",
+   "NYKAA.NS",
+   "OBEROIRLTY.NS",
+   "OFSS.NS",
+   "OIL.NS",
+   "ONGC.NS",
+   "PAGEIND.NS",
+   "PATANJALI.NS",
+   "PAYTM.NS",
+   "PEL.NS",
+   "PERSISTENT.NS",
+   "PETRONET.NS",
+   "PFC.NS",
+   "PHOENIXLTD.NS",
+   "PIDILITIND.NS",
+   "PIIND.NS",
+   "PNB.NS",
+   "POLICYBZR.NS",
+   "POLYCAB.NS",
+   "POWERGRID.NS",
+   "PRESTIGE.NS",
+   "PVRINOX.NS",
+   "RADICO.NS",
+   "RAMCOCEM.NS",
+   "RATNAMANI.NS",
+   "RBLBANK.NS",
+   "RECLTD.NS",
+   "RELAXO.NS",
+   "RELIANCE.NS",
+   "RVNL.NS",
+   "SAIL.NS",
+   "SBICARD.NS",
+   "SBILIFE.NS",
+   "SBIN.NS",
+   "SHREECEM.NS",
+   "SHRIRAMFIN.NS",
+   "SIEMENS.NS",
+   "SJVN.NS",
+   "SONACOMS.NS",
+   "SRF.NS",
+   "SUNDARMFIN.NS",
+   "SUNPHARMA.NS",
+   "SUNTV.NS",
+   "SUPREMEIND.NS",
+   "SYNGENE.NS",
+   "TATACHEM.NS",
+   "TATACOMM.NS",
+   "TATACONSUM.NS",
+   "TATAELXSI.NS",
+   "TATAMOTORS.NS",
+   "TATAPOWER.NS",
+   "TATASTEEL.NS",
+   "TCS.NS",
+   "TECHM.NS",
+   "THERMAX.NS",
+   "TIINDIA.NS",
+   "TITAN.NS",
+   "TORNTPHARM.NS",
+   "TORNTPOWER.NS",
+   "TRENT.NS",
+   "TVSMOTOR.NS",
+   "UBL.NS",
+   "ULTRACEMCO.NS",
+   "UNIONBANK.NS",
+   "UNITDSPR.NS",
+   "UNOMINDA.NS",
+   "UPL.NS",
+   "VBL.NS",
+   "VEDL.NS",
+   "VINATIORGA.NS",
+   "VOLTAS.NS",
+   "WIPRO.NS",
+   "YESBANK.NS",
+   "ZYDUSLIFE.NS"
+  ],
+  "sector": {
+   "HDFCBANK": "Financials",
+   "ICICIBANK": "Financials",
+   "SBIN": "Financials",
+   "KOTAKBANK": "Financials",
+   "AXISBANK": "Financials",
+   "INDUSINDBK": "Financials",
+   "BANKBARODA": "Financials",
+   "PNB": "Financials",
+   "CANBK": "Financials",
+   "BAJFINANCE": "Financials",
+   "BAJAJFINSV": "Financials",
+   "SHRIRAMFIN": "Financials",
+   "CHOLAFIN": "Financials",
+   "MUTHOOTFIN": "Financials",
+   "PFC": "Financials",
+   "RECLTD": "Financials",
+   "SBILIFE": "Financials",
+   "HDFCLIFE": "Financials",
+   "ICICIGI": "Financials",
+   "ICICIPRULI": "Financials",
+   "LICI": "Financials",
+   "JIOFIN": "Financials",
+   "TCS": "IT",
+   "INFY": "IT",
+   "WIPRO": "IT",
+   "HCLTECH": "IT",
+   "TECHM": "IT",
+   "LTIM": "IT",
+   "MPHASIS": "IT",
+   "COFORGE": "IT",
+   "NAUKRI": "IT",
+   "RELIANCE": "Energy",
+   "ONGC": "Energy",
+   "BPCL": "Energy",
+   "IOC": "Energy",
+   "GAIL": "Energy",
+   "PETRONET": "Energy",
+   "NTPC": "Power",
+   "POWERGRID": "Power",
+   "TATAPOWER": "Power",
+   "ADANIGREEN": "Power",
+   "ADANIPOWER": "Power",
+   "ITC": "FMCG",
+   "HINDUNILVR": "FMCG",
+   "NESTLEIND": "FMCG",
+   "BRITANNIA": "FMCG",
+   "DABUR": "FMCG",
+   "TATACONSUM": "FMCG",
+   "MARICO": "FMCG",
+   "COLPAL": "FMCG",
+   "GODREJCP": "FMCG",
+   "UNITDSPR": "FMCG",
+   "VBL": "FMCG",
+   "MARUTI": "Auto",
+   "EICHERMOT": "Auto",
+   "HEROMOTOCO": "Auto",
+   "TATAMOTORS": "Auto",
+   "MM": "Auto",
+   "BAJAJ-AUTO": "Auto",
+   "TVSMOTOR": "Auto",
+   "MOTHERSON": "Auto",
+   "BOSCHLTD": "Auto",
+   "SUNPHARMA": "Pharma",
+   "DRREDDY": "Pharma",
+   "CIPLA": "Pharma",
+   "ZYDUSLIFE": "Pharma",
+   "BIOCON": "Pharma",
+   "LUPIN": "Pharma",
+   "TORNTPHARM": "Pharma",
+   "APOLLOHOSP": "Healthcare",
+   "MAXHEALTH": "Healthcare",
+   "TATASTEEL": "Metal",
+   "JSWSTEEL": "Metal",
+   "HINDALCO": "Metal",
+   "VEDL": "Metal",
+   "JINDALSTEL": "Metal",
+   "SAIL": "Metal",
+   "COALINDIA": "Metal",
+   "ULTRACEMCO": "Cement",
+   "GRASIM": "Cement",
+   "AMBUJACEM": "Cement",
+   "SHREECEM": "Cement",
+   "LT": "Infra",
+   "ADANIENT": "Infra",
+   "ABB": "Industrials",
+   "SIEMENS": "Industrials",
+   "BEL": "Industrials",
+   "HAL": "Industrials",
+   "POLYCAB": "Industrials",
+   "HAVELLS": "Industrials",
+   "ADANIPORTS": "Infra",
+   "BHARTIARTL": "Telecom",
+   "TITAN": "Consumer",
+   "ASIANPAINT": "Consumer",
+   "TRENT": "Consumer",
+   "DMART": "Consumer",
+   "PAGEIND": "Consumer",
+   "INDHOTEL": "Consumer",
+   "PIDILITIND": "Chemicals",
+   "SRF": "Chemicals",
+   "DLF": "Realty",
+   "INDIGO": "Transport",
+   "PERSISTENT": "IT",
+   "OFSS": "IT",
+   "LTTS": "IT",
+   "KPITTECH": "IT",
+   "TATAELXSI": "IT",
+   "SONACOMS": "Auto",
+   "ESCORTS": "Auto",
+   "ASHOKLEY": "Auto",
+   "BHARATFORG": "Auto",
+   "MRF": "Auto",
+   "BALKRISIND": "Auto",
+   "APOLLOTYRE": "Auto",
+   "CUMMINSIND": "Industrials",
+   "EXIDEIND": "Auto",
+   "TIINDIA": "Auto",
+   "UNOMINDA": "Auto",
+   "ALKEM": "Pharma",
+   "AUROPHARMA": "Pharma",
+   "GLENMARK": "Pharma",
+   "IPCALAB": "Pharma",
+   "LAURUSLABS": "Pharma",
+   "AJANTPHARM": "Pharma",
+   "GLAND": "Pharma",
+   "NATCOPHARM": "Pharma",
+   "FORTIS": "Healthcare",
+   "LALPATHLAB": "Healthcare",
+   "SYNGENE": "Pharma",
+   "ABBOTINDIA": "Pharma",
+   "METROPOLIS": "Healthcare",
+   "BANDHANBNK": "Financials",
+   "FEDERALBNK": "Financials",
+   "IDFCFIRSTB": "Financials",
+   "AUBANK": "Financials",
+   "INDIANB": "Financials",
+   "UNIONBANK": "Financials",
+   "YESBANK": "Financials",
+   "RBLBANK": "Financials",
+   "LICHSGFIN": "Financials",
+   "SBICARD": "Financials",
+   "BAJAJHLDNG": "Financials",
+   "MFSL": "Financials",
+   "CHOLAHLDNG": "Financials",
+   "SUNDARMFIN": "Financials",
+   "MANAPPURAM": "Financials",
+   "ABCAPITAL": "Financials",
+   "PEL": "Financials",
+   "CDSL": "Financials",
+   "BSE": "Financials",
+   "MCX": "Financials",
+   "ANGELONE": "Financials",
+   "IEX": "Financials",
+   "KFINTECH": "Financials",
+   "CAMS": "Financials",
+   "PAYTM": "Financials",
+   "NYKAA": "Consumer",
+   "DELHIVERY": "Transport",
+   "POLICYBZR": "Financials",
+   "IRCTC": "Transport",
+   "IRFC": "Financials",
+   "RVNL": "Infra",
+   "IRB": "Infra",
+   "NHPC": "Power",
+   "SJVN": "Power",
+   "NLCINDIA": "Power",
+   "CONCOR": "Transport",
+   "NMDC": "Metal",
+   "HINDZINC": "Metal",
+   "NATIONALUM": "Metal",
+   "OIL": "Energy",
+   "MAZDOCK": "Industrials",
+   "TATACHEM": "Chemicals",
+   "DEEPAKNTR": "Chemicals",
+   "AARTIIND": "Chemicals",
+   "NAVINFLUOR": "Chemicals",
+   "GNFC": "Chemicals",
+   "COROMANDEL": "Chemicals",
+   "UPL": "Chemicals",
+   "PIIND": "Chemicals",
+   "ATUL": "Chemicals",
+   "VINATIORGA": "Chemicals",
+   "CHAMBLFERT": "Chemicals",
+   "BALRAMCHIN": "Chemicals",
+   "DALBHARAT": "Cement",
+   "JKCEMENT": "Cement",
+   "RAMCOCEM": "Cement",
+   "ACC": "Cement",
+   "APLAPOLLO": "Metal",
+   "JINDALSAW": "Metal",
+   "RATNAMANI": "Metal",
+   "GODREJPROP": "Realty",
+   "OBEROIRLTY": "Realty",
+   "PHOENIXLTD": "Realty",
+   "PRESTIGE": "Realty",
+   "LODHA": "Realty",
+   "TORNTPOWER": "Power",
+   "JSWENERGY": "Power",
+   "IGL": "Energy",
+   "MGL": "Energy",
+   "GUJGASLTD": "Energy",
+   "CESC": "Power",
+   "UBL": "FMCG",
+   "RADICO": "FMCG",
+   "PATANJALI": "FMCG",
+   "GODREJIND": "FMCG",
+   "EMAMILTD": "FMCG",
+   "JUBLFOOD": "Consumer",
+   "BATAINDIA": "Consumer",
+   "RELAXO": "Consumer",
+   "VOLTAS": "Industrials",
+   "BLUESTARCO": "Industrials",
+   "DIXON": "Industrials",
+   "AMBER": "Industrials",
+   "CROMPTON": "Industrials",
+   "KAJARIACER": "Consumer",
+   "SUPREMEIND": "Industrials",
+   "ASTRAL": "Industrials",
+   "THERMAX": "Industrials",
+   "AIAENG": "Industrials",
+   "KEI": "Industrials",
+   "CGPOWER": "Industrials",
+   "KALYANKJIL": "Consumer",
+   "INDUSTOWER": "Telecom",
+   "TATACOMM": "Telecom",
+   "PVRINOX": "Consumer",
+   "SUNTV": "Consumer",
+   "GMRAIRPORT": "Infra"
+  },
+  "prices": {
+   "AARTIIND": {
+    "observation_date": "2026-10-23",
+    "close": 424.5
+   },
+   "ABB": {
+    "observation_date": "2026-10-23",
+    "close": 6100.5
+   },
+   "ABBOTINDIA": {
+    "observation_date": "2026-10-23",
+    "close": 24900.0
+   },
+   "ABCAPITAL": {
+    "observation_date": "2026-10-23",
+    "close": 347.25
+   },
+   "ACC": {
+    "observation_date": "2026-10-23",
+    "close": 1156.0
+   },
+   "ADANIENT": {
+    "observation_date": "2026-10-23",
+    "close": 2479.800048828125
+   },
+   "ADANIGREEN": {
+    "observation_date": "2026-10-23",
+    "close": 1197.300048828125
+   },
+   "ADANIPORTS": {
+    "observation_date": "2026-10-23",
+    "close": 1711.699951171875
+   },
+   "ADANIPOWER": {
+    "observation_date": "2026-10-23",
+    "close": 176.3300018310547
+   },
+   "AIAENG": {
+    "observation_date": "2026-10-23",
+    "close": 3575.800048828125
+   },
+   "AJANTPHARM": {
+    "observation_date": "2026-10-23",
+    "close": 3245.10009765625
+   },
+   "ALKEM": {
+    "observation_date": "2026-10-23",
+    "close": 4956.0
+   },
+   "AMBER": {
+    "observation_date": "2026-10-23",
+    "close": 5986.0
+   },
+   "AMBUJACEM": {
+    "observation_date": "2026-10-23",
+    "close": 355.04998779296875
+   },
+   "ANGELONE": {
+    "observation_date": "2026-10-23",
+    "close": 283.25
+   },
+   "APLAPOLLO": {
+    "observation_date": "2026-10-23",
+    "close": 2004.5
+   },
+   "APOLLOHOSP": {
+    "observation_date": "2026-10-23",
+    "close": 7597.5
+   },
+   "APOLLOTYRE": {
+    "observation_date": "2026-10-23",
+    "close": 390.0
+   },
+   "ASHOKLEY": {
+    "observation_date": "2026-10-23",
+    "close": 142.8000030517578
+   },
+   "ASIANPAINT": {
+    "observation_date": "2026-10-23",
+    "close": 2276.0
+   },
+   "ASTRAL": {
+    "observation_date": "2026-10-23",
+    "close": 1365.0
+   },
+   "ATUL": {
+    "observation_date": "2026-10-23",
+    "close": 5914.5
+   },
+   "AUBANK": {
+    "observation_date": "2026-10-23",
+    "close": 928.0999755859375
+   },
+   "AUROPHARMA": {
+    "observation_date": "2026-10-23",
+    "close": 1580.699951171875
+   },
+   "AXISBANK": {
+    "observation_date": "2026-10-23",
+    "close": 1204.9000244140625
+   },
+   "BAJAJ-AUTO": {
+    "observation_date": "2026-10-23",
+    "close": 10071.0
+   },
+   "BAJAJFINSV": {
+    "observation_date": "2026-10-23",
+    "close": 1657.300048828125
+   },
+   "BAJAJHLDNG": {
+    "observation_date": "2026-10-23",
+    "close": 11113.0
+   },
+   "BAJFINANCE": {
+    "observation_date": "2026-10-23",
+    "close": 933.0
+   },
+   "BALKRISIND": {
+    "observation_date": "2026-10-23",
+    "close": 2068.39990234375
+   },
+   "BALRAMCHIN": {
+    "observation_date": "2026-10-23",
+    "close": 643.1500244140625
+   },
+   "BANDHANBNK": {
+    "observation_date": "2026-10-23",
+    "close": 150.60000610351562
+   },
+   "BANKBARODA": {
+    "observation_date": "2026-10-23",
+    "close": 231.02000427246094
+   },
+   "BATAINDIA": {
+    "observation_date": "2026-10-23",
+    "close": 627.5999755859375
+   },
+   "BEL": {
+    "observation_date": "2026-10-23",
+    "close": 357.6000061035156
+   },
+   "BHARATFORG": {
+    "observation_date": "2026-10-23",
+    "close": 1697.0
+   },
+   "BHARTIARTL": {
+    "observation_date": "2026-10-23",
+    "close": 1896.5999755859375
+   },
+   "BIOCON": {
+    "observation_date": "2026-10-23",
+    "close": 323.8500061035156
+   },
+   "BLUESTARCO": {
+    "observation_date": "2026-10-23",
+    "close": 1516.199951171875
+   },
+   "BOSCHLTD": {
+    "observation_date": "2026-10-23",
+    "close": 43940.0
+   },
+   "BPCL": {
+    "observation_date": "2026-10-23",
+    "close": 281.20001220703125
+   },
+   "BRITANNIA": {
+    "observation_date": "2026-10-23",
+    "close": 4584.7001953125
+   },
+   "BSE": {
+    "observation_date": "2026-10-23",
+    "close": 3208.0
+   },
+   "CAMS": {
+    "observation_date": "2026-10-23",
+    "close": 657.9000244140625
+   },
+   "CANBK": {
+    "observation_date": "2026-10-23",
+    "close": 117.06999969482422
+   },
+   "CDSL": {
+    "observation_date": "2026-10-23",
+    "close": 1183.5999755859375
+   },
+   "CESC": {
+    "observation_date": "2026-10-23",
+    "close": 124.83999633789062
+   },
+   "CGPOWER": {
+    "observation_date": "2026-10-23",
+    "close": 779.0999755859375
+   },
+   "CHAMBLFERT": {
+    "observation_date": "2026-10-23",
+    "close": 362.54998779296875
+   },
+   "CHOLAFIN": {
+    "observation_date": "2026-10-23",
+    "close": 1479.9000244140625
+   },
+   "CHOLAHLDNG": {
+    "observation_date": "2026-10-23",
+    "close": 1290.0
+   },
+   "CIPLA": {
+    "observation_date": "2026-10-23",
+    "close": 1320.5999755859375
+   },
+   "COALINDIA": {
+    "observation_date": "2026-10-23",
+    "close": 395.54998779296875
+   },
+   "COFORGE": {
+    "observation_date": "2026-10-23",
+    "close": 1925.199951171875
+   },
+   "COLPAL": {
+    "observation_date": "2026-10-23",
+    "close": 1603.800048828125
+   },
+   "CONCOR": {
+    "observation_date": "2026-10-23",
+    "close": 415.25
+   },
+   "COROMANDEL": {
+    "observation_date": "2026-10-23",
+    "close": 1725.0
+   },
+   "CROMPTON": {
+    "observation_date": "2026-10-23",
+    "close": 195.1999969482422
+   },
+   "CUMMINSIND": {
+    "observation_date": "2026-10-23",
+    "close": 4277.10009765625
+   },
+   "DABUR": {
+    "observation_date": "2026-10-23",
+    "close": 359.70001220703125
+   },
+   "DALBHARAT": {
+    "observation_date": "2026-10-23",
+    "close": 1585.0
+   },
+   "DEEPAKNTR": {
+    "observation_date": "2026-10-23",
+    "close": 1425.300048828125
+   },
+   "DELHIVERY": {
+    "observation_date": "2026-10-23",
+    "close": 375.20001220703125
+   },
+   "DIXON": {
+    "observation_date": "2026-10-23",
+    "close": 11381.0
+   },
+   "DLF": {
+    "observation_date": "2026-10-23",
+    "close": 655.4000244140625
+   },
+   "DMART": {
+    "observation_date": "2026-10-23",
+    "close": 3127.89990234375
+   },
+   "DRREDDY": {
+    "observation_date": "2026-10-23",
+    "close": 1236.0
+   },
+   "EICHERMOT": {
+    "observation_date": "2026-10-23",
+    "close": 6945.5
+   },
+   "EMAMILTD": {
+    "observation_date": "2026-10-23",
+    "close": 363.70001220703125
+   },
+   "ESCORTS": {
+    "observation_date": "2026-10-23",
+    "close": 2625.199951171875
+   },
+   "EXIDEIND": {
+    "observation_date": "2026-10-23",
+    "close": 334.95001220703125
+   },
+   "FEDERALBNK": {
+    "observation_date": "2026-10-23",
+    "close": 345.45001220703125
+   },
+   "FORTIS": {
+    "observation_date": "2026-10-23",
+    "close": 710.0
+   },
+   "GAIL": {
+    "observation_date": "2026-10-23",
+    "close": 161.9199981689453
+   },
+   "GLAND": {
+    "observation_date": "2026-10-23",
+    "close": 2782.39990234375
+   },
+   "GLENMARK": {
+    "observation_date": "2026-10-23",
+    "close": 2143.39990234375
+   },
+   "GMRAIRPORT": {
+    "observation_date": "2026-10-23",
+    "close": 85.05000305175781
+   },
+   "GNFC": {
+    "observation_date": "2026-10-23",
+    "close": 495.95001220703125
+   },
+   "GODREJCP": {
+    "observation_date": "2026-10-23",
+    "close": 845.0999755859375
+   },
+   "GODREJIND": {
+    "observation_date": "2026-10-23",
+    "close": 909.7000122070312
+   },
+   "GODREJPROP": {
+    "observation_date": "2026-10-23",
+    "close": 1533.800048828125
+   },
+   "GRASIM": {
+    "observation_date": "2026-10-23",
+    "close": 2869.39990234375
+   },
+   "GUJGASLTD": {
+    "observation_date": "2026-09-01",
+    "close": 254.3000030517578
+   },
+   "HAL": {
+    "observation_date": "2026-10-23",
+    "close": 4779.5
+   },
+   "HAVELLS": {
+    "observation_date": "2026-10-23",
+    "close": 1025.4000244140625
+   },
+   "HCLTECH": {
+    "observation_date": "2026-10-23",
+    "close": 1429.5
+   },
+   "HDFCBANK": {
+    "observation_date": "2026-10-23",
+    "close": 687.5999755859375
+   },
+   "HDFCLIFE": {
+    "observation_date": "2026-10-23",
+    "close": 515.0
+   },
+   "HEROMOTOCO": {
+    "observation_date": "2026-10-23",
+    "close": 5078.0
+   },
+   "HINDALCO": {
+    "observation_date": "2026-10-23",
+    "close": 854.2000122070312
+   },
+   "HINDUNILVR": {
+    "observation_date": "2026-10-23",
+    "close": 1804.199951171875
+   },
+   "HINDZINC": {
+    "observation_date": "2026-10-23",
+    "close": 495.6499938964844
+   },
+   "ICICIBANK": {
+    "observation_date": "2026-10-23",
+    "close": 1391.199951171875
+   },
+   "ICICIGI": {
+    "observation_date": "2026-10-23",
+    "close": 1591.0999755859375
+   },
+   "ICICIPRULI": {
+    "observation_date": "2026-10-22",
+    "close": 428.5
+   },
+   "IDFCFIRSTB": {
+    "observation_date": "2026-10-23",
+    "close": 71.93000030517578
+   },
+   "IEX": {
+    "observation_date": "2026-10-23",
+    "close": 100.7699966430664
+   },
+   "IGL": {
+    "observation_date": "2026-10-23",
+    "close": 137.72999572753906
+   },
+   "INDHOTEL": {
+    "observation_date": "2026-10-23",
+    "close": 774.3499755859375
+   },
+   "INDIANB": {
+    "observation_date": "2026-10-23",
+    "close": 836.6500244140625
+   },
+   "INDIGO": {
+    "observation_date": "2026-10-23",
+    "close": 4528.2998046875
+   },
+   "INDUSINDBK": {
+    "observation_date": "2026-10-23",
+    "close": 835.2000122070312
+   },
+   "INDUSTOWER": {
+    "observation_date": "2026-10-23",
+    "close": 381.0
+   },
+   "INFY": {
+    "observation_date": "2026-10-23",
+    "close": 1151.25
+   },
+   "IOC": {
+    "observation_date": "2026-10-23",
+    "close": 127.6500015258789
+   },
+   "IPCALAB": {
+    "observation_date": "2026-10-23",
+    "close": 1897.4000244140625
+   },
+   "IRB": {
+    "observation_date": "2026-10-23",
+    "close": 16.219999313354492
+   },
+   "IRCTC": {
+    "observation_date": "2026-10-23",
+    "close": 441.5
+   },
+   "IRFC": {
+    "observation_date": "2026-10-23",
+    "close": 74.54000091552734
+   },
+   "ITC": {
+    "observation_date": "2026-10-23",
+    "close": 257.1000061035156
+   },
+   "JINDALSAW": {
+    "observation_date": "2026-10-23",
+    "close": 235.0
+   },
+   "JINDALSTEL": {
+    "observation_date": "2026-10-23",
+    "close": 1016.0999755859375
+   },
+   "JIOFIN": {
+    "observation_date": "2026-10-23",
+    "close": 204.5500030517578
+   },
+   "JKCEMENT": {
+    "observation_date": "2026-10-23",
+    "close": 4787.5
+   },
+   "JSWENERGY": {
+    "observation_date": "2026-10-23",
+    "close": 445.6000061035156
+   },
+   "JSWSTEEL": {
+    "observation_date": "2026-10-23",
+    "close": 1201.0999755859375
+   },
+   "JUBLFOOD": {
+    "observation_date": "2026-10-23",
+    "close": 402.6499938964844
+   },
+   "KAJARIACER": {
+    "observation_date": "2026-10-23",
+    "close": 1118.4000244140625
+   },
+   "KALYANKJIL": {
+    "observation_date": "2026-10-23",
+    "close": 509.6499938964844
+   },
+   "KEI": {
+    "observation_date": "2026-10-23",
+    "close": 3709.800048828125
+   },
+   "KFINTECH": {
+    "observation_date": "2026-10-23",
+    "close": 816.2000122070312
+   },
+   "KOTAKBANK": {
+    "observation_date": "2026-10-23",
+    "close": 432.6000061035156
+   },
+   "KPITTECH": {
+    "observation_date": "2026-10-23",
+    "close": 534.1500244140625
+   },
+   "LALPATHLAB": {
+    "observation_date": "2026-10-23",
+    "close": 1817.300048828125
+   },
+   "LAURUSLABS": {
+    "observation_date": "2026-10-23",
+    "close": 1957.5
+   },
+   "LICHSGFIN": {
+    "observation_date": "2026-10-23",
+    "close": 492.79998779296875
+   },
+   "LICI": {
+    "observation_date": "2026-10-23",
+    "close": 380.54998779296875
+   },
+   "LODHA": {
+    "observation_date": "2026-10-23",
+    "close": 958.0
+   },
+   "LT": {
+    "observation_date": "2026-10-23",
+    "close": 3615.10009765625
+   },
+   "LTTS": {
+    "observation_date": "2026-10-23",
+    "close": 3920.0
+   },
+   "LUPIN": {
+    "observation_date": "2026-10-23",
+    "close": 1906.5
+   },
+   "MANAPPURAM": {
+    "observation_date": "2026-10-23",
+    "close": 287.70001220703125
+   },
+   "MARICO": {
+    "observation_date": "2026-10-23",
+    "close": 763.25
+   },
+   "MARUTI": {
+    "observation_date": "2026-10-23",
+    "close": 11028.0
+   },
+   "MAXHEALTH": {
+    "observation_date": "2026-10-23",
+    "close": 813.9500122070312
+   },
+   "MAZDOCK": {
+    "observation_date": "2026-10-23",
+    "close": 1865.5
+   },
+   "MCX": {
+    "observation_date": "2026-10-23",
+    "close": 3005.0
+   },
+   "METROPOLIS": {
+    "observation_date": "2026-10-23",
+    "close": 513.3499755859375
+   },
+   "MFSL": {
+    "observation_date": "2026-10-23",
+    "close": 1206.4000244140625
+   },
+   "MGL": {
+    "observation_date": "2026-10-23",
+    "close": 1012.7999877929688
+   },
+   "MM": {
+    "observation_date": "2026-10-23",
+    "close": 2822.60009765625
+   },
+   "MOTHERSON": {
+    "observation_date": "2026-10-23",
+    "close": 149.74000549316406
+   },
+   "MPHASIS": {
+    "observation_date": "2026-10-23",
+    "close": 2511.5
+   },
+   "MRF": {
+    "observation_date": "2026-10-23",
+    "close": 117265.0
+   },
+   "MUTHOOTFIN": {
+    "observation_date": "2026-10-23",
+    "close": 2354.0
+   },
+   "NATCOPHARM": {
+    "observation_date": "2026-10-23",
+    "close": 782.0499877929688
+   },
+   "NATIONALUM": {
+    "observation_date": "2026-10-23",
+    "close": 295.5
+   },
+   "NAUKRI": {
+    "observation_date": "2026-10-23",
+    "close": 1202.800048828125
+   },
+   "NAVINFLUOR": {
+    "observation_date": "2026-10-23",
+    "close": 7719.5
+   },
+   "NESTLEIND": {
+    "observation_date": "2026-10-23",
+    "close": 1169.199951171875
+   },
+   "NHPC": {
+    "observation_date": "2026-10-23",
+    "close": 70.16999816894531
+   },
+   "NLCINDIA": {
+    "observation_date": "2026-10-23",
+    "close": 223.5
+   },
+   "NMDC": {
+    "observation_date": "2026-10-23",
+    "close": 66.48999786376953
+   },
+   "NTPC": {
+    "observation_date": "2026-10-23",
+    "close": 294.6000061035156
+   },
+   "NYKAA": {
+    "observation_date": "2026-10-23",
+    "close": 312.20001220703125
+   },
+   "OBEROIRLTY": {
+    "observation_date": "2026-10-23",
+    "close": 1583.800048828125
+   },
+   "OFSS": {
+    "observation_date": "2026-10-23",
+    "close": 9648.0
+   },
+   "OIL": {
+    "observation_date": "2026-10-23",
+    "close": 451.0
+   },
+   "ONGC": {
+    "observation_date": "2026-10-23",
+    "close": 225.50999450683594
+   },
+   "PAGEIND": {
+    "observation_date": "2026-10-23",
+    "close": 33805.0
+   },
+   "PATANJALI": {
+    "observation_date": "2026-10-23",
+    "close": 348.5
+   },
+   "PAYTM": {
+    "observation_date": "2026-10-23",
+    "close": 1613.300048828125
+   },
+   "PERSISTENT": {
+    "observation_date": "2026-10-23",
+    "close": 5758.5
+   },
+   "PETRONET": {
+    "observation_date": "2026-10-23",
+    "close": 285.1499938964844
+   },
+   "PFC": {
+    "observation_date": "2026-10-23",
+    "close": 317.5
+   },
+   "PHOENIXLTD": {
+    "observation_date": "2026-10-23",
+    "close": 1871.0
+   },
+   "PIDILITIND": {
+    "observation_date": "2026-10-23",
+    "close": 1467.0
+   },
+   "PIIND": {
+    "observation_date": "2026-10-23",
+    "close": 2025.199951171875
+   },
+   "PNB": {
+    "observation_date": "2026-10-23",
+    "close": 119.41000366210938
+   },
+   "POLICYBZR": {
+    "observation_date": "2026-10-23",
+    "close": 1017.7000122070312
+   },
+   "POLYCAB": {
+    "observation_date": "2026-10-23",
+    "close": 7487.0
+   },
+   "POWERGRID": {
+    "observation_date": "2026-10-23",
+    "close": 243.5
+   },
+   "PRESTIGE": {
+    "observation_date": "2026-10-23",
+    "close": 1391.800048828125
+   },
+   "PVRINOX": {
+    "observation_date": "2026-10-23",
+    "close": 1384.4000244140625
+   },
+   "RADICO": {
+    "observation_date": "2026-10-23",
+    "close": 4080.0
+   },
+   "RAMCOCEM": {
+    "observation_date": "2026-10-23",
+    "close": 736.4500122070312
+   },
+   "RATNAMANI": {
+    "observation_date": "2026-10-23",
+    "close": 2291.5
+   },
+   "RBLBANK": {
+    "observation_date": "2026-10-23",
+    "close": 345.6499938964844
+   },
+   "RECLTD": {
+    "observation_date": "2026-10-23",
+    "close": 295.70001220703125
+   },
+   "RELAXO": {
+    "observation_date": "2026-10-23",
+    "close": 277.8500061035156
+   },
+   "RELIANCE": {
+    "observation_date": "2026-10-23",
+    "close": 1171.5
+   },
+   "RVNL": {
+    "observation_date": "2026-10-23",
+    "close": 180.58999633789062
+   },
+   "SAIL": {
+    "observation_date": "2026-10-23",
+    "close": 162.22000122070312
+   },
+   "SBICARD": {
+    "observation_date": "2026-10-23",
+    "close": 563.0499877929688
+   },
+   "SBILIFE": {
+    "observation_date": "2026-10-23",
+    "close": 1622.199951171875
+   },
+   "SBIN": {
+    "observation_date": "2026-10-23",
+    "close": 956.2000122070312
+   },
+   "SHREECEM": {
+    "observation_date": "2026-10-23",
+    "close": 22060.0
+   },
+   "SHRIRAMFIN": {
+    "observation_date": "2026-10-23",
+    "close": 884.5
+   },
+   "SIEMENS": {
+    "observation_date": "2026-10-23",
+    "close": 3222.60009765625
+   },
+   "SJVN": {
+    "observation_date": "2026-10-23",
+    "close": 46.470001220703125
+   },
+   "SONACOMS": {
+    "observation_date": "2026-10-23",
+    "close": 751.9500122070312
+   },
+   "SRF": {
+    "observation_date": "2026-10-23",
+    "close": 2346.800048828125
+   },
+   "SUNDARMFIN": {
+    "observation_date": "2026-10-23",
+    "close": 4026.60009765625
+   },
+   "SUNPHARMA": {
+    "observation_date": "2026-10-23",
+    "close": 1753.5
+   },
+   "SUNTV": {
+    "observation_date": "2026-10-23",
+    "close": 578.1500244140625
+   },
+   "SUPREMEIND": {
+    "observation_date": "2026-10-23",
+    "close": 3450.199951171875
+   },
+   "SYNGENE": {
+    "observation_date": "2026-10-23",
+    "close": 366.0
+   },
+   "TATACHEM": {
+    "observation_date": "2026-10-23",
+    "close": 575.2000122070312
+   },
+   "TATACOMM": {
+    "observation_date": "2026-10-23",
+    "close": 1620.5999755859375
+   },
+   "TATACONSUM": {
+    "observation_date": "2026-10-23",
+    "close": 955.3499755859375
+   },
+   "TATAELXSI": {
+    "observation_date": "2026-10-23",
+    "close": 3755.10009765625
+   },
+   "TATAPOWER": {
+    "observation_date": "2026-10-23",
+    "close": 343.45001220703125
+   },
+   "TATASTEEL": {
+    "observation_date": "2026-10-23",
+    "close": 166.47999572753906
+   },
+   "TCS": {
+    "observation_date": "2026-10-23",
+    "close": 2553.89990234375
+   },
+   "TECHM": {
+    "observation_date": "2026-10-23",
+    "close": 1797.300048828125
+   },
+   "THERMAX": {
+    "observation_date": "2026-10-23",
+    "close": 3045.60009765625
+   },
+   "TIINDIA": {
+    "observation_date": "2026-10-23",
+    "close": 2023.0
+   },
+   "TITAN": {
+    "observation_date": "2026-10-23",
+    "close": 4249.5
+   },
+   "TORNTPHARM": {
+    "observation_date": "2026-10-23",
+    "close": 4582.2998046875
+   },
+   "TORNTPOWER": {
+    "observation_date": "2026-10-23",
+    "close": 1152.699951171875
+   },
+   "TRENT": {
+    "observation_date": "2026-10-23",
+    "close": 2724.300048828125
+   },
+   "TVSMOTOR": {
+    "observation_date": "2026-10-23",
+    "close": 3931.5
+   },
+   "UBL": {
+    "observation_date": "2026-10-23",
+    "close": 1153.199951171875
+   },
+   "ULTRACEMCO": {
+    "observation_date": "2026-10-23",
+    "close": 10819.0
+   },
+   "UNIONBANK": {
+    "observation_date": "2026-10-23",
+    "close": 179.2100067138672
+   },
+   "UNITDSPR": {
+    "observation_date": "2026-10-23",
+    "close": 1255.699951171875
+   },
+   "UNOMINDA": {
+    "observation_date": "2026-10-23",
+    "close": 1037.5
+   },
+   "UPL": {
+    "observation_date": "2026-10-23",
+    "close": 504.3500061035156
+   },
+   "VBL": {
+    "observation_date": "2026-10-23",
+    "close": 388.1499938964844
+   },
+   "VEDL": {
+    "observation_date": "2026-10-23",
+    "close": 224.60000610351562
+   },
+   "VINATIORGA": {
+    "observation_date": "2026-10-23",
+    "close": 1067.699951171875
+   },
+   "VOLTAS": {
+    "observation_date": "2026-10-23",
+    "close": 962.4000244140625
+   },
+   "WIPRO": {
+    "observation_date": "2026-10-23",
+    "close": 191.75
+   },
+   "YESBANK": {
+    "observation_date": "2026-10-23",
+    "close": 15.789999961853027
+   },
+   "ZYDUSLIFE": {
+    "observation_date": "2026-10-23",
+    "close": 1126.5
+   }
+  },
+  "technical": {
+   "sidecar": "technical_features.parquet",
+   "n_rows": 228,
+   "n_cols": 81,
+   "source": "production feature snapshot consumed by R2"
+  },
+  "market_cap": null,
+  "fundamentals": null,
+  "earnings": null,
+  "macro": null,
+  "intermarket": null,
+  "r2_config": {
+   "risk_engine": {
+    "monotonic_stops": {
+     "india": true,
+     "usa": false
+    },
+    "atr_multiplier": 2.0,
+    "trailing_lift_min_pct": 5.0,
+    "high_vol_scale": 1.5,
+    "high_vol_atr_pct": 3.0
+   },
+   "n_selected": 38,
+   "selected_fingerprint": "c26b0afdb611",
+   "schema_fingerprint": "b65ceb49a83a"
+  },
+  "r2_scores": {
+   "sidecar": "r2_scores.parquet",
+   "n_rows": 228,
+   "columns": [
+    "ticker",
+    "action",
+    "ensemble_score",
+    "calibrated_confidence",
+    "regime_adjusted_confidence",
+    "disagreement_flag",
+    "reason",
+    "would_be_new",
+    "in_persisted_15"
+   ]
+  },
+  "r2_decision": {
+   "lifecycle_asof": "2026-10-23",
+   "market_data_asof": "2026-10-23",
+   "counts": {
+    "current_total": 28,
+    "r1_investable": 1,
+    "r2_investable": 27,
+    "momentum_investable": 0,
+    "new": 1,
+    "active_plus": 27,
+    "active": 0,
+    "exit_history_total": 184,
+    "filtered_non_investable": 0,
+    "stop_breached": 0,
+    "no_stop": 0,
+    "breach_exits": 15,
+    "breach_exits_r1": 15,
+    "breach_exits_r2": 0,
+    "breach_exits_new_today": 0,
+    "phantom_admissions_excluded": 10,
+    "stale_inputs": 0,
+    "stale_inputs_critical": 0
+   },
+   "current": [
+    {
+     "position_id": "IND-R2-NESTLEIND-20261023-a17651",
+     "ticker": "NESTLEIND",
+     "engine": "R2",
+     "action": "NEW",
+     "confidence_pct": 46.0,
+     "entry_date": "2026-10-23",
+     "entry_price": 1169.2,
+     "stop": 1114.9535,
+     "admission_status": "NEW today"
+    },
+    {
+     "position_id": "IND-R2-TCS-20260928-f23b4c",
+     "ticker": "TCS",
+     "engine": "R2",
+     "action": "ACTIVE+",
+     "confidence_pct": 34.9,
+     "entry_date": "2026-09-28",
+     "entry_price": 2056.8,
+     "stop": 2417.4714,
+     "admission_status": "Admitted 2026-09-28"
+    },
+    {
+     "position_id": "IND-R2-TATAELXSI-20260929-d17e13",
+     "ticker": "TATAELXSI",
+     "engine": "R2",
+     "action": "ACTIVE+",
+     "confidence_pct": 29.2,
+     "entry_date": "2026-09-29",
+     "entry_price": 3150.4,
+     "stop": 3644.3286,
+     "admission_status": "Admitted 2026-09-29"
+    },
+    {
+     "position_id": "IND-R2-WIPRO-20261013-d844f1",
+     "ticker": "WIPRO",
+     "engine": "R2",
+     "action": "ACTIVE+",
+     "confidence_pct": 38.2,
+     "entry_date": "2026-10-13",
+     "entry_price": 167.79,
+     "stop": 182.5457,
+     "admission_status": "Admitted 2026-10-13"
+    },
+    {
+     "position_id": "IND-R2-INFY-20261002-20a2cb",
+     "ticker": "INFY",
+     "engine": "R2",
+     "action": "ACTIVE+",
+     "confidence_pct": 38.3,
+     "entry_date": "2026-10-02",
+     "entry_price": 1010.1,
+     "stop": 1112.5214,
+     "admission_status": "Admitted 2026-10-02"
+    },
+    {
+     "position_id": "IND-R2-HCLTECH-20261013-955276",
+     "ticker": "HCLTECH",
+     "engine": "R2",
+     "action": "ACTIVE+",
+     "confidence_pct": 40.6,
+     "entry_date": "2026-10-13",
+     "entry_price": 1315.4,
+     "stop": 1351.8286,
+     "admission_status": "Admitted 2026-10-13"
+    },
+    {
+     "position_id": "IND-R2-UNIONBANK-20261006-801564",
+     "ticker": "UNIONBANK",
+     "engine": "R2",
+     "action": "ACTIVE+",
+     "confidence_pct": 32.9,
+     "entry_date": "2026-10-06",
+     "entry_price": 167.95,
+     "stop": 174.9586,
+     "admission_status": "Admitted 2026-10-06"
+    },
+    {
+     "position_id": "IND-R2-PNB-20261006-66ccb3",
+     "ticker": "PNB",
+     "engine": "R2",
+     "action": "ACTIVE+",
+     "confidence_pct": 35.0,
+     "entry_date": "2026-10-06",
+     "entry_price": 112.03,
+     "stop": 116.8171,
+     "admission_status": "Admitted 2026-10-06"
+    },
+    {
+     "position_id": "IND-R2-FEDERALBNK-20261007-b739c0",
+     "ticker": "FEDERALBNK",
+     "engine": "R2",
+     "action": "ACTIVE+",
+     "confidence_pct": 39.3,
+     "entry_date": "2026-10-07",
+     "entry_price": 324.7,
+     "stop": 330.4286,
+     "admission_status": "Admitted 2026-10-07"
+    },
+    {
+     "position_id": "IND-R2-BAJAJHLDNG-20261013-3e863a",
+     "ticker": "BAJAJHLDNG",
+     "engine": "R2",
+     "action": "ACTIVE+",
+     "confidence_pct": 35.9,
+     "entry_date": "2026-10-13",
+     "entry_price": 10581.0,
+     "stop": 10831.1429,
+     "admission_status": "Admitted 2026-10-13"
+    },
+    {
+     "position_id": "IND-R2-BALKRISIND-20261013-38dd43",
+     "ticker": "BALKRISIND",
+     "engine": "R2",
+     "action": "ACTIVE+",
+     "confidence_pct": 33.2,
+     "entry_date": "2026-10-13",
+     "entry_price": 1987.0,
+     "stop": 1983.7999,
+     "admission_status": "Admitted 2026-10-13"
+    },
+    {
+     "position_id": "IND-R2-INDIANB-20261006-0d13b1",
+     "ticker": "INDIANB",
+     "engine": "R2",
+     "action": "ACTIVE+",
+     "confidence_pct": 32.9,
+     "entry_date": "2026-10-06",
+     "entry_price": 814.35,
+     "stop": 827.0071,
+     "admission_status": "Admitted 2026-10-06"
+    },
+    {
+     "position_id": "IND-R2-JSWSTEEL-20261012-af40fc",
+     "ticker": "JSWSTEEL",
+     "engine": "R2",
+     "action": "ACTIVE+",
+     "confidence_pct": 38.2,
+     "entry_date": "2026-10-12",
+     "entry_price": 1173.3,
+     "stop": 1198.3857,
+     "admission_status": "Admitted 2026-10-12"
+    },
+    {
+     "position_id": "IND-R2-ACC-20261012-f1f022",
+     "ticker": "ACC",
+     "engine": "R2",
+     "action": "ACTIVE+",
+     "confidence_pct": 26.2,
+     "entry_date": "2026-10-12",
+     "entry_price": 1129.3,
+     "stop": 1147.2142,
+     "admission_status": "Admitted 2026-10-12"
+    },
+    {
+     "position_id": "IND-R2-IOC-20261009-774a1b",
+     "ticker": "IOC",
+     "engine": "R2",
+     "action": "ACTIVE+",
+     "confidence_pct": 26.7,
+     "entry_date": "2026-10-09",
+     "entry_price": 126.05,
+     "stop": 126.0386,
+     "admission_status": "Admitted 2026-10-09"
+    },
+    {
+     "position_id": "IND-R2-ONGC-20261001-b42383",
+     "ticker": "ONGC",
+     "engine": "R2",
+     "action": "ACTIVE+",
+     "confidence_pct": 31.2,
+     "entry_date": "2026-10-01",
+     "entry_price": 223.39,
+     "stop": 219.5086,
+     "admission_status": "Admitted 2026-10-01"
+    },
+    {
+     "position_id": "IND-R2-AMBUJACEM-20261015-8d9ef6",
+     "ticker": "AMBUJACEM",
+     "engine": "R2",
+     "action": "ACTIVE+",
+     "confidence_pct": 33.2,
+     "entry_date": "2026-10-15",
+     "entry_price": 352.3,
+     "stop": 348.7643,
+     "admission_status": "Admitted 2026-10-15"
+    },
+    {
+     "position_id": "IND-R2-OIL-20261007-ed8f2f",
+     "ticker": "OIL",
+     "engine": "R2",
+     "action": "ACTIVE+",
+     "confidence_pct": 35.4,
+     "entry_date": "2026-10-07",
+     "entry_price": 449.45,
+     "stop": 437.5357,
+     "admission_status": "Admitted 2026-10-07"
+    },
+    {
+     "position_id": "IND-R2-MM-20261007-c1210c",
+     "ticker": "MM",
+     "engine": "R2",
+     "action": "ACTIVE+",
+     "confidence_pct": 11.2,
+     "entry_date": "2026-10-07",
+     "entry_price": 2813.6,
+     "stop": 2803.1286,
+     "admission_status": "Admitted 2026-10-07"
+    },
+    {
+     "position_id": "IND-R2-NATCOPHARM-20261016-fbbf8d",
+     "ticker": "NATCOPHARM",
+     "engine": "R2",
+     "action": "ACTIVE+",
+     "confidence_pct": 31.1,
+     "entry_date": "2026-10-16",
+     "entry_price": 785.95,
+     "stop": 763.4286,
+     "admission_status": "Admitted 2026-10-16"
+    },
+    {
+     "position_id": "IND-R2-SBIN-20261005-104400",
+     "ticker": "SBIN",
+     "engine": "R2",
+     "action": "ACTIVE+",
+     "confidence_pct": 37.2,
+     "entry_date": "2026-10-05",
+     "entry_price": 961.0,
+     "stop": 950.7643,
+     "admission_status": "Admitted 2026-10-05"
+    },
+    {
+     "position_id": "IND-R2-COALINDIA-20261022-fae0f9",
+     "ticker": "COALINDIA",
+     "engine": "R2",
+     "action": "ACTIVE+",
+     "confidence_pct": 29.1,
+     "entry_date": "2026-10-22",
+     "entry_price": 398.5,
+     "stop": 381.2143,
+     "admission_status": "Admitted 2026-10-22"
+    },
+    {
+     "position_id": "IND-R2-CANBK-20261005-19551d",
+     "ticker": "CANBK",
+     "engine": "R2",
+     "action": "ACTIVE+",
+     "confidence_pct": 30.2,
+     "entry_date": "2026-10-05",
+     "entry_price": 119.47,
+     "stop": 116.8086,
+     "admission_status": "Admitted 2026-10-05"
+    },
+    {
+     "position_id": "IND-R2-EMAMILTD-20261014-d5bbe7",
+     "ticker": "EMAMILTD",
+     "engine": "R2",
+     "action": "ACTIVE+",
+     "confidence_pct": 35.2,
+     "entry_date": "2026-10-14",
+     "entry_price": 373.9,
+     "stop": 362.5643,
+     "admission_status": "Admitted 2026-10-14"
+    },
+    {
+     "position_id": "IND-R2-AIAENG-20261016-4b46fa",
+     "ticker": "AIAENG",
+     "engine": "R2",
+     "action": "ACTIVE+",
+     "confidence_pct": 34.9,
+     "entry_date": "2026-10-16",
+     "entry_price": 3677.2,
+     "stop": 3503.2714,
+     "admission_status": "Admitted 2026-10-16"
+    },
+    {
+     "position_id": "IND-R2-NAUKRI-20261019-7397ad",
+     "ticker": "NAUKRI",
+     "engine": "R2",
+     "action": "ACTIVE+",
+     "confidence_pct": 31.1,
+     "entry_date": "2026-10-19",
+     "entry_price": 1256.1,
+     "stop": 1192.0857,
+     "admission_status": "Admitted 2026-10-19"
+    },
+    {
+     "position_id": "IND-R2-SAIL-20261015-5cdb61",
+     "ticker": "SAIL",
+     "engine": "R2",
+     "action": "ACTIVE+",
+     "confidence_pct": 40.5,
+     "entry_date": "2026-10-15",
+     "entry_price": 170.17,
+     "stop": 161.0914,
+     "admission_status": "Admitted 2026-10-15"
+    },
+    {
+     "position_id": "IND-R1-KOTAKBANK-20260804-4429c0",
+     "ticker": "KOTAKBANK",
+     "engine": "R1",
+     "action": "ACTIVE+",
+     "confidence_pct": null,
+     "entry_date": "2026-08-04",
+     "entry_price": 397.0,
+     "stop": 386.4571,
+     "admission_status": "Admitted 2026-08-04"
+    }
+   ]
+  }
+ },
+ "content_hash": "7376924e0cd558f5cc7fa21d25896d76a628e119f5c0ab64488dc9bc07310f79"
+}
