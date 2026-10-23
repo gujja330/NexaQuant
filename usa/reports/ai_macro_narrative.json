@@ -2,15 +2,15 @@
   "engine": "ai_macro_narrative",
   "version": "v1.0",
   "market": "usa",
-  "run_utc": "2026-10-21T16:46:14+00:00",
-  "asof": "2026-10-21",
+  "run_utc": "2026-10-23T16:37:32+00:00",
+  "asof": "2026-10-23",
   "output": {
     "agent": "macro_analyst",
     "version": "v1.0",
     "market": "usa",
-    "asof": "2026-10-21",
-    "headline": "regime=unknown \u00b7 vol=normal \u00b7 active_impacts=0 \u00b7 macro_score=+0.10",
-    "narrative": "regime=unknown \u00b7 vol=normal \u00b7 active_impacts=0 \u00b7 macro_score=+0.10.\n\nAEGIS Macro & Intermarket Intelligence audit. Combines commodity moves, currency pressures, yield curve, VIX regime, and sector rotation into a single macro regime call. Emits an impact matrix + knowledge graph that downstream engines (Recommendation, Risk, Portfolio, Learning, AI Auditor) will consume from Sprint 8 onward.\n\nDoes NOT approve or promote \u2014 every commodity impact, sector rotation call, and regime label is DESCRIPTIVE and requires operator interpretation. AI never trades on macro alone.",
+    "asof": "2026-10-23",
+    "headline": "regime=unknown \u00b7 vol=normal \u00b7 active_impacts=1 \u00b7 macro_score=+0.10",
+    "narrative": "regime=unknown \u00b7 vol=normal \u00b7 active_impacts=1 \u00b7 macro_score=+0.10.\n\nAEGIS Macro & Intermarket Intelligence audit. Combines commodity moves, currency pressures, yield curve, VIX regime, and sector rotation into a single macro regime call. Emits an impact matrix + knowledge graph that downstream engines (Recommendation, Risk, Portfolio, Learning, AI Auditor) will consume from Sprint 8 onward.\n\nDoes NOT approve or promote \u2014 every commodity impact, sector rotation call, and regime label is DESCRIPTIVE and requires operator interpretation. AI never trades on macro alone.",
     "findings": [
       {
         "type": "macro_regime",
@@ -20,71 +20,84 @@
         "macro_score": 0.1,
         "evidence": {
           "vol_regime": "normal",
-          "oil_1w_pct": 2.64,
-          "gold_1w_pct": 1.005,
-          "usd_1w_pct": -0.688,
+          "oil_1w_pct": 1.939,
+          "gold_1w_pct": -3.944,
+          "usd_1w_pct": 0.121,
           "yield_curve_inversion": false,
-          "ten_year_1m_bps": 17.048733000000002
+          "ten_year_1m_bps": 2.7134720000000003
         }
       },
       {
         "type": "volatility",
         "symbol": "^VIX",
-        "level": 16.79,
+        "level": 19.45,
         "regime": "normal",
-        "chg_1m_pct": -5.886
+        "chg_1m_pct": 13.743
       },
       {
         "type": "central_bank_state",
         "bank": "Fed",
-        "rate_cycle": "tightening",
+        "rate_cycle": "neutral",
         "yield_curve_slope": 17.6,
         "inversion": false,
-        "liquidity_score": -0.7,
+        "liquidity_score": 0.0,
         "notes": [
-          "Fed: cycle=tightening \u00b7 short_1m=22.703519999999997bps"
+          "Fed: cycle=neutral \u00b7 short_1m=11.098035000000001bps"
         ]
+      },
+      {
+        "type": "commodity_impact",
+        "commodity": "Gold",
+        "direction": "down",
+        "positive_sectors": [
+          "Jewelry Retailers"
+        ],
+        "negative_sectors": [
+          "Gold Miners"
+        ],
+        "confidence": 0.7,
+        "rationale": "Gold weakness usually risk-on; jewelry demand recovers."
       },
       {
         "type": "sector_rotation",
         "leaders": [
           {
+            "sector": "Energy",
+            "return_pct": 7.99
+          },
+          {
             "sector": "Healthcare",
-            "return_pct": 7.51
+            "return_pct": 7.02
           },
           {
             "sector": "Consumer Staples",
-            "return_pct": 5.01
-          },
-          {
-            "sector": "Energy",
-            "return_pct": 4.33
+            "return_pct": 4.58
           }
         ],
         "laggards": [
           {
-            "sector": "Real Estate",
-            "return_pct": -1.97
+            "sector": "Communication Services",
+            "return_pct": -7.56
           },
           {
-            "sector": "Communication Services",
-            "return_pct": -1.8
+            "sector": "Industrials",
+            "return_pct": -2.89
           },
           {
             "sector": "Financials",
-            "return_pct": -1.39
+            "return_pct": -1.76
           }
         ],
-        "rotation_strength": 0.275
+        "rotation_strength": 0.343
       },
       {
         "type": "knowledge_graph_summary",
         "n_entries": 1,
         "factor_kinds": [
-          "rate"
+          "commodity"
         ],
         "top_factors": [
-          "10Y Treasury Yield"
+          "Gold"
         ]
       },
       {
@@ -92,14 +105,14 @@
         "n_commodities": 3,
         "n_currencies": 1,
         "n_bonds": 4,
-        "n_active_impacts": 0,
+        "n_active_impacts": 1,
         "n_kg_entries": 1
       }
     ],
     "evidence": {
       "primary_regime": "unknown",
       "vol_regime": "normal",
-      "n_active_impacts": 0,
+      "n_active_impacts": 1,
       "macro_score": 0.1
     },
     "citations": [
