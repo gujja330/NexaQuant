@@ -33,6 +33,48 @@ from threading import Lock
 # Lever A · staleness-aware skip
 # ─────────────────────────────────────────────────────────────
 
+def mtime_carries_information() -> bool:
+    """False on a fresh checkout, where every file's mtime is a lie.
+
+    CEO 2026-10-24 · THE SKIP WAS UNCONDITIONAL IN CI.
+
+    Lever A decides "is this artifact fresh?" from st_mtime. That is a
+    sound question on a developer machine, where a file's mtime really
+    is when it was last written.
+
+    It is meaningless in CI. `actions/checkout` writes the whole tree at
+    job start, so EVERY file - including one whose contents froze in
+    July - reports an age of seconds. So `staleness_skip(p, 20)` and
+    `orchestrator_step_fresh(..., 20)` returned True for every artifact
+    on every run, and every opted-in step was skipped as SUCCESS_CACHED
+    without once looking at what the file contained.
+
+    Affected: 3 steps in scripts/aegis_daily_v2.py and 6 in
+    usa/scripts/usa_daily.py. They have not actually run in CI since the
+    skip was introduced.
+
+    This is the mtime-as-freshness class fixed once before in cc72d4df
+    (a guard that certified `age 0` over day-old bars). It recurred here
+    because the check lives in a shared helper that reads plausible in
+    isolation - nothing about `st_mtime` announces that a checkout
+    resets it.
+
+    The honest fix is to stop answering a question we cannot answer.
+    On a fresh checkout there is no cheap way to know when the CONTENT
+    was produced, so the cache is disabled and the step runs. That costs
+    wall-clock, but the ~40% saving Part 29 claimed in CI was never real
+    - it was the cost of not doing the work at all.
+
+    Override with AEGIS_TRUST_MTIME=1 only if a runner is known to
+    preserve mtimes.
+    """
+    import os
+    if os.environ.get("AEGIS_TRUST_MTIME") == "1":
+        return True
+    # GitHub Actions sets both; CI alone covers most other runners.
+    return not (os.environ.get("GITHUB_ACTIONS") or os.environ.get("CI"))
+
+
 def staleness_skip(path: Path, max_age_hours: float = 20.0) -> bool:
     """Return True when `path` exists and its mtime is younger than
     max_age_hours (i.e., no refetch needed). Default 20h so an intraday
@@ -44,6 +86,8 @@ def staleness_skip(path: Path, max_age_hours: float = 20.0) -> bool:
     """
     if not path.exists():
         return False
+    if not mtime_carries_information():
+        return False        # fresh checkout · mtime says nothing · refetch
     try:
         age_h = (time.time() - path.stat().st_mtime) / 3600.0
         return age_h < max_age_hours
@@ -60,6 +104,8 @@ def orchestrator_step_fresh(step_produces: list, max_age_hours: float = 20.0) ->
         if orchestrator_step_fresh(step['produces'], 20): SKIP
     """
     if not step_produces: return False
+    if not mtime_carries_information():
+        return False        # fresh checkout · mtime says nothing · run it
     for rel in step_produces:
         p = Path(rel)
         if not p.exists(): return False

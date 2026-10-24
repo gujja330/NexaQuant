@@ -64,6 +64,10 @@ permissions:
 jobs:
   refresh:
     runs-on: ubuntu-latest
+    # CEO 2026-10-24 · explicit bound. Was relying on the 360-min
+    # default. Three ingest steps here now actually run (see the
+    # USA note), so the job is given a real, stated ceiling.
+    timeout-minutes: 180
     steps:
       # fetch-depth: 0 is REQUIRED by the historical-memory layer.
       # backend/canonical/pit_provenance resolves universe and sector membership
@@ -226,7 +230,22 @@ jobs:
           # skips gracefully -- delivery is owned by the sealed wrapper below.
           TELEGRAM_BOT_TOKEN: ""
           TELEGRAM_CHAT_ID:   ""
-        run: python scripts/aegis_daily_v2.py --continue || echo "Phase 2 orchestrator reported issues (non-fatal)"
+        # CEO 2026-10-24 · `|| echo` is kept HERE on purpose so the
+        # orchestrator finishes its remaining steps and writes its verdict
+        # instead of aborting mid-list. The verdict is then judged by the
+        # gate immediately below, which fails the run on a CRITICAL step.
+        # Before that gate existed this line was the whole story, and a
+        # failed non-optional step looked exactly like success.
+        run: python scripts/aegis_daily_v2.py --continue || echo "orchestrator reported issues · judged by the gate below"
+
+      # CEO 2026-10-24 · UNMASK. Fails on a non-optional step failure, which
+      # means the substrate under this run is stale. Optional failures are
+      # DEGRADED and do not block - one flaky news fetch must not cost the
+      # day's delivery.
+      - name: Orchestrator critical-step gate
+        id: orchestrator_gate
+        if: steps.guard.outputs.run == 'true' && steps.freshcheck.outputs.verified == 'true'
+        run: python scripts/ci_orchestrator_gate.py --market india
 
       # 2026-07-15 reliability upgrade: pre-notify health check + retry wrapper.
       # See docs/TELEGRAM_RELIABILITY_PLAN.md for root causes fixed here.
@@ -393,6 +412,7 @@ jobs:
           # the freshness gate both write WHY they blocked; neither was ever
           # committed, so six weeks of verdicts were discarded and CI logs are
           # 403. These two files are the only durable record of a blocked run.
+          git add reports/context/orchestrator_verdict_india.json 2>/dev/null || true
           git add reports/context/run_certification_india.txt reports/context/run_certification_usa.txt 2>/dev/null || true
           git add reports/context/freshness_diagnostic_india.json 2>/dev/null || true
           git add reports/telegram/aegis_history_india.xlsx reports/telegram/aegis_history_usa.xlsx 2>/dev/null || true

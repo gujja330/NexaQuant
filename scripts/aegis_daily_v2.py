@@ -1451,6 +1451,69 @@ def main() -> int:
         "results":       results,
     })
 
+    # CEO 2026-10-24 · THE MASK. The workflow invoked this as
+    #     `aegis_daily_v2.py --continue || echo "...(non-fatal)"`
+    # which discarded the exit code entirely. A failed CRITICAL step -
+    # global_context_bars, feature_store - therefore left stale COMMITTED
+    # data in place and looked exactly like success. The block surfaced
+    # several steps later, in the run contract, naming a source nobody
+    # would connect back to this orchestrator.
+    #
+    # Removing the mask outright is too blunt: `n_fail` counts OPTIONAL
+    # steps too, so one flaky news-sentiment fetch would kill the day's
+    # delivery. The distinction the step table already encodes is the
+    # right one - `optional: False` means "a silent failure here makes
+    # the next stage score yesterday's data and look healthy doing it".
+    #
+    # So the verdict is written where CI can read it and act on the
+    # critical subset, and where it is COMMITTED so the next failure
+    # explains itself instead of vanishing into a 403'd log.
+    _by_name = {s["name"]: s for s in plan}
+    critical_failures = [
+        {"step": r["name"], "verdict": r["verdict"],
+         "note": str(r.get("note") or "")[:300]}
+        for r in results
+        if r["verdict"] in ("FAILURE", "TIMEOUT", "MISSING_SCRIPT",
+                            "MISSING_INPUTS")
+        and not _by_name.get(r["name"], {}).get("optional", False)
+    ]
+    optional_failures = [
+        r["name"] for r in results
+        if r["verdict"] in ("FAILURE", "TIMEOUT", "MISSING_SCRIPT",
+                            "MISSING_INPUTS")
+        and _by_name.get(r["name"], {}).get("optional", False)
+    ]
+    try:
+        vp = _ROOT / "reports" / "context" / "orchestrator_verdict_india.json"
+        vp.parent.mkdir(parents=True, exist_ok=True)
+        vp.write_text(json.dumps({
+            "schema_version": "aegis.orchestrator_verdict.v1",
+            "run_utc": _iso_utc(),
+            "n_steps": len(results),
+            "n_success": n_success,
+            "n_failure": n_fail,
+            "critical_failures": critical_failures,
+            "optional_failures": optional_failures,
+            "verdict": "CRITICAL_FAILURE" if critical_failures else (
+                "DEGRADED" if optional_failures else "OK"),
+            "steps": [{"name": r["name"], "verdict": r["verdict"],
+                       "optional": bool(_by_name.get(r["name"], {})
+                                        .get("optional", False)),
+                       "elapsed_s": r.get("elapsed_s")} for r in results],
+            "interpretation": (
+                "critical_failures is the list CI must fail on. A step with "
+                "optional=False that did not succeed means the substrate "
+                "underneath the run is stale, and every downstream artifact "
+                "will still report itself fresh."),
+        }, indent=1, default=str), encoding="utf-8")
+        print("  wrote %s · verdict=%s · critical=%d optional=%d"
+              % (vp.relative_to(_ROOT),
+                 "CRITICAL_FAILURE" if critical_failures else
+                 ("DEGRADED" if optional_failures else "OK"),
+                 len(critical_failures), len(optional_failures)))
+    except Exception as e:
+        print("  (orchestrator verdict write failed: %s)" % e)
+
     if n_fail > 0:
         return 1
     _banner("DONE — dashboards will pick up new data within 60s (auto-refresh) "

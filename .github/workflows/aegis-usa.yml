@@ -56,7 +56,14 @@ jobs:
     # steps. 20 min was cancelling before recommendations.json got written,
     # producing "not appending since 2026-07-29" gap. Local wall-clock ~40
     # min · giving 75 min headroom for yfinance retries + macro fetch spikes.
-    timeout-minutes: 75
+    # CEO 2026-10-24 · raised 75 -> 180 alongside the mtime fix in
+    # backend/ingest/pipeline_helpers.py. Six ingest steps here opted into
+    # the staleness cache and were therefore skipped on EVERY CI run -
+    # actions/checkout resets mtime, so the cache always hit. They now run.
+    # Their per-step timeouts sum to 4500s (75 min) in the worst case, which
+    # is exactly the old job limit, so leaving it at 75 would have converted
+    # a silent skip into a hard timeout - a worse failure, not a fix.
+    timeout-minutes: 180
     steps:
       # fetch-depth: 0 is REQUIRED by the historical-memory layer.
       # backend/canonical/pit_provenance resolves universe and sector membership
