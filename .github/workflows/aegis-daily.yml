@@ -389,6 +389,12 @@ jobs:
           # Sealed days are immutable, so this only ever ADDS new dates.
           git add history/ 2>/dev/null || true
           git add reports/context/memory_certification_india.json reports/context/memory_certification_usa.json 2>/dev/null || true
+          # CEO 2026-10-24 · same missing-git-add class. The run contract and
+          # the freshness gate both write WHY they blocked; neither was ever
+          # committed, so six weeks of verdicts were discarded and CI logs are
+          # 403. These two files are the only durable record of a blocked run.
+          git add reports/context/run_certification_india.txt reports/context/run_certification_usa.txt 2>/dev/null || true
+          git add reports/context/freshness_diagnostic_india.json 2>/dev/null || true
           git add reports/telegram/aegis_history_india.xlsx reports/telegram/aegis_history_usa.xlsx 2>/dev/null || true
           # 2026-09-07 · R3 Sprint 1 · the canonical R3 shadow ledger MUST
           # persist across CI runs for the same reason the Registry must.

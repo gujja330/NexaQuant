@@ -25,9 +25,15 @@ on:
     # that had moved on, which is why three consecutive USA runs committed
     # nothing. Spacing them beyond the slowest observed run keeps the backup
     # intent and removes the stacking.
+    # CEO 2026-10-24 · THREE slots became churn, not resilience. Over the last
+    # 15 USA runs: 3 success, 2 failure, 10 CANCELLED. Runs measured up to 147
+    # minutes, so even 3h spacing let a slow primary still be running when the
+    # next slot fired; with cancel-in-progress:false GitHub holds only ONE
+    # pending run per group and cancels the rest. Two slots 7h apart cannot
+    # overlap at any observed runtime, which removes the cancellations while
+    # keeping a genuine second chance.
     - cron: "0 12 * * 1-5"    # 12:00 UTC = 5:30 PM IST · 8:00 AM EDT (primary)
-    - cron: "0 15 * * 1-5"    # 15:00 UTC = 8:30 PM IST (backup 1 · +3h)
-    - cron: "0 18 * * 1-5"    # 18:00 UTC = 11:30 PM IST (backup 2 · +6h)
+    - cron: "0 19 * * 1-5"    # 19:00 UTC = 12:30 AM IST (single backup · +7h)
   workflow_dispatch:
   # 2026-08-28 · CEO directive · revert of 2026-08-18 temporary push
   # trigger. Same rationale as aegis-daily.yml removal: pushes should
@@ -318,6 +324,15 @@ jobs:
           _add_safe "history/usa/*/SEALED"
           _add_safe "history/usa/*/*.parquet"
           _add_safe "reports/context/memory_certification_usa.json"
+          # CEO 2026-10-24 · the run contract writes its verdict here - which
+          # gate blocked and why - but no git add line ever existed, so every
+          # contract verdict since 2026-09-09 was written on the runner and
+          # discarded. When run #242 blocked on SOURCE_STALE:FEATURE_SNAPSHOT
+          # the reason existed and was thrown away, leaving "the pipeline
+          # failed" as the only evidence. GitHub returns 403 on this repo's
+          # Actions logs, so the committed certification IS the audit trail.
+          _add_safe "reports/context/run_certification_usa.txt"
+          _add_safe "reports/context/freshness_diagnostic_india.json"
           _add_safe "reports/telegram/aegis_history_usa.xlsx"
           _add_safe "reports/research/opportunity_registry.jsonl"
           _add_safe "reports/context/opportunity_violations.json"
