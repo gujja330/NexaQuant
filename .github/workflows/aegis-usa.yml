@@ -156,6 +156,31 @@ jobs:
         if: always()
         run: python -m pytest tests/delivery/ -v --tb=short
 
+      # CEO 2026-10-24 · THE STEP CI NEVER HAD.
+      # DATA_READY gates `feature_snapshot` at a budget of ZERO days, but
+      # nothing in this workflow ever BUILT that snapshot. The only writer
+      # is backend/feature_store/feature_snapshot.py, reachable solely via
+      # `contract.runner --refresh`, which this workflow does not pass. So
+      # every run inherited the newest COMMITTED snapshot - 2026-07-21 -
+      # and failed SOURCE_STALE:FEATURE_SNAPSHOT before any gate could say
+      # anything useful.
+      #
+      # `usa/research/feature_store/run.py` runs daily and is NOT this. It
+      # writes usa/reports/feature_store_summary.json and nothing else. Two
+      # things named the feature store, one produced, the other gated on.
+      # Alias drift.
+      #
+      # India does NOT need this step and deliberately does not have it:
+      # india/feature_store/run.py calls build_and_persist directly and is
+      # wired into aegis_daily_v2.py as optional:False. Adding a second
+      # builder there would duplicate the work and, worse, could satisfy the
+      # gate on a run where that non-optional step had failed. USA is the
+      # only market missing a producer, so USA is the only market that gets
+      # one here.
+      - name: Build canonical feature snapshot (USA · DATA_READY precondition)
+        id: feature_snapshot_usa
+        run: python scripts/ci_build_feature_snapshot.py --market usa
+
       # ── AEGIS RUN CONTRACT · CEO 2026-09-09 ─────────────────────────
       # The SAME five gates the manual run executes. A separate "CI check"
       # is how two answers to one question start to exist, and only one of

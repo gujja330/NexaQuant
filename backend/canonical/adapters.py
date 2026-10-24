@@ -360,6 +360,35 @@ def adapt_macro(repo_root: Path, market: MarketProfile,
             return CanonicalDataset(kind="macro", market=market.name,
                                       asof=cutoff or date.today(), n_rows=0,
                                       source=str(sp) + ":missing")
+        # ── PIT REFUSAL · CEO 2026-10-24 ────────────────────────────────
+        # AUDIT of the tripwire in tests/pit/test_pit_substrate.py, which
+        # said: "India macro source appeared; adapt_macro stamps asof=cutoff
+        # at ROW level, so it must be re-audited before use."
+        #
+        # The audit confirms the concern. reports/macro_summary.json is a
+        # CURRENT snapshot - it carries one `run_utc` for the whole file and
+        # no per-row observation date. The USA branch can select the latest
+        # row ON OR BEFORE a cutoff because its parquet is dated. This branch
+        # cannot. It would hand back TODAY's levels wearing a historical
+        # asof, which is lookahead of exactly the kind build_all's docstring
+        # promises it prevents ("replayed at any historical asof").
+        #
+        # So it REFUSES rather than downgrades. A research caller gets zero
+        # rows and a reason, never a plausible-looking fabrication. Fixing
+        # this properly needs a dated India macro history, which does not
+        # exist yet - and inventing one would be fabricating PIT history.
+        #
+        # Production is untouched: it passes cutoff=None or today, and both
+        # take the normal path below.
+        if cutoff is not None and cutoff < date.today():
+            return CanonicalDataset(
+                kind="macro", market=market.name, asof=cutoff, n_rows=0,
+                source=str(sp) + ":pit-refused",
+                notes=("India macro is an undated CURRENT snapshot "
+                       "(run_utc only, no per-row observation date). A "
+                       "historical cutoff cannot be honoured without "
+                       "stamping today's levels with a past date, so this "
+                       "adapter refuses instead of fabricating."))
         try:
             data = json.loads(sp.read_text(encoding="utf-8"))
             per_sym = data.get("per_symbol", [])

@@ -73,14 +73,55 @@ def test_earnings_observation_date():
 
 # 5 -------------------------------------------------------------------
 def test_macro_observation_date():
-    """USA macro HAS real dates. India macro source does not exist at all."""
+    """USA macro HAS real dates. India macro is an UNDATED current snapshot.
+
+    RE-AUDITED 2026-10-24. This used to assert reports/macro_summary.json
+    did not exist. That assertion was vacuous: the file is produced on every
+    CI run by aegis_daily_v2 -> backend/ingest/macro_summary_ingest.py, and
+    it is untracked, so it was absent only on a developer machine that had
+    never run the ingest. The tripwire could therefore never have fired
+    where it mattered.
+
+    The audit it asked for is done. Finding: the file carries ONE `run_utc`
+    for the whole document and no per-row observation date, so a historical
+    cutoff cannot be honoured. adapt_macro now REFUSES such a cutoff rather
+    than stamping today's levels with a past date. These assertions encode
+    that finding, so they keep holding whether or not the file is present.
+    """
+    import json
+    from datetime import timedelta
+    from backend.canonical import INDIA_PROFILE
+    from backend.canonical.adapters import adapt_macro
+
     p = ROOT / "usa/data/raw/us/macro.parquet"
     if p.exists():
         d = pd.read_parquet(p)
         assert "date" in d.columns and d["date"].nunique() > 1
-    assert not (ROOT / "reports/macro_summary.json").exists(), (
-        "India macro source appeared; adapt_macro stamps asof=cutoff at ROW "
-        "level, so it must be re-audited before use")
+
+    sp = ROOT / "reports/macro_summary.json"
+    if not sp.exists():
+        pytest.skip("India macro snapshot not built on this machine")
+
+    # the premise of the refusal: still undated at row level
+    doc = json.loads(sp.read_text(encoding="utf-8"))
+    for row in doc.get("per_symbol", []):
+        dated = [k for k in row
+                 if re.search(r"date|asof|observ|period", str(k), re.I)]
+        assert dated == [], (
+            "India macro rows gained an observation date (%s) - PIT "
+            "selection is now possible and the refusal in adapt_macro "
+            "should be replaced with real on-or-before selection" % dated)
+
+    # production is unaffected
+    today = adapt_macro(ROOT, INDIA_PROFILE, date.today())
+    assert today.n_rows > 0, "production cutoff must still return rows"
+
+    # a historical cutoff is refused, never fabricated
+    hist = adapt_macro(ROOT, INDIA_PROFILE, date.today() - timedelta(days=30))
+    assert hist.n_rows == 0 and "pit-refused" in hist.source, (
+        "India macro must REFUSE a historical cutoff - it has no per-row "
+        "dates, so honouring one would stamp today's levels with a past "
+        "date. Got %d rows from %s" % (hist.n_rows, hist.source))
 
 
 # 5b ------------------------------------------------------------------
@@ -98,8 +139,15 @@ def test_macro_pit_selection_is_latest_on_or_before_cutoff():
     p = ROOT / "usa/data/raw/us/macro.parquet"
     if not p.exists():
         pytest.skip("usa macro.parquet absent")
-    today = adapt_macro(ROOT, USA_PROFILE, date(2026, 9, 15))
-    hist = adapt_macro(ROOT, USA_PROFILE, date(2026, 8, 15))
+    # 2026-10-24 · the dates were hardcoded to 2026-09-15 / 2026-08-15, so
+    # once macro.parquet grew past 2026-09-15 the "today" case became a
+    # HISTORICAL asof and correctly lost its trend fields - the test failed
+    # while the code was right. Derive both dates from the data instead, so
+    # the invariant is asserted rather than a calendar coincidence.
+    obs = sorted({pd.Timestamp(x).date() for x in pd.read_parquet(p)["date"]})
+    assert len(obs) >= 2, "need at least two observation dates"
+    today = adapt_macro(ROOT, USA_PROFILE, obs[-1])
+    hist = adapt_macro(ROOT, USA_PROFILE, obs[max(0, len(obs) - 20)])
     assert today.n_rows == hist.n_rows > 0, "historical asof must not drop symbols"
     assert all(r.chg_1d_pct is not None for r in today.rows), \
         "production must keep trend fields on the newest observation"
