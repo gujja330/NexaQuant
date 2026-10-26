@@ -1,57 +1,59 @@
 ════════════════════════════════════════════════════════════
 AEGIS DAILY RUN CERTIFICATION
-Run: AEGIS-2026-10-24-USA-0612
-Requested ASOF: 2026-10-24   ·   trigger: ci
+Run: AEGIS-2026-10-26-USA-1840
+Requested ASOF: 2026-10-26   ·   trigger: ci
 ════════════════════════════════════════════════════════════
 
 DATA_READY
-  feature_snapshot           asof 2026-10-24 · age 0 
-  price_bars                 asof 2026-10-23 · age 1 · median 2026-10-23 · 508/508 files (universe) 
+  feature_snapshot           asof 2026-10-26 · age 0 
+  price_bars                 asof 2026-10-26 · age 0 · median 2026-10-26 · 508/516 names (universe) 
+    no bars at all           8 · BF, BRK, GGP, IQVIA, LVMH, MBIA, SCANA, TSYS 
+    behind leading bar       5 · EA(2026-08-04), AVB(2026-08-14), EQR(2026-08-17), WBD(2026-10-05), PSKY(2026-10-16) 
   universe                   516              
-  macro_regime               asof 2026-10-23 · age 1 
-  market_intelligence        asof 2026-10-23 · age 1 
-  commodities                asof 2026-10-23 · age 1 
-  currencies                 asof 2026-10-23 · age 1 
-  bonds                      asof 2026-10-23 · age 1 
-  sector_rotation            asof 2026-10-23 · age 1 
+  macro_regime               asof 2026-10-26 · age 0 
+  market_intelligence        asof 2026-10-26 · age 0 
+  commodities                asof 2026-10-26 · age 0 
+  currencies                 asof 2026-10-26 · age 0 
+  bonds                      asof 2026-10-26 · age 0 
+  sector_rotation            asof 2026-10-26 · age 0 
                                               → PASS   (2.64s)
 
 INTERMARKET
-  S&P 500                    2026-10-23       ✓ critical
-  NASDAQ                     2026-10-23       ✓
-  Dow                        2026-10-23       ✓
-  VIX                        2026-10-23       ✓ critical
-  Commodities                2026-10-23       ✓
-  Currencies                 2026-10-23       ✓
-  Bonds / yields             2026-10-23       ✓
-  Sector rotation            2026-10-23       ✓
-  Macro regime               2026-10-23       ✓ critical
+  S&P 500                    2026-10-26       ✓ critical
+  NASDAQ                     2026-10-26       ✓
+  Dow                        2026-10-26       ✓
+  VIX                        2026-10-26       ✓ critical
+  Commodities                2026-10-26       ✓
+  Currencies                 2026-10-26       ✓
+  Bonds / yields             2026-10-26       ✓
+  Sector rotation            2026-10-26       ✓
+  Macro regime               2026-10-26       ✓ critical
   Silver                     —                ✗ not collected
   COMPLETENESS               100.0% (9/9 fresh) 
-                                              → PASS   (0.12s)
+                                              → PASS   (0.01s)
 
 FEATURES_READY
-  requested snapshot         2026-10-24       
-  available snapshot         2026-10-24       
+  requested snapshot         2026-10-26       
+  available snapshot         2026-10-26       
   rows / tickers             516 / 516        
   coverage                   100.0%           
   duplicates                 0                
-  retention vs prev          100.0%           
-                                              → PASS   (0.05s)
+  retention vs prev          1720.0%          
+                                              → PASS   (0.01s)
 
 SCORES_READY
   scored                     516              
   expected                   516              
   would-be NEW               6                
   lost to truncation         0                
-                                              → PASS   (0.04s)
+                                              → PASS   (0.01s)
 
 DECISION_READY
   scored                     516              
   terminal dispositions      516              
   orphans                    0                
   defect tickers             0                
-                                              → PASS   (0.16s)
+                                              → PASS   (0.06s)
 
 LIFECYCLE_READY
   current_total              214              
@@ -60,33 +62,31 @@ LIFECYCLE_READY
   active                     6                
   exit_history_total         558              
   stop_breached              0                
-                                              → PASS   (0.01s)
+                                              → PASS   (0.00s)
 
 FIELDS_COMPLETE
   rows checked               214              
   required gaps              0                
   expected gaps              0                
   exit sector populated      555 / 558        
-                                              → PASS   (185.40s)
+                                              → BLOCK   (101.54s)
+    ✗ STOP_DISTANCE_MISMATCH
+      1 row(s) where stop, price and distance cannot agree: ADT · a displayed stop that does not reconcile is not shippable
 
-DELIVERY_READY
-  gate                       ALLOW            
-  override                   False            
-  A19 / A23                  PASS / PASS      
-  R3 production writes       0                
-                                              → PASS   (0.02s)
+  downstream NOT RUN: DELIVERY_READY
 
 ════════════════════════════════════════════════════════════
 RUNTIME
   DATA_READY                 2.64s            
-  INTERMARKET                0.12s            
-  FEATURES_READY             0.05s            
-  SCORES_READY               0.04s            
-  DECISION_READY             0.16s            
-  LIFECYCLE_READY            0.01s            
-  FIELDS_COMPLETE            185.40s          
-  DELIVERY_READY             0.02s            
-  TOTAL                      188.44s          
+  INTERMARKET                0.01s            
+  FEATURES_READY             0.01s            
+  SCORES_READY               0.01s            
+  DECISION_READY             0.06s            
+  LIFECYCLE_READY            0.00s            
+  FIELDS_COMPLETE            101.54s          
+  TOTAL                      104.27s          
 ════════════════════════════════════════════════════════════
-FINAL: ✅ CERTIFIED
+FINAL: ❌ BLOCKED
+FIRST FAILURE: STOP_DISTANCE_MISMATCH  (FIELDS_COMPLETE)
+No downstream stages executed. No XLSX. No Telegram.
 ════════════════════════════════════════════════════════════
