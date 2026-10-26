@@ -1,5 +1,5 @@
 # MON001 · Operator Dashboard — 2026-10-26
-_Auto-generated 2026-10-26T17:10:59+00:00_
+_Auto-generated 2026-10-26T19:17:47+00:00_
 ## Summary
 - **State**: `HALT_REVIEW_REQUIRED`
 - **HALT_REVIEW_REQUIRED**: `True`
@@ -27,6 +27,7 @@ _Auto-generated 2026-10-26T17:10:59+00:00_
 | OPS_RUN_FAILED | `WARN` | 1 | — | run_mon001.main raised an exception; MON001 metrics unavailable for this pass. tail: RuntimeError: MON001 baseline envelope drift detected. Cached hash e4ca8ecb97914f4828f6601eb5d05ebe4956099dac7c6df70df13ccaaa482812 != freshly-computed 914f0cf9579e22654ae89e6a313a42ad8f51e549f90550626d31b1c66f16e843. Either the LAB009 diagnostics CSV was mutated or the envelope-building code changed. MON001 refuses to run. |
 | OPS_RUN_FAILED | `WARN` | 2 | 2026-10-22 | run_mon001.main raised an exception; MON001 metrics unavailable for this pass. tail: RuntimeError: MON001 baseline envelope drift detected. Cached hash e4ca8ecb97914f4828f6601eb5d05ebe4956099dac7c6df70df13ccaaa482812 != freshly-computed 914f0cf9579e22654ae89e6a313a42ad8f51e549f90550626d31b1c66f16e843. Either the LAB009 diagnostics CSV was mutated or the envelope-building code changed. MON001 refuses to run. |
 | OPS_RUN_FAILED | `WARN` | 1 | — | run_mon001.main raised an exception; MON001 metrics unavailable for this pass. tail: RuntimeError: MON001 baseline envelope drift detected. Cached hash e4ca8ecb97914f4828f6601eb5d05ebe4956099dac7c6df70df13ccaaa482812 != freshly-computed 914f0cf9579e22654ae89e6a313a42ad8f51e549f90550626d31b1c66f16e843. Either the LAB009 diagnostics CSV was mutated or the envelope-building code changed. MON001 refuses to run. |
+| OPS_RUN_FAILED | `WARN` | 3 | 2026-10-22 | run_mon001.main raised an exception; MON001 metrics unavailable for this pass. tail: RuntimeError: MON001 baseline envelope drift detected. Cached hash e4ca8ecb97914f4828f6601eb5d05ebe4956099dac7c6df70df13ccaaa482812 != freshly-computed 914f0cf9579e22654ae89e6a313a42ad8f51e549f90550626d31b1c66f16e843. Either the LAB009 diagnostics CSV was mutated or the envelope-building code changed. MON001 refuses to run. |
 ## Metric evidence timeline
 | Metric | Forward | Status | Sample | Minimum |
 |---|---:|:-:|---:|---:|
