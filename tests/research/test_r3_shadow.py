@@ -133,13 +133,29 @@ def test_ledger_has_no_duplicate_prediction_keys():
 
 
 def test_rerun_appends_nothing_new():
-    """Idempotent · a second run on the same as-of must not re-predict."""
+    """Idempotent · a second run on the same as-of must not re-predict.
+
+    2026-10-26 · this established no baseline. It called run() once and
+    asserted zero decisions were written, which only holds if some EARLIER
+    test happened to have run it first for today's as-of. So it failed on
+    the first execution of any day and passed on every one after - order
+    dependence masquerading as flakiness.
+
+    The subject of the test is the SECOND run, so it now performs the first
+    one itself and measures from there. The idempotency assertion is
+    unchanged and still strict.
+    """
+    # establish the precondition: one run for today's as-of, whatever it writes
+    for m in MARKETS:
+        shadow.run(ROOT, m)
+
     before = {m: len(shadow.load_ledger(ROOT, m)) for m in MARKETS}
     for m in MARKETS:
         rep = shadow.run(ROOT, m)
         if rep.get("error"):
             continue
-        assert rep["decisions_written_this_run"] == 0
+        assert rep["decisions_written_this_run"] == 0, (
+            "%s re-predicted on a second run for the same as-of" % m)
     after = {m: len(shadow.load_ledger(ROOT, m)) for m in MARKETS}
     assert before == after
 

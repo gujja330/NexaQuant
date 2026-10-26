@@ -413,6 +413,16 @@ jobs:
           # committed, so six weeks of verdicts were discarded and CI logs are
           # 403. These two files are the only durable record of a blocked run.
           git add reports/context/orchestrator_verdict_india.json 2>/dev/null || true
+          # CEO 2026-10-26 · FEATURE-STORE AUDIT TRAIL. None of the three
+          # evidence artifacts for the feature store were committed, so the
+          # question "did the feature store refresh today?" had NO auditable
+          # answer - the snapshot parquet is untracked by design, and these
+          # two plus the manifest had no git add line. The substrate every
+          # recommendation is scored from left no trace that it ran.
+          git add reports/feature_store_summary.json reports/ai_feature_narrative.json 2>/dev/null || true
+          git add features/manifest.jsonl 2>/dev/null || true
+          git add reports/backend_validation.json reports/backend_validation_summary.json 2>/dev/null || true
+          git add reports/ops_check.json 2>/dev/null || true
           git add reports/context/run_certification_india.txt reports/context/run_certification_usa.txt 2>/dev/null || true
           git add reports/context/freshness_diagnostic_india.json 2>/dev/null || true
           git add reports/telegram/aegis_history_india.xlsx reports/telegram/aegis_history_usa.xlsx 2>/dev/null || true

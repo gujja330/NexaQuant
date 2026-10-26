@@ -363,7 +363,22 @@ def test_lifecycle_measures_input_freshness(market):
     for f in fr:
         assert f["verdict"] in ("FRESH", "STALE", "MISSING")
         if f["verdict"] == "FRESH":
-            assert (f["age_days"] or 0) <= 0
+            # Two input classes, two budgets - see canonical_daily_lifecycle.
+            # DERIVED inputs (recommendations_v3 / ensemble / dynamic_risk)
+            # are outputs of scoring and must be same-day: age > 0 is STALE.
+            # SUBSTRATE (feature_store) carries an explicit
+            # MAX_SUBSTRATE_AGE_DAYS budget, declared on the entry as
+            # max_age_days, so a weekend does not read as a defect.
+            #
+            # 2026-10-26 · this test applied the derived rule to every
+            # entry, so USA's feature_store at age 2 on a Monday (its own
+            # run had not yet happened) failed a test whose subject was
+            # correct. Honour the declared budget instead of assuming one.
+            budget = f.get("max_age_days")
+            limit = 0 if budget is None else int(budget)
+            assert (f["age_days"] or 0) <= limit, (
+                "%s is FRESH at age %s but its budget is %s"
+                % (f.get("input"), f.get("age_days"), limit))
     assert d["counts"]["stale_inputs"] == sum(
         1 for f in fr if f["verdict"] != "FRESH")
 

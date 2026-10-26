@@ -173,12 +173,30 @@ def render(ctx: RunContext) -> str:
                     # because the old check read file mtimes. An operator
                     # must be able to see the bar date itself.
                     if src == "price_bars" and info.get("measured_from"):
-                        txt += (" · median %s · %s/%s files (%s)"
+                        # CEO 2026-10-26 · the denominator is the UNIVERSE,
+                        # not the files that happen to be present. This read
+                        # "508/508 files (universe)" while 8 of 516 names had
+                        # no bars at all.
+                        denom = info.get("n_universe") or info.get("n_files")
+                        txt += (" · median %s · %s/%s names (%s)"
                                 % (info.get("median_asof"),
-                                   info.get("n_readable"),
-                                   info.get("n_files"),
+                                   info.get("n_readable"), denom,
                                    info.get("scope")))
                     L.append(_row(src, txt))
+                    if src == "price_bars":
+                        miss = info.get("universe_missing") or []
+                        if miss:
+                            L.append(_row("  no bars at all",
+                                          "%d · %s" % (len(miss),
+                                                       ", ".join(miss[:8]))))
+                        nb = info.get("n_behind_lead") or 0
+                        if nb:
+                            bl = info.get("behind_lead") or []
+                            worst = ", ".join(
+                                "%s(%s)" % (r["ticker"], r["newest_bar"])
+                                for r in bl[:5])
+                            L.append(_row("  behind leading bar",
+                                          "%d · %s" % (nb, worst)))
                 else:
                     L.append(_row(src, info.get("size")))
         elif name == "INTERMARKET":

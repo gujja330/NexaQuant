@@ -368,6 +368,27 @@ def _price_bars_truth(root: Path, market: str,
             if sel:
                 keep, out["scope"] = sel, "universe"
         out["n_files"] = len(keep)
+        # CEO 2026-10-26 · COVERAGE, not just the files that happen to be
+        # here. `n_files` counts universe names that HAVE a parquet, so the
+        # certification rendered "508/508 files (universe)" against a 516
+        # name universe and "225/225" against 228 - a denominator taken
+        # from what is present rather than what is required. Eleven names
+        # had no bars at all and every gate read as complete.
+        #
+        # Also measured: names whose newest bar trails the leading date.
+        # The freshness gate keys on the MAXIMUM bar date across files, so
+        # one current ticker satisfies it and an individual name can rot
+        # indefinitely - GUJGASLTD sat 55 days stale and EA 83.
+        #
+        # SURFACED, NOT GATED. Making this block today would stop delivery
+        # over names that are delisted or renamed upstream, which is a
+        # universe-maintenance decision, not a data-pipeline verdict.
+        if universe:
+            have = {f.stem.split("_")[0].upper() for f in keep}
+            want_all = {str(t).upper().split(".")[0] for t in universe}
+            out["n_universe"] = len(want_all)
+            out["universe_missing"] = sorted(want_all - have)
+            out["n_universe_missing"] = len(out["universe_missing"])
         dates = []
         for f in keep:
             bd = _bar_date(f)
@@ -380,6 +401,16 @@ def _price_bars_truth(root: Path, market: str,
             dates.sort()
             out["asof"] = dates[-1]
             out["median_asof"] = dates[len(dates) // 2]
+            lead = dates[-1]
+            behind = []
+            for f in keep:
+                bd = _bar_date(f)
+                if bd and bd < lead:
+                    behind.append({"ticker": f.stem.split("_")[0].upper(),
+                                   "newest_bar": bd})
+            behind.sort(key=lambda r: r["newest_bar"])
+            out["n_behind_lead"] = len(behind)
+            out["behind_lead"] = behind[:40]
         break
     return out
 
@@ -414,6 +445,12 @@ def check_data_ready(ctx: RunContext) -> StageContract:
                              "n_unreadable": bars["n_unreadable"],
                              "dir": bars["dir"],
                              "scope": bars["scope"],
+                             "n_universe": bars.get("n_universe"),
+                             "n_universe_missing": bars.get(
+                                 "n_universe_missing"),
+                             "universe_missing": bars.get("universe_missing"),
+                             "n_behind_lead": bars.get("n_behind_lead"),
+                             "behind_lead": bars.get("behind_lead"),
                              "measured_from": "bar_date"}
 
     uni = _universe_size(root, m)

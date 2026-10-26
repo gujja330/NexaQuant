@@ -524,11 +524,35 @@ STEPS = [
         "requires": ["reports/recommendations.json", "reports/benchmark.json"],
     },
     {
+        # CEO 2026-10-26 · REPORTER, not a producer.
+        #
+        # ops_check exits non-zero when it FINDS problems, not when it
+        # fails. On 2026-10-26 it ran perfectly - 23/23 artifacts present,
+        # 14/14 schemas pass - and still exited 1, because backend health
+        # rolled up CRITICAL. Treating that as a step failure conflates
+        # "the reporter found something" with "the reporter broke".
+        #
+        # It has carried optional=False for months while the workflow
+        # masked its exit code with `|| echo`, so it has NEVER actually
+        # blocked a delivery. The orchestrator gate added on 2026-10-24
+        # made it block for the first time, which is how India lost its
+        # XLSX on 2026-10-26.
+        #
+        # `reporter: True` keeps that prior behaviour while removing the
+        # silence: the gate surfaces the finding loudly and does not block
+        # on it. Delivery authority belongs to the run contract's eight
+        # gates, which is the one place designed to hold it - a second,
+        # broader, research-inclusive health signal must not quietly
+        # outrank it.
+        #
+        # The 44 failing datasets behind that CRITICAL are real debt and
+        # are reported, not dismissed.
         "name": "ops_check",
         "desc": "Operational Hardening (artifact + schema + fingerprint + health rollup)",
         "script": "scripts/aegis_ops_check.py",
         "produces": ["reports/ops_check.json"],
         "requires": [],
+        "reporter": True,
     },
     # ── CEO 2026-09-01 · WIRE-IN of previously-manual research + certification
     # ── all optional=True · failure does not halt telegram delivery
@@ -749,6 +773,17 @@ STEPS = [
         "desc":       ("Canonical lifecycle aggregation · R1+R2+Momentum -> "
                         "CURRENT + EXIT events (downstream-only · no engine "
                         "writes)"),
+        # CEO 2026-10-26 · MODULE MODE. This ran as a plain path, so
+        # sys.path[0] was backend/delivery/lifecycle/ and the repo root was
+        # absent - `from scripts.build_aegis_3sheet_workbook import ...` at
+        # compute() line 370 raised ModuleNotFoundError on EVERY run. The
+        # step has never once succeeded in CI; `|| echo` hid it until the
+        # orchestrator gate landed on 2026-10-24.
+        #
+        # `module` is the existing fix for this (added 2026-09-07: "module
+        # mode (-m) keeps repo root as the import anchor"). The script also
+        # got its own sys.path bootstrap so a path invocation works too.
+        "module":     "backend.delivery.lifecycle.canonical_daily_lifecycle",
         "script":     "backend/delivery/lifecycle/canonical_daily_lifecycle.py",
         "script_args": ["--market", "both"],
         "produces":   ["reports/context/canonical_lifecycle_india.json",
@@ -1119,6 +1154,18 @@ def _artifact_asof(p) -> str | None:
     return None
 
 
+def _expand_asof(rel: str) -> str:
+    """Substitute {asof} in a declared artifact path with today's date.
+
+    Declared paths are matched against the filesystem, so a template left
+    unexpanded can never match anything.
+    """
+    if "{asof}" not in str(rel):
+        return rel
+    from datetime import date as _d
+    return str(rel).replace("{asof}", _d.today().isoformat())
+
+
 def _check_produced(step: dict, before_mtimes: dict[str, str | None]) -> dict:
     """Verify each declared artifact was refreshed since `before_mtimes`.
 
@@ -1139,7 +1186,23 @@ def _check_produced(step: dict, before_mtimes: dict[str, str | None]) -> dict:
         exists = p.exists()
         mtime_changed = exists and (before != after)
         asof = _artifact_asof(p) if exists else None
-        if asof is None:
+        # CEO 2026-10-26 · DATE-NAMED IMMUTABLE SNAPSHOTS.
+        # feature_history.write_snapshot DELIBERATELY never overwrites: if
+        # features/<m>/<asof>.parquet already exists it writes a
+        # `.rebuilt_HHMMSS.parquet` sibling, because a snapshot for a given
+        # as-of must be stable. So on a second run the same day the
+        # canonical file's mtime does not move - and judging it by mtime
+        # would report SUCCESS_NO_REFRESH on a step that did exactly the
+        # right thing.
+        #
+        # For a path whose FILENAME is today's date, existence is the proof
+        # that today's substrate was built - by this run or an earlier one
+        # today. If the step genuinely failed on the day's first run the
+        # file is absent, so a real failure is still caught.
+        if _today in Path(art).name and str(art).endswith(".parquet"):
+            content_fresh = exists
+            refreshed = exists
+        elif asof is None:
             content_fresh = None          # unverifiable · no internal stamp
             refreshed = mtime_changed
         else:
@@ -1213,6 +1276,15 @@ def _run_step(step: dict, dry_run: bool = False) -> dict:
             "note": f"env vars not set: {', '.join(missing_env)}",
         }
 
+    # CEO 2026-10-26 · EXPAND {asof}. The feature_store step declares
+    # "features/india/{asof}.parquet" - a template that nothing ever
+    # substituted. The verifier therefore looked for a file literally named
+    # `{asof}.parquet`, never found it, and returned SUCCESS_NO_REFRESH on
+    # every single run even when the snapshot was written correctly. A
+    # non-optional step whose verification can never pass is a blind spot,
+    # not a check: a genuine failure to write would look identical.
+    step = dict(step)
+    step["produces"] = [_expand_asof(a) for a in step.get("produces", [])]
     before_mtimes = {art: _mtime_iso(_ROOT / art) for art in step.get("produces", [])}
     missing_reqs = _check_requires(step)
     if missing_reqs:
@@ -1469,13 +1541,33 @@ def main() -> int:
     # critical subset, and where it is COMMITTED so the next failure
     # explains itself instead of vanishing into a 403'd log.
     _by_name = {s["name"]: s for s in plan}
+    _FAILED = ("FAILURE", "TIMEOUT", "MISSING_SCRIPT", "MISSING_INPUTS")
+    # CEO 2026-10-26 · A NON-OPTIONAL PRODUCER THAT WROTE NOTHING IS A
+    # FAILURE. It exits 0, so it was never counted - but a feature store
+    # that does not refresh means every recommendation that day is scored
+    # from stale features while each downstream artifact reports itself
+    # fresh. SUCCESS_NO_REFRESH and SUCCESS_STALE_CONTENT are therefore
+    # promoted to critical for non-optional, non-reporter steps.
+    _NOT_REFRESHED = ("SUCCESS_NO_REFRESH", "SUCCESS_STALE_CONTENT")
     critical_failures = [
+        {"step": r["name"], "verdict": r["verdict"],
+         "note": str(r.get("note") or "")[:300],
+         "not_refreshed": sorted(k for k, v in (r.get("produced") or {}).items()
+                                 if not v.get("refreshed")),
+         "stderr_tail": (r.get("stderr_tail") or [])[-3:]}
+        for r in results
+        if r["verdict"] in (_FAILED + _NOT_REFRESHED)
+        and not _by_name.get(r["name"], {}).get("optional", False)
+        and not _by_name.get(r["name"], {}).get("reporter", False)
+    ]
+    # A reporter exits non-zero when it FINDS problems. That is a finding to
+    # surface, not a step that broke - see the ops_check note above.
+    reporter_findings = [
         {"step": r["name"], "verdict": r["verdict"],
          "note": str(r.get("note") or "")[:300]}
         for r in results
-        if r["verdict"] in ("FAILURE", "TIMEOUT", "MISSING_SCRIPT",
-                            "MISSING_INPUTS")
-        and not _by_name.get(r["name"], {}).get("optional", False)
+        if r["verdict"] in _FAILED
+        and _by_name.get(r["name"], {}).get("reporter", False)
     ]
     optional_failures = [
         r["name"] for r in results
@@ -1493,24 +1585,37 @@ def main() -> int:
             "n_success": n_success,
             "n_failure": n_fail,
             "critical_failures": critical_failures,
+            "reporter_findings": reporter_findings,
             "optional_failures": optional_failures,
-            "verdict": "CRITICAL_FAILURE" if critical_failures else (
-                "DEGRADED" if optional_failures else "OK"),
+            # A reporter's finding must not be rendered as "OK". The ladder
+            # is: a broken critical step > a reporter raising the alarm >
+            # a degraded optional step > clean.
+            "verdict": ("CRITICAL_FAILURE" if critical_failures else
+                        "REPORTER_FINDINGS" if reporter_findings else
+                        "DEGRADED" if optional_failures else "OK"),
             "steps": [{"name": r["name"], "verdict": r["verdict"],
                        "optional": bool(_by_name.get(r["name"], {})
                                         .get("optional", False)),
-                       "elapsed_s": r.get("elapsed_s")} for r in results],
+                       "elapsed_s": r.get("elapsed_s"),
+                       # which declared artifacts did NOT move · answers
+                       # "was it refreshed?" without guesswork
+                       "not_refreshed": sorted(
+                           k for k, v in (r.get("produced") or {}).items()
+                           if not v.get("refreshed")),
+                       } for r in results],
             "interpretation": (
                 "critical_failures is the list CI must fail on. A step with "
                 "optional=False that did not succeed means the substrate "
                 "underneath the run is stale, and every downstream artifact "
                 "will still report itself fresh."),
         }, indent=1, default=str), encoding="utf-8")
-        print("  wrote %s · verdict=%s · critical=%d optional=%d"
+        print("  wrote %s · verdict=%s · critical=%d reporter=%d optional=%d"
               % (vp.relative_to(_ROOT),
-                 "CRITICAL_FAILURE" if critical_failures else
-                 ("DEGRADED" if optional_failures else "OK"),
-                 len(critical_failures), len(optional_failures)))
+                 ("CRITICAL_FAILURE" if critical_failures else
+                  "REPORTER_FINDINGS" if reporter_findings else
+                  "DEGRADED" if optional_failures else "OK"),
+                 len(critical_failures), len(reporter_findings),
+                 len(optional_failures)))
     except Exception as e:
         print("  (orchestrator verdict write failed: %s)" % e)
 

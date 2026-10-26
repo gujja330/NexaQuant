@@ -50,9 +50,21 @@ reports/context/canonical_lifecycle_{market}.json
 from __future__ import annotations
 
 import json
+import sys
 from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Optional
+
+# CEO 2026-10-26 · IMPORT ANCHOR. compute() imports both `scripts.*` and
+# `backend.*`, but when this file is run as a plain path sys.path[0] is its
+# own directory and the repo root is absent - so both raise
+# ModuleNotFoundError. Nothing at module level revealed it, because every
+# module-level import here is stdlib; the failure waited until line 370,
+# inside compute(). Anchoring the root here makes the file correct however
+# it is invoked, rather than only under `python -m`.
+_REPO_ROOT = Path(__file__).resolve().parents[3]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
 
 SCHEMA_VERSION = "aegis.lifecycle.v1"
 

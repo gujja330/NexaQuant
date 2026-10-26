@@ -156,3 +156,101 @@ def test_orchestrator_writes_a_verdict_ci_can_judge():
         "aegis_daily_v2 no longer writes its verdict - the gate has nothing "
         "to read and will exit 2 on every run")
     assert "critical_failures" in src
+
+
+# ── 3 · the feature-store audit trail (CEO 2026-10-26) ───────────────
+#
+# "Was the feature store refreshed today?" had no auditable answer. The
+# snapshot parquet is untracked by design, and feature_store_summary.json
+# and features/manifest.jsonl had no git add line - so the substrate every
+# recommendation is scored from left no committed trace that it ran. On top
+# of that the step declared "features/india/{asof}.parquet", a template
+# nothing expanded, so its verification could never pass and it reported
+# SUCCESS_NO_REFRESH on every run regardless of what happened.
+def _orch():
+    import importlib.util as u
+    spec = u.spec_from_file_location(
+        "_ad2", str(ROOT / "scripts" / "aegis_daily_v2.py"))
+    m = u.module_from_spec(spec)
+    spec.loader.exec_module(m)
+    return m
+
+
+def test_asof_placeholder_is_expanded():
+    m = _orch()
+    from datetime import date
+    got = m._expand_asof("features/india/{asof}.parquet")
+    assert "{asof}" not in got, (
+        "an unexpanded {asof} can never match a real file, so the step's "
+        "verification silently always fails")
+    assert date.today().isoformat() in got
+
+
+def test_date_named_snapshot_counts_as_refreshed_when_present():
+    """write_snapshot is immutable by design - mtime is the wrong test.
+
+    It never overwrites features/<m>/<asof>.parquet; a same-day re-run gets
+    a .rebuilt_HHMMSS sibling. Judging by mtime would report NO_REFRESH on
+    a step that behaved correctly, and (now that non-refresh is critical)
+    would block delivery on the second run of any day.
+    """
+    m = _orch()
+    from datetime import date
+    t = date.today().isoformat()
+    rel = "features/india/%s.parquet" % t
+    if not (ROOT / rel).exists():
+        pytest.skip("today's India snapshot not built on this machine")
+    r = m._check_produced({"produces": [rel]}, {rel: "pretend-older"})
+    assert r[rel]["refreshed"] is True, (
+        "today's snapshot exists, so today's substrate was built - by this "
+        "run or an earlier one today")
+
+
+def test_missing_snapshot_is_still_caught():
+    m = _orch()
+    rel = "features/india/2099-01-01.parquet"
+    r = m._check_produced({"produces": [rel]}, {})
+    assert r[rel]["refreshed"] is False, (
+        "a genuinely absent snapshot must NOT be credited as refreshed")
+
+
+def test_non_optional_non_refresh_is_critical():
+    """A producer that exits 0 having written nothing is a failure.
+
+    A feature store that does not refresh means the day's recommendations
+    are scored from stale features while every downstream artifact reports
+    itself fresh.
+    """
+    src = (ROOT / "scripts" / "aegis_daily_v2.py").read_text(encoding="utf-8")
+    assert "_NOT_REFRESHED" in src
+    assert "SUCCESS_NO_REFRESH" in src and "SUCCESS_STALE_CONTENT" in src
+    i = src.find("_NOT_REFRESHED = ")
+    j = src.find("critical_failures = ")
+    assert 0 < i < j, "_NOT_REFRESHED must be defined before it is used"
+    seg = src[j:j + 700]
+    assert "_FAILED + _NOT_REFRESHED" in seg, (
+        "non-refresh is no longer in the critical set - a feature store "
+        "that writes nothing would pass silently again")
+
+
+def test_reporter_steps_do_not_block_delivery():
+    """ops_check exits non-zero when it FINDS problems, not when it breaks."""
+    src = (ROOT / "scripts" / "aegis_daily_v2.py").read_text(encoding="utf-8")
+    i = src.find('"name": "ops_check"')
+    assert i > 0, "ops_check step disappeared"
+    assert '"reporter": True' in src[max(0, i - 1800):i + 400], (
+        "ops_check lost its reporter marker. It would then block delivery "
+        "whenever backend health rolls up CRITICAL - which is how India "
+        "lost its XLSX on 2026-10-26.")
+    assert "reporter_findings" in src, "findings must still be surfaced"
+
+
+def test_feature_store_evidence_is_committed():
+    """The question must be answerable from the repo, not from a 403'd log."""
+    wf = (ROOT / ".github/workflows/aegis-daily.yml").read_text(
+        encoding="utf-8")
+    for art in ("reports/feature_store_summary.json",
+                "features/manifest.jsonl"):
+        assert art in wf, (
+            "%s is written every run but never committed, so 'did the "
+            "feature store refresh?' has no auditable answer" % art)
