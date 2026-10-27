@@ -127,12 +127,25 @@ def is_advisory(market: str, engine: str) -> bool:
 
 
 def decorate_reason(market: str, engine: str, reason: str) -> str:
-    """Prepend the advisory notice · idempotent, so a re-run cannot
-    stack two copies of it onto the same row."""
+    """APPEND the advisory notice · idempotent.
+
+    CEO 2026-10-27 · APPEND, NOT PREPEND. The first dot-separated token of
+    `reason` is a PARSED CONTRACT: consumers read today's signal from it,
+    and tests/research/test_opportunity_funnel.py asserts that a NEW row's
+    leading token is BUY-family.
+
+    Prepending the notice made that token read "⚠ ADVISORY" instead of the
+    signal, which broke the contract silently. It surfaced only when
+    EXIDEIND became the first NEW admission after the change - every
+    earlier row was ACTIVE/ACTIVE+ and not covered by that assertion.
+
+    Appending keeps the signal first and still carries the notice, so the
+    operator sees it without any consumer losing its parse.
+    """
     if not is_advisory(market, engine):
         return reason
     r = reason or ""
     if "ADVISORY · NOT ACTIONABLE" in r:
         return r
     notice = NOTICE_USA if str(market).strip().lower() == "usa" else NOTICE
-    return "%s · %s" % (notice, r) if r else notice
+    return "%s · %s" % (r, notice) if r else notice

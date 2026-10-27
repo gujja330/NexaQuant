@@ -40,9 +40,22 @@ RESEARCH ONLY · SHADOW ONLY · never a production signal.
 from __future__ import annotations
 
 import json
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
+
+# CEO 2026-10-27 · IMPORT ANCHOR. The orchestrator invokes this as a plain
+# path (`python backend/research/r3_program/shadow.py --market both
+# --score`), so sys.path[0] is this file's own directory and the repo root
+# is absent. Every `from backend...` import inside main() and
+# score_outcomes() therefore raised ModuleNotFoundError - which is why
+# r3_shadow has been sitting in the orchestrator's optional_failures.
+#
+# Same defect, same fix, as canonical_daily_lifecycle on 2026-10-26.
+_REPO_ROOT = Path(__file__).resolve().parents[3]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
 
 SCHEMA_VERSION = "aegis.r3.shadow.v1"
 CONTRACT_ID = "R3_DECISION_v1"
@@ -396,9 +409,30 @@ def main() -> int:
               f"{rep['validated_specialists'] or 'none'} · production writes "
               f"{rep['production_writes']}")
         if a.score:
-            s = score_outcomes(root, m)
-            print(f"    outcomes scored this run {s['scored']} · total "
-                  f"{s['total_outcomes']}")
+            # CEO 2026-10-27 · outcome resolution moved to outcome_resolver.
+            #
+            # score_outcomes() resolves through core.load_pop -> load_cohort,
+            # which reads reports/research/mr_prediction_autopsy_<market>
+            # _enriched.jsonl - a FROZEN research cohort covering
+            # 2026-08-04..2026-09-08. The R3 ledger starts 2026-09-08 and runs
+            # to today, so the key intersection is ZERO: it returned
+            # `scored: 0` on every run since R3 began and outcomes_*.jsonl
+            # never existed. R3 had never scored one of its own predictions.
+            #
+            # outcome_resolver computes forward returns from the market's own
+            # price bars, so coverage tracks the ledger rather than a static
+            # file. Same contract: separate append-only file, predictions
+            # never edited, an immature horizon absent rather than 0.0.
+            from backend.research.r3_program import outcome_resolver as _orr
+            s = _orr.resolve(root, m)
+            cov = _orr.coverage(root, m)
+            print(f"    outcomes appended {s['scored_this_run']} · total "
+                  f"{s['total_outcomes']} · still immature "
+                  f"{s['still_immature']} · no bars {s['no_bars']}")
+            print(f"    coverage 5d {cov.get('coverage_5d_pct')}% · "
+                  f"10d {cov.get('coverage_10d_pct')}% · "
+                  f"20d {cov.get('coverage_20d_pct')}% "
+                  f"of {cov.get('predictions')} predictions")
     return 0
 
 

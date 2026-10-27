@@ -824,7 +824,12 @@ STEPS = [
                         "append-only · TAKE/AVOID/ABSTAIN · research only"),
         "script":     "backend/research/r3_program/shadow.py",
         "script_args": ["--market", "both", "--score"],
-        "produces":   ["reports/research/r3/shadow/ledger_india.jsonl",
+        # CEO 2026-10-27 · the --score pass now genuinely writes outcomes
+        # (it previously resolved against a frozen cohort and wrote none),
+        # so the files are declared and staleness detection can see them.
+        "produces":   ["reports/research/r3/shadow/outcomes_india.jsonl",
+                        "reports/research/r3/shadow/outcomes_usa.jsonl",
+                        "reports/research/r3/shadow/ledger_india.jsonl",
                         "reports/research/r3/shadow/ledger_usa.jsonl"],
         "requires":   ["reports/context/canonical_lifecycle_india.json"],
         "optional":   True,

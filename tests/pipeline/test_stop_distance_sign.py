@@ -133,3 +133,97 @@ def test_certification_renders_the_blocking_row():
         "the certification no longer renders stop-distance detail, so a "
         "STOP_DISTANCE_MISMATCH block would again be undiagnosable")
     assert "stop MISMATCH" in src
+
+
+# ── boundary and invalid-input cases (CEO 2026-10-27, Phase 4) ───────
+#
+# The sign fix was verified on clearly-breached and clearly-intact rows.
+# These pin the edges, where a sign convention is easiest to get wrong,
+# and the malformed inputs that must be classified rather than silently
+# passed. They assert the INTENDED contract - signed distance, routed by
+# field validity - not merely whatever the code currently returns.
+
+def test_stop_exactly_at_price_is_zero_distance_and_passes(tmp_path):
+    """The exact boundary · distance is 0, neither breached nor intact."""
+    inv = _inv(tmp_path, [_row("ATPRICE", 100.0, 100.0, 0.0)])
+    assert inv["mismatches"] == [], (
+        "a stop exactly at price has a distance of exactly 0.0 and must "
+        "reconcile · it is the boundary the sign convention pivots on")
+    assert inv["rows_with_stop"] == 1
+
+
+def test_one_tick_either_side_of_the_boundary(tmp_path):
+    """Just-breached and just-intact must both reconcile."""
+    rows = [
+        _row("JUSTBRCH", 99.99, 100.0, _producer_dist(99.99, 100.0),
+             "BREACHED"),
+        _row("JUSTOK", 100.01, 100.0, _producer_dist(100.01, 100.0)),
+    ]
+    inv = _inv(tmp_path, rows)
+    assert inv["mismatches"] == [], (
+        "a one-tick breach must not be flagged · got %s"
+        % [m["ticker"] for m in inv["mismatches"]])
+
+
+def test_zero_price_is_malformed_not_a_mismatch(tmp_path):
+    """A zero price cannot divide · it must be classified, not flagged."""
+    inv = _inv(tmp_path, [_row("ZEROPX", 0.0, 100.0, -5.0)])
+    assert inv["mismatches"] == [], (
+        "a zero price was reported as a stop-distance mismatch · it is a "
+        "malformed row and must be routed there, not blamed on the sign")
+    assert len(inv["malformed_stops"]) == 1
+    assert inv["rows_with_stop"] == 0
+
+
+def test_negative_price_is_malformed(tmp_path):
+    inv = _inv(tmp_path, [_row("NEGPX", -10.0, 100.0, -5.0)])
+    assert inv["mismatches"] == []
+    assert len(inv["malformed_stops"]) == 1
+
+
+def test_zero_or_negative_stop_is_malformed(tmp_path):
+    inv = _inv(tmp_path, [_row("ZEROSTOP", 100.0, 0.0, 100.0),
+                          _row("NEGSTOP", 100.0, -5.0, 105.0)])
+    assert inv["mismatches"] == []
+    assert len(inv["malformed_stops"]) == 2
+
+
+def test_missing_stop_is_counted_separately(tmp_path):
+    """No stop is not a wrong stop."""
+    inv = _inv(tmp_path, [{"ticker": "NOSTOP", "current_price": 100.0,
+                           "stop": None, "dist_to_stop_pct": None,
+                           "stop_state": "NO STOP", "engine": "R2"}])
+    assert inv["mismatches"] == []
+    assert inv["missing_stops"] == ["NOSTOP"]
+    assert inv["rows_with_stop"] == 0
+
+
+def test_non_numeric_stop_is_not_treated_as_a_number(tmp_path):
+    inv = _inv(tmp_path, [{"ticker": "BADSTOP", "current_price": 100.0,
+                           "stop": "n/a", "dist_to_stop_pct": 5.0,
+                           "stop_state": "INTACT", "engine": "R2"}])
+    assert inv["mismatches"] == []
+    assert inv["missing_stops"] == ["BADSTOP"]
+
+
+def test_absent_displayed_distance_is_not_a_mismatch(tmp_path):
+    """Nothing displayed cannot contradict the arithmetic."""
+    inv = _inv(tmp_path, [{"ticker": "NODIST", "current_price": 110.0,
+                           "stop": 100.0, "dist_to_stop_pct": None,
+                           "stop_state": "INTACT", "engine": "R2"}])
+    assert inv["mismatches"] == []
+    assert inv["rows_with_stop"] == 1
+
+
+def test_a_sign_flipped_display_is_caught_on_an_intact_row(tmp_path):
+    """The converse of the fixed bug · the gate must still have teeth.
+
+    An INTACT row whose displayed distance carries the wrong sign is a
+    real contradiction and must fail, otherwise the fix would have
+    disarmed the gate instead of correcting it.
+    """
+    inv = _inv(tmp_path, [_row("FLIPPED", 110.0, 100.0, -9.09)])
+    assert len(inv["mismatches"]) == 1, (
+        "an intact row displaying a negative distance contradicts price and "
+        "stop and must fail delivery")
+    assert inv["mismatches"][0]["ticker"] == "FLIPPED"
