@@ -143,7 +143,28 @@ def stop_distance_invariant(root: Path, market: str) -> dict:
                 {"ticker": tk, "stop": stop, "price": price})
             continue
         out["rows_with_stop"] += 1
-        expected = abs(price - stop) / price * 100
+        # CEO 2026-10-27 · SIGN BUG. This used abs(price - stop), while the
+        # producer (canonical_daily_lifecycle) writes a SIGNED distance:
+        #
+        #     dist = (curr - stop) / curr * 100
+        #
+        # For a BREACHED position - price through its stop - that value is
+        # legitimately NEGATIVE, and negative is the whole point: it is how
+        # the sheet shows the stop did not hold. Taking the absolute value
+        # here made the two disagree by 2x|dist|, so a single breached row
+        # produced a delta of ~10pp against a 0.05 tolerance and BLOCKED
+        # the entire delivery with STOP_DISTANCE_MISMATCH.
+        #
+        # BREACHED is a legitimate, expected state under the lifecycle lock
+        # (advisory · never auto-exited · the VIEW moves to EXIT HISTORY
+        # while the position stays open). So this gate was guaranteed to
+        # block delivery on exactly the days a position went against us -
+        # the days the operator most needs the sheet.
+        #
+        # Signed-to-signed preserves the arithmetic claim the gate exists to
+        # enforce AND handles breach correctly. Long-only book, so the sign
+        # convention is unambiguous.
+        expected = (price - stop) / price * 100
         shown = r.get("dist_to_stop_pct")
         if isinstance(shown, (int, float)) and                 abs(expected - shown) > STOP_DISTANCE_TOLERANCE_PCT:
             out["mismatches"].append({

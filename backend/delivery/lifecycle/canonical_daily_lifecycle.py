@@ -66,6 +66,10 @@ _REPO_ROOT = Path(__file__).resolve().parents[3]
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
+# Imported AFTER the anchor above · it is a `backend.` import and the
+# repo root must already be on sys.path when a path invocation runs.
+from backend.delivery.governance import advisory_state as _advisory
+
 SCHEMA_VERSION = "aegis.lifecycle.v1"
 
 ENGINE_R1, ENGINE_R2, ENGINE_MOM = "R1", "R2", "MOMENTUM"
@@ -500,12 +504,17 @@ def compute(root: Path, market: str, asof: str) -> dict:
             "target": _num(target, 2),
             "position_id": getattr(o, "opportunity_id", ""),
             "holding_days": days,
-            "reason": (
+            # CEO 2026-10-27 · R2 India advisory notice rides on the
+            # EXISTING reason field, exactly as R1's advisory text already
+            # does. No new column, no banner change, no scope-label change,
+            # so the XLSX and delivery-layer locks are untouched. See
+            # backend/delivery/governance/advisory_state.py for the basis.
+            "reason": _advisory.decorate_reason(m, engine, (
                 ("⚠ STOP BREACHED · REVIEW · " if stop_state == "BREACHED" else "")
                 + ("R1 ADVISORY · suggested stop only · never auto-exited"
                    if engine == ENGINE_R1
                    else f"{sig or 'signal'} · held {days if days is not None else '?'}d "
-                        f"· stop {basis}")),
+                        f"· stop {basis}"))),
             "source": "registry:active",
         }
         # BREACHED IS AN EXIT TRANSITION - CEO 2026-09-08.

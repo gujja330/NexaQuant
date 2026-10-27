@@ -243,6 +243,33 @@ def render(ctx: RunContext) -> str:
             L.append(_row("exit sector populated",
                           "%s / %s" % (c.detail.get("exit_sector_populated"),
                                        c.detail.get("exit_rows"))))
+            # CEO 2026-10-27 · NAME THE ROW THAT BLOCKED.
+            # USA run #245 blocked with STOP_DISTANCE_MISMATCH and this
+            # section rendered IDENTICALLY to the run that passed - same
+            # rows, same gaps, same sector counts. The offending ticker was
+            # computed, stored on c.detail, and never printed, so the cause
+            # was unrecoverable once a later run overwrote the file. A gate
+            # that blocks must say what blocked it.
+            sd = c.detail.get("stop_distance") or {}
+            if sd:
+                L.append(_row("  stop distance checked",
+                              "%s of %s rows have a stop"
+                              % (sd.get("rows_with_stop"),
+                                 sd.get("rows_checked"))))
+                for label, key in (("  stop MISMATCH", "mismatches"),
+                                   ("  malformed stops", "malformed_stops"),
+                                   ("  incoherent targets",
+                                    "incoherent_targets")):
+                    v = sd.get(key) or []
+                    n = v if isinstance(v, int) else len(v)
+                    if not n:
+                        continue
+                    names = ""
+                    if not isinstance(v, int):
+                        names = " · " + ", ".join(
+                            str(x.get("ticker") if isinstance(x, dict) else x)
+                            for x in v[:6])
+                    L.append(_row(label, "%d%s" % (n, names)))
         elif name == STAGE_DELIVERY:
             L.append(_row("gate", c.detail.get("gate_verdict")))
             L.append(_row("override", c.detail.get("override_used")))
