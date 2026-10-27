@@ -166,13 +166,24 @@ def test_outcomes_live_in_a_separate_file_from_predictions():
     Asserted on behaviour, not on a source string: scoring must write to a
     different path than the prediction ledger, and must leave the ledger
     byte-identical.
+
+    CEO 2026-10-27 · now exercises the LIVE path. This previously called
+    shadow.score_outcomes, which resolved against a frozen cohort and
+    wrote nothing - so "scoring did not mutate the ledger" was true only
+    because no scoring happened. The assertion was vacuous. It now runs
+    outcome_resolver.resolve, which really does write 3,140 India and
+    3,093 USA outcome rows, making the guard meaningful.
+
+    The return shapes differ (resolve reports scored_this_run rather than
+    scored) and that is fine here: this test never used the return value.
     """
+    from backend.research.r3_program import outcome_resolver as _orr
     for m in MARKETS:
         led_p = shadow.ledger_path(ROOT, m)
         if not led_p.exists():
             continue
         before = led_p.read_bytes()
-        shadow.score_outcomes(ROOT, m)
+        _orr.resolve(ROOT, m)
         assert led_p.read_bytes() == before, (
             "%s: scoring mutated the prediction ledger" % m)
         out_p = led_p.parent / ("outcomes_%s.jsonl" % m)

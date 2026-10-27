@@ -282,3 +282,38 @@ def test_outcome_artifacts_are_declared_by_the_orchestrator_step():
     for m in ("india", "usa"):
         assert "outcomes_%s.jsonl" % m in blk, (
             "outcomes_%s.jsonl is written by --score but not declared" % m)
+
+
+# ── the stale path is gone and must stay gone ────────────────────────
+def test_score_outcomes_is_removed_not_merely_unused():
+    """A deprecated shim would preserve the trap it was built on.
+
+    score_outcomes resolved through the frozen mr_prediction_autopsy
+    cohort (2026-08-04..2026-09-08) while the ledger starts 2026-09-08,
+    so it returned `scored: 0` on every run and wrote nothing. Keeping it
+    importable means the next caller gets silence instead of an error.
+    """
+    from backend.research.r3_program import shadow
+    assert not hasattr(shadow, "score_outcomes"), (
+        "shadow.score_outcomes is back. It resolves against a cohort whose "
+        "coverage ended the day the R3 ledger began, so it cannot score "
+        "anything - a caller would get `scored: 0` and no indication why. "
+        "The live path is outcome_resolver.resolve.")
+
+
+def test_a_replacement_resolver_actually_exists():
+    """Removal is only safe because something real replaced it."""
+    from backend.research.r3_program import outcome_resolver as orr
+    assert callable(orr.resolve)
+    assert callable(orr.coverage)
+    assert orr.HORIZONS, "the resolver declares no horizons"
+
+
+def test_shadow_records_why_the_old_path_was_removed():
+    """Provenance · so the removal is not rediscovered as a gap."""
+    src = (ROOT / "backend/research/r3_program/shadow.py").read_text(
+        encoding="utf-8")
+    assert "score_outcomes() REMOVED" in src, (
+        "the removal note is gone · without it the next reader sees a "
+        "missing function rather than a retired one")
+    assert "outcome_resolver" in src

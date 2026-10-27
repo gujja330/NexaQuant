@@ -320,51 +320,31 @@ def run(root: Path, market: str) -> dict:
     }
 
 
-def score_outcomes(root: Path, market: str) -> dict:
-    """Attach realised outcomes to past predictions · never edits a prediction.
-
-    Outcomes are written to a SEPARATE outcomes file keyed by
-    (as_of, ticker). The prediction ledger stays append-only and
-    byte-stable, so a prediction can never be quietly improved after its
-    result is known.
-    """
-    from backend.research.r3_program import core
-    led = load_ledger(root, market)
-    if not led:
-        return {"market": market, "scored": 0}
-    fwd = {}
-    for horizon in ("fwd_5d_pct", "fwd_10d_pct", "fwd_20d_pct"):
-        for r in core.load_pop(root, market, fwd_key=horizon):
-            fwd.setdefault((r["date"], r["ticker"]), {})[horizon] = r["fwd"]
-    out_p = (root / "reports" / "research" / "r3" / "shadow"
-             / f"outcomes_{market.lower()}.jsonl")
-    have = set()
-    if out_p.exists():
-        for line in out_p.read_text(encoding="utf-8").splitlines():
-            if line.strip():
-                try:
-                    o = json.loads(line)
-                    have.add((o.get("as_of"), o.get("ticker")))
-                except Exception:
-                    pass
-    rows = []
-    for r in led:
-        k = (r.get("as_of"), str(r.get("ticker") or "").upper())
-        if k in have or k not in fwd:
-            continue
-        rows.append({"as_of": k[0], "ticker": k[1], "market": market.lower(),
-                     **fwd[k],
-                     "scored_utc": datetime.now(timezone.utc)
-                     .isoformat(timespec="seconds")})
-    if rows:
-        out_p.parent.mkdir(parents=True, exist_ok=True)
-        with out_p.open("a", encoding="utf-8") as fh:
-            for r in rows:
-                fh.write(json.dumps(r, default=str) + "\n")
-    return {"market": market.lower(), "scored": len(rows),
-            "total_outcomes": len(have) + len(rows),
-            "note": "outcomes are a separate append-only file · predictions "
-                    "are never edited after the fact"}
+# CEO 2026-10-27 · score_outcomes() REMOVED, not deprecated.
+#
+# It resolved outcomes through core.load_pop -> load_cohort, which reads
+# reports/research/mr_prediction_autopsy_<market>_enriched.jsonl - a
+# research cohort frozen at 2026-08-04..2026-09-08. The R3 ledger starts
+# 2026-09-08, so the key intersection was ZERO and it returned
+# `scored: 0` on every run since R3 began. outcomes_*.jsonl never
+# existed; R3 never scored one of its own predictions.
+#
+# Removed rather than kept as a deprecated shim because:
+#   * it was never exported from the package __init__
+#   * no production path, script or workflow called it
+#   * its only caller was a test whose assertion ("scoring did not mutate
+#     the prediction ledger") passed VACUOUSLY - a function that writes
+#     nothing cannot mutate anything. A deprecated shim would preserve
+#     exactly that trap.
+#
+# The live path is backend.research.r3_program.outcome_resolver.resolve,
+# which computes forward returns from the market's own price bars so
+# coverage follows the ledger instead of a static file. It keeps the same
+# contract: separate append-only file, predictions never edited, an
+# immature horizon ABSENT rather than 0.0.
+#
+# tests/research/test_r3_outcome_resolver.py asserts a replacement exists
+# and that this name does not come back.
 
 
 def emit(root: Path, rep: dict) -> Path:
