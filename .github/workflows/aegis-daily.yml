@@ -247,6 +247,26 @@ jobs:
         if: steps.guard.outputs.run == 'true' && steps.freshcheck.outputs.verified == 'true'
         run: python scripts/ci_orchestrator_gate.py --market india
 
+      # CEO 2026-10-27 · R5 · POST-PRODUCTION INTEGRITY.
+      # The artifact lifecycle audit found backend_validation at orchestrator
+      # step 6 grading artifacts whose producers run at steps 24-26 - so it
+      # graded the leftovers from BEFORE each run, which (being unpersisted)
+      # were permanently 2026-09-04. That is the whole "35 datasets 28-43
+      # days stale" finding.
+      #
+      # backend_validation is deliberately NOT moved: it also validates
+      # SOURCE data that must be checked before scoring. This is the missing
+      # other half - verification AFTER production.
+      #
+      # It distinguishes a legitimately empty portfolio (all 228 India
+      # recommendations are HOLD) from a sizing failure, by requiring
+      # evidence from the upstream recommendation set rather than trusting a
+      # zero count.
+      - name: Post-production artifact integrity (India)
+        id: artifact_integrity_india
+        if: always() && steps.guard.outputs.run == 'true'
+        run: python scripts/ci_artifact_integrity.py --market india
+
       # 2026-07-15 reliability upgrade: pre-notify health check + retry wrapper.
       # See docs/TELEGRAM_RELIABILITY_PLAN.md for root causes fixed here.
       - name: Telegram health check (getMe + getChat)
@@ -323,6 +343,38 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
         run: python scripts/telegram_command_center_send.py --market india
+
+      # CEO 2026-10-27 · R4 · RETAIN THE RUN OUTPUTS.
+      # 99 of 138 declared artifacts had NO persistence mechanism - neither a
+      # git commit nor a CI artifact - so they existed only inside the runner
+      # and were destroyed when the job ended. Before this step the workflow's
+      # ONLY upload was the Telegram delivery log.
+      #
+      # These are category B: reproducible run outputs. A CI artifact is the
+      # right home - they do not belong in Git history, but they must be
+      # inspectable after the fact to reconstruct what a run actually did.
+      #
+      # EXPLICIT PATHS ONLY. No globs: a broad pattern here could sweep .env,
+      # credentials or account data into a downloadable artifact.
+      - name: Upload risk/portfolio run outputs (artifact)
+        if: always() && steps.guard.outputs.run == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: aegis-india-run-outputs
+          path: |
+            reports/sized_positions.json
+            reports/risk_report.json
+            reports/portfolio_v3.json
+            reports/portfolio_diff.json
+            reports/portfolio_state.json
+            reports/portfolio_history.parquet
+            reports/backend_validation_summary.json
+            reports/ops_check.json
+            reports/context/orchestrator_verdict_india.json
+            reports/context/run_certification_india.txt
+            reports/context/artifact_integrity_india.json
+          if-no-files-found: warn
+          retention-days: 30
 
       - name: Upload Telegram delivery ledger (artifact)
         if: always() && steps.guard.outputs.run == 'true'
@@ -420,6 +472,17 @@ jobs:
           # two plus the manifest had no git add line. The substrate every
           # recommendation is scored from left no trace that it ran.
           git add reports/feature_store_summary.json reports/ai_feature_narrative.json 2>/dev/null || true
+          # CEO 2026-10-27 · R2 · AUTHORITATIVE DURABLE STATE.
+          # portfolio_history.parquet is the ONLY source of dated portfolio
+          # weights, so capital-weighted return, drawdown and exposure all
+          # depend on it. It had no persistence of any kind: no git add line,
+          # not in the upload path. It stopped accumulating on 2026-09-03 and
+          # nothing noticed for 54 days.
+          #
+          # Category C, not B: a 30-day CI artifact cannot hold a multi-month
+          # series. Already tracked, ~19KB, and append_snapshot_row dedupes on
+          # (market, asof) so a replay replaces rather than duplicates a row.
+          git add reports/portfolio_history.parquet 2>/dev/null || true
           git add features/manifest.jsonl 2>/dev/null || true
           git add reports/backend_validation.json reports/backend_validation_summary.json 2>/dev/null || true
           git add reports/ops_check.json 2>/dev/null || true

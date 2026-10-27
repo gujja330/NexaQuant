@@ -164,8 +164,23 @@ def main() -> int:
     # Sprint 7.5 · append to standardized portfolio history (fail-open)
     try:
         from backend.persistence import append_snapshot_row
-        append_snapshot_row(json.loads(OUT_FULL.read_text(encoding="utf-8")),
-                             _ROOT / "reports" / "portfolio_history.parquet")
+        # CEO 2026-10-27 · R3 · SURFACE THE SILENT FAILURE.
+        # append_snapshot_row is deliberately fail-open - it returns None
+        # rather than raising, so a history problem can never destroy this
+        # run's primary JSON snapshot. That design is correct and is kept.
+        #
+        # The defect was discarding the return value: a failed append to the
+        # only dated weight history in the system produced no output at all.
+        _hist_p = _ROOT / "reports" / "portfolio_history.parquet"
+        _row = append_snapshot_row(
+            json.loads(OUT_FULL.read_text(encoding="utf-8")), _hist_p)
+        if _row is None:
+            print("  WARNING: portfolio_history append FAILED (fail-open) · "
+                  "%s · capital-weighted accounting will have a gap at this "
+                  "asof" % _hist_p.name)
+        else:
+            print("  appended %s · asof=%s" % (_hist_p.name,
+                                               _row.get("asof")))
     except Exception as _hist_err:
         print(f"  history append warning (non-fatal): {_hist_err}")
 

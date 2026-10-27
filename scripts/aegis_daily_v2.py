@@ -358,9 +358,22 @@ STEPS = [
         "name": "portfolio_engine",
         "desc": "Sprint 5 · Portfolio Engine (N-name construction + cash policy + rebalance diff + AI analyst)",
         "script": "india/portfolio_engine/run.py",
+        # CEO 2026-10-27 · R1 · DECLARE THE HISTORY FILE.
+        # portfolio_history.parquet is written by this step
+        # (india/portfolio_engine/run.py:166 -> append_snapshot_row) but was
+        # never declared, so _check_produced could not see it. It is the ONLY
+        # source of dated portfolio weights in the system - the thing
+        # capital-weighted return, drawdown and exposure all depend on - and
+        # it silently stopped accumulating on 2026-09-03 while this step kept
+        # reporting SUCCESS.
+        #
+        # Declaring it means a non-write now surfaces as SUCCESS_NO_REFRESH,
+        # which the 2026-10-26 gate treats as critical for a non-optional
+        # step. This step is optional=True, so it is reported, not fatal.
         "produces": ["reports/portfolio_v3.json",
                        "reports/portfolio_diff.json",
                        "reports/portfolio_state.json",
+                       "reports/portfolio_history.parquet",
                        "reports/ai_portfolio_narrative.json"],
         "requires": ["reports/sized_positions.json", "configs/portfolio_config.yaml"],
         "optional": True,
