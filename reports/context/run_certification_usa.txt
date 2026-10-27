@@ -1,6 +1,6 @@
 ════════════════════════════════════════════════════════════
 AEGIS DAILY RUN CERTIFICATION
-Run: AEGIS-2026-10-26-USA-1840
+Run: AEGIS-2026-10-26-USA-2338
 Requested ASOF: 2026-10-26   ·   trigger: ci
 ════════════════════════════════════════════════════════════
 
@@ -16,7 +16,7 @@ DATA_READY
   currencies                 asof 2026-10-26 · age 0 
   bonds                      asof 2026-10-26 · age 0 
   sector_rotation            asof 2026-10-26 · age 0 
-                                              → PASS   (2.64s)
+                                              → PASS   (4.55s)
 
 INTERMARKET
   S&P 500                    2026-10-26       ✓ critical
@@ -53,7 +53,7 @@ DECISION_READY
   terminal dispositions      516              
   orphans                    0                
   defect tickers             0                
-                                              → PASS   (0.06s)
+                                              → PASS   (0.08s)
 
 LIFECYCLE_READY
   current_total              214              
@@ -69,24 +69,26 @@ FIELDS_COMPLETE
   required gaps              0                
   expected gaps              0                
   exit sector populated      555 / 558        
-                                              → BLOCK   (101.54s)
-    ✗ STOP_DISTANCE_MISMATCH
-      1 row(s) where stop, price and distance cannot agree: ADT · a displayed stop that does not reconcile is not shippable
+                                              → PASS   (187.56s)
 
-  downstream NOT RUN: DELIVERY_READY
+DELIVERY_READY
+  gate                       ALLOW            
+  override                   False            
+  A19 / A23                  PASS / PASS      
+  R3 production writes       0                
+                                              → PASS   (0.00s)
 
 ════════════════════════════════════════════════════════════
 RUNTIME
-  DATA_READY                 2.64s            
+  DATA_READY                 4.55s            
   INTERMARKET                0.01s            
   FEATURES_READY             0.01s            
   SCORES_READY               0.01s            
-  DECISION_READY             0.06s            
+  DECISION_READY             0.08s            
   LIFECYCLE_READY            0.00s            
-  FIELDS_COMPLETE            101.54s          
-  TOTAL                      104.27s          
+  FIELDS_COMPLETE            187.56s          
+  DELIVERY_READY             0.00s            
+  TOTAL                      192.22s          
 ════════════════════════════════════════════════════════════
-FINAL: ❌ BLOCKED
-FIRST FAILURE: STOP_DISTANCE_MISMATCH  (FIELDS_COMPLETE)
-No downstream stages executed. No XLSX. No Telegram.
+FINAL: ✅ CERTIFIED
 ════════════════════════════════════════════════════════════
