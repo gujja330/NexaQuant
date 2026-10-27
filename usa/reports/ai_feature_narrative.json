@@ -2,16 +2,16 @@
   "engine": "ai_feature_narrative",
   "version": "v1.0",
   "market": "usa",
-  "run_utc": "2026-10-26T23:16:51+00:00",
-  "asof": "2026-10-26",
+  "run_utc": "2026-10-27T17:37:18+00:00",
+  "asof": "2026-10-27",
   "agents": {
     "anomaly": {
       "agent": "feature_anomaly",
       "version": "v1.0",
       "market": "usa",
-      "asof": "2026-10-26",
-      "headline": "77 feature outlier(s) flagged (top 10 shown).",
-      "narrative": "77 data points across the universe carry |z|>5 vs their column mean.\n\n  \u00b7 RSG: insider_buy_90d = 1380322193.0 (z=21.54)\n  \u00b7 MAS: fund_roe = 58.625 (z=21.22)\n  \u00b7 CRWD: fund_trailing_pe = 4363.833 (z=20.79)\n  \u00b7 GDDY: fund_debt_to_equity = 57334.33 (z=20.25)\n  \u00b7 PANW: inst_pct_owned = 5.3995 (z=17.87)\n  \u00b7 MTD: fund_price_to_book = 2608.7812 (z=17.05)\n  \u00b7 NVR: earn_last_eps_estimate = 102.77 (z=16.77)\n  \u00b7 FANG: insider_sell_90d = 1898679979.0 (z=16.54)\n  \u00b7 MRNA: volatility_60d = 0.23649 (z=16.36)\n  \u00b7 NVR: sma_50 = 6149.2964 (z=15.9)\n\nHigh z-scores are not necessarily wrong (a real 52-week high can be a legitimate extreme), but they warrant a look before downstream engines act on them.",
+      "asof": "2026-10-27",
+      "headline": "73 feature outlier(s) flagged (top 10 shown).",
+      "narrative": "73 data points across the universe carry |z|>5 vs their column mean.\n\n  \u00b7 RSG: insider_buy_90d = 1380322193.0 (z=21.54)\n  \u00b7 MAS: fund_roe = 58.625 (z=21.22)\n  \u00b7 CRWD: fund_trailing_pe = 5363.8 (z=21.1)\n  \u00b7 GDDY: fund_debt_to_equity = 57334.33 (z=20.25)\n  \u00b7 PANW: inst_pct_owned = 5.3995 (z=17.86)\n  \u00b7 MTD: fund_price_to_book = 2637.9768 (z=17.39)\n  \u00b7 FANG: insider_sell_90d = 1898679979.0 (z=16.85)\n  \u00b7 NVR: earn_last_eps_estimate = 102.77 (z=16.75)\n  \u00b7 MRNA: volatility_60d = 0.23649 (z=16.37)\n  \u00b7 NVR: sma_50 = 6137.3586 (z=15.9)\n\nHigh z-scores are not necessarily wrong (a real 52-week high can be a legitimate extreme), but they warrant a look before downstream engines act on them.",
       "findings": [
         {
           "ticker": "RSG",
@@ -28,8 +28,8 @@
         {
           "ticker": "CRWD",
           "feature": "fund_trailing_pe",
-          "value": 4363.833,
-          "z": 20.79
+          "value": 5363.8,
+          "z": 21.1
         },
         {
           "ticker": "GDDY",
@@ -41,41 +41,41 @@
           "ticker": "PANW",
           "feature": "inst_pct_owned",
           "value": 5.3995,
-          "z": 17.87
+          "z": 17.86
         },
         {
           "ticker": "MTD",
           "feature": "fund_price_to_book",
-          "value": 2608.7812,
-          "z": 17.05
-        },
-        {
-          "ticker": "NVR",
-          "feature": "earn_last_eps_estimate",
-          "value": 102.77,
-          "z": 16.77
+          "value": 2637.9768,
+          "z": 17.39
         },
         {
           "ticker": "FANG",
           "feature": "insider_sell_90d",
           "value": 1898679979.0,
-          "z": 16.54
+          "z": 16.85
+        },
+        {
+          "ticker": "NVR",
+          "feature": "earn_last_eps_estimate",
+          "value": 102.77,
+          "z": 16.75
         },
         {
           "ticker": "MRNA",
           "feature": "volatility_60d",
           "value": 0.23649,
-          "z": 16.36
+          "z": 16.37
         },
         {
           "ticker": "NVR",
           "feature": "sma_50",
-          "value": 6149.2964,
+          "value": 6137.3586,
           "z": 15.9
         }
       ],
       "evidence": {
-        "n_outliers": 77,
+        "n_outliers": 73,
         "z_threshold": 5.0,
         "n_rows": 516,
         "n_numeric_cols_scanned": 66
@@ -91,9 +91,9 @@
       "agent": "feature_quality",
       "version": "v1.0",
       "market": "usa",
-      "asof": "2026-10-26",
+      "asof": "2026-10-27",
       "headline": "Feature Store quality PASS \u00b7 516 rows \u00b7 76 features.",
-      "narrative": "Feature Store quality PASS \u00b7 516 rows \u00b7 76 features.\n\nCategory coverage:\n  \u00b7 sector             avg coverage 0.0%\n  \u00b7 historical         avg coverage 0.0%\n  \u00b7 corporate_action   avg coverage 31.0%\n  \u00b7 institutional      avg coverage 70.9%\n  \u00b7 technical          avg coverage 89.9%\n  \u00b7 fundamental        avg coverage 93.5%\n  \u00b7 earnings           avg coverage 97.3%\n  \u00b7 identity           avg coverage 100.0%\n  \u00b7 news               avg coverage 100.0%\n  \u00b7 macro              avg coverage 100.0%\n  \u00b7 market_intel       avg coverage 100.0%\n\nStrongest category is 'identity' at 100.0% coverage \u2014 solid.\n\nWeakest category is 'sector' at 0.0% coverage \u2014 downstream engines relying on this category should degrade gracefully.\n\n24 feature column(s) show |z|>8 extremes \u2014 see the Feature Anomaly agent for detail.",
+      "narrative": "Feature Store quality PASS \u00b7 516 rows \u00b7 76 features.\n\nCategory coverage:\n  \u00b7 sector             avg coverage 0.0%\n  \u00b7 historical         avg coverage 0.0%\n  \u00b7 corporate_action   avg coverage 31.0%\n  \u00b7 institutional      avg coverage 70.9%\n  \u00b7 technical          avg coverage 89.9%\n  \u00b7 fundamental        avg coverage 93.6%\n  \u00b7 earnings           avg coverage 97.2%\n  \u00b7 identity           avg coverage 100.0%\n  \u00b7 news               avg coverage 100.0%\n  \u00b7 macro              avg coverage 100.0%\n  \u00b7 market_intel       avg coverage 100.0%\n\nStrongest category is 'identity' at 100.0% coverage \u2014 solid.\n\nWeakest category is 'sector' at 0.0% coverage \u2014 downstream engines relying on this category should degrade gracefully.\n\n24 feature column(s) show |z|>8 extremes \u2014 see the Feature Anomaly agent for detail.",
       "findings": [
         {
           "category": "identity",
@@ -105,7 +105,7 @@
         },
         {
           "category": "fundamental",
-          "coverage": 0.9351
+          "coverage": 0.9356
         },
         {
           "category": "news",
@@ -113,7 +113,7 @@
         },
         {
           "category": "earnings",
-          "coverage": 0.9734
+          "coverage": 0.9724
         },
         {
           "category": "macro",
@@ -158,129 +158,129 @@
       "agent": "feature_importance",
       "version": "v1.0",
       "market": "usa",
-      "asof": "2026-10-26",
+      "asof": "2026-10-27",
       "headline": "Top 15 most differentiating features by dispersion (categories: technical=8, fundamental=3, institutional=2, corporate_action=1, earnings=1)",
-      "narrative": "Top 15 most differentiating features by dispersion (categories: technical=8, fundamental=3, institutional=2, corporate_action=1, earnings=1)\n\n  \u00b7 insider_net_90d                score=6640.0609  cv=7.568  iqr=5825720.0000\n  \u00b7 insider_sell_90d               score=5706.6816  cv=5.401  iqr=6029874.0000\n  \u00b7 volume                         score=2723.1659  cv=1.695  iqr=4374841.5000\n  \u00b7 fund_debt_to_equity            score=31.4339  cv=9.858  iqr=100.2305\n  \u00b7 macd_signal                    score=20.2849  cv=154.536  iqr=2.6627\n  \u00b7 sma_50                         score=17.9662  cv=1.590  iqr=202.9471\n  \u00b7 sma_20                         score=17.8624  cv=1.575  iqr=202.6145\n  \u00b7 close                          score=17.8203  cv=1.533  iqr=207.1200\n  \u00b7 return_60d_pct                 score=14.1389  cv=12.723  iqr=15.7122\n  \u00b7 macd                           score=13.2929  cv=46.798  iqr=3.7759\n  \u00b7 ca_days_since_last_split       score=9.7325  cv=0.600  iqr=158.0000\n  \u00b7 fund_trailing_pe               score=9.1774  cv=4.686  iqr=17.9747\n  \u00b7 fund_price_to_book             score=7.6111  cv=10.562  iqr=5.4848\n  \u00b7 earn_last_surprise_pct         score=6.1164  cv=3.536  iqr=10.5800\n  \u00b7 return_10d_pct                 score=5.4697  cv=3.603  iqr=8.3041\n\nDispersion tells us where the universe DIFFERS in this snapshot \u2014 high dispersion means the feature carries information downstream engines can act on. This is NOT outcome-based importance (that comes from the Learning Engine).",
+      "narrative": "Top 15 most differentiating features by dispersion (categories: technical=8, fundamental=3, institutional=2, corporate_action=1, earnings=1)\n\n  \u00b7 insider_net_90d                score=6698.9328  cv=7.834  iqr=5728062.7500\n  \u00b7 insider_sell_90d               score=5627.6733  cv=5.518  iqr=5739683.2500\n  \u00b7 volume                         score=2024.8886  cv=1.963  iqr=2088766.0000\n  \u00b7 macd_signal                    score=42.1239  cv=595.203  iqr=2.9812\n  \u00b7 return_1d_pct                  score=32.6195  cv=485.947  iqr=2.1896\n  \u00b7 fund_debt_to_equity            score=31.4349  cv=9.859  iqr=100.2305\n  \u00b7 return_60d_pct                 score=27.6733  cv=46.946  iqr=16.3127\n  \u00b7 sma_50                         score=17.9646  cv=1.589  iqr=203.0907\n  \u00b7 sma_20                         score=17.8854  cv=1.570  iqr=203.7792\n  \u00b7 close                          score=17.6940  cv=1.531  iqr=204.5050\n  \u00b7 macd                           score=11.8156  cv=37.848  iqr=3.6886\n  \u00b7 fund_trailing_pe               score=9.7838  cv=5.415  iqr=17.6790\n  \u00b7 ca_days_since_last_split       score=9.7018  cv=0.596  iqr=158.0000\n  \u00b7 fund_price_to_book             score=7.6175  cv=10.542  iqr=5.5043\n  \u00b7 earn_last_surprise_pct         score=6.3090  cv=3.816  iqr=10.4300\n\nDispersion tells us where the universe DIFFERS in this snapshot \u2014 high dispersion means the feature carries information downstream engines can act on. This is NOT outcome-based importance (that comes from the Learning Engine).",
       "findings": [
         {
           "feature": "insider_net_90d",
-          "std": 130843867.80224,
-          "iqr": 5825720.0,
-          "cv": 7.56823,
-          "score": 6640.06091,
+          "std": 129052367.36878,
+          "iqr": 5728062.75,
+          "cv": 7.83436,
+          "score": 6698.93279,
           "n_non_null": 516
         },
         {
           "feature": "insider_sell_90d",
-          "std": 113494097.71723,
-          "iqr": 6029874.0,
-          "cv": 5.40081,
-          "score": 5706.6816,
+          "std": 111451268.66332,
+          "iqr": 5739683.25,
+          "cv": 5.51785,
+          "score": 5627.67328,
           "n_non_null": 516
         },
         {
           "feature": "volume",
-          "std": 9244549.57866,
-          "iqr": 4374841.5,
-          "cv": 1.69506,
-          "score": 2723.16591,
+          "std": 4909459.34205,
+          "iqr": 2088766.0,
+          "cv": 1.96296,
+          "score": 2024.88858,
+          "n_non_null": 503
+        },
+        {
+          "feature": "macd_signal",
+          "std": 9.21725,
+          "iqr": 2.9812,
+          "cv": 595.2035,
+          "score": 42.12387,
+          "n_non_null": 503
+        },
+        {
+          "feature": "return_1d_pct",
+          "std": 2.38346,
+          "iqr": 2.1896,
+          "cv": 485.94683,
+          "score": 32.61946,
           "n_non_null": 503
         },
         {
           "feature": "fund_debt_to_equity",
-          "std": 2817.58563,
+          "std": 2817.5863,
           "iqr": 100.2305,
-          "cv": 9.85821,
-          "score": 31.43395,
+          "cv": 9.85882,
+          "score": 31.43493,
           "n_non_null": 448
         },
         {
-          "feature": "macd_signal",
-          "std": 8.74359,
-          "iqr": 2.66265,
-          "cv": 154.53638,
-          "score": 20.28488,
-          "n_non_null": 503
+          "feature": "return_60d_pct",
+          "std": 18.2821,
+          "iqr": 16.31273,
+          "cv": 46.94555,
+          "score": 27.67327,
+          "n_non_null": 502
         },
         {
           "feature": "sma_50",
-          "std": 372.00289,
-          "iqr": 202.9471,
-          "cv": 1.59049,
-          "score": 17.96622,
+          "std": 371.40669,
+          "iqr": 203.0907,
+          "cv": 1.58907,
+          "score": 17.96457,
           "n_non_null": 503
         },
         {
           "feature": "sma_20",
-          "std": 366.08114,
-          "iqr": 202.6145,
-          "cv": 1.57473,
-          "score": 17.86236,
+          "std": 365.22924,
+          "iqr": 203.77925,
+          "cv": 1.56978,
+          "score": 17.88543,
           "n_non_null": 503
         },
         {
           "feature": "close",
-          "std": 358.50414,
-          "iqr": 207.12,
-          "cv": 1.53324,
-          "score": 17.82034,
+          "std": 358.63321,
+          "iqr": 204.505,
+          "cv": 1.5309,
+          "score": 17.69396,
           "n_non_null": 503
-        },
-        {
-          "feature": "return_60d_pct",
-          "std": 18.50454,
-          "iqr": 15.71223,
-          "cv": 12.72318,
-          "score": 14.13893,
-          "n_non_null": 502
         },
         {
           "feature": "macd",
-          "std": 11.54293,
-          "iqr": 3.77585,
-          "cv": 46.79788,
-          "score": 13.29292,
+          "std": 11.60885,
+          "iqr": 3.68865,
+          "cv": 37.84799,
+          "score": 11.81558,
           "n_non_null": 503
+        },
+        {
+          "feature": "fund_trailing_pe",
+          "std": 251.96122,
+          "iqr": 17.67899,
+          "cv": 5.41454,
+          "score": 9.78384,
+          "n_non_null": 478
         },
         {
           "feature": "ca_days_since_last_split",
           "std": 94.76405,
           "iqr": 158.0,
-          "cv": 0.5995,
-          "score": 9.73248,
+          "cv": 0.59573,
+          "score": 9.70184,
           "n_non_null": 14
         },
         {
-          "feature": "fund_trailing_pe",
-          "std": 207.78691,
-          "iqr": 17.97474,
-          "cv": 4.68575,
-          "score": 9.17743,
-          "n_non_null": 478
-        },
-        {
           "feature": "fund_price_to_book",
-          "std": 152.1643,
-          "iqr": 5.48475,
-          "cv": 10.56178,
-          "score": 7.61109,
+          "std": 150.90815,
+          "iqr": 5.50427,
+          "cv": 10.54196,
+          "score": 7.61747,
           "n_non_null": 503
         },
         {
           "feature": "earn_last_surprise_pct",
-          "std": 34.57441,
-          "iqr": 10.58,
-          "cv": 3.53592,
-          "score": 6.11638,
-          "n_non_null": 501
-        },
-        {
-          "feature": "return_10d_pct",
-          "std": 7.7188,
-          "iqr": 8.30405,
-          "cv": 3.60277,
-          "score": 5.4697,
-          "n_non_null": 503
+          "std": 40.06919,
+          "iqr": 10.43,
+          "cv": 3.81626,
+          "score": 6.30901,
+          "n_non_null": 500
         }
       ],
       "evidence": {
@@ -306,1714 +306,1414 @@
       "agent": "feature_conflict",
       "version": "v1.0",
       "market": "usa",
-      "asof": "2026-10-26",
-      "headline": "170 conflict signal(s) across 146 tickers.",
-      "narrative": "170 conflict signal(s) across 146 tickers.\n\n  \u00b7 AJG: 2 conflicts\n  \u00b7 ALLE: 2 conflicts\n  \u00b7 ANET: 2 conflicts\n  \u00b7 AWK: 2 conflicts\n  \u00b7 BIIB: 2 conflicts\n  \u00b7 CDW: 2 conflicts\n  \u00b7 DASH: 2 conflicts\n  \u00b7 ED: 2 conflicts\n  \u00b7 FIX: 2 conflicts\n  \u00b7 FLEX: 2 conflicts\n\nA conflict is not a verdict \u2014 it's a signal that the picture is mixed and the downstream engine should weigh the evidence rather than take any single dimension at face value.",
+      "asof": "2026-10-27",
+      "headline": "140 conflict signal(s) across 125 tickers.",
+      "narrative": "140 conflict signal(s) across 125 tickers.\n\n  \u00b7 APD: 2 conflicts\n  \u00b7 BIIB: 2 conflicts\n  \u00b7 CCI: 2 conflicts\n  \u00b7 DASH: 2 conflicts\n  \u00b7 ED: 2 conflicts\n  \u00b7 FIX: 2 conflicts\n  \u00b7 FLEX: 2 conflicts\n  \u00b7 HWM: 2 conflicts\n  \u00b7 IFF: 2 conflicts\n  \u00b7 KDP: 2 conflicts\n\nA conflict is not a verdict \u2014 it's a signal that the picture is mixed and the downstream engine should weigh the evidence rather than take any single dimension at face value.",
       "findings": [
         {
           "ticker": "ABNB",
           "conflict": "insider_vs_sentiment",
           "description": "heavy insider selling but positive sentiment (USA)",
-          "return_20d_pct": 9.5912,
+          "return_20d_pct": 7.3331,
           "quality_score": 41.13,
           "news_sentiment": 0.625,
-          "return_5d_pct": -2.5134,
-          "rsi_14": 66.41
+          "return_5d_pct": -4.7869,
+          "rsi_14": 61.258
         },
         {
           "ticker": "ADP",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 15.0191,
-          "quality_score": 26.58,
+          "return_20d_pct": 11.6463,
+          "quality_score": 26.6,
           "news_sentiment": 0.0,
-          "return_5d_pct": 4.9089,
-          "rsi_14": 84.521
+          "return_5d_pct": -0.1571,
+          "rsi_14": 72.335
         },
         {
           "ticker": "ADT",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 11.147,
-          "quality_score": 26.67,
+          "return_20d_pct": 12.2964,
+          "quality_score": 26.68,
           "news_sentiment": 0.375,
-          "return_5d_pct": 2.6866,
-          "rsi_14": 69.118
-        },
-        {
-          "ticker": "AEE",
-          "conflict": "momentum_vs_fundamentals",
-          "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 8.7433,
-          "quality_score": 13.84,
-          "news_sentiment": 0.5,
-          "return_5d_pct": 3.9131,
-          "rsi_14": 71.769
+          "return_5d_pct": 1.5464,
+          "rsi_14": 72.624
         },
         {
           "ticker": "AEP",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 9.3232,
-          "quality_score": 8.56,
+          "return_20d_pct": 8.29,
+          "quality_score": 8.57,
           "news_sentiment": 0.0,
-          "return_5d_pct": 3.6081,
-          "rsi_14": 69.963
+          "return_5d_pct": 1.5485,
+          "rsi_14": 69.185
         },
         {
           "ticker": "AFL",
           "conflict": "insider_vs_sentiment",
           "description": "heavy insider selling but positive sentiment (USA)",
-          "return_20d_pct": 6.4993,
+          "return_20d_pct": 7.0429,
           "quality_score": 38.45,
           "news_sentiment": 0.25,
-          "return_5d_pct": 1.9044,
-          "rsi_14": 69.666
-        },
-        {
-          "ticker": "AIG",
-          "conflict": "momentum_vs_fundamentals",
-          "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 11.4729,
-          "quality_score": 5.78,
-          "news_sentiment": 0.25,
-          "return_5d_pct": 0.5827,
-          "rsi_14": 77.87
+          "return_5d_pct": 1.1599,
+          "rsi_14": 74.246
         },
         {
           "ticker": "AIZ",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 8.9629,
-          "quality_score": 27.69,
+          "return_20d_pct": 8.553,
+          "quality_score": 27.68,
           "news_sentiment": 0.625,
-          "return_5d_pct": 2.3489,
-          "rsi_14": 65.845
+          "return_5d_pct": 0.9132,
+          "rsi_14": 70.362
         },
         {
           "ticker": "AJG",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 16.2686,
-          "quality_score": 13.98,
+          "return_20d_pct": 13.3128,
+          "quality_score": 13.99,
           "news_sentiment": 0.375,
-          "return_5d_pct": 5.4464,
-          "rsi_14": 80.239
-        },
-        {
-          "ticker": "AJG",
-          "conflict": "overbought_extended",
-          "description": "overbought (RSI>75) AND far above 52W high (>0)",
-          "return_20d_pct": 16.2686,
-          "quality_score": 13.98,
-          "news_sentiment": 0.375,
-          "return_5d_pct": 5.4464,
-          "rsi_14": 80.239
-        },
-        {
-          "ticker": "ALB",
-          "conflict": "oversold_extended",
-          "description": "oversold (RSI<25) AND deep drawdown (<-20%)",
-          "return_20d_pct": -13.0087,
-          "quality_score": 51.75,
-          "news_sentiment": 0.25,
-          "return_5d_pct": -1.2891,
-          "rsi_14": 15.073
+          "return_5d_pct": -0.459,
+          "rsi_14": 73.095
         },
         {
           "ticker": "ALLE",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 14.6994,
+          "return_20d_pct": 15.2931,
           "quality_score": 29.73,
           "news_sentiment": 0.125,
-          "return_5d_pct": 14.6552,
-          "rsi_14": 76.435
-        },
-        {
-          "ticker": "ALLE",
-          "conflict": "overbought_extended",
-          "description": "overbought (RSI>75) AND far above 52W high (>0)",
-          "return_20d_pct": 14.6994,
-          "quality_score": 29.73,
-          "news_sentiment": 0.125,
-          "return_5d_pct": 14.6552,
-          "rsi_14": 76.435
+          "return_5d_pct": 14.1183,
+          "rsi_14": 92.023
         },
         {
           "ticker": "AMAT",
           "conflict": "oversold_extended",
           "description": "oversold (RSI<25) AND deep drawdown (<-20%)",
-          "return_20d_pct": -20.3735,
+          "return_20d_pct": -22.7388,
           "quality_score": 50.0,
           "news_sentiment": 0.0,
-          "return_5d_pct": -6.1775,
-          "rsi_14": 10.858
-        },
-        {
-          "ticker": "ANET",
-          "conflict": "fundamentals_vs_momentum",
-          "description": "strong fundamentals but negative momentum",
-          "return_20d_pct": -13.5077,
-          "quality_score": 77.78,
-          "news_sentiment": 0.375,
-          "return_5d_pct": -3.1211,
-          "rsi_14": 26.516
+          "return_5d_pct": -2.3198,
+          "rsi_14": 15.382
         },
         {
           "ticker": "ANET",
           "conflict": "insider_vs_sentiment",
           "description": "heavy insider selling but positive sentiment (USA)",
-          "return_20d_pct": -13.5077,
+          "return_20d_pct": -7.3647,
           "quality_score": 77.78,
           "news_sentiment": 0.375,
-          "return_5d_pct": -3.1211,
-          "rsi_14": 26.516
-        },
-        {
-          "ticker": "AON",
-          "conflict": "momentum_vs_fundamentals",
-          "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 11.0107,
-          "quality_score": 17.99,
-          "news_sentiment": 0.875,
-          "return_5d_pct": 4.2521,
-          "rsi_14": 72.503
-        },
-        {
-          "ticker": "APA",
-          "conflict": "overbought_extended",
-          "description": "overbought (RSI>75) AND far above 52W high (>0)",
-          "return_20d_pct": 22.659,
-          "quality_score": 34.17,
-          "news_sentiment": 0.375,
-          "return_5d_pct": 4.3439,
-          "rsi_14": 85.604
+          "return_5d_pct": 3.7143,
+          "rsi_14": 34.727
         },
         {
           "ticker": "APD",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 10.3935,
-          "quality_score": 9.28,
+          "return_20d_pct": 10.3565,
+          "quality_score": 9.29,
           "news_sentiment": 0.25,
-          "return_5d_pct": 2.3673,
-          "rsi_14": 83.083
+          "return_5d_pct": 1.1633,
+          "rsi_14": 90.132
+        },
+        {
+          "ticker": "APD",
+          "conflict": "overbought_extended",
+          "description": "overbought (RSI>75) AND far above 52W high (>0)",
+          "return_20d_pct": 10.3565,
+          "quality_score": 9.29,
+          "news_sentiment": 0.25,
+          "return_5d_pct": 1.1633,
+          "rsi_14": 90.132
         },
         {
           "ticker": "APH",
           "conflict": "insider_vs_sentiment",
           "description": "heavy insider selling but positive sentiment (USA)",
-          "return_20d_pct": -11.0494,
+          "return_20d_pct": -7.5824,
           "quality_score": 45.09,
           "news_sentiment": 0.25,
-          "return_5d_pct": -6.2407,
-          "rsi_14": 21.535
+          "return_5d_pct": -1.7335,
+          "rsi_14": 30.832
         },
         {
           "ticker": "ATO",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 9.0672,
-          "quality_score": 27.69,
+          "return_20d_pct": 8.585,
+          "quality_score": 27.71,
           "news_sentiment": 0.375,
-          "return_5d_pct": 3.976,
-          "rsi_14": 74.669
-        },
-        {
-          "ticker": "AVGO",
-          "conflict": "oversold_extended",
-          "description": "oversold (RSI<25) AND deep drawdown (<-20%)",
-          "return_20d_pct": -5.8357,
-          "quality_score": 50.0,
-          "news_sentiment": 0.125,
-          "return_5d_pct": -1.6199,
-          "rsi_14": 23.95
+          "return_5d_pct": 2.3933,
+          "rsi_14": 75.868
         },
         {
           "ticker": "AVY",
           "conflict": "overbought_extended",
           "description": "overbought (RSI>75) AND far above 52W high (>0)",
-          "return_20d_pct": 6.7136,
-          "quality_score": 24.1,
+          "return_20d_pct": 6.5669,
+          "quality_score": 24.08,
           "news_sentiment": 0.375,
-          "return_5d_pct": 4.4828,
-          "rsi_14": 79.864
-        },
-        {
-          "ticker": "AWK",
-          "conflict": "momentum_vs_fundamentals",
-          "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 9.9046,
-          "quality_score": 18.49,
-          "news_sentiment": 0.375,
-          "return_5d_pct": 6.0867,
-          "rsi_14": 79.904
-        },
-        {
-          "ticker": "AWK",
-          "conflict": "overbought_extended",
-          "description": "overbought (RSI>75) AND far above 52W high (>0)",
-          "return_20d_pct": 9.9046,
-          "quality_score": 18.49,
-          "news_sentiment": 0.375,
-          "return_5d_pct": 6.0867,
-          "rsi_14": 79.904
+          "return_5d_pct": 2.1755,
+          "rsi_14": 80.008
         },
         {
           "ticker": "AZO",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 9.501,
+          "return_20d_pct": 9.511,
           "quality_score": 18.24,
           "news_sentiment": 0.125,
-          "return_5d_pct": 2.9759,
-          "rsi_14": 70.74
+          "return_5d_pct": -0.3378,
+          "rsi_14": 71.941
+        },
+        {
+          "ticker": "BA",
+          "conflict": "news_vs_price",
+          "description": "positive news but price declining",
+          "return_20d_pct": -9.0367,
+          "quality_score": 53.0,
+          "news_sentiment": 0.875,
+          "return_5d_pct": -10.3691,
+          "rsi_14": 28.836
         },
         {
           "ticker": "BALL",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 12.8129,
+          "return_20d_pct": 12.7449,
           "quality_score": 21.19,
           "news_sentiment": 0.375,
-          "return_5d_pct": 0.9555,
-          "rsi_14": 85.963
+          "return_5d_pct": -0.452,
+          "rsi_14": 81.05
+        },
+        {
+          "ticker": "BBY",
+          "conflict": "overbought_extended",
+          "description": "overbought (RSI>75) AND far above 52W high (>0)",
+          "return_20d_pct": 10.3887,
+          "quality_score": 38.92,
+          "news_sentiment": 0.375,
+          "return_5d_pct": 4.3455,
+          "rsi_14": 75.613
         },
         {
           "ticker": "BIIB",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 10.3065,
+          "return_20d_pct": 11.001,
           "quality_score": 1.33,
           "news_sentiment": 0.375,
-          "return_5d_pct": 8.0435,
-          "rsi_14": 76.579
+          "return_5d_pct": 3.6816,
+          "rsi_14": 77.321
         },
         {
           "ticker": "BIIB",
           "conflict": "overbought_extended",
           "description": "overbought (RSI>75) AND far above 52W high (>0)",
-          "return_20d_pct": 10.3065,
+          "return_20d_pct": 11.001,
           "quality_score": 1.33,
           "news_sentiment": 0.375,
-          "return_5d_pct": 8.0435,
-          "rsi_14": 76.579
-        },
-        {
-          "ticker": "BP",
-          "conflict": "overbought_extended",
-          "description": "overbought (RSI>75) AND far above 52W high (>0)",
-          "return_20d_pct": 13.7295,
-          "quality_score": 30.48,
-          "news_sentiment": 0.375,
-          "return_5d_pct": 2.2047,
-          "rsi_14": 75.794
+          "return_5d_pct": 3.6816,
+          "rsi_14": 77.321
         },
         {
           "ticker": "BR",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 11.1527,
-          "quality_score": 24.34,
+          "return_20d_pct": 10.5623,
+          "quality_score": 24.37,
           "news_sentiment": 0.125,
-          "return_5d_pct": 3.4091,
-          "rsi_14": 80.955
+          "return_5d_pct": -1.1334,
+          "rsi_14": 73.509
         },
         {
           "ticker": "CAH",
           "conflict": "insider_vs_sentiment",
           "description": "heavy insider selling but positive sentiment (USA)",
-          "return_20d_pct": 14.4513,
+          "return_20d_pct": 11.0162,
           "quality_score": 33.33,
           "news_sentiment": 0.25,
-          "return_5d_pct": -0.4393,
-          "rsi_14": 71.435
+          "return_5d_pct": -3.708,
+          "rsi_14": 67.806
         },
         {
           "ticker": "CAT",
           "conflict": "oversold_extended",
           "description": "oversold (RSI<25) AND deep drawdown (<-20%)",
-          "return_20d_pct": -15.5888,
+          "return_20d_pct": -13.747,
           "quality_score": 53.8,
           "news_sentiment": 0.375,
-          "return_5d_pct": -4.6377,
-          "rsi_14": 11.082
-        },
-        {
-          "ticker": "CBOE",
-          "conflict": "overbought_extended",
-          "description": "overbought (RSI>75) AND far above 52W high (>0)",
-          "return_20d_pct": 32.3738,
-          "quality_score": 58.22,
-          "news_sentiment": 0.25,
-          "return_5d_pct": 9.3908,
-          "rsi_14": 76.356
+          "return_5d_pct": -1.6875,
+          "rsi_14": 23.654
         },
         {
           "ticker": "CCI",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 30.3577,
-          "quality_score": 18.94,
+          "return_20d_pct": 28.9026,
+          "quality_score": 18.85,
           "news_sentiment": 0.125,
-          "return_5d_pct": 7.9077,
-          "rsi_14": 81.909
+          "return_5d_pct": 6.5504,
+          "rsi_14": 78.735
+        },
+        {
+          "ticker": "CCI",
+          "conflict": "overbought_extended",
+          "description": "overbought (RSI>75) AND far above 52W high (>0)",
+          "return_20d_pct": 28.9026,
+          "quality_score": 18.85,
+          "news_sentiment": 0.125,
+          "return_5d_pct": 6.5504,
+          "rsi_14": 78.735
         },
         {
           "ticker": "CCL",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 21.3189,
-          "quality_score": 16.12,
+          "return_20d_pct": 11.7284,
+          "quality_score": 16.08,
           "news_sentiment": -0.125,
-          "return_5d_pct": 1.5501,
-          "rsi_14": 52.258
+          "return_5d_pct": 3.677,
+          "rsi_14": 63.676
         },
         {
           "ticker": "CDW",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 25.2436,
-          "quality_score": 28.98,
+          "return_20d_pct": 24.416,
+          "quality_score": 28.99,
           "news_sentiment": 0.25,
-          "return_5d_pct": 6.9309,
-          "rsi_14": 82.226
-        },
-        {
-          "ticker": "CDW",
-          "conflict": "overbought_extended",
-          "description": "overbought (RSI>75) AND far above 52W high (>0)",
-          "return_20d_pct": 25.2436,
-          "quality_score": 28.98,
-          "news_sentiment": 0.25,
-          "return_5d_pct": 6.9309,
-          "rsi_14": 82.226
+          "return_5d_pct": 4.1228,
+          "rsi_14": 78.256
         },
         {
           "ticker": "CHD",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 10.2071,
+          "return_20d_pct": 10.6267,
           "quality_score": 14.07,
           "news_sentiment": 0.125,
-          "return_5d_pct": 1.2393,
-          "rsi_14": 73.288
+          "return_5d_pct": -0.8683,
+          "rsi_14": 71.69
         },
         {
           "ticker": "CI",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 12.4894,
-          "quality_score": 15.18,
+          "return_20d_pct": 9.3257,
+          "quality_score": 15.19,
           "news_sentiment": 0.0,
-          "return_5d_pct": 2.4389,
-          "rsi_14": 74.054
-        },
-        {
-          "ticker": "CL",
-          "conflict": "momentum_vs_fundamentals",
-          "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 8.2193,
-          "quality_score": 24.12,
-          "news_sentiment": 0.375,
-          "return_5d_pct": 0.2585,
-          "rsi_14": 66.702
+          "return_5d_pct": -1.8493,
+          "rsi_14": 66.985
         },
         {
           "ticker": "CMS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 11.1661,
+          "return_20d_pct": 9.0071,
           "quality_score": 7.6,
           "news_sentiment": 0.0,
-          "return_5d_pct": 3.2952,
-          "rsi_14": 74.565
+          "return_5d_pct": 1.0889,
+          "rsi_14": 71.273
         },
         {
           "ticker": "CNC",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 8.7958,
+          "return_20d_pct": 12.2649,
           "quality_score": 6.13,
           "news_sentiment": 0.25,
-          "return_5d_pct": -0.8743,
-          "rsi_14": 60.933
+          "return_5d_pct": -1.3699,
+          "rsi_14": 64.206
         },
         {
           "ticker": "COHR",
           "conflict": "oversold_extended",
           "description": "oversold (RSI<25) AND deep drawdown (<-20%)",
-          "return_20d_pct": -21.579,
+          "return_20d_pct": -19.4175,
           "quality_score": 53.72,
           "news_sentiment": 0.375,
-          "return_5d_pct": -4.5341,
-          "rsi_14": 17.564
-        },
-        {
-          "ticker": "COO",
-          "conflict": "momentum_vs_fundamentals",
-          "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 8.0785,
-          "quality_score": 29.12,
-          "news_sentiment": 0.25,
-          "return_5d_pct": 5.1238,
-          "rsi_14": 69.287
-        },
-        {
-          "ticker": "COST",
-          "conflict": "overbought_extended",
-          "description": "overbought (RSI>75) AND far above 52W high (>0)",
-          "return_20d_pct": 8.9108,
-          "quality_score": 42.41,
-          "news_sentiment": 0.125,
-          "return_5d_pct": 0.9673,
-          "rsi_14": 78.782
+          "return_5d_pct": 1.5833,
+          "rsi_14": 23.966
         },
         {
           "ticker": "CPAY",
           "conflict": "insider_vs_sentiment",
           "description": "heavy insider selling but positive sentiment (USA)",
-          "return_20d_pct": 0.8808,
+          "return_20d_pct": 1.5355,
           "quality_score": 34.03,
           "news_sentiment": 0.5,
-          "return_5d_pct": -0.7055,
-          "rsi_14": 44.819
+          "return_5d_pct": -2.3582,
+          "rsi_14": 47.148
+        },
+        {
+          "ticker": "CRL",
+          "conflict": "overbought_extended",
+          "description": "overbought (RSI>75) AND far above 52W high (>0)",
+          "return_20d_pct": 20.5957,
+          "quality_score": 0.0,
+          "news_sentiment": 0.375,
+          "return_5d_pct": 13.1447,
+          "rsi_14": 81.291
         },
         {
           "ticker": "CRWD",
           "conflict": "insider_vs_sentiment",
           "description": "heavy insider selling but positive sentiment (USA)",
-          "return_20d_pct": 0.9952,
+          "return_20d_pct": 2.0343,
           "quality_score": 65.0,
           "news_sentiment": 0.375,
-          "return_5d_pct": 14.7874,
-          "rsi_14": 42.546
+          "return_5d_pct": 17.9069,
+          "rsi_14": 51.235
+        },
+        {
+          "ticker": "CSX",
+          "conflict": "overbought_extended",
+          "description": "overbought (RSI>75) AND far above 52W high (>0)",
+          "return_20d_pct": 10.8779,
+          "quality_score": 42.23,
+          "news_sentiment": 0.125,
+          "return_5d_pct": 8.2259,
+          "rsi_14": 79.806
         },
         {
           "ticker": "CTSH",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 22.185,
-          "quality_score": 12.09,
+          "return_20d_pct": 16.4233,
+          "quality_score": 12.12,
           "news_sentiment": 0.25,
-          "return_5d_pct": 3.8179,
-          "rsi_14": 76.579
+          "return_5d_pct": -2.9407,
+          "rsi_14": 67.635
         },
         {
           "ticker": "CTVA",
           "conflict": "news_vs_price",
           "description": "positive news but price declining",
-          "return_20d_pct": 2.4527,
+          "return_20d_pct": 1.8965,
           "quality_score": 5.0,
           "news_sentiment": 0.375,
-          "return_5d_pct": -5.5336,
-          "rsi_14": 26.328
-        },
-        {
-          "ticker": "CVX",
-          "conflict": "overbought_extended",
-          "description": "overbought (RSI>75) AND far above 52W high (>0)",
-          "return_20d_pct": 12.4243,
-          "quality_score": 32.88,
-          "news_sentiment": 0.125,
-          "return_5d_pct": 3.4051,
-          "rsi_14": 81.67
+          "return_5d_pct": -7.7132,
+          "rsi_14": 15.089
         },
         {
           "ticker": "DASH",
           "conflict": "news_vs_price",
           "description": "positive news but price declining",
-          "return_20d_pct": -5.5777,
+          "return_20d_pct": -7.5147,
           "quality_score": 29.47,
           "news_sentiment": 0.375,
-          "return_5d_pct": -12.9644,
-          "rsi_14": 30.785
+          "return_5d_pct": -9.7198,
+          "rsi_14": 36.566
         },
         {
           "ticker": "DASH",
           "conflict": "insider_vs_sentiment",
           "description": "heavy insider selling but positive sentiment (USA)",
-          "return_20d_pct": -5.5777,
+          "return_20d_pct": -7.5147,
           "quality_score": 29.47,
           "news_sentiment": 0.375,
-          "return_5d_pct": -12.9644,
-          "rsi_14": 30.785
+          "return_5d_pct": -9.7198,
+          "rsi_14": 36.566
         },
         {
           "ticker": "DDOG",
           "conflict": "insider_vs_sentiment",
           "description": "heavy insider selling but positive sentiment (USA)",
-          "return_20d_pct": 4.2947,
+          "return_20d_pct": 3.9991,
           "quality_score": 50.0,
           "news_sentiment": 0.5,
-          "return_5d_pct": 7.6356,
-          "rsi_14": 50.682
+          "return_5d_pct": 8.9186,
+          "rsi_14": 52.829
         },
         {
           "ticker": "DELL",
           "conflict": "insider_vs_sentiment",
           "description": "heavy insider selling but positive sentiment (USA)",
-          "return_20d_pct": -13.9287,
+          "return_20d_pct": -6.3508,
           "quality_score": 35.58,
           "news_sentiment": 0.375,
-          "return_5d_pct": 2.7,
-          "rsi_14": 27.601
+          "return_5d_pct": 9.3298,
+          "rsi_14": 36.355
+        },
+        {
+          "ticker": "DOV",
+          "conflict": "momentum_vs_fundamentals",
+          "description": "strong momentum but weak fundamentals",
+          "return_20d_pct": 8.6426,
+          "quality_score": 18.76,
+          "news_sentiment": 0.25,
+          "return_5d_pct": 4.5425,
+          "rsi_14": 82.226
+        },
+        {
+          "ticker": "DOW",
+          "conflict": "overbought_extended",
+          "description": "overbought (RSI>75) AND far above 52W high (>0)",
+          "return_20d_pct": 22.6548,
+          "quality_score": 58.83,
+          "news_sentiment": 0.25,
+          "return_5d_pct": 10.3454,
+          "rsi_14": 88.552
         },
         {
           "ticker": "DRI",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 9.1193,
-          "quality_score": 24.59,
+          "return_20d_pct": 10.6009,
+          "quality_score": 24.58,
           "news_sentiment": 0.375,
-          "return_5d_pct": -1.3827,
-          "rsi_14": 65.919
-        },
-        {
-          "ticker": "DTE",
-          "conflict": "momentum_vs_fundamentals",
-          "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 9.0292,
-          "quality_score": 27.59,
-          "news_sentiment": 0.25,
-          "return_5d_pct": 3.7895,
-          "rsi_14": 62.188
+          "return_5d_pct": -1.8074,
+          "rsi_14": 69.666
         },
         {
           "ticker": "DUK",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 9.7258,
-          "quality_score": 15.66,
+          "return_20d_pct": 8.8346,
+          "quality_score": 15.68,
           "news_sentiment": 0.375,
-          "return_5d_pct": 4.3347,
-          "rsi_14": 73.551
+          "return_5d_pct": 2.4479,
+          "rsi_14": 73.63
         },
         {
           "ticker": "DXCM",
           "conflict": "news_vs_price",
           "description": "positive news but price declining",
-          "return_20d_pct": -9.3563,
+          "return_20d_pct": -8.7488,
           "quality_score": 41.05,
           "news_sentiment": 0.375,
-          "return_5d_pct": -8.6183,
-          "rsi_14": 38.081
+          "return_5d_pct": -7.791,
+          "rsi_14": 36.768
         },
         {
           "ticker": "ED",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 12.2435,
-          "quality_score": 25.32,
+          "return_20d_pct": 11.1923,
+          "quality_score": 25.33,
           "news_sentiment": 0.125,
-          "return_5d_pct": 5.2238,
-          "rsi_14": 77.989
+          "return_5d_pct": 2.6031,
+          "rsi_14": 77.799
         },
         {
           "ticker": "ED",
           "conflict": "overbought_extended",
           "description": "overbought (RSI>75) AND far above 52W high (>0)",
-          "return_20d_pct": 12.2435,
-          "quality_score": 25.32,
+          "return_20d_pct": 11.1923,
+          "quality_score": 25.33,
           "news_sentiment": 0.125,
-          "return_5d_pct": 5.2238,
-          "rsi_14": 77.989
+          "return_5d_pct": 2.6031,
+          "rsi_14": 77.799
         },
         {
-          "ticker": "ELV",
-          "conflict": "momentum_vs_fundamentals",
-          "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 9.3084,
-          "quality_score": 13.8,
-          "news_sentiment": 0.125,
-          "return_5d_pct": 0.2534,
-          "rsi_14": 69.935
+          "ticker": "EL",
+          "conflict": "overbought_extended",
+          "description": "overbought (RSI>75) AND far above 52W high (>0)",
+          "return_20d_pct": 14.8776,
+          "quality_score": 42.59,
+          "news_sentiment": 0.25,
+          "return_5d_pct": 2.1579,
+          "rsi_14": 76.971
         },
         {
           "ticker": "EME",
           "conflict": "oversold_extended",
           "description": "oversold (RSI<25) AND deep drawdown (<-20%)",
-          "return_20d_pct": -12.9628,
+          "return_20d_pct": -12.3002,
           "quality_score": 41.1,
           "news_sentiment": 0.25,
-          "return_5d_pct": -7.0955,
-          "rsi_14": 13.577
+          "return_5d_pct": -4.9169,
+          "rsi_14": 17.563
+        },
+        {
+          "ticker": "EOG",
+          "conflict": "overbought_extended",
+          "description": "overbought (RSI>75) AND far above 52W high (>0)",
+          "return_20d_pct": 16.553,
+          "quality_score": 42.79,
+          "news_sentiment": 0.5,
+          "return_5d_pct": 2.3938,
+          "rsi_14": 84.132
         },
         {
           "ticker": "EQT",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 9.986,
-          "quality_score": 13.32,
+          "return_20d_pct": 12.7557,
+          "quality_score": 13.34,
           "news_sentiment": 0.125,
-          "return_5d_pct": 0.7902,
-          "rsi_14": 61.972
+          "return_5d_pct": 0.5381,
+          "rsi_14": 63.962
         },
         {
           "ticker": "ERIE",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 13.9933,
-          "quality_score": 26.83,
+          "return_20d_pct": 10.2019,
+          "quality_score": 26.86,
           "news_sentiment": 0.625,
-          "return_5d_pct": 3.7358,
-          "rsi_14": 70.955
-        },
-        {
-          "ticker": "ETN",
-          "conflict": "oversold_extended",
-          "description": "oversold (RSI<25) AND deep drawdown (<-20%)",
-          "return_20d_pct": -13.7897,
-          "quality_score": 12.92,
-          "news_sentiment": 0.25,
-          "return_5d_pct": -5.0013,
-          "rsi_14": 20.191
+          "return_5d_pct": -0.9921,
+          "rsi_14": 68.551
         },
         {
           "ticker": "ETR",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 9.5821,
+          "return_20d_pct": 8.4052,
           "quality_score": 9.81,
           "news_sentiment": 0.25,
-          "return_5d_pct": 3.5645,
-          "rsi_14": 67.49
-        },
-        {
-          "ticker": "EVRG",
-          "conflict": "momentum_vs_fundamentals",
-          "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 8.5997,
-          "quality_score": 22.77,
-          "news_sentiment": 0.375,
-          "return_5d_pct": 3.5745,
-          "rsi_14": 69.686
+          "return_5d_pct": 2.8385,
+          "rsi_14": 71.648
         },
         {
           "ticker": "EXC",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 10.4663,
-          "quality_score": 12.91,
+          "return_20d_pct": 9.0652,
+          "quality_score": 12.9,
           "news_sentiment": 0.125,
-          "return_5d_pct": 5.0224,
-          "rsi_14": 72.0
+          "return_5d_pct": 3.0328,
+          "rsi_14": 71.834
         },
         {
           "ticker": "EXE",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 10.2098,
-          "quality_score": 13.22,
+          "return_20d_pct": 11.6774,
+          "quality_score": 13.2,
           "news_sentiment": 0.375,
-          "return_5d_pct": 1.1838,
-          "rsi_14": 74.307
+          "return_5d_pct": 1.446,
+          "rsi_14": 74.936
+        },
+        {
+          "ticker": "EXPE",
+          "conflict": "news_vs_price",
+          "description": "positive news but price declining",
+          "return_20d_pct": 4.7498,
+          "quality_score": 53.19,
+          "news_sentiment": 0.5,
+          "return_5d_pct": -7.2417,
+          "rsi_14": 59.427
         },
         {
           "ticker": "FDS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 20.8167,
-          "quality_score": 16.21,
+          "return_20d_pct": 18.9753,
+          "quality_score": 16.24,
           "news_sentiment": 0.25,
-          "return_5d_pct": 6.6555,
-          "rsi_14": 82.944
+          "return_5d_pct": -0.9511,
+          "rsi_14": 70.0
         },
         {
           "ticker": "FIX",
           "conflict": "news_vs_price",
           "description": "positive news but price declining",
-          "return_20d_pct": -24.972,
+          "return_20d_pct": -22.9266,
           "quality_score": 43.2,
           "news_sentiment": 0.5,
-          "return_5d_pct": -15.0184,
-          "rsi_14": 14.902
+          "return_5d_pct": -8.1441,
+          "rsi_14": 20.634
         },
         {
           "ticker": "FIX",
           "conflict": "oversold_extended",
           "description": "oversold (RSI<25) AND deep drawdown (<-20%)",
-          "return_20d_pct": -24.972,
+          "return_20d_pct": -22.9266,
           "quality_score": 43.2,
           "news_sentiment": 0.5,
-          "return_5d_pct": -15.0184,
-          "rsi_14": 14.902
+          "return_5d_pct": -8.1441,
+          "rsi_14": 20.634
         },
         {
           "ticker": "FLEX",
           "conflict": "news_vs_price",
           "description": "positive news but price declining",
-          "return_20d_pct": -31.8914,
+          "return_20d_pct": -28.3054,
           "quality_score": 30.35,
           "news_sentiment": 0.625,
-          "return_5d_pct": -12.0516,
-          "rsi_14": 9.973
+          "return_5d_pct": -6.7208,
+          "rsi_14": 17.491
         },
         {
           "ticker": "FLEX",
           "conflict": "oversold_extended",
           "description": "oversold (RSI<25) AND deep drawdown (<-20%)",
-          "return_20d_pct": -31.8914,
+          "return_20d_pct": -28.3054,
           "quality_score": 30.35,
           "news_sentiment": 0.625,
-          "return_5d_pct": -12.0516,
-          "rsi_14": 9.973
+          "return_5d_pct": -6.7208,
+          "rsi_14": 17.491
         },
         {
           "ticker": "FTV",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 9.0029,
+          "return_20d_pct": 10.1426,
           "quality_score": 14.83,
           "news_sentiment": 0.25,
-          "return_5d_pct": 5.7411,
-          "rsi_14": 67.818
-        },
-        {
-          "ticker": "GEV",
-          "conflict": "news_vs_price",
-          "description": "positive news but price declining",
-          "return_20d_pct": -9.9656,
-          "quality_score": 47.21,
-          "news_sentiment": 0.375,
-          "return_5d_pct": -5.8694,
-          "rsi_14": 25.499
+          "return_5d_pct": 4.575,
+          "rsi_14": 82.26
         },
         {
           "ticker": "GLW",
           "conflict": "oversold_extended",
           "description": "oversold (RSI<25) AND deep drawdown (<-20%)",
-          "return_20d_pct": -15.7332,
+          "return_20d_pct": -20.2665,
           "quality_score": 54.76,
           "news_sentiment": 0.625,
-          "return_5d_pct": -3.7668,
-          "rsi_14": 18.93
-        },
-        {
-          "ticker": "GM",
-          "conflict": "news_vs_price",
-          "description": "positive news but price declining",
-          "return_20d_pct": -5.3695,
-          "quality_score": 40.51,
-          "news_sentiment": 0.375,
-          "return_5d_pct": -7.7825,
-          "rsi_14": 33.469
-        },
-        {
-          "ticker": "GNRC",
-          "conflict": "oversold_extended",
-          "description": "oversold (RSI<25) AND deep drawdown (<-20%)",
-          "return_20d_pct": -7.7871,
-          "quality_score": 27.12,
-          "news_sentiment": 0.25,
-          "return_5d_pct": -2.1106,
-          "rsi_14": 24.642
+          "return_5d_pct": -4.321,
+          "rsi_14": 20.315
         },
         {
           "ticker": "HD",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 10.1728,
-          "quality_score": 29.42,
+          "return_20d_pct": 10.6374,
+          "quality_score": 29.43,
           "news_sentiment": 0.0,
-          "return_5d_pct": 3.0657,
-          "rsi_14": 75.998
+          "return_5d_pct": 1.1329,
+          "rsi_14": 76.265
         },
         {
           "ticker": "HII",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 9.3367,
-          "quality_score": 28.95,
+          "return_20d_pct": 8.3288,
+          "quality_score": 28.9,
           "news_sentiment": 0.375,
-          "return_5d_pct": 4.2316,
-          "rsi_14": 66.603
+          "return_5d_pct": 3.3189,
+          "rsi_14": 70.915
         },
         {
           "ticker": "HPQ",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 8.8442,
-          "quality_score": 21.3,
+          "return_20d_pct": 10.2994,
+          "quality_score": 21.24,
           "news_sentiment": 0.375,
-          "return_5d_pct": 12.7315,
-          "rsi_14": 62.09
+          "return_5d_pct": 8.603,
+          "rsi_14": 58.761
         },
         {
           "ticker": "HST",
           "conflict": "overbought_extended",
           "description": "overbought (RSI>75) AND far above 52W high (>0)",
-          "return_20d_pct": 11.5859,
-          "quality_score": 33.05,
+          "return_20d_pct": 12.1628,
+          "quality_score": 33.0,
           "news_sentiment": 0.375,
-          "return_5d_pct": 3.5965,
-          "rsi_14": 79.452
+          "return_5d_pct": 0.5847,
+          "rsi_14": 81.786
         },
         {
           "ticker": "HWM",
           "conflict": "news_vs_price",
           "description": "positive news but price declining",
-          "return_20d_pct": -14.8739,
+          "return_20d_pct": -16.9979,
           "quality_score": 46.21,
           "news_sentiment": 0.5,
-          "return_5d_pct": -11.6666,
-          "rsi_14": 22.529
+          "return_5d_pct": -9.4245,
+          "rsi_14": 24.787
         },
         {
           "ticker": "HWM",
           "conflict": "oversold_extended",
           "description": "oversold (RSI<25) AND deep drawdown (<-20%)",
-          "return_20d_pct": -14.8739,
+          "return_20d_pct": -16.9979,
           "quality_score": 46.21,
           "news_sentiment": 0.5,
-          "return_5d_pct": -11.6666,
-          "rsi_14": 22.529
+          "return_5d_pct": -9.4245,
+          "rsi_14": 24.787
         },
         {
           "ticker": "IFF",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 9.2977,
-          "quality_score": 26.7,
+          "return_20d_pct": 8.2698,
+          "quality_score": 26.71,
           "news_sentiment": 0.375,
-          "return_5d_pct": 3.0013,
-          "rsi_14": 93.422
+          "return_5d_pct": 1.195,
+          "rsi_14": 82.892
         },
         {
           "ticker": "IFF",
           "conflict": "overbought_extended",
           "description": "overbought (RSI>75) AND far above 52W high (>0)",
-          "return_20d_pct": 9.2977,
-          "quality_score": 26.7,
+          "return_20d_pct": 8.2698,
+          "quality_score": 26.71,
           "news_sentiment": 0.375,
-          "return_5d_pct": 3.0013,
-          "rsi_14": 93.422
-        },
-        {
-          "ticker": "INTC",
-          "conflict": "oversold_extended",
-          "description": "oversold (RSI<25) AND deep drawdown (<-20%)",
-          "return_20d_pct": -22.0288,
-          "quality_score": 33.33,
-          "news_sentiment": 0.0,
-          "return_5d_pct": -1.6951,
-          "rsi_14": 24.413
+          "return_5d_pct": 1.195,
+          "rsi_14": 82.892
         },
         {
           "ticker": "INTU",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 26.7541,
-          "quality_score": 21.71,
+          "return_20d_pct": 21.9931,
+          "quality_score": 21.72,
           "news_sentiment": -0.125,
-          "return_5d_pct": 4.3824,
-          "rsi_14": 75.006
-        },
-        {
-          "ticker": "ISRG",
-          "conflict": "overbought_extended",
-          "description": "overbought (RSI>75) AND far above 52W high (>0)",
-          "return_20d_pct": 8.8816,
-          "quality_score": 42.66,
-          "news_sentiment": 0.375,
-          "return_5d_pct": 4.2592,
-          "rsi_14": 77.548
-        },
-        {
-          "ticker": "IT",
-          "conflict": "overbought_extended",
-          "description": "overbought (RSI>75) AND far above 52W high (>0)",
-          "return_20d_pct": 24.3902,
-          "quality_score": 32.28,
-          "news_sentiment": 0.25,
-          "return_5d_pct": 11.2218,
-          "rsi_14": 83.225
+          "return_5d_pct": -2.9318,
+          "rsi_14": 63.472
         },
         {
           "ticker": "JKHY",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 9.8295,
+          "return_20d_pct": 8.8018,
           "quality_score": 25.02,
           "news_sentiment": 0.25,
-          "return_5d_pct": 6.257,
-          "rsi_14": 81.683
+          "return_5d_pct": 2.8311,
+          "rsi_14": 72.127
         },
         {
           "ticker": "KDP",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 11.2206,
-          "quality_score": 3.53,
+          "return_20d_pct": 12.1495,
+          "quality_score": 3.51,
           "news_sentiment": 0.25,
-          "return_5d_pct": 1.538,
-          "rsi_14": 78.052
+          "return_5d_pct": 0.4909,
+          "rsi_14": 82.87
         },
         {
           "ticker": "KDP",
           "conflict": "overbought_extended",
           "description": "overbought (RSI>75) AND far above 52W high (>0)",
-          "return_20d_pct": 11.2206,
-          "quality_score": 3.53,
+          "return_20d_pct": 12.1495,
+          "quality_score": 3.51,
           "news_sentiment": 0.25,
-          "return_5d_pct": 1.538,
-          "rsi_14": 78.052
+          "return_5d_pct": 0.4909,
+          "rsi_14": 82.87
         },
         {
           "ticker": "KLAC",
           "conflict": "oversold_extended",
           "description": "oversold (RSI<25) AND deep drawdown (<-20%)",
-          "return_20d_pct": -21.1239,
+          "return_20d_pct": -22.0781,
           "quality_score": 39.5,
           "news_sentiment": 0.0,
-          "return_5d_pct": -10.3305,
-          "rsi_14": 9.892
+          "return_5d_pct": -5.3172,
+          "rsi_14": 15.571
         },
         {
           "ticker": "KMB",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 10.9952,
-          "quality_score": 27.37,
+          "return_20d_pct": 9.7586,
+          "quality_score": 27.39,
           "news_sentiment": 0.375,
-          "return_5d_pct": 4.0034,
-          "rsi_14": 77.04
+          "return_5d_pct": 0.2954,
+          "rsi_14": 74.867
         },
         {
-          "ticker": "KR",
+          "ticker": "KMI",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 11.8613,
-          "quality_score": 24.77,
-          "news_sentiment": 0.125,
-          "return_5d_pct": 5.9001,
-          "rsi_14": 75.707
-        },
-        {
-          "ticker": "KR",
-          "conflict": "overbought_extended",
-          "description": "overbought (RSI>75) AND far above 52W high (>0)",
-          "return_20d_pct": 11.8613,
-          "quality_score": 24.77,
-          "news_sentiment": 0.125,
-          "return_5d_pct": 5.9001,
-          "rsi_14": 75.707
+          "return_20d_pct": 11.2315,
+          "quality_score": 27.39,
+          "news_sentiment": 0.375,
+          "return_5d_pct": 0.8937,
+          "rsi_14": 65.745
         },
         {
           "ticker": "KVUE",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 9.0604,
-          "quality_score": 16.58,
+          "return_20d_pct": 8.096,
+          "quality_score": 16.6,
           "news_sentiment": 0.25,
-          "return_5d_pct": 3.3386,
-          "rsi_14": 76.901
-        },
-        {
-          "ticker": "KVUE",
-          "conflict": "overbought_extended",
-          "description": "overbought (RSI>75) AND far above 52W high (>0)",
-          "return_20d_pct": 9.0604,
-          "quality_score": 16.58,
-          "news_sentiment": 0.25,
-          "return_5d_pct": 3.3386,
-          "rsi_14": 76.901
+          "return_5d_pct": 0.4149,
+          "rsi_14": 75.207
         },
         {
           "ticker": "LDOS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 14.3114,
-          "quality_score": 11.74,
+          "return_20d_pct": 13.4403,
+          "quality_score": 11.71,
           "news_sentiment": 0.375,
-          "return_5d_pct": 10.956,
-          "rsi_14": 84.675
+          "return_5d_pct": 9.3882,
+          "rsi_14": 92.8
         },
         {
           "ticker": "LHX",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 9.4783,
-          "quality_score": 23.32,
+          "return_20d_pct": 9.6439,
+          "quality_score": 23.27,
           "news_sentiment": 0.25,
-          "return_5d_pct": 6.7216,
-          "rsi_14": 72.228
+          "return_5d_pct": 4.2228,
+          "rsi_14": 77.331
         },
         {
           "ticker": "LITE",
           "conflict": "insider_vs_sentiment",
           "description": "heavy insider selling but positive sentiment (USA)",
-          "return_20d_pct": -11.2035,
+          "return_20d_pct": -10.7418,
           "quality_score": 33.33,
           "news_sentiment": 0.625,
-          "return_5d_pct": -1.9664,
-          "rsi_14": 25.098
+          "return_5d_pct": 5.6425,
+          "rsi_14": 31.699
+        },
+        {
+          "ticker": "LMT",
+          "conflict": "overbought_extended",
+          "description": "overbought (RSI>75) AND far above 52W high (>0)",
+          "return_20d_pct": 22.8695,
+          "quality_score": 36.56,
+          "news_sentiment": 0.25,
+          "return_5d_pct": 14.6963,
+          "rsi_14": 89.369
         },
         {
           "ticker": "LNT",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 9.951,
-          "quality_score": 10.9,
+          "return_20d_pct": 8.2375,
+          "quality_score": 10.91,
           "news_sentiment": -0.125,
-          "return_5d_pct": 3.9641,
-          "rsi_14": 70.191
+          "return_5d_pct": 2.0067,
+          "rsi_14": 72.625
         },
         {
           "ticker": "LRCX",
           "conflict": "news_vs_price",
           "description": "positive news but price declining",
-          "return_20d_pct": -24.4761,
+          "return_20d_pct": -25.7951,
           "quality_score": 50.0,
           "news_sentiment": 0.5,
-          "return_5d_pct": -12.748,
-          "rsi_14": 12.262
+          "return_5d_pct": -8.7797,
+          "rsi_14": 14.649
         },
         {
           "ticker": "LRCX",
           "conflict": "oversold_extended",
           "description": "oversold (RSI<25) AND deep drawdown (<-20%)",
-          "return_20d_pct": -24.4761,
+          "return_20d_pct": -25.7951,
           "quality_score": 50.0,
           "news_sentiment": 0.5,
-          "return_5d_pct": -12.748,
-          "rsi_14": 12.262
+          "return_5d_pct": -8.7797,
+          "rsi_14": 14.649
         },
         {
           "ticker": "LYB",
           "conflict": "overbought_extended",
           "description": "overbought (RSI>75) AND far above 52W high (>0)",
-          "return_20d_pct": 15.5826,
-          "quality_score": 38.87,
+          "return_20d_pct": 15.813,
+          "quality_score": 38.8,
           "news_sentiment": 0.25,
-          "return_5d_pct": 5.7134,
-          "rsi_14": 82.04
+          "return_5d_pct": 5.3471,
+          "rsi_14": 84.918
         },
         {
           "ticker": "MAS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 10.4593,
-          "quality_score": 27.92,
+          "return_20d_pct": 9.7119,
+          "quality_score": 27.94,
           "news_sentiment": 0.375,
-          "return_5d_pct": 3.4384,
-          "rsi_14": 68.501
+          "return_5d_pct": 0.4688,
+          "rsi_14": 71.143
         },
         {
           "ticker": "MCK",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 15.9502,
+          "return_20d_pct": 12.7639,
           "quality_score": 5.56,
           "news_sentiment": 0.0,
-          "return_5d_pct": -1.7379,
-          "rsi_14": 71.143
+          "return_5d_pct": -5.3309,
+          "rsi_14": 68.567
         },
         {
           "ticker": "META",
           "conflict": "insider_vs_sentiment",
           "description": "heavy insider selling but positive sentiment (USA)",
-          "return_20d_pct": -11.8862,
+          "return_20d_pct": -15.6962,
           "quality_score": 50.0,
           "news_sentiment": 0.25,
-          "return_5d_pct": -10.6147,
-          "rsi_14": 23.257
+          "return_5d_pct": -10.2877,
+          "rsi_14": 24.444
         },
         {
-          "ticker": "MOS",
-          "conflict": "oversold_extended",
-          "description": "oversold (RSI<25) AND deep drawdown (<-20%)",
-          "return_20d_pct": -20.4045,
-          "quality_score": 6.57,
-          "news_sentiment": 0.125,
-          "return_5d_pct": -1.1719,
-          "rsi_14": 19.238
-        },
-        {
-          "ticker": "MPWR",
+          "ticker": "MPC",
           "conflict": "news_vs_price",
           "description": "positive news but price declining",
-          "return_20d_pct": -13.4847,
-          "quality_score": 69.59,
+          "return_20d_pct": 12.1113,
+          "quality_score": 40.22,
           "news_sentiment": 0.375,
-          "return_5d_pct": -6.891,
-          "rsi_14": 22.703
-        },
-        {
-          "ticker": "MPWR",
-          "conflict": "oversold_extended",
-          "description": "oversold (RSI<25) AND deep drawdown (<-20%)",
-          "return_20d_pct": -13.4847,
-          "quality_score": 69.59,
-          "news_sentiment": 0.375,
-          "return_5d_pct": -6.891,
-          "rsi_14": 22.703
+          "return_5d_pct": -7.4794,
+          "rsi_14": 48.993
         },
         {
           "ticker": "MRNA",
           "conflict": "news_vs_price",
           "description": "positive news but price declining",
-          "return_20d_pct": 0.7958,
+          "return_20d_pct": -2.0667,
           "quality_score": 3.5,
           "news_sentiment": 0.375,
-          "return_5d_pct": -12.3584,
-          "rsi_14": 53.455
+          "return_5d_pct": -17.6904,
+          "rsi_14": 50.888
         },
         {
           "ticker": "MRSH",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 15.8704,
-          "quality_score": 24.59,
+          "return_20d_pct": 12.0569,
+          "quality_score": 24.61,
           "news_sentiment": 0.375,
-          "return_5d_pct": 3.2997,
-          "rsi_14": 82.55
+          "return_5d_pct": -0.732,
+          "rsi_14": 71.182
         },
         {
-          "ticker": "MTD",
+          "ticker": "MSI",
           "conflict": "overbought_extended",
           "description": "overbought (RSI>75) AND far above 52W high (>0)",
-          "return_20d_pct": 8.0478,
-          "quality_score": 49.93,
-          "news_sentiment": 0.375,
-          "return_5d_pct": 2.6997,
-          "rsi_14": 82.804
+          "return_20d_pct": 8.793,
+          "quality_score": 37.38,
+          "news_sentiment": 0.5,
+          "return_5d_pct": 4.7226,
+          "rsi_14": 84.047
+        },
+        {
+          "ticker": "NDAQ",
+          "conflict": "overbought_extended",
+          "description": "overbought (RSI>75) AND far above 52W high (>0)",
+          "return_20d_pct": 13.5819,
+          "quality_score": 38.09,
+          "news_sentiment": 0.5,
+          "return_5d_pct": 10.0475,
+          "rsi_14": 79.703
         },
         {
           "ticker": "NI",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 11.0997,
-          "quality_score": 7.45,
+          "return_20d_pct": 10.6562,
+          "quality_score": 7.44,
           "news_sentiment": 0.125,
-          "return_5d_pct": 3.5518,
-          "rsi_14": 73.838
+          "return_5d_pct": 1.754,
+          "rsi_14": 75.826
         },
         {
-          "ticker": "NOW",
+          "ticker": "NUE",
           "conflict": "overbought_extended",
           "description": "overbought (RSI>75) AND far above 52W high (>0)",
-          "return_20d_pct": 20.3347,
-          "quality_score": 32.28,
-          "news_sentiment": 0.375,
-          "return_5d_pct": 8.8195,
-          "rsi_14": 75.473
+          "return_20d_pct": 15.6547,
+          "quality_score": 50.02,
+          "news_sentiment": 0.0,
+          "return_5d_pct": 4.2352,
+          "rsi_14": 78.374
         },
         {
           "ticker": "NVDA",
           "conflict": "insider_vs_sentiment",
           "description": "heavy insider selling but positive sentiment (USA)",
-          "return_20d_pct": -5.6192,
+          "return_20d_pct": -4.0843,
           "quality_score": 50.0,
           "news_sentiment": 0.25,
-          "return_5d_pct": -0.5021,
-          "rsi_14": 28.734
-        },
-        {
-          "ticker": "NWSA",
-          "conflict": "overbought_extended",
-          "description": "overbought (RSI>75) AND far above 52W high (>0)",
-          "return_20d_pct": 5.1203,
-          "quality_score": 6.73,
-          "news_sentiment": 0.125,
-          "return_5d_pct": 1.7631,
-          "rsi_14": 75.628
+          "return_5d_pct": 0.6745,
+          "rsi_14": 32.172
         },
         {
           "ticker": "OTIS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 13.4781,
+          "return_20d_pct": 13.0885,
           "quality_score": 18.47,
           "news_sentiment": -0.25,
-          "return_5d_pct": 5.9544,
-          "rsi_14": 86.628
+          "return_5d_pct": 2.9832,
+          "rsi_14": 84.249
         },
         {
           "ticker": "OTIS",
           "conflict": "overbought_extended",
           "description": "overbought (RSI>75) AND far above 52W high (>0)",
-          "return_20d_pct": 13.4781,
+          "return_20d_pct": 13.0885,
           "quality_score": 18.47,
           "news_sentiment": -0.25,
-          "return_5d_pct": 5.9544,
-          "rsi_14": 86.628
+          "return_5d_pct": 2.9832,
+          "rsi_14": 84.249
         },
         {
-          "ticker": "OXY",
+          "ticker": "PKG",
           "conflict": "overbought_extended",
           "description": "overbought (RSI>75) AND far above 52W high (>0)",
-          "return_20d_pct": 14.2068,
-          "quality_score": 39.0,
-          "news_sentiment": 0.125,
-          "return_5d_pct": 2.1524,
-          "rsi_14": 80.794
-        },
-        {
-          "ticker": "PEG",
-          "conflict": "momentum_vs_fundamentals",
-          "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 8.0623,
-          "quality_score": 25.87,
+          "return_20d_pct": 7.6239,
+          "quality_score": 18.88,
           "news_sentiment": 0.375,
-          "return_5d_pct": 2.5455,
-          "rsi_14": 52.251
+          "return_5d_pct": 5.0833,
+          "rsi_14": 78.912
         },
         {
-          "ticker": "PH",
+          "ticker": "PNR",
+          "conflict": "momentum_vs_fundamentals",
+          "description": "strong momentum but weak fundamentals",
+          "return_20d_pct": 17.2627,
+          "quality_score": 11.31,
+          "news_sentiment": -0.25,
+          "return_5d_pct": 18.571,
+          "rsi_14": 87.241
+        },
+        {
+          "ticker": "PSX",
           "conflict": "news_vs_price",
           "description": "positive news but price declining",
-          "return_20d_pct": -6.7165,
-          "quality_score": 32.37,
-          "news_sentiment": 1.0,
-          "return_5d_pct": -6.3989,
-          "rsi_14": 31.042
-        },
-        {
-          "ticker": "PKG",
-          "conflict": "momentum_vs_fundamentals",
-          "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 8.1955,
-          "quality_score": 18.95,
+          "return_20d_pct": 6.7512,
+          "quality_score": 34.22,
           "news_sentiment": 0.375,
-          "return_5d_pct": 7.3441,
-          "rsi_14": 79.268
-        },
-        {
-          "ticker": "PKG",
-          "conflict": "overbought_extended",
-          "description": "overbought (RSI>75) AND far above 52W high (>0)",
-          "return_20d_pct": 8.1955,
-          "quality_score": 18.95,
-          "news_sentiment": 0.375,
-          "return_5d_pct": 7.3441,
-          "rsi_14": 79.268
-        },
-        {
-          "ticker": "PPL",
-          "conflict": "momentum_vs_fundamentals",
-          "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 8.7512,
-          "quality_score": 20.8,
-          "news_sentiment": 0.125,
-          "return_5d_pct": 1.7779,
-          "rsi_14": 63.864
+          "return_5d_pct": -7.4735,
+          "rsi_14": 48.551
         },
         {
           "ticker": "PTC",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 39.0579,
+          "return_20d_pct": 41.2511,
           "quality_score": 20.0,
           "news_sentiment": 0.25,
-          "return_5d_pct": 0.6164,
-          "rsi_14": 61.682
+          "return_5d_pct": 0.4939,
+          "rsi_14": 57.336
         },
         {
           "ticker": "PVH",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 14.2744,
+          "return_20d_pct": 13.652,
           "quality_score": 6.67,
           "news_sentiment": 0.0,
-          "return_5d_pct": 1.5728,
-          "rsi_14": 73.203
+          "return_5d_pct": -0.4855,
+          "rsi_14": 71.186
         },
         {
           "ticker": "PWR",
           "conflict": "oversold_extended",
           "description": "oversold (RSI<25) AND deep drawdown (<-20%)",
-          "return_20d_pct": -12.4672,
+          "return_20d_pct": -10.9561,
           "quality_score": 59.13,
           "news_sentiment": 0.25,
-          "return_5d_pct": -8.8097,
-          "rsi_14": 17.862
+          "return_5d_pct": -2.6376,
+          "rsi_14": 24.834
         },
         {
           "ticker": "RMD",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 14.0027,
+          "return_20d_pct": 12.5252,
           "quality_score": 23.03,
           "news_sentiment": 0.0,
-          "return_5d_pct": 5.6012,
-          "rsi_14": 91.225
+          "return_5d_pct": 2.1344,
+          "rsi_14": 83.825
         },
         {
-          "ticker": "ROL",
-          "conflict": "momentum_vs_fundamentals",
-          "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 12.9454,
-          "quality_score": 17.53,
-          "news_sentiment": -0.25,
-          "return_5d_pct": 5.7869,
-          "rsi_14": 74.027
-        },
-        {
-          "ticker": "RSG",
-          "conflict": "momentum_vs_fundamentals",
-          "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 13.6964,
-          "quality_score": 29.4,
-          "news_sentiment": 0.375,
-          "return_5d_pct": 5.3617,
-          "rsi_14": 83.371
-        },
-        {
-          "ticker": "RSG",
+          "ticker": "RMD",
           "conflict": "overbought_extended",
           "description": "overbought (RSI>75) AND far above 52W high (>0)",
-          "return_20d_pct": 13.6964,
+          "return_20d_pct": 12.5252,
+          "quality_score": 23.03,
+          "news_sentiment": 0.0,
+          "return_5d_pct": 2.1344,
+          "rsi_14": 83.825
+        },
+        {
+          "ticker": "ROP",
+          "conflict": "overbought_extended",
+          "description": "overbought (RSI>75) AND far above 52W high (>0)",
+          "return_20d_pct": 24.938,
+          "quality_score": 38.39,
+          "news_sentiment": 0.125,
+          "return_5d_pct": 9.3644,
+          "rsi_14": 92.358
+        },
+        {
+          "ticker": "RSG",
+          "conflict": "momentum_vs_fundamentals",
+          "description": "strong momentum but weak fundamentals",
+          "return_20d_pct": 11.8002,
           "quality_score": 29.4,
           "news_sentiment": 0.375,
-          "return_5d_pct": 5.3617,
-          "rsi_14": 83.371
+          "return_5d_pct": 1.3649,
+          "rsi_14": 72.955
         },
         {
           "ticker": "SAIC",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 13.7515,
-          "quality_score": 11.02,
+          "return_20d_pct": 16.2977,
+          "quality_score": 11.0,
           "news_sentiment": 0.25,
-          "return_5d_pct": 11.5526,
-          "rsi_14": 83.29
+          "return_5d_pct": 10.0518,
+          "rsi_14": 89.481
         },
         {
           "ticker": "SCHW",
           "conflict": "insider_vs_sentiment",
           "description": "heavy insider selling but positive sentiment (USA)",
-          "return_20d_pct": -8.7182,
-          "quality_score": 40.61,
+          "return_20d_pct": -9.6216,
+          "quality_score": 40.63,
           "news_sentiment": 0.25,
-          "return_5d_pct": 0.1674,
-          "rsi_14": 28.192
+          "return_5d_pct": -1.4578,
+          "rsi_14": 30.155
         },
         {
           "ticker": "SNDK",
           "conflict": "oversold_extended",
           "description": "oversold (RSI<25) AND deep drawdown (<-20%)",
-          "return_20d_pct": -26.6982,
+          "return_20d_pct": -24.6543,
           "quality_score": 52.94,
           "news_sentiment": 0.0,
-          "return_5d_pct": -8.4267,
-          "rsi_14": 19.93
+          "return_5d_pct": -4.5467,
+          "rsi_14": 21.761
         },
         {
           "ticker": "SO",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 12.4104,
-          "quality_score": 25.29,
+          "return_20d_pct": 10.5093,
+          "quality_score": 25.3,
           "news_sentiment": -0.125,
-          "return_5d_pct": 3.6967,
-          "rsi_14": 74.603
+          "return_5d_pct": 1.6646,
+          "rsi_14": 72.844
         },
         {
           "ticker": "SPGI",
           "conflict": "overbought_extended",
           "description": "overbought (RSI>75) AND far above 52W high (>0)",
-          "return_20d_pct": 13.8235,
+          "return_20d_pct": 14.4923,
           "quality_score": 32.75,
           "news_sentiment": 0.375,
-          "return_5d_pct": 5.3339,
-          "rsi_14": 87.414
+          "return_5d_pct": 2.5575,
+          "rsi_14": 86.967
         },
         {
           "ticker": "STE",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 9.0616,
-          "quality_score": 17.65,
+          "return_20d_pct": 8.6589,
+          "quality_score": 17.66,
           "news_sentiment": 0.375,
-          "return_5d_pct": 3.6717,
-          "rsi_14": 76.037
+          "return_5d_pct": 1.6476,
+          "rsi_14": 73.184
         },
         {
           "ticker": "SWK",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 11.9914,
-          "quality_score": 29.14,
+          "return_20d_pct": 11.8538,
+          "quality_score": 29.13,
           "news_sentiment": 0.125,
-          "return_5d_pct": 8.9703,
-          "rsi_14": 76.201
+          "return_5d_pct": 5.5532,
+          "rsi_14": 83.81
         },
         {
           "ticker": "TAP",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 10.284,
-          "quality_score": 26.21,
+          "return_20d_pct": 9.7473,
+          "quality_score": 26.4,
           "news_sentiment": 0.0,
-          "return_5d_pct": 1.7035,
-          "rsi_14": 65.911
-        },
-        {
-          "ticker": "TER",
-          "conflict": "news_vs_price",
-          "description": "positive news but price declining",
-          "return_20d_pct": -23.0002,
-          "quality_score": 58.31,
-          "news_sentiment": 0.625,
-          "return_5d_pct": -7.9069,
-          "rsi_14": 14.468
+          "return_5d_pct": -1.6915,
+          "rsi_14": 62.66
         },
         {
           "ticker": "TER",
           "conflict": "oversold_extended",
           "description": "oversold (RSI<25) AND deep drawdown (<-20%)",
-          "return_20d_pct": -23.0002,
+          "return_20d_pct": -19.1008,
           "quality_score": 58.31,
           "news_sentiment": 0.625,
-          "return_5d_pct": -7.9069,
-          "rsi_14": 14.468
-        },
-        {
-          "ticker": "TJX",
-          "conflict": "momentum_vs_fundamentals",
-          "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 10.3263,
-          "quality_score": 27.71,
-          "news_sentiment": -0.125,
-          "return_5d_pct": -2.4837,
-          "rsi_14": 67.863
+          "return_5d_pct": -3.1344,
+          "rsi_14": 24.666
         },
         {
           "ticker": "TMO",
           "conflict": "insider_vs_sentiment",
           "description": "heavy insider selling but positive sentiment (USA)",
-          "return_20d_pct": 0.9269,
+          "return_20d_pct": 2.4897,
           "quality_score": 21.23,
           "news_sentiment": 0.5,
-          "return_5d_pct": 0.811,
-          "rsi_14": 61.5
+          "return_5d_pct": 1.3326,
+          "rsi_14": 63.335
         },
         {
           "ticker": "TRMB",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 10.1895,
+          "return_20d_pct": 10.4639,
           "quality_score": 14.67,
           "news_sentiment": 0.5,
-          "return_5d_pct": 5.7048,
-          "rsi_14": 60.117
+          "return_5d_pct": 1.9639,
+          "rsi_14": 64.775
         },
         {
           "ticker": "TRV",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 10.1911,
-          "quality_score": 19.67,
+          "return_20d_pct": 8.8241,
+          "quality_score": 19.66,
           "news_sentiment": 0.25,
-          "return_5d_pct": 3.8189,
-          "rsi_14": 80.347
-        },
-        {
-          "ticker": "TRV",
-          "conflict": "overbought_extended",
-          "description": "overbought (RSI>75) AND far above 52W high (>0)",
-          "return_20d_pct": 10.1911,
-          "quality_score": 19.67,
-          "news_sentiment": 0.25,
-          "return_5d_pct": 3.8189,
-          "rsi_14": 80.347
+          "return_5d_pct": -0.1188,
+          "rsi_14": 74.746
         },
         {
           "ticker": "TSN",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 10.6968,
-          "quality_score": 28.6,
+          "return_20d_pct": 9.0232,
+          "quality_score": 28.62,
           "news_sentiment": 0.125,
-          "return_5d_pct": 4.4444,
-          "rsi_14": 76.151
-        },
-        {
-          "ticker": "TYL",
-          "conflict": "overbought_extended",
-          "description": "overbought (RSI>75) AND far above 52W high (>0)",
-          "return_20d_pct": 19.2457,
-          "quality_score": 42.09,
-          "news_sentiment": 0.125,
-          "return_5d_pct": 7.301,
-          "rsi_14": 83.387
+          "return_5d_pct": 0.3611,
+          "rsi_14": 71.508
         },
         {
           "ticker": "ULTA",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 13.8765,
+          "return_20d_pct": 14.3605,
           "quality_score": 22.84,
           "news_sentiment": 0.25,
-          "return_5d_pct": 5.6979,
-          "rsi_14": 77.135
+          "return_5d_pct": 3.926,
+          "rsi_14": 78.308
         },
         {
           "ticker": "ULTA",
           "conflict": "overbought_extended",
           "description": "overbought (RSI>75) AND far above 52W high (>0)",
-          "return_20d_pct": 13.8765,
+          "return_20d_pct": 14.3605,
           "quality_score": 22.84,
           "news_sentiment": 0.25,
-          "return_5d_pct": 5.6979,
-          "rsi_14": 77.135
+          "return_5d_pct": 3.926,
+          "rsi_14": 78.308
         },
         {
-          "ticker": "VEEV",
-          "conflict": "overbought_extended",
-          "description": "overbought (RSI>75) AND far above 52W high (>0)",
-          "return_20d_pct": 13.652,
-          "quality_score": 73.51,
-          "news_sentiment": 0.5,
-          "return_5d_pct": 0.4356,
-          "rsi_14": 78.492
+          "ticker": "UPS",
+          "conflict": "momentum_vs_fundamentals",
+          "description": "strong momentum but weak fundamentals",
+          "return_20d_pct": 11.8333,
+          "quality_score": 14.87,
+          "news_sentiment": 0.375,
+          "return_5d_pct": 6.623,
+          "rsi_14": 87.526
         },
         {
           "ticker": "VLO",
-          "conflict": "momentum_vs_fundamentals",
-          "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 9.5464,
-          "quality_score": 29.2,
+          "conflict": "news_vs_price",
+          "description": "positive news but price declining",
+          "return_20d_pct": 1.189,
+          "quality_score": 29.18,
           "news_sentiment": 0.5,
-          "return_5d_pct": -1.5116,
-          "rsi_14": 53.227
+          "return_5d_pct": -9.4804,
+          "rsi_14": 39.147
         },
         {
           "ticker": "VLTO",
           "conflict": "overbought_extended",
           "description": "overbought (RSI>75) AND far above 52W high (>0)",
-          "return_20d_pct": 7.5771,
+          "return_20d_pct": 6.61,
           "quality_score": 28.74,
           "news_sentiment": 0.625,
-          "return_5d_pct": 2.8665,
-          "rsi_14": 77.208
+          "return_5d_pct": 1.5193,
+          "rsi_14": 78.888
         },
         {
           "ticker": "VRSK",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 16.9399,
+          "return_20d_pct": 13.7279,
           "quality_score": 22.34,
           "news_sentiment": 0.25,
-          "return_5d_pct": 3.689,
-          "rsi_14": 80.246
+          "return_5d_pct": -1.1264,
+          "rsi_14": 68.146
         },
         {
           "ticker": "VRSN",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 9.448,
-          "quality_score": 28.53,
+          "return_20d_pct": 8.2511,
+          "quality_score": 28.5,
           "news_sentiment": 0.25,
-          "return_5d_pct": 0.7309,
-          "rsi_14": 70.749
-        },
-        {
-          "ticker": "VRT",
-          "conflict": "oversold_extended",
-          "description": "oversold (RSI<25) AND deep drawdown (<-20%)",
-          "return_20d_pct": -18.1364,
-          "quality_score": 44.04,
-          "news_sentiment": 0.5,
-          "return_5d_pct": -3.0571,
-          "rsi_14": 17.248
+          "return_5d_pct": -1.1744,
+          "rsi_14": 60.293
         },
         {
           "ticker": "WDAY",
           "conflict": "insider_vs_sentiment",
           "description": "heavy insider selling but positive sentiment (USA)",
-          "return_20d_pct": 10.5514,
+          "return_20d_pct": 8.5796,
           "quality_score": 32.33,
           "news_sentiment": 0.25,
-          "return_5d_pct": 6.8135,
-          "rsi_14": 71.911
+          "return_5d_pct": 0.6961,
+          "rsi_14": 70.766
         },
         {
           "ticker": "WEC",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 9.5318,
+          "return_20d_pct": 8.4032,
           "quality_score": 22.05,
           "news_sentiment": 0.125,
-          "return_5d_pct": 3.8505,
-          "rsi_14": 75.73
-        },
-        {
-          "ticker": "WM",
-          "conflict": "overbought_extended",
-          "description": "overbought (RSI>75) AND far above 52W high (>0)",
-          "return_20d_pct": 16.7506,
-          "quality_score": 30.11,
-          "news_sentiment": 0.25,
-          "return_5d_pct": 6.4529,
-          "rsi_14": 90.533
+          "return_5d_pct": 2.2529,
+          "rsi_14": 75.904
         },
         {
           "ticker": "WMT",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 10.6318,
+          "return_20d_pct": 11.2453,
           "quality_score": 26.93,
           "news_sentiment": 0.125,
-          "return_5d_pct": 1.3395,
-          "rsi_14": 84.142
+          "return_5d_pct": 0.8146,
+          "rsi_14": 77.044
         },
         {
           "ticker": "WMT",
           "conflict": "overbought_extended",
           "description": "overbought (RSI>75) AND far above 52W high (>0)",
-          "return_20d_pct": 10.6318,
+          "return_20d_pct": 11.2453,
           "quality_score": 26.93,
           "news_sentiment": 0.125,
-          "return_5d_pct": 1.3395,
-          "rsi_14": 84.142
-        },
-        {
-          "ticker": "WRB",
-          "conflict": "momentum_vs_fundamentals",
-          "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 9.06,
-          "quality_score": 26.02,
-          "news_sentiment": 0.125,
-          "return_5d_pct": -0.3915,
-          "rsi_14": 65.448
+          "return_5d_pct": 0.8146,
+          "rsi_14": 77.044
         },
         {
           "ticker": "WTW",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 11.5175,
+          "return_20d_pct": 9.9753,
           "quality_score": 11.28,
           "news_sentiment": 0.375,
-          "return_5d_pct": 3.2501,
-          "rsi_14": 77.003
+          "return_5d_pct": -0.7593,
+          "rsi_14": 68.96
+        },
+        {
+          "ticker": "WYNN",
+          "conflict": "news_vs_price",
+          "description": "positive news but price declining",
+          "return_20d_pct": -7.4068,
+          "quality_score": 30.22,
+          "news_sentiment": 0.5,
+          "return_5d_pct": -6.4742,
+          "rsi_14": 42.871
         },
         {
           "ticker": "XEL",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 12.2064,
+          "return_20d_pct": 9.9165,
           "quality_score": 18.57,
           "news_sentiment": 0.25,
-          "return_5d_pct": 3.6199,
-          "rsi_14": 74.084
-        },
-        {
-          "ticker": "ZTS",
-          "conflict": "overbought_extended",
-          "description": "overbought (RSI>75) AND far above 52W high (>0)",
-          "return_20d_pct": 13.3557,
-          "quality_score": 47.19,
-          "news_sentiment": 0.0,
-          "return_5d_pct": 1.7339,
-          "rsi_14": 81.627
+          "return_5d_pct": 1.3302,
+          "rsi_14": 75.143
         }
       ],
       "evidence": {
-        "n_conflicts": 170,
-        "n_tickers_with_conflict": 146,
+        "n_conflicts": 140,
+        "n_tickers_with_conflict": 125,
         "n_rules": 7
       },
       "citations": [
