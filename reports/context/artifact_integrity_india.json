@@ -1,0 +1,58 @@
+{
+ "schema_version": "aegis.artifact_integrity.v1",
+ "market": "india",
+ "asof": "2026-10-28",
+ "generated_utc": "2026-10-28T04:36:45+00:00",
+ "max_age_days": 3,
+ "verdict": "PASS",
+ "n_checked": 5,
+ "n_failing": 0,
+ "artifacts": [
+  {
+   "path": "reports/sized_positions.json",
+   "exists": true,
+   "asof": "2026-10-28",
+   "age_days": 0,
+   "n": 0,
+   "state": "VALID_EMPTY",
+   "why": "zero positions and the recommendation set contains no actionable BUY - correct, not a failure"
+  },
+  {
+   "path": "reports/risk_report.json",
+   "exists": true,
+   "asof": "2026-10-28",
+   "age_days": 0,
+   "n": 0,
+   "state": "VALID_EMPTY",
+   "why": "zero positions and the recommendation set contains no actionable BUY - correct, not a failure"
+  },
+  {
+   "path": "reports/portfolio_v3.json",
+   "exists": true,
+   "asof": "2026-10-28",
+   "age_days": 0,
+   "n": null,
+   "state": "VALID_NONEMPTY",
+   "why": "no count key declared \u00b7 existence + freshness only"
+  },
+  {
+   "path": "reports/portfolio_state.json",
+   "exists": true,
+   "asof": "2026-10-28",
+   "age_days": 0,
+   "n": 0,
+   "state": "VALID_EMPTY",
+   "why": "zero positions because sizing produced none"
+  },
+  {
+   "path": "reports/portfolio_history.parquet",
+   "exists": true,
+   "asof": "2026-10-28",
+   "age_days": 0,
+   "n": null,
+   "state": "VALID_NONEMPTY",
+   "why": "no count key declared \u00b7 existence + freshness only"
+  }
+ ],
+ "interpretation": "Runs AFTER the producers, unlike backend_validation at step 6 which grades pre-run leftovers. VALID_EMPTY requires justifying evidence from the upstream recommendation set - a zero count alone is never accepted."
+}
