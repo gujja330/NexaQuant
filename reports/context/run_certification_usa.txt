@@ -1,6 +1,6 @@
 ════════════════════════════════════════════════════════════
 AEGIS DAILY RUN CERTIFICATION
-Run: AEGIS-2026-10-27-USA-1800
+Run: AEGIS-2026-10-27-USA-2325
 Requested ASOF: 2026-10-27   ·   trigger: ci
 ════════════════════════════════════════════════════════════
 
@@ -16,7 +16,7 @@ DATA_READY
   currencies                 asof 2026-10-27 · age 0 
   bonds                      asof 2026-10-27 · age 0 
   sector_rotation            asof 2026-10-27 · age 0 
-                                              → PASS   (4.76s)
+                                              → PASS   (4.35s)
 
 INTERMARKET
   S&P 500                    2026-10-27       ✓ critical
@@ -44,7 +44,7 @@ FEATURES_READY
 SCORES_READY
   scored                     516              
   expected                   516              
-  would-be NEW               7                
+  would-be NEW               8                
   lost to truncation         0                
                                               → PASS   (0.01s)
 
@@ -56,40 +56,41 @@ DECISION_READY
                                               → PASS   (0.08s)
 
 LIFECYCLE_READY
-  current_total              209              
+  current_total              208              
   new                        0                
-  active_plus                203              
+  active_plus                202              
   active                     6                
-  exit_history_total         563              
+  exit_history_total         564              
   stop_breached              0                
                                               → PASS   (0.00s)
 
 FIELDS_COMPLETE
-  rows checked               209              
+  rows checked               208              
   required gaps              0                
   expected gaps              0                
-  exit sector populated      560 / 563        
-    stop distance checked    209 of 209 rows have a stop 
-    stop MISMATCH            1 · ADT          
-    incoherent targets       47 · HAS, CCL, NTAP, CBOE, AMGN, URI 
-                                              → BLOCK   (182.18s)
-    ✗ STOP_DISTANCE_MISMATCH
-      1 row(s) where stop, price and distance cannot agree: ADT · a displayed stop that does not reconcile is not shippable
+  exit sector populated      561 / 564        
+    stop distance checked    208 of 208 rows have a stop 
+    incoherent targets       46 · HAS, CCL, NTAP, AMGN, CBOE, VEEV 
+                                              → PASS   (160.05s)
 
-  downstream NOT RUN: DELIVERY_READY
+DELIVERY_READY
+  gate                       ALLOW            
+  override                   False            
+  A19 / A23                  PASS / PASS      
+  R3 production writes       0                
+                                              → PASS   (0.00s)
 
 ════════════════════════════════════════════════════════════
 RUNTIME
-  DATA_READY                 4.76s            
+  DATA_READY                 4.35s            
   INTERMARKET                0.01s            
   FEATURES_READY             0.01s            
   SCORES_READY               0.01s            
   DECISION_READY             0.08s            
   LIFECYCLE_READY            0.00s            
-  FIELDS_COMPLETE            182.18s          
-  TOTAL                      187.05s          
+  FIELDS_COMPLETE            160.05s          
+  DELIVERY_READY             0.00s            
+  TOTAL                      164.51s          
 ════════════════════════════════════════════════════════════
-FINAL: ❌ BLOCKED
-FIRST FAILURE: STOP_DISTANCE_MISMATCH  (FIELDS_COMPLETE)
-No downstream stages executed. No XLSX. No Telegram.
+FINAL: ✅ CERTIFIED
 ════════════════════════════════════════════════════════════
