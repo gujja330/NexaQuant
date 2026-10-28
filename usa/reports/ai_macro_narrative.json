@@ -2,15 +2,15 @@
   "engine": "ai_macro_narrative",
   "version": "v1.0",
   "market": "usa",
-  "run_utc": "2026-10-27T23:05:24+00:00",
-  "asof": "2026-10-27",
+  "run_utc": "2026-10-28T17:25:47+00:00",
+  "asof": "2026-10-28",
   "output": {
     "agent": "macro_analyst",
     "version": "v1.0",
     "market": "usa",
-    "asof": "2026-10-27",
-    "headline": "regime=unknown \u00b7 vol=normal \u00b7 active_impacts=0 \u00b7 macro_score=+0.10",
-    "narrative": "regime=unknown \u00b7 vol=normal \u00b7 active_impacts=0 \u00b7 macro_score=+0.10.\n\nAEGIS Macro & Intermarket Intelligence audit. Combines commodity moves, currency pressures, yield curve, VIX regime, and sector rotation into a single macro regime call. Emits an impact matrix + knowledge graph that downstream engines (Recommendation, Risk, Portfolio, Learning, AI Auditor) will consume from Sprint 8 onward.\n\nDoes NOT approve or promote \u2014 every commodity impact, sector rotation call, and regime label is DESCRIPTIVE and requires operator interpretation. AI never trades on macro alone.",
+    "asof": "2026-10-28",
+    "headline": "regime=unknown \u00b7 vol=normal \u00b7 active_impacts=1 \u00b7 macro_score=+0.10",
+    "narrative": "regime=unknown \u00b7 vol=normal \u00b7 active_impacts=1 \u00b7 macro_score=+0.10.\n\nAEGIS Macro & Intermarket Intelligence audit. Combines commodity moves, currency pressures, yield curve, VIX regime, and sector rotation into a single macro regime call. Emits an impact matrix + knowledge graph that downstream engines (Recommendation, Risk, Portfolio, Learning, AI Auditor) will consume from Sprint 8 onward.\n\nDoes NOT approve or promote \u2014 every commodity impact, sector rotation call, and regime label is DESCRIPTIVE and requires operator interpretation. AI never trades on macro alone.",
     "findings": [
       {
         "type": "macro_regime",
@@ -20,76 +20,108 @@
         "macro_score": 0.1,
         "evidence": {
           "vol_regime": "normal",
-          "oil_1w_pct": 0.588,
-          "gold_1w_pct": -1.584,
-          "usd_1w_pct": 0.761,
+          "oil_1w_pct": 2.738,
+          "gold_1w_pct": -2.292,
+          "usd_1w_pct": 0.622,
           "yield_curve_inversion": false,
-          "ten_year_1m_bps": -1.2981800000000001
+          "ten_year_1m_bps": 7.40952
         }
       },
       {
         "type": "volatility",
         "symbol": "^VIX",
-        "level": 17.52,
+        "level": 17.36,
         "regime": "normal",
-        "chg_1m_pct": -1.073
+        "chg_1m_pct": 12.435
       },
       {
         "type": "central_bank_state",
         "bank": "Fed",
         "rate_cycle": "neutral",
-        "yield_curve_slope": 15.3,
+        "yield_curve_slope": 14.9,
         "inversion": false,
         "liquidity_score": 0.0,
         "notes": [
-          "Fed: cycle=neutral \u00b7 short_1m=7.12252bps"
+          "Fed: cycle=neutral \u00b7 short_1m=5.783636bps"
         ]
+      },
+      {
+        "type": "commodity_impact",
+        "commodity": "WTI Crude",
+        "direction": "up",
+        "positive_sectors": [
+          "Energy",
+          "Oil Producers",
+          "Oil Services"
+        ],
+        "negative_sectors": [
+          "Airlines",
+          "Transportation",
+          "Consumer Discretionary",
+          "Paints",
+          "FMCG",
+          "Auto",
+          "Logistics",
+          "Chemicals"
+        ],
+        "confidence": 0.92,
+        "rationale": "Rising oil raises transportation + input costs; erodes margins for downstream consumers; boosts upstream producers. Historically the single most reliable commodity \u2192 sector relationship."
       },
       {
         "type": "sector_rotation",
         "leaders": [
           {
             "sector": "Healthcare",
-            "return_pct": 6.8
+            "return_pct": 6.54
           },
           {
             "sector": "Energy",
-            "return_pct": 6.53
+            "return_pct": 6.51
           },
           {
-            "sector": "Consumer Discretionary",
-            "return_pct": 4.78
+            "sector": "Consumer Staples",
+            "return_pct": 4.12
           }
         ],
         "laggards": [
           {
             "sector": "Communication Services",
-            "return_pct": -8.34
+            "return_pct": -8.23
           },
           {
             "sector": "Real Estate",
-            "return_pct": -0.86
+            "return_pct": -2.29
           },
           {
             "sector": "Industrials",
-            "return_pct": -0.47
+            "return_pct": -0.2
           }
         ],
-        "rotation_strength": 0.382
+        "rotation_strength": 0.334
+      },
+      {
+        "type": "knowledge_graph_summary",
+        "n_entries": 1,
+        "factor_kinds": [
+          "commodity"
+        ],
+        "top_factors": [
+          "WTI Crude"
+        ]
       },
       {
         "type": "composition",
         "n_commodities": 3,
         "n_currencies": 1,
         "n_bonds": 4,
-        "n_active_impacts": 0,
-        "n_kg_entries": 0
+        "n_active_impacts": 1,
+        "n_kg_entries": 1
       }
     ],
     "evidence": {
       "primary_regime": "unknown",
       "vol_regime": "normal",
-      "n_active_impacts": 0,
+      "n_active_impacts": 1,
       "macro_score": 0.1
     },
     "citations": [
