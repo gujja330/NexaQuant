@@ -43,6 +43,28 @@ USA_PROFILE = MarketProfile(
     exchange_mix=["NYSE", "NASDAQ", "AMEX"], trading_calendar_hint="NYSE",
 )
 
+_PROFILES = {
+    "india": INDIA_PROFILE, "in": INDIA_PROFILE, "nse": INDIA_PROFILE,
+    "usa": USA_PROFILE, "us": USA_PROFILE, "nyse": USA_PROFILE,
+}
+
+
+def profile_for(market: str) -> MarketProfile:
+    """Resolve a market name to its profile · case-insensitive.
+
+    CEO 2026-10-28 · added so producers stop hardcoding "USD"/"INR".
+    backend_validation requires a top-level `currency` on
+    reports/recommendations.json and neither market's writer emitted one,
+    so the `recommendations` dataset failed schema on EVERY run in BOTH
+    markets - the single FAIL behind `ops_check verdict: DEGRADED`.
+    """
+    m = str(market or "").strip().lower()
+    if m not in _PROFILES:
+        raise ValueError(
+            "unknown market %r · expected one of %s"
+            % (market, sorted(set(p.name for p in _PROFILES.values()))))
+    return _PROFILES[m]
+
 
 @dataclass
 class CanonicalDatasetSpec:

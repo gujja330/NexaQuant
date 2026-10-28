@@ -25,6 +25,8 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Iterable
 
+from backend.canonical.model import profile_for
+
 SCHEMA_FINGERPRINT = "aegis.recommendation_ssot.v1.20260727"
 SCHEMA_VERSION = "1.0.0"
 ENGINE_ID = "aegis.recommendation.ssot.v1"
@@ -239,6 +241,12 @@ def publish_ssot(v3_path: Path,
             "Distinct from USA's usa/reports/recommendations.json which "
             "is a universe_scan (~507 tickers, technical scoring only)."
         ),
+        # CEO 2026-10-28 · backend_validation's schema validator requires a
+        # top-level `currency`; no writer emitted one, so `recommendations`
+        # failed CRITICAL on every run in both markets. Resolved from the
+        # MarketProfile rather than hardcoded so a third market cannot
+        # inherit INR by omission.
+        "currency":            profile_for(market).currency,
         "n":                   len(legacy_recs),
         # Schema-compat alias · ops_check (scripts/aegis_ops_check.py +
         # usa/scripts/usa_ops_check.py) and both markets' backend_validation

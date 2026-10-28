@@ -391,7 +391,14 @@ def main() -> int:
         try:
             from backend.context.health_monitor import (
                 run_health_check as _hc, emit as _hc_emit, render_summary as _hc_render)
-            health = _hc(_ROOT)
+            # CEO 2026-10-28 · PASS THE MARKET. This was _hc(_ROOT) with no
+            # market, so a USA send was graded against India's artifacts and
+            # blocked on cil_run_india / health_scores_india / fii_dii_flow -
+            # all 49.5 days stale on the USA runner because nothing there
+            # regenerates them. That is why USA delivery has never landed.
+            # India was unaffected: its own run rewrites those files first.
+            _hc_market = markets[0] if len(markets) == 1 else None
+            health = _hc(_ROOT, _hc_market)
             _hc_emit(_ROOT, health)
             print(f"[guard7:health] {_hc_render(health)}")
             if health.get("overall_verdict") == "RED" \

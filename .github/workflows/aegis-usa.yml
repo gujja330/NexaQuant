@@ -32,8 +32,24 @@ on:
     # pending run per group and cancels the rest. Two slots 7h apart cannot
     # overlap at any observed runtime, which removes the cancellations while
     # keeping a genuine second chance.
-    - cron: "0 12 * * 1-5"    # 12:00 UTC = 5:30 PM IST · 8:00 AM EDT (primary)
-    - cron: "0 19 * * 1-5"    # 19:00 UTC = 12:30 AM IST (single backup · +7h)
+    #
+    # CEO 2026-10-28 · OFF THE HOUR. Both slots sat at :00, which is when
+    # GitHub's scheduler is most oversubscribed - scheduled runs are
+    # best-effort and the top of the hour is the worst minute to ask for.
+    # Measured on 2026-10-27:
+    #     12:00 UTC slot  -> started 12:33Z   (+33m, tolerable)
+    #     19:00 UTC slot  -> started 23:06Z   (+4h06m)
+    # The 19:00 run finished at 00:29Z, hours after the 20:00Z US close, so
+    # it produced a "morning report" for a session that had already ended.
+    #
+    # Primary moved EARLIER and off-hour: 11:17Z + the 83-minute observed
+    # runtime finishes ~12:40Z, and even with the +33m delay seen above it
+    # still lands before the 13:30Z open. Backup pulled in from 19:00 to
+    # 16:43Z so a retry lands the same trading day instead of after close.
+    # Still >5h apart, so at any observed runtime they cannot overlap and
+    # the cancellation churn the 2026-10-24 note describes does not return.
+    - cron: "17 11 * * 1-5"   # 11:17 UTC · 7:17 AM EDT · 2h13m pre-open
+    - cron: "43 16 * * 1-5"   # 16:43 UTC · 12:43 PM EDT (backup · +5h26m)
   workflow_dispatch:
   # 2026-08-28 · CEO directive · revert of 2026-08-18 temporary push
   # trigger. Same rationale as aegis-daily.yml removal: pushes should
@@ -364,6 +380,25 @@ jobs:
           # failed" as the only evidence. GitHub returns 403 on this repo's
           # Actions logs, so the committed certification IS the audit trail.
           _add_safe "reports/context/run_certification_usa.txt"
+          # CEO 2026-10-28 · SAME DEFECT, THREE MORE FILES. The block above
+          # fixed run_certification only. These are written by
+          # backend/pipeline/contract/runner.py on every run - why_not_current
+          # and the lifecycle at runner.py:240, wave_regression via
+          # validate() - and were never staged, so every run regenerated them
+          # on the runner and threw them away.
+          #
+          # Measured on origin/main 2026-10-28, against a run that finished
+          # 2026-10-28T00:29Z:
+          #   canonical_lifecycle_usa (staged)   2026-10-27T23:25  fresh
+          #   why_not_current_usa     (unstaged) 2026-10-24T06:13  4 days old
+          #   wave_regression_usa     (unstaged) 2026-10-24        4 days old
+          #
+          # why_not_current is the artifact that explains NEW=0. It being
+          # stale is why "516 scored, 0 admitted" could not be diagnosed from
+          # the repo: the explanation was produced every morning and deleted.
+          _add_safe "reports/context/why_not_current_usa.json"
+          _add_safe "reports/context/wave_regression_usa.json"
+          _add_safe "reports/context/cil_run_usa.json"
           _add_safe "reports/context/freshness_diagnostic_india.json"
           _add_safe "reports/telegram/aegis_history_usa.xlsx"
           _add_safe "reports/research/opportunity_registry.jsonl"

@@ -488,6 +488,23 @@ jobs:
           git add reports/ops_check.json 2>/dev/null || true
           git add reports/context/run_certification_india.txt reports/context/run_certification_usa.txt 2>/dev/null || true
           git add reports/context/freshness_diagnostic_india.json 2>/dev/null || true
+          # CEO 2026-10-28 · produced every run, staged by neither market.
+          # why_not_current + wave_regression come from
+          # backend/pipeline/contract/runner.py (runner.py:240 and validate()),
+          # cil_run from the lifecycle path. Measured on origin/main:
+          # canonical_lifecycle_india was 2026-10-27T23:07 while
+          # why_not_current_india sat at 2026-10-27T04:27 and
+          # wave_regression_india at 2026-10-26 - same run, different ages,
+          # because only the first was ever added.
+          #
+          # artifact_integrity_india.json was UPLOADED (see the upload step)
+          # but never committed. This repo returns 403 on Actions logs and
+          # artifacts, so an upload-only artifact cannot be read by anyone -
+          # the committed copy is the only audit trail that survives.
+          git add reports/context/why_not_current_india.json 2>/dev/null || true
+          git add reports/context/wave_regression_india.json 2>/dev/null || true
+          git add reports/context/cil_run_india.json 2>/dev/null || true
+          git add reports/context/artifact_integrity_india.json 2>/dev/null || true
           git add reports/telegram/aegis_history_india.xlsx reports/telegram/aegis_history_usa.xlsx 2>/dev/null || true
           # 2026-09-07 · R3 Sprint 1 · the canonical R3 shadow ledger MUST
           # persist across CI runs for the same reason the Registry must.

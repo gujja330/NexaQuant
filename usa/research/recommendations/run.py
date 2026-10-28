@@ -22,8 +22,17 @@ except Exception:
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent))
+# CEO 2026-10-28 · repo root on the path so `backend.*` is importable.
+# parents[3] was already computed below as _ROOT but never added, so this
+# script could only ever import from usa/research. Anchoring it here
+# rather than relying on cwd: sys.path[0] is the SCRIPT's directory when
+# run as a file, not the directory the run was launched from, which is
+# how backend.delivery.lifecycle.canonical_daily_lifecycle silently failed
+# in CI for weeks.
+sys.path.insert(0, str(HERE.parents[2]))
 
 from recommendations.lib import technicals, entry_exit                                  # noqa: E402
+from backend.canonical.model import profile_for                                         # noqa: E402
 
 
 _ROOT = Path(__file__).resolve().parents[3]
@@ -230,6 +239,10 @@ def main() -> int:
             "Recommendation Intelligence). P0 outcome dataset ingests "
             "position_store + rank_history only — never this file."
         ),
+        # CEO 2026-10-28 · required top-level key · see backend/canonical/
+        # model.py:profile_for. Its absence was the single CRITICAL schema
+        # failure behind USA ops_check verdict DEGRADED.
+        "currency":                profile_for("usa").currency,
         "n_companies_evaluated":   len(recs),
         "n_currently_held":        0,
         "n_in_target_portfolios":  0,
