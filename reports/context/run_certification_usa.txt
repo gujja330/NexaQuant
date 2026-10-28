@@ -1,6 +1,6 @@
 ════════════════════════════════════════════════════════════
 AEGIS DAILY RUN CERTIFICATION
-Run: AEGIS-2026-10-28-USA-1742
+Run: AEGIS-2026-10-28-USA-2149
 Requested ASOF: 2026-10-28   ·   trigger: ci
 ════════════════════════════════════════════════════════════
 
@@ -16,7 +16,7 @@ DATA_READY
   currencies                 asof 2026-10-28 · age 0 
   bonds                      asof 2026-10-28 · age 0 
   sector_rotation            asof 2026-10-28 · age 0 
-                                              → PASS   (3.35s)
+                                              → PASS   (2.52s)
 
 INTERMARKET
   S&P 500                    2026-10-28       ✓ critical
@@ -44,7 +44,7 @@ FEATURES_READY
 SCORES_READY
   scored                     516              
   expected                   516              
-  would-be NEW               7                
+  would-be NEW               6                
   lost to truncation         0                
                                               → PASS   (0.01s)
 
@@ -53,43 +53,44 @@ DECISION_READY
   terminal dispositions      516              
   orphans                    0                
   defect tickers             0                
-                                              → PASS   (0.06s)
+                                              → PASS   (0.05s)
 
 LIFECYCLE_READY
-  current_total              213              
+  current_total              212              
   new                        0                
-  active_plus                208              
-  active                     5                
-  exit_history_total         563              
+  active_plus                206              
+  active                     6                
+  exit_history_total         564              
   stop_breached              0                
                                               → PASS   (0.00s)
 
 FIELDS_COMPLETE
-  rows checked               213              
+  rows checked               212              
   required gaps              0                
   expected gaps              0                
-  exit sector populated      560 / 563        
-    stop distance checked    213 of 213 rows have a stop 
-    stop MISMATCH            1 · ADT          
-    incoherent targets       50 · HAS, CCL, AMGN, URI, GEHC, ADT 
-                                              → BLOCK   (130.60s)
-    ✗ STOP_DISTANCE_MISMATCH
-      1 row(s) where stop, price and distance cannot agree: ADT · a displayed stop that does not reconcile is not shippable
+  exit sector populated      561 / 564        
+    stop distance checked    212 of 212 rows have a stop 
+    incoherent targets       44 · HAS, CCL, AMGN, VEEV, URI, ADT 
+                                              → PASS   (99.46s)
 
-  downstream NOT RUN: DELIVERY_READY
+DELIVERY_READY
+  gate                       ALLOW            
+  override                   False            
+  A19 / A23                  PASS / PASS      
+  R3 production writes       0                
+                                              → PASS   (0.00s)
 
 ════════════════════════════════════════════════════════════
 RUNTIME
-  DATA_READY                 3.35s            
+  DATA_READY                 2.52s            
   INTERMARKET                0.01s            
   FEATURES_READY             0.01s            
   SCORES_READY               0.01s            
-  DECISION_READY             0.06s            
+  DECISION_READY             0.05s            
   LIFECYCLE_READY            0.00s            
-  FIELDS_COMPLETE            130.60s          
-  TOTAL                      134.04s          
+  FIELDS_COMPLETE            99.46s           
+  DELIVERY_READY             0.00s            
+  TOTAL                      102.06s          
 ════════════════════════════════════════════════════════════
-FINAL: ❌ BLOCKED
-FIRST FAILURE: STOP_DISTANCE_MISMATCH  (FIELDS_COMPLETE)
-No downstream stages executed. No XLSX. No Telegram.
+FINAL: ✅ CERTIFIED
 ════════════════════════════════════════════════════════════
