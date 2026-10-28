@@ -501,6 +501,24 @@ jobs:
           # but never committed. This repo returns 403 on Actions logs and
           # artifacts, so an upload-only artifact cannot be read by anyone -
           # the committed copy is the only audit trail that survives.
+          # CEO 2026-10-28 · the RISK/SIZING layer, produced every run and
+          # committed by none of it. portfolio_history.parquet was added
+          # above; its five siblings were only ever UPLOADED, and this repo
+          # 403s on Actions artifacts, so their real state is unreadable.
+          #
+          # What that hid, measured on origin/main 2026-10-28:
+          #   repo copy          asof 2026-09-03  run_utc 2026-09-03T08:30:56
+          #   what CI graded     asof 2026-10-28  age_days 0
+          # Every one of the four carries the SAME 2026-09-03T08:30:56 stamp,
+          # so the repo has looked like "sizing froze 55 days ago" while the
+          # pipeline was in fact producing a fresh set each morning and
+          # deleting it. Any attempt to diagnose 0 sized positions from the
+          # repo was reading September.
+          git add reports/sized_positions.json 2>/dev/null || true
+          git add reports/risk_report.json 2>/dev/null || true
+          git add reports/portfolio_v3.json 2>/dev/null || true
+          git add reports/portfolio_state.json 2>/dev/null || true
+          git add reports/portfolio_diff.json 2>/dev/null || true
           git add reports/context/why_not_current_india.json 2>/dev/null || true
           git add reports/context/wave_regression_india.json 2>/dev/null || true
           git add reports/context/cil_run_india.json 2>/dev/null || true
