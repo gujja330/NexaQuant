@@ -1,6 +1,6 @@
 # AEGIS Attribution Report
 
-**Generated:** 2026-10-28T17:46:58+00:00
+**Generated:** 2026-10-28T22:36:46+00:00
 **Source:** `reports/research/outcome_dataset.parquet`
 **Positions:** 51 total · 33 closed · 18 open
 
