@@ -54,8 +54,14 @@ def _row(ticker, price, stop, shown, state="INTACT"):
 
 
 def _producer_dist(curr, stop):
-    """Exactly what canonical_daily_lifecycle writes."""
-    return round((curr - stop) / curr * 100, 2)
+    """Exactly what canonical_daily_lifecycle writes.
+
+    CEO 2026-10-30 · the price is rounded to 2dp FIRST, because that is the
+    value the producer persists as `current_price` and the gate recomputes
+    from. See test_low_priced_row_reconciles below.
+    """
+    curr_shown = round(float(curr), 2)
+    return round((curr_shown - stop) / curr_shown * 100, 2)
 
 
 def test_breached_position_does_not_block(tmp_path):
@@ -227,3 +233,57 @@ def test_a_sign_flipped_display_is_caught_on_an_intact_row(tmp_path):
         "an intact row displaying a negative distance contradicts price and "
         "stop and must fail delivery")
     assert inv["mismatches"][0]["ticker"] == "FLIPPED"
+
+
+# ── CEO 2026-10-30 · ROUNDING INCOHERENCE ───────────────────────────────
+# The sign bug above had a twin. The producer computed dist from the
+# full-precision price but persisted `current_price` rounded to 2dp, and
+# the gate recomputes from the persisted value. The gap is the half-cent
+# the rounding discarded, which moves the distance by
+# stop/price^2 * 100 * 0.005 pp - invisible above ~$8.80, not below.
+#
+# USA ADT blocked three consecutive early runs (10-26, 10-27, 10-28). Each
+# time the later run certified only because ADT had left CURRENT, so the
+# verdict history read as a schedule problem when it was arithmetic.
+
+ADT_FULL_PRICE = 7.4254     # what the producer computed from
+ADT_SHOWN_PRICE = 7.43      # what it persisted · round(7.4254, 2)
+ADT_STOP = 6.5507
+
+
+def test_low_priced_row_reconciles(tmp_path):
+    """The exact ADT row that blocked USA three days running."""
+    shown = _producer_dist(ADT_FULL_PRICE, ADT_STOP)
+    inv = _inv(tmp_path, [_row("ADT", ADT_SHOWN_PRICE, ADT_STOP, shown)])
+    assert inv["mismatches"] == [], (
+        "ADT · price %.2f · stop %.4f · shown %.2f still cannot reconcile. "
+        "This is the row that blocked USA delivery on 2026-10-26, -27 and "
+        "-28." % (ADT_SHOWN_PRICE, ADT_STOP, shown))
+
+
+def test_the_old_formula_would_have_failed_this_row(tmp_path):
+    """Pins the defect itself · without it the test above proves nothing."""
+    legacy = round((ADT_FULL_PRICE - ADT_STOP) / ADT_FULL_PRICE * 100, 2)
+    assert legacy == 11.78
+    expected = (ADT_SHOWN_PRICE - ADT_STOP) / ADT_SHOWN_PRICE * 100
+    assert abs(expected - legacy) > STOP_DISTANCE_TOLERANCE_PCT, (
+        "the pre-fix pairing is no longer out of tolerance, so this "
+        "regression test has stopped exercising the bug it was written for")
+    inv = _inv(tmp_path, [_row("ADT", ADT_SHOWN_PRICE, ADT_STOP, legacy)])
+    assert len(inv["mismatches"]) == 1
+
+
+@pytest.mark.parametrize("price", [2.07, 3.335, 4.995, 6.125, 7.4254,
+                                   8.795, 9.001, 12.345, 47.678, 503.219])
+def test_producer_and_gate_agree_at_every_price(tmp_path, price):
+    """Coherence must not depend on how expensive the stock is.
+
+    A tolerance that only holds above a price is not a tolerance, it is a
+    coin flip weighted by the book.
+    """
+    stop = round(price * 0.88, 4)
+    shown = _producer_dist(price, stop)
+    inv = _inv(tmp_path, [_row("SWEEP", round(price, 2), stop, shown)])
+    assert inv["mismatches"] == [], (
+        "price %s · stop %s · shown %s does not reconcile against the "
+        "persisted 2dp price" % (price, stop, shown))

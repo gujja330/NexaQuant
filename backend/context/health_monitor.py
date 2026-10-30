@@ -71,8 +71,24 @@ ENGINES = [
     ("reports/bond_intelligence.json",       "CRITICAL",  5, 400, None),
     ("reports/currency_intelligence.json",   "CRITICAL",  5, 400, None),
     ("reports/commodity_intelligence.json",  "CRITICAL",  5, 400, None),
-    ("reports/market_intelligence.json",     "CRITICAL",  5, 800, None),
-    ("reports/ai_market_narrative.json",     "CRITICAL",  5, 400, None),
+    # CEO 2026-10-30 · MARKET-BLIND PATH. These two were scope None, so a
+    # USA certification graded INDIA's copies. Only scripts/aegis_daily_v2.py
+    # - India's orchestrator - writes the root files; usa/scripts/usa_daily.py
+    # writes usa/reports/. A USA run could therefore never refresh the
+    # artifact it was being graded on, which is not a staleness bug but a
+    # structural one: no USA run could have cleared it, ever.
+    #
+    # Masked until now by effective_age = min(mtime_age, asof_age):
+    # actions/checkout resets every mtime to ~0, so the root copies graded
+    # FRESH in CI while carrying asof 2026-10-24. Locally, where mtimes are
+    # real, they graded STALE. Same class as cc72d4df.
+    # backend/feature_store/features/market_intel.py:16-18 already resolves
+    # this exact pair per market; this mirrors it, following the
+    # cil_run_* / health_scores_* precedent below.
+    ("reports/market_intelligence.json",     "CRITICAL",  5, 800, "india"),
+    ("reports/ai_market_narrative.json",     "CRITICAL",  5, 400, "india"),
+    ("usa/reports/market_intelligence.json", "CRITICAL",  5, 800, "usa"),
+    ("usa/reports/ai_market_narrative.json", "CRITICAL",  5, 400, "usa"),
     ("reports/macro_history.parquet",        "IMPORTANT", 10, 1000, None),
     ("reports/factor_library.parquet",       "IMPORTANT", 10, 1000, None),
     # CIL layer engines (shipped 2026-08-05)

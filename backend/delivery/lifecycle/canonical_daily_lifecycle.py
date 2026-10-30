@@ -475,7 +475,27 @@ def compute(root: Path, market: str, asof: str) -> dict:
         # invisible is the difference between "advisory" and "unmonitored".
         # The breach is now an explicit column, NOT a new Action value, so
         # the NEW/ACTIVE/ACTIVE+ contract is preserved exactly.
-        dist = round((curr - stop) / curr * 100, 2) if (stop is not None and curr) else None
+        # CEO 2026-10-30 · ROUNDING INCOHERENCE. This computed dist from
+        # the FULL-PRECISION curr, while `current_price` below is persisted
+        # as _num(curr, 2). The contract gate recomputes
+        # (price - stop) / price * 100 from the PERSISTED price, so the two
+        # disagreed by the half-cent the rounding threw away - a shift of
+        # stop/price^2 * 100 * 0.005 pp. Above ~$8.80 that sits inside the
+        # 0.05pp tolerance and is invisible; below it, it is not.
+        #
+        # USA ADT blocked three consecutive early runs (10-26, 10-27, 10-28)
+        # on exactly this:
+        #     price 7.43 · stop 6.5507 · shown 11.78 · recomputed 11.8345
+        #     delta 0.0545 > tolerance 0.05
+        # Each time, the later run certified only because ADT had left
+        # CURRENT - not because anything was fixed.
+        #
+        # The invariant is about the three numbers AS DISPLAYED ("displayed
+        # together, these three numbers are a claim about downside"), so the
+        # distance must be derived from the price that is actually shown.
+        curr_shown = _num(curr, 2)
+        dist = (round((curr_shown - stop) / curr_shown * 100, 2)
+                if (stop is not None and curr_shown) else None)
         if stop is None:
             stop_state = "NO STOP"
         elif dist is not None and dist < 0:
@@ -497,7 +517,7 @@ def compute(root: Path, market: str, asof: str) -> dict:
             "ticker": str(o.ticker).upper().split(".", 1)[0],
             "engine": engine, "action": action,
             "entry_date": o.created_date or "",
-            "entry_price": _num(entry, 2), "current_price": _num(curr, 2),
+            "entry_price": _num(entry, 2), "current_price": curr_shown,
             "pnl_pct": pnl, "confidence_pct": _conf(o),
             "stop": stop, "stop_basis": basis, "stop_state": stop_state,
             "dist_to_stop_pct": dist, "max_loss_if_stop_pct": worst,

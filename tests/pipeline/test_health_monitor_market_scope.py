@@ -231,3 +231,51 @@ def test_sender_passes_the_market_to_the_guard():
     assert "_hc(_ROOT, _hc_market)" in src, (
         "the sender calls the health check without a market again · a USA "
         "send will be graded against India's artifacts")
+
+
+# ── CEO 2026-10-30 · MARKET-BLIND PATH, second instance ─────────────────
+# Scoping decides WHICH rows apply. It does not decide WHICH FILE a row
+# points at, and market_intelligence / ai_market_narrative were scope None
+# resolving to the root copy for both markets. Only India's orchestrator
+# (scripts/aegis_daily_v2.py) writes the root files; USA writes
+# usa/reports/. So USA was graded on an artifact no USA run could refresh
+# - unfixable from the USA side, by construction.
+#
+# It never surfaced because effective_age = min(mtime_age, asof_age) and
+# actions/checkout resets every mtime to ~0, so the stale root copies
+# graded FRESH in CI.
+
+SPLIT_PAIR = ("market_intelligence.json", "ai_market_narrative.json")
+
+
+@pytest.mark.parametrize("name", SPLIT_PAIR)
+def test_each_market_is_graded_on_its_own_copy(name):
+    rows = {r[0]: r for r in hm.ENGINES if r[0].endswith(name)}
+    assert rows.get("reports/%s" % name, (None,) * 5)[4] == "india", (
+        "root reports/%s must be India-scoped · it is written only by "
+        "scripts/aegis_daily_v2.py" % name)
+    assert rows.get("usa/reports/%s" % name, (None,) * 5)[4] == "usa", (
+        "usa/reports/%s must be graded for USA · it is what "
+        "usa/scripts/usa_daily.py actually writes" % name)
+
+
+@pytest.mark.parametrize("name", SPLIT_PAIR)
+def test_usa_scope_never_reaches_the_india_copy(name):
+    graded = [r[0] for r in _rows("usa")]
+    assert "reports/%s" % name not in graded, (
+        "a USA health check still grades India's reports/%s" % name)
+    assert "usa/reports/%s" % name in graded
+
+
+@pytest.mark.parametrize("name", SPLIT_PAIR)
+def test_the_usa_copy_is_the_file_usa_actually_writes(name):
+    """Guards the pairing itself · a row for a file nothing writes would
+    fail MISSING on every run for ever, which is how this table already
+    justifies leaving portfolio_snapshot_usa out."""
+    src = (REPO / "usa" / "research" / "market_intelligence"
+           / "run.py").read_text(encoding="utf-8")
+    assert name in src, (
+        "usa/reports/%s is graded for USA but the USA producer no longer "
+        "writes it" % name)
+    assert (REPO / "usa" / "reports" / name).exists(), (
+        "usa/reports/%s is graded for USA but is not on disk" % name)
