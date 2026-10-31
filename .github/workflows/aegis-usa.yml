@@ -398,6 +398,16 @@ jobs:
           # the repo: the explanation was produced every morning and deleted.
           _add_safe "reports/context/why_not_current_usa.json"
           _add_safe "reports/context/wave_regression_usa.json"
+          # CEO 2026-10-31 · THE SAME DEFECT, AND THE FILE THAT MATTERED MOST.
+          # xlsx_validation_<market>.json is the verdict that DECIDES
+          # delivery - xlsx_validator.emit() writes it inside the sender on
+          # every run, and no git add line ever existed. USA certified for
+          # weeks while delivering nothing, and the one file naming the
+          # blocking rows (I28 · WBD, PSKY) was produced each morning and
+          # thrown away. health_monitor_<market>.json is Guard 7's verdict,
+          # same story. Actions logs are 403 here, so these ARE the trail.
+          _add_safe "reports/context/xlsx_validation_usa.json"
+          _add_safe "reports/context/health_monitor_usa.json"
           _add_safe "reports/context/cil_run_usa.json"
           _add_safe "reports/context/freshness_diagnostic_india.json"
           _add_safe "reports/telegram/aegis_history_usa.xlsx"
@@ -540,3 +550,17 @@ jobs:
                       -d "disable_web_page_preview=true" || true
               fi
           fi
+
+      # CEO 2026-10-31 · A BLOCKED DELIVERY MUST NOT READ GREEN.
+      # The send step carries continue-on-error so the artifact commit still
+      # runs when delivery fails. The price was that a validator BLOCK - the
+      # gate that actually decides whether the operator receives anything -
+      # left the whole workflow successful. USA read green for weeks while
+      # nothing arrived.
+      #
+      # Deliberately the LAST step: every commit above has already happened,
+      # so failing here loses no state. The logic lives in a script because
+      # a shell conditional cannot be unit-tested.
+      - name: Fail the run if delivery was blocked (USA)
+        if: always()
+        run: python scripts/ci_delivery_verdict.py --market usa

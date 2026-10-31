@@ -1301,6 +1301,41 @@ class XlsxValidator:
                     pq_last = self._parquet_last_date(_tk)
                     if pq_last and _xd > pq_last:
                         continue     # data-freshness gap · not a violation
+                    # CEO 2026-10-31 · NO PRICE CLAIM, NOTHING TO FALSIFY.
+                    # This invariant exists because "a displayed stop/exit
+                    # that does not reconcile is not shippable". That premise
+                    # needs a DISPLAYED price. An ORPHAN AUTO-CLOSE or
+                    # ADMINISTRATIVE row whose Exit Price is blank, or equal
+                    # to its Entry Price, asserts no market exit at all - its
+                    # exit date is the day the orphan was DETECTED, not a
+                    # trade date. Demanding a traded close for it is a
+                    # category error, and it blocked every USA delivery:
+                    #     WBD   exit_price null          exit 2026-08-26
+                    #     PSKY  exit_price 9.34 == entry exit 2026-08-26
+                    # Both have near-empty parquets (1 and 15 bars), so the
+                    # freshness-gap branch above cannot catch them either:
+                    # their exit date PRECEDES their single bar.
+                    #
+                    # Deliberately NARROW. 485 of USA's 490 orphan rows DO
+                    # display a distinct exit price and still face the full
+                    # check - exempting orphans wholesale would have turned
+                    # the gate off for all of them. India has zero orphan
+                    # rows, so its behaviour is unchanged.
+                    _rt = str(self._row_val("Exit History (90d)", row,
+                                            "Record Type") or "").upper()
+                    if "ORPHAN" in _rt or "ADMINISTRATIV" in _rt:
+                        def _f(v):
+                            try:
+                                return None if v in (None, "") else float(v)
+                            except (TypeError, ValueError):
+                                return None
+                        _xp = _f(self._row_val("Exit History (90d)", row,
+                                               "Exit Price"))
+                        _ep = _f(self._row_val("Exit History (90d)", row,
+                                               "Entry Price"))
+                        if _xp is None or (_ep is not None
+                                           and abs(_xp - _ep) < 1e-9):
+                            continue   # no price asserted · nothing to verify
                     violations.append({"ticker": _tk, "row": r_idx,
                         "entry": _ed, "exit": _xd,
                         "reason": "exit not trading day + no prior close 5d"})

@@ -487,6 +487,9 @@ jobs:
           git add reports/backend_validation.json reports/backend_validation_summary.json 2>/dev/null || true
           git add reports/ops_check.json 2>/dev/null || true
           git add reports/context/run_certification_india.txt reports/context/run_certification_usa.txt 2>/dev/null || true
+          # CEO 2026-10-31 · see aegis-usa.yml · the validator verdict and
+          # Guard 7 verdict decide delivery and were never committed.
+          git add reports/context/xlsx_validation_india.json reports/context/health_monitor_india.json 2>/dev/null || true
           git add reports/context/freshness_diagnostic_india.json 2>/dev/null || true
           # CEO 2026-10-28 · produced every run, staged by neither market.
           # why_not_current + wave_regression come from
@@ -668,3 +671,8 @@ jobs:
               return 1
           }
           _push_retry_research || echo "::error::[research-commit] push FAILED after 5 attempts · research state stayed local"
+
+      # CEO 2026-10-31 · parity with aegis-usa.yml · see the note there.
+      - name: Fail the run if delivery was blocked (India)
+        if: always()
+        run: python scripts/ci_delivery_verdict.py --market india
