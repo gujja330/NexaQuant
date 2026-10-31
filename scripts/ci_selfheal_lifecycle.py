@@ -19,6 +19,14 @@ merely unblocked. Before the delivery tests run, it checks the one invariant
 that deadlocked us and repairs it if broken.
 
     A23:  REGISTRY_CLOSED  -  EXIT_HISTORY  -  ORPHAN_AUDIT  ==  empty
+    I6:   REGISTRY_CLOSED  (by position id)  INTERSECT  CURRENT  ==  empty
+
+CEO 2026-10-31 · the second invariant was added after USA was blocked a
+second time by the same shape of staleness. A23 alone could not see it: it
+compares TICKER strings, and both offending names already appeared in exit
+history under an earlier, orphan-closed episode. Keying on the position id
+makes a re-entry's close visible, because a position id is unique per
+episode and cannot be satisfied by another episode of the same name.
 
 WHAT IT WILL AND WILL NOT DO
 ----------------------------
@@ -107,6 +115,62 @@ def _orphan_audit_tickers(market: str) -> set:
     return out
 
 
+def _closed_position_ids(market: str) -> dict:
+    """{opportunity_id: Opportunity} for every CLOSED registry episode.
+
+    Keyed by the EPISODE, not the ticker. _closed_registry() above compares
+    ticker strings, and that is precisely why a re-entry's close can be
+    invisible to it: the SAME ticker's earlier orphan close is already in
+    exit history, so the ticker reads as "accounted for" while the newer
+    position stays in CURRENT. Position ids are unique per episode, so this
+    map cannot be satisfied by a different episode of the same name.
+    """
+    sys.path.insert(0, str(ROOT))
+    from backend.research import opportunity_registry as oreg
+    out: dict = {}
+    for opps in oreg.load_all(ROOT).values():
+        for o in opps:
+            if str(o.market).lower() != market or o.status != "CLOSED":
+                continue
+            if o.opportunity_id:
+                out[str(o.opportunity_id)] = o
+    return out
+
+
+def closed_in_current(market: str) -> list:
+    """I6's condition · a registry-CLOSED episode still rendered in CURRENT.
+
+    CEO 2026-10-31 · On 2026-10-30 the registry closed ZBRA and DDOG at
+    21:48:55. canonical_lifecycle_usa.json had been generated at 21:43:18 -
+    five minutes and thirty-seven seconds earlier - so CURRENT still carried
+    both. The workbook rendered from it showed two closed positions as live,
+    I6 refused the send, and USA delivered nothing. The A23 check above saw
+    no divergence because both tickers already appear in exit history under
+    their August orphan episodes.
+
+    Returns [(ticker, position_id), ...] so the operator sees WHICH position,
+    not just which name.
+    """
+    p = ROOT / "reports" / "context" / ("canonical_lifecycle_%s.json" % market)
+    if not p.exists():
+        return []
+    try:
+        life = json.loads(p.read_text(encoding="utf-8", errors="replace"))
+    except Exception:
+        # a lifecycle we cannot parse is a different defect · the run's own
+        # gates own it · self-heal must not crash the workflow over it
+        return []
+    closed = _closed_position_ids(market)
+    out = []
+    for r in life.get("current") or []:
+        if not isinstance(r, dict):
+            continue
+        pid = str(r.get("position_id") or "")
+        if pid and pid in closed:
+            out.append((str(r.get("ticker") or "?"), pid))
+    return sorted(out)
+
+
 def unaccounted(market: str) -> set:
     return (_closed_registry(market)
             - _exit_history_tickers(market)
@@ -128,7 +192,7 @@ def heal(market: str, asof: str) -> bool:
     _run([sys.executable, "-W", "ignore",
           str(ROOT / "scripts" / "build_aegis_3sheet_workbook.py"),
           "--market", market, "--asof", asof])
-    return not unaccounted(market)
+    return not unaccounted(market) and not closed_in_current(market)
 
 
 def main() -> int:
@@ -142,17 +206,25 @@ def main() -> int:
     bad = False
     for m in markets:
         miss = unaccounted(m)
-        if not miss:
-            print("  [self-heal] %-6s invariant OK · nothing to repair" % m)
+        shown = closed_in_current(m)
+        if not miss and not shown:
+            print("  [self-heal] %-6s invariants OK · nothing to repair" % m)
             continue
-        print("  [self-heal] %-6s DIVERGENCE · %d registry-CLOSED ticker(s) not "
-              "accounted for: %s" % (m, len(miss), sorted(miss)[:10]))
+        if miss:
+            print("  [self-heal] %-6s DIVERGENCE · %d registry-CLOSED ticker(s) not "
+                  "accounted for: %s" % (m, len(miss), sorted(miss)[:10]))
+        if shown:
+            print("  [self-heal] %-6s STALE CURRENT · %d registry-CLOSED position(s) "
+                  "still rendered as live: %s"
+                  % (m, len(shown), ["%s (%s)" % t for t in shown[:10]]))
         if heal(m, a.asof):
             print("  [self-heal] %-6s REPAIRED · invariant restored" % m)
         else:
-            still = sorted(unaccounted(m))[:10]
-            print("::error::[self-heal] %s STILL BROKEN after regeneration: %s"
-                  % (m, still))
+            still_a23 = sorted(unaccounted(m))[:10]
+            still_cur = closed_in_current(m)[:10]
+            print("::error::[self-heal] %s STILL BROKEN after regeneration · "
+                  "unaccounted=%s · closed-in-CURRENT=%s"
+                  % (m, still_a23, ["%s (%s)" % t for t in still_cur]))
             print("  This is a genuine defect, not staleness. Failing the run "
                   "rather than shipping an inconsistent workbook.")
             bad = True
