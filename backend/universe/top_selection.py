@@ -51,10 +51,20 @@ SELECTION_VERSION = "1.0.0"
 
 #: Per-market defaults. `top_n: None` means "the full eligible universe",
 #: which is the current production behaviour for both markets.
+#: CEO 2026-11-03 · market-specific by construction, not by a shared
+#: default that someone later tunes for one market and changes both.
+#: India is DISABLED here and carries preserve_existing_universe, so no
+#: change to the USA target can shrink India. There is a test for that.
 DEFAULTS = {
-    "india": {"top_n": None, "min_price": 0.0, "min_dollar_volume": 0.0,
+    "india": {"universe_selection_enabled": False,
+              "preserve_existing_universe": True,
+              "target_count": None,
+              "top_n": None, "min_price": 0.0, "min_dollar_volume": 0.0,
               "max_per_sector": None, "min_completeness": 0.60},
-    "usa": {"top_n": None, "min_price": 0.0, "min_dollar_volume": 0.0,
+    "usa": {"universe_selection_enabled": False,
+            "preserve_existing_universe": False,
+            "target_count": None,
+            "top_n": None, "min_price": 0.0, "min_dollar_volume": 0.0,
             "max_per_sector": None, "min_completeness": 0.60},
 }
 
@@ -82,6 +92,10 @@ EXCL_COMPLETENESS = "INSUFFICIENT_DATA_COMPLETENESS"
 EXCL_SECTOR_CAP = "SECTOR_CAP_REACHED"
 EXCL_RANK = "BELOW_TOP_N"
 
+#: Why a name was kept regardless of its rank.
+KEEP_OPEN_POSITION = "OPEN_POSITION"
+KEEP_RANK = "RANK"
+
 
 def load_config(root: Path, market: str) -> dict:
     """Defaults, overlaid by config/universe_selection.json when present."""
@@ -96,6 +110,56 @@ def load_config(root: Path, market: str) -> dict:
     return cfg                                      # the universe
 
 
+def open_position_tickers(root: Path, market: str) -> set:
+    """Names with a live position · these can never be ranked out.
+
+    CEO 2026-11-03 · MEASURED REASON THIS EXISTS. A 248-name shortlist
+    ranked on liquidity, momentum and trend retained 11 of the day's 18
+    actionable calls - and five of the seven it dropped were SELLs
+    (AKAM, DAL, GPC, QCOM, SYK). That is not sampling noise: a SELL
+    candidate is by construction a weak name, so a momentum-ranked
+    shortlist excludes precisely the names risk control needs to see.
+
+    Dropping a held name from the daily universe does not make the
+    position disappear; it makes it unmonitored. So the shortlist is the
+    UNION of the top-ranked names and every open position.
+
+    Reads the registry, which is the lifecycle spine, and falls back to an
+    empty set rather than guessing if it cannot be read.
+    """
+    try:
+        from backend.research import opportunity_registry as _oreg
+        mkt = str(market).lower()
+        out = set()
+        for opps in _oreg.load_all(Path(root)).values():
+            for o in opps:
+                if str(o.market).lower() == mkt and o.is_active():
+                    out.add(bare_ticker(o.ticker))
+        return out
+    except Exception:
+        return set()
+
+
+def effective_top_n(cfg: dict) -> Optional[int]:
+    """How many names this configuration actually selects.
+
+    Selection applies only when the market has it ENABLED. A target_count
+    sitting in config for a disabled market is inert, so enabling USA can
+    never resize India as a side effect.
+
+    `top_n` remains honoured for direct experimental calls (the comparison
+    harness passes it), but it cannot switch a disabled market on.
+    """
+    if cfg.get("preserve_existing_universe") and not             cfg.get("universe_selection_enabled"):
+        return None
+    if cfg.get("universe_selection_enabled"):
+        n = cfg.get("target_count")
+        if n is None:
+            n = cfg.get("top_n")
+        return None if n is None else int(n)
+    return None if cfg.get("top_n") is None else int(cfg["top_n"])
+
+
 def audit_dir(root: Path) -> Path:
     return Path(root) / "reports" / "universe"
 
@@ -103,6 +167,21 @@ def audit_dir(root: Path) -> Path:
 def audit_path(root: Path, market: str, asof: str) -> Path:
     return audit_dir(root) / ("selection_%s_%s.json"
                              % (str(market).lower(), str(asof)[:10]))
+
+
+def bare_ticker(t) -> str:
+    """One normalisation for both sides of every ticker comparison.
+
+    CEO 2026-11-03 · this function exists because I shipped the bug it
+    prevents. India's feature snapshot carries AARTIIND.NS while the
+    registry carries bare AARTIIND, so comparing them raw gave ZERO
+    overlap and open-position protection was silently inert for India -
+    the one market whose universe we promised not to disturb. Same
+    identity-collapse family as the alias-drift class, from the opposite
+    direction: not two names for one thing, but one thing under two
+    spellings.
+    """
+    return str(t or "").upper().strip().replace(".NS", "").replace(".BO", "")
 
 
 def _pct_rank(s: pd.Series) -> pd.Series:
@@ -220,19 +299,27 @@ def select(root: Path, market: str, snapshot: pd.DataFrame,
                         ascending=[False, True], na_position="last")
 
     cap = cfg.get("max_per_sector")
-    top_n = cfg.get("top_n")
-    keep_idx, per_sector = [], {}
+    top_n = effective_top_n(cfg)
+    held = (set() if cfg.get("ignore_open_positions")
+            else open_position_tickers(Path(root), mkt))
+    keep_idx, per_sector, keep_reason = [], {}, {}
+    n_ranked = 0
     for idx, r in df.iterrows():
-        if top_n is not None and len(keep_idx) >= int(top_n):
-            excluded.append({"ticker": str(r.get("ticker")),
-                             "reason": EXCL_RANK})
+        tk = str(r.get("ticker") or "")
+        is_held = bare_ticker(tk) in held
+        if not is_held and top_n is not None and n_ranked >= int(top_n):
+            excluded.append({"ticker": tk, "reason": EXCL_RANK})
             continue
         sec = str(r.get("sector") or "UNKNOWN")
-        if cap is not None and per_sector.get(sec, 0) >= int(cap):
-            excluded.append({"ticker": str(r.get("ticker")),
-                             "reason": EXCL_SECTOR_CAP, "sector": sec})
+        if not is_held and cap is not None and per_sector.get(sec, 0) >= int(cap):
+            excluded.append({"ticker": tk, "reason": EXCL_SECTOR_CAP,
+                             "sector": sec})
             continue
         per_sector[sec] = per_sector.get(sec, 0) + 1
+        keep_reason[bare_ticker(tk)] = (KEEP_OPEN_POSITION if is_held
+                                        else KEEP_RANK)
+        if not is_held:
+            n_ranked += 1
         keep_idx.append(idx)
 
     sel = df.loc[keep_idx]
@@ -241,6 +328,13 @@ def select(root: Path, market: str, snapshot: pd.DataFrame,
         "asof": str(asof)[:10],
         "selection_version": SELECTION_VERSION,
         "config": {k: cfg.get(k) for k in sorted(cfg)},
+        "selection_enabled": bool(cfg.get("universe_selection_enabled")),
+        "target_count": cfg.get("target_count"),
+        "effective_top_n": top_n,
+        "open_positions_in_market": len(held),
+        "kept_by_rank": sum(1 for v in keep_reason.values() if v == KEEP_RANK),
+        "kept_as_open_position": sum(1 for v in keep_reason.values()
+                                     if v == KEEP_OPEN_POSITION),
         "weights": dict(WEIGHTS),
         "universe_in": total_in,
         "eligible": eligible,
@@ -275,6 +369,7 @@ def select(root: Path, market: str, snapshot: pd.DataFrame,
                                else round(float(r["score_%s" % k]), 6))
                            for k in CRITERIA},
             "abstained": list(r.get("abstained_criteria") or []),
+            "kept_because": keep_reason.get(bare_ticker(r.get("ticker"))),
             "data_completeness": (None if pd.isna(r.get("data_completeness"))
                                   else round(float(r["data_completeness"]), 4)),
         })

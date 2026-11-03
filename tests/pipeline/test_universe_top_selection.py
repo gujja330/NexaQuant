@@ -268,3 +268,181 @@ def test_both_markets_run_through_the_same_code_path(tmp_path):
         sel, a = ts.select(tmp_path, m, _snap(10, market=m), ASOF,
                            _cfg(top_n=4))
         assert a["market"] == m and len(sel) == 4
+
+
+# ── 248 target · enabled/disabled semantics ─────────────────────────
+
+def _cfg248(**over):
+    c = dict(ts.DEFAULTS["usa"])
+    c.update({"universe_selection_enabled": True, "target_count": 248})
+    c.update(over)
+    return c
+
+
+def test_the_usa_target_is_248_ranked_slots(tmp_path):
+    cfg = _cfg248(ignore_open_positions=True)
+    sel, a = ts.select(tmp_path, "usa", _snap(300), ASOF, cfg)
+    assert a["effective_top_n"] == 248
+    assert a["target_count"] == 248
+    assert len(sel) == 248
+    assert a["selection_enabled"] is True
+
+
+def test_fewer_eligible_than_the_target_processes_all(tmp_path):
+    sel, a = ts.select(tmp_path, "usa", _snap(120), ASOF,
+                       _cfg248(ignore_open_positions=True))
+    assert len(sel) == 120
+    assert a["exclusion_reasons"].get(ts.EXCL_RANK) is None
+
+
+def test_more_eligible_than_the_target_selects_the_target(tmp_path):
+    sel, a = ts.select(tmp_path, "usa", _snap(400), ASOF,
+                       _cfg248(ignore_open_positions=True))
+    assert len(sel) == 248
+    assert a["exclusion_reasons"][ts.EXCL_RANK] == 152
+
+
+def test_a_disabled_market_ignores_its_target_count(tmp_path):
+    """A target sitting in config for a disabled market must be inert."""
+    cfg = dict(ts.DEFAULTS["india"])
+    cfg["target_count"] = 50           # present but selection is OFF
+    assert ts.effective_top_n(cfg) is None
+    sel, a = ts.select(tmp_path, "india", _snap(228, market="india"), ASOF, cfg)
+    assert len(sel) == 228
+    assert a["selection_enabled"] is False
+
+
+def test_enabling_usa_cannot_shrink_india(tmp_path):
+    """The explicit cross-market guarantee."""
+    p = tmp_path.joinpath(*ts.CONFIG_REL)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(json.dumps({
+        "usa": {"universe_selection_enabled": True, "target_count": 248},
+        "india": {"universe_selection_enabled": False,
+                  "preserve_existing_universe": True},
+    }), encoding="utf-8")
+    assert ts.effective_top_n(ts.load_config(tmp_path, "usa")) == 248
+    assert ts.effective_top_n(ts.load_config(tmp_path, "india")) is None
+    sel, a = ts.select(tmp_path, "india", _snap(228, market="india"), ASOF,
+                       ts.load_config(tmp_path, "india"))
+    assert len(sel) == 228, "India was resized by a USA setting"
+
+
+def test_preserve_existing_universe_wins_over_a_stray_enable(tmp_path):
+    cfg = dict(ts.DEFAULTS["india"])
+    cfg["preserve_existing_universe"] = True
+    cfg["top_n"] = 10                   # a stray experimental value
+    assert ts.effective_top_n(cfg) is None
+
+
+# ── open positions are never ranked out ─────────────────────────────
+
+def _registry(root: Path, market: str, tickers, active=True):
+    p = root / "reports" / "research" / "opportunity_registry.jsonl"
+    p.parent.mkdir(parents=True, exist_ok=True)
+    rows = [{"opportunity_id": "%s-R2-%s-1" % (market.upper(), t),
+             "market": market, "runner": "R2", "ticker": t,
+             "created_date": "2026-10-01",
+             "status": "ACTIVE" if active else "CLOSED",
+             "closed_date": "" if active else "2026-10-20",
+             "ts_utc": "2026-10-01T12:00:00"} for t in tickers]
+    p.write_text("\n".join(json.dumps(r) for r in rows) + "\n", encoding="utf-8")
+
+
+def test_a_held_name_survives_a_rank_cut(tmp_path):
+    """A SELL candidate is a weak name · ranking it out unmonitors it."""
+    _registry(tmp_path, "usa", ["TK19"])          # worst-ranked in _snap(20)
+    sel, a = ts.select(tmp_path, "usa", _snap(20), ASOF,
+                       _cfg(top_n=5, universe_selection_enabled=True,
+                            target_count=5))
+    assert "TK19" in a["selected_tickers"]
+    assert a["kept_as_open_position"] == 1
+    assert a["kept_by_rank"] == 5
+    assert len(sel) == 6, "held names are a union, not a replacement"
+
+
+def test_a_closed_position_gets_no_protection(tmp_path):
+    _registry(tmp_path, "usa", ["TK19"], active=False)
+    a = ts.select(tmp_path, "usa", _snap(20), ASOF,
+                  _cfg(top_n=5, universe_selection_enabled=True,
+                       target_count=5))[1]
+    assert "TK19" not in a["selected_tickers"]
+    assert a["kept_as_open_position"] == 0
+
+
+def test_a_held_name_also_bypasses_the_sector_cap(tmp_path):
+    _registry(tmp_path, "usa", ["TK08"])
+    snap = _snap(9, sectors=["Energy", "Tech", "Health"])
+    a = ts.select(tmp_path, "usa", snap, ASOF, _cfg(max_per_sector=1))[1]
+    assert "TK08" in a["selected_tickers"]
+
+
+def test_the_audit_says_why_each_name_was_kept(tmp_path):
+    _registry(tmp_path, "usa", ["TK19"])
+    a = ts.select(tmp_path, "usa", _snap(20), ASOF,
+                  _cfg(top_n=3, universe_selection_enabled=True,
+                       target_count=3))[1]
+    by = {e["ticker"]: e["kept_because"] for e in a["selected_evidence"]}
+    assert by["TK19"] == ts.KEEP_OPEN_POSITION
+    assert by["TK00"] == ts.KEEP_RANK
+    assert a["open_positions_in_market"] == 1
+
+
+def test_an_unreadable_registry_does_not_crash_selection(tmp_path):
+    p = tmp_path / "reports" / "research" / "opportunity_registry.jsonl"
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text("{ not json", encoding="utf-8")
+    sel, a = ts.select(tmp_path, "usa", _snap(10), ASOF, _cfg(top_n=4))
+    assert len(sel) == 4 and a["open_positions_in_market"] == 0
+
+
+def test_the_other_markets_positions_are_not_protected_here(tmp_path):
+    _registry(tmp_path, "india", ["TK19"])
+    a = ts.select(tmp_path, "usa", _snap(20), ASOF,
+                  _cfg(top_n=5, universe_selection_enabled=True,
+                       target_count=5))[1]
+    assert "TK19" not in a["selected_tickers"]
+    assert a["open_positions_in_market"] == 0
+
+
+# ── the historical population is untouched ──────────────────────────
+
+def test_selection_does_not_touch_the_registry(tmp_path):
+    import hashlib
+    _registry(tmp_path, "usa", ["TK01", "TK02"])
+    p = tmp_path / "reports" / "research" / "opportunity_registry.jsonl"
+    before = hashlib.sha256(p.read_bytes()).hexdigest()
+    ts.select(tmp_path, "usa", _snap(20), ASOF,
+              _cfg(top_n=3, universe_selection_enabled=True, target_count=3))
+    assert hashlib.sha256(p.read_bytes()).hexdigest() == before, (
+        "today's shortlist mutated the historical registry")
+
+
+def test_a_suffixed_snapshot_ticker_still_matches_the_bare_registry(tmp_path):
+    """The bug this guard was shipped with.
+
+    India's snapshot carries AARTIIND.NS; the registry carries AARTIIND.
+    Compared raw, the overlap is zero and open-position protection is
+    silently inert for the one market we promised not to disturb.
+    """
+    _registry(tmp_path, "india", ["TK19"])          # bare, as the registry is
+    snap = _snap(20, market="india")
+    snap["ticker"] = snap["ticker"] + ".NS"         # suffixed, as the snapshot is
+    a = ts.select(tmp_path, "india", snap, ASOF,
+                  _cfg(top_n=5, universe_selection_enabled=True,
+                       target_count=5))[1]
+    assert a["open_positions_in_market"] == 1
+    assert a["kept_as_open_position"] == 1, (
+        "suffix mismatch made the protection inert")
+    assert "TK19.NS" in a["selected_tickers"], "the original spelling is kept"
+    by = {e["ticker"]: e["kept_because"] for e in a["selected_evidence"]}
+    assert by["TK19.NS"] == ts.KEEP_OPEN_POSITION
+
+
+@pytest.mark.parametrize("raw,want", [
+    ("AARTIIND.NS", "AARTIIND"), ("sbin.ns", "SBIN"),
+    ("RELIANCE.BO", "RELIANCE"), ("AAPL", "AAPL"), (" msft ", "MSFT"),
+    (None, ""),
+])
+def test_bare_ticker_normalisation(raw, want):
+    assert ts.bare_ticker(raw) == want
