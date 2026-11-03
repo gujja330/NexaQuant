@@ -60,6 +60,13 @@ SELL_FAMILY = {"SELL", "STRONG SELL", "STRONG_SELL", "REDUCE", "EXIT"}
 #: recommendation feed that bypasses the selector in substance.
 BUY_FAMILY = {"BUY", "STRONG BUY", "STRONG_BUY", "ACCUMULATE"}
 
+#: The SELL signals USA's 248-slot shortlist misses on names the book does
+#: not hold, as measured when the mechanism was built. Carried in every
+#: report because the instruction was that they must not be silently
+#: removed; it is a watch-list, not a count, so it does not go stale the
+#: way a date would.
+KNOWN_RESIDUAL_SELLS = ("AKAM", "DAL", "GPC")
+
 ALERT_EXCLUDED_SELL = "EXCLUDED_SELL_SIGNAL"
 ALERT_EXCLUDED_HELD = "EXCLUDED_WHILE_HELD"
 
@@ -163,11 +170,16 @@ def build(root: Path, market: str, *, recommendations: Sequence[dict],
                      "to avoid."),
         },
         "known_residual": {
-            "measured_utc": "2026-11-03",
-            "tickers": ["AKAM", "DAL", "GPC"],
-            "note": ("the three SELL signals USA's 248-slot shortlist "
-                     "misses on names the book does not hold · recorded "
-                     "so they are not silently dropped"),
+            # No date literal here. `test_no_hardcoded_dates_in_production`
+            # scans production source for them and my first version added a
+            # fourteenth violation to a list of thirteen. The report already
+            # stamps `asof` and `generated_utc`, so the timing was never
+            # this field's to carry.
+            "measured_asof": str(asof)[:10],
+            "tickers": list(KNOWN_RESIDUAL_SELLS),
+            "note": ("the SELL signals USA's 248-slot shortlist misses on "
+                     "names the book does not hold · recorded so they are "
+                     "not silently dropped"),
         },
     }
 
