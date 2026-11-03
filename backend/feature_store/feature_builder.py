@@ -134,7 +134,13 @@ class FeatureBuilder:
             ("fundamental",       lambda: fundamental.compute(canon, universe_tolerant, asof or date.today(), self.market.name)),
             ("news",              lambda: news.compute(canon, universe_tolerant, asof or date.today(), self.market.name)),
             ("earnings",          lambda: earnings.compute(canon, universe_tolerant, asof or date.today(), self.market.name)),
-            ("macro",             lambda: macro.compute(canon, universe_tolerant, asof or date.today(), self.market.name)),
+            # CEO 2026-11-03 · `root` is now required. macro features read
+            # the TRACKED, DATED series under data/raw/india/global/ rather
+            # than the untracked, undated macro_summary.json, which is why
+            # India carried 0 of 8 macro fields. `sector` already took
+            # repo_root for the same reason.
+            ("macro",             lambda: macro.compute(canon, universe_tolerant, asof or date.today(), self.market.name,
+                                                            root=self.repo_root)),
             ("sector",            lambda: sector.compute(canon, universe_tolerant, asof or date.today(), self.market.name,
                                                             repo_root=self.repo_root)),
             ("institutional",     lambda: institutional.compute(canon, universe_tolerant, asof or date.today(), self.market.name)),
