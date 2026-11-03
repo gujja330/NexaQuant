@@ -364,3 +364,48 @@ def _mk(tmp_path, rel):
     p = tmp_path / rel
     p.parent.mkdir(parents=True, exist_ok=True)
     return p
+
+
+class TestHistoricalPopulationIntegrity:
+    """PIE must see the whole registry, never the daily shortlist.
+
+    The instruction was explicit for both markets: retain all 818 USA
+    episodes and India's full 247, and do not limit PIE to the 248 ranked
+    slots or the 469 currently selected names. The failure mode is subtle
+    - a shortlist leaking into the research population would silently
+    survivorship-bias every fold, and the counts would still look
+    plausible.
+    """
+
+    def test_the_backtest_population_is_the_episode_dataset_not_a_shortlist(self):
+        """The matrix row count equals the episode count it was given."""
+        eps = pd.DataFrame([{
+            "episode_id": "E%03d" % i, "ticker": "T%03d" % i,
+            "entry_date": "2026-08-%02d" % (1 + i % 28), "is_closed": True,
+            "closed_date": "2026-09-01", "registry_realized_pct": 1.0,
+            "registry_realized_resolved": True,
+            "mtm_ret_5d_pct": 1.0, "mtm_ret_5d_resolved": True,
+            "mtm_ret_10d_pct": 1.0, "mtm_ret_10d_resolved": True,
+            "mtm_ret_20d_pct": 1.0, "mtm_ret_20d_resolved": True,
+        } for i in range(300)])
+        m = B.build_matrix(".", "india", episodes=eps, horizon=5)
+        assert len(m) == 300, "every episode must reach the matrix"
+        assert m["episode_id"].nunique() == 300
+
+    def test_no_selection_module_is_reachable_from_the_backtest(self):
+        """A shortlist cannot narrow the population if it is never imported."""
+        import inspect
+        for mod in (B, S, F):
+            src = inspect.getsource(mod)
+            assert "top_selection" not in src, mod.__name__
+            assert "universe_selection" not in src, mod.__name__
+            assert "target_count" not in src, mod.__name__
+
+    def test_the_population_block_reports_dates_and_episodes_separately(self):
+        m = _matrix(n_dates=30, per_date=4)
+        rep = B.run(".", "india", matrix=m, min_train_dates=10,
+                    test_block=5, horizon=5)
+        p = rep["population"]
+        assert p["episodes"] == 120 and p["entry_dates"] == 30
+        assert p["episodes"] != p["entry_dates"], (
+            "conflating the two is how 818 rows became 818 observations")
