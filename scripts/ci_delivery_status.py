@@ -199,6 +199,30 @@ def inspect_persistence(root: Path, market: str, wb_sha: Optional[str]) -> dict:
     if not ev["committed_matches"]:
         ev["problems"].append("the committed workbook differs from the one on "
                               "disk · this run's workbook was not persisted")
+        return ev
+
+    # CEO 2026-11-03 · "survives runner termination" is the actual criterion,
+    # and matching local HEAD does not prove it. The artifact step commits
+    # AND pushes, with retries; if that push ultimately fails, the commit
+    # exists only on the runner and dies with it, while a HEAD comparison
+    # still says PERSISTED. So check the remote-tracking ref too.
+    #
+    # Absent origin/main (a developer tree, a shallow clone) is NOT a
+    # failure - it is an unanswerable question, and reporting it as a
+    # workbook defect would be the same category error that made the first
+    # version of this file fail two good workbooks.
+    rc, origin_sha = _git(root, "rev-parse", "origin/main:%s" % rel)
+    if rc != 0:
+        ev["pushed_matches"] = None
+        ev["pushed_detail"] = ("origin/main unavailable · cannot confirm the "
+                               "artifact left the runner")
+        return ev
+    ev["pushed_matches"] = (origin_sha == local_sha)
+    if not ev["pushed_matches"]:
+        ev["problems"].append("the workbook is committed locally but "
+                              "origin/main holds a different copy · the "
+                              "artifact commit was not pushed and does not "
+                              "survive runner termination")
     return ev
 
 

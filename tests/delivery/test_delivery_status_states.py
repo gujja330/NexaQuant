@@ -316,3 +316,63 @@ def test_every_failure_state_is_non_passing(state):
 
 def test_only_two_states_pass():
     assert set(ds.PASSING) == {ds.DELIVERY_SUCCESS, ds.PIPELINE_SUCCESS}
+
+
+# ── "survives runner termination" · the remote half ─────────────────
+
+def _remote(tmp_path: Path, name: str = "rem") -> Path:
+    """A bare repo wired as origin, so origin/main is a real ref."""
+    bare = tmp_path.parent / (tmp_path.name + "_" + name + ".git")
+    subprocess.run(["git", "init", "--bare", "-q", str(bare)],
+                   capture_output=True)
+    return bare
+
+
+def test_a_pushed_artifact_is_persisted(tmp_path):
+    root = _repo(tmp_path)
+    _workbook(root, "usa")
+    _commit_workbook(root, "usa")
+    _validator(root, "usa")
+    bare = _remote(tmp_path)
+    _git(root, "remote", "add", "origin", str(bare))
+    _git(root, "branch", "-M", "main")
+    _git(root, "push", "-q", "origin", "main")
+    _git(root, "fetch", "-q", "origin")
+    _ledger(root, [{"ok": True,
+                    "file": "reports/telegram/aegis_history_usa.xlsx"}])
+    st = ds.classify(root, "usa", ASOF)
+    assert st["state"] == ds.DELIVERY_SUCCESS, st["reason"]
+    assert st["persistence"]["pushed_matches"] is True
+
+
+def test_committed_but_never_pushed_is_a_persistence_failure(tmp_path):
+    """The runner holds it · origin does not · it dies with the runner."""
+    root = _repo(tmp_path)
+    _workbook(root, "usa", rows=3)
+    _commit_workbook(root, "usa")
+    bare = _remote(tmp_path, "rem2")
+    _git(root, "remote", "add", "origin", str(bare))
+    _git(root, "branch", "-M", "main")
+    _git(root, "push", "-q", "origin", "main")
+    # a later run regenerates and commits, but the push fails
+    _workbook(root, "usa", rows=7)
+    _commit_workbook(root, "usa")
+    _git(root, "fetch", "-q", "origin")
+    _validator(root, "usa")
+    st = ds.classify(root, "usa", ASOF)
+    assert st["state"] == ds.ARTIFACT_PERSISTENCE_FAILURE
+    assert "was not pushed" in st["reason"]
+
+
+def test_a_missing_origin_is_unanswerable_not_a_workbook_defect(tmp_path):
+    """A developer tree must not be reported as a bad workbook."""
+    root = _repo(tmp_path)
+    _workbook(root, "usa")
+    _commit_workbook(root, "usa")
+    _validator(root, "usa")
+    _ledger(root, [{"ok": True,
+                    "file": "reports/telegram/aegis_history_usa.xlsx"}])
+    st = ds.classify(root, "usa", ASOF)
+    assert st["state"] == ds.DELIVERY_SUCCESS
+    assert st["persistence"]["pushed_matches"] is None
+    assert "cannot confirm" in st["persistence"]["pushed_detail"]
