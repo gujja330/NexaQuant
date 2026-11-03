@@ -204,6 +204,32 @@ jobs:
         id: feature_snapshot_usa
         run: python scripts/ci_build_feature_snapshot.py --market usa
 
+      # ── USA UNIVERSE SELECTION · CEO 2026-11-03 ─────────────────────
+      # 248 discretionary ranked slots, UNION every open position. Runs
+      # HERE - after the orchestrator has scored and after the snapshot
+      # exists - and deliberately NOT before scoring.
+      #
+      # Shortlisting upstream would be cheaper and is the wrong design.
+      # Measured on 2026-11-03: the 248 shortlist keeps 100% of the BUYs
+      # and 50% of the SELLs, and top_50 keeps none of them, because every
+      # name a momentum-ranked shortlist drops is a SELL. The approved
+      # mitigation is a risk-alert path for excluded names carrying SELL
+      # evidence - and that alert can only exist if the excluded name was
+      # SCORED. Select before scoring and the alerts are empty by
+      # construction, so the pipeline would be blind to exactly the
+      # signals the mitigation exists to catch while reporting no misses.
+      #
+      # So R2 keeps scoring the full eligible universe and this step is an
+      # auditable priority decision over the result. It therefore buys no
+      # runtime, and there was none to buy: USA scored 516 of 516 at full
+      # size and the selection pass costs ~0.1s.
+      #
+      # USA only. The script refuses any other market outright rather than
+      # relying on config, because India's universe must not change.
+      - name: USA universe selection + risk alerts for excluded SELLs
+        id: universe_selection_usa
+        run: python scripts/ci_universe_selection.py --market usa --strict
+
       # ── AEGIS RUN CONTRACT · CEO 2026-09-09 ─────────────────────────
       # The SAME five gates the manual run executes. A separate "CI check"
       # is how two answers to one question start to exist, and only one of
@@ -415,6 +441,14 @@ jobs:
           # provable after the fact.
           _add_safe "reports/telegram_command_center_$(date -u +%Y-%m-%d).jsonl"
           _add_safe "reports/context/delivery_status_usa.json"
+          # CEO 2026-11-03 · the selection audit and the risk alerts are
+          # the only record of WHICH names the 248-slot shortlist dropped
+          # and which of those carried a SELL. Produce-then-discard would
+          # make the mitigation unauditable, which is the same failure as
+          # the validator verdict above.
+          _add_safe "reports/universe/selection_applied_usa.json"
+          _add_safe "reports/universe/selection_usa_$(date -u +%Y-%m-%d).json"
+          _add_safe "reports/universe/risk_alerts_usa_$(date -u +%Y-%m-%d).json"
           _add_safe "reports/context/cil_run_usa.json"
           _add_safe "reports/context/freshness_diagnostic_india.json"
           _add_safe "reports/telegram/aegis_history_usa.xlsx"
