@@ -1,0 +1,305 @@
+{
+  "engine": "aegis.recommendation.actionable_chain_diagnostic.v1",
+  "schema_version": "1.0.0",
+  "generated_utc": "2026-11-03T04:53:50+00:00",
+  "market": "usa",
+  "asof": "2026-11-02",
+  "ensemble_asof": "2026-11-02",
+  "n_universe": 516,
+  "n_candidates": 516,
+  "model_activity": {
+    "aegis.ai_hybrid.v1": {
+      "n_scored": 516,
+      "n_nonzero": 516,
+      "n_directional": 394,
+      "max_abs_score": 0.4761,
+      "verdict": "ACTIVE",
+      "weight": 0.050815
+    },
+    "aegis.event_driven.v1": {
+      "n_scored": 516,
+      "n_nonzero": 515,
+      "n_directional": 473,
+      "max_abs_score": 0.9521,
+      "verdict": "ACTIVE",
+      "weight": 0.118536
+    },
+    "aegis.growth.v1": {
+      "n_scored": 516,
+      "n_nonzero": 499,
+      "n_directional": 464,
+      "max_abs_score": 0.9843,
+      "verdict": "ACTIVE",
+      "weight": 0.050815
+    },
+    "aegis.macro.v1": {
+      "n_scored": 516,
+      "n_nonzero": 0,
+      "n_directional": 0,
+      "max_abs_score": 0.0,
+      "verdict": "DEAD",
+      "weight": 0.050815
+    },
+    "aegis.mean_reversion.v1": {
+      "n_scored": 516,
+      "n_nonzero": 503,
+      "n_directional": 473,
+      "max_abs_score": 1.0,
+      "verdict": "ACTIVE",
+      "weight": 0.126738
+    },
+    "aegis.momentum.v1": {
+      "n_scored": 516,
+      "n_nonzero": 503,
+      "n_directional": 467,
+      "max_abs_score": 0.8329,
+      "verdict": "ACTIVE",
+      "weight": 0.110533
+    },
+    "aegis.news.v1": {
+      "n_scored": 516,
+      "n_nonzero": 516,
+      "n_directional": 390,
+      "max_abs_score": 0.3002,
+      "verdict": "ACTIVE",
+      "weight": 0.050815
+    },
+    "aegis.quality.v1": {
+      "n_scored": 516,
+      "n_nonzero": 503,
+      "n_directional": 459,
+      "max_abs_score": 0.9441,
+      "verdict": "ACTIVE",
+      "weight": 0.13454
+    },
+    "aegis.sector_rotation.v1": {
+      "n_scored": 516,
+      "n_nonzero": 0,
+      "n_directional": 0,
+      "max_abs_score": 0.0,
+      "verdict": "DEAD",
+      "weight": 0.135741
+    },
+    "aegis.trend.v1": {
+      "n_scored": 516,
+      "n_nonzero": 503,
+      "n_directional": 455,
+      "max_abs_score": 0.807,
+      "verdict": "ACTIVE",
+      "weight": 0.119836
+    },
+    "aegis.value.v1": {
+      "n_scored": 516,
+      "n_nonzero": 477,
+      "n_directional": 439,
+      "max_abs_score": 0.6,
+      "verdict": "ACTIVE",
+      "weight": 0.050815
+    }
+  },
+  "dead_models": [
+    "aegis.macro.v1",
+    "aegis.sector_rotation.v1"
+  ],
+  "dead_weight_share": 0.1866,
+  "agreement_measurement": {
+    "neutral_band": 0.05,
+    "disagree_threshold": 0.6,
+    "n_flagged_only_because_neutrals_are_in_the_base": 295,
+    "worst_example": {
+      "ticker": "GGP",
+      "n_models": 11,
+      "n_positive": 2,
+      "n_negative": 0,
+      "n_neutral": 9,
+      "agreement_shipped": 0.1818,
+      "agreement_excluding_neutrals": 1.0,
+      "flagged_shipped": true,
+      "flagged_excluding_neutrals": false
+    },
+    "docstring_says": "Agreement = max fraction on any one side (excluding neutrals from the base)",
+    "code_does": "max(n_pos, n_neg) / n_total  (neutrals INCLUDED)"
+  },
+  "absolute_ceiling": {
+    "n_models": 11,
+    "n_dead_models": 2,
+    "agreement_ceiling": 0.8182,
+    "calibration_multiplier_ceiling": 0.9091,
+    "raw_confidence_max_observed": 0.7002,
+    "calibrated_confidence_ceiling": 0.6365,
+    "calibrated_confidence_max_observed": 0.607,
+    "arms": {
+      "STRONG_BUY": {
+        "confidence_required": 0.7,
+        "raw_confidence_required": 0.77,
+        "satisfiable_at_ceiling": false,
+        "n_names_meeting_confidence": 0
+      },
+      "BUY": {
+        "confidence_required": 0.5,
+        "raw_confidence_required": 0.55,
+        "satisfiable_at_ceiling": true,
+        "n_names_meeting_confidence": 142
+      },
+      "SELL": {
+        "confidence_required": 0.5,
+        "raw_confidence_required": 0.55,
+        "satisfiable_at_ceiling": true,
+        "n_names_meeting_confidence": 142
+      },
+      "STRONG_SELL": {
+        "confidence_required": 0.7,
+        "raw_confidence_required": 0.77,
+        "satisfiable_at_ceiling": false,
+        "n_names_meeting_confidence": 0
+      }
+    }
+  },
+  "funnel": {
+    "entered": 516,
+    "stages": [
+      {
+        "stage": "disagreement_valve",
+        "entered": 516,
+        "removed": 432,
+        "survived": 84,
+        "rule": "conflict.disagreement_flag -> HOLD"
+      },
+      {
+        "stage": "absolute_score",
+        "entered": 84,
+        "removed": 57,
+        "survived": 27,
+        "rule": "abs(ensemble_score) >= 0.20"
+      },
+      {
+        "stage": "absolute_confidence",
+        "entered": 27,
+        "removed": 3,
+        "survived": 24,
+        "rule": "calibrated_confidence >= 0.50"
+      }
+    ],
+    "absolute_actionable": 24,
+    "binding_constraint": {
+      "CONFIDENCE": 3,
+      "DISAGREEMENT_FLAG": 432,
+      "NONE": 24,
+      "SCORE": 49,
+      "SCORE_AND_CONFIDENCE": 8
+    }
+  },
+  "percentile_abstention": {
+    "min_confidence_for_action": 0.001,
+    "median_calibrated_confidence": 0.4832,
+    "floor_headroom_multiple": 483.2,
+    "n_below_floor": 0,
+    "gate_binds": false,
+    "note": "The confidence floor removes 0 of 516 names. A floor that removes none cannot distinguish signal from noise, because rank is defined on any input."
+  },
+  "distributions": {
+    "ensemble_score": {
+      "n": 516,
+      "min": -0.2954,
+      "p10": -0.1491,
+      "p50": 0.013,
+      "p90": 0.1455,
+      "max": 0.3226
+    },
+    "composite_decision_score": {
+      "n": 516,
+      "min": 35.23,
+      "p10": 42.545,
+      "p50": 50.65,
+      "p90": 57.275,
+      "max": 66.13
+    },
+    "raw_confidence": {
+      "n": 516,
+      "min": 0.1582,
+      "p10": 0.6373,
+      "p50": 0.7002,
+      "p90": 0.7002,
+      "max": 0.7002
+    },
+    "calibrated_confidence": {
+      "n": 516,
+      "min": 0.0467,
+      "p10": 0.4008,
+      "p50": 0.4832,
+      "p90": 0.5411,
+      "max": 0.607
+    },
+    "regime_adjusted_confidence": {
+      "n": 516,
+      "min": 0.0444,
+      "p10": 0.3808,
+      "p50": 0.459,
+      "p90": 0.514,
+      "max": 0.5766
+    },
+    "model_agreement": {
+      "n": 516,
+      "min": 0.1818,
+      "p10": 0.3636,
+      "p50": 0.4545,
+      "p90": 0.6364,
+      "max": 0.8182
+    },
+    "score_percentile": {
+      "n": 516,
+      "min": 0.0,
+      "p10": 0.099,
+      "p50": 0.501,
+      "p90": 0.901,
+      "max": 1.0
+    },
+    "n_models_scoring": {
+      "n": 516,
+      "min": 11.0,
+      "p10": 11.0,
+      "p50": 11.0,
+      "p90": 11.0,
+      "max": 11.0
+    }
+  },
+  "actions": {
+    "action": {
+      "distribution": {
+        "BUY": 12,
+        "HOLD": 498,
+        "SELL": 6
+      },
+      "n_actionable": 18,
+      "populated": true
+    },
+    "recommendation": {
+      "distribution": {
+        "BUY": 12,
+        "HOLD": 498,
+        "SELL": 6
+      },
+      "n_actionable": 18,
+      "populated": true
+    },
+    "percentile_action": {
+      "distribution": {
+        "BUY": 52,
+        "HOLD": 308,
+        "SELL": 52,
+        "STRONG_BUY": 52,
+        "STRONG_SELL": 52
+      },
+      "n_actionable": 208,
+      "populated": true
+    },
+    "action_prior_absolute": {
+      "distribution": {
+        "<null>": 516
+      },
+      "n_actionable": 0,
+      "populated": false
+    },
+    "shipped_equals_percentile": false
+  }
+}
