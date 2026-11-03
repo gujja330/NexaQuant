@@ -669,6 +669,23 @@ def main() -> int:
             except Exception as _e:
                 print(f"[config:decision_colors] load failed · {_e}")
 
+            def _canonical_tier_rank(status) -> int:
+                """Sort rank for a status · one owner, in config.
+
+                Delegates to backend.delivery.decision_tiers so the
+                status -> tier mapping lives in
+                configs/decision_colors.yaml under `status_tiers` and
+                nowhere else. An unmapped status gets
+                `unknown_tier_rank`, which sits above every real tier, so
+                it sorts LAST and is never favourable.
+                """
+                try:
+                    from backend.delivery import decision_tiers as _dt
+                    return _dt.tier_rank(_ROOT, status)
+                except Exception:
+                    # Fail unfavourable, never to the front of the list.
+                    return 99
+
             def _decision_tier(decision_text: str, is_new_position: bool) -> str:
                 """Return one of the tier keys (strong_buy/buy/new/hold/exit/closed)
                 by walking match_order and matching Decision keywords (uppercase)
@@ -1795,23 +1812,31 @@ def main() -> int:
                              and status != "EXIT" and not is_artifact
                 # Pre-classify tier without needing full decision_text · use
                 # the same precedence rules as the write loop.
+                # CEO 2026-11-03 · the CONDITIONS below are real precedence
+                # rules and are kept. What changed is the final hop: the
+                # tier now comes from configs/decision_colors.yaml via
+                # backend.delivery.decision_tiers, instead of this block's
+                # own private keys.
+                #
+                # Those keys were closed / exit / new / strong_buy / buy /
+                # hold, and the config only ever defined new / active /
+                # exit. Four of the six matched nothing and fell through to
+                # 99, so EXIT rows sorted ABOVE every held position while
+                # STRONG BUY, BUY, HOLD and closed artifacts shared one
+                # undifferentiated bucket - the opposite of the config's
+                # stated new < active < exit. Alias drift, same as the
+                # sheet names and the `.NS` tickers.
                 if is_artifact:
-                    tier = "closed"
+                    tier_status = "ARTIFACT"
                 elif any(sig in alerts_here for sig in BINDING_RISK_SIGNALS):
-                    tier = "exit"
+                    tier_status = "EXIT"
                 elif status == "EXIT":
-                    tier = "closed"
+                    tier_status = "EXIT"
                 elif is_new:
-                    tier = "new"
-                elif status == "STRONG BUY":
-                    tier = "strong_buy"
-                elif status in ("BUY", "ACCUMULATE"):
-                    tier = "buy"
-                elif status in ("SELL", "REDUCE"):
-                    tier = "exit"
+                    tier_status = "NEW"
                 else:
-                    tier = "hold"
-                tier_rank = int((DECISION_TIERS.get(tier) or {}).get("tier_rank") or 99)
+                    tier_status = status
+                tier_rank = _canonical_tier_rank(tier_status)
                 # 2026-08-25 · operator: "date sorting needed latest should
                 # come top". Sort by tier_rank (section grouping) then by
                 # row date DESCENDING (latest first within section) ·

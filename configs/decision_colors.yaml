@@ -56,6 +56,59 @@ tiers:
       - "ARTIFACT"
       - "IGNORE"
 
+# ── STATUS → TIER · CEO 2026-11-03 ────────────────────────────────────
+# ONE canonical mapping from a wire status to a configured tier.
+#
+# WHY THIS SECTION EXISTS. telegram_command_center_send.py sorted rows
+# using its own private tier keys - closed, exit, new, strong_buy, buy,
+# hold - and only `new` and `exit` existed here. The other four resolved
+# to nothing and fell through to tier_rank 99, so EXIT rows sorted ABOVE
+# every held position and STRONG BUY / BUY / HOLD / closed artifacts
+# collapsed into one bucket. The config said new < active < exit and the
+# renderer did something else entirely.
+#
+# The hard-locked decision vocabulary [NEW, ACTIVE, ACTIVE+, EXIT] is
+# UNCHANGED. This maps the richer statuses the renderer actually sees onto
+# those three tiers; it does not add a fourth tier or a fifth decision.
+#
+# Adding a status is an edit here and no code change. Anything NOT listed
+# resolves to `unknown_tier_rank` below and is reported as UNKNOWN - never
+# silently given a real tier, and never a favourable one.
+status_tiers:
+  # purple · fresh recommendation today, needs a decision
+  NEW:            new
+
+  # green · held position
+  ACTIVE:         active
+  "ACTIVE+":      active
+  HOLD:           active
+  BUY:            active
+  "STRONG BUY":   active
+  STRONG_BUY:     active
+  ACCUMULATE:     active
+  ADD:            active
+  PROTECT:        active
+  TIGHTEN:        active
+  WATCH:          active
+  PROVISIONAL:    active
+
+  # red · terminal: closing, closed, stopped, or a same-day artifact
+  EXIT:           exit
+  SELL:           exit
+  "STRONG SELL":  exit
+  STRONG_SELL:    exit
+  REDUCE:         exit
+  CLOSED:         exit
+  SKIP:           exit
+  ARTIFACT:       exit
+  IGNORE:         exit
+  IMMEDIATE:      exit
+
+# Rank for a status this file does not map. Must stay ABOVE every
+# tier_rank above so an unmapped status sorts LAST. Raising a tier_rank
+# past this value would silently make UNKNOWN favourable.
+unknown_tier_rank: 99
+
 # Deterministic classification order · first match wins.
 # NEW check runs FIRST · a same-day rec whose decision reads "ACTIVE+" would
 # otherwise fall into the active tier · we want it in the purple NEW tier.
