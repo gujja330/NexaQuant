@@ -39,6 +39,7 @@ evidence; that was settled in the R3 programme and is not relitigated here.
 from __future__ import annotations
 
 import json
+import math
 import random
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -371,6 +372,7 @@ def run(root: Path, market: str, *, horizon: int = 20,
     report["abstention_reachability"] = abstention_reachability(
         df, set(_sc.scored_features()))
     report["benchmark_status"] = benchmark_status(root, mkt)
+    report["dimension_attribution"] = dimension_attribution(fold_reports)
     return report
 
 
@@ -446,6 +448,100 @@ def _aggregate(folds: Sequence[dict], horizon: int) -> dict:
             k: sum(f["class_counts"].get(k, 0) for f in folds)
             for k in (_sc.CLASS_P1, _sc.CLASS_P2, _sc.CLASS_WATCH,
                       _sc.CLASS_AVOID, _sc.CLASS_ABSTAIN)},
+    }
+
+
+def _spearman(xs, ys):
+    """Rank correlation, computed without scipy.
+
+    Ties take the average rank, which matters here because several
+    dimension scores land on identical values when a fold's training grid
+    is coarse.
+    """
+    pairs = [(x, y) for x, y in zip(xs, ys)
+             if x is not None and y is not None and x == x and y == y]
+    n = len(pairs)
+    if n < 4:
+        return None, n
+
+    def _ranks(vals):
+        order = sorted(range(len(vals)), key=lambda i: vals[i])
+        r = [0.0] * len(vals)
+        i = 0
+        while i < len(order):
+            j = i
+            while j + 1 < len(order) and vals[order[j + 1]] == vals[order[i]]:
+                j += 1
+            avg = (i + j) / 2.0 + 1.0
+            for k in range(i, j + 1):
+                r[order[k]] = avg
+            i = j + 1
+        return r
+
+    rx = _ranks([p[0] for p in pairs])
+    ry = _ranks([p[1] for p in pairs])
+    mx, my = sum(rx) / n, sum(ry) / n
+    num = sum((a - mx) * (b - my) for a, b in zip(rx, ry))
+    dx = math.sqrt(sum((a - mx) ** 2 for a in rx))
+    dy = math.sqrt(sum((b - my) ** 2 for b in ry))
+    if dx == 0 or dy == 0:
+        return None, n
+    return round(num / (dx * dy), 4), n
+
+
+def dimension_attribution(folds: Sequence[dict]) -> dict:
+    """WHICH dimension carried the negative lift · descriptive only.
+
+    PIE underperforms taking every R2 episode at every horizon in both
+    markets. "Prioritisation does not work" and "these particular weights
+    are wrong for this regime" are very different conclusions, and only a
+    per-dimension read separates them.
+
+    This is a DESCRIPTION, not a search. Every dimension is reported; no
+    configuration is selected, promoted, or re-weighted on the strength of
+    it. Running seven backtests and keeping the best would be the
+    multiple-comparisons trap the R3 programme already fell into, and with
+    at most 6 decidable blocks there is no power to support a choice.
+    Correlations are pooled across TEST folds only, so each one is
+    out-of-sample with respect to its own calibration.
+    """
+    per_dim = {}
+    for dname in _sc.DIMENSIONS:
+        xs, ys = [], []
+        for f in folds:
+            for r in f.get("rows") or []:
+                d = (r.get("dimensions") or {}).get(dname) or {}
+                if d.get("available") and r.get("net_ret_pct") is not None:
+                    xs.append(d.get("score"))
+                    ys.append(r["net_ret_pct"])
+        rho, n = _spearman(xs, ys)
+        per_dim[dname] = {
+            "weight": _sc.DIMENSIONS[dname]["weight"],
+            "spearman_rho_vs_net_return": rho,
+            "n": n,
+            "reading": ("no data" if rho is None else
+                        "higher score -> higher return" if rho > 0.05 else
+                        "higher score -> LOWER return" if rho < -0.05 else
+                        "no monotone relation"),
+        }
+    total = {}
+    xs, ys = [], []
+    for f in folds:
+        for r in f.get("rows") or []:
+            if r.get("score") is not None and r.get("net_ret_pct") is not None:
+                xs.append(r["score"])
+                ys.append(r["net_ret_pct"])
+    rho, n = _spearman(xs, ys)
+    total = {"spearman_rho_vs_net_return": rho, "n": n}
+    return {
+        "dimensions": per_dim,
+        "composite": total,
+        "interpretation_note": (
+            "Descriptive decomposition on insufficient data. No dimension "
+            "is promoted, dropped or re-weighted from this table, and a "
+            "negative rho here is not evidence that inverting the "
+            "dimension would pay - that would need its own out-of-sample "
+            "test on date blocks this window does not contain."),
     }
 
 

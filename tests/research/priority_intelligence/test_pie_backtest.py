@@ -409,3 +409,89 @@ class TestHistoricalPopulationIntegrity:
         assert p["episodes"] == 120 and p["entry_dates"] == 30
         assert p["episodes"] != p["entry_dates"], (
             "conflating the two is how 818 rows became 818 observations")
+
+
+class TestSpearmanImplementation:
+    """Hand-checkable cases · scipy is not a dependency here."""
+
+    def test_perfect_monotone_increase_is_one(self):
+        rho, n = B._spearman([1, 2, 3, 4, 5], [10, 20, 30, 40, 50])
+        assert rho == pytest.approx(1.0) and n == 5
+
+    def test_perfect_monotone_decrease_is_minus_one(self):
+        rho, _ = B._spearman([1, 2, 3, 4, 5], [50, 40, 30, 20, 10])
+        assert rho == pytest.approx(-1.0)
+
+    def test_it_is_rank_based_not_value_based(self):
+        """A monotone but wildly non-linear y still gives rho 1."""
+        rho, _ = B._spearman([1, 2, 3, 4, 5], [1, 2, 3, 4, 1e9])
+        assert rho == pytest.approx(1.0)
+
+    def test_ties_take_the_average_rank(self):
+        rho, n = B._spearman([1, 1, 1, 1], [1, 2, 3, 4])
+        assert rho is None, "a constant x has no rank variance"
+        assert n == 4
+
+    def test_too_few_pairs_returns_none_not_a_spurious_correlation(self):
+        for k in (0, 1, 2, 3):
+            rho, n = B._spearman(list(range(k)), list(range(k)))
+            assert rho is None and n == k
+
+    def test_missing_values_are_dropped_pairwise_not_zero_filled(self):
+        rho, n = B._spearman([1, None, 3, 4, 5], [10, 20, 30, None, 50])
+        assert n == 3, "only the complete pairs count"
+        assert rho is None, "and 3 pairs is below the floor"
+
+    def test_nan_is_treated_as_missing(self):
+        rho, n = B._spearman([1, float("nan"), 3, 4, 5, 6],
+                             [10, 20, 30, 40, 50, 60])
+        assert n == 5 and rho == pytest.approx(1.0)
+
+
+class TestDimensionAttributionIsDescriptiveOnly:
+    def test_every_dimension_is_reported_including_the_empty_ones(self):
+        m = _matrix(n_dates=30, per_date=4)
+        rep = B.run(".", "india", matrix=m, min_train_dates=10,
+                    test_block=5, horizon=5)
+        da = rep["dimension_attribution"]
+        assert set(da["dimensions"]) == set(S.DIMENSIONS)
+        for d in ("sector", "fundamentals"):
+            assert da["dimensions"][d]["spearman_rho_vs_net_return"] is None
+            assert da["dimensions"][d]["n"] == 0
+
+    def test_it_does_not_select_or_promote_a_dimension(self):
+        """No winner field, and the note says so in the artifact itself."""
+        m = _matrix(n_dates=30, per_date=4)
+        rep = B.run(".", "india", matrix=m, min_train_dates=10,
+                    test_block=5, horizon=5)
+        da = rep["dimension_attribution"]
+        for k in ("best", "winner", "selected", "recommended_weights"):
+            assert k not in da
+        assert "No dimension is promoted" in da["interpretation_note"]
+
+    def test_the_weights_reported_are_the_live_weights(self):
+        m = _matrix(n_dates=30, per_date=4)
+        rep = B.run(".", "india", matrix=m, min_train_dates=10,
+                    test_block=5, horizon=5)
+        for d, v in rep["dimension_attribution"]["dimensions"].items():
+            assert v["weight"] == S.DIMENSIONS[d]["weight"]
+
+    def test_attribution_uses_test_folds_only(self):
+        """n can never exceed the rows actually scored out of sample."""
+        m = _matrix(n_dates=30, per_date=4)
+        rep = B.run(".", "india", matrix=m, min_train_dates=10,
+                    test_block=5, horizon=5)
+        n_test = sum(f["n_test_rows"] for f in rep["folds"])
+        for v in rep["dimension_attribution"]["dimensions"].values():
+            assert v["n"] <= n_test
+        assert rep["dimension_attribution"]["composite"]["n"] <= n_test
+
+    def test_an_adversely_signed_dimension_is_labelled_as_such(self):
+        folds = [{"rows": [
+            {"score": float(i), "net_ret_pct": -float(i),
+             "dimensions": {"momentum": {"available": True, "score": float(i)}}}
+            for i in range(20)]}]
+        da = B.dimension_attribution(folds)
+        mom = da["dimensions"]["momentum"]
+        assert mom["spearman_rho_vs_net_return"] == pytest.approx(-1.0)
+        assert "LOWER return" in mom["reading"]

@@ -2,7 +2,7 @@
   "engine": "aegis.research.pie.backtest.v1",
   "schema_version": "1.0.0",
   "scoring_version": "pie.scoring.v1",
-  "generated_utc": "2026-11-03T05:08:05+00:00",
+  "generated_utc": "2026-11-03T05:49:44+00:00",
   "market": "usa",
   "horizon_days": 5,
   "costs": {
@@ -247,5 +247,56 @@
     "first_bar": "2021-11-03",
     "last_bar": "2026-11-02",
     "reason": null
+  },
+  "dimension_attribution": {
+    "dimensions": {
+      "momentum": {
+        "weight": 0.22,
+        "spearman_rho_vs_net_return": -0.0532,
+        "n": 30,
+        "reading": "higher score -> LOWER return"
+      },
+      "trend": {
+        "weight": 0.22,
+        "spearman_rho_vs_net_return": -0.0438,
+        "n": 30,
+        "reading": "no monotone relation"
+      },
+      "risk": {
+        "weight": 0.18,
+        "spearman_rho_vs_net_return": -0.1862,
+        "n": 30,
+        "reading": "higher score -> LOWER return"
+      },
+      "liquidity": {
+        "weight": 0.08,
+        "spearman_rho_vs_net_return": -0.4211,
+        "n": 30,
+        "reading": "higher score -> LOWER return"
+      },
+      "evidence": {
+        "weight": 0.15,
+        "spearman_rho_vs_net_return": null,
+        "n": 0,
+        "reading": "no data"
+      },
+      "sector": {
+        "weight": 0.08,
+        "spearman_rho_vs_net_return": null,
+        "n": 0,
+        "reading": "no data"
+      },
+      "fundamentals": {
+        "weight": 0.07,
+        "spearman_rho_vs_net_return": null,
+        "n": 0,
+        "reading": "no data"
+      }
+    },
+    "composite": {
+      "spearman_rho_vs_net_return": -0.1235,
+      "n": 30
+    },
+    "interpretation_note": "Descriptive decomposition on insufficient data. No dimension is promoted, dropped or re-weighted from this table, and a negative rho here is not evidence that inverting the dimension would pay - that would need its own out-of-sample test on date blocks this window does not contain."
   }
 }
