@@ -1,0 +1,245 @@
+{
+  "engine": "aegis.research.pie.backtest.v1",
+  "schema_version": "1.0.0",
+  "scoring_version": "pie.scoring.v1",
+  "generated_utc": "2026-11-03T05:08:15+00:00",
+  "market": "usa",
+  "horizon_days": 20,
+  "costs": {
+    "cost_bps": 25.0,
+    "slippage_bps_one_way": 10.0,
+    "round_trip_drag_pct": 0.45,
+    "note": "charged once per selected position, entry and exit"
+  },
+  "population": {
+    "episodes": 818,
+    "entry_dates": 30,
+    "entry_date_min": "2026-08-10",
+    "entry_date_max": "2026-11-02",
+    "effective_sample_note": "The effective sample is 30 entry DATES, not 818 episodes."
+  },
+  "folds_spec": {
+    "min_train_dates": 20,
+    "test_block_dates": 6,
+    "n_folds": 2
+  },
+  "r2_actionable_baseline": {
+    "available": false,
+    "reason": "R2's evidence-gated classifier returns HOLD on every name (Phase 1 \u00b7 reports/diagnostics/actionable_chain_india.json), so it has no high-conviction subset to compare against. Its percentile path assigns actions by rank and returns the same split on pure noise, so it is not substituted here."
+  },
+  "folds": [
+    {
+      "fold": 1,
+      "train_dates": {
+        "n": 20,
+        "min": "2026-08-10",
+        "max": "2026-09-30"
+      },
+      "test_dates": {
+        "n": 6,
+        "min": "2026-10-02",
+        "max": "2026-10-27"
+      },
+      "n_train_rows": 762,
+      "n_test_rows": 34,
+      "calibration_fingerprint": "8201eebfe54f2feb",
+      "bands": {
+        "P1": 0.659082,
+        "P2": 0.547535,
+        "WATCH": 0.464858
+      },
+      "class_counts": {
+        "P1": 10,
+        "P2": 4,
+        "WATCH": 4,
+        "AVOID": 16,
+        "ABSTAIN": 0,
+        "n": 34,
+        "n_actionable": 14,
+        "actionable_share": 0.4118
+      },
+      "pie_selected": {
+        "n": 0,
+        "mean": null,
+        "median": null,
+        "win_rate": null
+      },
+      "pie_not_selected": {
+        "n": 3,
+        "mean": 35.9121,
+        "median": 33.7062,
+        "win_rate": 100.0,
+        "min": 16.1869,
+        "max": 57.8431
+      },
+      "abstained": {
+        "n": 0,
+        "reasons": []
+      },
+      "baseline_all_r2_episodes": {
+        "n": 3,
+        "mean": 35.9121,
+        "median": 33.7062,
+        "win_rate": 100.0,
+        "min": 16.1869,
+        "max": 57.8431
+      },
+      "baseline_random_same_size": {
+        "n": 3,
+        "mean": 35.9121,
+        "median": 33.7062,
+        "win_rate": 100.0,
+        "min": 16.1869,
+        "max": 57.8431
+      },
+      "baseline_benchmark": {
+        "n": 3,
+        "mean": -2.9914,
+        "median": -2.9914,
+        "win_rate": 0.0,
+        "min": -2.9914,
+        "max": -2.9914
+      },
+      "lift_vs_all_r2_episodes_pp": null
+    },
+    {
+      "fold": 2,
+      "train_dates": {
+        "n": 26,
+        "min": "2026-08-10",
+        "max": "2026-10-27"
+      },
+      "test_dates": {
+        "n": 4,
+        "min": "2026-10-28",
+        "max": "2026-11-02"
+      },
+      "n_train_rows": 796,
+      "n_test_rows": 22,
+      "calibration_fingerprint": "932be688f68a008b",
+      "bands": {
+        "P1": 0.665888,
+        "P2": 0.547112,
+        "WATCH": 0.464399
+      },
+      "class_counts": {
+        "P1": 6,
+        "P2": 5,
+        "WATCH": 3,
+        "AVOID": 8,
+        "ABSTAIN": 0,
+        "n": 22,
+        "n_actionable": 11,
+        "actionable_share": 0.5
+      },
+      "pie_selected": {
+        "n": 0,
+        "mean": null,
+        "median": null,
+        "win_rate": null
+      },
+      "pie_not_selected": {
+        "n": 0,
+        "mean": null,
+        "median": null,
+        "win_rate": null
+      },
+      "abstained": {
+        "n": 0,
+        "reasons": []
+      },
+      "baseline_all_r2_episodes": {
+        "n": 0,
+        "mean": null,
+        "median": null,
+        "win_rate": null
+      },
+      "baseline_random_same_size": {
+        "n": 0,
+        "mean": null,
+        "median": null,
+        "win_rate": null
+      },
+      "baseline_benchmark": {
+        "n": 0,
+        "mean": null,
+        "median": null,
+        "win_rate": null
+      },
+      "lift_vs_all_r2_episodes_pp": null
+    }
+  ],
+  "aggregate": {
+    "verdict": "INSUFFICIENT_EVIDENCE",
+    "verdict_reason": "0 of 2 test blocks produced a computable lift \u00b7 6 required before this module will state an edge either way. 10 test entry dates over a three-month window cannot separate a 0.00pp mean difference from noise.",
+    "n_folds": 2,
+    "n_test_entry_dates": 10,
+    "n_folds_with_computable_lift": 0,
+    "min_test_blocks_for_verdict": 6,
+    "horizon_days": 20,
+    "pie_selected_net": {
+      "n": 0,
+      "mean": null,
+      "median": null,
+      "win_rate": null
+    },
+    "pie_not_selected_net": {
+      "n": 3,
+      "mean": 35.9121,
+      "median": 33.7062,
+      "win_rate": 100.0,
+      "min": 16.1869,
+      "max": 57.8431
+    },
+    "all_r2_episodes_net": {
+      "n": 3,
+      "mean": 35.9121,
+      "median": 33.7062,
+      "win_rate": 100.0,
+      "min": 16.1869,
+      "max": 57.8431
+    },
+    "benchmark": {
+      "n": 3,
+      "mean": -2.9914,
+      "median": -2.9914,
+      "win_rate": 0.0,
+      "min": -2.9914,
+      "max": -2.9914
+    },
+    "random_same_size_mean_of_fold_means": 35.9121,
+    "lift_vs_all_r2_episodes_pp": null,
+    "fold_lifts_pp": [],
+    "n_folds_with_positive_lift": 0,
+    "class_counts_pooled": {
+      "P1": 16,
+      "P2": 9,
+      "WATCH": 7,
+      "AVOID": 24,
+      "ABSTAIN": 0
+    }
+  },
+  "abstention_reachability": {
+    "floor": 0.5,
+    "designed_weight": 1.0,
+    "available_weight_min": 0.0,
+    "available_weight_median": 0.7,
+    "available_weight_max": 0.7,
+    "n_rows": 818,
+    "n_rows_below_floor": 8,
+    "reachable": true,
+    "note": "ABSTAIN fired on 8 of 818 rows. An abstention that never fires is inert, and an inert guard must not be presented as a working one.",
+    "structural_abstentions": {
+      "sector": "SECTOR_EMPTY_IN_BOTH_MARKETS",
+      "fundamentals": "NO_POINT_IN_TIME_FUNDAMENTALS_HISTORY"
+    }
+  },
+  "benchmark_status": {
+    "symbol": "_IDX_GSPC",
+    "available": true,
+    "n_bars": 1254,
+    "first_bar": "2021-11-03",
+    "last_bar": "2026-11-02",
+    "reason": null
+  }
+}

@@ -1,0 +1,534 @@
+{
+  "engine": "aegis.research.pie.backtest.v1",
+  "schema_version": "1.0.0",
+  "scoring_version": "pie.scoring.v1",
+  "generated_utc": "2026-11-03T05:07:57+00:00",
+  "market": "india",
+  "horizon_days": 20,
+  "costs": {
+    "cost_bps": 25.0,
+    "slippage_bps_one_way": 10.0,
+    "round_trip_drag_pct": 0.45,
+    "note": "charged once per selected position, entry and exit"
+  },
+  "population": {
+    "episodes": 247,
+    "entry_dates": 56,
+    "entry_date_min": "2026-08-04",
+    "entry_date_max": "2026-11-02",
+    "effective_sample_note": "The effective sample is 56 entry DATES, not 247 episodes."
+  },
+  "folds_spec": {
+    "min_train_dates": 20,
+    "test_block_dates": 6,
+    "n_folds": 6
+  },
+  "r2_actionable_baseline": {
+    "available": false,
+    "reason": "R2's evidence-gated classifier returns HOLD on every name (Phase 1 \u00b7 reports/diagnostics/actionable_chain_india.json), so it has no high-conviction subset to compare against. Its percentile path assigns actions by rank and returns the same split on pure noise, so it is not substituted here."
+  },
+  "folds": [
+    {
+      "fold": 1,
+      "train_dates": {
+        "n": 20,
+        "min": "2026-08-04",
+        "max": "2026-09-11"
+      },
+      "test_dates": {
+        "n": 6,
+        "min": "2026-09-14",
+        "max": "2026-09-21"
+      },
+      "n_train_rows": 125,
+      "n_test_rows": 23,
+      "calibration_fingerprint": "cadb3e777d9ed158",
+      "bands": {
+        "P1": 0.667435,
+        "P2": 0.539324,
+        "WATCH": 0.446544
+      },
+      "class_counts": {
+        "P1": 3,
+        "P2": 5,
+        "WATCH": 2,
+        "AVOID": 13,
+        "ABSTAIN": 0,
+        "n": 23,
+        "n_actionable": 8,
+        "actionable_share": 0.3478
+      },
+      "pie_selected": {
+        "n": 8,
+        "mean": -2.5294,
+        "median": -1.5605,
+        "win_rate": 37.5,
+        "min": -13.5405,
+        "max": 6.328
+      },
+      "pie_not_selected": {
+        "n": 15,
+        "mean": 0.4512,
+        "median": -3.9802,
+        "win_rate": 33.33,
+        "min": -14.291,
+        "max": 36.8237
+      },
+      "abstained": {
+        "n": 0,
+        "reasons": []
+      },
+      "baseline_all_r2_episodes": {
+        "n": 23,
+        "mean": -0.5855,
+        "median": -3.5102,
+        "win_rate": 34.78,
+        "min": -14.291,
+        "max": 36.8237
+      },
+      "baseline_random_same_size": {
+        "n": 8,
+        "mean": -2.4365,
+        "median": -3.5102,
+        "win_rate": 25.0,
+        "min": -14.291,
+        "max": 16.1998
+      },
+      "baseline_benchmark": {
+        "n": 23,
+        "mean": -1.4688,
+        "median": -1.4012,
+        "win_rate": 0.0,
+        "min": -2.7098,
+        "max": -0.5945
+      },
+      "lift_vs_all_r2_episodes_pp": -1.9439
+    },
+    {
+      "fold": 2,
+      "train_dates": {
+        "n": 26,
+        "min": "2026-08-04",
+        "max": "2026-09-21"
+      },
+      "test_dates": {
+        "n": 6,
+        "min": "2026-09-22",
+        "max": "2026-09-29"
+      },
+      "n_train_rows": 148,
+      "n_test_rows": 14,
+      "calibration_fingerprint": "942cbafb4e9cddcf",
+      "bands": {
+        "P1": 0.66401,
+        "P2": 0.544023,
+        "WATCH": 0.440752
+      },
+      "class_counts": {
+        "P1": 2,
+        "P2": 5,
+        "WATCH": 1,
+        "AVOID": 6,
+        "ABSTAIN": 0,
+        "n": 14,
+        "n_actionable": 7,
+        "actionable_share": 0.5
+      },
+      "pie_selected": {
+        "n": 7,
+        "mean": -5.5233,
+        "median": -5.7782,
+        "win_rate": 14.29,
+        "min": -17.5135,
+        "max": 4.2516
+      },
+      "pie_not_selected": {
+        "n": 7,
+        "mean": 1.709,
+        "median": 0.0154,
+        "win_rate": 57.14,
+        "min": -12.2172,
+        "max": 20.8492
+      },
+      "abstained": {
+        "n": 0,
+        "reasons": []
+      },
+      "baseline_all_r2_episodes": {
+        "n": 14,
+        "mean": -1.9071,
+        "median": -4.0922,
+        "win_rate": 35.71,
+        "min": -17.5135,
+        "max": 20.8492
+      },
+      "baseline_random_same_size": {
+        "n": 7,
+        "mean": -1.8486,
+        "median": -5.7782,
+        "win_rate": 42.86,
+        "min": -12.2172,
+        "max": 20.8492
+      },
+      "baseline_benchmark": {
+        "n": 14,
+        "mean": -0.4176,
+        "median": 0.6972,
+        "win_rate": 57.14,
+        "min": -3.9709,
+        "max": 1.6318
+      },
+      "lift_vs_all_r2_episodes_pp": -3.6162
+    },
+    {
+      "fold": 3,
+      "train_dates": {
+        "n": 32,
+        "min": "2026-08-04",
+        "max": "2026-09-29"
+      },
+      "test_dates": {
+        "n": 6,
+        "min": "2026-09-30",
+        "max": "2026-10-07"
+      },
+      "n_train_rows": 162,
+      "n_test_rows": 27,
+      "calibration_fingerprint": "1af7d201a481be66",
+      "bands": {
+        "P1": 0.661165,
+        "P2": 0.563265,
+        "WATCH": 0.443774
+      },
+      "class_counts": {
+        "P1": 1,
+        "P2": 0,
+        "WATCH": 4,
+        "AVOID": 22,
+        "ABSTAIN": 0,
+        "n": 27,
+        "n_actionable": 1,
+        "actionable_share": 0.037
+      },
+      "pie_selected": {
+        "n": 0,
+        "mean": null,
+        "median": null,
+        "win_rate": null
+      },
+      "pie_not_selected": {
+        "n": 2,
+        "mean": -4.5901,
+        "median": -4.3796,
+        "win_rate": 0.0,
+        "min": -4.8006,
+        "max": -4.3796
+      },
+      "abstained": {
+        "n": 0,
+        "reasons": []
+      },
+      "baseline_all_r2_episodes": {
+        "n": 2,
+        "mean": -4.5901,
+        "median": -4.3796,
+        "win_rate": 0.0,
+        "min": -4.8006,
+        "max": -4.3796
+      },
+      "baseline_random_same_size": {
+        "n": 1,
+        "mean": -4.8006,
+        "median": -4.8006,
+        "win_rate": 0.0,
+        "min": -4.8006,
+        "max": -4.8006
+      },
+      "baseline_benchmark": {
+        "n": 2,
+        "mean": 3.3352,
+        "median": 3.3352,
+        "win_rate": 100.0,
+        "min": 3.3352,
+        "max": 3.3352
+      },
+      "lift_vs_all_r2_episodes_pp": null
+    },
+    {
+      "fold": 4,
+      "train_dates": {
+        "n": 38,
+        "min": "2026-08-04",
+        "max": "2026-10-07"
+      },
+      "test_dates": {
+        "n": 6,
+        "min": "2026-10-08",
+        "max": "2026-10-15"
+      },
+      "n_train_rows": 189,
+      "n_test_rows": 23,
+      "calibration_fingerprint": "7fdf375e8ecedfeb",
+      "bands": {
+        "P1": 0.676089,
+        "P2": 0.547315,
+        "WATCH": 0.44539
+      },
+      "class_counts": {
+        "P1": 1,
+        "P2": 2,
+        "WATCH": 4,
+        "AVOID": 16,
+        "ABSTAIN": 0,
+        "n": 23,
+        "n_actionable": 3,
+        "actionable_share": 0.1304
+      },
+      "pie_selected": {
+        "n": 0,
+        "mean": null,
+        "median": null,
+        "win_rate": null
+      },
+      "pie_not_selected": {
+        "n": 0,
+        "mean": null,
+        "median": null,
+        "win_rate": null
+      },
+      "abstained": {
+        "n": 0,
+        "reasons": []
+      },
+      "baseline_all_r2_episodes": {
+        "n": 0,
+        "mean": null,
+        "median": null,
+        "win_rate": null
+      },
+      "baseline_random_same_size": {
+        "n": 0,
+        "mean": null,
+        "median": null,
+        "win_rate": null
+      },
+      "baseline_benchmark": {
+        "n": 0,
+        "mean": null,
+        "median": null,
+        "win_rate": null
+      },
+      "lift_vs_all_r2_episodes_pp": null
+    },
+    {
+      "fold": 5,
+      "train_dates": {
+        "n": 44,
+        "min": "2026-08-04",
+        "max": "2026-10-15"
+      },
+      "test_dates": {
+        "n": 6,
+        "min": "2026-10-16",
+        "max": "2026-10-23"
+      },
+      "n_train_rows": 212,
+      "n_test_rows": 10,
+      "calibration_fingerprint": "6ae13c53688d824a",
+      "bands": {
+        "P1": 0.683864,
+        "P2": 0.555586,
+        "WATCH": 0.435116
+      },
+      "class_counts": {
+        "P1": 0,
+        "P2": 1,
+        "WATCH": 1,
+        "AVOID": 8,
+        "ABSTAIN": 0,
+        "n": 10,
+        "n_actionable": 1,
+        "actionable_share": 0.1
+      },
+      "pie_selected": {
+        "n": 0,
+        "mean": null,
+        "median": null,
+        "win_rate": null
+      },
+      "pie_not_selected": {
+        "n": 0,
+        "mean": null,
+        "median": null,
+        "win_rate": null
+      },
+      "abstained": {
+        "n": 0,
+        "reasons": []
+      },
+      "baseline_all_r2_episodes": {
+        "n": 0,
+        "mean": null,
+        "median": null,
+        "win_rate": null
+      },
+      "baseline_random_same_size": {
+        "n": 0,
+        "mean": null,
+        "median": null,
+        "win_rate": null
+      },
+      "baseline_benchmark": {
+        "n": 0,
+        "mean": null,
+        "median": null,
+        "win_rate": null
+      },
+      "lift_vs_all_r2_episodes_pp": null
+    },
+    {
+      "fold": 6,
+      "train_dates": {
+        "n": 50,
+        "min": "2026-08-04",
+        "max": "2026-10-23"
+      },
+      "test_dates": {
+        "n": 6,
+        "min": "2026-10-26",
+        "max": "2026-11-02"
+      },
+      "n_train_rows": 222,
+      "n_test_rows": 25,
+      "calibration_fingerprint": "67970be8307ade37",
+      "bands": {
+        "P1": 0.6883,
+        "P2": 0.551217,
+        "WATCH": 0.431674
+      },
+      "class_counts": {
+        "P1": 1,
+        "P2": 4,
+        "WATCH": 1,
+        "AVOID": 19,
+        "ABSTAIN": 0,
+        "n": 25,
+        "n_actionable": 5,
+        "actionable_share": 0.2
+      },
+      "pie_selected": {
+        "n": 0,
+        "mean": null,
+        "median": null,
+        "win_rate": null
+      },
+      "pie_not_selected": {
+        "n": 0,
+        "mean": null,
+        "median": null,
+        "win_rate": null
+      },
+      "abstained": {
+        "n": 0,
+        "reasons": []
+      },
+      "baseline_all_r2_episodes": {
+        "n": 0,
+        "mean": null,
+        "median": null,
+        "win_rate": null
+      },
+      "baseline_random_same_size": {
+        "n": 0,
+        "mean": null,
+        "median": null,
+        "win_rate": null
+      },
+      "baseline_benchmark": {
+        "n": 0,
+        "mean": null,
+        "median": null,
+        "win_rate": null
+      },
+      "lift_vs_all_r2_episodes_pp": null
+    }
+  ],
+  "aggregate": {
+    "verdict": "INSUFFICIENT_EVIDENCE",
+    "verdict_reason": "2 of 6 test blocks produced a computable lift \u00b7 6 required before this module will state an edge either way. 36 test entry dates over a three-month window cannot separate a -2.66pp mean difference from noise.",
+    "n_folds": 6,
+    "n_test_entry_dates": 36,
+    "n_folds_with_computable_lift": 2,
+    "min_test_blocks_for_verdict": 6,
+    "horizon_days": 20,
+    "pie_selected_net": {
+      "n": 15,
+      "mean": -3.9266,
+      "median": -4.0922,
+      "win_rate": 26.67,
+      "min": -17.5135,
+      "max": 6.328
+    },
+    "pie_not_selected_net": {
+      "n": 24,
+      "mean": 0.398,
+      "median": -3.9802,
+      "win_rate": 37.5,
+      "min": -14.291,
+      "max": 36.8237
+    },
+    "all_r2_episodes_net": {
+      "n": 39,
+      "mean": -1.2653,
+      "median": -4.0922,
+      "win_rate": 33.33,
+      "min": -17.5135,
+      "max": 36.8237
+    },
+    "benchmark": {
+      "n": 39,
+      "mean": -0.8451,
+      "median": -1.1338,
+      "win_rate": 25.64,
+      "min": -3.9709,
+      "max": 3.3352
+    },
+    "random_same_size_mean_of_fold_means": -3.0286,
+    "lift_vs_all_r2_episodes_pp": -2.6613,
+    "fold_lifts_pp": [
+      -1.9439,
+      -3.6162
+    ],
+    "n_folds_with_positive_lift": 0,
+    "class_counts_pooled": {
+      "P1": 8,
+      "P2": 17,
+      "WATCH": 13,
+      "AVOID": 84,
+      "ABSTAIN": 0
+    }
+  },
+  "abstention_reachability": {
+    "floor": 0.5,
+    "designed_weight": 1.0,
+    "available_weight_min": 0.7,
+    "available_weight_median": 0.7,
+    "available_weight_max": 0.85,
+    "n_rows": 247,
+    "n_rows_below_floor": 0,
+    "reachable": false,
+    "note": "ABSTAIN fired on 0 of 247 rows. An abstention that never fires is inert, and an inert guard must not be presented as a working one.",
+    "structural_abstentions": {
+      "sector": "SECTOR_EMPTY_IN_BOTH_MARKETS",
+      "fundamentals": "NO_POINT_IN_TIME_FUNDAMENTALS_HISTORY"
+    }
+  },
+  "benchmark_status": {
+    "symbol": "NSEI",
+    "available": true,
+    "n_bars": 1577,
+    "first_bar": "2020-06-18",
+    "last_bar": "2026-11-02",
+    "reason": null
+  }
+}

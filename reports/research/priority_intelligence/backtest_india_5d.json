@@ -1,0 +1,559 @@
+{
+  "engine": "aegis.research.pie.backtest.v1",
+  "schema_version": "1.0.0",
+  "scoring_version": "pie.scoring.v1",
+  "generated_utc": "2026-11-03T05:07:53+00:00",
+  "market": "india",
+  "horizon_days": 5,
+  "costs": {
+    "cost_bps": 25.0,
+    "slippage_bps_one_way": 10.0,
+    "round_trip_drag_pct": 0.45,
+    "note": "charged once per selected position, entry and exit"
+  },
+  "population": {
+    "episodes": 247,
+    "entry_dates": 56,
+    "entry_date_min": "2026-08-04",
+    "entry_date_max": "2026-11-02",
+    "effective_sample_note": "The effective sample is 56 entry DATES, not 247 episodes."
+  },
+  "folds_spec": {
+    "min_train_dates": 20,
+    "test_block_dates": 6,
+    "n_folds": 6
+  },
+  "r2_actionable_baseline": {
+    "available": false,
+    "reason": "R2's evidence-gated classifier returns HOLD on every name (Phase 1 \u00b7 reports/diagnostics/actionable_chain_india.json), so it has no high-conviction subset to compare against. Its percentile path assigns actions by rank and returns the same split on pure noise, so it is not substituted here."
+  },
+  "folds": [
+    {
+      "fold": 1,
+      "train_dates": {
+        "n": 20,
+        "min": "2026-08-04",
+        "max": "2026-09-11"
+      },
+      "test_dates": {
+        "n": 6,
+        "min": "2026-09-14",
+        "max": "2026-09-21"
+      },
+      "n_train_rows": 125,
+      "n_test_rows": 23,
+      "calibration_fingerprint": "cadb3e777d9ed158",
+      "bands": {
+        "P1": 0.667435,
+        "P2": 0.539324,
+        "WATCH": 0.446544
+      },
+      "class_counts": {
+        "P1": 3,
+        "P2": 5,
+        "WATCH": 2,
+        "AVOID": 13,
+        "ABSTAIN": 0,
+        "n": 23,
+        "n_actionable": 8,
+        "actionable_share": 0.3478
+      },
+      "pie_selected": {
+        "n": 8,
+        "mean": -0.4199,
+        "median": 0.3973,
+        "win_rate": 62.5,
+        "min": -5.1918,
+        "max": 4.2837
+      },
+      "pie_not_selected": {
+        "n": 15,
+        "mean": -0.8874,
+        "median": -2.0658,
+        "win_rate": 46.67,
+        "min": -6.86,
+        "max": 8.6772
+      },
+      "abstained": {
+        "n": 0,
+        "reasons": []
+      },
+      "baseline_all_r2_episodes": {
+        "n": 23,
+        "mean": -0.7248,
+        "median": 0.3057,
+        "win_rate": 52.17,
+        "min": -6.86,
+        "max": 8.6772
+      },
+      "baseline_random_same_size": {
+        "n": 8,
+        "mean": -1.5627,
+        "median": -0.6971,
+        "win_rate": 37.5,
+        "min": -5.1808,
+        "max": 1.8364
+      },
+      "baseline_benchmark": {
+        "n": 23,
+        "mean": -1.0026,
+        "median": -0.1751,
+        "win_rate": 21.74,
+        "min": -2.9732,
+        "max": 1.1556
+      },
+      "lift_vs_all_r2_episodes_pp": 0.3049
+    },
+    {
+      "fold": 2,
+      "train_dates": {
+        "n": 26,
+        "min": "2026-08-04",
+        "max": "2026-09-21"
+      },
+      "test_dates": {
+        "n": 6,
+        "min": "2026-09-22",
+        "max": "2026-09-29"
+      },
+      "n_train_rows": 148,
+      "n_test_rows": 14,
+      "calibration_fingerprint": "942cbafb4e9cddcf",
+      "bands": {
+        "P1": 0.66401,
+        "P2": 0.544023,
+        "WATCH": 0.440752
+      },
+      "class_counts": {
+        "P1": 2,
+        "P2": 5,
+        "WATCH": 1,
+        "AVOID": 6,
+        "ABSTAIN": 0,
+        "n": 14,
+        "n_actionable": 7,
+        "actionable_share": 0.5
+      },
+      "pie_selected": {
+        "n": 7,
+        "mean": -3.174,
+        "median": -2.9526,
+        "win_rate": 0.0,
+        "min": -5.2894,
+        "max": -0.9276
+      },
+      "pie_not_selected": {
+        "n": 7,
+        "mean": -1.6091,
+        "median": -3.1384,
+        "win_rate": 28.57,
+        "min": -4.058,
+        "max": 2.8127
+      },
+      "abstained": {
+        "n": 0,
+        "reasons": []
+      },
+      "baseline_all_r2_episodes": {
+        "n": 14,
+        "mean": -2.3915,
+        "median": -2.9526,
+        "win_rate": 14.29,
+        "min": -5.2894,
+        "max": 2.8127
+      },
+      "baseline_random_same_size": {
+        "n": 7,
+        "mean": -2.2978,
+        "median": -3.3598,
+        "win_rate": 14.29,
+        "min": -4.058,
+        "max": 2.8127
+      },
+      "baseline_benchmark": {
+        "n": 14,
+        "mean": -1.1482,
+        "median": -0.0447,
+        "win_rate": 0.0,
+        "min": -3.0844,
+        "max": -0.0447
+      },
+      "lift_vs_all_r2_episodes_pp": -0.7825
+    },
+    {
+      "fold": 3,
+      "train_dates": {
+        "n": 32,
+        "min": "2026-08-04",
+        "max": "2026-09-29"
+      },
+      "test_dates": {
+        "n": 6,
+        "min": "2026-09-30",
+        "max": "2026-10-07"
+      },
+      "n_train_rows": 162,
+      "n_test_rows": 27,
+      "calibration_fingerprint": "1af7d201a481be66",
+      "bands": {
+        "P1": 0.661165,
+        "P2": 0.563265,
+        "WATCH": 0.443774
+      },
+      "class_counts": {
+        "P1": 1,
+        "P2": 0,
+        "WATCH": 4,
+        "AVOID": 22,
+        "ABSTAIN": 0,
+        "n": 27,
+        "n_actionable": 1,
+        "actionable_share": 0.037
+      },
+      "pie_selected": {
+        "n": 1,
+        "mean": 5.1855,
+        "median": 5.1855,
+        "win_rate": 100.0,
+        "min": 5.1855,
+        "max": 5.1855
+      },
+      "pie_not_selected": {
+        "n": 26,
+        "mean": 0.5472,
+        "median": 0.6221,
+        "win_rate": 61.54,
+        "min": -6.2345,
+        "max": 5.3286
+      },
+      "abstained": {
+        "n": 0,
+        "reasons": []
+      },
+      "baseline_all_r2_episodes": {
+        "n": 27,
+        "mean": 0.719,
+        "median": 0.6221,
+        "win_rate": 62.96,
+        "min": -6.2345,
+        "max": 5.3286
+      },
+      "baseline_random_same_size": {
+        "n": 1,
+        "mean": -1.3278,
+        "median": -1.3278,
+        "win_rate": 0.0,
+        "min": -1.3278,
+        "max": -1.3278
+      },
+      "baseline_benchmark": {
+        "n": 27,
+        "mean": 0.3197,
+        "median": 0.1356,
+        "win_rate": 55.56,
+        "min": -0.6531,
+        "max": 2.366
+      },
+      "lift_vs_all_r2_episodes_pp": 4.4665
+    },
+    {
+      "fold": 4,
+      "train_dates": {
+        "n": 38,
+        "min": "2026-08-04",
+        "max": "2026-10-07"
+      },
+      "test_dates": {
+        "n": 6,
+        "min": "2026-10-08",
+        "max": "2026-10-15"
+      },
+      "n_train_rows": 189,
+      "n_test_rows": 23,
+      "calibration_fingerprint": "7fdf375e8ecedfeb",
+      "bands": {
+        "P1": 0.676089,
+        "P2": 0.547315,
+        "WATCH": 0.44539
+      },
+      "class_counts": {
+        "P1": 1,
+        "P2": 2,
+        "WATCH": 4,
+        "AVOID": 16,
+        "ABSTAIN": 0,
+        "n": 23,
+        "n_actionable": 3,
+        "actionable_share": 0.1304
+      },
+      "pie_selected": {
+        "n": 3,
+        "mean": -3.5586,
+        "median": -2.9377,
+        "win_rate": 0.0,
+        "min": -7.3475,
+        "max": -0.3906
+      },
+      "pie_not_selected": {
+        "n": 20,
+        "mean": -0.0673,
+        "median": 0.6535,
+        "win_rate": 55.0,
+        "min": -9.2392,
+        "max": 11.6375
+      },
+      "abstained": {
+        "n": 0,
+        "reasons": []
+      },
+      "baseline_all_r2_episodes": {
+        "n": 23,
+        "mean": -0.5227,
+        "median": -0.3906,
+        "win_rate": 47.83,
+        "min": -9.2392,
+        "max": 11.6375
+      },
+      "baseline_random_same_size": {
+        "n": 3,
+        "mean": -5.7321,
+        "median": -5.5629,
+        "win_rate": 0.0,
+        "min": -7.6999,
+        "max": -3.9335
+      },
+      "baseline_benchmark": {
+        "n": 23,
+        "mean": 0.9433,
+        "median": 1.9741,
+        "win_rate": 73.91,
+        "min": -2.1375,
+        "max": 3.1513
+      },
+      "lift_vs_all_r2_episodes_pp": -3.0359
+    },
+    {
+      "fold": 5,
+      "train_dates": {
+        "n": 44,
+        "min": "2026-08-04",
+        "max": "2026-10-15"
+      },
+      "test_dates": {
+        "n": 6,
+        "min": "2026-10-16",
+        "max": "2026-10-23"
+      },
+      "n_train_rows": 212,
+      "n_test_rows": 10,
+      "calibration_fingerprint": "6ae13c53688d824a",
+      "bands": {
+        "P1": 0.683864,
+        "P2": 0.555586,
+        "WATCH": 0.435116
+      },
+      "class_counts": {
+        "P1": 0,
+        "P2": 1,
+        "WATCH": 1,
+        "AVOID": 8,
+        "ABSTAIN": 0,
+        "n": 10,
+        "n_actionable": 1,
+        "actionable_share": 0.1
+      },
+      "pie_selected": {
+        "n": 1,
+        "mean": -1.9279,
+        "median": -1.9279,
+        "win_rate": 0.0,
+        "min": -1.9279,
+        "max": -1.9279
+      },
+      "pie_not_selected": {
+        "n": 9,
+        "mean": -0.5365,
+        "median": 0.0153,
+        "win_rate": 55.56,
+        "min": -4.5429,
+        "max": 2.1069
+      },
+      "abstained": {
+        "n": 0,
+        "reasons": []
+      },
+      "baseline_all_r2_episodes": {
+        "n": 10,
+        "mean": -0.6757,
+        "median": 0.0153,
+        "win_rate": 50.0,
+        "min": -4.5429,
+        "max": 2.1069
+      },
+      "baseline_random_same_size": {
+        "n": 1,
+        "mean": 0.0153,
+        "median": 0.0153,
+        "win_rate": 100.0,
+        "min": 0.0153,
+        "max": 0.0153
+      },
+      "baseline_benchmark": {
+        "n": 10,
+        "mean": 0.4037,
+        "median": 0.4246,
+        "win_rate": 50.0,
+        "min": -1.4692,
+        "max": 2.9424
+      },
+      "lift_vs_all_r2_episodes_pp": -1.2522
+    },
+    {
+      "fold": 6,
+      "train_dates": {
+        "n": 50,
+        "min": "2026-08-04",
+        "max": "2026-10-23"
+      },
+      "test_dates": {
+        "n": 6,
+        "min": "2026-10-26",
+        "max": "2026-11-02"
+      },
+      "n_train_rows": 222,
+      "n_test_rows": 25,
+      "calibration_fingerprint": "67970be8307ade37",
+      "bands": {
+        "P1": 0.6883,
+        "P2": 0.551217,
+        "WATCH": 0.431674
+      },
+      "class_counts": {
+        "P1": 1,
+        "P2": 4,
+        "WATCH": 1,
+        "AVOID": 19,
+        "ABSTAIN": 0,
+        "n": 25,
+        "n_actionable": 5,
+        "actionable_share": 0.2
+      },
+      "pie_selected": {
+        "n": 0,
+        "mean": null,
+        "median": null,
+        "win_rate": null
+      },
+      "pie_not_selected": {
+        "n": 0,
+        "mean": null,
+        "median": null,
+        "win_rate": null
+      },
+      "abstained": {
+        "n": 0,
+        "reasons": []
+      },
+      "baseline_all_r2_episodes": {
+        "n": 0,
+        "mean": null,
+        "median": null,
+        "win_rate": null
+      },
+      "baseline_random_same_size": {
+        "n": 0,
+        "mean": null,
+        "median": null,
+        "win_rate": null
+      },
+      "baseline_benchmark": {
+        "n": 0,
+        "mean": null,
+        "median": null,
+        "win_rate": null
+      },
+      "lift_vs_all_r2_episodes_pp": null
+    }
+  ],
+  "aggregate": {
+    "verdict": "INSUFFICIENT_EVIDENCE",
+    "verdict_reason": "5 of 6 test blocks produced a computable lift \u00b7 6 required before this module will state an edge either way. 36 test entry dates over a three-month window cannot separate a -1.14pp mean difference from noise.",
+    "n_folds": 6,
+    "n_test_entry_dates": 36,
+    "n_folds_with_computable_lift": 5,
+    "min_test_blocks_for_verdict": 6,
+    "horizon_days": 5,
+    "pie_selected_net": {
+      "n": 20,
+      "mean": -1.6498,
+      "median": -1.9279,
+      "win_rate": 30.0,
+      "min": -7.3475,
+      "max": 5.1855
+    },
+    "pie_not_selected_net": {
+      "n": 77,
+      "mean": -0.2146,
+      "median": 0.3946,
+      "win_rate": 53.25,
+      "min": -9.2392,
+      "max": 11.6375
+    },
+    "all_r2_episodes_net": {
+      "n": 97,
+      "mean": -0.5105,
+      "median": -0.3028,
+      "win_rate": 48.45,
+      "min": -9.2392,
+      "max": 11.6375
+    },
+    "benchmark": {
+      "n": 97,
+      "mean": -0.0492,
+      "median": -0.0447,
+      "win_rate": 43.3,
+      "min": -3.0844,
+      "max": 3.1513
+    },
+    "random_same_size_mean_of_fold_means": -2.181,
+    "lift_vs_all_r2_episodes_pp": -1.1393,
+    "fold_lifts_pp": [
+      0.3049,
+      -0.7825,
+      4.4665,
+      -3.0359,
+      -1.2522
+    ],
+    "n_folds_with_positive_lift": 2,
+    "class_counts_pooled": {
+      "P1": 8,
+      "P2": 17,
+      "WATCH": 13,
+      "AVOID": 84,
+      "ABSTAIN": 0
+    }
+  },
+  "abstention_reachability": {
+    "floor": 0.5,
+    "designed_weight": 1.0,
+    "available_weight_min": 0.7,
+    "available_weight_median": 0.7,
+    "available_weight_max": 0.85,
+    "n_rows": 247,
+    "n_rows_below_floor": 0,
+    "reachable": false,
+    "note": "ABSTAIN fired on 0 of 247 rows. An abstention that never fires is inert, and an inert guard must not be presented as a working one.",
+    "structural_abstentions": {
+      "sector": "SECTOR_EMPTY_IN_BOTH_MARKETS",
+      "fundamentals": "NO_POINT_IN_TIME_FUNDAMENTALS_HISTORY"
+    }
+  },
+  "benchmark_status": {
+    "symbol": "NSEI",
+    "available": true,
+    "n_bars": 1577,
+    "first_bar": "2020-06-18",
+    "last_bar": "2026-11-02",
+    "reason": null
+  }
+}
