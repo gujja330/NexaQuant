@@ -2,15 +2,15 @@
   "engine": "ai_macro_narrative",
   "version": "v1.0",
   "market": "usa",
-  "run_utc": "2026-11-02T23:55:46+00:00",
-  "asof": "2026-11-02",
+  "run_utc": "2026-11-03T18:45:30+00:00",
+  "asof": "2026-11-03",
   "output": {
     "agent": "macro_analyst",
     "version": "v1.0",
     "market": "usa",
-    "asof": "2026-11-02",
-    "headline": "regime=unknown \u00b7 vol=normal \u00b7 active_impacts=2 \u00b7 macro_score=+0.20",
-    "narrative": "regime=unknown \u00b7 vol=normal \u00b7 active_impacts=2 \u00b7 macro_score=+0.20.\n\nAEGIS Macro & Intermarket Intelligence audit. Combines commodity moves, currency pressures, yield curve, VIX regime, and sector rotation into a single macro regime call. Emits an impact matrix + knowledge graph that downstream engines (Recommendation, Risk, Portfolio, Learning, AI Auditor) will consume from Sprint 8 onward.\n\nDoes NOT approve or promote \u2014 every commodity impact, sector rotation call, and regime label is DESCRIPTIVE and requires operator interpretation. AI never trades on macro alone.",
+    "asof": "2026-11-03",
+    "headline": "regime=unknown \u00b7 vol=normal \u00b7 active_impacts=3 \u00b7 macro_score=+0.20",
+    "narrative": "regime=unknown \u00b7 vol=normal \u00b7 active_impacts=3 \u00b7 macro_score=+0.20.\n\nAEGIS Macro & Intermarket Intelligence audit. Combines commodity moves, currency pressures, yield curve, VIX regime, and sector rotation into a single macro regime call. Emits an impact matrix + knowledge graph that downstream engines (Recommendation, Risk, Portfolio, Learning, AI Auditor) will consume from Sprint 8 onward.\n\nDoes NOT approve or promote \u2014 every commodity impact, sector rotation call, and regime label is DESCRIPTIVE and requires operator interpretation. AI never trades on macro alone.",
     "findings": [
       {
         "type": "macro_regime",
@@ -20,29 +20,29 @@
         "macro_score": 0.2,
         "evidence": {
           "vol_regime": "normal",
-          "oil_1w_pct": -9.921,
-          "gold_1w_pct": -2.048,
-          "usd_1w_pct": -0.172,
+          "oil_1w_pct": -9.053,
+          "gold_1w_pct": -3.306,
+          "usd_1w_pct": -0.48,
           "yield_curve_inversion": false,
-          "ten_year_1m_bps": -7.29206
+          "ten_year_1m_bps": -15.501066
         }
       },
       {
         "type": "volatility",
         "symbol": "^VIX",
-        "level": 21.15,
+        "level": 20.48,
         "regime": "normal",
-        "chg_1m_pct": 48.839
+        "chg_1m_pct": 34.914
       },
       {
         "type": "central_bank_state",
         "bank": "Fed",
         "rate_cycle": "neutral",
-        "yield_curve_slope": 20.1,
+        "yield_curve_slope": 20.8,
         "inversion": false,
         "liquidity_score": 0.0,
         "notes": [
-          "Fed: cycle=neutral \u00b7 short_1m=-2.285668bps"
+          "Fed: cycle=neutral \u00b7 short_1m=0.2015bps"
         ]
       },
       {
@@ -84,46 +84,62 @@
         "rationale": "Falling oil reduces input costs; downstream margins expand. Upstream capex compresses."
       },
       {
+        "type": "commodity_impact",
+        "commodity": "Gold",
+        "direction": "down",
+        "positive_sectors": [
+          "Jewelry Retailers"
+        ],
+        "negative_sectors": [
+          "Gold Miners"
+        ],
+        "confidence": 0.7,
+        "rationale": "Gold weakness usually risk-on; jewelry demand recovers."
+      },
+      {
         "type": "sector_rotation",
         "leaders": [
           {
-            "sector": "Consumer Staples",
-            "return_pct": 9.79
-          },
-          {
-            "sector": "Energy",
-            "return_pct": 8.85
+            "sector": "Utilities",
+            "return_pct": 9.8
           },
           {
             "sector": "Healthcare",
-            "return_pct": 8.66
+            "return_pct": 9.58
+          },
+          {
+            "sector": "Consumer Staples",
+            "return_pct": 8.45
           }
         ],
         "laggards": [
           {
             "sector": "Communication Services",
-            "return_pct": -11.69
+            "return_pct": -9.85
           },
           {
             "sector": "Technology",
-            "return_pct": -11.23
+            "return_pct": -9.45
           },
           {
             "sector": "Industrials",
-            "return_pct": -0.33
+            "return_pct": 1.02
           }
         ],
-        "rotation_strength": 0.704
+        "rotation_strength": 0.692
       },
       {
         "type": "knowledge_graph_summary",
-        "n_entries": 2,
+        "n_entries": 4,
         "factor_kinds": [
-          "commodity"
+          "commodity",
+          "rate"
         ],
         "top_factors": [
           "Brent Crude",
-          "WTI Crude"
+          "WTI Crude",
+          "Gold",
+          "10Y Treasury Yield"
         ]
       },
       {
@@ -131,14 +147,14 @@
         "n_commodities": 3,
         "n_currencies": 1,
         "n_bonds": 4,
-        "n_active_impacts": 2,
-        "n_kg_entries": 2
+        "n_active_impacts": 3,
+        "n_kg_entries": 4
       }
     ],
     "evidence": {
       "primary_regime": "unknown",
       "vol_regime": "normal",
-      "n_active_impacts": 2,
+      "n_active_impacts": 3,
       "macro_score": 0.2
     },
     "citations": [
