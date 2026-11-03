@@ -1097,30 +1097,21 @@ def _attribution_top(payload: Mapping) -> list[str]:
     return lines
 
 
-_R1_HOLDING_CACHE: dict[str, str] | None = None
-
-
-def _lookup_r1_holding(ticker: str) -> str:
-    """Read Runner 1's 'Recommended Holding' from data/aegis_today.csv.
-    Cached per-render. Returns '' when CSV missing or ticker absent."""
-    global _R1_HOLDING_CACHE
-    if _R1_HOLDING_CACHE is None:
-        _R1_HOLDING_CACHE = {}
-        try:
-            import csv as _csv
-            p = Path("data/aegis_today.csv")
-            if p.exists():
-                with p.open(encoding="utf-8", errors="replace") as fh:
-                    for row in _csv.DictReader(fh):
-                        t = str(row.get("Stock") or "").strip().upper()
-                        h = str(row.get("Recommended Holding") or "").strip()
-                        if t:
-                            _R1_HOLDING_CACHE[t] = h
-        except Exception:
-            _R1_HOLDING_CACHE = {}
-    if not ticker:
-        return ""
-    return _R1_HOLDING_CACHE.get(_short_ticker(ticker).upper(), "")
+# CEO 2026-11-03 · the legacy `data/aegis_today.csv` fallback is GONE.
+#
+# `_lookup_r1_holding` read Runner 1's "Recommended Holding" straight out
+# of data/aegis_today.csv whenever the payload lacked a `holding` field.
+# Its own comment explained why: older payloads restored from git did not
+# carry one. That made `test_command_center_reads_recommendations_json`
+# fail on a real SSoT violation, not a stale assertion - the Command
+# Center was reading a legacy R1 artifact that is still written daily.
+#
+# Measured before removing it: validation_layer/engine.py:214 populates
+# `holding` from `pick.holding`, and the live reports/runner1_validation.json
+# carries it on 11 of 11 orphans. The fallback could not fire on a current
+# payload, so this removes a dead read and changes no rendered line. A
+# payload genuinely missing the field now renders without the hold detail,
+# which is what the renderer already does for every other optional field.
 
 
 def _runner1_orphans(payload: Mapping, market: str, max_rows: int = 6) -> list[str]:
@@ -1186,11 +1177,9 @@ def _runner1_orphans(payload: Mapping, market: str, max_rows: int = 6) -> list[s
             header_parts.append(f"conf {conf:.0f}%")
         lines.append("   " + "  ·  ".join(header_parts))
 
-        # Line 2: price · hold days (read from CSV if payload doesn't have it)
-        # holding is populated by newer validation_layer/engine.py · older
-        # payloads (restored from git) don't have it · fall back to CSV
-        if not holding:
-            holding = _lookup_r1_holding(o.get("ticker") or "")
+        # Line 2: price · hold days. `holding` comes from the payload, which
+        # validation_layer/engine.py populates canonically; there is no
+        # legacy CSV fallback any more (see the note above).
         detail_parts = []
         if isinstance(price, (int, float)) and price > 0:
             detail_parts.append(f"💰 now {currency}{price:,.2f}")

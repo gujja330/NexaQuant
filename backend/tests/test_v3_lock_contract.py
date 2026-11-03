@@ -76,9 +76,32 @@ def test_aegis_usa_workflow_uses_only_command_center_sender():
     assert "telegram_command_center_send.py" in src
 
 
+def _code_only(path: Path) -> str:
+    """Source with comment lines and comment tails removed.
+
+    CEO 2026-11-03 · this test used a bare `"aegis_today.csv" not in src`,
+    which cannot tell a legacy READ from the comment explaining why the
+    read was removed. That is the grep-the-prose bug class, and when the
+    real violation was fixed the explanatory note kept the test red.
+
+    `test_no_hardcoded_dates_in_production._scan_file` already scans code
+    only, so this brings this contract up to the standard the repo had set
+    elsewhere. It is a strengthening, not a relaxation: a legacy path in
+    code or in a docstring that documents one still fails, and only prose
+    on a `#` line is exempt.
+    """
+    out = []
+    for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+        if line.strip().startswith("#"):
+            continue
+        out.append(line.split("#", 1)[0] if "#" in line else line)
+    return "\n".join(out)
+
+
 # ── Contract 4 · Command Center reads SSoT (not legacy sources) ──
 def test_command_center_reads_recommendations_json():
-    src = (_ROOT / "backend" / "delivery" / "telegram" / "command_center.py").read_text(encoding="utf-8")
+    p = _ROOT / "backend" / "delivery" / "telegram" / "command_center.py"
+    src = _code_only(p)
     assert "recommendations.json" in src, (
         "Command Center must read the SSoT recommendations.json"
     )
@@ -89,6 +112,25 @@ def test_command_center_reads_recommendations_json():
     assert "champion_strategy.json" not in src, (
         "Command Center is reading legacy champion_strategy.json"
     )
+
+
+def test_the_ssot_scan_still_catches_a_legacy_read_in_code(tmp_path):
+    """The negative case · the comment exemption must not open a hole."""
+    p = tmp_path / "m.py"
+    p.write_text('import csv\npath = "data/aegis_today.csv"\n', encoding="utf-8")
+    assert "aegis_today.csv" in _code_only(p)
+
+    p.write_text('# we removed the data/aegis_today.csv fallback\nx = 1\n',
+                 encoding="utf-8")
+    assert "aegis_today.csv" not in _code_only(p)
+
+    # a trailing comment is stripped, the code before it is not
+    p.write_text('y = "champion_strategy.json"  # legacy\n', encoding="utf-8")
+    assert "champion_strategy.json" in _code_only(p)
+
+    # a docstring that documents a legacy read still fails the scan
+    p.write_text('"""reads data/aegis_today.csv"""\nx = 1\n', encoding="utf-8")
+    assert "aegis_today.csv" in _code_only(p)
 
 
 # ── Contract 5 · v3.0 artifact catalog matches shipped code ──

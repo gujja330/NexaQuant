@@ -71,10 +71,22 @@ PIPELINE_SUCCESS = "PIPELINE_SUCCESS"
 
 PASSING = (DELIVERY_SUCCESS, PIPELINE_SUCCESS)
 
-#: Sheets the two-sheet contract requires. Resolved through the alias layer
-#: rather than by literal name, because consumers holding private copies of
-#: a sheet name is its own documented bug class in this repository.
-REQUIRED_LOGICAL_SHEETS = ("Portfolio", "Exit History (90d)")
+#: Sheets the two-sheet contract requires, as LOGICAL ids used only for
+#: labelling the resolved result. Resolution itself goes through
+#: resolve_portfolio_sheet / resolve_exit_history_sheet.
+#:
+#: CEO 2026-11-03 · these used to read ("Portfolio", "Exit History (90d)"),
+#: and the sheet-lookup scanners were right to flag it: this file named two
+#: legacy sheet names and never mentioned the current ones (CURRENT /
+#: EXIT HISTORY). It was functionally harmless, because the literals were
+#: zipped against resolved names rather than used as keys - but a label
+#: that looks exactly like a lookup key is one refactor away from becoming
+#: one, and a consumer holding its own copy of a sheet name is the
+#: alias-drift bug class this repository has already paid for twice.
+#: Logical ids cannot drift because they are not sheet names at all.
+LOGICAL_PORTFOLIO = "PORTFOLIO"
+LOGICAL_EXIT_HISTORY = "EXIT_HISTORY"
+REQUIRED_LOGICAL_SHEETS = (LOGICAL_PORTFOLIO, LOGICAL_EXIT_HISTORY)
 
 
 def workbook_path(root: Path, market: str) -> Path:

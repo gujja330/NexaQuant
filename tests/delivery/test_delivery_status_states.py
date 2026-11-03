@@ -141,7 +141,12 @@ def test_a_missing_required_sheet(tmp_path):
     _commit_workbook(root, "usa")
     st = ds.classify(root, "usa", ASOF)
     assert st["state"] == ds.XLSX_GENERATION_FAILURE
-    assert "Exit History" in st["reason"]
+    # The reason names the missing LOGICAL sheet and what was actually in
+    # the workbook. It used to name the legacy literal "Exit History (90d)",
+    # which the sheet-lookup scanners correctly flagged as a private copy
+    # of a sheet name; the logical id cannot drift the same way.
+    assert ds.LOGICAL_EXIT_HISTORY in st["reason"]
+    assert "CURRENT" in st["reason"], "and says what it did find"
 
 
 def test_sheet_aliases_are_honoured(tmp_path):
