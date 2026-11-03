@@ -194,6 +194,18 @@ def main() -> int:
     # a ceo_summary block at top-level. Also archives today's snapshot to the
     # per-market history directory so future runs can compute deltas.
     # Article 101.2 · pure enrichment · CEO cycles 2-4.
+    #
+    # CEO 2026-11-03 · THE ARCHIVE NO LONGER DEPENDS ON ENRICHMENT.
+    # `snap_path` starts as None and the block below is followed by an
+    # unconditional archive attempt. Three months of missing snapshots
+    # (last file 2026-07-30) came from the archive living INSIDE this try,
+    # whose handler is "log and continue": any enrichment step that raised
+    # before the archive line skipped it, the handler printed, and the
+    # step still exited 0 - so the orchestrator recorded
+    # `recommendation_ssot verdict=SUCCESS optional=False` for a day whose
+    # snapshot was never written. Enrichment failing must cost the
+    # enrichment, not the history.
+    snap_path = None
     try:
         pub = json.loads(out.read_text(encoding="utf-8"))
         recs = pub.get("recommendations", [])
@@ -370,6 +382,30 @@ def main() -> int:
     except Exception as exc:
         # Enrichment failure must NEVER break the SSoT pipeline · log and continue
         print(f"[investor_actionable:{args.market}] enrichment failed · {type(exc).__name__}: {exc}")
+
+    # ── SNAPSHOT ARCHIVE · outside the enrichment try, deliberately ──
+    # Runs whether enrichment succeeded, partly succeeded or raised. If the
+    # block above already archived, this is skipped; otherwise the archive
+    # happens here from whatever the SSoT published, which is the artifact
+    # future runs need for deltas and the one test_date_consistency checks.
+    # The state file is the evidence a strict gate can read: a step that
+    # cannot prove it persisted has not persisted.
+    if snap_path is None:
+        try:
+            from backend.recommendation.snapshot.store import archive_and_record
+            _pub = json.loads(out.read_text(encoding="utf-8"))
+            _st = archive_and_record(_pub, reports, args.market,
+                                     asof=asof_run)
+            if _st["state"] == "PERSISTED":
+                snap_path = Path(_st["path"])
+                print(f"[snapshot:{args.market}] archived (post-enrichment) "
+                      f"-> {snap_path.name} · n={_st['n_recommendations']}")
+            else:
+                print(f"[snapshot:{args.market}] ARCHIVE FAILED · "
+                      f"{_st['reason']}")
+        except Exception as _e:
+            print(f"[snapshot:{args.market}] ARCHIVE FAILED · "
+                  f"{type(_e).__name__}: {_e}")
 
     # ── AEGIS Research Platform (Article IX + X) ──
     # Runs AFTER investor-actionable enrichment so it has today's fresh

@@ -63,6 +63,85 @@ def archive_snapshot(payload: Mapping,
     return out
 
 
+def archive_state_path(reports_root: Path, market: str) -> Path:
+    """Where the archive records whether it actually landed."""
+    return (Path(reports_root) / "context"
+            / ("recommendation_snapshot_state_%s.json" % str(market).lower()))
+
+
+def archive_and_record(payload: Mapping,
+                       reports_root: Path,
+                       market: str,
+                       asof: str | date | None = None) -> dict:
+    """Archive, then PROVE the file landed, and record the verdict.
+
+    CEO 2026-11-03 · WHY A BARE archive_snapshot WAS NOT ENOUGH
+    -----------------------------------------------------------
+    reports/recommendations_history/india/ holds two files, both from
+    2026-07-29 and 2026-07-30. Nothing has archived for three months, and
+    `backend/tests/test_date_consistency.py::test_snapshot_for_recs_asof_exists`
+    has been failing on it.
+
+    The writer was never missing. `archive_snapshot` is called from
+    ssot/run.py, inside a `try` whose handler is commented "Enrichment
+    failure must NEVER break the SSoT pipeline · log and continue". So any
+    enrichment step that raises BEFORE the archive line skips the archive,
+    the handler prints, and the step exits 0. The orchestrator then
+    recorded `recommendation_ssot verdict=SUCCESS optional=False
+    elapsed=3.41` for the 2026-11-02 run - a non-optional step reporting
+    success on a day whose snapshot was never written.
+
+    That is the same shape as the daily-history defect: a step whose
+    failure reads as a successful day. The cure there was to stop
+    returning None and start recording a verifiable state, so this does
+    the same.
+
+    state is PERSISTED / FAILED, and PERSISTED requires the file to exist
+    AND re-parse - writing it is not the same as having written it.
+    """
+    mkt = str(market).lower()
+    if asof is None:
+        asof = payload.get("asof") or date.today().isoformat()
+    asof_date = (asof if isinstance(asof, date)
+                 else _parse_iso_date(str(asof)) or date.today())
+    state = {
+        "engine": ENGINE_ID,
+        "schema_version": SCHEMA_VERSION,
+        "market": mkt,
+        "asof": asof_date.isoformat(),
+        "checked_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "state": "FAILED",
+        "verified": False,
+        "path": None,
+        "n_recommendations": None,
+        "reason": None,
+    }
+    try:
+        out = archive_snapshot(payload, reports_root, mkt, asof=asof_date)
+        state["path"] = str(out)
+        # Verify by reading it back · the write is not the evidence.
+        back = json.loads(out.read_text(encoding="utf-8"))
+        recs = back.get("recommendations") or []
+        state["n_recommendations"] = len(recs)
+        if back.get("snapshot_asof") == asof_date.isoformat():
+            state.update(state="PERSISTED", verified=True)
+        else:
+            state["reason"] = ("ASOF_MISMATCH_ON_READBACK: wrote %s, read %s"
+                               % (asof_date.isoformat(),
+                                  back.get("snapshot_asof")))
+    except Exception as exc:                       # noqa: BLE001
+        state["reason"] = "%s: %s" % (type(exc).__name__, exc)
+
+    try:
+        p = archive_state_path(reports_root, mkt)
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(json.dumps(state, indent=2, default=str),
+                     encoding="utf-8")
+    except Exception:
+        pass        # the verdict is best-effort; the archive is the point
+    return state
+
+
 def list_snapshot_dates(reports_root: Path, market: str) -> list[date]:
     """Return all available snapshot dates for a market, oldest first."""
     hdir = _history_dir(reports_root, market)
