@@ -1,0 +1,138 @@
+{
+  "engine": "aegis.feature_store.macro_series.v1",
+  "schema_version": "1.0.0",
+  "generated_utc": "2026-11-03T07:28:46+00:00",
+  "market": "india",
+  "asof": "2026-11-03",
+  "n_features": 8,
+  "n_valid": 7,
+  "valid_pct": 87.5,
+  "by_status": {
+    "MISSING": [
+      "macro_move"
+    ],
+    "VALID": [
+      "macro_10y",
+      "macro_10y_chg_1m_pct",
+      "macro_dxy",
+      "macro_gold",
+      "macro_vix",
+      "macro_vix_chg_1m_pct",
+      "macro_wti_oil"
+    ]
+  },
+  "features": {
+    "macro_10y": {
+      "feature": "macro_10y",
+      "value": 4.894,
+      "status": "VALID",
+      "unit": "percent",
+      "source": "data\\raw\\india\\global\\US10Y.parquet",
+      "observation_date": "2026-11-02",
+      "normalized_asof": "2026-11-03",
+      "age_days": 1,
+      "ffilled_days": 1,
+      "transformation": "identity",
+      "reason": null
+    },
+    "macro_10y_chg_1m_pct": {
+      "feature": "macro_10y_chg_1m_pct",
+      "value": -7.2579,
+      "status": "VALID",
+      "unit": "pct_change",
+      "source": "data\\raw\\india\\global\\US10Y.parquet",
+      "observation_date": "2026-11-02",
+      "normalized_asof": "2026-11-03",
+      "age_days": 1,
+      "ffilled_days": 0,
+      "transformation": "pct_change_21_bars",
+      "reason": null
+    },
+    "macro_dxy": {
+      "feature": "macro_dxy",
+      "value": 101.728,
+      "status": "VALID",
+      "unit": "index_level",
+      "source": "data\\raw\\india\\global\\DXY.parquet",
+      "observation_date": "2026-11-03",
+      "normalized_asof": "2026-11-03",
+      "age_days": 0,
+      "ffilled_days": 0,
+      "transformation": "identity",
+      "reason": null
+    },
+    "macro_gold": {
+      "feature": "macro_gold",
+      "value": 3934.8999,
+      "status": "VALID",
+      "unit": "usd",
+      "source": "data\\raw\\india\\global\\GOLD.parquet",
+      "observation_date": "2026-11-03",
+      "normalized_asof": "2026-11-03",
+      "age_days": 0,
+      "ffilled_days": 0,
+      "transformation": "identity",
+      "reason": null
+    },
+    "macro_move": {
+      "feature": "macro_move",
+      "value": null,
+      "status": "MISSING",
+      "unit": "index_level",
+      "source": "macro_summary.json",
+      "observation_date": null,
+      "normalized_asof": "2026-11-03",
+      "age_days": null,
+      "ffilled_days": 0,
+      "transformation": "undated_snapshot",
+      "reason": "SYMBOL_^MOVE_NOT_IN_SUMMARY"
+    },
+    "macro_vix": {
+      "feature": "macro_vix",
+      "value": 21.15,
+      "status": "VALID",
+      "unit": "index_level",
+      "source": "data\\raw\\india\\global\\USVIX.parquet",
+      "observation_date": "2026-11-02",
+      "normalized_asof": "2026-11-03",
+      "age_days": 1,
+      "ffilled_days": 1,
+      "transformation": "identity",
+      "reason": null
+    },
+    "macro_vix_chg_1m_pct": {
+      "feature": "macro_vix_chg_1m_pct",
+      "value": 38.145,
+      "status": "VALID",
+      "unit": "pct_change",
+      "source": "data\\raw\\india\\global\\USVIX.parquet",
+      "observation_date": "2026-11-02",
+      "normalized_asof": "2026-11-03",
+      "age_days": 1,
+      "ffilled_days": 0,
+      "transformation": "pct_change_21_bars",
+      "reason": null
+    },
+    "macro_wti_oil": {
+      "feature": "macro_wti_oil",
+      "value": 97.49,
+      "status": "VALID",
+      "unit": "usd",
+      "source": "data\\raw\\india\\global\\OIL.parquet",
+      "observation_date": "2026-11-03",
+      "normalized_asof": "2026-11-03",
+      "age_days": 0,
+      "ffilled_days": 0,
+      "transformation": "identity",
+      "reason": null
+    }
+  },
+  "universe_rows": 228,
+  "market_wide_note": "Macro is MARKET-WIDE: the same value is joined to every ticker, so these features carry no cross-sectional information and cannot differentiate names in a ranking model. That is their nature, not a defect - but it is why a macro model scored cross-sectionally will show no directional opinion however correct these numbers are.",
+  "known_gaps": {
+    "macro_move": "MOVE (bond volatility). NO tracked dated series exists for it in this repository, so it resolves from the undated macro summary when one is supplied and ABSTAINS otherwise. Reported as a known gap rather than filled"
+  },
+  "refused_symbols": {
+    "UUP": "Invesco DB US Dollar Index Bullish Fund \u00b7 an ETF share price (~29), not the DXY index level (~101)"
+  }
+}
