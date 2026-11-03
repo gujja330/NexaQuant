@@ -59,7 +59,22 @@ def state_path(root: Path, market: str) -> Path:
         "history_persistence_%s.json" % market.lower())
 
 
-def classify(root: Path, market: str, expected_asof: str | None = None) -> dict:
+def _age_hours(checked_utc: str | None) -> float | None:
+    """Hours since the state file was written · None if unparseable."""
+    if not checked_utc:
+        return None
+    try:
+        from datetime import datetime, timezone
+        t = datetime.fromisoformat(str(checked_utc))
+        if t.tzinfo is None:
+            t = t.replace(tzinfo=timezone.utc)
+        return (datetime.now(timezone.utc) - t).total_seconds() / 3600.0
+    except Exception:
+        return None
+
+
+def classify(root: Path, market: str, expected_asof: str | None = None,
+             max_age_hours: float | None = None) -> dict:
     """Read the state a runner left behind and judge it. Never raises."""
     p = state_path(root, market)
     if not p.exists():
@@ -78,6 +93,24 @@ def classify(root: Path, market: str, expected_asof: str | None = None) -> dict:
            "history_expected": st.get("history_expected", True),
            "reason": st.get("reason") or "",
            "detail": st.get("detail") or ""}
+
+    # CEO 2026-11-03 · evidence age, independent of asof. Without this a
+    # run where the recommendation step never executed at all would be
+    # passed by YESTERDAY's PERSISTED file, which is precisely the kind of
+    # stale-evidence pass this whole change set exists to stop. asof alone
+    # cannot catch it: on a non-trading day the asof legitimately does not
+    # advance, so the date is not a liveness signal. checked_utc is.
+    age = _age_hours(st.get("checked_utc"))
+    out["age_hours"] = None if age is None else round(age, 2)
+    if max_age_hours is not None and (age is None or age > max_age_hours):
+        out["ok"] = False
+        out["state"] = "STALE"
+        out["detail"] = ("state file written %s (%s) · older than the %.0fh "
+                         "freshness budget · this run produced no verdict"
+                         % (st.get("checked_utc"),
+                            "unparseable" if age is None
+                            else "%.1fh ago" % age, max_age_hours))
+        return out
 
     if out["state"] == "PERSISTED":
         out["ok"] = bool(st.get("verified"))
@@ -126,6 +159,8 @@ def main(argv=None) -> int:
                     help="require the state to be for this date (default: any)")
     ap.add_argument("--strict", action="store_true",
                     help="exit 1 when history was not persisted")
+    ap.add_argument("--max-age-hours", type=float, default=None,
+                    help="treat a state file older than this as STALE")
     ap.add_argument("--root", default=str(ROOT))
     a = ap.parse_args(argv)
 
@@ -133,7 +168,7 @@ def main(argv=None) -> int:
     markets = ("india", "usa") if a.market == "both" else (a.market,)
     bad = []
     for m in markets:
-        r = classify(root, m, a.asof)
+        r = classify(root, m, a.asof, a.max_age_hours)
         line = ("  [history] %-6s %-10s rows %s -> %s · %s"
                 % (m, r["state"], r.get("rows_before"), r.get("rows_after"),
                    r["detail"]))

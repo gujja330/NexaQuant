@@ -677,6 +677,23 @@ jobs:
           _push_retry_research || echo "::error::[research-commit] push FAILED after 5 attempts · research state stayed local"
 
       # CEO 2026-10-31 · parity with aegis-usa.yml · see the note there.
+      # CEO 2026-11-03 · STRICT HISTORY VERIFICATION.
+      # A run that owed recommendation history and did not persist it does
+      # not get a complete-success verdict. The recommendation step stays
+      # "optional": True - that tolerance is the operator's setting - but a
+      # FATAL exit now records state=FAILED and fails here instead of
+      # passing silently, which is how this market accumulated 4-5 daily
+      # rows in eight months.
+      #
+      # --max-age-hours 24 is the liveness half: without it, a run where the
+      # step never executed at all would be passed by YESTERDAY's PERSISTED
+      # file. asof cannot catch that, because on a non-trading day the asof
+      # legitimately does not advance. Legitimate holiday and no-session
+      # skips still pass, but only as a fresh, auditable claim.
+      - name: Strict history verification (INDIA)
+        if: always()
+        run: python scripts/ci_history_persistence_check.py --market india --strict --max-age-hours 24
+
       # CEO 2026-11-03 · THE FINAL CONCLUSION, WITH EVIDENCE.
       # Six states, first failing condition wins: the workbook is opened and
       # checked for market identity, as-of date, required sheets and data

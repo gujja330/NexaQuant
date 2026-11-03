@@ -412,3 +412,55 @@ def test_fail_open_snapshot_behaviour_is_preserved(tmp_path, monkeypatch):
     st = hw.record_not_attempted(tmp_path, "india", reason="UPSTREAM_FATAL",
                                  detail="boom", expected=True)
     assert st["state"] == "FAILED"
+
+
+# ── evidence age · a yesterday verdict is not today's evidence ──────
+
+def test_a_fresh_persisted_state_passes_the_age_budget(tmp_path):
+    append_and_record(_payload("india", "2026-11-03"), _hist(tmp_path, "india"),
+                      root=tmp_path, market="india")
+    r = chk.classify(tmp_path, "india", None, 24.0)
+    assert r["state"] == "PERSISTED" and r["ok"] is True
+    assert r["age_hours"] is not None and r["age_hours"] < 1.0
+
+
+def test_yesterdays_persisted_state_is_stale_under_the_age_budget(tmp_path):
+    """The hole --strict would otherwise leave open.
+
+    If the recommendation step never executes, no new state file is
+    written. Without an age check, yesterday's PERSISTED file passes and
+    the run is called a success having produced nothing.
+    """
+    _state(tmp_path, "india", market="india", asof="2026-11-03",
+           state="PERSISTED", verified=True, history_expected=True,
+           checked_utc="2026-10-20T02:00:00+00:00")
+    r = chk.classify(tmp_path, "india", None, 24.0)
+    assert r["state"] == "STALE" and r["ok"] is False
+    assert "freshness budget" in r["detail"]
+    assert chk.main(["--market", "india", "--root", str(tmp_path),
+                     "--max-age-hours", "24", "--strict"]) == 1
+
+
+def test_an_unparseable_timestamp_is_stale_not_trusted(tmp_path):
+    _state(tmp_path, "india", market="india", state="PERSISTED",
+           verified=True, history_expected=True, checked_utc="not-a-time")
+    r = chk.classify(tmp_path, "india", None, 24.0)
+    assert r["state"] == "STALE" and r["ok"] is False
+
+
+def test_a_stale_legitimate_skip_is_also_rejected(tmp_path):
+    """A holiday claim from last week is not a claim about today."""
+    _state(tmp_path, "india", market="india", state="SKIPPED",
+           history_expected=False, reason="MARKET_HOLIDAY", verified=False,
+           checked_utc="2026-10-20T02:00:00+00:00")
+    assert chk.classify(tmp_path, "india", None, 24.0)["ok"] is False
+
+
+def test_without_the_budget_age_is_reported_but_not_enforced(tmp_path):
+    """Opt-in · existing callers keep their behaviour."""
+    _state(tmp_path, "india", market="india", asof="2026-11-03",
+           state="PERSISTED", verified=True, history_expected=True,
+           checked_utc="2026-10-20T02:00:00+00:00")
+    r = chk.classify(tmp_path, "india")
+    assert r["state"] == "PERSISTED" and r["ok"] is True
+    assert r["age_hours"] is not None and r["age_hours"] > 24
