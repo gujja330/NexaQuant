@@ -9,6 +9,11 @@ against.
 
 from .history_writer import (
     append_snapshot_row,
+    append_and_record,
+    record_not_attempted,
+    persistence_state_path,
+    ALLOWED_SKIP_REASONS,
+    REASON_UPSTREAM_FATAL,
     write_snapshot_and_history,
     load_history,
     HISTORY_SCHEMA_VERSION,
@@ -16,6 +21,11 @@ from .history_writer import (
 
 __all__ = [
     "append_snapshot_row",
+    "append_and_record",
+    "record_not_attempted",
+    "persistence_state_path",
+    "ALLOWED_SKIP_REASONS",
+    "REASON_UPSTREAM_FATAL",
     "write_snapshot_and_history",
     "load_history",
     "HISTORY_SCHEMA_VERSION",

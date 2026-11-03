@@ -65,6 +65,23 @@ def _as_dict(obj):
     return _stringify(obj)
 
 
+def _history_fatal(market: str, detail: str) -> None:
+    """Record that an upstream precondition killed this run.
+
+    CEO 2026-11-03 · the recommendation step is "optional": True in the
+    orchestrator, so returning 1 from here leaves the daily run GREEN. The
+    orchestrator's tolerance is deliberate and stays; what must not stay is
+    the silence. A FATAL exit now leaves a state file saying history was
+    expected and did not happen, which the strict checker fails on.
+    """
+    try:
+        from backend.persistence import record_not_attempted, REASON_UPSTREAM_FATAL
+        record_not_attempted(_ROOT, market, reason=REASON_UPSTREAM_FATAL,
+                             detail=detail, expected=True)
+    except Exception:
+        pass
+
+
 def main() -> int:
     now = datetime.now(timezone.utc)
     print("=" * 70)
@@ -73,7 +90,8 @@ def main() -> int:
 
     # ── Load inputs ────────────────────────────────────────
     if not ENSEMBLE_PATH.exists():
-        print("  FATAL: reports/ensemble.json not found — run model_factory first"); return 1
+        print("  FATAL: reports/ensemble.json not found — run model_factory first")
+        _history_fatal("india", "reports/ensemble.json not found"); return 1
     ens = json.loads(ENSEMBLE_PATH.read_text(encoding="utf-8"))
 
     # ── FULL UNIVERSE · CEO 2026-09-09 ──────────────────────────────
@@ -115,11 +133,13 @@ def main() -> int:
 
     snaps = list_snapshots(_ROOT, "india")
     if not snaps:
-        print("  FATAL: no feature store snapshot"); return 1
+        print("  FATAL: no feature store snapshot")
+        _history_fatal("india", "no feature store snapshot"); return 1
     latest = snaps[-1]
     df = read_snapshot(_ROOT, "india", latest)
     if df is None or df.empty:
-        print("  FATAL: snapshot empty"); return 1
+        print("  FATAL: snapshot empty")
+        _history_fatal("india", "feature store snapshot empty"); return 1
     print(f"  snapshot: {latest.isoformat()} · rows={len(df)}")
 
     # ── Register the Recommendation Engine model ───────────
@@ -177,10 +197,20 @@ def main() -> int:
     print(f"  wrote {OUT_FULL.relative_to(_ROOT)}")
 
     # Sprint 7.5 · append to permanent history (fail-open)
+    # CEO 2026-11-03 · the append is still fail-open, but it is now VERIFIED
+    # and its outcome recorded. The previous form printed a warning and moved
+    # on, so a run that persisted nothing was indistinguishable from one that
+    # persisted correctly - which is how this market accumulated 5 daily rows
+    # in eight months without anyone seeing a failure.
     try:
-        from backend.persistence import append_snapshot_row
-        append_snapshot_row(json.loads(OUT_FULL.read_text(encoding="utf-8")),
-                             _ROOT / "reports" / "recommendation_history.parquet")
+        from backend.persistence import append_and_record
+        _hist_state = append_and_record(
+            json.loads(OUT_FULL.read_text(encoding="utf-8")),
+            _ROOT / "reports" / "recommendation_history.parquet",
+            root=_ROOT, market="india")
+        print(f"  history: {_hist_state['state']} · {_hist_state['detail']} "
+              f"(rows {_hist_state['rows_before']} -> "
+              f"{_hist_state.get('rows_after')})")
     except Exception as _hist_err:
         print(f"  history append warning (non-fatal): {_hist_err}")
 
