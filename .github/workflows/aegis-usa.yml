@@ -408,6 +408,13 @@ jobs:
           # same story. Actions logs are 403 here, so these ARE the trail.
           _add_safe "reports/context/xlsx_validation_usa.json"
           _add_safe "reports/context/health_monitor_usa.json"
+          # CEO 2026-11-03 · the delivery ledger is the ONLY record of
+          # whether Telegram accepted the upload, and `git ls-files` matched
+          # zero of these files: every CI run wrote one to the runner's disk
+          # and it died with the runner. That is why delivery has never been
+          # provable after the fact.
+          _add_safe "reports/telegram_command_center_$(date -u +%Y-%m-%d).jsonl"
+          _add_safe "reports/context/delivery_status_usa.json"
           _add_safe "reports/context/cil_run_usa.json"
           _add_safe "reports/context/freshness_diagnostic_india.json"
           _add_safe "reports/telegram/aegis_history_usa.xlsx"
@@ -561,6 +568,16 @@ jobs:
       # Deliberately the LAST step: every commit above has already happened,
       # so failing here loses no state. The logic lives in a script because
       # a shell conditional cannot be unit-tested.
+      # CEO 2026-11-03 · THE FINAL CONCLUSION, WITH EVIDENCE.
+      # Six states, first failing condition wins: the workbook is opened and
+      # checked for market identity, as-of date, required sheets and data
+      # rows; the artifact is checked for being committed AND matching the
+      # copy on disk; the validator verdict decides DELIVERY_BLOCKED; and the
+      # delivery ledger decides SUCCESS vs FAILURE. Runs after the commits
+      # above so persistence is a fair question.
+      - name: Delivery status · six states with evidence (USA)
+        if: always()
+        run: python scripts/ci_delivery_status.py --market usa
       - name: Fail the run if delivery was blocked (USA)
         if: always()
         run: python scripts/ci_delivery_verdict.py --market usa

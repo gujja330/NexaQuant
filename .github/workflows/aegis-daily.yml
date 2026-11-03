@@ -490,6 +490,10 @@ jobs:
           # CEO 2026-10-31 · see aegis-usa.yml · the validator verdict and
           # Guard 7 verdict decide delivery and were never committed.
           git add reports/context/xlsx_validation_india.json reports/context/health_monitor_india.json 2>/dev/null || true
+          # CEO 2026-11-03 · see aegis-usa.yml · the delivery ledger proving
+          # Telegram accepted the upload was never committed by either market.
+          git add "reports/telegram_command_center_$(date -u +%Y-%m-%d).jsonl" 2>/dev/null || true
+          git add reports/context/delivery_status_india.json 2>/dev/null || true
           git add reports/context/freshness_diagnostic_india.json 2>/dev/null || true
           # CEO 2026-10-28 · produced every run, staged by neither market.
           # why_not_current + wave_regression come from
@@ -673,6 +677,16 @@ jobs:
           _push_retry_research || echo "::error::[research-commit] push FAILED after 5 attempts · research state stayed local"
 
       # CEO 2026-10-31 · parity with aegis-usa.yml · see the note there.
+      # CEO 2026-11-03 · THE FINAL CONCLUSION, WITH EVIDENCE.
+      # Six states, first failing condition wins: the workbook is opened and
+      # checked for market identity, as-of date, required sheets and data
+      # rows; the artifact is checked for being committed AND matching the
+      # copy on disk; the validator verdict decides DELIVERY_BLOCKED; and the
+      # delivery ledger decides SUCCESS vs FAILURE. Runs after the commits
+      # above so persistence is a fair question.
+      - name: Delivery status · six states with evidence (INDIA)
+        if: always()
+        run: python scripts/ci_delivery_status.py --market india
       - name: Fail the run if delivery was blocked (India)
         if: always()
         run: python scripts/ci_delivery_verdict.py --market india
