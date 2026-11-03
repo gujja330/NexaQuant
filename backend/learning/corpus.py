@@ -43,6 +43,31 @@ def read_corpus(repo_root: Path, market: str) -> pd.DataFrame:
         return pd.DataFrame()
 
 
+def corpus_asof(corpus: pd.DataFrame, asof) -> pd.DataFrame:
+    """The corpus as it was knowable on `asof`.
+
+    CEO 2026-11-03 · a learning corpus row becomes knowable when its
+    position CLOSED, so the cut is `close_asof <= asof`. Without it,
+    LearningEngine.run(asof=...) reported statistics, calibration and
+    failure clusters computed from outcomes that had not happened yet -
+    `run(asof=2020-01-01)` was returning rows closed in late 2026.
+
+    Rows whose `close_asof` is missing or unparseable are EXCLUDED, not
+    kept: an outcome with no close date cannot be shown to have been
+    available, and keeping it would restore the leak for exactly the rows
+    least able to justify themselves. A corpus without a `close_asof`
+    column cannot be cut at all, so it is returned empty rather than
+    whole, for the same reason.
+    """
+    if corpus is None or corpus.empty:
+        return pd.DataFrame() if corpus is None else corpus
+    if "close_asof" not in corpus.columns:
+        return corpus.iloc[0:0]
+    cut = pd.Timestamp(str(asof)[:10])
+    closed = pd.to_datetime(corpus["close_asof"], errors="coerce")
+    return corpus[closed.notna() & (closed <= cut)]
+
+
 def _row_to_dict(row: LearningRow) -> dict:
     """Serialise to a parquet-friendly dict.
 

@@ -8,7 +8,7 @@ from pathlib import Path
 import pandas as pd
 
 from backend.learning.corpus              import (
-    read_corpus, append_corpus, load_recommendation_history,
+    read_corpus, corpus_asof, append_corpus, load_recommendation_history,
 )
 from backend.learning.outcome_computer    import compute_outcomes, DEFAULT_HORIZON_DAYS
 from backend.learning.feature_attribution import compute_feature_attribution
@@ -86,8 +86,23 @@ class LearningEngine:
         _, n_added = append_corpus(self.repo_root, self.market, new_rows)
         result.n_new_closed = n_added
 
-        # 4) Re-load corpus for downstream analysis
-        corpus = read_corpus(self.repo_root, self.market)
+        # 4) Re-load corpus for downstream analysis, AS KNOWN AT `asof`.
+        #
+        # CEO 2026-11-03 · point-in-time leak. This re-read the WHOLE
+        # corpus and reported its statistics regardless of `asof`, so
+        # `run(asof=2020-01-01)` returned n_corpus_total=2 from rows whose
+        # outcomes closed in August and September 2026 - six years of
+        # future information in every number below, and in the
+        # calibration and clusters built from them. `compute_outcomes`
+        # above was already PIT-correct via `cutoff=asof`; only this
+        # second read was not, which is why the determinism test passed
+        # while the cutoff was being ignored.
+        #
+        # A corpus row becomes knowable when its position CLOSED, so
+        # `close_asof <= asof` is the filter. Rows missing close_asof are
+        # excluded rather than assumed knowable: an outcome with no close
+        # date cannot be shown to have been available.
+        corpus = corpus_asof(read_corpus(self.repo_root, self.market), asof)
         result.n_corpus_total = int(len(corpus))
         if not corpus.empty and "is_winner" in corpus.columns:
             wins = corpus[corpus["is_winner"].astype(bool)]
