@@ -140,12 +140,18 @@ class TestTheArchiveNoLongerDependsOnEnrichment:
             "the archive already happened")
         assert "archive_and_record" in src
         # The post-enrichment attempt must sit after the handler that used
-        # to swallow the archive.
+        # to swallow the archive. `rindex`, not `index`: the first
+        # occurrence is now the import at the top of the file, and matching
+        # that made this test compare the import position to the handler.
         handler = src.index("enrichment failed")
-        attempt = src.index("archive_and_record")
+        attempt = src.rindex("archive_and_record")
         assert attempt > handler, (
             "the archive attempt must come AFTER the enrichment handler, "
             "or an enrichment failure still costs the history")
+        # And the PRIMARY path records its verdict too, so a successful
+        # day leaves evidence rather than only failures doing so.
+        assert src.count("archive_and_record") >= 3, (
+            "expected the import, the primary call and the fallback call")
 
     def test_a_failed_archive_is_announced_not_silent(self):
         src = self._code_only(_ROOT / "backend/recommendation/ssot/run.py")

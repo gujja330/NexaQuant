@@ -38,7 +38,8 @@ from backend.recommendation.snapshot import (  # noqa: E402
     archive_snapshot, load_previous_snapshot, list_snapshot_dates,
     load_snapshot_for_date,
 )
-from backend.recommendation.snapshot.store import snapshot_to_ticker_map  # noqa: E402
+from backend.recommendation.snapshot.store import (  # noqa: E402
+    snapshot_to_ticker_map, archive_and_record)
 from backend.portfolio.position_store import (  # noqa: E402
     update_from_recs, load_all_positions,
 )
@@ -355,7 +356,19 @@ def main() -> int:
                             encoding="utf-8")
 
             # Cycle 4: archive today's snapshot for tomorrow's evolution deltas
-            snap_path = archive_snapshot(pub, reports, args.market, asof=asof_str or None)
+            # CEO 2026-11-03 · archive_and_record, not archive_snapshot, so
+            # the PRIMARY path records its verdict too. The first version of
+            # this fix only recorded state in the post-enrichment fallback,
+            # which meant a successful day wrote no evidence at all - and a
+            # gate that can only see failures cannot tell a good day from a
+            # day that never ran.
+            _st = archive_and_record(pub, reports, args.market,
+                                     asof=asof_str or None)
+            snap_path = Path(_st["path"]) if _st.get("path") else None
+            if _st["state"] != "PERSISTED":
+                print(f"[snapshot:{args.market}] ARCHIVE FAILED · "
+                      f"{_st['reason']}")
+                snap_path = None
 
             # v2.4: Backtrack Engine — regenerate per-ticker timelines from
             # the accumulated snapshot + position_store history. Runs AFTER
