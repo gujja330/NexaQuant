@@ -926,9 +926,41 @@ def artifact_path(root: Path, market: str) -> Path:
 
 
 def emit(root: Path, rep: dict) -> Path:
+    """Write the canonical dataset ATOMICALLY.
+
+    CEO 2026-11-03 · this was `p.write_text(...)`, which truncates the
+    live artifact and then fills it. For the duration of that write the
+    file on disk is a partial JSON document, and `load()` swallows the
+    parse error and returns None - so a concurrent reader does not see a
+    loud failure, it sees "no lifecycle", which downstream reads as an
+    empty portfolio.
+
+    The sibling workbook write had the same shape and surfaced as
+    `BadZipFile` in a full-suite run (see tests/delivery/conftest.py
+    `_save_atomic`). A single sequential pipeline never hits either, which
+    is why both survived this long; two readers of one checkout do.
+
+    `os.replace` is atomic on the same filesystem, so a reader now gets
+    either the complete previous dataset or the complete new one. The
+    temp file is a sibling because a cross-filesystem replace is not
+    atomic, and it is removed on failure so a failed emit leaves the
+    previous artifact exactly as it was.
+    """
+    import os
+
     p = artifact_path(root, rep["market"])
     p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_text(json.dumps(rep, indent=2, default=str), encoding="utf-8")
+    tmp = p.with_name(p.name + ".tmp-%d" % os.getpid())
+    try:
+        tmp.write_text(json.dumps(rep, indent=2, default=str),
+                       encoding="utf-8")
+        os.replace(tmp, p)
+    except Exception:
+        try:
+            tmp.unlink()
+        except OSError:
+            pass
+        raise
     return p
 
 

@@ -77,6 +77,44 @@ def lifecycle(market: str, asof: str | None = None) -> dict | None:
     return d
 
 
+def _save_atomic(workbook, out: Path) -> None:
+    """Save to a sibling temp file, then replace · never a partial reader.
+
+    CEO 2026-11-03 · A19 failed the full suite with
+    `BadZipFile: File is not a zip file` while passing in its own module,
+    and the cause was this function, not the test.
+
+    `workbook.save(out)` writes the live workbook in place, so for as long
+    as the write takes, `out` is a truncated zip. Any reader in that
+    window gets BadZipFile. A single pytest session is sequential and
+    never hits it, which is why CI has always been green - but a second
+    session, or the daily pipeline, running against the same checkout
+    reads the file mid-write. That is exactly what happened here: a
+    foreground pytest run regenerated the workbook while a background
+    full-suite run was reading it, and the "order-dependent" failure was
+    a concurrency artifact of my own making.
+
+    `os.replace` is atomic on the same filesystem, so a concurrent reader
+    now sees either the complete old file or the complete new one. The
+    temp file is a sibling rather than in the system temp dir, because
+    os.replace across filesystems is not atomic. On failure the temp file
+    is removed and the existing workbook is left untouched, which matches
+    the caller's contract that a failed regeneration changes nothing.
+    """
+    import os
+
+    tmp = out.with_name(out.name + ".tmp-%d" % os.getpid())
+    try:
+        workbook.save(tmp)
+        os.replace(tmp, out)
+    except Exception:
+        try:
+            tmp.unlink()
+        except OSError:
+            pass
+        raise
+
+
 def _regenerate(market: str) -> bool:
     """Bring the ON-DISK delivery artifacts up to date with SOURCE.
 
@@ -135,7 +173,7 @@ def _regenerate(market: str) -> bool:
         built = w2.build_two_sheet_workbook(ROOT, market, rep.get("asof"))
         out = ROOT / "reports" / "telegram" / ("aegis_history_%s.xlsx" % market)
         out.parent.mkdir(parents=True, exist_ok=True)
-        built["workbook"].save(out)
+        _save_atomic(built["workbook"], out)
         return True
     except Exception:
         return False

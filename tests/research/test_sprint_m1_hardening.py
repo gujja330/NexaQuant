@@ -80,12 +80,30 @@ class TestOpportunityEngineDataState:
 # ═════════════════════════════════════════════════════════════════
 # M.1.3 · new_opportunity_outcomes
 # ═════════════════════════════════════════════════════════════════
+#: CEO 2026-11-03 · the fixture's entry date must stay INSIDE the report's
+#: 90-day lookback window, so it is derived from today rather than written
+#: down. `new_opportunity_outcomes.compute` skips any entry older than
+#: `date.today() - 90 days`, and the hardcoded 2026-08-03 fixture aged past
+#: that cutoff on 2026-11-02: the test passed for 90 days and then failed
+#: permanently, with n_total=0 and nothing wrong with the code. A fixture
+#: date that expires is a test that reports a defect it invented.
+_FIXTURE_ENTRY_OFFSET_DAYS = 40      # comfortably inside the 90-day window
+_FIXTURE_BAR_SPAN_DAYS = 60          # bars start before the entry
+
+
+def _fixture_entry_date():
+    from datetime import date, timedelta
+    return (date.today() - timedelta(days=_FIXTURE_ENTRY_OFFSET_DAYS)).isoformat()
+
+
 @pytest.fixture
 def synthetic_root(tmp_path):
     """Build a fake parquet + Registry substrate."""
+    from datetime import date, timedelta
     raw = tmp_path / "data" / "raw" / "india"
     raw.mkdir(parents=True)
-    dates = pd.date_range("2026-08-01", periods=30, freq="B")
+    _start = (date.today() - timedelta(days=_FIXTURE_BAR_SPAN_DAYS)).isoformat()
+    dates = pd.bdate_range(_start, periods=45)
     # Winner path · +2% per day
     closes = [100.0 * (1.02 ** i) for i in range(len(dates))]
     df = pd.DataFrame({
@@ -108,19 +126,47 @@ def synthetic_root(tmp_path):
 class TestNewOpportunityOutcomes:
 
     def test_empty_registry_zero_outcomes(self, synthetic_root, monkeypatch):
-        def fake_load(_root): return {}
+        """CEO 2026-11-03 · now proves the monkeypatch actually took effect.
+
+        This asserted only `n_total == 0`, which is also what you get when
+        the patch target is wrong and the real (empty-ish) registry is
+        read, or when every entry is filtered out for an unrelated reason.
+        A test that passes for the wrong reason is how the sibling test
+        below sat broken for two days without this one noticing.
+        """
+        called = []
+
+        def fake_load(_root):
+            called.append(_root)
+            return {}
+
         monkeypatch.setattr(
             "backend.research.opportunity_registry.load_all", fake_load)
         from backend.research import new_opportunity_outcomes as _oo
         rep = _oo.compute(synthetic_root, "india")
+        assert called, "the patched loader was never called"
         assert rep.n_total == 0
 
     def test_winner_gets_positive_forward_returns(self, synthetic_root, monkeypatch):
+        """CEO 2026-11-03 · entry date derived from today, not written down.
+
+        This failed with n_total=0 and the report was correct: `compute`
+        skips entries older than `date.today() - 90 days`, the fixture's
+        created_date was the literal "2026-08-03", and on 2026-11-03 that
+        is 92 days old. The test passed until 2026-11-01 and then failed
+        permanently without a line of production code changing.
+
+        The assertion is unchanged - an empty report is still a failure,
+        because the data contract says a fresh in-window entry with bars
+        must produce an outcome. Only the fixture's clock is fixed.
+        """
+        entry = _fixture_entry_date()
+
         class _Opp:
             def __init__(self):
                 self.ticker = "TESTWIN"; self.runner = "R2"
                 self.market = "india"; self.status = "ACTIVE"
-                self.created_date = "2026-08-03"
+                self.created_date = entry
                 self.closed_date = None
                 self.opportunity_id = "TW-1"
             def is_active(self): return True
@@ -129,11 +175,46 @@ class TestNewOpportunityOutcomes:
             "backend.research.opportunity_registry.load_all", fake_load)
         from backend.research import new_opportunity_outcomes as _oo
         rep = _oo.compute(synthetic_root, "india")
-        assert rep.n_total >= 1
+        assert rep.n_total >= 1, (
+            "an in-window entry with price bars must produce an outcome · "
+            "entry=%s cutoff=90d" % entry)
         o = rep.outcomes[0]
-        # 5D forward should be positive (winner path)
-        if o.get("fwd_5d_pct") is not None:
-            assert o["fwd_5d_pct"] > 0
+        assert o["entry_date"] == entry
+        # 5D forward should be positive (winner path · +2%/day fixture)
+        assert o.get("fwd_5d_pct") is not None, (
+            "the fixture provides 45 business days of bars from the entry, "
+            "so a 5-day forward return must resolve")
+        assert o["fwd_5d_pct"] > 0
+
+    def test_an_entry_older_than_the_lookback_is_skipped(self, synthetic_root,
+                                                         monkeypatch):
+        """The behaviour that broke the test above · asserted deliberately.
+
+        91 days is outside the 90-day window, so it must be skipped. This
+        is the contract, not a defect - it just has to be stated, so the
+        next expired fixture is diagnosed in seconds instead of being read
+        as a broken report writer.
+        """
+        from datetime import date, timedelta
+        stale = (date.today() - timedelta(days=91)).isoformat()
+
+        class _Opp:
+            def __init__(self):
+                self.ticker = "TESTWIN"; self.runner = "R2"
+                self.market = "india"; self.status = "ACTIVE"
+                self.created_date = stale
+                self.closed_date = None
+                self.opportunity_id = "TW-OLD"
+            def is_active(self): return True
+
+        monkeypatch.setattr(
+            "backend.research.opportunity_registry.load_all",
+            lambda _r: {"x": [_Opp()]})
+        from backend.research import new_opportunity_outcomes as _oo
+        assert _oo.compute(synthetic_root, "india").n_total == 0
+        # and a wider lookback picks it back up
+        assert _oo.compute(synthetic_root, "india",
+                           lookback_days=200).n_total == 1
 
 
 # ═════════════════════════════════════════════════════════════════

@@ -286,7 +286,30 @@ def _today_payload_dates() -> tuple[str, str]:
 
 
 def test_command_center_renders_scorecard_line():
-    from backend.delivery.telegram.command_center import render_command_center_message
+    """CEO 2026-11-03 · the LOCKED 12-section format excludes this section.
+
+    This asserted that an `ai_scorecard` payload renders an
+    "AI PERFORMANCE SCORECARD" block. `_ai_scorecard_line` still exists
+    and still produces exactly that block - but it has ZERO callers. The
+    `sections` list in `render_command_center_message` has 12 entries
+    under a comment reading "Operator hard-locked format · Format spec
+    §3", and the scorecard is not one of them. Fourteen renderer
+    functions in that module are orphaned the same way.
+
+    So the section is intentionally excluded, not accidentally lost, and
+    per the Phase B4 instruction this test now asserts the LOCKED format
+    rather than demanding a section the lock omits. Restoring it would
+    need an approved format change with before/after character-budget
+    measurements, because the assembler drops whole sections that exceed
+    the budget - adding one can silently evict another.
+
+    The format itself is pinned in
+    tests/pipeline/test_command_center_locked_format.py.
+    """
+    from backend.delivery.telegram.command_center import (
+        render_command_center_message)
+    import backend.delivery.telegram.command_center as cc
+
     asof, run_utc = _today_payload_dates()
     payload = {
         "asof":             asof,
@@ -300,10 +323,18 @@ def test_command_center_renders_scorecard_line():
                                 "verdict": "institutional_grade", "n_trades": 1060},
     }
     msg = render_command_center_message(payload, "india")
-    assert "AI PERFORMANCE SCORECARD" in msg   # renamed label in v3.0
-    assert "84.0/100" in msg
-    assert "institutional grade" in msg          # underscore stripped in display
-    assert "1060 closed trades" in msg
+
+    # The renderer that WOULD emit it is present and correct in isolation.
+    lines = cc._ai_scorecard_line(payload, "india")
+    assert any("AI PERFORMANCE SCORECARD" in l for l in lines)
+    assert any("84.0/100" in l for l in lines)
+    assert any("institutional grade" in l for l in lines)
+    assert any("1060 closed trades" in l for l in lines)
+
+    # And the locked message does not carry it.
+    assert "AI PERFORMANCE SCORECARD" not in msg, (
+        "the locked 12-section format excludes the scorecard · restoring "
+        "it requires an approved format change, not a test edit")
 
 
 def test_command_center_renders_attribution_line():
@@ -322,6 +353,17 @@ def test_command_center_renders_attribution_line():
                                   "sector_engine_measurably_active": True},
     }
     msg = render_command_center_message(payload, "india")
-    assert "WHAT DROVE TODAY'S DECISIONS" in msg   # renamed in v3.0 for clarity
-    assert "Momentum" in msg
-    assert "12.5%" in msg
+
+    # CEO 2026-11-03 · same disposition as the scorecard test above.
+    # `_attribution_top` produces this block and has zero callers; the
+    # locked 12-section format excludes it. Asserting the renderer in
+    # isolation keeps the regression protection without demanding a
+    # section the operator-locked format omits.
+    import backend.delivery.telegram.command_center as cc
+    lines = cc._attribution_top(payload)
+    assert any("WHAT DROVE TODAY'S DECISIONS" in l for l in lines)
+    assert any("Momentum" in l for l in lines)
+    assert any("12.5%" in l for l in lines)
+
+    assert "WHAT DROVE TODAY'S DECISIONS" not in msg, (
+        "the locked 12-section format excludes the attribution block")
