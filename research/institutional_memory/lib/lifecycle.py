@@ -220,7 +220,9 @@ def build_summary(df: pd.DataFrame) -> dict:
     with 200+ tickers.
     """
     if df is None or df.empty:
-        return {"n_total": 0, "empty": True, "by_ticker": {}}
+        days = _archive.list_archive_days()
+        return {"asof": days[-1] if days else None,
+                "n_total": 0, "empty": True, "by_ticker": {}}
 
     by_state = df["state"].value_counts().to_dict()
     exited = df[df["state"] == STATE_EXITED]
@@ -241,7 +243,20 @@ def build_summary(df: pd.DataFrame) -> dict:
             "alpha_capture":   None if pd.isna(row.get("alpha_capture"))   else float(row["alpha_capture"]),
         }
 
+    _days = _archive.list_archive_days()
     return {
+        # CEO 2026-11-04 · this summary shares reports/recommendation_lifecycle.json
+        # with backend/recommendation/lifecycle/run.py, which emits a
+        # DIFFERENT schema carrying `asof`. Two products, one path. The
+        # consequence was not a crash: test_date_consistency reads `asof`
+        # and downgrades an unparseable one to a warning, so whichever run
+        # wrote last decided whether a 97-day-stale artifact was checked
+        # at all. The check passed by accident for months.
+        #
+        # The archive's newest day IS this summary's as-of, so it is
+        # derived from the data rather than stamped from the wall clock.
+        # None when nothing is archived - never a fabricated date.
+        "asof":            _days[-1] if _days else None,
         "n_total":         int(len(df)),
         "by_state":        {k: int(v) for k, v in sorted(by_state.items())},
         "n_active":        int(by_state.get(STATE_ACTIVE, 0)),

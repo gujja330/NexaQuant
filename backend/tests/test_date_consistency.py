@@ -73,7 +73,24 @@ def _check_market(market: str) -> tuple[list[str], list[str]]:
             continue
         upstream_asof = _load_asof(p, key)
         if upstream_asof is None:
-            warnings.append(f"{market}: {label} has unparseable asof")
+            # CEO 2026-11-04 · FAIL CLOSED.
+            #
+            # This was a warning, and that is how a 97-day-stale
+            # recommendation_lifecycle.json passed this check for
+            # months. Two writers share that path with different
+            # schemas; the research summary omitted `asof`, so
+            # `_load_asof` returned None, the check skipped, and
+            # whichever engine wrote last decided whether staleness was
+            # examined at all.
+            #
+            # A file that EXISTS but cannot say when it was current is
+            # not a passing state. A file that is absent stays a warning
+            # above, because absence can be legitimate.
+            errors.append(
+                f"{market}: {label} exists at {rel} but has no parseable "
+                f"'{key}' · a present artifact that cannot date itself "
+                f"cannot be checked for staleness, so this fails closed "
+                f"rather than skipping")
             continue
         stale_days = (recs_asof - upstream_asof).days
         if stale_days > max_stale:
