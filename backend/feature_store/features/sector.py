@@ -108,10 +108,20 @@ def compute(canon: dict[str, CanonicalDataset], universe: list[str],
     # keys are BARE symbols (RELIANCE), but universe may include NSE-suffix form
     # (RELIANCE.NS). Try both.
     def _lookup_sector(t: str) -> str:
-        s = ticker_sector.get(t, "")
-        if s: return s
-        bare = t.split(".")[0] if "." in t else t
-        return ticker_sector.get(bare, "")
+        # CEO 2026-11-04 · a placeholder is not a classification.
+        # usa/reports/universe.json carries the literal string 'Unknown'
+        # for all 516 names, and this returned it as the sector - so a
+        # column with zero information read as 100% populated and the
+        # quality checker had to recognise it as PLACEHOLDER_ONLY after
+        # the fact. One canonical missing representation, matched
+        # case-insensitively so 'Unknown'/'UNKNOWN'/'unknown' cannot
+        # become three pseudo-sectors.
+        from backend.shared.sector_map import is_placeholder
+        for cand in (t, t.split(".")[0] if "." in t else t):
+            s = ticker_sector.get(cand, "")
+            if s and not is_placeholder(s):
+                return s
+        return ""
 
     # CEO 2026-11-04 · the ticker classification and the sector-index
     # labels are two vocabularies that only agree on 7 of 17 names, so a

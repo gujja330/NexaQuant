@@ -236,3 +236,95 @@ class TestUsaIsUntouched:
             encoding="utf-8")
         m = _ticker_sector_map(tmp_path, "usa")
         assert m == {"AAPL": "Tech"}
+
+
+class TestPlaceholdersAreNotClassifications:
+    """CEO 2026-11-04 · §4.1 · one canonical missing representation.
+
+    usa/reports/universe.json carries the literal string 'Unknown' for
+    all 516 names. Two separate code paths returned it as the sector, so
+    a column with ZERO information read as 100% populated and the
+    quality checker had to recognise it as PLACEHOLDER_ONLY after the
+    fact. That also produced a 12th `sector` label in the shadow
+    measurement, which looked like a twelfth canonical sector and was
+    not one.
+    """
+
+    @pytest.mark.parametrize("ph", ["Unknown", "UNKNOWN", "unknown",
+                                    " Unknown ", "N/A", "na", "None",
+                                    "null", "-", "?", "TBD", "other", ""])
+    def test_every_placeholder_variant_reads_as_absent(self, ph):
+        from backend.shared.sector_map import is_placeholder, sector_for
+        assert is_placeholder(ph)
+        assert sector_for({"AAPL": ph}, "AAPL") is None
+
+    def test_case_variants_cannot_become_separate_pseudo_sectors(self):
+        from backend.shared.sector_map import sector_for
+        m = {"A": "Unknown", "B": "UNKNOWN", "C": "unknown"}
+        assert {sector_for(m, t) for t in "ABC"} == {None}
+
+    def test_a_real_sector_is_untouched(self):
+        from backend.shared.sector_map import is_placeholder, sector_for
+        assert not is_placeholder("Financials")
+        assert sector_for({"HDFCBANK": "Financials"}, "HDFCBANK") == "Financials"
+
+    def test_the_sector_feature_computer_also_rejects_placeholders(self,
+                                                                   tmp_path):
+        """The SECOND entry point · features/sector.py had its own lookup."""
+        import json
+        from backend.feature_store.features.sector import _ticker_sector_map
+        (tmp_path / "usa" / "reports").mkdir(parents=True, exist_ok=True)
+        (tmp_path / "usa" / "reports" / "universe.json").write_text(
+            json.dumps({"tickers": [{"symbol": "AAPL", "sector": "Unknown"},
+                                    {"symbol": "MSFT", "sector": "Technology"}]}),
+            encoding="utf-8")
+        m = _ticker_sector_map(tmp_path, "usa")
+        # the raw map still carries what the file says ...
+        assert m["AAPL"] == "Unknown"
+        # ... and the resolved feature must not
+        from backend.shared.sector_map import is_placeholder
+        assert is_placeholder(m["AAPL"])
+        assert not is_placeholder(m["MSFT"])
+
+
+class TestABareFormNeverOverwritesADirectMatch:
+    """CEO 2026-11-04 · §4.1/4.2 · both discrepancies were ONE defect.
+
+    `universe_tolerant` carries both forms of every symbol so India's
+    `.NS` universe can meet canonical data keyed on bare symbols. USA
+    has exactly two dotted symbols - BF.B and BRK.B - whose bare forms
+    BF and BRK are also passed to every computer. A computer returning a
+    populated-but-all-None dict for the bare form passes the
+    `if not feats` guard, and inverse_map then maps it onto the dotted
+    row, clobbering correct values with nulls - the winner decided by
+    dict iteration order.
+
+    Measured: that is exactly why the shadow run reported 57 'Unknown'
+    against 55 resolver UNKNOWNs, and 459 sector_* against 461
+    classified. After the fix both reconcile exactly.
+    """
+
+    def test_the_merge_takes_direct_matches_before_bare_fallbacks(self):
+        import ast
+        from pathlib import Path
+        import backend.feature_store.feature_builder as FB
+        src = Path(FB.__file__).read_text(encoding="utf-8")
+        tree = ast.parse(src)
+        fn = next(n for n in ast.walk(tree)
+                  if isinstance(n, ast.FunctionDef) and n.name == "build")
+        body = ast.unparse(fn)
+        assert "direct = set()" in body, (
+            "the two-pass merge is gone · a bare form can overwrite a "
+            "direct match again")
+        assert "mapped not in direct" in body
+
+    def test_usa_has_exactly_the_two_dotted_symbols_this_guards(self):
+        import json
+        from pathlib import Path
+        root = Path(__file__).resolve().parents[2]
+        uni = sorted({t["symbol"] for t in json.loads(
+            (root / "usa" / "reports" / "universe.json")
+            .read_text(encoding="utf-8")).get("tickers", [])
+            if t.get("symbol")})
+        dotted = [t for t in uni if "." in t]
+        assert dotted == ["BF.B", "BRK.B"], dotted

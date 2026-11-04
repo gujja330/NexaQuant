@@ -127,11 +127,32 @@ def india_ticker_sector(repo_root: Optional[Path] = None) -> dict:
     return validate_flat_map(SECTORS)
 
 
+#: Strings that are a stand-in for "we do not know", not a sector.
+#: Matched case-insensitively so 'Unknown', 'UNKNOWN' and 'unknown'
+#: cannot diverge into separate pseudo-sectors.
+PLACEHOLDER_SECTORS = frozenset({"unknown", "n/a", "na", "none", "null",
+                                 "-", "--", "?", "tbd", "other", ""})
+
+
+def is_placeholder(value) -> bool:
+    return str(value or "").strip().lower() in PLACEHOLDER_SECTORS
+
+
 def sector_for(mapping: Mapping, ticker: str) -> Optional[str]:
-    """Suffix-tolerant lookup · accepts `TCS`, `TCS.NS` or `tcs`."""
+    """Suffix-tolerant lookup · accepts `TCS`, `TCS.NS` or `tcs`.
+
+    Returns None for a placeholder. CEO 2026-11-04: USA's
+    universe.json carries the literal string 'Unknown' for all 516
+    names, and the feature builder was injecting it as the `sector`
+    value - so a column with zero information read as 100% populated,
+    and the quality checker had to recognise it as PLACEHOLDER_ONLY
+    after the fact. One canonical missing representation is None; a
+    placeholder is not a classification.
+    """
     if not mapping:
         return None
-    return mapping.get(normalize_ticker(ticker)) or None
+    v = mapping.get(normalize_ticker(ticker))
+    return None if is_placeholder(v) else (v or None)
 
 
 def coverage(mapping: Mapping, universe: Iterable[str]) -> dict:

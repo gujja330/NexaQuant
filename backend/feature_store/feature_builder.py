@@ -161,15 +161,36 @@ class FeatureBuilder:
             except Exception as e:
                 print(f"    | WARN computer '{name}' raised {type(e).__name__}: {e}")
                 continue
+            # CEO 2026-11-04 · a bare-form result must never OVERWRITE a
+            # direct match.
+            #
+            # `universe_tolerant` carries both forms of every symbol so
+            # India's `.NS` universe can meet canonical data keyed on
+            # bare symbols. For USA that machinery had a side effect:
+            # BF.B and BRK.B also produce bare forms BF and BRK, a
+            # computer returns a populated-but-all-None dict for the
+            # bare form (which passes the `not feats` guard), and
+            # inverse_map then maps it back onto the dotted row -
+            # clobbering the correct values with nulls, with the outcome
+            # decided by dict iteration order.
+            #
+            # Measured: the sector feature for BF.B and BRK.B read
+            # 'Unknown' in the snapshot while the resolver had
+            # classified both, which is exactly the 57-vs-55 gap that
+            # led here.
+            #
+            # So: take every direct match first, then let a bare form
+            # fill ONLY a row this computer did not already address.
+            direct = set()
             for t, feats in per_ticker.items():
                 if not feats: continue
-                # Try direct match (compute returned suffixed form)
                 if t in rows:
                     rows[t].update(feats)
-                    continue
-                # Else translate bare → suffixed via inverse_map
+                    direct.add(t)
+            for t, feats in per_ticker.items():
+                if not feats or t in rows: continue
                 mapped = inverse_map.get(t)
-                if mapped and mapped in rows:
+                if mapped and mapped in rows and mapped not in direct:
                     rows[mapped].update(feats)
 
         # Align to registry columns
