@@ -31,8 +31,11 @@ from backend.ai import (                                                        
 )
 
 
-OUT_SUMMARY   = _USA / "reports" / "feature_store_summary.json"
-OUT_NARRATIVE = _USA / "reports" / "ai_feature_narrative.json"
+# CEO 2026-11-04 · honour AEGIS_FEATURE_OUT_ROOT · see the India runner.
+from backend.feature_store.feature_snapshot import resolved_out_root  # noqa: E402
+_OUTU = resolved_out_root(_ROOT) / "usa"
+OUT_SUMMARY   = _OUTU / "reports" / "feature_store_summary.json"
+OUT_NARRATIVE = _OUTU / "reports" / "ai_feature_narrative.json"
 
 
 def _stringify(v):
@@ -40,6 +43,19 @@ def _stringify(v):
     if isinstance(v, (list, tuple)): return [_stringify(x) for x in v]
     if isinstance(v, (date, datetime)): return v.isoformat()
     return v
+
+
+def _rel(p):
+    """Display path · tolerant of an out-root outside the repo.
+
+    `relative_to` RAISES when the feature-store output root is
+    redirected (AEGIS_FEATURE_OUT_ROOT), which crashed this
+    runner inside a test rather than in production.
+    """
+    try:
+        return p.relative_to(_ROOT)
+    except ValueError:
+        return p
 
 
 def _as_dict(obj):
@@ -71,7 +87,7 @@ def main() -> int:
         "run_utc": now.isoformat(timespec="seconds"),
         **summary,
     }, indent=2), encoding="utf-8")
-    print(f"  wrote {OUT_SUMMARY.relative_to(_ROOT)}")
+    print(f"  wrote {_rel(OUT_SUMMARY)}")
 
     df = read_snapshot(_ROOT, "usa", asof)
     if df is None or df.empty:
@@ -93,7 +109,7 @@ def main() -> int:
         "asof":    asof.isoformat(),
         "agents":  {k: _as_dict(v) for k, v in ai_out.items()},
     }, indent=2), encoding="utf-8")
-    print(f"  wrote {OUT_NARRATIVE.relative_to(_ROOT)}")
+    print(f"  wrote {_rel(OUT_NARRATIVE)}")
     for name, out in ai_out.items():
         print(f"    · {name:<12}: {out.headline[:100]}")
     return 0

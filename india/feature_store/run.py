@@ -35,8 +35,26 @@ from backend.ai import (                                                        
 )
 
 
-OUT_SUMMARY   = _ROOT / "reports" / "feature_store_summary.json"
-OUT_NARRATIVE = _ROOT / "reports" / "ai_feature_narrative.json"
+# CEO 2026-11-04 · these honour AEGIS_FEATURE_OUT_ROOT so a test can
+# run this script as a subprocess without writing into the live tree.
+# Production leaves the variable unset and writes under _ROOT.
+from backend.feature_store.feature_snapshot import resolved_out_root  # noqa: E402
+_OUT = resolved_out_root(_ROOT)
+OUT_SUMMARY   = _OUT / "reports" / "feature_store_summary.json"
+OUT_NARRATIVE = _OUT / "reports" / "ai_feature_narrative.json"
+
+
+def _rel(p):
+    """Display path · tolerant of an out-root outside the repo.
+
+    `relative_to` RAISES when the feature-store output root is
+    redirected (AEGIS_FEATURE_OUT_ROOT), which crashed this
+    runner inside a test rather than in production.
+    """
+    try:
+        return p.relative_to(_ROOT)
+    except ValueError:
+        return p
 
 
 def _as_dict(obj):
@@ -80,7 +98,7 @@ def main() -> int:
         "run_utc":    now.isoformat(timespec="seconds"),
         **summary,
     }, indent=2), encoding="utf-8")
-    print(f"  wrote {OUT_SUMMARY.relative_to(_ROOT)}")
+    print(f"  wrote {_rel(OUT_SUMMARY)}")
 
     # Re-load snapshot for AI agents
     df = read_snapshot(_ROOT, "india", asof)
@@ -105,7 +123,7 @@ def main() -> int:
         "asof":    asof.isoformat(),
         "agents":  {k: _as_dict(v) for k, v in ai_out.items()},
     }, indent=2), encoding="utf-8")
-    print(f"  wrote {OUT_NARRATIVE.relative_to(_ROOT)}")
+    print(f"  wrote {_rel(OUT_NARRATIVE)}")
 
     for name, out in ai_out.items():
         print(f"    · {name:<12}: {out.headline[:100]}")

@@ -15,6 +15,9 @@ from pathlib import Path
 
 import pandas as pd
 
+import os
+import pytest
+
 _ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(_ROOT))
 
@@ -102,16 +105,21 @@ def test_validate_snapshot_produces_verdict():
 
 
 # ── Persistence ─────────────────────────────────────────────────
-def test_build_and_persist_writes_parquet_and_manifest():
-    summary = build_and_persist(_ROOT, USA_PROFILE, asof=date.today())
+def test_build_and_persist_writes_parquet_and_manifest(tmp_path):
+    # CEO 2026-11-04 · reads the real substrate, writes to tmp_path.
+    # This used to pass _ROOT as the OUTPUT root too, so every
+    # regression run emitted a real snapshot into features/ and
+    # appended to the TRACKED features/manifest.jsonl.
+    summary = build_and_persist(_ROOT, USA_PROFILE, asof=date.today(),
+                                 out_root=tmp_path)
     assert summary["n_rows"] > 0
     assert summary["schema_fingerprint"] == schema_fingerprint()
-    p = snapshot_path(_ROOT, "usa", date.today())
+    p = snapshot_path(tmp_path, "usa", date.today())
     # The exact filename may be `.rebuilt_HHMMSS.parquet` on a re-emit — check either
     parent = p.parent
     assert parent.exists() and any(parent.glob(f"{date.today().isoformat()}*.parquet")), \
         f"no snapshot parquet emitted under {parent}"
-    manifest = _ROOT / "features" / "manifest.jsonl"
+    manifest = tmp_path / "features" / "manifest.jsonl"
     assert manifest.exists()
     print(f"  [OK] build_and_persist wrote snapshot + manifest ({summary['n_rows']} rows)")
 
@@ -148,12 +156,13 @@ def test_feature_ai_agents_no_recommendation_output():
 
 
 # ── Integration ─────────────────────────────────────────────────
-def test_india_feature_store_runner_emits_valid_json():
+def test_india_feature_store_runner_emits_valid_json(_OUT_ROOT):
     r = subprocess.run(
         [sys.executable, "india/feature_store/run.py"],
-        cwd=str(_ROOT), capture_output=True, text=True, timeout=300)
+        cwd=str(_ROOT), capture_output=True, text=True, timeout=300,
+        env=dict(os.environ, AEGIS_FEATURE_OUT_ROOT=str(_OUT_ROOT)))
     assert r.returncode == 0, f"exit {r.returncode}\n{r.stderr[:500]}"
-    summary = json.loads((_ROOT / "reports" / "feature_store_summary.json")
+    summary = json.loads((_OUT_ROOT / "reports" / "feature_store_summary.json")
                             .read_text(encoding="utf-8"))
     assert summary["market"] == "india"
     assert "verdict" in summary and "n_rows" in summary
@@ -161,12 +170,13 @@ def test_india_feature_store_runner_emits_valid_json():
            f"rows={summary['n_rows']} features={summary['n_features']}")
 
 
-def test_usa_feature_store_runner_emits_valid_json():
+def test_usa_feature_store_runner_emits_valid_json(_OUT_ROOT):
     r = subprocess.run(
         [sys.executable, "usa/research/feature_store/run.py"],
-        cwd=str(_ROOT), capture_output=True, text=True, timeout=300)
+        cwd=str(_ROOT), capture_output=True, text=True, timeout=300,
+        env=dict(os.environ, AEGIS_FEATURE_OUT_ROOT=str(_OUT_ROOT)))
     assert r.returncode == 0, f"exit {r.returncode}\n{r.stderr[:500]}"
-    summary = json.loads((_ROOT / "usa" / "reports" / "feature_store_summary.json")
+    summary = json.loads((_OUT_ROOT / "usa" / "reports" / "feature_store_summary.json")
                             .read_text(encoding="utf-8"))
     assert summary["market"] == "usa"
     print(f"  [OK] usa feature store runner: verdict={summary['verdict']} "
@@ -212,3 +222,16 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+
+
+# ── Write isolation · CEO 2026-11-04 ────────────────────────────
+@pytest.fixture
+def _OUT_ROOT(tmp_path):
+    """A disposable feature-store output root for subprocess runners.
+
+    A subprocess cannot be handed a Python argument, so the runners read
+    AEGIS_FEATURE_OUT_ROOT instead. Production never sets it.
+    """
+    (tmp_path / "reports").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "usa" / "reports").mkdir(parents=True, exist_ok=True)
+    return tmp_path
