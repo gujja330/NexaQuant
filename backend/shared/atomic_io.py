@@ -40,8 +40,13 @@ from pathlib import Path
 #: Windows ERROR_ACCESS_DENIED / ERROR_SHARING_VIOLATION.
 _WINDOWS_SHARING_ERRNOS = {5, 13, 32}
 
-DEFAULT_ATTEMPTS = 10
-DEFAULT_BASE_DELAY_S = 0.02
+#: Retries cost nothing when uncontended - the first attempt succeeds -
+#: so the budget is set by how long a reader may plausibly hold the
+#: file, not by how long we are willing to wait in the common case.
+#: Linear backoff capped per attempt: ~2.5s total across 24 attempts.
+DEFAULT_ATTEMPTS = 24
+DEFAULT_BASE_DELAY_S = 0.01
+MAX_DELAY_S = 0.15
 
 
 def replace_with_retry(src, dest, attempts: int = DEFAULT_ATTEMPTS,
@@ -69,7 +74,7 @@ def replace_with_retry(src, dest, attempts: int = DEFAULT_ATTEMPTS,
                 last = e
             else:
                 raise
-        time.sleep(base_delay * (i + 1))
+        time.sleep(min(base_delay * (i + 1), MAX_DELAY_S))
     assert last is not None
     raise last
 
