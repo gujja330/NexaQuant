@@ -3,12 +3,19 @@ from __future__ import annotations
 
 import io
 import json
+import pytest
 import subprocess
 import sys
 from datetime import date
 from pathlib import Path
 
 _ROOT = Path(__file__).resolve().parents[2]
+
+def _runner_env(out_root):
+    """Propagate the isolated report root to a child process."""
+    from backend.shared.out_root import subprocess_env
+    return subprocess_env(out_root)
+
 sys.path.insert(0, str(_ROOT))
 
 from backend.macro_intel                  import (                                            # noqa: E402
@@ -240,20 +247,20 @@ def test_ai_macro_analyst_never_promotes():
 
 
 # ── Integration ─────────────────────────────────────────────────
-def test_india_runner():
+def test_india_runner(_OUT_ROOT):
     r = subprocess.run(
         [sys.executable, "india/macro_intel/run.py"],
-        cwd=str(_ROOT), capture_output=True, text=True, timeout=120)
+        cwd=str(_ROOT), env=_runner_env(_OUT_ROOT), capture_output=True, text=True, timeout=120)
     assert r.returncode == 0, f"exit {r.returncode}\n{r.stderr[:500]}"
     d = json.loads((_ROOT / "reports" / "macro_regime.json").read_text(encoding="utf-8"))
     assert d["market"] == "india"
     print(f"  [OK] india runner: regime={d.get('primary_regime', '?')}")
 
 
-def test_usa_runner():
+def test_usa_runner(_OUT_ROOT):
     r = subprocess.run(
         [sys.executable, "usa/research/macro_intel/run.py"],
-        cwd=str(_ROOT), capture_output=True, text=True, timeout=120)
+        cwd=str(_ROOT), env=_runner_env(_OUT_ROOT), capture_output=True, text=True, timeout=120)
     assert r.returncode == 0, f"exit {r.returncode}\n{r.stderr[:500]}"
     d = json.loads((_ROOT / "usa" / "reports" / "macro_regime.json").read_text(encoding="utf-8"))
     assert d["market"] == "usa"
@@ -301,3 +308,18 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+
+
+# ── Write isolation · CEO 2026-11-04 ────────────────────────────
+@pytest.fixture
+def _OUT_ROOT(tmp_path):
+    """A disposable report root for subprocess engine runners.
+
+    Found by the protected-hash comparison: 13 of 14 protected files
+    were byte-identical across the full suite and model_registry.jsonl
+    was not, because these runners still executed without the redirect
+    and register_model resolved to the live root.
+    """
+    for sub in ("reports", "usa/reports", "features"):
+        (tmp_path / sub).mkdir(parents=True, exist_ok=True)
+    return tmp_path

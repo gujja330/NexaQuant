@@ -136,8 +136,30 @@ def test_workflow_fails_when_delivery_blocked(market):
     assert "ci_delivery_verdict.py" in _effective(last.get("run", "")), (
         "the delivery-verdict gate is not the final step of %s" % market)
     assert "--market %s" % market in _effective(last.get("run", ""))
-    assert last.get("if") == "always()", (
-        "the gate must run even when an earlier step failed")
+    cond = str(last.get("if") or "")
+    # CEO 2026-11-04 · the REQUIREMENT is that a failure upstream must not
+    # skip the gate, so `always()` must be present. It is no longer the
+    # whole condition for India.
+    #
+    # India's workflow guards once per IST day. On 2026-11-04 the 06:00
+    # run did the day's work and the 06:49, 07:18 and 07:46 backups
+    # correctly short-circuited - steps #5 to #31 all skipped - and a
+    # bare `always()` made this gate run anyway and fail for want of a
+    # state file those skipped steps never wrote. Three consecutive RED
+    # Daily runs, and the pipeline had not failed at all. Fixed in
+    # 14ebede10 by adding the guard conjunct.
+    #
+    # So this asserts the semantic rather than the literal string: the
+    # gate still runs after an upstream failure, and the only permitted
+    # additional conjunct is the day guard - a run deliberately skipped
+    # is not a failure to report on. Anything else would be a real
+    # weakening and still fails here.
+    assert "always()" in cond, (
+        "the gate must run even when an earlier step failed · if=%r" % cond)
+    extra = [c.strip() for c in cond.split("&&") if "always()" not in c]
+    assert all("steps.guard.outputs.run" in c for c in extra), (
+        "the gate carries a condition beyond always() and the day guard: "
+        "%r" % extra)
 
 
 @pytest.mark.parametrize("market", ["usa", "india"])
