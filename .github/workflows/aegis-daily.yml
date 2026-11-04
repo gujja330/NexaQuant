@@ -690,8 +690,22 @@ jobs:
       # file. asof cannot catch that, because on a non-trading day the asof
       # legitimately does not advance. Legitimate holiday and no-session
       # skips still pass, but only as a fresh, auditable claim.
+      # CEO 2026-11-04 · `always()` alone IGNORED the once-per-IST-day
+      # guard. The 06:00 run of 2026-11-04 did the day's work and
+      # committed; the 06:49, 07:18 and 07:46 backup runs correctly
+      # short-circuited - steps #5 to #31 all skipped - and then these
+      # three ran anyway and failed for want of a state file that the
+      # skipped steps never wrote. Three consecutive RED Daily runs, and
+      # the pipeline had not failed at all. On 2026-11-03 the same three
+      # backup runs were green, because these steps did not exist yet.
+      #
+      # A check that cannot tell "did not happen because it correctly
+      # did not need to" from "did not happen because it broke" trains
+      # the operator to ignore red. So they now respect the guard and
+      # keep always() only for its real purpose: reporting even when an
+      # earlier step of a run that DID execute has failed.
       - name: Strict history verification (INDIA)
-        if: always()
+        if: always() && steps.guard.outputs.run == 'true'
         run: python scripts/ci_history_persistence_check.py --market india --strict --max-age-hours 24
 
       # CEO 2026-11-03 · THE FINAL CONCLUSION, WITH EVIDENCE.
@@ -702,8 +716,8 @@ jobs:
       # delivery ledger decides SUCCESS vs FAILURE. Runs after the commits
       # above so persistence is a fair question.
       - name: Delivery status · six states with evidence (INDIA)
-        if: always()
+        if: always() && steps.guard.outputs.run == 'true'
         run: python scripts/ci_delivery_status.py --market india
       - name: Fail the run if delivery was blocked (India)
-        if: always()
+        if: always() && steps.guard.outputs.run == 'true'
         run: python scripts/ci_delivery_verdict.py --market india
