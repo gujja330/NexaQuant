@@ -19,10 +19,15 @@ sys.path.insert(0, str(_ROOT))
 
 # CEO 2026-11-04 · report writes honour AEGIS_OUT_ROOT so a test can
 # run this engine as a subprocess without touching live artifacts.
-# Production sets no variable, so _OUT == _ROOT and _USA is unchanged.
+# CEO 2026-11-04 v2 · _USA stays the REAL directory because the
+# engines READ their upstream inputs through it (selected_features,
+# learning.parquet, sized_positions, configs). Redirecting it broke
+# the chain: portfolio_engine exited 1 with "usa/reports/
+# sized_positions.json missing" because risk_engine's output was
+# being looked for in the empty tmp root. Only WRITES move.
 from backend.shared.out_root import resolved_out_root  # noqa: E402
 _OUT = resolved_out_root(_ROOT)
-_USA = _OUT / "usa"
+_USA_OUT = _OUT / "usa"
 
 from backend.canonical.model            import USA_PROFILE                                  # noqa: E402
 from backend.feature_store.feature_history import read_snapshot, list_snapshots            # noqa: E402
@@ -35,10 +40,10 @@ from backend.ai                         import model_analyst                    
 from backend.certification.adaptive_weights import load_ensemble_weights_config              # noqa: E402
 
 
-OUT_FACTORY    = _USA / "reports" / "model_factory.json"
-OUT_METRICS    = _USA / "reports" / "model_metrics.json"
-OUT_ENSEMBLE   = _USA / "reports" / "ensemble.json"
-OUT_NARRATIVE  = _USA / "reports" / "ai_model_narrative.json"
+OUT_FACTORY    = _USA_OUT / "reports" / "model_factory.json"
+OUT_METRICS    = _USA_OUT / "reports" / "model_metrics.json"
+OUT_ENSEMBLE   = _USA_OUT / "reports" / "ensemble.json"
+OUT_NARRATIVE  = _USA_OUT / "reports" / "ai_model_narrative.json"
 SELECTED_FEATS = _USA / "reports" / "selected_features.json"
 LEARNING_CORPUS = _USA / "reports" / "learning.parquet"
 ADAPTIVE_WEIGHTS_CFG = _USA / "configs" / "ensemble_weights_adaptive.yaml"

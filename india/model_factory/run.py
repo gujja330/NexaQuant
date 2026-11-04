@@ -52,6 +52,26 @@ LEARNING_CORPUS = _ROOT / "reports" / "learning.parquet"
 ADAPTIVE_WEIGHTS_CFG = _ROOT / "configs" / "ensemble_weights_adaptive.yaml"
 
 
+_REL_BASES = (_OUT, _ROOT)
+
+
+def _rel(p):
+    """Display path · tolerant of an out-root outside the repository.
+
+    CEO 2026-11-04 · `relative_to` RAISES when the path is not under the
+    given root, so every engine crashed on its own "wrote ..." success
+    message once report writes were redirected for test isolation. The
+    third time this exact pattern has bitten, so it is now a helper
+    rather than an inline call.
+    """
+    for base in _REL_BASES:
+        try:
+            return p.relative_to(base)
+        except (ValueError, AttributeError):
+            continue
+    return p
+
+
 def _stringify(v):
     if isinstance(v, dict):    return {k: _stringify(x) for k, x in v.items()}
     if isinstance(v, (list, tuple)): return [_stringify(x) for x in v]
@@ -155,7 +175,7 @@ def main() -> int:
             ],
         } for p in predictions],
     }, indent=2, default=str), encoding="utf-8")
-    print(f"  wrote {OUT_FACTORY.relative_to(_ROOT)}")
+    print(f"  wrote {_rel(OUT_FACTORY)}")
 
     OUT_METRICS.write_text(json.dumps({
         "engine": "model_intelligence", "market": "india",
@@ -163,7 +183,7 @@ def main() -> int:
         "n_models": len(metrics_list),
         "metrics": [_as_dict(m) for m in metrics_list],
     }, indent=2, default=str), encoding="utf-8")
-    print(f"  wrote {OUT_METRICS.relative_to(_ROOT)}")
+    print(f"  wrote {_rel(OUT_METRICS)}")
 
     OUT_ENSEMBLE.write_text(json.dumps({
         "engine":   "ensemble", "market": "india",
@@ -216,7 +236,7 @@ def main() -> int:
             "top_10 / bottom_5 are for display only · eligibility must "
             "consume all_candidates or it will discard qualified names"),
     }, indent=2, default=str), encoding="utf-8")
-    print(f"  wrote {OUT_ENSEMBLE.relative_to(_ROOT)}")
+    print(f"  wrote {_rel(OUT_ENSEMBLE)}")
 
     OUT_NARRATIVE.write_text(json.dumps({
         "engine":  "ai_model_narrative", "version": "v1.0",
@@ -224,7 +244,7 @@ def main() -> int:
         "asof":    latest.isoformat(),
         "output":  _as_dict(ai_out),
     }, indent=2, default=str), encoding="utf-8")
-    print(f"  wrote {OUT_NARRATIVE.relative_to(_ROOT)}")
+    print(f"  wrote {_rel(OUT_NARRATIVE)}")
 
     print(f"  headline: {ai_out.headline}")
     return 0

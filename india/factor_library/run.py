@@ -42,6 +42,26 @@ OUT_PARQUET = REPORTS / "factor_library.parquet"
 OUT_HISTORY = REPORTS / "factor_library_history.parquet"
 
 
+_REL_BASES = (_OUT, _ROOT)
+
+
+def _rel(p):
+    """Display path · tolerant of an out-root outside the repository.
+
+    CEO 2026-11-04 · `relative_to` RAISES when the path is not under the
+    given root, so every engine crashed on its own "wrote ..." success
+    message once report writes were redirected for test isolation. The
+    third time this exact pattern has bitten, so it is now a helper
+    rather than an inline call.
+    """
+    for base in _REL_BASES:
+        try:
+            return p.relative_to(base)
+        except (ValueError, AttributeError):
+            continue
+    return p
+
+
 def _as_dict(obj):
     if obj is None: return None
     if hasattr(obj, "__dataclass_fields__"):
@@ -107,8 +127,8 @@ def main() -> int:
         except Exception as exc:
             print(f"  history append warning (non-fatal): {exc}")
 
-    print(f"  wrote {OUT_JSON.relative_to(_ROOT)}")
-    print(f"  wrote {OUT_PARQUET.relative_to(_ROOT)}")
+    print(f"  wrote {_rel(OUT_JSON)}")
+    print(f"  wrote {_rel(OUT_PARQUET)}")
     print(f"  n_factors={result.n_factors} confident={sum(1 for f in result.factors if f.confidence >= 1.0)}")
     return 0
 

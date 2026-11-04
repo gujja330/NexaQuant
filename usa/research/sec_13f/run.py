@@ -38,6 +38,25 @@ OUT_PARQUET   = _USA / "data" / "raw" / "us" / "institutional_holders.parquet"
 OUT_SUMMARY   = _USA / "reports" / "sec_13f_summary.json"
 
 
+_REL_BASES = (_USA, _ROOT)
+
+
+def _rel(p):
+    """Display path · tolerant of an out-root outside the repository.
+
+    CEO 2026-11-04 · `relative_to` RAISES when the path is not under the
+    given root, so every engine crashed on its own "wrote ..." success
+    message once report writes were redirected for test isolation. The
+    third time this exact pattern has bitten, so it is a helper now.
+    """
+    for base in _REL_BASES:
+        try:
+            return p.relative_to(base)
+        except (ValueError, AttributeError):
+            continue
+    return p
+
+
 def _load_universe() -> list[str]:
     if not UNIVERSE_JSON.exists(): return []
     data = json.loads(UNIVERSE_JSON.read_text(encoding="utf-8"))
@@ -142,12 +161,12 @@ def main() -> int:
         "n_total_holder_rows":    int(len(df)),
         "avg_institutional_pct":  round(sum(inst_pcts) / len(inst_pcts), 2) if inst_pcts else 0.0,
         "per_ticker":             sorted(per_ticker, key=lambda x: x["ticker"]),
-        "parquet":                str(OUT_PARQUET.relative_to(_ROOT).as_posix()),
+        "parquet":                str(_rel(OUT_PARQUET).as_posix()),
         "notes":                  "yfinance institutional_holders view (top 10 per ticker). "
                                    "Full EDGAR 13F parse (all filers) deferred to a later sprint.",
     }
     OUT_SUMMARY.write_text(json.dumps(summary, indent=2), encoding="utf-8")
-    print(f"  wrote {OUT_PARQUET.relative_to(_ROOT)} · {len(df)} holder rows")
+    print(f"  wrote {_rel(OUT_PARQUET)} · {len(df)} holder rows")
     print(f"  avg institutional ownership: {summary['avg_institutional_pct']:.1f}%")
     return 0
 

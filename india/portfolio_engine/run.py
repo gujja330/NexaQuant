@@ -52,6 +52,26 @@ OUT_FULL      = _OUT / "reports" / "portfolio_v3.json"
 OUT_DIFF      = _OUT / "reports" / "portfolio_diff.json"
 OUT_NARRATIVE = _OUT / "reports" / "ai_portfolio_narrative.json"
 
+
+_REL_BASES = (_OUT, _ROOT)
+
+
+def _rel(p):
+    """Display path · tolerant of an out-root outside the repository.
+
+    CEO 2026-11-04 · `relative_to` RAISES when the path is not under the
+    given root, so every engine crashed on its own "wrote ..." success
+    message once report writes were redirected for test isolation. The
+    third time this exact pattern has bitten, so it is now a helper
+    rather than an inline call.
+    """
+    for base in _REL_BASES:
+        try:
+            return p.relative_to(base)
+        except (ValueError, AttributeError):
+            continue
+    return p
+
 SIZED_PATH   = _ROOT / "reports" / "sized_positions.json"
 MI_SUMMARY   = _ROOT / "reports" / "market_intelligence_summary.json"
 CONFIG_PATH  = _ROOT / "configs" / "portfolio_config.yaml"
@@ -166,7 +186,7 @@ def main() -> int:
         "snapshot": _as_dict(snap),
         "model_stamp": model_stamp,
     }, indent=2, default=str), encoding="utf-8")
-    print(f"  wrote {OUT_FULL.relative_to(_ROOT)}")
+    print(f"  wrote {_rel(OUT_FULL)}")
 
     # Sprint 7.5 · append to standardized portfolio history (fail-open)
     try:
@@ -197,13 +217,13 @@ def main() -> int:
         "asof": asof.isoformat(),
         **_as_dict(diff),
     }, indent=2, default=str), encoding="utf-8")
-    print(f"  wrote {OUT_DIFF.relative_to(_ROOT)}")
+    print(f"  wrote {_rel(OUT_DIFF)}")
 
     # Persist state (idempotent) + append history (append-only)
     p_state = save_current_state(_ROOT, snap)
     p_hist  = append_state_history(_ROOT, snap)
-    print(f"  wrote {p_state.relative_to(_ROOT)}")
-    print(f"  appended {p_hist.relative_to(_ROOT)}")
+    print(f"  wrote {_rel(p_state)}")
+    print(f"  appended {_rel(p_hist)}")
 
     # AI Portfolio Analyst
     ai = portfolio_analyst.run(snap, diff, effective_n_min,
@@ -214,7 +234,7 @@ def main() -> int:
         "asof": asof.isoformat(),
         "output": _as_dict(ai),
     }, indent=2, default=str), encoding="utf-8")
-    print(f"  wrote {OUT_NARRATIVE.relative_to(_ROOT)}")
+    print(f"  wrote {_rel(OUT_NARRATIVE)}")
     print(f"  ai headline: {ai.headline}")
     return 0
 

@@ -44,17 +44,22 @@ OUT_SUMMARY   = _OUT / "reports" / "feature_store_summary.json"
 OUT_NARRATIVE = _OUT / "reports" / "ai_feature_narrative.json"
 
 
-def _rel(p):
-    """Display path · tolerant of an out-root outside the repo.
+_REL_BASES = (_OUT, _ROOT)
 
-    `relative_to` RAISES when the feature-store output root is
-    redirected (AEGIS_FEATURE_OUT_ROOT), which crashed this
-    runner inside a test rather than in production.
+
+def _rel(p):
+    """Display path · tolerant of an out-root outside the repository.
+
+    `relative_to` RAISES when the output root is redirected for test
+    isolation, which crashed this runner on its own success message.
+    Tries each known root, then falls back to the absolute path.
     """
-    try:
-        return p.relative_to(_ROOT)
-    except ValueError:
-        return p
+    for base in _REL_BASES:
+        try:
+            return p.relative_to(base)
+        except (ValueError, AttributeError):
+            continue
+    return p
 
 
 def _as_dict(obj):

@@ -40,6 +40,27 @@ _USA  = Path(__file__).resolve().parents[2]
 
 
 # ── Action mapping — same buckets as India's Investment Decision Score
+
+
+_REL_BASES = (_USA, _ROOT)
+
+
+def _rel(p):
+    """Display path · tolerant of an out-root outside the repository.
+
+    CEO 2026-11-04 · `relative_to` RAISES when the path is not under the
+    given root, so every engine crashed on its own "wrote ..." success
+    message once report writes were redirected for test isolation. The
+    third time this exact pattern has bitten, so it is a helper now.
+    """
+    for base in _REL_BASES:
+        try:
+            return p.relative_to(base)
+        except (ValueError, AttributeError):
+            continue
+    return p
+
+
 def score_to_action(score: float | None) -> str:
     if score is None: return "Hold"
     if score >= 80:   return "Strong-Buy"
@@ -257,7 +278,7 @@ def main() -> int:
 
     print()
     print(f"  actions:  {dict(action_counts)}")
-    print(f"  written:  {out_path.relative_to(_ROOT)} ({out_path.stat().st_size / 1024:.1f} KB)")
+    print(f"  written:  {_rel(out_path)} ({out_path.stat().st_size / 1024:.1f} KB)")
     print(f"  elapsed:  {time.time() - t0:.2f}s")
     return 0
 

@@ -26,10 +26,15 @@ sys.path.insert(0, str(_ROOT))
 
 # CEO 2026-11-04 · report writes honour AEGIS_OUT_ROOT so a test can
 # run this engine as a subprocess without touching live artifacts.
-# Production sets no variable, so _OUT == _ROOT and _USA is unchanged.
+# CEO 2026-11-04 v2 · _USA stays the REAL directory because the
+# engines READ their upstream inputs through it (selected_features,
+# learning.parquet, sized_positions, configs). Redirecting it broke
+# the chain: portfolio_engine exited 1 with "usa/reports/
+# sized_positions.json missing" because risk_engine's output was
+# being looked for in the empty tmp root. Only WRITES move.
 from backend.shared.out_root import resolved_out_root  # noqa: E402
 _OUT = resolved_out_root(_ROOT)
-_USA = _OUT / "usa"
+_USA_OUT = _OUT / "usa"
 
 from backend.canonical.model import USA_PROFILE                                          # noqa: E402
 from backend.canonical.adapters import adapt_all                                          # noqa: E402
@@ -37,9 +42,29 @@ from backend.market_intelligence.engine import MarketIntelligenceEngine         
 from backend.ai import market_analyst, data_quality, evidence_summarizer                  # noqa: E402
 
 
-OUT_INTEL     = _USA / "reports" / "market_intelligence.json"
-OUT_SUMMARY   = _USA / "reports" / "market_intelligence_summary.json"
-OUT_NARRATIVE = _USA / "reports" / "ai_market_narrative.json"
+OUT_INTEL     = _USA_OUT / "reports" / "market_intelligence.json"
+OUT_SUMMARY   = _USA_OUT / "reports" / "market_intelligence_summary.json"
+OUT_NARRATIVE = _USA_OUT / "reports" / "ai_market_narrative.json"
+
+
+_REL_BASES = (_OUT, _USA_OUT, _USA, _ROOT)
+
+
+def _rel(p):
+    """Display path · tolerant of an out-root outside the repository.
+
+    CEO 2026-11-04 · `relative_to` RAISES when the path is not under the
+    given root, so every engine crashed on its own "wrote ..." success
+    message once report writes were redirected for test isolation. The
+    third time this exact pattern has bitten, so it is now a helper
+    rather than an inline call.
+    """
+    for base in _REL_BASES:
+        try:
+            return p.relative_to(base)
+        except (ValueError, AttributeError):
+            continue
+    return p
 
 
 def _stringify(v):
@@ -85,7 +110,7 @@ def main() -> int:
     OUT_INTEL.write_text(json.dumps(intel_dict, indent=2), encoding="utf-8")
     print(f"  regime: {result.regime_label}  (composite {result.composite_score:.1f}/100)")
     print(f"  signals: {len(result.signals)}")
-    print(f"  wrote {OUT_INTEL.relative_to(_ROOT)}")
+    print(f"  wrote {_rel(OUT_INTEL)}")
 
     summary = {
         "engine":          "market_intelligence",
@@ -99,7 +124,7 @@ def main() -> int:
                               for k, v in result.signals.items()},
     }
     OUT_SUMMARY.write_text(json.dumps(summary, indent=2), encoding="utf-8")
-    print(f"  wrote {OUT_SUMMARY.relative_to(_ROOT)}")
+    print(f"  wrote {_rel(OUT_SUMMARY)}")
 
     canon = adapt_all(_ROOT, USA_PROFILE, cutoff=None,
                         include=["news", "fundamentals", "flow", "corporate_action",
@@ -122,7 +147,7 @@ def main() -> int:
         },
     }
     OUT_NARRATIVE.write_text(json.dumps(narrative_bundle, indent=2), encoding="utf-8")
-    print(f"  wrote {OUT_NARRATIVE.relative_to(_ROOT)}")
+    print(f"  wrote {_rel(OUT_NARRATIVE)}")
     print(f"  AI headlines:")
     print(f"    · analyst: {analyst_out.headline[:100]}")
     print(f"    · dq     : {dq_out.headline[:100]}")

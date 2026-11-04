@@ -51,6 +51,26 @@ OUT_SIZED     = _OUT / "reports" / "sized_positions.json"
 OUT_REPORT    = _OUT / "reports" / "risk_report.json"
 OUT_NARRATIVE = _OUT / "reports" / "ai_risk_narrative.json"
 
+
+_REL_BASES = (_OUT, _ROOT)
+
+
+def _rel(p):
+    """Display path · tolerant of an out-root outside the repository.
+
+    CEO 2026-11-04 · `relative_to` RAISES when the path is not under the
+    given root, so every engine crashed on its own "wrote ..." success
+    message once report writes were redirected for test isolation. The
+    third time this exact pattern has bitten, so it is now a helper
+    rather than an inline call.
+    """
+    for base in _REL_BASES:
+        try:
+            return p.relative_to(base)
+        except (ValueError, AttributeError):
+            continue
+    return p
+
 REC_PATH        = _ROOT / "reports" / "recommendations_v3.json"
 MI_SUMMARY      = _ROOT / "reports" / "market_intelligence_summary.json"
 BUDGET_PATH     = _ROOT / "configs" / "risk_budget.yaml"
@@ -170,7 +190,7 @@ def main() -> int:
             "enable_shorts":        budget.enable_shorts,
         },
     }, indent=2, default=str), encoding="utf-8")
-    print(f"  wrote {OUT_SIZED.relative_to(_ROOT)}")
+    print(f"  wrote {_rel(OUT_SIZED)}")
 
     OUT_REPORT.write_text(json.dumps({
         "engine": engine.ENGINE_ID, "version": engine.ENGINE_VERSION,
@@ -178,7 +198,7 @@ def main() -> int:
         "asof": latest.isoformat(),
         **_as_dict(report),
     }, indent=2, default=str), encoding="utf-8")
-    print(f"  wrote {OUT_REPORT.relative_to(_ROOT)}")
+    print(f"  wrote {_rel(OUT_REPORT)}")
 
     # Sprint 7.5 · append to permanent history (fail-open)
     try:
@@ -196,7 +216,7 @@ def main() -> int:
         "asof": latest.isoformat(),
         "output": _as_dict(ai),
     }, indent=2, default=str), encoding="utf-8")
-    print(f"  wrote {OUT_NARRATIVE.relative_to(_ROOT)}")
+    print(f"  wrote {_rel(OUT_NARRATIVE)}")
     print(f"  ai: {ai.headline}")
     return 0
 

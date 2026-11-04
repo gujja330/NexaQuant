@@ -19,10 +19,15 @@ sys.path.insert(0, str(_ROOT))
 
 # CEO 2026-11-04 · report writes honour AEGIS_OUT_ROOT so a test can
 # run this engine as a subprocess without touching live artifacts.
-# Production sets no variable, so _OUT == _ROOT and _USA is unchanged.
+# CEO 2026-11-04 v2 · _USA stays the REAL directory because the
+# engines READ their upstream inputs through it (selected_features,
+# learning.parquet, sized_positions, configs). Redirecting it broke
+# the chain: portfolio_engine exited 1 with "usa/reports/
+# sized_positions.json missing" because risk_engine's output was
+# being looked for in the empty tmp root. Only WRITES move.
 from backend.shared.out_root import resolved_out_root  # noqa: E402
 _OUT = resolved_out_root(_ROOT)
-_USA = _OUT / "usa"
+_USA_OUT = _OUT / "usa"
 
 import yaml                                                                                  # noqa: E402
 
@@ -33,11 +38,11 @@ from backend.model_registry.registry      import stamp, register_model, ModelSta
 from backend.ai                          import learning_analyst                            # noqa: E402
 
 
-OUT_FEAT_ATTR = _USA / "reports" / "feature_attribution.json"
-OUT_MODEL_ATTR = _USA / "reports" / "model_attribution.json"
-OUT_CLUSTERS   = _USA / "reports" / "failure_clusters.json"
-OUT_CALIB      = _USA / "reports" / "confidence_calibration.json"
-OUT_NARRATIVE  = _USA / "reports" / "ai_learning_narrative.json"
+OUT_FEAT_ATTR = _USA_OUT / "reports" / "feature_attribution.json"
+OUT_MODEL_ATTR = _USA_OUT / "reports" / "model_attribution.json"
+OUT_CLUSTERS   = _USA_OUT / "reports" / "failure_clusters.json"
+OUT_CALIB      = _USA_OUT / "reports" / "confidence_calibration.json"
+OUT_NARRATIVE  = _USA_OUT / "reports" / "ai_learning_narrative.json"
 
 CONFIG_PATH   = _ROOT / "configs" / "learning_config.yaml"
 

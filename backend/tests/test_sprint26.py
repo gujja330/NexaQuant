@@ -40,7 +40,7 @@ from backend.ai import feature_research                                         
 
 
 # ── Governance ──────────────────────────────────────────────────
-def test_governance_returns_verdict():
+def test_governance_returns_verdict(_OUT_ROOT):
     r = validate_governance(date.today())
     assert r.verdict in {"PASS", "WARNING", "FAIL"}
     assert r.n_features == len(FEATURE_REGISTRY)
@@ -146,15 +146,22 @@ def test_evolution_candidate_lifecycle():
 
 
 # ── Model Registry ──────────────────────────────────────────────
-def test_model_registry_registers_and_retrieves():
-    rec = register_model(_ROOT,
+def test_model_registry_registers_and_retrieves(_OUT_ROOT):
+    """CEO 2026-11-04 · this appended to the LIVE model_registry.jsonl.
+
+    register_model(_ROOT, ...) wrote a row named "test.model.v1" into the
+    production registry on every regression run - a protected ledger
+    acquiring a fake model. The whole round-trip now happens inside the
+    isolated root.
+    """
+    rec = register_model(_OUT_ROOT,
         model_id="test.model.v1", engine="recommendation", market="usa", version="1.0.0",
         feature_set_version="fs-abc123", schema_version="fs-abc123",
         approval_status=ModelStatus.EXPERIMENTAL, notes="regression test")
     assert rec.model_id == "test.model.v1"
-    got = get_model(_ROOT, "test.model.v1")
+    got = get_model(_OUT_ROOT, "test.model.v1")
     assert got is not None and got.engine == "recommendation"
-    st = stamp(_ROOT, "test.model.v1")
+    st = stamp(_OUT_ROOT, "test.model.v1")
     assert st["model_id"] == "test.model.v1"
     print(f"  [OK] model registry: register + get + stamp round-trip")
 

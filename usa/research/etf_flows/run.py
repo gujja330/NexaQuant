@@ -37,6 +37,26 @@ _USA  = Path(__file__).resolve().parents[2]
 OUT_PARQUET = _USA / "data" / "raw" / "us" / "etf_flows.parquet"
 OUT_SUMMARY = _USA / "reports" / "etf_flows_summary.json"
 
+
+_REL_BASES = (_USA, _ROOT)
+
+
+def _rel(p):
+    """Display path · tolerant of an out-root outside the repository.
+
+    CEO 2026-11-04 · `relative_to` RAISES when the path is not under the
+    given root, so every engine crashed on its own "wrote ..." success
+    message once report writes were redirected for test isolation. The
+    third time this exact pattern has bitten, so it is now a helper
+    rather than an inline call.
+    """
+    for base in _REL_BASES:
+        try:
+            return p.relative_to(base)
+        except (ValueError, AttributeError):
+            continue
+    return p
+
 # Curated ETF set — broad market + sectors + defensives + international
 ETFS = {
     # Broad market
@@ -150,10 +170,10 @@ def main() -> int:
         "top_3_gainers": ranked[:3],
         "top_3_losers":  ranked[-3:][::-1] if len(ranked) >= 3 else ranked[::-1],
         "per_etf":      sorted(per_etf, key=lambda x: x["ticker"]),
-        "parquet":      str(OUT_PARQUET.relative_to(_ROOT).as_posix()),
+        "parquet":      str(_rel(OUT_PARQUET).as_posix()),
     }
     OUT_SUMMARY.write_text(json.dumps(summary, indent=2), encoding="utf-8")
-    print(f"  wrote {OUT_PARQUET.relative_to(_ROOT)} · {len(all_rows)} rows")
+    print(f"  wrote {_rel(OUT_PARQUET)} · {len(all_rows)} rows")
     if ranked:
         print(f"  top gainer: {ranked[0]['ticker']} ({ranked[0]['label']}) {ranked[0]['return_pct']:+.2f}%")
         print(f"  top loser:  {ranked[-1]['ticker']} ({ranked[-1]['label']}) {ranked[-1]['return_pct']:+.2f}%")

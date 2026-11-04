@@ -50,6 +50,26 @@ OUT_SUMMARY   = _ROOT / "reports" / "execution_summary.json"
 OUT_CURVE     = _ROOT / "reports" / "equity_curve.parquet"
 OUT_NARRATIVE = _ROOT / "reports" / "ai_execution_narrative.json"
 
+
+_REL_BASES = (_OUT, _ROOT)
+
+
+def _rel(p):
+    """Display path · tolerant of an out-root outside the repository.
+
+    CEO 2026-11-04 · `relative_to` RAISES when the path is not under the
+    given root, so every engine crashed on its own "wrote ..." success
+    message once report writes were redirected for test isolation. The
+    third time this exact pattern has bitten, so it is now a helper
+    rather than an inline call.
+    """
+    for base in _REL_BASES:
+        try:
+            return p.relative_to(base)
+        except (ValueError, AttributeError):
+            continue
+    return p
+
 PORTFOLIO_DIFF = _ROOT / "reports" / "portfolio_diff.json"
 PORTFOLIO_V3   = _ROOT / "reports" / "portfolio_v3.json"
 CONFIG_PATH    = _ROOT / "configs" / "execution_config.yaml"
@@ -199,7 +219,7 @@ def main() -> int:
         df_ledger = df_new_fills
     if not df_ledger.empty:
         df_ledger.to_parquet(OUT_LEDGER, index=False)
-        print(f"  wrote {OUT_LEDGER.relative_to(_ROOT)}  (total_rows={len(df_ledger)})")
+        print(f"  wrote {_rel(OUT_LEDGER)}  (total_rows={len(df_ledger)})")
     else:
         # Empty-but-valid — create a marker parquet with the schema for downstream consumers
         pd.DataFrame(columns=["market", "ticker", "fill_date", "txn_id", "action", "side",
@@ -207,18 +227,18 @@ def main() -> int:
                                 "commission_amount", "partial_fill", "fill_ratio",
                                 "intended_notional", "filled_notional",
                                 "prior_weight", "new_weight", "model_stamp"]).to_parquet(OUT_LEDGER, index=False)
-        print(f"  wrote {OUT_LEDGER.relative_to(_ROOT)}  (empty-but-valid schema)")
+        print(f"  wrote {_rel(OUT_LEDGER)}  (empty-but-valid schema)")
 
     # Equity curve
     if curve:
         df_curve = pd.DataFrame([_as_dict(p) for p in curve])
         df_curve.to_parquet(OUT_CURVE, index=False)
-        print(f"  wrote {OUT_CURVE.relative_to(_ROOT)}  ({len(df_curve)} points)")
+        print(f"  wrote {_rel(OUT_CURVE)}  ({len(df_curve)} points)")
     else:
         pd.DataFrame(columns=["date", "equity_value", "cash", "long_notional",
                                 "short_notional", "n_positions",
                                 "daily_return_pct", "cumulative_return_pct"]).to_parquet(OUT_CURVE, index=False)
-        print(f"  wrote {OUT_CURVE.relative_to(_ROOT)}  (empty-but-valid schema)")
+        print(f"  wrote {_rel(OUT_CURVE)}  (empty-but-valid schema)")
 
     # Summary
     OUT_SUMMARY.write_text(json.dumps({
@@ -229,7 +249,7 @@ def main() -> int:
         "starting_aum": summary.starting_aum,
         **_as_dict(summary),
     }, indent=2, default=str), encoding="utf-8")
-    print(f"  wrote {OUT_SUMMARY.relative_to(_ROOT)}")
+    print(f"  wrote {_rel(OUT_SUMMARY)}")
 
     # Sprint 7.5 · append to permanent history (fail-open)
     try:
@@ -247,7 +267,7 @@ def main() -> int:
         "asof":    latest.isoformat(),
         "output":  _as_dict(ai),
     }, indent=2, default=str), encoding="utf-8")
-    print(f"  wrote {OUT_NARRATIVE.relative_to(_ROOT)}")
+    print(f"  wrote {_rel(OUT_NARRATIVE)}")
     print(f"  ai headline: {ai.headline}")
     return 0
 

@@ -19,10 +19,15 @@ sys.path.insert(0, str(_ROOT))
 
 # CEO 2026-11-04 · report writes honour AEGIS_OUT_ROOT so a test can
 # run this engine as a subprocess without touching live artifacts.
-# Production sets no variable, so _OUT == _ROOT and _USA is unchanged.
+# CEO 2026-11-04 v2 · _USA stays the REAL directory because the
+# engines READ their upstream inputs through it (selected_features,
+# learning.parquet, sized_positions, configs). Redirecting it broke
+# the chain: portfolio_engine exited 1 with "usa/reports/
+# sized_positions.json missing" because risk_engine's output was
+# being looked for in the empty tmp root. Only WRITES move.
 from backend.shared.out_root import resolved_out_root  # noqa: E402
 _OUT = resolved_out_root(_ROOT)
-_USA = _OUT / "usa"
+_USA_OUT = _OUT / "usa"
 
 import yaml                                                                                  # noqa: E402
 
@@ -35,9 +40,29 @@ from backend.model_registry.registry      import stamp, register_model, ModelSta
 from backend.ai                          import portfolio_analyst                          # noqa: E402
 
 
-OUT_FULL      = _USA / "reports" / "portfolio_v3.json"
-OUT_DIFF      = _USA / "reports" / "portfolio_diff.json"
-OUT_NARRATIVE = _USA / "reports" / "ai_portfolio_narrative.json"
+OUT_FULL      = _USA_OUT / "reports" / "portfolio_v3.json"
+OUT_DIFF      = _USA_OUT / "reports" / "portfolio_diff.json"
+OUT_NARRATIVE = _USA_OUT / "reports" / "ai_portfolio_narrative.json"
+
+
+_REL_BASES = (_OUT, _USA_OUT, _USA, _ROOT)
+
+
+def _rel(p):
+    """Display path · tolerant of an out-root outside the repository.
+
+    CEO 2026-11-04 · `relative_to` RAISES when the path is not under the
+    given root, so every engine crashed on its own "wrote ..." success
+    message once report writes were redirected for test isolation. The
+    third time this exact pattern has bitten, so it is now a helper
+    rather than an inline call.
+    """
+    for base in _REL_BASES:
+        try:
+            return p.relative_to(base)
+        except (ValueError, AttributeError):
+            continue
+    return p
 
 SIZED_PATH   = _USA / "reports" / "sized_positions.json"
 MI_SUMMARY   = _USA / "reports" / "market_intelligence_summary.json"
@@ -245,7 +270,7 @@ def main() -> int:
     }, indent=2, default=str), encoding="utf-8")
 
     print(f"  wrote 4 files under usa/reports/ (portfolio_v3, portfolio_diff, portfolio_state, ai_portfolio_narrative)")
-    print(f"  appended {p_hist.relative_to(_ROOT)}")
+    print(f"  appended {_rel(p_hist)}")
     print(f"  ai headline: {ai.headline}")
     return 0
 

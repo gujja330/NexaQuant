@@ -48,6 +48,26 @@ OUT_SUMMARY   = _OUT / "reports" / "market_intelligence_summary.json"
 OUT_NARRATIVE = _OUT / "reports" / "ai_market_narrative.json"
 
 
+_REL_BASES = (_OUT, _ROOT)
+
+
+def _rel(p):
+    """Display path · tolerant of an out-root outside the repository.
+
+    CEO 2026-11-04 · `relative_to` RAISES when the path is not under the
+    given root, so every engine crashed on its own "wrote ..." success
+    message once report writes were redirected for test isolation. The
+    third time this exact pattern has bitten, so it is now a helper
+    rather than an inline call.
+    """
+    for base in _REL_BASES:
+        try:
+            return p.relative_to(base)
+        except (ValueError, AttributeError):
+            continue
+    return p
+
+
 def _as_dict(obj) -> dict:
     """Convert dataclasses (including nested) to plain dicts."""
     if hasattr(obj, "__dataclass_fields__"):
@@ -96,7 +116,7 @@ def main() -> int:
     OUT_INTEL.write_text(json.dumps(intel_dict, indent=2), encoding="utf-8")
     print(f"  regime: {result.regime_label}  (composite {result.composite_score:.1f}/100)")
     print(f"  signals: {len(result.signals)}")
-    print(f"  wrote {OUT_INTEL.relative_to(_ROOT)}")
+    print(f"  wrote {_rel(OUT_INTEL)}")
 
     # Compact summary for dashboard
     summary = {
@@ -111,7 +131,7 @@ def main() -> int:
                              for k, v in result.signals.items()},
     }
     OUT_SUMMARY.write_text(json.dumps(summary, indent=2), encoding="utf-8")
-    print(f"  wrote {OUT_SUMMARY.relative_to(_ROOT)}")
+    print(f"  wrote {_rel(OUT_SUMMARY)}")
 
     # ── AI narratives (deterministic, non-recommending) ─────────
     canon = adapt_all(_ROOT, INDIA_PROFILE, cutoff=None,
@@ -135,7 +155,7 @@ def main() -> int:
         },
     }
     OUT_NARRATIVE.write_text(json.dumps(narrative_bundle, indent=2), encoding="utf-8")
-    print(f"  wrote {OUT_NARRATIVE.relative_to(_ROOT)}")
+    print(f"  wrote {_rel(OUT_NARRATIVE)}")
     print(f"  AI headlines:")
     print(f"    · analyst: {analyst_out.headline[:100]}")
     print(f"    · dq     : {dq_out.headline[:100]}")

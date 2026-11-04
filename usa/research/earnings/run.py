@@ -38,6 +38,26 @@ OUT_PARQUET   = _USA / "data" / "raw" / "us" / "earnings.parquet"
 OUT_SUMMARY   = _USA / "reports" / "earnings_summary.json"
 
 
+_REL_BASES = (_USA, _ROOT)
+
+
+def _rel(p):
+    """Display path · tolerant of an out-root outside the repository.
+
+    CEO 2026-11-04 · `relative_to` RAISES when the path is not under the
+    given root, so every engine crashed on its own "wrote ..." success
+    message once report writes were redirected for test isolation. The
+    third time this exact pattern has bitten, so it is now a helper
+    rather than an inline call.
+    """
+    for base in _REL_BASES:
+        try:
+            return p.relative_to(base)
+        except (ValueError, AttributeError):
+            continue
+    return p
+
+
 def _parse_date(d) -> str | None:
     if d is None: return None
     if isinstance(d, (list, tuple)):
@@ -149,10 +169,10 @@ def main() -> int:
                               if "next_earnings_date" in df.columns else 0,
         "n_upcoming_30d":    len(upcoming),
         "upcoming":          upcoming[:20],
-        "parquet":           str(OUT_PARQUET.relative_to(_ROOT).as_posix()),
+        "parquet":           str(_rel(OUT_PARQUET).as_posix()),
     }
     OUT_SUMMARY.write_text(json.dumps(summary, indent=2), encoding="utf-8")
-    print(f"  wrote {OUT_PARQUET.relative_to(_ROOT)} · {len(df)} rows")
+    print(f"  wrote {_rel(OUT_PARQUET)} · {len(df)} rows")
     print(f"  upcoming (next 30d): {summary['n_upcoming_30d']}")
     return 0
 

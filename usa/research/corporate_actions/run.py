@@ -37,6 +37,26 @@ UNIVERSE_JSON = _USA / "reports" / "universe.json"
 OUT_PARQUET   = _USA / "data" / "raw" / "us" / "corporate_actions.parquet"
 OUT_SUMMARY   = _USA / "reports" / "corporate_actions_summary.json"
 
+
+_REL_BASES = (_USA, _ROOT)
+
+
+def _rel(p):
+    """Display path · tolerant of an out-root outside the repository.
+
+    CEO 2026-11-04 · `relative_to` RAISES when the path is not under the
+    given root, so every engine crashed on its own "wrote ..." success
+    message once report writes were redirected for test isolation. The
+    third time this exact pattern has bitten, so it is now a helper
+    rather than an inline call.
+    """
+    for base in _REL_BASES:
+        try:
+            return p.relative_to(base)
+        except (ValueError, AttributeError):
+            continue
+    return p
+
 KEEP_DAYS = 365
 
 
@@ -132,10 +152,10 @@ def main() -> int:
         "n_splits":       int((df["split_ratio"] > 0).sum()) if not df.empty else 0,
         "recent_30d":     recent[-30:],   # tail
         "per_ticker":     sorted(per_ticker, key=lambda x: x["ticker"]),
-        "parquet":        str(OUT_PARQUET.relative_to(_ROOT).as_posix()),
+        "parquet":        str(_rel(OUT_PARQUET).as_posix()),
     }
     OUT_SUMMARY.write_text(json.dumps(summary, indent=2), encoding="utf-8")
-    print(f"  wrote {OUT_PARQUET.relative_to(_ROOT)} · {len(df)} events")
+    print(f"  wrote {_rel(OUT_PARQUET)} · {len(df)} events")
     print(f"  dividends: {summary['n_dividends']}  · splits: {summary['n_splits']}  · recent (30d): {len(recent)}")
     return 0
 

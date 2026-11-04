@@ -23,6 +23,26 @@ sys.path.insert(0, str(_ROOT))
 from backend.shared.out_root import resolved_out_root  # noqa: E402
 _OUT = resolved_out_root(_ROOT)
 
+
+_REL_BASES = (_OUT, _ROOT)
+
+
+def _rel(p):
+    """Display path · tolerant of an out-root outside the repository.
+
+    CEO 2026-11-04 · `relative_to` RAISES when the path is not under the
+    given root, so every engine crashed on its own "wrote ..." success
+    message once report writes were redirected for test isolation. The
+    third time this exact pattern has bitten, so it is now a helper
+    rather than an inline call.
+    """
+    for base in _REL_BASES:
+        try:
+            return p.relative_to(base)
+        except (ValueError, AttributeError):
+            continue
+    return p
+
 from backend.history_quality import run_quality_check, ENGINE_ID, ENGINE_VERSION, build_comparison
 from backend.feature_store import schema_fingerprint
 from backend.model_registry.registry import stamp, register_model, ModelStatus
@@ -70,7 +90,7 @@ def main() -> int:
     for r in usa_report.per_family:
         marker = {"PASS": "OK ", "WARN": "WRN", "FAIL": "FAIL", "NOT_APPLICABLE": "N/A"}.get(r.status, "?  ")
         print(f"    [{marker}] {r.family:30s} rows={r.n_rows:>6}  score={r.quality_score}/100  {r.date_range or ''}")
-    print(f"  wrote {OUT.relative_to(_ROOT)}")
+    print(f"  wrote {_rel(OUT)}")
 
     # Build global comparison if India report exists
     india_out = _ROOT / "reports" / "history_quality_report.json"
@@ -99,9 +119,9 @@ def main() -> int:
             notes=india_data.get("notes", []),
         )
         build_comparison(india=india_report, usa=usa_report, output_path=GLOBAL_OUT)
-        print(f"  wrote {GLOBAL_OUT.relative_to(_ROOT)}")
+        print(f"  wrote {_rel(GLOBAL_OUT)}")
     else:
-        print(f"  (india report not present at {india_out.relative_to(_ROOT)} — global comparison skipped)")
+        print(f"  (india report not present at {_rel(india_out)} — global comparison skipped)")
 
     return 0 if usa_report.verdict != "NEEDS_REPAIR" else 1
 

@@ -44,6 +44,26 @@ UNIVERSE_JSON = _USA / "reports" / "universe.json"
 OUT_PARQUET   = _USA / "data"    / "raw" / "us" / "news_sentiment.parquet"
 OUT_SUMMARY   = _USA / "reports" / "news_sentiment_summary.json"
 
+
+_REL_BASES = (_USA, _ROOT)
+
+
+def _rel(p):
+    """Display path · tolerant of an out-root outside the repository.
+
+    CEO 2026-11-04 · `relative_to` RAISES when the path is not under the
+    given root, so every engine crashed on its own "wrote ..." success
+    message once report writes were redirected for test isolation. The
+    third time this exact pattern has bitten, so it is now a helper
+    rather than an inline call.
+    """
+    for base in _REL_BASES:
+        try:
+            return p.relative_to(base)
+        except (ValueError, AttributeError):
+            continue
+    return p
+
 # Compact finance-oriented lexicon (deterministic, offline; sentiment can be
 # upgraded to FinBERT later without touching the ingest pipeline).
 POS = {"beat", "beats", "beat estimates", "record", "surge", "soar", "soars",
@@ -175,11 +195,11 @@ def main() -> int:
         "n_negative":   int((df_new["news_sent"] < -0.1).sum()),
         "n_neutral":    int(df_new["news_sent"].abs().le(0.1).sum()),
         "history_rows": int(len(df)),
-        "parquet":      str(OUT_PARQUET.relative_to(_ROOT).as_posix()),
+        "parquet":      str(_rel(OUT_PARQUET).as_posix()),
     }
     OUT_SUMMARY.write_text(json.dumps(summary, indent=2), encoding="utf-8")
-    print(f"  wrote {OUT_PARQUET.relative_to(_ROOT)} · {len(df)} rows (history), {len(df_new)} today")
-    print(f"  summary: {OUT_SUMMARY.relative_to(_ROOT)}")
+    print(f"  wrote {_rel(OUT_PARQUET)} · {len(df)} rows (history), {len(df_new)} today")
+    print(f"  summary: {_rel(OUT_SUMMARY)}")
     print(f"  avg sentiment (with news): {summary['avg_sentiment']}  · "
           f"pos={summary['n_positive']}  neg={summary['n_negative']}  neu={summary['n_neutral']}")
     return 0

@@ -48,6 +48,26 @@ OUT_RESEARCH  = _OUT / "reports" / "ai_feature_research.json"
 OUT_SELECTED  = _OUT / "reports" / "selected_features.json"
 
 
+_REL_BASES = (_OUT, _ROOT)
+
+
+def _rel(p):
+    """Display path · tolerant of an out-root outside the repository.
+
+    CEO 2026-11-04 · `relative_to` RAISES when the path is not under the
+    given root, so every engine crashed on its own "wrote ..." success
+    message once report writes were redirected for test isolation. The
+    third time this exact pattern has bitten, so it is now a helper
+    rather than an inline call.
+    """
+    for base in _REL_BASES:
+        try:
+            return p.relative_to(base)
+        except (ValueError, AttributeError):
+            continue
+    return p
+
+
 def _stringify(v):
     if isinstance(v, dict):    return {k: _stringify(x) for k, x in v.items()}
     if isinstance(v, (list, tuple)): return [_stringify(x) for x in v]
@@ -130,7 +150,7 @@ def main() -> int:
         "importance":  _as_dict(imp),
         "selection":   _as_dict(sel),
     }, indent=2, default=str), encoding="utf-8")
-    print(f"  wrote {OUT_INTEL.relative_to(_ROOT)}")
+    print(f"  wrote {_rel(OUT_INTEL)}")
 
     # Dashboard-friendly summary
     OUT_SUMMARY.write_text(json.dumps({
@@ -149,7 +169,7 @@ def main() -> int:
         "n_deprecated":   gov.n_deprecated,
         "n_experimental": gov.n_experimental,
     }, indent=2), encoding="utf-8")
-    print(f"  wrote {OUT_SUMMARY.relative_to(_ROOT)}")
+    print(f"  wrote {_rel(OUT_SUMMARY)}")
 
     # Research agent
     OUT_RESEARCH.write_text(json.dumps({
@@ -160,7 +180,7 @@ def main() -> int:
         "asof":    latest.isoformat(),
         "output":  _as_dict(research),
     }, indent=2, default=str), encoding="utf-8")
-    print(f"  wrote {OUT_RESEARCH.relative_to(_ROOT)}")
+    print(f"  wrote {_rel(OUT_RESEARCH)}")
 
     # Selected feature set → the subset downstream engines consume
     OUT_SELECTED.write_text(json.dumps({
@@ -180,7 +200,7 @@ def main() -> int:
             "leakage_flags": len(sel.leakage_flagged),
         },
     }, indent=2), encoding="utf-8")
-    print(f"  wrote {OUT_SELECTED.relative_to(_ROOT)}")
+    print(f"  wrote {_rel(OUT_SELECTED)}")
 
     return 0
 

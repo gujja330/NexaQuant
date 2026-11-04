@@ -19,10 +19,15 @@ sys.path.insert(0, str(_ROOT))
 
 # CEO 2026-11-04 · report writes honour AEGIS_OUT_ROOT so a test can
 # run this engine as a subprocess without touching live artifacts.
-# Production sets no variable, so _OUT == _ROOT and _USA is unchanged.
+# CEO 2026-11-04 v2 · _USA stays the REAL directory because the
+# engines READ their upstream inputs through it (selected_features,
+# learning.parquet, sized_positions, configs). Redirecting it broke
+# the chain: portfolio_engine exited 1 with "usa/reports/
+# sized_positions.json missing" because risk_engine's output was
+# being looked for in the empty tmp root. Only WRITES move.
 from backend.shared.out_root import resolved_out_root  # noqa: E402
 _OUT = resolved_out_root(_ROOT)
-_USA = _OUT / "usa"
+_USA_OUT = _OUT / "usa"
 
 from backend.canonical.model              import USA_PROFILE                                # noqa: E402
 from backend.feature_store                 import FEATURE_REGISTRY, schema_fingerprint     # noqa: E402
@@ -34,10 +39,10 @@ from backend.feature_intelligence          import (                             
 from backend.ai import feature_research                                                     # noqa: E402
 
 
-OUT_INTEL     = _USA / "reports" / "feature_intelligence.json"
-OUT_SUMMARY   = _USA / "reports" / "feature_intelligence_summary.json"
-OUT_RESEARCH  = _USA / "reports" / "ai_feature_research.json"
-OUT_SELECTED  = _USA / "reports" / "selected_features.json"
+OUT_INTEL     = _USA_OUT / "reports" / "feature_intelligence.json"
+OUT_SUMMARY   = _USA_OUT / "reports" / "feature_intelligence_summary.json"
+OUT_RESEARCH  = _USA_OUT / "reports" / "ai_feature_research.json"
+OUT_SELECTED  = _USA_OUT / "reports" / "selected_features.json"
 
 
 def _stringify(v):

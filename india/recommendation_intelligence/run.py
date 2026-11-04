@@ -58,6 +58,26 @@ MI_SUMMARY      = _ROOT / "reports" / "market_intelligence_summary.json"
 SELECTED_FEATS  = _ROOT / "reports" / "selected_features.json"
 
 
+_REL_BASES = (_OUT, _ROOT)
+
+
+def _rel(p):
+    """Display path · tolerant of an out-root outside the repository.
+
+    CEO 2026-11-04 · `relative_to` RAISES when the path is not under the
+    given root, so every engine crashed on its own "wrote ..." success
+    message once report writes were redirected for test isolation. The
+    third time this exact pattern has bitten, so it is now a helper
+    rather than an inline call.
+    """
+    for base in _REL_BASES:
+        try:
+            return p.relative_to(base)
+        except (ValueError, AttributeError):
+            continue
+    return p
+
+
 def _stringify(v):
     if isinstance(v, dict):    return {k: _stringify(x) for k, x in v.items()}
     if isinstance(v, (list, tuple)): return [_stringify(x) for x in v]
@@ -201,7 +221,7 @@ def main() -> int:
         "notes":  batch.notes,
         "model_stamp": model_stamp,
     }, indent=2, default=str), encoding="utf-8")
-    print(f"  wrote {OUT_FULL.relative_to(_ROOT)}")
+    print(f"  wrote {_rel(OUT_FULL)}")
 
     # Sprint 7.5 · append to permanent history (fail-open)
     # CEO 2026-11-03 · the append is still fail-open, but it is now VERIFIED
@@ -249,7 +269,7 @@ def main() -> int:
         ],
         "model_stamp": model_stamp,
     }, indent=2, default=str), encoding="utf-8")
-    print(f"  wrote {OUT_SUMMARY.relative_to(_ROOT)}")
+    print(f"  wrote {_rel(OUT_SUMMARY)}")
 
     # Conflicts ledger
     OUT_CONFLICTS.write_text(json.dumps({
@@ -257,7 +277,7 @@ def main() -> int:
         "n_conflicts": len(batch.conflicts),
         "conflicts":   batch.conflicts,
     }, indent=2, default=str), encoding="utf-8")
-    print(f"  wrote {OUT_CONFLICTS.relative_to(_ROOT)}")
+    print(f"  wrote {_rel(OUT_CONFLICTS)}")
 
     # AI Recommendation Analyst
     analyst = recommendation_analyst.run(batch, regime, "india", latest)
@@ -267,7 +287,7 @@ def main() -> int:
         "asof":    latest.isoformat(),
         "output":  _as_dict(analyst),
     }, indent=2, default=str), encoding="utf-8")
-    print(f"  wrote {OUT_NARRATIVE.relative_to(_ROOT)}")
+    print(f"  wrote {_rel(OUT_NARRATIVE)}")
     print(f"  ai headline: {analyst.headline}")
 
     return 0

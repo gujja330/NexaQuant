@@ -44,6 +44,26 @@ _USA  = Path(__file__).resolve().parents[2]
 OUT_PARQUET = _USA / "data" / "raw" / "us" / "macro.parquet"
 OUT_SUMMARY = _USA / "reports" / "macro_summary.json"
 
+
+_REL_BASES = (_USA, _ROOT)
+
+
+def _rel(p):
+    """Display path · tolerant of an out-root outside the repository.
+
+    CEO 2026-11-04 · `relative_to` RAISES when the path is not under the
+    given root, so every engine crashed on its own "wrote ..." success
+    message once report writes were redirected for test isolation. The
+    third time this exact pattern has bitten, so it is now a helper
+    rather than an inline call.
+    """
+    for base in _REL_BASES:
+        try:
+            return p.relative_to(base)
+        except (ValueError, AttributeError):
+            continue
+    return p
+
 MACROS = {
     "^TNX":  "10Y Treasury yield",
     "^TYX":  "30Y Treasury yield",
@@ -132,10 +152,10 @@ def main() -> int:
         "n_symbols":   len(MACROS),
         "n_with_data": sum(1 for x in per_symbol if "last" in x),
         "per_symbol":  sorted(per_symbol, key=lambda x: x["symbol"]),
-        "parquet":     str(OUT_PARQUET.relative_to(_ROOT).as_posix()),
+        "parquet":     str(_rel(OUT_PARQUET).as_posix()),
     }
     OUT_SUMMARY.write_text(json.dumps(summary, indent=2), encoding="utf-8")
-    print(f"  wrote {OUT_PARQUET.relative_to(_ROOT)} · {len(all_rows)} rows")
+    print(f"  wrote {_rel(OUT_PARQUET)} · {len(all_rows)} rows")
     for s in [x for x in per_symbol if "last" in x][:5]:
         print(f"  {s['symbol']:<6} {s['label']:<28}  last={s['last']:>9.3f}  "
               f"1d={s['chg_1d_pct']:+.2f}%  1m={s['chg_1m_pct']:+.2f}%")

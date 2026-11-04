@@ -20,6 +20,26 @@ sys.path.insert(0, str(_ROOT))
 from backend.shared.out_root import resolved_out_root  # noqa: E402
 _OUT = resolved_out_root(_ROOT)
 
+
+_REL_BASES = (_OUT, _ROOT)
+
+
+def _rel(p):
+    """Display path · tolerant of an out-root outside the repository.
+
+    CEO 2026-11-04 · `relative_to` RAISES when the path is not under the
+    given root, so every engine crashed on its own "wrote ..." success
+    message once report writes were redirected for test isolation. The
+    third time this exact pattern has bitten, so it is now a helper
+    rather than an inline call.
+    """
+    for base in _REL_BASES:
+        try:
+            return p.relative_to(base)
+        except (ValueError, AttributeError):
+            continue
+    return p
+
 from backend.history_quality import run_quality_check, ENGINE_ID, ENGINE_VERSION
 from backend.feature_store import schema_fingerprint
 from backend.model_registry.registry import stamp, register_model, ModelStatus
@@ -68,7 +88,7 @@ def main() -> int:
         print(f"    [{marker}] {r.family:30s} rows={r.n_rows:>6}  score={r.quality_score}/100  {r.date_range or ''}")
     if report.corporate_action_flags:
         print(f"  CA flags:    {len(report.corporate_action_flags)}")
-    print(f"  wrote {OUT.relative_to(_ROOT)}")
+    print(f"  wrote {_rel(OUT)}")
     return 0 if report.verdict != "NEEDS_REPAIR" else 1
 
 
