@@ -2,11 +2,11 @@
   "schema": "aegis.feature_store.quality.v1",
   "market": "india",
   "asof": "2026-11-03",
-  "generated_utc": "2026-11-04T05:24:14+00:00",
+  "generated_utc": "2026-11-04T08:19:25+00:00",
   "n_rows": 228,
   "n_features": 81,
-  "n_valid": 59,
-  "valid_pct": 72.84,
+  "n_valid": 64,
+  "valid_pct": 79.01,
   "point_in_time": {
     "ok": true,
     "codes": [],
@@ -33,12 +33,7 @@
       "news_n_negative",
       "news_n_positive",
       "news_polarity_ratio",
-      "news_sentiment",
-      "sector",
-      "sector_is_laggard",
-      "sector_is_leader",
-      "sector_rank",
-      "sector_return_1m_pct"
+      "news_sentiment"
     ],
     "VALID": [
       "adx_14",
@@ -92,6 +87,11 @@
       "return_5d_pct",
       "return_60d_pct",
       "rsi_14",
+      "sector",
+      "sector_is_laggard",
+      "sector_is_leader",
+      "sector_rank",
+      "sector_return_1m_pct",
       "sma_20",
       "sma_200",
       "sma_50",
@@ -109,7 +109,7 @@
     },
     "ticker": {
       "n": 57,
-      "valid": 40
+      "valid": 41
     },
     "global": {
       "n": 8,
@@ -117,7 +117,7 @@
     },
     "sector": {
       "n": 4,
-      "valid": 0
+      "valid": 4
     }
   },
   "features": {
@@ -173,19 +173,17 @@
     "sector": {
       "feature": "sector",
       "granularity": "ticker",
-      "status": "MISSING",
+      "status": "VALID",
       "n_rows": 228,
-      "n_present": 0,
+      "n_present": 228,
       "n_placeholder": 0,
-      "n_distinct": 0,
-      "coverage_pct": 0.0,
+      "n_distinct": 17,
+      "coverage_pct": 100.0,
       "expected_coverage_pct": 100.0,
       "provenance": "india.sectors.SECTORS \u00b7 usa/reports/universe.json tickers[].sector",
-      "sample": null,
-      "reason": "0 of 228 rows carry a value",
-      "codes": [
-        "EMPTY"
-      ]
+      "sample": "Chemicals",
+      "reason": null,
+      "codes": []
     },
     "currency": {
       "feature": "currency",
@@ -331,7 +329,7 @@
       "n_rows": 228,
       "n_present": 225,
       "n_placeholder": 0,
-      "n_distinct": 206,
+      "n_distinct": 207,
       "coverage_pct": 98.68,
       "expected_coverage_pct": 95.0,
       "provenance": "data/raw/<market>/<SYMBOL>_D1.parquet via adapt_prices",
@@ -541,7 +539,7 @@
       "n_rows": 228,
       "n_present": 225,
       "n_placeholder": 0,
-      "n_distinct": 222,
+      "n_distinct": 223,
       "coverage_pct": 98.68,
       "expected_coverage_pct": 95.0,
       "provenance": "data/raw/<market>/<SYMBOL>_D1.parquet via adapt_prices",
@@ -556,7 +554,7 @@
       "n_rows": 228,
       "n_present": 225,
       "n_placeholder": 0,
-      "n_distinct": 218,
+      "n_distinct": 219,
       "coverage_pct": 98.68,
       "expected_coverage_pct": 95.0,
       "provenance": "data/raw/<market>/<SYMBOL>_D1.parquet via adapt_prices",
@@ -1006,70 +1004,62 @@
     "sector_return_1m_pct": {
       "feature": "sector_return_1m_pct",
       "granularity": "sector",
-      "status": "MISSING",
+      "status": "VALID",
       "n_rows": 228,
-      "n_present": 0,
+      "n_present": 115,
       "n_placeholder": 0,
-      "n_distinct": 0,
-      "coverage_pct": 0.0,
-      "expected_coverage_pct": 100.0,
+      "n_distinct": 9,
+      "coverage_pct": 50.44,
+      "expected_coverage_pct": 50.0,
       "provenance": "reports/sector_context.json (India) \u00b7 sector ETF flows (USA)",
-      "sample": null,
-      "reason": "0 of 228 rows carry a value",
-      "codes": [
-        "EMPTY"
-      ]
+      "sample": "12.204000000000002",
+      "reason": null,
+      "codes": []
     },
     "sector_rank": {
       "feature": "sector_rank",
       "granularity": "sector",
-      "status": "MISSING",
+      "status": "VALID",
       "n_rows": 228,
-      "n_present": 0,
+      "n_present": 115,
       "n_placeholder": 0,
-      "n_distinct": 0,
-      "coverage_pct": 0.0,
-      "expected_coverage_pct": 100.0,
+      "n_distinct": 9,
+      "coverage_pct": 50.44,
+      "expected_coverage_pct": 50.0,
       "provenance": "reports/sector_context.json (India) \u00b7 sector ETF flows (USA)",
-      "sample": null,
-      "reason": "0 of 228 rows carry a value",
-      "codes": [
-        "EMPTY"
-      ]
+      "sample": "1.0",
+      "reason": null,
+      "codes": []
     },
     "sector_is_leader": {
       "feature": "sector_is_leader",
       "granularity": "sector",
-      "status": "MISSING",
+      "status": "VALID",
       "n_rows": 228,
-      "n_present": 0,
+      "n_present": 115,
       "n_placeholder": 0,
-      "n_distinct": 0,
-      "coverage_pct": 0.0,
-      "expected_coverage_pct": 100.0,
+      "n_distinct": 2,
+      "coverage_pct": 50.44,
+      "expected_coverage_pct": 50.0,
       "provenance": "reports/sector_context.json (India) \u00b7 sector ETF flows (USA)",
-      "sample": null,
-      "reason": "0 of 228 rows carry a value",
-      "codes": [
-        "EMPTY"
-      ]
+      "sample": "1.0",
+      "reason": null,
+      "codes": []
     },
     "sector_is_laggard": {
       "feature": "sector_is_laggard",
       "granularity": "sector",
-      "status": "MISSING",
+      "status": "VALID",
       "n_rows": 228,
-      "n_present": 0,
+      "n_present": 115,
       "n_placeholder": 0,
-      "n_distinct": 0,
-      "coverage_pct": 0.0,
-      "expected_coverage_pct": 100.0,
+      "n_distinct": 2,
+      "coverage_pct": 50.44,
+      "expected_coverage_pct": 50.0,
       "provenance": "reports/sector_context.json (India) \u00b7 sector ETF flows (USA)",
-      "sample": null,
-      "reason": "0 of 228 rows carry a value",
-      "codes": [
-        "EMPTY"
-      ]
+      "sample": "0.0",
+      "reason": null,
+      "codes": []
     },
     "inst_pct_owned": {
       "feature": "inst_pct_owned",
@@ -1265,7 +1255,7 @@
       "coverage_pct": 100.0,
       "expected_coverage_pct": 100.0,
       "provenance": "reports/market_intelligence.json \u00b7 usa/reports/market_intelligence.json",
-      "sample": "bull",
+      "sample": "stress",
       "reason": null,
       "codes": [
         "SHARED_CONSTANT_AS_DECLARED"
@@ -1282,7 +1272,7 @@
       "coverage_pct": 100.0,
       "expected_coverage_pct": 100.0,
       "provenance": "reports/market_intelligence.json \u00b7 usa/reports/market_intelligence.json",
-      "sample": "71.21",
+      "sample": "31.48",
       "reason": null,
       "codes": [
         "SHARED_CONSTANT_AS_DECLARED"
@@ -1299,7 +1289,7 @@
       "coverage_pct": 100.0,
       "expected_coverage_pct": 100.0,
       "provenance": "reports/market_intelligence.json \u00b7 usa/reports/market_intelligence.json",
-      "sample": "60.87",
+      "sample": "11.74",
       "reason": null,
       "codes": [
         "SHARED_CONSTANT_AS_DECLARED"
@@ -1316,7 +1306,7 @@
       "coverage_pct": 100.0,
       "expected_coverage_pct": 100.0,
       "provenance": "reports/market_intelligence.json \u00b7 usa/reports/market_intelligence.json",
-      "sample": "11.74",
+      "sample": "9.13",
       "reason": null,
       "codes": [
         "SHARED_CONSTANT_AS_DECLARED"
@@ -1333,7 +1323,7 @@
       "coverage_pct": 100.0,
       "expected_coverage_pct": 100.0,
       "provenance": "reports/market_intelligence.json \u00b7 usa/reports/market_intelligence.json",
-      "sample": "14.62",
+      "sample": "-27.8",
       "reason": null,
       "codes": [
         "SHARED_CONSTANT_AS_DECLARED"
@@ -1367,7 +1357,7 @@
       "coverage_pct": 100.0,
       "expected_coverage_pct": 100.0,
       "provenance": "reports/market_intelligence.json \u00b7 usa/reports/market_intelligence.json",
-      "sample": "5.19",
+      "sample": "-3.97",
       "reason": null,
       "codes": [
         "SHARED_CONSTANT_AS_DECLARED"

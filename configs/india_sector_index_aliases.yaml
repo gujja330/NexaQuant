@@ -1,0 +1,91 @@
+# India sector -> sector-index alias table
+#
+# CEO 2026-11-04 · Phase 1A.
+#
+# WHY THIS FILE EXISTS
+# --------------------
+# Two independent vocabularies describe the same thing and do not agree:
+#
+#   india/sectors.py        17 sector names  (ticker classification)
+#   India sector indices    12 index labels  (flow_proxy returns)
+#
+# Overlap is 7 of 17. So even after the ticker->sector mapping defect was
+# repaired - it was iterating the characters of sector names - the four
+# sector_* features reach only 95 of 228 tickers (41.7%), because a
+# ticker's sector must ALSO name an index for a sector return to exist.
+#
+# Measured sector sizes and index availability:
+#
+#   Financials    49   no index  (index is "Banking" / "PSU Bank")
+#   Auto          19   YES
+#   Industrials   19   no index
+#   Pharma        17   YES
+#   FMCG          16   YES
+#   IT            14   YES
+#   Consumer      14   no index  (index is "Consumption")
+#   Chemicals     14   no index
+#   Metal         13   YES
+#   Power         11   no index
+#   Energy        10   YES
+#   Cement         8   no index
+#   Infra          6   no index  (index is "Infrastructure")
+#   Realty         6   YES
+#   Healthcare     5   no index
+#   Transport      4   no index
+#   Telecom        3   no index
+#
+# POLICY
+# ------
+# An alias asserts that two labels name the SAME economic grouping. It is
+# a modelling claim, not a string fix, so only label variance is encoded
+# here. A sector with no defensible index stays unmapped and its
+# sector_* features stay NULL - which is the correct answer, not zero.
+
+schema_version: aegis.india.sector_index_aliases.v1
+
+# ── Approved · pure label variance, same grouping ──────────────────
+# Each of these is the same concept written two ways.
+aliases:
+  Consumer: Consumption      # "Consumption" is the index label for the
+                             # consumer grouping · same constituents
+  Infra: Infrastructure      # abbreviation of the same index name
+
+# ── Proposed · NOT enabled · requires CEO approval ─────────────────
+# These are PROXIES, not identities. Enabling one is a modelling
+# decision with measured consequences, recorded here so the decision is
+# explicit rather than buried in a dict literal.
+proposed_aliases:
+  Financials:
+    index: Banking
+    n_tickers: 49
+    rationale: >
+      The Bank index is the largest available financial proxy and would
+      lift sector_* coverage from 41.7% to roughly 71.5% in one step -
+      the single biggest available gain.
+    caveat: >
+      It is a SUBSET, not an equivalent. The Bank index excludes NBFCs,
+      insurers and asset managers, all of which sit in Financials here.
+      Assigning the Bank index return to an insurer asserts a
+      co-movement that may not hold, and "PSU Bank" is a second,
+      differently-behaved banking index that this mapping ignores.
+    status: AWAITING_APPROVAL
+
+  Healthcare:
+    index: Pharma
+    n_tickers: 5
+    rationale: Pharma is the closest available index.
+    caveat: >
+      Healthcare includes hospitals and diagnostics, whose economics
+      differ materially from drug manufacturers. Declined by default.
+    status: AWAITING_APPROVAL
+
+# Sectors with no index and no proposed proxy. Their sector_* features
+# are expected to be NULL · this list exists so that absence is
+# DECLARED rather than discovered.
+no_index_available:
+  - Industrials
+  - Chemicals
+  - Power
+  - Cement
+  - Transport
+  - Telecom

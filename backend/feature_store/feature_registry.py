@@ -410,11 +410,28 @@ _declare(["macro_move"], _G.GLOBAL,
 # in features/sector.py: a sector→rank map is assigned through each
 # ticker's own sector, so values repeat WITHIN a sector and differ
 # BETWEEN sectors. Neither TICKER nor MARKET would describe that.
+# Expected coverage is 50.0, not 100.0 · CEO 2026-11-04.
+#
+# A ticker's sector must ALSO name a sector INDEX for a sector return to
+# exist, and India publishes 12 indices against 17 sector categories.
+# Measured after the mapping repair: 115 of 228 tickers = 50.4%, being
+# the 95 whose sector has an index plus 20 reconciled by the approved
+# label aliases (Consumer/Consumption, Infra/Infrastructure). The other
+# 113 sit in Industrials, Chemicals, Power, Cement, Healthcare,
+# Transport or Telecom, none of which has an index.
+#
+# The 100.0 previously declared here was my assumption written before
+# the measurement. Declaring the source's real ceiling is what lets a
+# genuine shortfall - flow_proxy failing, say - be distinguished from a
+# source that never covered the whole universe. `sector` itself stays at
+# 100.0 because the classification IS complete.
 _declare(["sector_return_1m_pct", "sector_rank", "sector_is_leader",
           "sector_is_laggard"],
          _G.SECTOR,
          "reports/sector_context.json (India) · sector ETF flows (USA)",
-         5, 100.0)
+         5, 50.0,
+         "needs a sector INDEX, not just a classification · 12 indices "
+         "for 17 sectors · unmapped sectors abstain, they do not score 0")
 
 # INSTITUTIONAL · SPLIT granularity, which is why this block is not
 # classified by prefix. inst_/insider_ are per-issuer filings.

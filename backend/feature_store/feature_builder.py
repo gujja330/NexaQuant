@@ -15,6 +15,7 @@ from backend.canonical.model import MarketProfile
 from backend.canonical.adapters import adapt_all
 from backend.canonical.schemas import CanonicalDataset
 from backend.feature_store.feature_registry import FEATURE_REGISTRY, list_features, FeatureCategory
+from backend.shared.sector_map import sector_for as _sector_for
 from backend.feature_store.features import (
     technical, fundamental, news, earnings, macro, sector,
     institutional, corporate_actions, market_intel, historical,
@@ -82,16 +83,20 @@ class FeatureBuilder:
             if not p.exists(): return {}
             data = json.loads(p.read_text(encoding="utf-8"))
             return {t["symbol"]: t.get("sector", "") for t in data.get("tickers", [])}
+        # CEO 2026-11-04 · this used to invert SECTORS, which is a FLAT
+        # ticker->sector map, and so iterated the CHARACTERS of each
+        # sector name: {'F': 'HDFCBANK', 'i': 'HDFCBANK', ...}. 30 keys,
+        # none of them a ticker, join rate 0 of 228. That single line is
+        # why `sector` was empty in every India snapshot and why all
+        # four sector_* features were 0% - the data was complete all
+        # along. The shared resolver owns the shape and REFUSES a
+        # malformed map instead of returning a plausible wrong one.
         try:
-            import sys
-            sys.path.insert(0, str(self.repo_root))
-            from india.sectors import SECTORS  # type: ignore
-            m: dict[str, str] = {}
-            for sec, syms in SECTORS.items():
-                for s in syms:
-                    m[s] = sec
-            return m
-        except Exception:
+            from backend.shared.sector_map import india_ticker_sector
+            return india_ticker_sector(self.repo_root)
+        except Exception as e:
+            print("    | WARN india sector map unavailable: %s: %s"
+                  % (type(e).__name__, e))
             return {}
 
     # ── The main call ───────────────────────────────────────────
@@ -124,7 +129,7 @@ class FeatureBuilder:
                 "market":   self.market.name,
                 "ticker":   t,
                 "asof":     as_iso,
-                "sector":   sec_map.get(t) or None,
+                "sector":   _sector_for(sec_map, t),
                 "currency": self.market.currency,
             }
 
@@ -172,7 +177,7 @@ class FeatureBuilder:
         # ensure sector identity is present (may have been overwritten by sector computer)
         for t in universe:
             if "sector" not in rows[t] or rows[t]["sector"] is None:
-                rows[t]["sector"] = sec_map.get(t) or None
+                rows[t]["sector"] = _sector_for(sec_map, t)
 
         df = pd.DataFrame([rows[t] for t in universe])
 
