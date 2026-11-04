@@ -65,6 +65,41 @@ def _effective(text: str) -> str:
     return "\n".join(out)
 
 
+#: The only conjunct permitted alongside always() on the delivery gate.
+PERMITTED_CONJUNCT = "steps.guard.outputs.run"
+
+
+def gate_condition_ok(cond) -> tuple:
+    """Is `cond` an acceptable `if:` for the delivery-verdict gate?
+
+    CEO 2026-11-04. The REQUIREMENT is that an upstream failure must not
+    skip the gate, so `always()` has to be present. It is no longer the
+    whole condition for India.
+
+    India's workflow guards once per IST day. On 2026-11-04 the 06:00 run
+    did the day's work and the 06:49, 07:18 and 07:46 backups correctly
+    short-circuited - steps #5 to #31 all skipped - and a bare
+    `always()` made this gate run anyway and fail for want of a state
+    file those skipped steps never wrote. Three consecutive RED Daily
+    runs on a pipeline that had not failed. Fixed in 14ebede10 by adding
+    the day-guard conjunct.
+
+    So the check is semantic, not a string comparison, and it is still
+    strict: `always()` must be there, and the ONLY extra conjunct
+    allowed is the day guard. Anything else - an event filter, another
+    step's outcome, a branch condition - is rejected, because each would
+    let the gate be skipped on a run that really did execute.
+    """
+    c = str(cond or "")
+    if "always()" not in c:
+        return False, "always() absent · an upstream failure would skip the gate"
+    extra = [x.strip() for x in c.split("&&") if "always()" not in x]
+    bad = [x for x in extra if PERMITTED_CONJUNCT not in x]
+    if bad:
+        return False, "condition beyond always() and the day guard: %r" % bad
+    return True, ""
+
+
 def test_the_comment_stripper_actually_strips():
     """Without this the workflow tests below could pass on prose."""
     assert "secret" not in _effective("  # mentions secret here\n  real: 1")
@@ -136,30 +171,8 @@ def test_workflow_fails_when_delivery_blocked(market):
     assert "ci_delivery_verdict.py" in _effective(last.get("run", "")), (
         "the delivery-verdict gate is not the final step of %s" % market)
     assert "--market %s" % market in _effective(last.get("run", ""))
-    cond = str(last.get("if") or "")
-    # CEO 2026-11-04 · the REQUIREMENT is that a failure upstream must not
-    # skip the gate, so `always()` must be present. It is no longer the
-    # whole condition for India.
-    #
-    # India's workflow guards once per IST day. On 2026-11-04 the 06:00
-    # run did the day's work and the 06:49, 07:18 and 07:46 backups
-    # correctly short-circuited - steps #5 to #31 all skipped - and a
-    # bare `always()` made this gate run anyway and fail for want of a
-    # state file those skipped steps never wrote. Three consecutive RED
-    # Daily runs, and the pipeline had not failed at all. Fixed in
-    # 14ebede10 by adding the guard conjunct.
-    #
-    # So this asserts the semantic rather than the literal string: the
-    # gate still runs after an upstream failure, and the only permitted
-    # additional conjunct is the day guard - a run deliberately skipped
-    # is not a failure to report on. Anything else would be a real
-    # weakening and still fails here.
-    assert "always()" in cond, (
-        "the gate must run even when an earlier step failed · if=%r" % cond)
-    extra = [c.strip() for c in cond.split("&&") if "always()" not in c]
-    assert all("steps.guard.outputs.run" in c for c in extra), (
-        "the gate carries a condition beyond always() and the day guard: "
-        "%r" % extra)
+    ok, why = gate_condition_ok(last.get("if"))
+    assert ok, "the gate must run even when an earlier step failed · %s" % why
 
 
 @pytest.mark.parametrize("market", ["usa", "india"])
@@ -171,3 +184,45 @@ def test_gate_runs_after_every_commit_step(market):
                if "git commit" in _effective(s.get("run", ""))]
     assert commits, "no commit step found in %s" % market
     assert max(commits) < gate
+
+
+# ── Negative cases for the gate condition · CEO 2026-11-04 §4 ──────
+# The semantic check replaced an exact string comparison, so it must be
+# shown to REJECT as well as accept. Each of these would let the gate be
+# skipped on a run that really did execute.
+@pytest.mark.parametrize("cond,reason", [
+    ("success()",                        "always() absent"),
+    ("failure()",                        "always() absent"),
+    ("",                                 "empty condition"),
+    (None,                               "no condition at all"),
+    ("steps.guard.outputs.run == 'true'", "guard without always()"),
+    ("always() && github.event_name == 'push'",
+     "an event filter would skip scheduled runs"),
+    ("always() && steps.send.outcome == 'success'",
+     "another step's outcome would skip the gate exactly when it matters"),
+    ("always() && github.ref == 'refs/heads/main'",
+     "a branch filter would skip the gate on other refs"),
+    ("always() && !cancelled()",         "an unrelated conjunct"),
+    ("always() && steps.guard.outputs.run == 'true' && success()",
+     "a third conjunct beyond the day guard"),
+])
+def test_an_unacceptable_gate_condition_is_rejected(cond, reason):
+    ok, why = gate_condition_ok(cond)
+    assert not ok, "accepted %r (%s) · %s" % (cond, reason, why)
+    assert why
+
+
+@pytest.mark.parametrize("cond", [
+    "always()",
+    "always() && steps.guard.outputs.run == 'true'",
+    "steps.guard.outputs.run == 'true' && always()",
+    "  always()  &&  steps.guard.outputs.run == 'true'  ",
+])
+def test_an_acceptable_gate_condition_is_accepted(cond):
+    ok, why = gate_condition_ok(cond)
+    assert ok, "rejected %r · %s" % (cond, why)
+
+
+def test_the_permitted_conjunct_is_the_day_guard_and_nothing_else():
+    """Pinned · widening this set is a deliberate act, not a drift."""
+    assert PERMITTED_CONJUNCT == "steps.guard.outputs.run"
