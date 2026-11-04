@@ -1,0 +1,228 @@
+# SIC -> canonical AEGIS sector map (USA)
+#
+# CEO 2026-11-04 · Phase 1B.
+#
+# TARGET TAXONOMY
+# ---------------
+# The 11 sectors already defined by `_USA_SECTOR_TO_ETF` in
+# backend/feature_store/features/sector.py. No twelfth sector is
+# introduced: a resolver that emitted a sector the sector_* features
+# cannot price would produce classifications nothing can consume.
+#
+# WHAT SIC IS, AND IS NOT
+# -----------------------
+# SIC is a 1930s-era REGULATORY filing classification. It is not GICS,
+# and this file never claims otherwise. Three structural limits, all of
+# which cost coverage here deliberately:
+#
+#  1. ONE CODE PER REGISTRANT. No segments. A conglomerate gets a single
+#     code chosen by its own filing agent.
+#  2. SOME CODES NAME A LEGAL STRUCTURE, NOT A BUSINESS. 6798 is "Real
+#     Estate Investment Trusts" - an equity REIT is GICS Real Estate, a
+#     mortgage REIT is GICS Financials, and nothing in the SEC record
+#     separates them. 26 companies, the single largest group in our
+#     universe, and they stay REVIEW_REQUIRED.
+#  3. "NEC" MEANS NOT ELSEWHERE CLASSIFIED. 7389 is ambiguous by
+#     definition and spans Technology, Industrials and Consumer.
+#
+# MAPPING METHOD, recorded per company by the resolver:
+#   EXACT   a 4-digit override · the code names one business
+#   MAPPED  a 2-digit major-group rule · defensible, less specific
+#   PROXY   reserved · no proxy rules are enabled today
+#   UNKNOWN no SIC, or a code whose sector cannot be defended
+#
+# A code listed under `review_required` resolves to UNKNOWN with
+# review_status REVIEW_REQUIRED. Coverage is NOT improved by guessing.
+
+schema_version: aegis.usa.sic_sector_map.v1
+source: SEC submissions · sic / sicDescription
+taxonomy: _USA_SECTOR_TO_ETF (11 sectors)
+
+sectors:
+  - Technology
+  - Financials
+  - Healthcare
+  - Energy
+  - Industrials
+  - Consumer Discretionary
+  - Consumer Staples
+  - Utilities
+  - Materials
+  - Real Estate
+  - Communication Services
+
+# ── 4-digit EXACT overrides ────────────────────────────────────────
+# Each entry is a code whose major group would mislead, or one large
+# enough in this universe to deserve an explicit decision. The count is
+# the number of universe companies carrying it, measured 2026-11-04.
+exact:
+  "6324": {sector: Healthcare, n: 5, note: "Hospital & Medical Service Plans · managed care is GICS Health Care, NOT Financials, despite sitting in SIC's insurance range"}
+  "8000": {sector: Healthcare, n: 0, note: "Health services"}
+  "8011": {sector: Healthcare, n: 0, note: "Offices of doctors"}
+  "8062": {sector: Healthcare, n: 0, note: "General medical & surgical hospitals"}
+  "2080": {sector: Consumer Staples, n: 5, note: "Beverages"}
+  "2086": {sector: Consumer Staples, n: 0, note: "Bottled & canned soft drinks"}
+  "5812": {sector: Consumer Discretionary, n: 4, note: "Eating places · restaurants are Discretionary"}
+  "7011": {sector: Consumer Discretionary, n: 5, note: "Hotels & motels"}
+  "3711": {sector: Consumer Discretionary, n: 4, note: "Motor vehicles"}
+  "2911": {sector: Energy, n: 7, note: "Petroleum refining · SIC puts this in Manufacturing, GICS in Energy"}
+  "1311": {sector: Energy, n: 7, note: "Crude petroleum & natural gas"}
+  "4911": {sector: Utilities, n: 15, note: "Electric services"}
+  "4931": {sector: Utilities, n: 12, note: "Electric & other services combined"}
+  "4924": {sector: Utilities, n: 0, note: "Natural gas distribution"}
+  "3674": {sector: Technology, n: 16, note: "Semiconductors"}
+  "7372": {sector: Technology, n: 18, note: "Prepackaged software"}
+  "7370": {sector: Technology, n: 6, note: "Computer programming & data processing"}
+  "7373": {sector: Technology, n: 4, note: "Computer integrated systems design"}
+  "3571": {sector: Technology, n: 0, note: "Electronic computers"}
+  "2834": {sector: Healthcare, n: 11, note: "Pharmaceutical preparations"}
+  "2836": {sector: Healthcare, n: 5, note: "Biological products"}
+  "3841": {sector: Healthcare, n: 10, note: "Surgical & medical instruments"}
+  "3842": {sector: Healthcare, n: 5, note: "Orthopedic & prosthetic appliances"}
+  "3826": {sector: Healthcare, n: 4, note: "Laboratory analytical instruments · life-science tools"}
+  "6021": {sector: Financials, n: 11, note: "National commercial banks"}
+  "6022": {sector: Financials, n: 6, note: "State commercial banks"}
+  "6282": {sector: Financials, n: 8, note: "Investment advice · asset managers"}
+  "6211": {sector: Financials, n: 7, note: "Security brokers & dealers"}
+  "6200": {sector: Financials, n: 4, note: "Security & commodity exchanges"}
+  "6331": {sector: Financials, n: 12, note: "Fire, marine & casualty insurance"}
+  "6411": {sector: Financials, n: 6, note: "Insurance agents & brokers"}
+  "6500": {sector: Real Estate, n: 0, note: "Real estate · operators"}
+  "6512": {sector: Real Estate, n: 0, note: "Operators of apartment buildings"}
+  "6552": {sector: Real Estate, n: 0, note: "Land subdividers & developers"}
+  "4813": {sector: Communication Services, n: 0, note: "Telephone communications"}
+  # ── Evidence-based corrections, 2026-11-04 ──────────────────────
+  # Each of these was landing on a MAJOR-GROUP rule that misassigned a
+  # clear business. Verified against the actual universe holders named
+  # in each note, not inferred from the code description alone.
+  "3570": {sector: Technology, n: 3, note: "Computer & office equipment · IBM, HPQ, HPE · major group 35 would say Industrials"}
+  "3571": {sector: Technology, n: 0, note: "Electronic computers"}
+  "3572": {sector: Technology, n: 4, note: "Computer storage · NTAP, STX, WDC, SNDK"}
+  "3576": {sector: Technology, n: 3, note: "Computer communications equipment · CSCO, ANET, FFIV"}
+  "3577": {sector: Technology, n: 0, note: "Computer peripheral equipment"}
+  "3578": {sector: Technology, n: 0, note: "Calculating & accounting machines"}
+  "3661": {sector: Technology, n: 0, note: "Telephone & telegraph apparatus"}
+  "3663": {sector: Technology, n: 0, note: "Radio & TV broadcasting & communications equipment"}
+  "3669": {sector: Technology, n: 0, note: "Communications equipment NEC"}
+  "3672": {sector: Technology, n: 0, note: "Printed circuit boards"}
+  "3675": {sector: Technology, n: 0, note: "Electronic capacitors"}
+  "3677": {sector: Technology, n: 0, note: "Electronic coils & transformers"}
+  "3678": {sector: Technology, n: 0, note: "Electronic connectors"}
+  "3679": {sector: Technology, n: 0, note: "Electronic components NEC"}
+  "8731": {sector: Healthcare, n: 3, note: "Commercial physical & biological research · CRL, INCY, IQV are life sciences, not Industrials"}
+  "4400": {sector: Consumer Discretionary, n: 3, note: "Water transportation · CCL, NCLH, RCL are cruise lines · leisure, not freight"}
+  "4412": {sector: Consumer Discretionary, n: 0, note: "Deep sea foreign transportation of freight · reclassify if a freight operator enters the universe"}
+  "1531": {sector: Consumer Discretionary, n: 3, note: "Operative builders · DHI, NVR, PHM are homebuilders · GICS Consumer Discretionary, not Construction"}
+  "7320": {sector: Financials, n: 3, note: "Consumer credit reporting · EFX, MCO, SPGI are credit bureaus and ratings · financial data"}
+  "6199": {sector: Financials, n: 3, note: "Finance services · AXP, SYF, COIN · previously REVIEW_REQUIRED on the a-priori worry that the code could hold a fintech, but all three actual holders are GICS Financials. Revisit if a Technology company appears under it."}
+  "6792": {sector: Energy, n: 1, note: "Oil royalty traders · TPL · royalty interests in oil and gas"}
+
+  "4832": {sector: Communication Services, n: 0, note: "Radio broadcasting"}
+  "4833": {sector: Communication Services, n: 0, note: "Television broadcasting"}
+  "4841": {sector: Communication Services, n: 0, note: "Cable & other pay TV"}
+  "7812": {sector: Communication Services, n: 0, note: "Motion picture production"}
+  "7900": {sector: Communication Services, n: 0, note: "Services-amusement & recreation"}
+
+# ── 2-digit MAPPED major-group rules ──────────────────────────────
+# Applied only when no `exact` entry matches. Less specific, still
+# defensible. A major group that spans more than one GICS sector in a
+# way we cannot resolve belongs in `review_required`, not here.
+major_group:
+  "01": Consumer Staples      # agricultural production · crops
+  "02": Consumer Staples      # agricultural production · livestock
+  "10": Materials             # metal mining
+  "12": Energy                # coal mining
+  "13": Energy                # oil & gas extraction
+  "14": Materials             # nonmetallic minerals
+  "15": Industrials           # building construction
+  "16": Industrials           # heavy construction
+  "17": Industrials           # special trade contractors
+  "20": Consumer Staples      # food & kindred products
+  "21": Consumer Staples      # tobacco
+  "22": Consumer Discretionary  # textile mill products
+  "23": Consumer Discretionary  # apparel
+  "24": Materials             # lumber & wood
+  "25": Consumer Discretionary  # furniture & fixtures
+  "26": Materials             # paper & allied products
+  "27": Communication Services  # printing & publishing
+  "28": Materials             # chemicals · pharma codes are EXACT above
+  "29": Energy                # petroleum refining
+  "30": Materials             # rubber & plastics
+  "31": Consumer Discretionary  # leather
+  "32": Materials             # stone, clay, glass, concrete
+  "33": Materials             # primary metal industries
+  "34": Industrials           # fabricated metal products
+  "35": Industrials           # industrial machinery · computers are EXACT
+  "36": Industrials           # electronic & electrical equipment
+  "37": Industrials           # transportation equipment · autos are EXACT
+  "38": Healthcare            # instruments · most are medical, EXACT above
+  "39": Consumer Discretionary  # miscellaneous manufacturing
+  "40": Industrials           # railroad transportation
+  "42": Industrials           # trucking & warehousing
+  "44": Industrials           # water transportation
+  "45": Industrials           # transportation by air
+  "46": Energy                # pipelines, except natural gas
+  "47": Industrials           # transportation services
+  "48": Communication Services  # communications
+  "49": Utilities             # electric, gas & sanitary services
+  "50": Industrials           # wholesale · durable goods
+  "51": Consumer Staples      # wholesale · nondurable goods
+  "52": Consumer Discretionary  # building materials & garden retail
+  "53": Consumer Discretionary  # general merchandise stores
+  "54": Consumer Staples      # food stores
+  "55": Consumer Discretionary  # auto dealers & service stations
+  "56": Consumer Discretionary  # apparel & accessory stores
+  "57": Consumer Discretionary  # furniture & home furnishings stores
+  "58": Consumer Discretionary  # eating & drinking places
+  "59": Consumer Discretionary  # miscellaneous retail
+  "60": Financials            # depository institutions
+  "61": Financials            # non-depository credit institutions
+  "62": Financials            # security & commodity brokers
+  "63": Financials            # insurance carriers · 6324 is EXACT
+  "64": Financials            # insurance agents & brokers
+  "65": Real Estate           # real estate
+  "70": Consumer Discretionary  # hotels & lodging
+  "72": Consumer Discretionary  # personal services
+  "73": Industrials           # business services · 737x tech codes are EXACT
+  "75": Consumer Discretionary  # auto repair & services
+  "78": Communication Services  # motion pictures
+  "79": Communication Services  # amusement & recreation
+  "80": Healthcare            # health services
+  "82": Consumer Discretionary  # educational services
+  "87": Industrials           # engineering & management services
+
+# ── Codes we refuse to resolve ────────────────────────────────────
+# Each stays UNKNOWN with review_status REVIEW_REQUIRED. Together they
+# are the honest cost of not guessing.
+review_required:
+  "6798":
+    n: 26
+    description: Real Estate Investment Trusts
+    reason: >
+      A legal structure, not a sector. An equity REIT is GICS Real
+      Estate; a mortgage REIT is GICS Financials. SEC records no
+      distinction, and this is the largest single group in the universe
+      - 26 companies - so guessing would misclassify at scale.
+    resolvable_by: >
+      Asset-mix evidence (property holdings vs mortgage assets) from the
+      PIT fundamentals, or a licensed GICS feed.
+  "7389":
+    n: 16
+    description: Services-Business Services, NEC
+    reason: >
+      "Not Elsewhere Classified" is ambiguous by construction. This
+      group spans payment processors (Technology), staffing
+      (Industrials) and marketing (Communication Services).
+    resolvable_by: Revenue-segment evidence or a licensed GICS feed.
+  "6770":
+    n: 0
+    description: Blank Checks
+    reason: A shell or SPAC has no operating business to classify.
+  "9995":
+    n: 0
+    description: Non-Operating Establishments
+    reason: No operating business.
+  # "6199" was here. Removed 2026-11-04: all three actual holders in
+  # this universe (AXP, SYF, COIN) are GICS Financials, so the refusal
+  # was an a-priori worry the evidence does not support. It is now an
+  # EXACT mapping with the caveat recorded there.
