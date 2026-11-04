@@ -106,7 +106,8 @@ def _save_atomic(workbook, out: Path) -> None:
     tmp = out.with_name(out.name + ".tmp-%d" % os.getpid())
     try:
         workbook.save(tmp)
-        os.replace(tmp, out)
+        from backend.shared.atomic_io import replace_with_retry
+        replace_with_retry(tmp, out)
     except Exception:
         try:
             tmp.unlink()

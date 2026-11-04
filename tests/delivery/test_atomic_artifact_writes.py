@@ -72,17 +72,34 @@ class TestWorkbookAtomicSave:
 
         t = threading.Thread(target=_read, daemon=True)
         t.start()
+        blocked = 0
         try:
             for _ in range(6):
-                _save_atomic(_big_workbook(4000), out)
+                # On Windows MoveFileEx cannot displace a file another
+                # handle holds open, and the reader above spins with no
+                # pause, so it holds one ~100% of the time. A blocked
+                # WRITE is acceptable and loud; a torn READ is not. See
+                # test_a_realistic_reader_does_not_block_the_write for
+                # the production duty cycle, where the retry wins.
+                try:
+                    _save_atomic(_big_workbook(4000), out)
+                except PermissionError:
+                    blocked += 1
         finally:
             stop.set()
             t.join(timeout=10)
 
         assert not errors, errors[:3]
+        # whatever happened to the writes, the destination is intact
         wb = load_workbook(out)
         assert wb.sheetnames == ["CURRENT", "EXIT HISTORY"]
         wb.close()
+        # No assertion on `blocked`: a 4000-row workbook save against a
+        # reader that spins with no pause can legitimately be blocked
+        # every time on Windows. Whether the retry EARNS its place is
+        # proved against a production duty cycle in
+        # TestTheRetryEarnsItsPlace, not here. What this test owns is
+        # the read side: zero torn documents, destination still valid.
 
     def test_the_temp_file_is_a_sibling_not_in_the_system_temp(self, tmp_path):
         """os.replace is only atomic within one filesystem."""
@@ -156,9 +173,13 @@ class TestLifecycleAtomicEmit:
 
         t = threading.Thread(target=_read, daemon=True)
         t.start()
+        blocked = 0
         try:
             for _ in range(8):
-                lc.emit(tmp_path, self._rep(n=3000))
+                try:
+                    lc.emit(tmp_path, self._rep(n=3000))
+                except PermissionError:
+                    blocked += 1          # Windows sharing · see the ZIP case
         finally:
             stop.set()
             t.join(timeout=10)
@@ -166,6 +187,8 @@ class TestLifecycleAtomicEmit:
         assert not nones, (
             "%d torn reads · a None lifecycle reads downstream as an empty "
             "portfolio, not as a failure" % len(nones))
+        # and the artifact still parses afterwards
+        assert lc.load(tmp_path, "usa") is not None
 
     def test_the_emitted_document_is_complete_and_parses(self, tmp_path):
         p = lc.emit(tmp_path, self._rep(n=100))
@@ -188,3 +211,51 @@ class TestLifecycleAtomicEmit:
         lc.emit(tmp_path, self._rep("usa", n=30))
         assert lc.load(tmp_path, "india")["counts"]["current_total"] == 20
         assert lc.load(tmp_path, "usa")["counts"]["current_total"] == 30
+
+
+class TestTheRetryEarnsItsPlace:
+    """A production reader opens, reads and closes · the retry wins there.
+
+    The spinning readers above prove no TORN read is possible. This
+    proves the bounded retry actually completes the write against the
+    duty cycle production has, so the retry is not decoration.
+    """
+
+    @staticmethod
+    def _rep(n):
+        # keyword, not positional · _rep's first parameter is `market`
+        return TestLifecycleAtomicEmit._rep(n=n)
+
+    def test_a_realistic_reader_does_not_block_the_write(self, tmp_path):
+        import time
+        lc.emit(tmp_path, self._rep(n=50))
+        stop = threading.Event()
+        nones: list = []
+
+        def _read():
+            while not stop.is_set():
+                if lc.load(tmp_path, "usa") is None:
+                    nones.append(1)
+                time.sleep(0.01)      # a reader between pipeline stages
+
+        t = threading.Thread(target=_read, daemon=True)
+        t.start()
+        try:
+            for _ in range(8):
+                lc.emit(tmp_path, self._rep(n=200))   # must NOT raise
+        finally:
+            stop.set()
+            t.join(timeout=10)
+
+        assert not nones
+        assert lc.load(tmp_path, "usa")["counts"]["current_total"] == 200
+
+    def test_replace_with_retry_reraises_rather_than_losing_a_write(self,
+                                                                    tmp_path):
+        """A write that cannot land must be loud, never assumed done."""
+        from backend.shared.atomic_io import replace_with_retry
+        src = tmp_path / "src.txt"
+        src.write_text("x", encoding="utf-8")
+        dest = tmp_path / "sub" / "dest.txt"      # parent does not exist
+        with pytest.raises(OSError):
+            replace_with_retry(src, dest, attempts=2, base_delay=0.001)

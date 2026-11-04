@@ -954,7 +954,11 @@ def emit(root: Path, rep: dict) -> Path:
     try:
         tmp.write_text(json.dumps(rep, indent=2, default=str),
                        encoding="utf-8")
-        os.replace(tmp, p)
+        # Windows MoveFileEx fails with ERROR_ACCESS_DENIED when a
+        # reader holds the destination open - exactly the case this
+        # atomic write exists for. Bounded retry, then raise.
+        from backend.shared.atomic_io import replace_with_retry
+        replace_with_retry(tmp, p)
     except Exception:
         try:
             tmp.unlink()
