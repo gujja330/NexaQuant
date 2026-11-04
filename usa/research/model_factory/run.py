@@ -17,6 +17,13 @@ _ROOT = Path(__file__).resolve().parents[3]
 _USA  = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(_ROOT))
 
+# CEO 2026-11-04 · report writes honour AEGIS_OUT_ROOT so a test can
+# run this engine as a subprocess without touching live artifacts.
+# Production sets no variable, so _OUT == _ROOT and _USA is unchanged.
+from backend.shared.out_root import resolved_out_root  # noqa: E402
+_OUT = resolved_out_root(_ROOT)
+_USA = _OUT / "usa"
+
 from backend.canonical.model            import USA_PROFILE                                  # noqa: E402
 from backend.feature_store.feature_history import read_snapshot, list_snapshots            # noqa: E402
 from backend.feature_store              import schema_fingerprint                            # noqa: E402
@@ -99,7 +106,7 @@ def main() -> int:
     print(f"  ensemble: {ens.n_models} models · {len(ens.predictions)} tickers · strategy={ens.strategy}")
 
     for m in factory.models:
-        register_model(_ROOT,
+        register_model(_OUT,
             model_id=m.metadata.model_id, engine="model_factory",
             market="usa", version=m.metadata.version,
             feature_set_version=schema_fingerprint(),

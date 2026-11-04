@@ -23,6 +23,11 @@ except Exception:
 _ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(_ROOT))
 
+# CEO 2026-11-04 · model_registry.jsonl is a protected ledger ·
+# redirect it with the shared out-root so tests cannot append to it.
+from backend.shared.out_root import resolved_out_root  # noqa: E402
+_OUT = resolved_out_root(_ROOT)
+
 import pandas as pd
 
 from backend.factor_library import build_factor_library, ENGINE_ID, ENGINE_VERSION
@@ -56,7 +61,7 @@ def main() -> int:
         asof=date.today(), config_path=CFG,
     )
 
-    register_model(_ROOT,
+    register_model(_OUT,
         model_id=ENGINE_ID, engine="factor_library",
         market="india", version=ENGINE_VERSION,
         feature_set_version=schema_fingerprint(),

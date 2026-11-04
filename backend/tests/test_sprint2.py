@@ -7,12 +7,19 @@ from __future__ import annotations
 
 import io
 import json
+import pytest
 import subprocess
 import sys
 from datetime import date
 from pathlib import Path
 
 _ROOT = Path(__file__).resolve().parents[2]
+
+def _runner_env(out_root):
+    """Propagate the isolated report root to a child process."""
+    from backend.shared.out_root import subprocess_env
+    return subprocess_env(out_root)
+
 sys.path.insert(0, str(_ROOT))
 
 from backend.canonical.model import INDIA_PROFILE, USA_PROFILE                          # noqa: E402
@@ -130,10 +137,10 @@ def test_agents_have_no_recommendation_output():
 
 
 # ── Integration ─────────────────────────────────────────────────
-def test_india_market_intelligence_runner_emits_valid_json():
+def test_india_market_intelligence_runner_emits_valid_json(_OUT_ROOT):
     r = subprocess.run(
         [sys.executable, "india/market_intelligence/run.py"],
-        cwd=str(_ROOT), capture_output=True, text=True, timeout=180)
+        cwd=str(_ROOT), env=_runner_env(_OUT_ROOT), capture_output=True, text=True, timeout=180)
     assert r.returncode == 0, f"exit {r.returncode}\n{r.stderr[:500]}"
     intel = json.loads((_ROOT / "reports" / "market_intelligence.json")
                          .read_text(encoding="utf-8"))
@@ -143,10 +150,10 @@ def test_india_market_intelligence_runner_emits_valid_json():
            f"composite={intel['composite_score']}")
 
 
-def test_usa_market_intelligence_runner_emits_valid_json():
+def test_usa_market_intelligence_runner_emits_valid_json(_OUT_ROOT):
     r = subprocess.run(
         [sys.executable, "usa/research/market_intelligence/run.py"],
-        cwd=str(_ROOT), capture_output=True, text=True, timeout=180)
+        cwd=str(_ROOT), env=_runner_env(_OUT_ROOT), capture_output=True, text=True, timeout=180)
     assert r.returncode == 0, f"exit {r.returncode}\n{r.stderr[:500]}"
     intel = json.loads((_ROOT / "usa" / "reports" / "market_intelligence.json")
                          .read_text(encoding="utf-8"))
@@ -198,3 +205,21 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+
+
+# ── Write isolation · CEO 2026-11-04 ────────────────────────────
+@pytest.fixture
+def _OUT_ROOT(tmp_path):
+    """A disposable report root for subprocess engine runners.
+
+    These tests execute real production engines with cwd=_ROOT, and the
+    engines resolve their own output paths. Before this, every
+    regression run rewrote live artifacts - ensemble.json,
+    market_intelligence.json, model_registry.jsonl and the rest. A
+    subprocess cannot take a Python argument, so the root arrives
+    through AEGIS_OUT_ROOT. Reads still come from the real repository,
+    which is the point of these tests.
+    """
+    for sub in ("reports", "usa/reports", "features"):
+        (tmp_path / sub).mkdir(parents=True, exist_ok=True)
+    return tmp_path

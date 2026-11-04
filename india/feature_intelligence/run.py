@@ -25,6 +25,13 @@ except Exception:
 _ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(_ROOT))
 
+
+# CEO 2026-11-04 · report writes honour AEGIS_OUT_ROOT so a test can
+# run this engine as a subprocess without touching live artifacts.
+# Production sets no variable, so _OUT == _ROOT and nothing moves.
+from backend.shared.out_root import resolved_out_root  # noqa: E402
+_OUT = resolved_out_root(_ROOT)
+
 from backend.canonical.model              import INDIA_PROFILE                             # noqa: E402
 from backend.feature_store                 import FEATURE_REGISTRY, schema_fingerprint     # noqa: E402
 from backend.feature_store.feature_history import read_snapshot, list_snapshots            # noqa: E402
@@ -35,10 +42,10 @@ from backend.feature_intelligence          import (                             
 from backend.ai import feature_research                                                     # noqa: E402
 
 
-OUT_INTEL     = _ROOT / "reports" / "feature_intelligence.json"
-OUT_SUMMARY   = _ROOT / "reports" / "feature_intelligence_summary.json"
-OUT_RESEARCH  = _ROOT / "reports" / "ai_feature_research.json"
-OUT_SELECTED  = _ROOT / "reports" / "selected_features.json"
+OUT_INTEL     = _OUT / "reports" / "feature_intelligence.json"
+OUT_SUMMARY   = _OUT / "reports" / "feature_intelligence_summary.json"
+OUT_RESEARCH  = _OUT / "reports" / "ai_feature_research.json"
+OUT_SELECTED  = _OUT / "reports" / "selected_features.json"
 
 
 def _stringify(v):

@@ -31,6 +31,13 @@ except Exception:
 _ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(_ROOT))
 
+
+# CEO 2026-11-04 · report writes honour AEGIS_OUT_ROOT so a test can
+# run this engine as a subprocess without touching live artifacts.
+# Production sets no variable, so _OUT == _ROOT and nothing moves.
+from backend.shared.out_root import resolved_out_root  # noqa: E402
+_OUT = resolved_out_root(_ROOT)
+
 import yaml                                                                                  # noqa: E402
 
 from backend.canonical.model              import INDIA_PROFILE                              # noqa: E402
@@ -40,11 +47,11 @@ from backend.model_registry.registry      import stamp, register_model, ModelSta
 from backend.ai                          import learning_analyst                            # noqa: E402
 
 
-OUT_FEAT_ATTR = _ROOT / "reports" / "feature_attribution.json"
-OUT_MODEL_ATTR = _ROOT / "reports" / "model_attribution.json"
-OUT_CLUSTERS   = _ROOT / "reports" / "failure_clusters.json"
-OUT_CALIB      = _ROOT / "reports" / "confidence_calibration.json"
-OUT_NARRATIVE  = _ROOT / "reports" / "ai_learning_narrative.json"
+OUT_FEAT_ATTR = _OUT / "reports" / "feature_attribution.json"
+OUT_MODEL_ATTR = _OUT / "reports" / "model_attribution.json"
+OUT_CLUSTERS   = _OUT / "reports" / "failure_clusters.json"
+OUT_CALIB      = _OUT / "reports" / "confidence_calibration.json"
+OUT_NARRATIVE  = _OUT / "reports" / "ai_learning_narrative.json"
 
 CONFIG_PATH   = _ROOT / "configs" / "learning_config.yaml"
 
@@ -76,7 +83,7 @@ def main() -> int:
 
     # Register model
     model_id = "aegis.learning.v1"
-    register_model(_ROOT,
+    register_model(_OUT,
         model_id=model_id, engine="learning_engine",
         market="india", version="1.0.0",
         feature_set_version=schema_fingerprint(),

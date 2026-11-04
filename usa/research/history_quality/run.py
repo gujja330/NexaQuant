@@ -18,6 +18,11 @@ except Exception:
 _ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(_ROOT))
 
+# CEO 2026-11-04 · model_registry.jsonl is a protected ledger ·
+# redirect it with the shared out-root so tests cannot append to it.
+from backend.shared.out_root import resolved_out_root  # noqa: E402
+_OUT = resolved_out_root(_ROOT)
+
 from backend.history_quality import run_quality_check, ENGINE_ID, ENGINE_VERSION, build_comparison
 from backend.feature_store import schema_fingerprint
 from backend.model_registry.registry import stamp, register_model, ModelStatus
@@ -30,7 +35,7 @@ def main() -> int:
     now = datetime.now(timezone.utc)
     print(f"[AEGIS USA · History Quality Validation · {now.isoformat(timespec='seconds')}]")
 
-    register_model(_ROOT,
+    register_model(_OUT,
         model_id=ENGINE_ID, engine="history_quality",
         market="usa", version=ENGINE_VERSION,
         feature_set_version=schema_fingerprint(),

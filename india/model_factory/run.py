@@ -25,6 +25,13 @@ except Exception:
 _ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(_ROOT))
 
+
+# CEO 2026-11-04 · report writes honour AEGIS_OUT_ROOT so a test can
+# run this engine as a subprocess without touching live artifacts.
+# Production sets no variable, so _OUT == _ROOT and nothing moves.
+from backend.shared.out_root import resolved_out_root  # noqa: E402
+_OUT = resolved_out_root(_ROOT)
+
 from backend.canonical.model            import INDIA_PROFILE                                # noqa: E402
 from backend.feature_store.feature_history import read_snapshot, list_snapshots            # noqa: E402
 from backend.feature_store              import schema_fingerprint                            # noqa: E402
@@ -36,10 +43,10 @@ from backend.ai                         import model_analyst                    
 from backend.certification.adaptive_weights import load_ensemble_weights_config              # noqa: E402
 
 
-OUT_FACTORY    = _ROOT / "reports" / "model_factory.json"
-OUT_METRICS    = _ROOT / "reports" / "model_metrics.json"
-OUT_ENSEMBLE   = _ROOT / "reports" / "ensemble.json"
-OUT_NARRATIVE  = _ROOT / "reports" / "ai_model_narrative.json"
+OUT_FACTORY    = _OUT / "reports" / "model_factory.json"
+OUT_METRICS    = _OUT / "reports" / "model_metrics.json"
+OUT_ENSEMBLE   = _OUT / "reports" / "ensemble.json"
+OUT_NARRATIVE  = _OUT / "reports" / "ai_model_narrative.json"
 SELECTED_FEATS = _ROOT / "reports" / "selected_features.json"
 LEARNING_CORPUS = _ROOT / "reports" / "learning.parquet"
 ADAPTIVE_WEIGHTS_CFG = _ROOT / "configs" / "ensemble_weights_adaptive.yaml"
@@ -114,7 +121,7 @@ def main() -> int:
 
     # Register each model in the model registry (marks all as EXPERIMENTAL until approved)
     for m in factory.models:
-        register_model(_ROOT,
+        register_model(_OUT,
             model_id=m.metadata.model_id, engine="model_factory",
             market="india", version=m.metadata.version,
             feature_set_version=schema_fingerprint(),

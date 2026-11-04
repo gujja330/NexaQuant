@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import io
 import json
+import pytest
 import subprocess
 import sys
 from datetime import date
@@ -12,6 +13,12 @@ import numpy as np
 import pandas as pd
 
 _ROOT = Path(__file__).resolve().parents[2]
+
+def _runner_env(out_root):
+    """Propagate the isolated report root to a child process."""
+    from backend.shared.out_root import subprocess_env
+    return subprocess_env(out_root)
+
 sys.path.insert(0, str(_ROOT))
 
 from backend.model_factory              import (                                              # noqa: E402
@@ -217,10 +224,10 @@ def test_models_accept_cutoff_parameter():
 
 
 # ── Integration ─────────────────────────────────────────────────
-def test_india_model_factory_runner():
+def test_india_model_factory_runner(_OUT_ROOT):
     r = subprocess.run(
         [sys.executable, "india/model_factory/run.py"],
-        cwd=str(_ROOT), capture_output=True, text=True, timeout=180)
+        cwd=str(_ROOT), env=_runner_env(_OUT_ROOT), capture_output=True, text=True, timeout=180)
     assert r.returncode == 0, f"exit {r.returncode}\n{r.stderr[:800]}"
     summary = json.loads((_ROOT / "reports" / "model_factory.json").read_text(encoding="utf-8"))
     assert summary["market"] == "india"
@@ -228,10 +235,10 @@ def test_india_model_factory_runner():
     print(f"  [OK] india model factory: {summary['n_models']} models emitted")
 
 
-def test_usa_model_factory_runner():
+def test_usa_model_factory_runner(_OUT_ROOT):
     r = subprocess.run(
         [sys.executable, "usa/research/model_factory/run.py"],
-        cwd=str(_ROOT), capture_output=True, text=True, timeout=180)
+        cwd=str(_ROOT), env=_runner_env(_OUT_ROOT), capture_output=True, text=True, timeout=180)
     assert r.returncode == 0, f"exit {r.returncode}\n{r.stderr[:800]}"
     summary = json.loads((_ROOT / "usa" / "reports" / "model_factory.json").read_text(encoding="utf-8"))
     assert summary["market"] == "usa"
@@ -282,3 +289,21 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+
+
+# ── Write isolation · CEO 2026-11-04 ────────────────────────────
+@pytest.fixture
+def _OUT_ROOT(tmp_path):
+    """A disposable report root for subprocess engine runners.
+
+    These tests execute real production engines with cwd=_ROOT, and the
+    engines resolve their own output paths. Before this, every
+    regression run rewrote live artifacts - ensemble.json,
+    market_intelligence.json, model_registry.jsonl and the rest. A
+    subprocess cannot take a Python argument, so the root arrives
+    through AEGIS_OUT_ROOT. Reads still come from the real repository,
+    which is the point of these tests.
+    """
+    for sub in ("reports", "usa/reports", "features"):
+        (tmp_path / sub).mkdir(parents=True, exist_ok=True)
+    return tmp_path

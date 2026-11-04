@@ -17,6 +17,11 @@ _ROOT = Path(__file__).resolve().parents[3]
 _USA  = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(_ROOT))
 
+# CEO 2026-11-04 · model_registry.jsonl is a protected ledger ·
+# redirect it with the shared out-root so tests cannot append to it.
+from backend.shared.out_root import resolved_out_root  # noqa: E402
+_OUT = resolved_out_root(_ROOT)
+
 import pandas as pd                                                                          # noqa: E402
 import yaml                                                                                  # noqa: E402
 
@@ -117,7 +122,7 @@ def main() -> int:
     print(f"  snapshot: {latest.isoformat()} · rows={len(df)}")
 
     model_id = "aegis.execution.v1"
-    register_model(_ROOT,
+    register_model(_OUT,
         model_id=model_id, engine="execution_simulator",
         market="usa", version="1.0.0",
         feature_set_version=schema_fingerprint(),

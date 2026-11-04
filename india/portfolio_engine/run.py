@@ -30,6 +30,13 @@ except Exception:
 _ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(_ROOT))
 
+
+# CEO 2026-11-04 · report writes honour AEGIS_OUT_ROOT so a test can
+# run this engine as a subprocess without touching live artifacts.
+# Production sets no variable, so _OUT == _ROOT and nothing moves.
+from backend.shared.out_root import resolved_out_root  # noqa: E402
+_OUT = resolved_out_root(_ROOT)
+
 import yaml                                                                                  # noqa: E402
 
 from backend.canonical.model              import INDIA_PROFILE                              # noqa: E402
@@ -41,9 +48,9 @@ from backend.model_registry.registry      import stamp, register_model, ModelSta
 from backend.ai                          import portfolio_analyst                          # noqa: E402
 
 
-OUT_FULL      = _ROOT / "reports" / "portfolio_v3.json"
-OUT_DIFF      = _ROOT / "reports" / "portfolio_diff.json"
-OUT_NARRATIVE = _ROOT / "reports" / "ai_portfolio_narrative.json"
+OUT_FULL      = _OUT / "reports" / "portfolio_v3.json"
+OUT_DIFF      = _OUT / "reports" / "portfolio_diff.json"
+OUT_NARRATIVE = _OUT / "reports" / "ai_portfolio_narrative.json"
 
 SIZED_PATH   = _ROOT / "reports" / "sized_positions.json"
 MI_SUMMARY   = _ROOT / "reports" / "market_intelligence_summary.json"
@@ -106,7 +113,7 @@ def main() -> int:
           f" · rebal_bps={cfg.get('rebalance_threshold_bps')}")
 
     model_id = "aegis.portfolio.v1"
-    register_model(_ROOT,
+    register_model(_OUT,
         model_id=model_id, engine="portfolio_engine",
         market="india", version="1.0.0",
         feature_set_version=schema_fingerprint(),

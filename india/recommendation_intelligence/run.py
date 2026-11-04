@@ -32,6 +32,13 @@ except Exception:
 _ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(_ROOT))
 
+
+# CEO 2026-11-04 · report writes honour AEGIS_OUT_ROOT so a test can
+# run this engine as a subprocess without touching live artifacts.
+# Production sets no variable, so _OUT == _ROOT and nothing moves.
+from backend.shared.out_root import resolved_out_root  # noqa: E402
+_OUT = resolved_out_root(_ROOT)
+
 import pandas as pd                                                                        # noqa: E402
 from backend.canonical.model              import INDIA_PROFILE                             # noqa: E402
 from backend.feature_store                 import schema_fingerprint                        # noqa: E402
@@ -41,10 +48,10 @@ from backend.model_registry.registry      import stamp, register_model, ModelSta
 from backend.ai import recommendation_analyst                                                # noqa: E402
 
 
-OUT_FULL      = _ROOT / "reports" / "recommendations_v3.json"
-OUT_SUMMARY   = _ROOT / "reports" / "recommendations_v3_summary.json"
-OUT_CONFLICTS = _ROOT / "reports" / "recommendations_v3_conflicts.json"
-OUT_NARRATIVE = _ROOT / "reports" / "ai_recommendation_narrative.json"
+OUT_FULL      = _OUT / "reports" / "recommendations_v3.json"
+OUT_SUMMARY   = _OUT / "reports" / "recommendations_v3_summary.json"
+OUT_CONFLICTS = _OUT / "reports" / "recommendations_v3_conflicts.json"
+OUT_NARRATIVE = _OUT / "reports" / "ai_recommendation_narrative.json"
 
 ENSEMBLE_PATH   = _ROOT / "reports" / "ensemble.json"
 MI_SUMMARY      = _ROOT / "reports" / "market_intelligence_summary.json"
@@ -144,7 +151,7 @@ def main() -> int:
 
     # ── Register the Recommendation Engine model ───────────
     model_id = "aegis.recommendation.v3"
-    register_model(_ROOT,
+    register_model(_OUT,
         model_id=model_id, engine="recommendation_intelligence",
         market="india", version="1.0.0",
         feature_set_version=schema_fingerprint(),

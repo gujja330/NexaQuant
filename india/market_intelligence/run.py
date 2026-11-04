@@ -30,15 +30,22 @@ except Exception:
 _ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(_ROOT))
 
+
+# CEO 2026-11-04 · report writes honour AEGIS_OUT_ROOT so a test can
+# run this engine as a subprocess without touching live artifacts.
+# Production sets no variable, so _OUT == _ROOT and nothing moves.
+from backend.shared.out_root import resolved_out_root  # noqa: E402
+_OUT = resolved_out_root(_ROOT)
+
 from backend.canonical.model import INDIA_PROFILE                                        # noqa: E402
 from backend.canonical.adapters import adapt_all                                          # noqa: E402
 from backend.market_intelligence.engine import MarketIntelligenceEngine                   # noqa: E402
 from backend.ai import market_analyst, data_quality, evidence_summarizer                  # noqa: E402
 
 
-OUT_INTEL     = _ROOT / "reports" / "market_intelligence.json"
-OUT_SUMMARY   = _ROOT / "reports" / "market_intelligence_summary.json"
-OUT_NARRATIVE = _ROOT / "reports" / "ai_market_narrative.json"
+OUT_INTEL     = _OUT / "reports" / "market_intelligence.json"
+OUT_SUMMARY   = _OUT / "reports" / "market_intelligence_summary.json"
+OUT_NARRATIVE = _OUT / "reports" / "ai_market_narrative.json"
 
 
 def _as_dict(obj) -> dict:

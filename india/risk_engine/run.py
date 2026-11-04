@@ -29,6 +29,13 @@ except Exception:
 _ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(_ROOT))
 
+
+# CEO 2026-11-04 · report writes honour AEGIS_OUT_ROOT so a test can
+# run this engine as a subprocess without touching live artifacts.
+# Production sets no variable, so _OUT == _ROOT and nothing moves.
+from backend.shared.out_root import resolved_out_root  # noqa: E402
+_OUT = resolved_out_root(_ROOT)
+
 import yaml                                                                                  # noqa: E402
 
 from backend.canonical.model              import INDIA_PROFILE                              # noqa: E402
@@ -40,9 +47,9 @@ from backend.model_registry.registry      import stamp, register_model, ModelSta
 from backend.ai                          import risk_analyst                                # noqa: E402
 
 
-OUT_SIZED     = _ROOT / "reports" / "sized_positions.json"
-OUT_REPORT    = _ROOT / "reports" / "risk_report.json"
-OUT_NARRATIVE = _ROOT / "reports" / "ai_risk_narrative.json"
+OUT_SIZED     = _OUT / "reports" / "sized_positions.json"
+OUT_REPORT    = _OUT / "reports" / "risk_report.json"
+OUT_NARRATIVE = _OUT / "reports" / "ai_risk_narrative.json"
 
 REC_PATH        = _ROOT / "reports" / "recommendations_v3.json"
 MI_SUMMARY      = _ROOT / "reports" / "market_intelligence_summary.json"
@@ -119,7 +126,7 @@ def main() -> int:
     print(f"  snapshot: {latest.isoformat()} · rows={len(df)}")
 
     model_id = "aegis.risk.v1"
-    register_model(_ROOT,
+    register_model(_OUT,
         model_id=model_id, engine="risk_engine",
         market="india", version="1.0.0",
         feature_set_version=schema_fingerprint(),

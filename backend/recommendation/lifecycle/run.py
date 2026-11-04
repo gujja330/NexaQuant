@@ -35,7 +35,25 @@ ACTION_TO_STATE = {
 
 
 def _reports(market: str) -> Path:
+    """Where the engine READS its authoritative sources."""
     return _ROOT / ("usa/reports" if market == "usa" else "reports")
+
+
+def _out_reports(market: str) -> Path:
+    """Where the engine WRITES · honours AEGIS_OUT_ROOT.
+
+    CEO 2026-11-04 · this engine writes two protected artifacts: the
+    append-only recommendation_lifecycle_ledger.jsonl and the
+    recommendation_lifecycle.json snapshot. Reads stay on the real
+    repository so a candidate is reconstructed from genuine evidence,
+    while writes can be sent to a candidate root for validation before
+    any promotion. Production sets no variable and nothing moves.
+    """
+    from backend.shared.out_root import resolved_out_root
+    base = resolved_out_root(_ROOT)
+    out = base / ("usa/reports" if market == "usa" else "reports")
+    out.mkdir(parents=True, exist_ok=True)
+    return out
 
 
 def main() -> int:
@@ -77,10 +95,12 @@ def main() -> int:
             continue
 
     # Persist ledger (append-only)
-    ledger.write_jsonl(ledger_path)
+    # writes go to the out-root · reads came from _reports()
+    ledger.write_jsonl(_out_reports(args.market)
+                       / "recommendation_lifecycle_ledger.jsonl")
 
     # Emit summary snapshot
-    snap_path = reports / "recommendation_lifecycle.json"
+    snap_path = _out_reports(args.market) / "recommendation_lifecycle.json"
     snap = ledger.to_dict()
     snap["asof"] = asof
     snap["market"] = args.market

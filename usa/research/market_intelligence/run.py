@@ -24,6 +24,13 @@ _ROOT = Path(__file__).resolve().parents[3]
 _USA  = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(_ROOT))
 
+# CEO 2026-11-04 · report writes honour AEGIS_OUT_ROOT so a test can
+# run this engine as a subprocess without touching live artifacts.
+# Production sets no variable, so _OUT == _ROOT and _USA is unchanged.
+from backend.shared.out_root import resolved_out_root  # noqa: E402
+_OUT = resolved_out_root(_ROOT)
+_USA = _OUT / "usa"
+
 from backend.canonical.model import USA_PROFILE                                          # noqa: E402
 from backend.canonical.adapters import adapt_all                                          # noqa: E402
 from backend.market_intelligence.engine import MarketIntelligenceEngine                   # noqa: E402

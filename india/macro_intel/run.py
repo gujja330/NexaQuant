@@ -20,6 +20,11 @@ except Exception:
 _ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(_ROOT))
 
+# CEO 2026-11-04 · model_registry.jsonl is a protected ledger ·
+# redirect it with the shared out-root so tests cannot append to it.
+from backend.shared.out_root import resolved_out_root  # noqa: E402
+_OUT = resolved_out_root(_ROOT)
+
 import pandas as pd                                                                          # noqa: E402
 
 from backend.canonical.model              import INDIA_PROFILE                              # noqa: E402
@@ -90,7 +95,7 @@ def main() -> int:
 
     # Register model
     model_id = "aegis.macro_intel.v1"
-    register_model(_ROOT,
+    register_model(_OUT,
         model_id=model_id, engine="macro_intel",
         market="india", version="1.0.0",
         feature_set_version=schema_fingerprint(),
