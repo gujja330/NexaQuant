@@ -64,15 +64,53 @@ def _within(dt: date | None, cutoff: date | None) -> bool:
 
 
 # ─── PRICE / BAR ─────────────────────────────────────────────────────
+#: The longest window any declared technical feature needs. `sma_200`
+#: and `price_above_sma200` need 200 bars at or before the asof.
+MAX_FEATURE_WINDOW_BARS = 200
+
+#: Default bars retained per symbol · one trading year. Must exceed
+#: MAX_FEATURE_WINDOW_BARS or the longest feature can never populate.
+DEFAULT_LOOKBACK_BARS = 260
+
+
 def adapt_prices(repo_root: Path, market: MarketProfile,
                   symbols: Iterable[str] | None = None,
                   cutoff: date | None = None,
-                  lookback_days: int = 90) -> CanonicalDataset:
+                  lookback_bars: int = DEFAULT_LOOKBACK_BARS,
+                  lookback_days: int | None = None) -> CanonicalDataset:
     """Read raw OHLCV parquets and yield CanonicalBar rows.
 
     India:  data/raw/india/{SYMBOL}_D1.parquet
     USA:    usa/data/raw/us/{SYMBOL}_D1.parquet
+
+    WINDOW SELECTION · CEO 2026-11-04
+    ---------------------------------
+    Two defects lived in the three lines this replaces.
+
+    1. The window was 90 bars while the registry declares `sma_200`. A
+       200-bar feature behind a 90-bar window can never populate, and it
+       never did: 0% in BOTH markets, measured. The raw data was never
+       the constraint - India holds a median of 1448 bars per symbol and
+       USA 1254, and 230/230 India and 899/908 USA symbols have 200 or
+       more. The cap alone produced the zero.
+
+    2. `df.tail(90)` ran BEFORE the cutoff filter. For a current asof
+       that is harmless. For a historical one the last 90 rows all sit
+       past the cutoff, every one is dropped, and the window collapses
+       toward zero - which is why every R3 historical replay wave
+       returned INSUFFICIENT HISTORY.
+
+    The order is now: parse dates, sort, de-duplicate, filter to
+    `date <= cutoff`, and only THEN take the last `lookback_bars`.
+    Symbols that cannot reach MAX_FEATURE_WINDOW_BARS after the cutoff
+    are counted and reported on the dataset rather than passed off as
+    complete.
+
+    `lookback_days` is the former name and is accepted as a deprecated
+    alias; it always counted bars, never days.
     """
+    if lookback_days is not None:
+        lookback_bars = lookback_days
     if market.name == "india":
         raw_dir = repo_root / "data" / "raw" / "india"
     else:
@@ -88,6 +126,8 @@ def adapt_prices(repo_root: Path, market: MarketProfile,
         files = [f for f in files if f.stem.replace("_D1", "") in symset]
 
     rows: list[CanonicalBar] = []
+    short: dict[str, int] = {}      # symbol → bars available at the asof
+    undated: list[str] = []         # files with no date column at all
     for f in files:
         sym = f.stem.replace("_D1", "").lstrip("_")
         try:
@@ -105,12 +145,40 @@ def adapt_prices(repo_root: Path, market: MarketProfile,
         date_col = next((c for c in df.columns if c in ("date", "time", "datetime")), None)
         # normalize field aliases
         vol_col = next((c for c in df.columns if c in ("volume", "tick_volume")), None)
-        for _, r in df.tail(lookback_days).iterrows():
-            d = _parse_date(r.get(date_col)) if date_col else None
-            if cutoff is not None and d is not None and d > cutoff:
-                continue
+
+        # ── 1 · parse dates ────────────────────────────────────────
+        if date_col is None:
+            # Undated bars cannot be ordered, cut at an asof, or trusted
+            # in a window. Previously they were emitted stamped with the
+            # cutoff, which is a fabricated observation date.
+            undated.append(sym)
+            continue
+        df = df.assign(_d=[_parse_date(v) for v in df[date_col]])
+        df = df[df["_d"].notna()]
+        if df.empty:
+            short[sym] = 0
+            continue
+
+        # ── 2 · sort + de-duplicate (keep the last bar for a date) ──
+        df = (df.sort_values("_d")
+                .drop_duplicates("_d", keep="last"))
+
+        # ── 3 · cut to the asof BEFORE selecting the window ────────
+        if cutoff is not None:
+            df = df[df["_d"] <= cutoff]
+        if df.empty:
+            short[sym] = 0
+            continue
+
+        # ── 4 · now take the window ────────────────────────────────
+        n_avail = len(df)
+        df = df.tail(lookback_bars)
+        if n_avail < MAX_FEATURE_WINDOW_BARS:
+            short[sym] = n_avail
+
+        for _, r in df.iterrows():
             rows.append(CanonicalBar(
-                market=market.name, symbol=sym, date=d or (cutoff or date.today()),
+                market=market.name, symbol=sym, date=r["_d"],
                 open=_f(r.get("open")) or 0.0,
                 high=_f(r.get("high")) or 0.0,
                 low=_f(r.get("low")) or 0.0,
@@ -118,9 +186,24 @@ def adapt_prices(repo_root: Path, market: MarketProfile,
                 volume=_f(r.get(vol_col)) or 0.0 if vol_col else 0.0,
                 currency=market.currency,
             ))
+
+    # ── 5 · report insufficient history explicitly ─────────────────
+    notes = []
+    if short:
+        worst = sorted(short.items(), key=lambda kv: kv[1])[:6]
+        notes.append("%d symbol(s) hold fewer than %d bars at or before the "
+                     "asof, so the longest declared features abstain for them "
+                     "(e.g. %s)"
+                     % (len(short), MAX_FEATURE_WINDOW_BARS,
+                        ", ".join("%s=%d" % (s, n) for s, n in worst)))
+    if undated:
+        notes.append("%d file(s) carry no date column and were SKIPPED rather "
+                     "than stamped with the asof (e.g. %s)"
+                     % (len(undated), ", ".join(sorted(undated)[:6])))
     return CanonicalDataset(kind="bar", market=market.name,
                               asof=cutoff or date.today(), n_rows=len(rows),
-                              rows=rows, source=str(raw_dir))
+                              rows=rows, source=str(raw_dir),
+                              notes=" · ".join(notes))
 
 
 # ─── FUNDAMENTALS ────────────────────────────────────────────────────
