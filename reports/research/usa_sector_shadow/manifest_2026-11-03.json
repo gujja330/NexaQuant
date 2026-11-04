@@ -1,0 +1,285 @@
+{
+  "schema": "aegis.usa_sector_shadow.manifest.v1",
+  "build_id": "usa-sector-shadow-20261104T115017Z",
+  "generated_utc": "2026-11-04T11:50:17+00:00",
+  "asof": "2026-11-03",
+  "wired_into_production": false,
+  "resolver_version": "usa_sector_resolver.v1",
+  "taxonomy_version": "_USA_SECTOR_TO_ETF.11sector.v1",
+  "taxonomy": [
+    "Communication Services",
+    "Consumer Discretionary",
+    "Consumer Staples",
+    "Energy",
+    "Financials",
+    "Healthcare",
+    "Industrials",
+    "Materials",
+    "Real Estate",
+    "Technology",
+    "Utilities"
+  ],
+  "n_taxonomy_sectors": 11,
+  "sources": {
+    "universe": {
+      "path": "usa/reports/universe.json",
+      "sha256": "638552349cd810c69459dcc05272a7685604c89a4696dcf6ba3d202d027fc6e8",
+      "n_symbols": 516
+    },
+    "sic_mapping": {
+      "path": "configs/usa_sic_sector_map.yaml",
+      "sha256": "37b491ab1d206ca9ec2d047ab9ad3efdd477b39becc82787a61c663b26290104"
+    },
+    "sec_classification_store": {
+      "path": "data/classification/sec_sic.json",
+      "sha256": "af68f956f3eba0ceaaaf956c5fba20ce4620ec4f7428f4ea2724ba31d919737e",
+      "n_companies": 504,
+      "retrieved_at_utc_min": "2026-11-04T09:19:29+00:00",
+      "retrieved_at_utc_max": "2026-11-04T09:32:12+00:00"
+    }
+  },
+  "cik_resolution": {
+    "n_universe": 516,
+    "n_in_store": 504,
+    "n_with_sic": 503,
+    "n_absent_from_store": 12
+  },
+  "classification": {
+    "n_classified": 461,
+    "classified_pct": 89.34,
+    "by_mapping_method": {
+      "EXACT": 249,
+      "MAPPED": 212,
+      "UNKNOWN": 55
+    },
+    "by_review_status": {
+      "REVIEW_REQUIRED": 55,
+      "VALIDATED": 461
+    },
+    "by_sector": {
+      "Communication Services": 14,
+      "Consumer Discretionary": 51,
+      "Consumer Staples": 26,
+      "Energy": 17,
+      "Financials": 66,
+      "Healthcare": 68,
+      "Industrials": 79,
+      "Materials": 34,
+      "Real Estate": 2,
+      "Technology": 67,
+      "Utilities": 37
+    },
+    "n_unclassified": 55,
+    "unclassified_sample": [
+      "ACN",
+      "AKAM",
+      "AMT",
+      "ARE",
+      "AVB",
+      "BR",
+      "BXP",
+      "CCI",
+      "CPAY",
+      "CPT",
+      "CSGP",
+      "CSRA",
+      "DASH",
+      "DLR",
+      "DOC",
+      "EA",
+      "EBAY",
+      "EQIX",
+      "EQR",
+      "ESS"
+    ]
+  },
+  "first_observed": {
+    "n_with_first_observed": 504,
+    "earliest": "2026-11-04",
+    "latest": "2026-11-04",
+    "basis": "FIRST_OBSERVED",
+    "note": "SEC publishes no sicHistory \u00b7 effective_from equals first_observed_date and a query before it returns UNAVAILABLE rather than backdating"
+  },
+  "proxy_coverage": {
+    "note": "classification availability is SEPARATE from sector benchmark availability \u00b7 a missing ETF observation must not erase a valid company classification",
+    "sector_etfs": [
+      "XLB",
+      "XLC",
+      "XLE",
+      "XLF",
+      "XLI",
+      "XLK",
+      "XLP",
+      "XLRE",
+      "XLU",
+      "XLV",
+      "XLY"
+    ],
+    "n_sector_etfs": 11
+  },
+  "feature_output": {
+    "n_rows": 516,
+    "n_columns": 81,
+    "sha256": "aa27ddf2ce8c7de0dca64d863aedfff8576771bf9d3394e9ea88700b7cdcc719",
+    "baseline_sha256": "cca1b3d434a43a024104f00c02982f3e04a2955deecc2243487d42c41695cd2e",
+    "changed_columns": [
+      "sector",
+      "sector_is_laggard",
+      "sector_is_leader",
+      "sector_rank",
+      "sector_return_1m_pct"
+    ],
+    "n_changed_columns": 5,
+    "sector_feature_coverage": {
+      "sector": {
+        "baseline_populated": 0,
+        "shadow_populated": 461,
+        "shadow_distinct": 11
+      },
+      "sector_return_1m_pct": {
+        "baseline_populated": 0,
+        "shadow_populated": 461,
+        "shadow_distinct": 11
+      },
+      "sector_rank": {
+        "baseline_populated": 0,
+        "shadow_populated": 461,
+        "shadow_distinct": 11
+      },
+      "sector_is_leader": {
+        "baseline_populated": 0,
+        "shadow_populated": 461,
+        "shadow_distinct": 2
+      },
+      "sector_is_laggard": {
+        "baseline_populated": 0,
+        "shadow_populated": 461,
+        "shadow_distinct": 2
+      }
+    }
+  },
+  "model_output": {
+    "n_models": 11,
+    "attribution": {
+      "aegis.ai_hybrid.v1": {
+        "comparable": true,
+        "n": 516,
+        "n_changed": 461,
+        "max_abs_delta": 0.17067601,
+        "median_abs_delta_where_changed": 0.046510090000000004
+      },
+      "aegis.event_driven.v1": {
+        "comparable": true,
+        "n": 516,
+        "n_changed": 0,
+        "max_abs_delta": 0.0,
+        "median_abs_delta_where_changed": 0.0
+      },
+      "aegis.growth.v1": {
+        "comparable": true,
+        "n": 516,
+        "n_changed": 0,
+        "max_abs_delta": 0.0,
+        "median_abs_delta_where_changed": 0.0
+      },
+      "aegis.macro.v1": {
+        "comparable": true,
+        "n": 516,
+        "n_changed": 0,
+        "max_abs_delta": 0.0,
+        "median_abs_delta_where_changed": 0.0
+      },
+      "aegis.mean_reversion.v1": {
+        "comparable": true,
+        "n": 516,
+        "n_changed": 0,
+        "max_abs_delta": 0.0,
+        "median_abs_delta_where_changed": 0.0
+      },
+      "aegis.momentum.v1": {
+        "comparable": true,
+        "n": 516,
+        "n_changed": 0,
+        "max_abs_delta": 0.0,
+        "median_abs_delta_where_changed": 0.0
+      },
+      "aegis.news.v1": {
+        "comparable": true,
+        "n": 516,
+        "n_changed": 0,
+        "max_abs_delta": 0.0,
+        "median_abs_delta_where_changed": 0.0
+      },
+      "aegis.quality.v1": {
+        "comparable": true,
+        "n": 516,
+        "n_changed": 0,
+        "max_abs_delta": 0.0,
+        "median_abs_delta_where_changed": 0.0
+      },
+      "aegis.sector_rotation.v1": {
+        "comparable": true,
+        "n": 516,
+        "n_changed": 461,
+        "max_abs_delta": 0.85314534,
+        "median_abs_delta_where_changed": 0.38503254
+      },
+      "aegis.trend.v1": {
+        "comparable": true,
+        "n": 516,
+        "n_changed": 0,
+        "max_abs_delta": 0.0,
+        "median_abs_delta_where_changed": 0.0
+      },
+      "aegis.value.v1": {
+        "comparable": true,
+        "n": 516,
+        "n_changed": 0,
+        "max_abs_delta": 0.0,
+        "median_abs_delta_where_changed": 0.0
+      }
+    },
+    "changed_models": [
+      "aegis.ai_hybrid.v1",
+      "aegis.sector_rotation.v1"
+    ],
+    "unchanged_models": [
+      "aegis.event_driven.v1",
+      "aegis.growth.v1",
+      "aegis.macro.v1",
+      "aegis.mean_reversion.v1",
+      "aegis.momentum.v1",
+      "aegis.news.v1",
+      "aegis.quality.v1",
+      "aegis.trend.v1",
+      "aegis.value.v1"
+    ]
+  },
+  "india_isolation": {
+    "n_rows": 228,
+    "n_changed_columns": 0,
+    "changed_columns": [],
+    "n_changed_models": 0,
+    "changed_models": [],
+    "method": "built twice with the USA resolver injected and not injected \u00b7 India must be byte-identical"
+  },
+  "test_references": [
+    "tests/pipeline/test_usa_sector_resolver.py",
+    "tests/pipeline/test_sector_map_contract.py"
+  ],
+  "validation": {
+    "checks": {
+      "taxonomy_is_11_sectors": true,
+      "no_sector_outside_taxonomy": true,
+      "classified_matches_sector_feature": true,
+      "classified_matches_sector_rank": true,
+      "no_proxy_mapping_used": true,
+      "unclassified_are_review_required": true,
+      "india_unchanged": true,
+      "not_wired": true,
+      "only_sector_columns_changed": true
+    },
+    "failed": [],
+    "verdict": "VALID"
+  }
+}
