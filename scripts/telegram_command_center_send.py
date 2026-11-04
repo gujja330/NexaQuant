@@ -150,17 +150,42 @@ def _send_document(token: str, chat_id: str, file_path: Path,
     payload = prefix + file_bytes + suffix
     req = urllib.request.Request(url, data=payload, method="POST")
     req.add_header("Content-Type", f"multipart/form-data; boundary={boundary}")
+    # CEO 2026-11-04 · the API response carries the receipt (message_id)
+    # and the HTTP status. Both used to be truncated to 120 characters
+    # and then dropped entirely by the ledger, so a delivery record
+    # asserted `ok: true` with nothing behind it. They are now captured
+    # in _LAST_SEND for the ledger to read back.
+    global _LAST_SEND
+    _LAST_SEND = {"http_status": None, "telegram_ok": None,
+                  "message_id": None, "error_code": None, "raw": None}
     try:
         with urllib.request.urlopen(req, timeout=60) as r:
             resp = r.read().decode("utf-8", errors="replace")
+            _LAST_SEND["http_status"] = getattr(r, "status", None) or r.getcode()
+        _LAST_SEND["raw"] = resp[:400]
+        try:
+            parsed = json.loads(resp)
+            _LAST_SEND["telegram_ok"] = bool(parsed.get("ok"))
+            _LAST_SEND["message_id"] = (parsed.get("result") or {}).get("message_id")
+        except Exception:
+            pass
         return True, resp[:120]
     except urllib.error.HTTPError as e:
         try:
             err = e.read().decode("utf-8", errors="replace")
         except Exception:
             err = str(e)
+        _LAST_SEND.update({"http_status": e.code, "telegram_ok": False,
+                           "raw": err[:400]})
+        try:
+            _LAST_SEND["error_code"] = json.loads(err).get("error_code")
+        except Exception:
+            _LAST_SEND["error_code"] = e.code
         return False, f"HTTP {e.code}: {err[:200]}"
     except Exception as e:
+        _LAST_SEND.update({"telegram_ok": False,
+                           "error_code": type(e).__name__,
+                           "raw": str(e)[:400]})
         return False, f"{type(e).__name__}: {e}"
 
 
@@ -209,6 +234,96 @@ def _send_markdown(token: str, chat_id: str, text: str) -> tuple[bool, str]:
 
 def _market_reports(market: str) -> Path:
     return _ROOT / ("usa/reports" if market == "usa" else "reports")
+
+
+#: Receipt fields from the most recent _send_document call.
+_LAST_SEND: dict = {}
+
+#: Ledger schema. v2 records the receipt; v1 recorded a boolean.
+DELIVERY_LEDGER_SCHEMA = "aegis.delivery.ledger.v2"
+
+
+def _chat_fingerprint(chat_id: str) -> str:
+    """A stable, non-reversible handle for the destination.
+
+    The chat id identifies a private destination and must not be written
+    to a tracked artifact, but an auditor still needs to tell two
+    destinations apart. A truncated digest does both.
+    """
+    import hashlib
+    if not chat_id:
+        return "absent"
+    return "sha256:" + hashlib.sha256(
+        str(chat_id).encode("utf-8")).hexdigest()[:16]
+
+
+def _file_sha256(p: "Path | None") -> "str | None":
+    import hashlib
+    try:
+        if p is None or not p.exists():
+            return None
+        h = hashlib.sha256()
+        with p.open("rb") as f:
+            for chunk in iter(lambda: f.read(1 << 20), b""):
+                h.update(chunk)
+        return h.hexdigest()
+    except Exception:
+        return None
+
+
+def record_attachment_delivery(market: str, attachment: "Path | None",
+                                sent_ok: bool, chat_id: str = "",
+                                detail: str = "") -> dict:
+    """Ledger v2 · one record per per-market attachment actually sent.
+
+    WHY · CEO 2026-11-04
+    --------------------
+    The v1 record for the 2026-11-04 India run was, in full:
+
+        {"kind": "unified_xlsx",
+         "file": "reports/telegram/aegis_history.xlsx",
+         "ok": true, "gsheets": false}
+
+    Three things wrong with it as evidence. It names the UNIFIED
+    workbook, which the delivery contract forbids sending
+    (AEGIS_MASTER_PROMPT.md:318) - the sends are per-market, so the
+    ledger contradicted the behaviour it recorded. It carries no market,
+    so an auditor cannot tell which attachments went. And `ok` is the
+    sender's own boolean: `_send_document` receives a Telegram response
+    containing `message_id`, and the ledger threw it away.
+
+    This records what was sent, to where, and what Telegram answered.
+    """
+    rec = {
+        "ts_utc":              datetime.now(timezone.utc).isoformat(),
+        "engine":              "aegis.delivery.telegram.xlsx.v2",
+        "schema":              DELIVERY_LEDGER_SCHEMA,
+        "kind":                "per_market_xlsx",
+        "market":              str(market).lower(),
+        "attachment_filename": attachment.name if attachment else None,
+        "attachment_path":     (str(attachment.relative_to(_ROOT)).replace("\\", "/")
+                                if attachment and _ROOT in attachment.parents
+                                else (str(attachment) if attachment else None)),
+        "attachment_sha256":   _file_sha256(attachment),
+        "attachment_bytes":    (attachment.stat().st_size
+                                if attachment and attachment.exists() else None),
+        "telegram_chat_id":    _chat_fingerprint(chat_id),
+        "message_id":          _LAST_SEND.get("message_id"),
+        "http_status":         _LAST_SEND.get("http_status"),
+        "telegram_ok":         _LAST_SEND.get("telegram_ok"),
+        "delivered_at_utc":    (datetime.now(timezone.utc).isoformat()
+                                if sent_ok else None),
+        "error_code":          _LAST_SEND.get("error_code"),
+        "sender_ok":           bool(sent_ok),
+        "detail":              (detail or "")[:200] or None,
+    }
+    # A record that claims delivery must carry a receipt. Saying so in
+    # the record itself is what lets an auditor spot the gap without
+    # having to know this module.
+    rec["receipt_verified"] = bool(sent_ok and rec["telegram_ok"]
+                                    and rec["message_id"] is not None)
+    _append_delivery_ledger(rec)
+    return rec
 
 
 def _append_delivery_ledger(record: dict) -> None:
@@ -4598,6 +4713,14 @@ def main() -> int:
             print(f"[xlsx:{mkt_key}] file={_attach_path.name} · rows={len(keep_rows)} · sent={ok}")
             if not ok:
                 print(f"  detail: {msg[:180]}")
+            # Ledger v2 · record the attachment ACTUALLY sent together with
+            # Telegram's own answer. Without this the only delivery
+            # evidence was a boolean beside the unified workbook's name.
+            _rec = record_attachment_delivery(
+                mkt_key, _attach_path, ok, chat_id=chat_id, detail=msg)
+            print(f"[ledger:{mkt_key}] message_id={_rec['message_id']} "
+                  f"http={_rec['http_status']} "
+                  f"receipt_verified={_rec['receipt_verified']}")
             # 2026-08-25 · PI3 · seed parquet fingerprints on successful
             # send · establishes baseline for tomorrow's immutability
             # check. Only seed when send actually succeeded · a failed
@@ -4665,11 +4788,23 @@ def main() -> int:
         gs_ok, gs_msg = maybe_sync_google_sheet(xlsx_path)
         if gs_ok:
             print(f"[gsheets] {gs_msg}")
+        # CEO 2026-11-04 · this used to read
+        #   {"kind": "unified_xlsx", "file": ".../aegis_history.xlsx", ...}
+        # which named the one workbook the delivery contract forbids
+        # sending. Nothing was mis-SENT - the sends are per-market - but
+        # the ledger said otherwise, and it is the only evidence that
+        # survives a run. It is now labelled for what it is: a summary of
+        # the split-and-send, with the per-market receipts recorded
+        # separately by record_attachment_delivery().
         _append_delivery_ledger({
             "ts_utc":  datetime.now(timezone.utc).isoformat(),
-            "engine":  "aegis.delivery.telegram.xlsx.v1",
-            "kind":    "unified_xlsx",
-            "file":    str(xlsx_path.relative_to(_ROOT)),
+            "engine":  "aegis.delivery.telegram.xlsx.v2",
+            "schema":  DELIVERY_LEDGER_SCHEMA,
+            "kind":    "split_and_send_summary",
+            "source_workbook": str(xlsx_path.relative_to(_ROOT)).replace("\\", "/"),
+            "note":    "source only · split into per-market attachments, "
+                       "never sent as-is",
+            "markets": sorted(markets),
             "ok":      xlsx_ok,
             "gsheets": gs_ok,
         })
