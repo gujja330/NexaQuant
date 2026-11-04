@@ -406,3 +406,86 @@ class TestLiveHistoricalCoverage:
         assert max(r.date for r in ds.rows) <= asof
         # no symbol exceeds the window
         assert max(c.values()) <= n_bars
+
+
+class Test52WeekWindowIsHonest:
+    """A feature named 52-week uses 252 bars or abstains. CEO 2026-11-04.
+
+    The gate was `len(w52) >= 60`, so a sixty-bar range - under three
+    months - was published as a 52-WEEK high, low and range position.
+    Combined with the adapter's 90-bar cap, EVERY ticker in both markets
+    reported a 90-day range under a 52-week name. Not null, not flagged,
+    just wrong, at 98-99% coverage.
+    """
+
+    @staticmethod
+    def _f(tmp_path, market, n_bars, asof=date(2026, 11, 3)):
+        from backend.feature_store.features import technical
+        _write(tmp_path, market, "AAA", _bars(n_bars, end=asof))
+        ds = adapt_prices(tmp_path, _profile(market), cutoff=asof)
+        return technical.compute({"bar": ds}, ["AAA"], asof, market)["AAA"]
+
+    @pytest.mark.parametrize("market", ["india", "usa"])
+    def test_the_constant_is_one_trading_year(self, market):
+        from backend.feature_store.features.technical import BARS_52W
+        assert BARS_52W == 252
+
+    @pytest.mark.parametrize("market", ["india", "usa"])
+    def test_60_bars_no_longer_pass_as_52_weeks(self, tmp_path, market):
+        f = self._f(tmp_path, market, 60)
+        assert f["distance_from_52w_high_pct"] is None
+        assert f["distance_from_52w_low_pct"] is None
+        assert f["position_in_52w_range"] is None
+
+    @pytest.mark.parametrize("market", ["india", "usa"])
+    def test_112_bars_abstain(self, tmp_path, market):
+        """FDXF held 112 bars and was still labelled 52-week."""
+        assert self._f(tmp_path, market, 112)["position_in_52w_range"] is None
+
+    @pytest.mark.parametrize("market", ["india", "usa"])
+    def test_251_bars_abstain(self, tmp_path, market):
+        assert self._f(tmp_path, market, 251)["distance_from_52w_high_pct"] is None
+
+    @pytest.mark.parametrize("market", ["india", "usa"])
+    def test_exactly_252_bars_publish(self, tmp_path, market):
+        f = self._f(tmp_path, market, 252)
+        assert f["distance_from_52w_high_pct"] is not None
+        assert f["distance_from_52w_low_pct"] is not None
+        assert f["position_in_52w_range"] is not None
+
+    @pytest.mark.parametrize("market", ["india", "usa"])
+    def test_the_published_range_uses_252_bars_not_the_whole_window(
+            self, tmp_path, market):
+        """The window is 260; the 52-week range must span exactly 252."""
+        from backend.feature_store.features import technical
+        asof = date(2026, 11, 3)
+        _write(tmp_path, market, "AAA", _bars(400, end=asof))
+        ds = adapt_prices(tmp_path, _profile(market), cutoff=asof)
+        f = technical.compute({"bar": ds}, ["AAA"], asof, market)["AAA"]
+        closes = [c for _, c in sorted((r.date, r.close) for r in ds.rows)]
+        w = closes[-252:]
+        last, hi, lo = closes[-1], max(w), min(w)
+        assert abs(f["distance_from_52w_high_pct"]
+                   - round((last / hi - 1) * 100, 3)) < 2e-3
+        assert abs(f["position_in_52w_range"]
+                   - round((last - lo) / (hi - lo), 4)) < 2e-3
+
+    @pytest.mark.parametrize("market,profile",
+                             [("india", INDIA_PROFILE), ("usa", USA_PROFILE)])
+    def test_no_live_ticker_publishes_a_short_52_week_range(self, market,
+                                                            profile):
+        """Read-only. Every published value must have had 252 bars."""
+        from backend.feature_store.features import technical
+        asof = date(2026, 11, 3)
+        ds = adapt_prices(_LIVE, profile, cutoff=asof)
+        if not ds.rows:
+            pytest.skip("no raw bars for %s" % market)
+        counts = _counts(ds)
+        syms = [s for s, n in counts.items() if n >= 30]
+        feats = technical.compute({"bar": ds}, syms, asof, market)
+        offenders = [s for s in syms
+                     if feats.get(s, {}).get("position_in_52w_range") is not None
+                     and counts[s] < 252]
+        assert offenders == [], (
+            "%d ticker(s) publish a 52-week range from fewer than 252 bars: %s"
+            % (len(offenders), offenders[:6]))

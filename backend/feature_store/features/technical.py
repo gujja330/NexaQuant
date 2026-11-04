@@ -33,6 +33,9 @@ _returns_pct = _returns_pct_shared
 _rsi         = _rsi_shared
 _macd        = _macd_shared
 
+#: One trading year. A feature named 52-week uses 252 bars or abstains.
+BARS_52W = 252
+
 
 # Wave Y · Constitution Article 30: ATR + ADX delegated to shared library.
 # Local Wave 3 · C0 implementations removed. Contract preserved via thin adapters.
@@ -105,8 +108,27 @@ def compute(canon: dict[str, CanonicalDataset], universe: list[str],
         row["macd_hist"] = hist
 
         # 52W window
-        w52 = closes.tail(252)
-        if len(w52) >= 60:
+        #
+        # CEO 2026-11-04 · the gate was `>= 60`, so a sixty-bar range -
+        # under three months - was published as a 52-WEEK high, low and
+        # range position. Combined with the adapter's old 90-bar cap it
+        # meant EVERY ticker in both markets reported a 90-day range
+        # under a 52-week name: not null, not flagged, just wrong. With
+        # the window corrected to 260 bars only two USA tickers were
+        # still short (FDXF 112 bars, HONA 99) and they were still being
+        # labelled 52-week.
+        #
+        # A feature named for a window must either use that window or
+        # abstain, exactly as sma_200 does.
+        w52 = closes.tail(BARS_52W)
+        # Abstain EXPLICITLY, the way sma_200 does. Leaving the keys
+        # absent makes the abstention implicit, and an absent key and a
+        # deliberate None are indistinguishable to a caller reading the
+        # dict - which is how a missing measurement becomes invisible.
+        row["distance_from_52w_high_pct"] = None
+        row["distance_from_52w_low_pct"] = None
+        row["position_in_52w_range"] = None
+        if len(w52) >= BARS_52W:
             hi = float(w52.max()); lo = float(w52.min()); last = float(closes.iloc[-1])
             if hi > 0:
                 row["distance_from_52w_high_pct"] = round((last / hi - 1) * 100, 3)
