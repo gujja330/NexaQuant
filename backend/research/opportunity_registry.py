@@ -67,6 +67,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from contextlib import contextmanager
 from dataclasses import dataclass, asdict, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -230,7 +231,63 @@ def load_all(root: Path) -> dict:
     return out
 
 
+class RegistryWriteBlocked(RuntimeError):
+    """A registry mutation was attempted while writes were disabled."""
+
+
+_WRITES_ENABLED: bool = True
+
+
+def writes_enabled() -> bool:
+    return _WRITES_ENABLED
+
+
+@contextmanager
+def read_only():
+    """Disable registry mutations for the duration of the block.
+
+    CEO 2026-11-05 · WHY THIS EXISTS.
+
+    On the 2026-11-04 USA run the WORKBOOK BUILDER closed an episode.
+    backend/delivery/telegram/detail_xlsx.py closed PLD at 23:01:34;
+    canonical_lifecycle_usa.json had been generated at 22:56:08, five
+    minutes and twenty-six seconds earlier. CURRENT therefore still
+    rendered PLD as live, I6 ("no CLOSED position in the ACTIVE
+    section") refused the send, and USA delivered nothing - having
+    certified successfully moments before.
+
+    The renderer computes nothing. Episode transitions belong upstream
+    of canonical lifecycle generation, so that CURRENT is built from a
+    registry that is already settled.
+
+    The gate sits at the single write funnel rather than at the three
+    call sites, because "the renderer performs zero registry mutations"
+    should be a property of the registry that a fourth call site in a
+    rendering module cannot quietly re-break.
+
+    Inside the block: get_or_create() returns an existing episode or
+    None rather than creating one, and close()/reject() return the
+    episode unchanged. Anything that reaches the funnel regardless
+    raises RegistryWriteBlocked, so a new mutating path fails loudly
+    instead of silently diverging the registry from the snapshot being
+    rendered beside it.
+    """
+    global _WRITES_ENABLED
+    prev = _WRITES_ENABLED
+    _WRITES_ENABLED = False
+    try:
+        yield
+    finally:
+        _WRITES_ENABLED = prev
+
+
 def _append(root: Path, obj: dict) -> None:
+    if not _WRITES_ENABLED:
+        raise RegistryWriteBlocked(
+            "registry write refused for %s: writes are disabled in this "
+            "context. An episode transition must happen upstream of "
+            "canonical lifecycle generation, not while rendering."
+            % str(obj.get("opportunity_id") or "?"))
     p = _registry_path(root)
     p.parent.mkdir(parents=True, exist_ok=True)
     with p.open("a", encoding="utf-8") as fh:
@@ -304,6 +361,11 @@ def get_or_create(root: Path, market: str, runner: str, ticker: str,
         last_seen_date=asof[:10],
         ts_utc=datetime.now(timezone.utc).isoformat(timespec="seconds"),
     )
+    if not _WRITES_ENABLED:
+        # read-only · an episode that does not exist yet cannot be
+        # invented here. Callers already handle None (the cooling-block
+        # path returns it too) by falling back to legacy first_seen.
+        return None
     _append(root, asdict(opp))
     registry.setdefault(key, []).append(opp)
     return opp
@@ -357,6 +419,11 @@ def close(root: Path, opportunity_id: str, asof: str, reason: str,
             if opp.opportunity_id == opportunity_id:
                 if opp.status == "CLOSED":
                     return opp
+                if not _WRITES_ENABLED:
+                    # unchanged · and crucially NOT mutated in memory,
+                    # so a read-only pass cannot leave the caller holding
+                    # a registry that disagrees with the file on disk.
+                    return opp
                 opp.status = "CLOSED"
                 opp.closed_date = asof[:10]
                 opp.closed_reason = str(reason or "")
@@ -378,6 +445,11 @@ def reject(root: Path, opportunity_id: str, asof: str, reason: str,
         for opp in opps:
             if opp.opportunity_id == opportunity_id:
                 if opp.status == "REJECTED":
+                    return opp
+                if not _WRITES_ENABLED:
+                    # unchanged · and crucially NOT mutated in memory,
+                    # so a read-only pass cannot leave the caller holding
+                    # a registry that disagrees with the file on disk.
                     return opp
                 opp.status = "REJECTED"
                 opp.closed_date = asof[:10]

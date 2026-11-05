@@ -66,7 +66,7 @@ def _registry_snapshot(root: Path, market: str) -> dict:
         reg = _oreg.load_all(root)
     except Exception:
         return {"active": set(), "by_ticker": {}}
-    active, by_ticker = set(), {}
+    active, by_ticker, closed = set(), {}, {}
     for (mkt, runner, tk), opps in (reg or {}).items():
         if str(mkt).lower() != market.lower():
             continue
@@ -78,7 +78,13 @@ def _registry_snapshot(root: Path, market: str) -> dict:
                     "created_date": str(o.created_date or "")[:10],
                     "initial_signal": str(getattr(o, "initial_signal", "") or ""),
                 }
-    return {"active": active, "by_ticker": by_ticker}
+            elif str(o.status) == "CLOSED":
+                closed[str(o.opportunity_id)] = {
+                    "ticker": str(tk).upper(),
+                    "closed_date": str(o.closed_date or "")[:10],
+                    "closed_reason": str(getattr(o, "closed_reason", "") or ""),
+                }
+    return {"active": active, "by_ticker": by_ticker, "closed": closed}
 
 
 def materialize(root: Path, market: str, asof: str) -> dict:
@@ -99,6 +105,20 @@ def materialize(root: Path, market: str, asof: str) -> dict:
     admitted_today = sorted(
         t for t, v in after["by_ticker"].items()
         if v["created_date"] == str(asof)[:10])
+    # CEO 2026-11-05 · CLOSES WERE INVISIBLE HERE.
+    #
+    # This report counted admissions only, so the half of the transition
+    # that matters for I6 left no evidence at all. On 2026-11-04 PLD was
+    # closed at 23:01:34 by the RENDERER, five minutes and twenty-six
+    # seconds after canonical_lifecycle_usa.json was generated at
+    # 22:56:08; CURRENT still showed it live and the send was refused.
+    # A report that cannot show whether a close happened upstream cannot
+    # be used to prove the ordering is correct.
+    closed_now = sorted(set(after.get("closed") or {})
+                        - set(before.get("closed") or {}))
+    closed_today = sorted(
+        oid for oid, v in (after.get("closed") or {}).items()
+        if v["closed_date"] == str(asof)[:10])
     return {
         "schema_version": SCHEMA_VERSION,
         "market": market.lower(),
@@ -112,6 +132,14 @@ def materialize(root: Path, market: str, asof: str) -> dict:
             {"ticker": t, **after["by_ticker"][t]} for t in created],
         "admitted_today": [
             {"ticker": t, **after["by_ticker"][t]} for t in admitted_today],
+        "n_newly_closed": len(closed_now),
+        "newly_closed": [
+            {"opportunity_id": oid, **(after.get("closed") or {})[oid]}
+            for oid in closed_now],
+        "n_closed_today": len(closed_today),
+        "closed_today": [
+            {"opportunity_id": oid, **(after.get("closed") or {})[oid]}
+            for oid in closed_today],
     }
 
 
@@ -141,7 +169,9 @@ def summary_line(rep: dict) -> str:
     return (f"registry_materializer:{rep['market']} · active "
             f"{rep['n_active_before']} -> {rep['n_active_after']} · newly "
             f"materialized {rep['n_newly_materialized']} · admitted today "
-            f"{len(rep['admitted_today'])}"
+            f"{len(rep['admitted_today'])} · newly closed "
+            f"{rep.get('n_newly_closed', 0)} · closed today "
+            f"{rep.get('n_closed_today', 0)}"
             + (f" · ERROR {rep['error']}" if rep.get("error") else ""))
 
 
@@ -162,6 +192,9 @@ def main() -> int:
         for r in rep["admitted_today"]:
             print(f"    admitted · {r['ticker']} · {r['runner']} · "
                   f"{r['initial_signal']}")
+        for r in rep.get("newly_closed") or []:
+            print(f"    closed   · {r['ticker']} · {r['opportunity_id']} · "
+                  f"{r['closed_reason'][:60]}")
         print(f"    -> {p.relative_to(root)}")
     return 0
 

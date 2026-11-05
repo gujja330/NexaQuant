@@ -233,7 +233,32 @@ def build_lifecycle(root: Path, market: str, asof: str) -> dict:
     #
     # The lifecycle produces the state; the funnel explains it. That is
     # the only order in which both artifacts describe the same as-of.
+    # CEO 2026-11-05 · THE REGISTRY MUST BE SETTLED BEFORE CURRENT IS BUILT.
+    #
+    # registry_materializer already existed and was already ordered
+    # correctly - but only inside _REFRESH_SHARED, which runs solely
+    # under `--refresh`. Neither workflow passes it (aegis-usa.yml says
+    # so in as many words), so the materialisation artifacts in
+    # reports/context/ were last written on 2026-09-08 and the
+    # transition had not run in CI for 58 days.
+    #
+    # The consequence on 2026-11-04 (run 41922928715): the only thing
+    # that closed an episode was the RENDERER, at step 74. PLD closed at
+    # 23:01:34; this lifecycle had been generated at 22:56:08. CURRENT
+    # therefore carried a position the registry had just closed, I6
+    # refused the send, and USA certified and delivered nothing.
+    #
+    # So it runs HERE, in the always-on path, immediately before the
+    # lifecycle it has to precede. Idempotent by construction:
+    # get_or_create returns an existing ACTIVE episode unchanged and
+    # close() is a no-op on an already-CLOSED one, so the later refresh
+    # path running it again costs nothing. No decision logic moves - only
+    # the MOMENT an already-decided transition is recorded.
     for label, cmd in (
+        ("registry_materializer", ["python", "-W", "ignore", "-m",
+                                   "backend.delivery.lifecycle."
+                                   "registry_materializer",
+                                   "--market", market, "--asof", asof]),
         ("lifecycle", ["python", "-W", "ignore", "-m",
                        "backend.delivery.lifecycle.canonical_daily_lifecycle",
                        "--market", market, "--asof", asof]),

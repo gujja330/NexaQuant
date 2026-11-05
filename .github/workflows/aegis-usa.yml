@@ -238,6 +238,28 @@ jobs:
         id: run_contract_usa
         run: python -m backend.pipeline.contract.runner --market usa --trigger ci
 
+      # ── SAFETY NET · CEO 2026-11-05 ────────────────────────────────
+      # The second reconciliation pass, AFTER the last state-generating
+      # step and BEFORE anything renders or sends.
+      #
+      # The pass at the top of this workflow runs before the contract
+      # runner, so it judges the registry as it was BEFORE today's
+      # transitions. On 2026-11-04 it was right to report "nothing to
+      # repair" - PLD was still ACTIVE when it looked - and the episode
+      # closed afterwards. One pass placed early cannot see a close that
+      # happens later in the same run.
+      #
+      # This does not bypass I6 and does not tolerate a stale CURRENT.
+      # ci_selfheal_lifecycle regenerates canonical_daily_lifecycle from
+      # the reconciled registry and FAILS the run if the invariant is
+      # still broken afterwards, so a genuine inconsistency still stops
+      # delivery instead of shipping an inconsistent workbook. Placed
+      # here, a legitimate repair is reflected in CURRENT before the
+      # workbook is built from it.
+      - name: Self-heal pass 2 · reconcile after state generation (USA)
+        id: selfheal2_usa
+        run: python scripts/ci_selfheal_lifecycle.py --market usa
+
       - name: Telegram Command Center (USA · cycle 6 · single crisp message)
         # Consumes usa/reports/recommendations.json enriched by cycles 3-4.
         # First USA-side Telegram delivery · matches India parity.

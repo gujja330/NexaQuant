@@ -46,6 +46,7 @@ from backend.delivery.telegram.command_center import (  # noqa: E402
     render_intraday_platform_message,
     ENGINE_ID, SCHEMA_FINGERPRINT,
 )
+from backend.research import opportunity_registry as _oreg_ro  # noqa: E402
 from backend.delivery.telegram.detail_xlsx import (  # noqa: E402
     build_unified_history, build_and_stamp_all,
     maybe_sync_google_sheet,
@@ -492,7 +493,25 @@ def main() -> int:
         from datetime import date as _date
         asof = _date.today().isoformat()
         # v5 · stamp regime + rank + profit-protection · then build XLSX
-        xlsx_path = build_and_stamp_all(_ROOT, asof, markets=markets)
+        # CEO 2026-11-05 · THE RENDERER COMPUTES NOTHING.
+        #
+        # build_and_stamp_all -> _collect_rows_for_market -> _rec_to_row
+        # held the only registry mutations in this step: two
+        # get_or_create sites and one close(). On 2026-11-04 that close
+        # fired on PLD at 23:01:34, five minutes and twenty-six seconds
+        # AFTER canonical_lifecycle_usa.json was generated at 22:56:08.
+        # The sheet it rendered therefore showed a position the registry
+        # had just closed, I6 refused the send, and USA delivered nothing.
+        #
+        # Those transitions now happen in the contract runner, before the
+        # lifecycle. Here they are refused outright rather than merely
+        # omitted: read_only() makes get_or_create return the existing
+        # episode (or None) and close() a no-op, and anything that
+        # reaches the write funnel raises RegistryWriteBlocked. A future
+        # mutation added to a rendering path fails loudly instead of
+        # silently re-opening this defect.
+        with _oreg_ro.read_only():
+            xlsx_path = build_and_stamp_all(_ROOT, asof, markets=markets)
         # Sprint H · attach operator guide to Monday caption (weekly refresher)
         try:
             from backend.delivery.telegram.operator_guide import append_to_caption as _guide
@@ -4818,4 +4837,8 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    # Whole-step guarantee · the delivery step performs ZERO registry
+    # mutations. Nested read_only() blocks save and restore, so the
+    # narrower guard around the workbook build remains correct.
+    with _oreg_ro.read_only():
+        sys.exit(main())

@@ -34,6 +34,7 @@ from pathlib import Path
 _ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_ROOT))
 
+from backend.research import opportunity_registry as _oreg_ro  # noqa: E402
 from backend.delivery.telegram.detail_xlsx import (  # noqa: E402
     build_unified_history, build_and_stamp_all,
 )
@@ -55,7 +56,12 @@ def main() -> int:
     # v5 · uses stamp-first flow · writes rank_history + regime_history +
     # profit_protection_{market}.json before building the XLSX (so Prior
     # Rank, Rank Δ, and Alert columns populate correctly).
-    xlsx_path = build_and_stamp_all(_ROOT, args.asof, markets=markets)
+    # CEO 2026-11-05 · a local rebuild is rendering, so it must not
+    # mutate the registry either. Rebuilding a workbook by hand should
+    # never be able to close an episode and desynchronise CURRENT from
+    # the registry - the 2026-11-04 defect, reachable from a laptop.
+    with _oreg_ro.read_only():
+        xlsx_path = build_and_stamp_all(_ROOT, args.asof, markets=markets)
     print(f"[rebuild_xlsx] wrote {xlsx_path}")
     print(f"[rebuild_xlsx] size: {xlsx_path.stat().st_size:,} bytes")
 
