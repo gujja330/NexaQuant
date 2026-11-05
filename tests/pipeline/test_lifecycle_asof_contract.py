@@ -98,6 +98,90 @@ class TestTheResearchSummaryEmitsAsof:
         assert date.fromisoformat(str(out["asof"])[:10]) == date(2026, 11, 3)
 
 
+class TestTheUsaResearchSummaryEmitsAsof:
+    """USA had the SAME defect and a SEPARATE writer.
+
+    This file's own header recorded that USA's artifact carried no
+    `asof`, but the fix landed only in the India lib. USA's summary is
+    built by `usa/research/institutional_memory/run.py:build_lifecycle`,
+    a different module with its own inline schema, so patching the
+    shared lib did not reach it. Measured 2026-11-05: the committed USA
+    artifact had no `asof` key at all, which is precisely what kept the
+    staleness check quiet over an archive last updated 2026-08-13.
+    """
+
+    @staticmethod
+    def _lifecycle(days):
+        """Run the REAL USA build_lifecycle() in a subprocess.
+
+        Rooted at the repo for the same import-shadowing reason as the
+        India harness above, and the module is loaded by file location
+        because `run` is far too generic a top-level name to import.
+        """
+        lines = [
+            "import json, sys, importlib.util",
+            "spec = importlib.util.spec_from_file_location("
+            "'usa_im_run', %r)" % str(_ROOT / "usa" / "research"
+                                      / "institutional_memory" / "run.py"),
+            "R = importlib.util.module_from_spec(spec)",
+            "spec.loader.exec_module(R)",
+            "R.list_days = lambda: %r" % (list(days),),
+            "print(json.dumps(R.build_lifecycle(), default=str))",
+        ]
+        r = subprocess.run([sys.executable, "-c", "\n".join(lines)],
+                           cwd=str(_ROOT), capture_output=True, text=True,
+                           timeout=180)
+        assert r.returncode == 0, r.stderr[-700:]
+        return json.loads(r.stdout.strip().splitlines()[-1])
+
+    def test_asof_is_the_archives_newest_day_not_today(self):
+        out = self._lifecycle(["2026-07-20", "2026-08-13"])
+        assert out["asof"] == "2026-08-13"
+        assert out["asof"] != date.today().isoformat(), (
+            "the as-of must come from the DATA, not the wall clock")
+
+    def test_nothing_archived_gives_none_not_a_fabricated_date(self):
+        out = self._lifecycle([])
+        assert out["asof"] is None, (
+            "with no archive there is no as-of · inventing one would make "
+            "an empty artifact look current")
+        assert out["n_total"] == 0
+
+    def test_asof_is_json_serialisable_and_parseable(self):
+        out = self._lifecycle(["2026-08-13"])
+        assert date.fromisoformat(str(out["asof"])[:10]) == date(2026, 8, 13)
+
+    def test_a_stale_archive_reports_its_real_age_rather_than_hiding_it(self):
+        """The point of the fix: staleness becomes VISIBLE, not absent.
+
+        An undateable artifact cannot be judged stale. A truthfully
+        dated one can, and that is strictly better even when the date
+        it reports is bad news.
+        """
+        out = self._lifecycle(["2026-08-13"])
+        assert out["asof"] == "2026-08-13"
+        assert (date(2026, 11, 5) - date.fromisoformat(out["asof"])).days > 80
+
+    def test_the_shipped_writer_has_asof_in_every_return_path(self):
+        """Both branches, so an empty archive cannot drop the key."""
+        import ast
+        src = (_ROOT / "usa" / "research" / "institutional_memory"
+               / "run.py").read_text(encoding="utf-8")
+        fn = next(n for n in ast.walk(ast.parse(src))
+                  if isinstance(n, ast.FunctionDef)
+                  and n.name == "build_lifecycle")
+        returns = [n for n in ast.walk(fn) if isinstance(n, ast.Return)]
+        assert returns, "build_lifecycle must return a summary"
+        for r in returns:
+            assert isinstance(r.value, ast.Dict), (
+                "every return must be a literal summary dict")
+            keys = [k.value for k in r.value.keys
+                    if isinstance(k, ast.Constant)]
+            assert "asof" in keys, (
+                "a return path without `asof` is a path whose artifact "
+                "cannot be checked for staleness: %s" % keys)
+
+
 class TestTheConsistencyCheckFailsClosed:
     """The reader half of the contract."""
 

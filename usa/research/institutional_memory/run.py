@@ -116,7 +116,8 @@ def build_lifecycle() -> dict:
     """Walk archive → per-ticker state machine (day 1 → all ACTIVE)."""
     days = list_days()
     if not days:
-        return {"n_total": 0, "empty": True, "by_ticker": {}, "coverage": {"n_days_archived": 0}}
+        return {"asof": None, "n_total": 0, "empty": True, "by_ticker": {},
+                "coverage": {"n_days_archived": 0}}
 
     first_seen = {}
     last_snap  = {}
@@ -154,6 +155,14 @@ def build_lifecycle() -> dict:
         }
 
     return {
+        # CEO 2026-11-04 §F · every lifecycle artifact must date itself.
+        # India's equivalent (research/institutional_memory/lib/lifecycle.py)
+        # got this; USA's did not, so the committed artifact carried no
+        # `asof` at all and the staleness check could not evaluate it.
+        # The archive's newest day IS this summary's as-of - derived from
+        # the data, never stamped from the wall clock, and None when
+        # nothing is archived rather than a fabricated date.
+        "asof":        days[-1] if days else None,
         "n_total":     len(by_ticker),
         "by_state":    {"ACTIVE": sum(1 for v in by_ticker.values() if v["state"] == "ACTIVE")},
         "n_active":    sum(1 for v in by_ticker.values() if v["state"] == "ACTIVE"),
