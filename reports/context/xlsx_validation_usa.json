@@ -1,0 +1,305 @@
+{
+  "market": "usa",
+  "asof": "2026-11-04",
+  "generated_utc": "2026-11-04T23:24:22+00:00",
+  "engine": "aegis.xlsx_validator.v1.20260826",
+  "verdict": "FAIL",
+  "n_pass": 20,
+  "n_warn": 4,
+  "n_fail": 1,
+  "n_skip": 5,
+  "invariants": [
+    {
+      "code": "I1",
+      "name": "EXIT rows not in ACTIVE",
+      "severity": "BLOCK",
+      "status": "PASS",
+      "detail": "0 leaks",
+      "violations": []
+    },
+    {
+      "code": "I2",
+      "name": "ACTIVE row has no Exit P&L",
+      "severity": "BLOCK",
+      "status": "PASS",
+      "detail": "0 violations",
+      "violations": []
+    },
+    {
+      "code": "I3",
+      "name": "EXIT row has no Active P&L",
+      "severity": "BLOCK",
+      "status": "PASS",
+      "detail": "0 violations",
+      "violations": []
+    },
+    {
+      "code": "I4",
+      "name": "No duplicate (ticker, runner)",
+      "severity": "BLOCK",
+      "status": "PASS",
+      "detail": "228 unique · 0 dups",
+      "violations": []
+    },
+    {
+      "code": "I5",
+      "name": "Position ID immutable",
+      "severity": "BLOCK",
+      "status": "PASS",
+      "detail": "829 pids · 0 reuses",
+      "violations": []
+    },
+    {
+      "code": "I6",
+      "name": "No CLOSED position in ACTIVE section",
+      "severity": "BLOCK",
+      "status": "FAIL",
+      "detail": "1 closed tickers in Portfolio",
+      "violations": [
+        {
+          "ticker": "PLD",
+          "row": 169
+        }
+      ]
+    },
+    {
+      "code": "I7",
+      "name": "Same ticker not Active + Suggested",
+      "severity": "BLOCK",
+      "status": "PASS",
+      "detail": "0 dup active+suggested",
+      "violations": []
+    },
+    {
+      "code": "I8",
+      "name": "Summary count reconciles",
+      "severity": "BLOCK",
+      "status": "SKIP",
+      "detail": "could not parse Active count from header",
+      "violations": []
+    },
+    {
+      "code": "I9",
+      "name": "SUGGESTED not in P&L",
+      "severity": "BLOCK",
+      "status": "WARN",
+      "detail": "cannot verify aggregation source · header text unclear",
+      "violations": []
+    },
+    {
+      "code": "I10",
+      "name": "Exit P&L formula",
+      "severity": "WARN",
+      "status": "WARN",
+      "detail": "PI2 flagged drifts · observation mode",
+      "violations": [
+        {
+          "ticker": "NVDA",
+          "exit_date": "2026-08-10",
+          "quoted": 202.81,
+          "actual": 217.31,
+          "delta_pct": 6.67,
+          "reason": "exit price drift 6.67%"
+        },
+        {
+          "ticker": "JPM",
+          "exit_date": "2026-08-10",
+          "quoted": 341.1,
+          "actual": 358.0,
+          "delta_pct": 4.72,
+          "reason": "exit price drift 4.72%"
+        },
+        {
+          "ticker": "HON",
+          "exit_date": "2026-08-10",
+          "quoted": 225.02,
+          "actual": 242.2,
+          "delta_pct": 7.09,
+          "reason": "exit price drift 7.09%"
+        }
+      ]
+    },
+    {
+      "code": "I11",
+      "name": "Every ACTIVE row has entry_price",
+      "severity": "BLOCK",
+      "status": "PASS",
+      "detail": "0 ACTIVE rows missing entry price",
+      "violations": []
+    },
+    {
+      "code": "I12",
+      "name": "Every ACTIVE row has stop",
+      "severity": "WARN",
+      "status": "PASS",
+      "detail": "0 ACTIVE rows missing stop",
+      "violations": []
+    },
+    {
+      "code": "I13",
+      "name": "Prices reconcile",
+      "severity": "WARN",
+      "status": "WARN",
+      "detail": "2863 price drifts (observation)",
+      "violations": []
+    },
+    {
+      "code": "I14",
+      "name": "No silent stale",
+      "severity": "BLOCK",
+      "status": "PASS",
+      "detail": "stale-count surfaced in header",
+      "violations": []
+    },
+    {
+      "code": "I15",
+      "name": "Sheet title matches contract",
+      "severity": "BLOCK",
+      "status": "PASS",
+      "detail": "0 title issues",
+      "violations": []
+    },
+    {
+      "code": "I16",
+      "name": "Required headers present",
+      "severity": "BLOCK",
+      "status": "PASS",
+      "detail": "0 headers missing",
+      "violations": []
+    },
+    {
+      "code": "I17",
+      "name": "Analysis rows populated",
+      "severity": "WARN",
+      "status": "PASS",
+      "detail": "analysis row 2 populated",
+      "violations": []
+    },
+    {
+      "code": "I18",
+      "name": "No jargon in exit reasons",
+      "severity": "BLOCK",
+      "status": "PASS",
+      "detail": "0 jargon rows",
+      "violations": []
+    },
+    {
+      "code": "I19",
+      "name": "Momentum conservation",
+      "severity": "WARN",
+      "status": "WARN",
+      "detail": "5 timing picks missing from Portfolio/Momentum",
+      "violations": [
+        {
+          "ticker": "FDS",
+          "decision": "BUY"
+        },
+        {
+          "ticker": "UBER",
+          "decision": "BUY"
+        },
+        {
+          "ticker": "KHC",
+          "decision": "BUY"
+        },
+        {
+          "ticker": "ABNB",
+          "decision": "BUY"
+        },
+        {
+          "ticker": "CRBG",
+          "decision": "BUY"
+        }
+      ]
+    },
+    {
+      "code": "I20",
+      "name": "Registry-CLOSED (production runners) in Exit History",
+      "severity": "BLOCK",
+      "status": "PASS",
+      "detail": "486 production-runner closed · 508 in exit history · 0 missing",
+      "violations": []
+    },
+    {
+      "code": "I21",
+      "name": "Canonical states only",
+      "severity": "BLOCK",
+      "status": "PASS",
+      "detail": "4 distinct states · 0 unknown",
+      "violations": []
+    },
+    {
+      "code": "I22",
+      "name": "No forbidden states",
+      "severity": "BLOCK",
+      "status": "PASS",
+      "detail": "0 forbidden state uses",
+      "violations": []
+    },
+    {
+      "code": "I23",
+      "name": "Runner column has canonical values",
+      "severity": "BLOCK",
+      "status": "PASS",
+      "detail": "0 rows with non-canonical Runner value",
+      "violations": []
+    },
+    {
+      "code": "I24",
+      "name": "Header count matches rows",
+      "severity": "BLOCK",
+      "status": "SKIP",
+      "detail": "row 2 missing 'ACTIVE: N' pattern",
+      "violations": []
+    },
+    {
+      "code": "I25",
+      "name": "Realized reconciles",
+      "severity": "BLOCK",
+      "status": "SKIP",
+      "detail": "Portfolio row 2 has no 'Realized 90d (N exits)' clause",
+      "violations": []
+    },
+    {
+      "code": "I26",
+      "name": "Entry price immutable",
+      "severity": "BLOCK",
+      "status": "SKIP",
+      "detail": "no asof in title",
+      "violations": []
+    },
+    {
+      "code": "I27",
+      "name": "Entry date legitimate",
+      "severity": "BLOCK",
+      "status": "PASS",
+      "detail": "0 illegitimate entry dates",
+      "violations": []
+    },
+    {
+      "code": "I28",
+      "name": "Exit date legitimate",
+      "severity": "BLOCK",
+      "status": "PASS",
+      "detail": "0 illegitimate exit dates",
+      "violations": []
+    },
+    {
+      "code": "I29",
+      "name": "Current Price legitimate",
+      "severity": "BLOCK",
+      "status": "SKIP",
+      "detail": "no asof",
+      "violations": []
+    },
+    {
+      "code": "I30",
+      "name": "Exit Price legitimate",
+      "severity": "BLOCK",
+      "status": "PASS",
+      "detail": "0 exit prices drift >2% from parquet close on exit_date",
+      "violations": []
+    }
+  ],
+  "xlsx_path": "/home/runner/work/NexaQuant/NexaQuant/reports/telegram/aegis_history_usa.xlsx"
+}
