@@ -184,11 +184,31 @@ def _run(cmd: list) -> int:
 
 def heal(market: str, asof: str) -> bool:
     """Regenerate the derived artifacts, then re-check."""
-    print("  [self-heal] regenerating lifecycle + workbook for %s (asof %s)"
-          % (market, asof))
+    print("  [self-heal] regenerating lifecycle + reconciler + workbook for "
+          "%s (asof %s)" % (market, asof))
     _run([sys.executable, "-W", "ignore", "-m",
           "backend.delivery.lifecycle.canonical_daily_lifecycle",
           "--market", market, "--asof", asof])
+    # CEO 2026-11-05 · THE RECONCILER DESCRIBES WHICHEVER CURRENT IT READ.
+    #
+    # heal() regenerated the lifecycle and the workbook but not
+    # why_not_current, so after a repair the reconciler still described
+    # the PREVIOUS state. Measured on 2026-11-05 after this healer
+    # removed PLD from CURRENT:
+    #
+    #   test_current_rows_reconcile_to_the_lifecycle_dataset[usa]
+    #   CURRENT and the reconciler disagree
+    #     only in CURRENT: []   only in reconciler: ['PLD']
+    #
+    # backend/pipeline/contract/runner.py already documents this exact
+    # order and why it matters - "the lifecycle produces the state; the
+    # funnel explains it" - so a repair that regenerates one and not the
+    # other reintroduces the disagreement the ordering exists to remove.
+    # Same class as the defect this healer is repairing: two artifacts
+    # describing two different moments.
+    _run([sys.executable, "-W", "ignore", "-m",
+          "backend.delivery.lifecycle.why_not_current",
+          "--market", market])
     _run([sys.executable, "-W", "ignore",
           str(ROOT / "scripts" / "build_aegis_3sheet_workbook.py"),
           "--market", market, "--asof", asof])

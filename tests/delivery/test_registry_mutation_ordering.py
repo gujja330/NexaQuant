@@ -528,6 +528,35 @@ class TestWorkflowOrdering:
             "a still-broken invariant must fail the run, never be "
             "silently accepted")
 
+    def test_a_repair_regenerates_the_reconciler_too(self):
+        """A heal must not leave why_not_current describing the old CURRENT.
+
+        Found by the full regression on 37d1f23af, after this healer
+        removed PLD from CURRENT:
+
+            test_current_rows_reconcile_to_the_lifecycle_dataset[usa]
+            CURRENT and the reconciler disagree
+              only in CURRENT: []   only in reconciler: ['PLD']
+
+        heal() regenerated the lifecycle and the workbook and not the
+        reconciler, so a repair reintroduced exactly the kind of
+        two-artifacts-two-moments disagreement it exists to remove.
+        """
+        src = (_ROOT / "scripts" / "ci_selfheal_lifecycle.py").read_text(
+            encoding="utf-8")
+        body = _fn_source(_ROOT / "scripts" / "ci_selfheal_lifecycle.py",
+                          "heal")
+        assert "why_not_current" in body, (
+            "heal() must regenerate the reconciler · the lifecycle "
+            "produces the state, the funnel explains it, and a repair "
+            "that refreshes one and not the other leaves them describing "
+            "different moments")
+        i_life = body.find("canonical_daily_lifecycle")
+        i_wnc = body.find("why_not_current")
+        assert i_life < i_wnc, (
+            "the reconciler must run AFTER the lifecycle · run before, it "
+            "describes the previous state (runner.py documents this)")
+
     def test_india_workflow_step_order_is_unchanged(self):
         """India was already correct and must stay untouched."""
         names = self._steps(_IND_WF, "refresh")
