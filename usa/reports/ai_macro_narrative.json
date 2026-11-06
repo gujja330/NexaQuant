@@ -2,47 +2,48 @@
   "engine": "ai_macro_narrative",
   "version": "v1.0",
   "market": "usa",
-  "run_utc": "2026-11-05T22:31:36+00:00",
-  "asof": "2026-11-05",
+  "run_utc": "2026-11-06T18:13:44+00:00",
+  "asof": "2026-11-06",
   "output": {
     "agent": "macro_analyst",
     "version": "v1.0",
     "market": "usa",
-    "asof": "2026-11-05",
-    "headline": "regime=unknown \u00b7 vol=elevated \u00b7 active_impacts=2 \u00b7 macro_score=+0.05",
-    "narrative": "regime=unknown \u00b7 vol=elevated \u00b7 active_impacts=2 \u00b7 macro_score=+0.05.\n\nAEGIS Macro & Intermarket Intelligence audit. Combines commodity moves, currency pressures, yield curve, VIX regime, and sector rotation into a single macro regime call. Emits an impact matrix + knowledge graph that downstream engines (Recommendation, Risk, Portfolio, Learning, AI Auditor) will consume from Sprint 8 onward.\n\nDoes NOT approve or promote \u2014 every commodity impact, sector rotation call, and regime label is DESCRIPTIVE and requires operator interpretation. AI never trades on macro alone.",
+    "asof": "2026-11-06",
+    "headline": "regime=unknown \u00b7 vol=elevated \u00b7 active_impacts=3 \u00b7 macro_score=-0.10",
+    "narrative": "regime=unknown \u00b7 vol=elevated \u00b7 active_impacts=3 \u00b7 macro_score=-0.10.\n\nAEGIS Macro & Intermarket Intelligence audit. Combines commodity moves, currency pressures, yield curve, VIX regime, and sector rotation into a single macro regime call. Emits an impact matrix + knowledge graph that downstream engines (Recommendation, Risk, Portfolio, Learning, AI Auditor) will consume from Sprint 8 onward.\n\nDoes NOT approve or promote \u2014 every commodity impact, sector rotation call, and regime label is DESCRIPTIVE and requires operator interpretation. AI never trades on macro alone.",
     "findings": [
       {
         "type": "macro_regime",
         "primary": "unknown",
         "secondary": "deflationary",
         "confidence": 0.9,
-        "macro_score": 0.05,
+        "macro_score": -0.1,
         "evidence": {
           "vol_regime": "elevated",
-          "oil_1w_pct": -13.605,
-          "gold_1w_pct": 1.65,
-          "usd_1w_pct": -0.413,
+          "oil_1w_pct": -17.222,
+          "gold_1w_pct": 4.37,
+          "gold_flight_to_safety": true,
+          "usd_1w_pct": 0.414,
           "yield_curve_inversion": false,
-          "ten_year_1m_bps": -32.378878
+          "ten_year_1m_bps": -37.705955
         }
       },
       {
         "type": "volatility",
         "symbol": "^VIX",
-        "level": 28.18,
+        "level": 26.36,
         "regime": "elevated",
-        "chg_1m_pct": 89.509
+        "chg_1m_pct": 64.032
       },
       {
         "type": "central_bank_state",
         "bank": "Fed",
         "rate_cycle": "neutral",
-        "yield_curve_slope": 22.9,
+        "yield_curve_slope": 21.6,
         "inversion": false,
         "liquidity_score": 0.0,
         "notes": [
-          "Fed: cycle=neutral \u00b7 short_1m=-8.129493bps"
+          "Fed: cycle=neutral \u00b7 short_1m=-5.62bps"
         ]
       },
       {
@@ -84,40 +85,52 @@
         "rationale": "Falling oil reduces input costs; downstream margins expand. Upstream capex compresses."
       },
       {
+        "type": "commodity_impact",
+        "commodity": "Gold",
+        "direction": "up",
+        "positive_sectors": [
+          "Gold Miners",
+          "Precious Metals"
+        ],
+        "negative_sectors": [],
+        "confidence": 0.75,
+        "rationale": "Gold rally often coincides with risk-off equity sentiment; gold miners benefit directly. Historically inverse-correlated with USD."
+      },
+      {
         "type": "sector_rotation",
         "leaders": [
           {
-            "sector": "Consumer Staples",
-            "return_pct": 11.2
-          },
-          {
             "sector": "Utilities",
-            "return_pct": 9.59
+            "return_pct": 10.28
           },
           {
-            "sector": "Healthcare",
-            "return_pct": 8.32
+            "sector": "Consumer Staples",
+            "return_pct": 10.22
+          },
+          {
+            "sector": "Consumer Discretionary",
+            "return_pct": 8.46
           }
         ],
         "laggards": [
           {
             "sector": "Technology",
-            "return_pct": -17.27
+            "return_pct": -15.44
           },
           {
             "sector": "Communication Services",
-            "return_pct": -7.63
+            "return_pct": -5.34
           },
           {
             "sector": "Industrials",
-            "return_pct": -4.67
+            "return_pct": -3.54
           }
         ],
-        "rotation_strength": 0.748
+        "rotation_strength": 0.728
       },
       {
         "type": "knowledge_graph_summary",
-        "n_entries": 3,
+        "n_entries": 4,
         "factor_kinds": [
           "commodity",
           "rate"
@@ -125,6 +138,7 @@
         "top_factors": [
           "Brent Crude",
           "WTI Crude",
+          "Gold",
           "10Y Treasury Yield"
         ]
       },
@@ -133,15 +147,15 @@
         "n_commodities": 3,
         "n_currencies": 1,
         "n_bonds": 4,
-        "n_active_impacts": 2,
-        "n_kg_entries": 3
+        "n_active_impacts": 3,
+        "n_kg_entries": 4
       }
     ],
     "evidence": {
       "primary_regime": "unknown",
       "vol_regime": "elevated",
-      "n_active_impacts": 2,
-      "macro_score": 0.05
+      "n_active_impacts": 3,
+      "macro_score": -0.1
     },
     "citations": [
       "backend/macro_intel/engine.py",
