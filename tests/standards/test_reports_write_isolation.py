@@ -353,3 +353,115 @@ class TestProtectedStateAndLeakage:
         before = protected_hashes()
         _ = resolved_out_root(_ROOT)
         assert protected_hashes() == before
+
+# ─────────────────────────────────────────────────────────────
+# Lifecycle artifact · redirectable, and measured
+# ─────────────────────────────────────────────────────────────
+
+class TestTheLifecycleArtifactCanBeRedirected:
+    """CEO 2026-11-07 · §3 test isolation.
+
+    tests/delivery/conftest.py regenerates canonical_lifecycle_<market>
+    on purpose: the renderer computes nothing and re-reads it from disk,
+    so a committed fixture ageing independently of the code that reads
+    it is what produced the 2026-09-10 USA CI failure. Sound rationale,
+    but it wrote into the live reports/ tree.
+
+    Measured over the whole tests/delivery/ suite (548 passed, 36
+    skipped): exactly TWO artifacts changed, both this one, one per
+    market. Every other protected file was byte-identical - registry,
+    model registry, feature manifest, recommendations, ensemble,
+    model factory included.
+
+    `artifact_path` now resolves through the same AEGIS_OUT_ROOT helper
+    the engine runners use, so a redirected run reads and writes the
+    same place and the renderer still re-reads from disk exactly as
+    production does.
+
+    NOT yet flipped in the conftest, deliberately: two delivery tests
+    and eight production modules still open this file by LITERAL path.
+    Redirecting the writer while those read the real tree would have
+    them testing a stale artifact - the very failure the conftest
+    exists to prevent. Converting those ten readers is its own change.
+    """
+
+    def test_the_resolver_is_out_root_aware(self, monkeypatch, tmp_path):
+        from backend.delivery.lifecycle import canonical_daily_lifecycle as lc
+        import backend.shared.out_root as o
+        import importlib
+
+        monkeypatch.delenv(o.OUT_ROOT_ENV, raising=False)
+        importlib.reload(o)
+        plain = lc.artifact_path(_ROOT, "india")
+        assert plain == (_ROOT / "reports" / "context"
+                         / "canonical_lifecycle_india.json"), (
+            "with no redirect the production path must be unchanged")
+
+        monkeypatch.setenv(o.OUT_ROOT_ENV, str(tmp_path))
+        importlib.reload(o)
+        try:
+            redirected = lc.artifact_path(_ROOT, "india")
+            assert str(redirected).startswith(str(tmp_path))
+        finally:
+            monkeypatch.delenv(o.OUT_ROOT_ENV, raising=False)
+            importlib.reload(o)
+
+    def test_emit_and_load_share_one_resolver(self):
+        """A reader and a writer with separate opinions of where a file
+        lives is how they end up in different directories."""
+        import ast
+        src = (_ROOT / "backend" / "delivery" / "lifecycle"
+               / "canonical_daily_lifecycle.py").read_text(encoding="utf-8")
+        tree = ast.parse(src)
+        for name in ("emit", "load"):
+            fn = next((n for n in ast.walk(tree)
+                       if isinstance(n, ast.FunctionDef) and n.name == name),
+                      None)
+            if fn is None:
+                continue
+            body = "\n".join(src.splitlines()[fn.lineno - 1: fn.end_lineno])
+            assert "artifact_path(" in body, (
+                "%s must go through artifact_path, not build its own" % name)
+
+    def test_the_known_literal_path_readers_are_recorded(self):
+        """The readers that must be converted before the conftest flips.
+
+        Recorded so the remaining gap is explicit rather than folklore.
+        Counts only modules that CONSTRUCT the path - a docstring that
+        merely names the file is documentation. An earlier version of
+        this test counted those too and reported 18 where the real
+        figure is smaller; matching prose and calling it a dependency
+        is the same mistake that produced three false hardcoded-date
+        findings in this repo.
+        """
+        needle = "canonical_lifecycle_"
+        markers = ("reports", "context")
+        readers = []
+        for d in ("backend", "scripts"):
+            for f in (_ROOT / d).rglob("*.py"):
+                if f.name == "canonical_daily_lifecycle.py":
+                    continue
+                if "tests" in f.parts:
+                    continue
+                try:
+                    txt = f.read_text(encoding="utf-8", errors="replace")
+                except Exception:
+                    continue
+                at, hit = txt.find(needle), False
+                while at >= 0 and not hit:
+                    seg = txt[max(0, at - 160): at + 160]
+                    if all(m in seg for m in markers):
+                        hit = True
+                    at = txt.find(needle, at + 1)
+                if hit:
+                    rel = str(f.relative_to(_ROOT))
+                    readers.append(rel.replace(chr(92), "/"))
+        readers = sorted(set(readers))
+        assert readers, "expected the known literal-path readers to exist"
+        # A measured fact to be reduced, not a budget to spend. Each one
+        # blocks enabling the lifecycle write redirect.
+        assert len(readers) <= 20, (
+            "literal-path readers grew to %d: %s" % (len(readers), readers))
+        print("  literal-path lifecycle readers: %d" % len(readers))
+        for r in readers:
+            print("    %s" % r)

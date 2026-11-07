@@ -42,19 +42,34 @@ from pathlib import Path
 _ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_ROOT))
 
-# Retirement date · loaded from configs
 def _retirement_date(root: Path) -> str:
-    try:
-        import yaml
-        p = root / "configs" / "aegis_retirement.yaml"
-        cfg = yaml.safe_load(p.read_text(encoding="utf-8")) or {}
-        events = cfg.get("retirement_events", [])
-        for e in events:
-            if str(e.get("runner", "")).upper() == "R1":
-                return str(e.get("retirement_date", ""))[:10]
-    except Exception:
-        pass
-    return "2026-09-01"
+    """R1's retirement date, from the canonical retirement config.
+
+    CEO 2026-11-07 · this held a PRIVATE yaml read plus a silent
+    `return "2026-09-01"` on any exception. Two defects in four lines:
+
+      · a second copy of retirement knowledge that already has a
+        canonical owner (backend/delivery/canonical/retirement.py), so
+        the two could disagree without anyone noticing - the alias-drift
+        class that fired A19/A23/I11/I16/I23/I27;
+      · a hardcoded fallback that masked a missing or unreadable config.
+        Every audit downstream compares against this date, so a wrong
+        one produces a confident, wrong audit rather than an error.
+
+    Now it delegates, and an unavailable date FAILS rather than being
+    substituted. An audit built on a guessed boundary is worse than no
+    audit.
+    """
+    from backend.delivery.canonical.retirement import retirement_summary
+    for e in (retirement_summary(root).get("events") or []):
+        if str(e.get("runner", "")).upper() == "R1":
+            d = str(e.get("retirement_date", ""))[:10]
+            if d:
+                return d
+    raise SystemExit(
+        "r1_producer_audit: no R1 retirement_date in the canonical "
+        "retirement config (configs/aegis_retirement.yaml). Refusing to "
+        "audit against a guessed boundary.")
 
 
 def _is_r1(runner_or_pid: str) -> bool:

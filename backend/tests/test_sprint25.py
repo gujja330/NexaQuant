@@ -124,9 +124,41 @@ def test_build_and_persist_writes_parquet_and_manifest(tmp_path):
     print(f"  [OK] build_and_persist wrote snapshot + manifest ({summary['n_rows']} rows)")
 
 
+def _latest_usa_snapshot():
+    """The newest USA feature snapshot that EXISTS · CEO 2026-11-07.
+
+    These two tests asked for `read_snapshot(_ROOT, "usa", date.today())`.
+    USA's pipeline runs late in the day, so on any CI run before it the
+    snapshot for "today" does not exist yet, read_snapshot correctly
+    returns None, and the assertion failed. That is a SCHEDULE
+    dependency in the test, not a product defect - AEGIS CI and ENG001
+    were red on it continuously while the product was fine.
+
+    The contract these tests actually own is "the four feature AI agents
+    run against a real snapshot and produce narratives". Which calendar
+    day that snapshot belongs to is irrelevant to it. So the newest
+    available snapshot is used, which is deterministic for a given
+    checkout and needs no future workflow artifact.
+
+    No snapshot is fabricated and no certification gate is relaxed: the
+    production DATA_READY gate still requires a CURRENT snapshot, and
+    that requirement is unchanged. If the repo genuinely holds none, the
+    test skips with the reason stated rather than inventing one.
+    """
+    from backend.feature_store.feature_history import list_snapshots
+    snaps = list_snapshots(_ROOT, "usa")
+    if not snaps:
+        pytest.skip("no USA feature snapshot in this checkout")
+    asof = snaps[-1]
+    df = read_snapshot(_ROOT, "usa", asof)
+    if df is None or df.empty:
+        pytest.skip("newest USA snapshot %s is unreadable/empty" % asof)
+    return df, asof
+
+
 # ── AI agents ──────────────────────────────────────────────────
 def test_feature_ai_agents_run():
-    df = read_snapshot(_ROOT, "usa", date.today())
+    df, _asof = _latest_usa_snapshot()
     assert df is not None and not df.empty
     val = validate_snapshot(df, FEATURE_REGISTRY)
     for name, out in [
@@ -142,7 +174,7 @@ def test_feature_ai_agents_run():
 
 
 def test_feature_ai_agents_no_recommendation_output():
-    df = read_snapshot(_ROOT, "usa", date.today())
+    df, _asof = _latest_usa_snapshot()
     val = validate_snapshot(df, FEATURE_REGISTRY)
     outs = [feature_anomaly.run(df, "usa"), feature_quality.run(val, "usa"),
              feature_importance.run(df, "usa"), feature_conflict.run(df, "usa")]

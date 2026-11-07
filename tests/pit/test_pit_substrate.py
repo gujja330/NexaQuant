@@ -192,8 +192,21 @@ def test_duplicate_snapshot_detection():
     # one canonical `<asof>.parquet`, and `.rebuilt_HHMMSS` variants are never
     # selected. This holds in a fresh clone and in a working tree alike.
     for k, v in dups.items():
-        base = [f for f in v if ".rebuilt_" not in os.path.basename(f)]
-        assert len(base) == 1, "asof %s has no single canonical snapshot" % (k,)
+        # CEO 2026-11-07 · `.rebuilt_` was not the only non-canonical
+        # sibling. The snapshot-authority work (3d0a832cc, already on
+        # origin/main) archives the prior file as
+        # `<asof>.superseded_<UTC>.parquet` on promotion, deliberately,
+        # so the audit trail survives. Counting those as candidates made
+        # a correct promotion look like three competing snapshots.
+        #
+        # The exclusion list mirrors feature_history.list_snapshots,
+        # which is the canonical answer to "which file IS the snapshot".
+        _NON_CANONICAL = (".rebuilt_", ".superseded_", ".promoting")
+        base = [f for f in v
+                if not any(m in os.path.basename(f) for m in _NON_CANONICAL)]
+        assert len(base) == 1, (
+            "asof %s has no single canonical snapshot · candidates %s"
+            % (k, [os.path.basename(f) for f in base]))
 
     # The rest is an observation about LOCAL generated state, not an invariant:
     # in the working tree the variants differ in content (usa 2026-09-10 has 14

@@ -1738,6 +1738,92 @@ def _dedupe_by_priority(rows: list) -> list:
     return resolved
 
 
+def _reconcile_active_pnl(rows: list) -> int:
+    """Make Current Perf % agree with the two cells it is derived from.
+
+    CEO 2026-11-07 · A8 root-cause class.
+
+    A8 asserts Current Perf % == (Current/Entry - 1) x 100 for OPEN rows.
+    Measured on the unified history: 708 rows violated it - 704 USA, 4
+    India - every one of them quoting a literal 0 while entry and current
+    prices differed, e.g.
+
+        CBOE  Day=1  Trading Days=33  entry=341.61  current=345.21  perf=0
+        REGN  Day=1  Trading Days=12  entry=942.85  current=930.67  perf=0
+
+    `Day=1` beside `Trading Days=33` is the tell: the 0 is a FOSSIL. It
+    was correct at the moment it was written - entry had resolved to the
+    current price, so the delta genuinely was zero - and a later pass
+    corrected Entry Price without recomputing the cell that depends on
+    it. Same shape as the reconciler that kept describing the previous
+    CURRENT after a repair: fix one artifact, leave its dependent stale.
+
+    Rather than chase which upstream path set which cell, this makes the
+    DERIVED value agree with its inputs as a final pass. It invents
+    nothing: both numbers are already recorded in the same row, and this
+    is precisely the identity A8 checks.
+
+    Missing is kept distinct from zero. If either price is absent the
+    cell is blanked, never set to 0 - a 0 asserts "no change", which is
+    a specific claim and a wrong one. A genuine zero delta (entry ==
+    current) still renders 0, because there the claim is true.
+
+    EXIT rows are left alone: their active-side P&L belongs blank and
+    Exit P&L % owns the realized number (I3/A9).
+    """
+    names = [n for (n, _w) in COLUMNS]
+    try:
+        i_status = names.index("Status")
+        i_entry = names.index("Entry Price")
+        i_cur = names.index("Current Price")
+        i_perf = names.index("Current Perf %")
+        i_xpnl = names.index("Exit P&L %")
+    except ValueError:
+        return 0
+    fixed = 0
+    for r in rows:
+        if not isinstance(r, list) or len(r) <= max(i_status, i_entry,
+                                                    i_cur, i_perf, i_xpnl):
+            continue
+        if str(r[i_status] or "").upper() == "EXIT":
+            # A9 is the same defect on the EXIT side · measured 183 USA
+            # rows quoting Exit P&L % = 0 with entry != exit, e.g.
+            # UBER entry=78.03 exit=75.42 quoted=0 expected=-3.34.
+            # Realized P&L is derived from the same two recorded prices,
+            # so it is reconciled the same way, and the active-side cell
+            # is blanked because an EXIT row must not carry one (I3/A9).
+            e, c = r[i_entry], r[i_cur]
+            if (isinstance(e, (int, float)) and not isinstance(e, bool)
+                    and e > 0 and isinstance(c, (int, float))
+                    and not isinstance(c, bool)):
+                want_x = round((c - e) / e * 100, 2)
+                have_x = r[i_xpnl]
+                if (not isinstance(have_x, (int, float))
+                        or abs(have_x - want_x) > 0.01):
+                    r[i_xpnl] = want_x
+                    fixed += 1
+            if isinstance(r[i_perf], (int, float)) and abs(r[i_perf]) > 0.01:
+                r[i_perf] = ""
+                fixed += 1
+            continue
+        e, c = r[i_entry], r[i_cur]
+        ok = (isinstance(e, (int, float)) and not isinstance(e, bool)
+              and e > 0
+              and isinstance(c, (int, float)) and not isinstance(c, bool))
+        if not ok:
+            # Unavailable, not zero.
+            if r[i_perf] not in ("", None):
+                r[i_perf] = ""
+                fixed += 1
+            continue
+        want = round((c - e) / e * 100, 2)
+        have = r[i_perf]
+        if not isinstance(have, (int, float)) or abs(have - want) > 0.01:
+            r[i_perf] = want
+            fixed += 1
+    return fixed
+
+
 def _validate_no_lifecycle_violations(rows: list) -> tuple[list, int]:
     """Operator Section 13 · hard validation guards before Portfolio.xlsx write.
 
@@ -1871,6 +1957,12 @@ def build_unified_history(root: Path, asof: str,
     # Runs after dedup · logs any lifecycle-violation warnings so the
     # acceptance validator can flag them. Non-fatal · pipeline still ships.
     all_rows, _n_viol = _validate_no_lifecycle_violations(all_rows)
+    # Derived cells last · after every pass that may have corrected an
+    # Entry Price, so Current Perf % cannot be left quoting a stale delta.
+    _n_pnl_fixed = _reconcile_active_pnl(all_rows)
+    if _n_pnl_fixed:
+        print("[unified] active P&L reconciled · %d row(s) where Current "
+              "Perf %% disagreed with Entry/Current price" % _n_pnl_fixed)
     if _n_viol:
         print(f"[validate] {_n_viol} lifecycle violation(s) surfaced · investigate")
 

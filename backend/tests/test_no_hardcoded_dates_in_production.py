@@ -70,9 +70,88 @@ WHITELIST_LITERALS = {
     "1900-01-01",   # pandas NA sentinel
 }
 
+#: Dates that ARE the data · CEO 2026-11-07.
+#:
+#: The rule exists to stop a date being baked into LOGIC, where it
+#: silently decides behaviour and drifts from reality. It is not meant to
+#: forbid recording when something historically happened. Each entry
+#: below names the file, the literal, and why changing it would falsify a
+#: record rather than fix a defect.
+#:
+#: An entry here is an EXPLANATION, not a suppression: a new hardcoded
+#: date in logic is still a failure, because it will not be in this map.
+ALLOWED_HISTORICAL = {
+    "backend/delivery/governance/advisory_state.py": {
+        "2026-10-27": "BASIS.decided_utc · when the advisory decision was "
+                      "actually taken. Deriving it from the clock would "
+                      "re-date a past decision on every run.",
+        "2026-08-04": "BASIS.window start · the measured evidence window.",
+        "2026-10-23": "BASIS.window end · the measured evidence window.",
+    },
+    "scripts/daily_scorecard.py": {
+        "2026-08-08": "_LOCK_DATE · the date the scorecard contract was "
+                      "locked. A moving lock date is not a lock.",
+    },
+    "scripts/populate_fundamentals_smoke.py": {
+        "2026-10-15": "next_earnings_date in a SMOKE FIXTURE dict · the "
+                      "script exists to exercise the writer with fixed "
+                      "input, so a varying value would weaken it.",
+    },
+    "scripts/r2_lifecycle_reconstruction.py": {
+        "2026-08-04": "historical episode fixture · reconstructs named "
+                      "2026-08 episodes by id. The dates identify WHICH "
+                      "episodes, so they cannot be parameterised away.",
+        "2026-08-10": "historical episode fixture · as above.",
+    },
+    "scripts/r2_lifecycle_replay_e2e.py": {
+        "2026-08-04": "historical episode fixture · replays the same named "
+                      "2026-08 episodes end to end.",
+        "2026-08-10": "historical episode fixture · as above.",
+    },
+}
+
 
 def _is_excluded(rel_path: str) -> bool:
     return any(re.search(p, rel_path) for p in EXCLUDE_PATTERNS)
+
+
+def _docstring_line_span(text: str) -> set:
+    """Line numbers occupied by docstrings · CEO 2026-11-07.
+
+    This scanner skipped `#` comments and said so in its own header
+    ("Documentation ... comments - historical references"), but it never
+    skipped DOCSTRINGS. So it reported three violations that were prose:
+
+        backend/delivery/trading_calendar.py:87   a usage example
+        backend/context/correlation/compute.py:5  an output-shape sample
+        backend/context/fii_dii/ingest.py:9       an output-shape sample
+
+    Matching prose and calling it a code defect is the same mistake that
+    produced earlier false findings in this repo - twice from grep, once
+    from a two-letter ticker matching inside a constant name. Docstrings
+    are resolved structurally, from the AST, not guessed at by regex.
+    """
+    import ast as _ast
+    out: set = set()
+    try:
+        tree = _ast.parse(text)
+    except SyntaxError:
+        return out
+    for node in _ast.walk(tree):
+        if not isinstance(node, (_ast.Module, _ast.ClassDef,
+                                 _ast.FunctionDef, _ast.AsyncFunctionDef)):
+            continue
+        body = getattr(node, "body", None) or []
+        if not body:
+            continue
+        first = body[0]
+        if (isinstance(first, _ast.Expr)
+                and isinstance(first.value, _ast.Constant)
+                and isinstance(first.value.value, str)):
+            for ln in range(first.lineno,
+                            (first.end_lineno or first.lineno) + 1):
+                out.add(ln)
+    return out
 
 
 def _scan_file(path: Path, root: Path) -> list[tuple[int, str]]:
@@ -81,11 +160,17 @@ def _scan_file(path: Path, root: Path) -> list[tuple[int, str]]:
         text = path.read_text(encoding="utf-8", errors="replace")
     except OSError:
         return []
+    rel = str(path.relative_to(root)).replace("\\", "/")
+    allowed = ALLOWED_HISTORICAL.get(rel) or {}
+    doc_lines = _docstring_line_span(text)
     hits: list[tuple[int, str]] = []
     for i, line in enumerate(text.splitlines(), start=1):
         stripped = line.strip()
         # Skip pure comment lines - only enforce on code
         if stripped.startswith("#"):
+            continue
+        # Prose in a docstring is documentation, not logic.
+        if i in doc_lines:
             continue
         for pat in DATE_PATTERNS:
             for m in pat.finditer(line):
@@ -96,6 +181,9 @@ def _scan_file(path: Path, root: Path) -> list[tuple[int, str]]:
                     continue
                 # Skip whitelisted specific dates
                 if any(w in literal for w in WHITELIST_LITERALS):
+                    continue
+                # Dates that ARE the data, each with a stated reason.
+                if any(a in literal for a in allowed):
                     continue
                 hits.append((i, literal))
     return hits

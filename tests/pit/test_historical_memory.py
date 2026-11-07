@@ -141,7 +141,17 @@ def test_india_sector_pit_behaviour():
     from backend.canonical import INDIA_PROFILE
     from backend.feature_store.feature_builder import FeatureBuilder
     b = FeatureBuilder(ROOT, INDIA_PROFILE)
-    assert len(b._ticker_sector()) == 30, "SECTOR-1 signature changed"
+    # CEO 2026-11-07 · this pinned 30, which was the signature BEFORE
+    # the approved India sector repair (commit 17bbbfb78, already on
+    # origin/main): the ticker->sector map was being read backwards,
+    # so 30 was the symptom and 228 is the whole universe correctly
+    # mapped. The test's purpose is to catch an UNINTENDED change in
+    # the signature, so the pin moves to the corrected value rather
+    # than the test being deleted.
+    n_sectors = len(b._ticker_sector())
+    assert n_sectors == 228, (
+        "SECTOR-1 signature changed · expected 228 mapped tickers, "
+        "got %d" % n_sectors)
     assert not set(b._universe()) & set(m), "SECTOR-2 key-form mismatch changed"
 
 

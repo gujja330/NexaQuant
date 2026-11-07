@@ -922,7 +922,31 @@ def _sector_cache(root: Path, market: str) -> dict:
 
 
 def artifact_path(root: Path, market: str) -> Path:
-    return root / "reports" / "context" / f"canonical_lifecycle_{market.lower()}.json"
+    """Where the canonical dataset lives · honours AEGIS_OUT_ROOT.
+
+    CEO 2026-11-07 · test isolation.
+
+    tests/delivery/conftest.py deliberately regenerates this artifact
+    because the renderer computes nothing and re-reads it from disk - a
+    committed fixture ageing independently of the code that reads it is
+    what produced the 2026-09-10 USA CI failure. That rationale is
+    sound, but it meant the suite wrote into the live reports/ tree.
+    Measured over tests/delivery/: exactly two artifacts changed, both
+    of them this one, per market.
+
+    Resolving through the SAME helper the engine runners use means a
+    redirected run reads and writes the same place, so the renderer
+    still re-reads from disk exactly as production does - only the root
+    moves. With AEGIS_OUT_ROOT unset the path is unchanged, so the
+    production pipeline is untouched.
+
+    One resolver, used by emit() and load() alike: a second opinion
+    about where this file lives is how a reader and a writer end up in
+    different directories.
+    """
+    from backend.shared.out_root import resolved_out_root
+    return (resolved_out_root(root) / "reports" / "context"
+            / f"canonical_lifecycle_{market.lower()}.json")
 
 
 def emit(root: Path, rep: dict) -> Path:

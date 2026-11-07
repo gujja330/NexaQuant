@@ -171,6 +171,18 @@ def _regenerate(market: str) -> bool:
         return False
     try:
         lc.emit(ROOT, rep)
+        # CEO 2026-11-07 · the reconciler describes whichever CURRENT
+        # it last read. Regenerating the lifecycle and NOT
+        # why_not_current leaves the two describing different
+        # moments, and test_current_rows_reconcile_to_the_lifecycle_
+        # dataset[usa] then fails on a disagreement this fixture
+        # created. Exactly the defect the self-healer had, in a
+        # fixture instead of a repair path.
+        try:
+            from backend.delivery.lifecycle import why_not_current as _wnc
+            _wnc.emit(ROOT, _wnc.compute(ROOT, market))
+        except Exception:
+            pass
         built = w2.build_two_sheet_workbook(ROOT, market, rep.get("asof"))
         out = ROOT / "reports" / "telegram" / ("aegis_history_%s.xlsx" % market)
         out.parent.mkdir(parents=True, exist_ok=True)
