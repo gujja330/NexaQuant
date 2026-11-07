@@ -262,6 +262,30 @@ def build_lifecycle(root: Path, market: str, asof: str) -> dict:
         ("lifecycle", ["python", "-W", "ignore", "-m",
                        "backend.delivery.lifecycle.canonical_daily_lifecycle",
                        "--market", market, "--asof", asof]),
+        # CEO 2026-11-06 · DURABLE EPISODE LINEAGE, BEFORE THE GATES.
+        #
+        # India run 41985177006 blocked on 2026-11-05 with A23 FAIL:
+        # 3 Registry-CLOSED tickers "silently lost". Nothing had changed
+        # in the code - the CALENDAR moved. A23's population is the whole
+        # registry history of accountable closes and carries no date
+        # cutoff, while its evidence is a 90-day rolling Exit History. An
+        # unbounded population measured against bounded evidence fails on
+        # the day the oldest cohort ages out, and then every day after.
+        #
+        #   asof 2026-11-04 -> window 2026-08-06 -> INSIDE  -> PASS
+        #   asof 2026-11-05 -> window 2026-08-07 -> OUTSIDE -> FAIL
+        #
+        # This records those episodes durably, keyed by opportunity_id,
+        # in the orphan-audit sink A23 already reads. It runs HERE so the
+        # lineage exists before DELIVERY_READY evaluates A23 in this same
+        # run - which is why India needs no workflow change.
+        #
+        # It does NOT widen the window and does NOT weaken A23: an
+        # episode still inside retention that is missing from Exit
+        # History remains a real defect and keeps failing.
+        ("episode_lineage", ["python", "-W", "ignore", "-m",
+                             "backend.delivery.lineage.episode_lineage",
+                             "--market", market, "--asof", asof]),
         ("why_not_current", ["python", "-W", "ignore", "-m",
                              "backend.delivery.lifecycle.why_not_current",
                              "--market", market]),

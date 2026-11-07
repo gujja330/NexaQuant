@@ -649,6 +649,9 @@ def compute(root: Path, market: str, asof: str) -> WaveRegressionReport:
         # traded a real market delta.
         _historical_tickers = set()
         _closed_reg = set()
+        _closed_eps = set()        # opportunity_id per CLOSED episode
+        _ep_ticker = {}            # opportunity_id -> ticker, for messages
+        _eps_no_identity = set()   # CLOSED episode with no id · fails closed
         for _opps in _reg.values():
             for _o in _opps:
                 if _o.market.lower() != market: continue
@@ -662,6 +665,19 @@ def compute(root: Path, market: str, asof: str) -> WaveRegressionReport:
                     if _a23_is_admin(_o, _ep_a, _xp_a):
                         continue
                 _closed_reg.add(_o.ticker.upper())
+                # CEO 2026-11-06 · EPISODE-LEVEL accounting.
+                # A ticker is not an episode. On 2026-11-05 this set
+                # reported 3 lost when 5 had aged out: INFY and VEDL had
+                # re-entered, and a ticker-level set cannot tell a CLOSED
+                # episode from an ACTIVE one wearing the same name. An
+                # unrelated re-entry is not evidence that a historical
+                # close was accounted for.
+                _oid_a23 = str(_o.opportunity_id or "").strip()
+                if _oid_a23:
+                    _closed_eps.add(_oid_a23)
+                    _ep_ticker[_oid_a23] = _o.ticker.upper()
+                else:
+                    _eps_no_identity.add(_o.ticker.upper())
         # Snapshot ledger tickers (canonical entry records)
         try:
             from backend.delivery.prediction_snapshot import _load_ledger
@@ -678,6 +694,8 @@ def compute(root: Path, market: str, asof: str) -> WaveRegressionReport:
         # Only the first is a structural read failure; an empty sheet with
         # Registry-CLOSED tickers IS silent loss and must still fail.
         _eh_sheet_missing = False
+        _eh_pos_col = None
+        _in_eh_eps = set()
         _in_eh = _exit_tks if 'FALLBACK' not in dir() and '_exit_tks' in dir() else set()
         if not _in_eh:
             from openpyxl import load_workbook as _lw
@@ -736,6 +754,12 @@ def compute(root: Path, market: str, asof: str) -> WaveRegressionReport:
                             _tk_col = ((_probe.index("Stock") + 1)
                                        if "Stock" in _probe
                                        else (_probe.index("Ticker") + 1))
+                            # Episode identity by HEADER NAME · the sheet's
+                            # Position ID carries the registry
+                            # opportunity_id verbatim (measured 2026-11-06:
+                            # IND-R2-AIAENG-20261016-4b46fa).
+                            if "Position ID" in _probe:
+                                _eh_pos_col = _probe.index("Position ID") + 1
                             break
                     _start = _hdr_r + 1
                     for _r_idx in range(_start, _eh_ws.max_row + 1):
@@ -752,10 +776,15 @@ def compute(root: Path, market: str, asof: str) -> WaveRegressionReport:
                         if " " in _tk_raw:     # multi-word · not a ticker
                             continue
                         _in_eh.add(_tk_raw)
+                        if _eh_pos_col:
+                            _v_pid = _eh_ws.cell(_r_idx, _eh_pos_col).value
+                            if _v_pid and str(_v_pid).strip():
+                                _in_eh_eps.add(str(_v_pid).strip())
                 _wb2.close()
         # Orphan audit JSONL tickers (documented sink for Registry
         # ORPHAN_AUTO_CLOSE events filtered out of Exit History body)
         _in_audit = set()
+        _in_audit_eps = set()
         try:
             import json as _json_a23
             _aud_p = root / "reports" / "delivery" / f"orphan_audit_{market}.jsonl"
@@ -766,6 +795,9 @@ def compute(root: Path, market: str, asof: str) -> WaveRegressionReport:
                         _e = _json_a23.loads(_ln)
                         _tk_aud = str(_e.get("ticker","")).upper()
                         if _tk_aud: _in_audit.add(_tk_aud)
+                        _oid_aud = str(_e.get("opportunity_id")
+                                       or _e.get("position_id") or "").strip()
+                        if _oid_aud: _in_audit_eps.add(_oid_aud)
                     except Exception:
                         pass
         except Exception:
@@ -785,8 +817,36 @@ def compute(root: Path, market: str, asof: str) -> WaveRegressionReport:
         # Check 1 · every Exit History row has historical lineage
         _fabricated = _in_eh - _historical_tickers
         # Check 2 · every Registry CLOSED is tracked SOMEWHERE (Exit
-        # History body OR orphan audit JSONL) · no silent loss
-        _silently_lost = _closed_reg - _in_eh - _in_audit
+        # History body OR durable lineage in the orphan audit JSONL) ·
+        # no silent loss.
+        #
+        # CEO 2026-11-06 · EPISODE-LEVEL, not ticker-level.
+        #
+        # India run 41985177006 blocked on 2026-11-05 reporting 3 lost
+        # tickers. Five episodes had actually aged out of the 90-day
+        # window; INFY and VEDL were masked because both had re-entered,
+        # and a ticker-level difference cannot distinguish a CLOSED
+        # episode from an ACTIVE one with the same name. Accounting for a
+        # historical close with an unrelated live position is not
+        # accounting.
+        #
+        # Episode identity comes from the sheet's Position ID column,
+        # which carries the registry opportunity_id verbatim. When that
+        # column is absent (legacy layouts, synthetic fixtures) there is
+        # no episode identity to reason with, so the original
+        # ticker-level comparison stands rather than being guessed at -
+        # and the detail string says which basis was used, so a reader
+        # never has to infer it.
+        _a23_basis = "episode" if _eh_pos_col else "ticker"
+        if _eh_pos_col:
+            _lost_eps = _closed_eps - _in_eh_eps - _in_audit_eps
+            _silently_lost = {_ep_ticker.get(e, e) for e in _lost_eps}
+            # A CLOSED episode carrying no identity cannot be matched at
+            # all. It fails closed rather than being waved through.
+            _silently_lost |= _eps_no_identity
+        else:
+            _lost_eps = set()
+            _silently_lost = _closed_reg - _in_eh - _in_audit
         if _fabricated:
             rep.add("A23", "Historical-lineage validation for Exit History",
                         "FAIL",
@@ -795,15 +855,22 @@ def compute(root: Path, market: str, asof: str) -> WaveRegressionReport:
         elif _silently_lost:
             rep.add("A23", "Historical-lineage validation for Exit History",
                         "FAIL",
-                        f"{len(_silently_lost)} Registry-CLOSED tickers silently "
-                        f"lost (not in Exit History body AND not in orphan audit "
-                        f"JSONL): {', '.join(sorted(_silently_lost)[:5])}")
+                        f"{len(_lost_eps) if _eh_pos_col else len(_silently_lost)} "
+                        f"Registry-CLOSED {_a23_basis}(s) silently lost (not in "
+                        f"Exit History body AND not in durable lineage): "
+                        f"{', '.join(sorted(_silently_lost)[:5])}"
+                        + (f" · episodes: {', '.join(sorted(_lost_eps)[:3])}"
+                           if _lost_eps else ""))
         else:
             rep.add("A23", "Historical-lineage validation for Exit History",
                         "PASS",
                         f"{len(_in_eh)} rows lineage-valid · "
                         f"{len(_in_audit)} orphan-audit rows · "
-                        f"{len(_closed_reg)} Registry-CLOSED all tracked")
+                        f"{len(_closed_eps) if _eh_pos_col else len(_closed_reg)} "
+                        f"Registry-CLOSED all tracked "
+                        f"[{_a23_basis}-level · "
+                        f"{len(_in_eh_eps)} EH episodes · "
+                        f"{len(_in_audit_eps)} lineage episodes]")
     except _A23Handled:
         pass
     except Exception as e:
