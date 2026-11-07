@@ -190,6 +190,35 @@ def _send_document(token: str, chat_id: str, file_path: Path,
         return False, f"{type(e).__name__}: {e}"
 
 
+def _telegram_accepted(body: str) -> tuple[bool, "int | None", str]:
+    """Telegram's acceptance contract, in one place · CEO 2026-11-07.
+
+    HTTP 200 alone is not delivery. The API answers 200 with
+    {"ok": false, "description": ...} for a wrong chat id, a blocked
+    bot and other refusals, so a status-only check reports success for a
+    message nobody received. That is what let the failure-alert path
+    print "sent" through five silent days, and the XLSX success path
+    carried the same hole one layer over.
+
+    Accepted means all three: status 200, body ok == true, and a
+    message_id to point at afterwards. Anything else is a failure with
+    the reason preserved.
+    """
+    try:
+        payload = json.loads(body or "")
+    except Exception:
+        return False, None, "unparseable response: %s" % str(body)[:120]
+    if not isinstance(payload, dict):
+        return False, None, "unexpected response shape: %s" % str(body)[:120]
+    if not payload.get("ok"):
+        return False, None, "telegram ok=false: %s" % str(
+            payload.get("description") or body)[:140]
+    mid = (payload.get("result") or {}).get("message_id")
+    if mid is None:
+        return False, None, "no message_id in response: %s" % str(body)[:120]
+    return True, int(mid), "message_id=%s" % mid
+
+
 def _send_markdown(token: str, chat_id: str, text: str) -> tuple[bool, str]:
     if not text:
         return True, "empty"
@@ -207,7 +236,10 @@ def _send_markdown(token: str, chat_id: str, text: str) -> tuple[bool, str]:
         req = urllib.request.Request(url, data=data, method="POST")
         with urllib.request.urlopen(req, timeout=30) as r:
             body = r.read().decode("utf-8", errors="replace")
-        return True, body[:120]
+        _ok, _mid, _why = _telegram_accepted(body)
+        if not _ok:
+            return False, "not accepted by telegram: %s" % _why
+        return True, _why
     except urllib.error.HTTPError as e:
         # Retry without Markdown parse if the parser trips (defense against
         # any accidental `_` / `*` in tickers or narrative).
@@ -225,7 +257,11 @@ def _send_markdown(token: str, chat_id: str, text: str) -> tuple[bool, str]:
                 req2 = urllib.request.Request(url, data=plain, method="POST")
                 with urllib.request.urlopen(req2, timeout=30) as r:
                     body = r.read().decode("utf-8", errors="replace")
-                return True, "markdown-failed-plain-delivered: " + body[:100]
+                _ok2, _mid2, _why2 = _telegram_accepted(body)
+                if not _ok2:
+                    return False, ("plain fallback not accepted by "
+                                   "telegram: %s" % _why2)
+                return True, "markdown-failed-plain-delivered: %s" % _why2
             except Exception as e2:
                 return False, f"plain-fallback failed: {e2}"
         return False, f"HTTP {e.code}: {err_body[:200]}"

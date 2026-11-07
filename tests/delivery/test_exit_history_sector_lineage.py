@@ -203,9 +203,28 @@ def _exit_history_tickers(market: str) -> set:
 
 
 def _orphan_audit_tickers(market: str) -> set:
-    p = ROOT / "reports" / "delivery" / ("orphan_audit_%s.jsonl" % market)
-    if not p.exists():
-        return set()
+    """Accounted tickers · CANONICAL sink AND the sender's derived view.
+
+    CEO 2026-11-07 · this read only orphan_audit_<market>.jsonl, which
+    the Telegram sender rewrites with mode "w". Durable lineage now
+    lives in episode_lineage_<market>.jsonl precisely so a consumer
+    cannot destroy accounting history a blocking invariant depends on,
+    and A23 reads both. A private copy of that vocabulary here reported
+    India's 11 rotation episodes as lost while the real gate passed -
+    the same alias drift the split exists to remove.
+    """
+    out = set()
+    for p in (ROOT / "reports" / "delivery"
+              / ("episode_lineage_%s.jsonl" % market),
+              ROOT / "reports" / "delivery"
+              / ("orphan_audit_%s.jsonl" % market)):
+        if not p.exists():
+            continue
+        out |= _audit_tickers_in(p)
+    return out
+
+
+def _audit_tickers_in(p) -> set:
     out = set()
     for ln in p.read_text(encoding="utf-8", errors="replace").splitlines():
         if ln.strip():

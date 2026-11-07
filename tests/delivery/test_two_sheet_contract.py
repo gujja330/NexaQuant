@@ -328,9 +328,16 @@ def test_12_registry_closed_all_represented(market):
           for r in _table(wb["EXIT HISTORY"], ["Ticker", "Engine", "Exit Date"])}
     wb.close()
     aud = set()
-    ap = ROOT / "reports" / "delivery" / f"orphan_audit_{market}.jsonl"
-    if ap.exists():
-        for ln in ap.read_text(encoding="utf-8").splitlines():
+    # CANONICAL sink AND the sender's derived view · CEO 2026-11-07.
+    # Reading only orphan_audit meant this test reported India's 11
+    # rotation episodes as lost while the real A23 gate passed: the
+    # durable ledger moved to episode_lineage_<market>.jsonl so a
+    # consumer cannot destroy history a blocking invariant needs.
+    for ap in (ROOT / "reports" / "delivery" / f"episode_lineage_{market}.jsonl",
+               ROOT / "reports" / "delivery" / f"orphan_audit_{market}.jsonl"):
+        if not ap.exists():
+            continue
+        for ln in ap.read_text(encoding="utf-8", errors="replace").splitlines():
             if ln.strip():
                 try:
                     aud.add(str(json.loads(ln).get("ticker", "")).upper())

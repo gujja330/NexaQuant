@@ -443,6 +443,82 @@ class TestWorkflowExecutionGraph:
             assert "secrets." in str(v)
 
 
+class TestTheXlsxSuccessPathUsesTheSameContract:
+    """One Telegram acceptance contract, not two. CEO 2026-11-07.
+
+    The alert path was fixed to require HTTP 200 AND ok==true AND a
+    message_id. The XLSX SUCCESS path still returned True on HTTP 200
+    alone - the same hole, one layer over. Telegram answers 200 with
+    {"ok": false} for a wrong chat id or a blocked bot, so a
+    status-only check reports success for a message nobody received.
+    """
+
+    @staticmethod
+    def _mod():
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            "tcc_contract", _ROOT / "scripts"
+            / "telegram_command_center_send.py")
+        m = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(m)
+        return m
+
+    def test_200_with_ok_and_message_id_is_accepted(self):
+        m = self._mod()
+        ok, mid, why = m._telegram_accepted(
+            json.dumps({"ok": True, "result": {"message_id": 7}}))
+        assert ok is True and mid == 7 and "message_id=7" in why
+
+    def test_200_with_ok_false_is_refused(self):
+        m = self._mod()
+        ok, mid, why = m._telegram_accepted(
+            json.dumps({"ok": False, "description": "chat not found"}))
+        assert ok is False and mid is None
+        assert "chat not found" in why
+
+    def test_200_without_message_id_is_refused(self):
+        m = self._mod()
+        ok, mid, _ = m._telegram_accepted(json.dumps({"ok": True}))
+        assert ok is False and mid is None
+
+    def test_a_malformed_response_is_refused(self):
+        m = self._mod()
+        for body in ("<html>down</html>", "", "null", "[1,2]"):
+            ok, mid, _ = m._telegram_accepted(body)
+            assert ok is False, body
+            assert mid is None
+
+    def test_an_http_error_never_reaches_the_accepted_path(self):
+        """5xx/4xx are raised by urlopen, so they cannot return True."""
+        src = (_ROOT / "scripts"
+               / "telegram_command_center_send.py").read_text(
+                   encoding="utf-8")
+        i = src.find("def _send_markdown")
+        body = src[i: i + 2600]
+        assert "_telegram_accepted(body)" in body, (
+            "the markdown path must verify, not trust the status")
+        assert 'return True, body[:120]' not in body, (
+            "HTTP 200 alone must no longer be treated as delivery")
+
+    def test_the_plain_text_fallback_also_verifies(self):
+        src = (_ROOT / "scripts"
+               / "telegram_command_center_send.py").read_text(
+                   encoding="utf-8")
+        i = src.find("def _send_markdown")
+        body = src[i: i + 2600]
+        assert "plain fallback not accepted by" in body, (
+            "the markdown-parse fallback had the same hole")
+        assert 'return True, "markdown-failed-plain-delivered: " + body'             not in body
+
+    def test_both_paths_share_one_definition(self):
+        """Two copies of an acceptance rule is how they diverge."""
+        src = (_ROOT / "scripts"
+               / "telegram_command_center_send.py").read_text(
+                   encoding="utf-8")
+        assert src.count("def _telegram_accepted") == 1
+        assert src.count("_telegram_accepted(body)") == 2
+
+
 class TestNormalDeliveryPathUnchanged:
     """The success path keeps its own acceptance criteria."""
 
