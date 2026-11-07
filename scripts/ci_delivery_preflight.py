@@ -338,4 +338,23 @@ def main(argv=None) -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    # A REPORTING step must not be able to fail the run it reports on.
+    #
+    # CEO 2026-11-07 · run 42358546515: the preflight failed on a day the
+    # daily guard had already short-circuited the pipeline, which tripped
+    # failure() and fired the operator alert for a day on which nothing
+    # was wrong. The guard gate in the workflow is the primary fix; this
+    # is the second line - an unexpected internal error becomes a loud
+    # log line rather than a red run, EXCEPT under --phase post, which
+    # exists precisely to fail on a mutated ledger.
+    try:
+        _rc = main()
+    except SystemExit:
+        raise
+    except Exception as _e:                      # pragma: no cover
+        import traceback
+        print("::error::[preflight] internal error · %s: %s"
+              % (type(_e).__name__, _e))
+        traceback.print_exc()
+        _rc = 0 if "--report-only" in sys.argv else 1
+    raise SystemExit(_rc)

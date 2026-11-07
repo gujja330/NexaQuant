@@ -342,7 +342,14 @@ jobs:
       # tell a truncated ledger from a blocked gate.
       - name: Delivery preflight · every blocker, before the send (INDIA)
         id: preflight_india
-        if: always()
+        # CEO 2026-11-07 · guard-gated, like every other step here.
+        # `always()` alone ran it on a day the once-per-IST-day guard had
+        # already short-circuited the pipeline - nothing had been
+        # produced, so there was nothing to preflight, and the step
+        # failing turned a correct no-op into a red run AND tripped
+        # failure(), which fired the operator alert for a day on which
+        # nothing was wrong. Run 42358546515.
+        if: always() && steps.guard.outputs.run == 'true'
         run: |
           python scripts/ci_delivery_preflight.py             --market india --phase pre --report-only
 
@@ -394,7 +401,8 @@ jobs:
       # because a component silently destroying an audit ledger must not
       # be something we rediscover by reading tea leaves.
       - name: Delivery postflight · lineage integrity after the send (INDIA)
-        if: always()
+        # Same gate: with no send there is no lineage transition to audit.
+        if: always() && steps.guard.outputs.run == 'true'
         run: |
           python scripts/ci_delivery_preflight.py             --market india --phase post
 

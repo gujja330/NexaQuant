@@ -284,3 +284,70 @@ class TestWorkflowWiring:
             "a component silently destroying an audit ledger must fail "
             "the run, not be rediscovered by reading tea leaves")
         assert not st.get("continue-on-error")
+
+class TestAReportingStepCannotFailTheRunItReportsOn:
+    """CEO 2026-11-07 · run 42358546515, my own regression.
+
+    The preflight carried a bare `if: always()` while every other step
+    in aegis-daily.yml is gated on the once-per-IST-day guard. On a day
+    the guard had already short-circuited the pipeline, nothing had been
+    produced - so there was nothing to preflight - and the step failing
+    turned a correct no-op into a red run AND tripped failure(), which
+    fired the operator alert for a day on which nothing was wrong.
+
+    Two defences: the guard gate in the workflow, and an internal error
+    under --report-only becoming a loud log line instead of a failure.
+    The postflight deliberately keeps its teeth.
+    """
+
+    @staticmethod
+    def _step(path, job, frag):
+        import yaml
+        d = yaml.safe_load(path.read_text(encoding="utf-8"))
+        for st in d["jobs"][job]["steps"]:
+            if frag in str(st.get("name") or ""):
+                return st
+        raise AssertionError("%s: no %s step" % (path.name, frag))
+
+    def test_india_flight_steps_respect_the_daily_guard(self):
+        for frag in ("preflight", "postflight"):
+            cond = str(self._step(_IND_WF, "refresh", frag).get("if") or "")
+            assert "always()" in cond, frag
+            assert "steps.guard.outputs.run == 'true'" in cond, (
+                "%s must not run on a day the guard short-circuited the "
+                "pipeline · there is nothing to check and a failure there "
+                "fires the operator alert for nothing" % frag)
+
+    def test_usa_has_no_daily_guard_so_always_is_correct_there(self):
+        """USA is schedule-only with no once-per-day guard, so the same
+        gate would reference a step that does not exist."""
+        import yaml
+        d = yaml.safe_load(_USA_WF.read_text(encoding="utf-8"))
+        ids = {str(s.get("id") or "") for s in d["jobs"]["usa-pipeline"]["steps"]}
+        assert "guard" not in ids
+        cond = str(self._step(_USA_WF, "usa-pipeline", "preflight").get("if") or "")
+        assert "always()" in cond
+
+    def test_report_only_survives_an_internal_error(self):
+        src = (_ROOT / "scripts"
+               / "ci_delivery_preflight.py").read_text(encoding="utf-8")
+        tail = src[src.find('if __name__ == "__main__":'):]
+        assert "except Exception" in tail
+        assert '"--report-only" in sys.argv' in tail, (
+            "a reporting step must not be able to fail the run it "
+            "reports on")
+
+    def test_the_postflight_keeps_its_teeth(self):
+        """Crash-safety must not have disarmed the ledger check."""
+        src = (_ROOT / "scripts"
+               / "ci_delivery_preflight.py").read_text(encoding="utf-8")
+        assert "STATE_LEDGER_MUTATED" in src
+        tail = src[src.find('if __name__ == "__main__":'):]
+        # post is never invoked with --report-only by either workflow
+        for wf in (_IND_WF, _USA_WF):
+            txt = wf.read_text(encoding="utf-8")
+            i = txt.find("--phase post")
+            assert i > 0, wf.name
+            seg = txt[i: i + 120]
+            assert "--report-only" not in seg, (
+                "%s must let a mutated ledger fail the run" % wf.name)
