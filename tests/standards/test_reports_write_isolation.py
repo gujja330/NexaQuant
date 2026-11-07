@@ -465,3 +465,74 @@ class TestTheLifecycleArtifactCanBeRedirected:
         print("  literal-path lifecycle readers: %d" % len(readers))
         for r in readers:
             print("    %s" % r)
+
+class TestEngineRunnersRedirectEveryWrite:
+    """One unredirected write is enough. CEO 2026-11-07.
+
+    Sprint-2 isolation moved every report output in the engine runners
+    to `_OUT` and left ONE behind: the Sprint 7.5 history append still
+    used `_ROOT`. So every regression run appended a row to the LIVE
+    ledger. Measured by running backend/tests/test_sprint3.py against a
+    clean tree:
+
+        reports/recommendation_history.parquet      CHANGED
+        usa/reports/recommendation_history.parquet  CHANGED
+        engine=aegis.recommendation.v3 · one row per market
+
+    After redirecting both, the same run leaves them byte-identical.
+
+    Production sets no AEGIS_OUT_ROOT, so _OUT == _ROOT and the live
+    ledger still receives the real daily row - the redirect only moves
+    where a TEST writes.
+    """
+
+    RUNNERS = (
+        "india/recommendation_intelligence/run.py",
+        "usa/research/recommendation_intelligence/run.py",
+    )
+
+    def test_the_history_append_uses_the_redirected_root(self):
+        for rel in self.RUNNERS:
+            src = (_ROOT / rel).read_text(encoding="utf-8")
+            i = src.find("append_and_record(")
+            assert i > 0, "%s: no append_and_record call" % rel
+            call = src[i: i + 420]
+            assert "_ROOT /" not in call, (
+                "%s appends history to the LIVE tree · a regression run "
+                "would mutate the real ledger" % rel)
+            assert "root=_OUT" in call, (
+                "%s must pass the redirected root so the persistence "
+                "state file moves with the ledger" % rel)
+
+    def test_no_history_append_targets_the_live_root(self):
+        """Every engine runner's history append, not just the two.
+
+        My first version of this matched `_ROOT /` NEAR the word
+        "parquet" and flagged 21 sites - most of them READS, which are
+        correct: reads come from the real repository on purpose, and
+        only writes move. Matching proximity instead of intent is the
+        same mistake that produced three false hardcoded-date findings
+        and a "wb.close() is a registry mutation" false positive.
+
+        So this matches the append CALL and its path argument. It found
+        9 genuine unredirected appends beyond the two that surfaced as
+        contamination - execution, learning, macro, risk and portfolio
+        history across both markets - every one of which would have
+        rewritten a live ledger on each regression run.
+        """
+        import re
+        call = re.compile(r"append_(?:snapshot_row|and_record)\(")
+        offenders = []
+        for pat in ("india/*/run.py", "usa/research/*/run.py"):
+            for f in _ROOT.glob(pat):
+                src = f.read_text(encoding="utf-8", errors="replace")
+                for m in call.finditer(src):
+                    seg = src[m.start(): m.start() + 400]
+                    if "_ROOT /" in seg:
+                        ln = src[:m.start()].count(chr(10)) + 1
+                        offenders.append("%s:%d"
+                                         % (f.relative_to(_ROOT)
+                                            .as_posix(), ln))
+        assert not offenders, (
+            "history append writes under the LIVE root · a regression "
+            "run would mutate the real ledger: %s" % sorted(offenders))

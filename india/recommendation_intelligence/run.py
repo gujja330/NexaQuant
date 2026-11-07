@@ -231,10 +231,19 @@ def main() -> int:
     # in eight months without anyone seeing a failure.
     try:
         from backend.persistence import append_and_record
+        # CEO 2026-11-07 · the history append was the ONE write this
+        # runner did not redirect. Sprint-2 isolation moved every report
+        # output to _OUT and left this on _ROOT, so each regression run
+        # appended a row to the LIVE ledger. Measured: running
+        # backend/tests/test_sprint3.py changed
+        # reports/recommendation_history.parquet and its USA twin on
+        # every invocation, engine=aegis.recommendation.v3.
+        # Production sets no variable, so _OUT == _ROOT and the live
+        # ledger still receives the real daily row.
         _hist_state = append_and_record(
             json.loads(OUT_FULL.read_text(encoding="utf-8")),
-            _ROOT / "reports" / "recommendation_history.parquet",
-            root=_ROOT, market="india")
+            _OUT / "reports" / "recommendation_history.parquet",
+            root=_OUT, market="india")
         print(f"  history: {_hist_state['state']} · {_hist_state['detail']} "
               f"(rows {_hist_state['rows_before']} -> "
               f"{_hist_state.get('rows_after')})")

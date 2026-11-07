@@ -198,7 +198,7 @@ def main() -> int:
         #
         # The defect was discarding the return value: a failed append to the
         # only dated weight history in the system produced no output at all.
-        _hist_p = _ROOT / "reports" / "portfolio_history.parquet"
+        _hist_p = _OUT / "reports" / "portfolio_history.parquet"
         _row = append_snapshot_row(
             json.loads(OUT_FULL.read_text(encoding="utf-8")), _hist_p)
         if _row is None:

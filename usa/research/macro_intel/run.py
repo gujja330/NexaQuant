@@ -155,7 +155,7 @@ def main() -> int:
     try:
         from backend.persistence import append_snapshot_row
         append_snapshot_row(json.loads(OUT_REGIME.read_text(encoding="utf-8")),
-                             _ROOT / "usa" / "reports" / "macro_history.parquet")
+                             _OUT / "usa" / "reports" / "macro_history.parquet")
     except Exception as _hist_err:
         print(f"  macro_history append warning (non-fatal): {_hist_err}")
     OUT_MATRIX.write_text(json.dumps({**common, "n_active_impacts": len(r.active_impacts),

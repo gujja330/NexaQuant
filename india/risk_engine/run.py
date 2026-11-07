@@ -204,7 +204,7 @@ def main() -> int:
     try:
         from backend.persistence import append_snapshot_row
         append_snapshot_row(json.loads(OUT_REPORT.read_text(encoding="utf-8")),
-                             _ROOT / "reports" / "risk_history.parquet")
+                             _OUT / "reports" / "risk_history.parquet")
     except Exception as _hist_err:
         print(f"  history append warning (non-fatal): {_hist_err}")
 

@@ -252,7 +252,12 @@ def test_india_recommendation_runner_emits_valid_json(_OUT_ROOT):
         [sys.executable, "india/recommendation_intelligence/run.py"],
         cwd=str(_ROOT), env=_runner_env(_OUT_ROOT), capture_output=True, text=True, timeout=120)
     assert r.returncode == 0, f"exit {r.returncode}\n{r.stderr[:500]}"
-    d = json.loads((_ROOT / "reports" / "recommendations_v3.json")
+    # CEO 2026-11-07 · assert on what the runner JUST wrote.
+    # This read _ROOT while the runner wrote to _OUT_ROOT, so it
+    # validated whatever stale file happened to be in the live tree and
+    # would have passed even if the runner produced nothing. Writer and
+    # reader must point at the same place or the test is theatre.
+    d = json.loads((_OUT_ROOT / "reports" / "recommendations_v3.json")
                      .read_text(encoding="utf-8"))
     assert d["market"] == "india"
     assert "recommendations" in d and "distribution" in d
@@ -264,7 +269,12 @@ def test_usa_recommendation_runner_emits_valid_json(_OUT_ROOT):
         [sys.executable, "usa/research/recommendation_intelligence/run.py"],
         cwd=str(_ROOT), env=_runner_env(_OUT_ROOT), capture_output=True, text=True, timeout=120)
     assert r.returncode == 0, f"exit {r.returncode}\n{r.stderr[:500]}"
-    d = json.loads((_ROOT / "usa" / "reports" / "recommendations_v3.json")
+    # CEO 2026-11-07 · assert on what the runner JUST wrote.
+    # This read _ROOT while the runner wrote to _OUT_ROOT, so it
+    # validated whatever stale file happened to be in the live tree and
+    # would have passed even if the runner produced nothing. Writer and
+    # reader must point at the same place or the test is theatre.
+    d = json.loads((_OUT_ROOT / "usa" / "reports" / "recommendations_v3.json")
                      .read_text(encoding="utf-8"))
     assert d["market"] == "usa"
     assert d["currency"] == "USD"
@@ -304,9 +314,17 @@ def main() -> int:
     print("  SPRINT 3 · Recommendation Intelligence v3 · Regression Tests")
     print("=" * 70)
     n_pass = 0; n_fail = 0
+    # CEO 2026-11-07 · this file runs BOTH as a bare script
+    # (aegis-ci.yml) and under pytest. Write-isolation gave some tests
+    # an _OUT_ROOT fixture; pytest injects it, a bare script does not,
+    # so they died with "missing 1 required positional argument" and
+    # AEGIS CI went red. The harness supplies what each signature asks
+    # for, resolved per test rather than from a hardcoded list.
+    from backend.tests._script_harness import call_test, make_out_root
+    _OUT = make_out_root()
     for t in TESTS:
         try:
-            t(); n_pass += 1
+            call_test(t, _OUT); n_pass += 1
         except AssertionError as e:
             print(f"  [FAIL] {t.__name__}: {e}"); n_fail += 1
         except Exception as e:

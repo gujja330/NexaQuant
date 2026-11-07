@@ -188,9 +188,35 @@ def main() -> int:
     print("  SPRINT 2 · Canonical Model + Market Intel + AI · Regression Tests")
     print("=" * 70)
     n_pass = 0; n_fail = 0
+    # CEO 2026-11-07 · THIS FILE IS RUN TWO WAYS.
+    #
+    # aegis-ci.yml runs it as a bare script (`python
+    # backend/tests/test_sprint2.py`), and pytest runs it as a module.
+    # The write-isolation work added an `_OUT_ROOT` pytest fixture to
+    # the two runner tests, which pytest injects and a bare script does
+    # not - so both failed with
+    #
+    #   TypeError: missing 1 required positional argument: '_OUT_ROOT'
+    #
+    # and AEGIS CI has been red on it ever since 14ebede10. The fixture
+    # is right: without it every regression run rewrote ensemble.json,
+    # market_intelligence.json and model_registry.jsonl. The harness
+    # simply never learned to supply it.
+    #
+    # So the script supplies the same disposable root the fixture does,
+    # resolved from each test's own signature rather than a hardcoded
+    # list - a new isolated test gets it automatically.
+    import inspect as _inspect
+    import tempfile as _tempfile
+    _tmp = Path(_tempfile.mkdtemp(prefix="sprint2_out_"))
+    for _sub in ("reports", "usa/reports", "features"):
+        (_tmp / _sub).mkdir(parents=True, exist_ok=True)
     for t in TESTS:
         try:
-            t()
+            if "_OUT_ROOT" in _inspect.signature(t).parameters:
+                t(_tmp)
+            else:
+                t()
             n_pass += 1
         except AssertionError as e:
             print(f"  [FAIL] {t.__name__}: {e}")

@@ -300,9 +300,17 @@ def main() -> int:
     print("  SPRINT 5 · Portfolio Engine · Regression Tests")
     print("=" * 70)
     n_pass = 0; n_fail = 0
+    # CEO 2026-11-07 · this file runs BOTH as a bare script
+    # (aegis-ci.yml) and under pytest. Write-isolation gave some tests
+    # an _OUT_ROOT fixture; pytest injects it, a bare script does not,
+    # so they died with "missing 1 required positional argument" and
+    # AEGIS CI went red. The harness supplies what each signature asks
+    # for, resolved per test rather than from a hardcoded list.
+    from backend.tests._script_harness import call_test, make_out_root
+    _OUT = make_out_root()
     for t in TESTS:
         try:
-            t(); n_pass += 1
+            call_test(t, _OUT); n_pass += 1
         except AssertionError as e:
             print(f"  [FAIL] {t.__name__}: {e}"); n_fail += 1
         except Exception as e:

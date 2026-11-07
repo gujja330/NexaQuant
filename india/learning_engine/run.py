@@ -160,7 +160,7 @@ def main() -> int:
             "has_calibration":       result.calibration_curve is not None,
             "model_stamp": model_stamp,
         }
-        append_snapshot_row(_hist_payload, _ROOT / "reports" / "learning_history.parquet")
+        append_snapshot_row(_hist_payload, _OUT / "reports" / "learning_history.parquet")
     except Exception as _hist_err:
         print(f"  history append warning (non-fatal): {_hist_err}")
 
