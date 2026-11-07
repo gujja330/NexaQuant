@@ -325,7 +325,10 @@ class TestReconcile:
         assert sp["source"] == EL.SOURCE_REGISTRY
         assert man["unaccounted_before"] == 3
         assert man["unaccounted_after"] == 0
-        assert man["destination"].endswith("orphan_audit_india.jsonl")
+        assert man["destination"].endswith(
+            "episode_lineage_india.jsonl"), (
+            "the manifest must name the CANONICAL sink · writing to "
+            "orphan_audit is what let the sender erase it")
 
 
 # ─────────────────────────────────────────────────────────────
@@ -495,6 +498,100 @@ class TestTheLineageSinkIsNotTruncated:
                / "episode_lineage.py").read_text(encoding="utf-8")
         assert "def recorded_episode_ids" in src
         assert 'e.get("opportunity_id")' in src
+
+
+class TestTheCanonicalLedgerIsStructurallyProtected:
+    """Preserving the sender's write was not enough. CEO 2026-11-07.
+
+    Durable lineage first lived in orphan_audit_<market>.jsonl, which
+    the sender rewrites with mode "w". Teaching the sender to carry
+    foreign rows forward fixed THAT writer and left the canonical
+    ledger reachable by the next one. A sender may CONSUME accounting
+    history; it must never be able to destroy history a blocking
+    invariant depends on.
+
+    So the canonical record lives in episode_lineage_<market>.jsonl,
+    which no renderer, sender or workbook builder writes, and A23 reads
+    both it and the sender's derived view.
+
+    Measured: with the sender's orphan_audit wiped to 0 rows,
+    A23=PASS and gate=ALLOW. Before the split that same wipe produced
+    A23 FAIL on 11 episodes.
+    """
+
+    def test_the_canonical_and_derived_sinks_are_different_files(self):
+        assert (EL.canonical_path(_ROOT, "india")
+                != EL.derived_audit_path(_ROOT, "india"))
+        assert "episode_lineage_" in EL.canonical_path(_ROOT, "india").name
+        assert "orphan_audit_" in EL.derived_audit_path(_ROOT, "india").name
+
+    def test_lineage_is_written_only_to_the_canonical_sink(self, tmp_path,
+                                                            monkeypatch):
+        e = FakeOpp("IND-R2-ZZZ-20260805-zzz", "ZZZ", closed_date="2026-08-06")
+        _patch(monkeypatch, [e], eh_ids=[])
+        EL.reconcile(tmp_path, "india", "2026-11-06")
+        assert EL.canonical_path(tmp_path, "india").exists()
+        assert not EL.derived_audit_path(tmp_path, "india").exists(), (
+            "the durable record must never be written into the file the "
+            "sender rewrites")
+
+    def test_accounting_reads_both_sinks(self, tmp_path, monkeypatch):
+        """The derived view still holds legitimate retired/admin closes."""
+        a = FakeOpp("IND-R2-AAA-20260805-a", "AAA")
+        b = FakeOpp("IND-R2-BBB-20260805-b", "BBB")
+        _patch(monkeypatch, [a, b], eh_ids=[])
+        d = EL.derived_audit_path(tmp_path, "india")
+        d.parent.mkdir(parents=True, exist_ok=True)
+        d.write_text(json.dumps({"opportunity_id": a.opportunity_id,
+                                 "ticker": "AAA"}), encoding="utf-8")
+        c = EL.canonical_path(tmp_path, "india")
+        c.write_text(json.dumps({"kind": EL.KIND,
+                                 "opportunity_id": b.opportunity_id,
+                                 "ticker": "BBB"}), encoding="utf-8")
+        ids = EL.recorded_episode_ids(tmp_path, "india")
+        assert a.opportunity_id in ids and b.opportunity_id in ids
+
+    def test_destroying_the_derived_view_does_not_lose_lineage(self, tmp_path,
+                                                                monkeypatch):
+        """The five-day defect, now structurally impossible."""
+        e = FakeOpp("IND-R2-YYY-20260805-y", "YYY", closed_date="2026-08-06")
+        _patch(monkeypatch, [e], eh_ids=[])
+        EL.reconcile(tmp_path, "india", "2026-11-06")
+        assert e.opportunity_id in EL.recorded_episode_ids(tmp_path, "india")
+        # the sender's mode-"w" rewrite, in full
+        EL.derived_audit_path(tmp_path, "india").write_text(
+            "", encoding="utf-8")
+        assert e.opportunity_id in EL.recorded_episode_ids(tmp_path, "india"), (
+            "a consumer wiping its own derived view must not erase "
+            "accounting history a BLOCKING invariant depends on")
+
+    def test_no_other_production_module_writes_the_canonical_sink(self):
+        """Enforced, not promised.
+
+        episode_lineage.py is the sole writer by construction. A module
+        may REFERENCE the canonical filename; it may not write it.
+        """
+        writes = ('open(', 'write_text', '.unlink(', 'shutil.move',
+                  'shutil.copy')
+        offenders = []
+        for d in ("scripts", "backend"):
+            for f in (_ROOT / d).rglob("*.py"):
+                if f.name == "episode_lineage.py":
+                    continue
+                try:
+                    txt = f.read_text(encoding="utf-8", errors="replace")
+                except Exception:
+                    continue
+                at = txt.find("episode_lineage_")
+                while at >= 0:
+                    seg = txt[max(0, at - 220): at + 220]
+                    if any(w in seg for w in writes):
+                        offenders.append(str(f.relative_to(_ROOT)))
+                        break
+                    at = txt.find("episode_lineage_", at + 1)
+        assert not offenders, (
+            "only backend/delivery/lineage/episode_lineage.py may write "
+            "the canonical ledger · found %s" % sorted(set(offenders)))
 
 
 class TestNoProductionDecisionLogicTouched:

@@ -98,9 +98,44 @@ SOURCE_REGISTRY = "opportunity_registry"
 _ROTATION_RE = re.compile(r"(->|→).*alpha", re.IGNORECASE)
 
 
-def audit_path(root: Path, market: str) -> Path:
+def canonical_path(root: Path, market: str) -> Path:
+    """The durable ledger · written ONLY by this module.
+
+    CEO 2026-11-07 · STRUCTURAL, not detected.
+
+    Durable lineage first lived in orphan_audit_<market>.jsonl, which
+    the Telegram sender rewrites with mode "w" from its own computed
+    subset. On 2026-11-07 that deleted all 11 records (37 rows -> 26)
+    and A23 failed again on a fix that had measured clean.
+
+    Preserving the sender's write was the first repair, and it is not
+    enough: it leaves the canonical ledger reachable by a destructive
+    writer, so the next component to open that path with "w" reopens
+    the same defect. A sender may CONSUME accounting history; it must
+    never be able to destroy history a blocking invariant depends on.
+
+    So the canonical record lives in its own file that no renderer,
+    sender or workbook builder writes. orphan_audit stays exactly as it
+    was - the sender's derived view - and A23 reads BOTH.
+    """
+    return (Path(root) / "reports" / "delivery"
+            / ("episode_lineage_%s.jsonl" % str(market).lower()))
+
+
+def derived_audit_path(root: Path, market: str) -> Path:
+    """The sender's own derived view · read for accounting, never written."""
     return (Path(root) / "reports" / "delivery"
             / ("orphan_audit_%s.jsonl" % str(market).lower()))
+
+
+def audit_path(root: Path, market: str) -> Path:
+    """Deprecated alias · kept so existing callers keep resolving.
+
+    Returns the CANONICAL path. A reader that wants the sender's
+    derived view must ask for it by name, because that is the
+    distinction this whole defect turned on.
+    """
+    return canonical_path(root, market)
 
 
 def window_start(asof) -> date:
@@ -119,20 +154,24 @@ def recorded_episode_ids(root: Path, market: str) -> set:
     The existing writer keys by ticker. Reading back by ticker is what
     makes a second episode invisible, so this reads by opportunity_id.
     """
-    p = audit_path(root, market)
     out: set = set()
-    if not p.exists():
-        return out
-    for line in p.read_text(encoding="utf-8", errors="replace").splitlines():
-        if not line.strip():
+    # Canonical first, then the sender's derived view. Both are valid
+    # accounting evidence; only one of them is safe from truncation.
+    for p in (canonical_path(root, market), derived_audit_path(root, market)):
+        if not p.exists():
             continue
-        try:
-            e = json.loads(line)
-        except Exception:
-            continue
-        oid = str(e.get("opportunity_id") or e.get("position_id") or "").strip()
-        if oid:
-            out.add(oid)
+        for line in p.read_text(encoding="utf-8",
+                                errors="replace").splitlines():
+            if not line.strip():
+                continue
+            try:
+                e = json.loads(line)
+            except Exception:
+                continue
+            oid = str(e.get("opportunity_id")
+                      or e.get("position_id") or "").strip()
+            if oid:
+                out.add(oid)
     return out
 
 

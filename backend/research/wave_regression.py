@@ -787,19 +787,33 @@ def compute(root: Path, market: str, asof: str) -> WaveRegressionReport:
         _in_audit_eps = set()
         try:
             import json as _json_a23
-            _aud_p = root / "reports" / "delivery" / f"orphan_audit_{market}.jsonl"
-            if _aud_p.exists():
+            # CEO 2026-11-07 · TWO SINKS, ONE OF THEM SAFE.
+            #
+            # orphan_audit is the SENDER's derived view and the sender
+            # rewrites it with mode "w". On 2026-11-07 that deleted all 11
+            # durable lineage records (37 rows -> 26) and this check failed
+            # again on a fix that had measured clean. The canonical ledger
+            # now lives in episode_lineage_<market>.jsonl, which no
+            # renderer or sender writes, so accounting history a BLOCKING
+            # invariant depends on cannot be destroyed by a consumer of it.
+            #
+            # Both are read: the canonical one because it is safe, the
+            # derived one because it still legitimately records the
+            # sender's retired-runner and admin closes.
+            for _aud_p in (root / "reports" / "delivery" / f"episode_lineage_{market}.jsonl",
+                           root / "reports" / "delivery" / f"orphan_audit_{market}.jsonl"):
+                if not _aud_p.exists(): continue
                 for _ln in _aud_p.read_text(encoding="utf-8", errors="replace").splitlines():
-                    if not _ln.strip(): continue
-                    try:
-                        _e = _json_a23.loads(_ln)
-                        _tk_aud = str(_e.get("ticker","")).upper()
-                        if _tk_aud: _in_audit.add(_tk_aud)
-                        _oid_aud = str(_e.get("opportunity_id")
-                                       or _e.get("position_id") or "").strip()
-                        if _oid_aud: _in_audit_eps.add(_oid_aud)
-                    except Exception:
-                        pass
+                        if not _ln.strip(): continue
+                        try:
+                            _e = _json_a23.loads(_ln)
+                            _tk_aud = str(_e.get("ticker","")).upper()
+                            if _tk_aud: _in_audit.add(_tk_aud)
+                            _oid_aud = str(_e.get("opportunity_id")
+                                           or _e.get("position_id") or "").strip()
+                            if _oid_aud: _in_audit_eps.add(_oid_aud)
+                        except Exception:
+                            pass
         except Exception:
             pass
         # A workbook with no exit sheet is a STRUCTURAL failure, not

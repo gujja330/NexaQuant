@@ -63,6 +63,16 @@ STATE_LEDGER_MUTATED = "LEDGER_MUTATED"
 STATE_GATE_BLOCKED = "GATE_BLOCKED"
 STATE_GATE_ALLOWED = "GATE_ALLOWED"
 
+#: Machine-readable failure boundary · CEO 2026-11-07. A generic workflow
+#: failure cost days of bisection; this names WHICH link of
+#: source -> lineage -> accounting -> gate -> artifact -> Telegram ->
+#: ledger actually broke.
+BOUNDARY_NONE = "NONE"
+BOUNDARY_LINEAGE = "LINEAGE_MUTATION"
+BOUNDARY_ACCOUNTING = "A23_ACCOUNTING"
+BOUNDARY_GATE = "GATE_BLOCKED"
+BOUNDARY_DELIVERY = "DELIVERY"
+
 
 def _utc() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
@@ -188,6 +198,19 @@ def evaluate(root: Path, market: str, asof: str,
 
     rep["lineage"] = lineage_state(root, mk)
     rep["verdict"] = STATE_GATE_BLOCKED if rep["blockers"] else STATE_GATE_ALLOWED
+    codes = [b["code"] for b in rep["blockers"]]
+    if any(c.startswith("LINEAGE:") for c in codes):
+        rep["failure_boundary"] = BOUNDARY_LINEAGE
+    elif "A23" in codes:
+        rep["failure_boundary"] = BOUNDARY_ACCOUNTING
+    elif codes:
+        rep["failure_boundary"] = BOUNDARY_GATE
+    else:
+        rep["failure_boundary"] = BOUNDARY_NONE
+    # Lineage integrity is WORKBOOK-INDEPENDENT, so unlike the A23
+    # evidence it is safe to treat as a hard gate even before the sender
+    # rebuilds the workbook.
+    rep["lineage_hard_fail"] = rep["failure_boundary"] == BOUNDARY_LINEAGE
     return rep
 
 
@@ -229,6 +252,7 @@ def main(argv=None) -> int:
     root = Path(a.root)
     markets = ["india", "usa"] if a.market == "both" else [a.market]
     worst = 0
+    hard_fail = False
 
     for mk in markets:
         sp = state_path(root, mk)
@@ -245,6 +269,9 @@ def main(argv=None) -> int:
                      res["lineage_after"].get("rows"),
                      res["lineage_before"].get("lineage_records"),
                      res["lineage_after"].get("lineage_records")))
+            print("  [postflight:%s] FAILURE_BOUNDARY=%s"
+                  % (mk, BOUNDARY_LINEAGE if res["ledger_mutated"]
+                     else BOUNDARY_NONE))
             if res["ledger_mutated"]:
                 print("::error::[postflight:%s] LEDGER MUTATED during the "
                       "send · %d episode(s) lost: %s · this is failure mode "
@@ -282,6 +309,8 @@ def main(argv=None) -> int:
                   "%d FAIL" % (mk, wr["verdict"], wr.get("n_fail", 0)))
             for f in wr.get("fails") or []:
                 print("      FAIL %s · %s" % (f["code"], f["detail"][:120]))
+        print("  [preflight:%s] FAILURE_BOUNDARY=%s"
+              % (mk, rep["failure_boundary"]))
         if not rep["blockers"]:
             print("  [preflight:%s] NO BLOCKERS · delivery gate ALLOW" % mk)
             continue
@@ -291,7 +320,18 @@ def main(argv=None) -> int:
         for b in rep["blockers"]:
             print("::error::  [%s] %s" % (b["code"], b["reason"][:200]))
         worst = max(worst, 1)
+        if rep["lineage_hard_fail"]:
+            # A HARD gate · --report-only does NOT soften this one.
+            # Lineage does not depend on the workbook, so there is no
+            # pre-rebuild ambiguity to be generous about: if accounting
+            # history a blocking invariant needs has gone missing, no
+            # XLSX and no success notification may follow.
+            print("::error::[preflight:%s] refusing to continue to "
+                  "delivery · no XLSX, no success notification" % mk)
+            hard_fail = True
 
+    if hard_fail:
+        return 2          # survives --report-only by design
     if a.report_only:
         return 0
     return worst
