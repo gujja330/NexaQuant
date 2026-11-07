@@ -443,6 +443,60 @@ class TestPipelineWiring:
 # isolation · no production decision logic touched
 # ─────────────────────────────────────────────────────────────
 
+class TestTheLineageSinkIsNotTruncated:
+    """The sender erased the lineage it was supposed to read.
+
+    CEO 2026-11-07. India's A23 gate passed in CI (run 42334884268,
+    step 20 success) and the run still failed at step 23, the Telegram
+    sender. Cause: the sender rewrote
+    reports/delivery/orphan_audit_<market>.jsonl with mode "w" from its
+    OWN computed set, deleting every record written by anything else.
+
+    Measured: 37 rows -> 26, the 11 durable episode-lineage records
+    gone, and the post-build recompute then reported
+
+        A23 FAIL :: 11 Registry-CLOSED episode(s) silently lost
+        ATUL, BHARATFORG, DELHIVERY, HCLTECH, HEROMOTOCO ...
+
+    So the India fix verified locally and was erased on the next real
+    run. An audit ledger that a renderer may truncate is not an audit
+    ledger.
+    """
+
+    _SENDER = _ROOT / "scripts" / "telegram_command_center_send.py"
+
+    def test_the_sender_preserves_records_it_did_not_write(self):
+        src = self._SENDER.read_text(encoding="utf-8")
+        assert "_foreign_rows" in src, (
+            "the sender must carry forward orphan-audit records written "
+            "by another component instead of truncating them")
+        assert "_own_ids" in src, (
+            "its own rows are keyed by opportunity_id so they refresh "
+            "rather than duplicate")
+
+    def test_every_truncating_write_of_the_sink_preserves_foreign_rows(self):
+        """Structural: the defect WAS the bare mode-"w" rewrite."""
+        src = self._SENDER.read_text(encoding="utf-8").splitlines()
+        offenders = []
+        for i, line in enumerate(src):
+            if '_orphan_audit_p.open("w"' not in line:
+                continue
+            window = "\n".join(src[max(0, i - 40):i + 12])
+            if "_foreign_rows" not in window:
+                offenders.append(i + 1)
+        assert not offenders, (
+            "orphan_audit rewritten with mode 'w' and no preservation of "
+            "foreign records at line(s) %s" % offenders)
+
+    def test_lineage_ids_are_matched_by_episode_on_read_back(self):
+        """Keyed by episode · the old sink deduped by TICKER, which is
+        why a ticker's second episode never got a record."""
+        src = (_ROOT / "backend" / "delivery" / "lineage"
+               / "episode_lineage.py").read_text(encoding="utf-8")
+        assert "def recorded_episode_ids" in src
+        assert 'e.get("opportunity_id")' in src
+
+
 class TestNoProductionDecisionLogicTouched:
 
     def test_lineage_never_writes_the_registry(self):

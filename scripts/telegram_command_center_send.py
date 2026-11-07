@@ -3396,10 +3396,49 @@ def main() -> int:
                         ))
                         _seen_keys.add(_key)
                 # Emit orphan audit log · BACKUP ledger · deterministic
+                # CEO 2026-11-07 · THIS TRUNCATED AN AUDIT LEDGER.
+                #
+                # Mode "w" rewrote the whole file from this pass's own set,
+                # destroying every record written by any other component.
+                # Measured 2026-11-07: the 11 durable episode-lineage rows for
+                # India's aged-out rotation closes went from 37 back to 26, and
+                # A23 then failed again on exactly those episodes (ATUL,
+                # BHARATFORG, DELHIVERY, HCLTECH, HEROMOTOCO...). The India fix
+                # verified locally and was erased by the sender on the next run.
+                #
+                # Determinism is kept - this pass still rewrites ITS rows in
+                # sorted order. What changes is that rows it did not generate are
+                # carried forward instead of deleted, which is what an audit
+                # ledger has to mean. Keyed by opportunity_id, so its own rows are
+                # refreshed rather than duplicated.
+                _own_ids = {str(_r.get("opportunity_id") or "")
+                            for _r in _orphan_lines}
+                _own_ids.discard("")
+                _foreign_rows = []
+                if _orphan_audit_p.exists():
+                    for _ln in _orphan_audit_p.read_text(
+                            encoding="utf-8", errors="replace").splitlines():
+                        if not _ln.strip():
+                            continue
+                        try:
+                            _obj = _json_orphan.loads(_ln)
+                        except Exception:
+                            continue
+                        _oid = str(_obj.get("opportunity_id")
+                                   or _obj.get("position_id") or "")
+                        if _oid and _oid not in _own_ids:
+                            _foreign_rows.append(_obj)
                 _orphan_lines.sort(key=lambda r: (r["closed_date"], r["ticker"]))
+                _foreign_rows.sort(key=lambda r: (str(r.get("closed_date") or ""),
+                                                  str(r.get("ticker") or "")))
                 with _orphan_audit_p.open("w", encoding="utf-8") as _oaf:
                     for _line in _orphan_lines:
                         _oaf.write(_json_orphan.dumps(_line, default=str, ensure_ascii=False) + "\n")
+                    for _line in _foreign_rows:
+                        _oaf.write(_json_orphan.dumps(_line, default=str, ensure_ascii=False) + "\n")
+                if _foreign_rows:
+                    print(f"[exit_history:{mkt_key}] orphan backup · preserved "
+                          f"{len(_foreign_rows)} record(s) from another component")
                 print(f"[exit_history:{mkt_key}] orphan backup · "
                       f"{_n_orphan_included} ORPHAN_AUTO_CLOSE rows included in body AND mirrored to "
                       f"{_orphan_audit_p.relative_to(_ROOT)} (audit only · "
