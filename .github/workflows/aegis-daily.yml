@@ -323,6 +323,29 @@ jobs:
         continue-on-error: true
         run: python scripts/ci_selfheal_lifecycle.py --market both
 
+      # ── DELIVERY PREFLIGHT · CEO 2026-11-07 ────────────────────────
+      # India failed five days running and each day surfaced exactly ONE
+      # blocker: A23 aged-out closes (11-05), the same cohort grown to 6
+      # (11-06), then lineage recorded and TRUNCATED by the sender
+      # (11-07). One missing capability, not five defects - nothing
+      # evaluated the whole blocking surface at once, so the pipeline
+      # could only ever reveal the first blocker it hit.
+      #
+      # This prints EVERY blocker together, from freshly recomputed
+      # evidence (delivery_gate reads PERSISTED reports, so a stale
+      # wave_regression_<market>.json blocks on yesterday's state).
+      #
+      # report-only by design: it runs BEFORE the sender rebuilds the
+      # workbook, so its A23 view is pre-rebuild and must not add a
+      # false failure. The authoritative refusal stays with the existing
+      # gate. It also records the lineage hash so the postflight can
+      # tell a truncated ledger from a blocked gate.
+      - name: Delivery preflight · every blocker, before the send (INDIA)
+        id: preflight_india
+        if: always()
+        run: |
+          python scripts/ci_delivery_preflight.py             --market india --phase pre --report-only
+
       - name: Delivery classifier tests (blocks Telegram if red)
         id: delivery_tests
         if: steps.guard.outputs.run == 'true' && steps.freshcheck.outputs.verified == 'true'
@@ -356,6 +379,25 @@ jobs:
       #
       # EXPLICIT PATHS ONLY. No globs: a broad pattern here could sweep .env,
       # credentials or account data into a downloadable artifact.
+      # ── DELIVERY POSTFLIGHT · CEO 2026-11-07 ───────────────────────
+      # The failure boundary. "India failed" used to cover three very
+      # different things; this separates them:
+      #
+      #   1 LEDGER MUTATED    lineage rows dropped during the send
+      #   2 LINEAGE INTACT, GATE BLOCKED
+      #   3 GATE ALLOWED, DELIVERY FAILED
+      #
+      # On 2026-11-07 it was (1): the sender rewrote
+      # orphan_audit_india.jsonl with mode "w", 37 rows -> 26, and the
+      # 11 episode-lineage records vanished - so A23 failed again on a
+      # fix that measured clean. This FAILS the run when that recurs,
+      # because a component silently destroying an audit ledger must not
+      # be something we rediscover by reading tea leaves.
+      - name: Delivery postflight · lineage integrity after the send (INDIA)
+        if: always()
+        run: |
+          python scripts/ci_delivery_preflight.py             --market india --phase post
+
       - name: Upload risk/portfolio run outputs (artifact)
         if: always() && steps.guard.outputs.run == 'true'
         uses: actions/upload-artifact@v4
