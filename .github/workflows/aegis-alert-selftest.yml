@@ -1,0 +1,98 @@
+# AEGIS · operator-alert self-test · CEO 2026-11-07
+#
+# WHY THIS EXISTS
+#
+# India failed for ~5 days and USA repeatedly, and the operator received
+# nothing - while the alert step reported `success` on every run. The old
+# body ran `curl ... || true` and then printed "sent" without ever
+# reading Telegram's response, so a 403, a wrong chat id or a 429 were
+# indistinguishable from delivery.
+#
+# That is now verified (HTTP status AND body `ok` AND message_id), but a
+# notifier is only trustworthy if it can be exercised ON DEMAND. Waiting
+# for the next real outage to discover the alert path is broken is how
+# five silent days happen.
+#
+# This workflow sends ONE real alert-shaped message and proves the chain
+# end to end: credentials present, Telegram accepted it, a message_id
+# came back, a receipt was written, no secret printed. It is
+# workflow_dispatch only - never scheduled - touches no production data,
+# writes no lifecycle or workbook artifact, and commits nothing.
+#
+# It is NOT a substitute for the live delivery proof: a green self-test
+# says the alert path works, not that the pipeline is healthy.
+
+name: AEGIS Alert Self-Test
+
+on:
+  workflow_dispatch:
+    inputs:
+      market:
+        description: "Which market label to send the test alert as"
+        required: true
+        default: india
+        type: choice
+        options: [india, usa]
+
+permissions:
+  contents: read
+
+jobs:
+  selftest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # The notifier is stdlib-only (urllib), so nothing is installed.
+      # One less thing that can fail on the path that exists to report
+      # failures.
+      - name: Show configuration presence WITHOUT revealing it
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          python - <<'PY'
+          import hashlib, os
+          tok = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+          chat = os.environ.get("TELEGRAM_CHAT_ID", "")
+          # Presence and a hash only · the values themselves are never
+          # printed, and a hash still lets the operator confirm WHICH
+          # chat is configured.
+          print("token present : %s (len=%d)" % (bool(tok), len(tok)))
+          print("chat present  : %s" % bool(chat))
+          if chat:
+              print("chat fingerprint: sha256:%s"
+                    % hashlib.sha256(chat.encode()).hexdigest()[:16])
+          if not tok or not chat:
+              print("::error::TELEGRAM configuration missing · the "
+                    "operator cannot be alerted by any path")
+              raise SystemExit(2)
+          PY
+
+      # The real thing: send, then verify. A non-zero exit here means the
+      # operator could NOT be reached, and the run goes red accordingly.
+      - name: Send and verify a real alert
+        id: alert
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          python scripts/telegram_failure_alert.py \
+            --market "${{ inputs.market }}" \
+            --run-id "${{ github.run_id }}" \
+            --sha "${{ github.sha }}" \
+            --workflow "${{ github.workflow }}" \
+            --status "ALERT SELF-TEST (no pipeline failure)"
+
+      - name: Upload the alert receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: alert-receipt-${{ inputs.market }}
+          path: reports/telegram_command_center_*.jsonl
+          if-no-files-found: warn
+          retention-days: 14

@@ -591,33 +591,38 @@ jobs:
       # 2026-08-25 · SILENT-RED-ALERT for India · mirrors USA workflow.
       # If delivery_tests block or send fails, operator gets a plain-text
       # Telegram alert (never again silently red).
+      # ── OPERATOR ALERT · CEO 2026-11-07 ────────────────────────────
+      # India failed for ~5 days and USA repeatedly, and the operator
+      # received nothing - while this step reported `success` every
+      # single time. The old body was:
+      #
+      #     curl -sS -X POST ".../sendMessage" -d ... || true
+      #     echo "[india_ci_alert] sent"
+      #
+      # `|| true` swallowed every failure and the step then printed
+      # "sent" without ever reading Telegram's response. With
+      # continue-on-error on top, a 403, a wrong chat id or a 429 all
+      # logged "sent" and went green. The step executing was never the
+      # same thing as Telegram delivering, and nothing could tell them
+      # apart.
+      #
+      # The notifier now checks the HTTP status AND the body's `ok`
+      # field (a 200 carrying {"ok": false} is a failure), captures
+      # message_id, retries only TRANSIENT faults with bounded backoff,
+      # reports a CONFIGURATION fault loudly without retrying it, writes
+      # an auditable receipt, and never prints the token.
+      #
+      # continue-on-error is deliberately NOT set: if the operator could
+      # not be told, that must be visible rather than green.
       - name: India CI failure Telegram alert
-        if: always() && steps.guard.outputs.run == 'true' && (failure() || steps.delivery_tests.outcome != 'success' || steps.send.outcome != 'success')
-        continue-on-error: true
+        id: alert_india
+        if: always() && (failure() || (steps.guard.outputs.run == 'true' && steps.send.outcome != 'success'))
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
-          MSG="🇮🇳 AEGIS INDIA CI FAILED · run ${{ github.run_id }}%0A"
-          MSG="$MSG · delivery_tests: ${{ steps.delivery_tests.outcome || 'skipped' }}%0A"
-          MSG="$MSG · send: ${{ steps.send.outcome || 'skipped' }}%0A"
-          MSG="$MSG · commit: ${{ github.sha }}%0A"
-          MSG="$MSG · URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          if [ -n "$TELEGRAM_BOT_TOKEN" ] && [ -n "$TELEGRAM_CHAT_ID" ]; then
-            curl -sS -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
-              -d "chat_id=$TELEGRAM_CHAT_ID" \
-              -d "text=$MSG" \
-              -d "disable_web_page_preview=true" || true
-            echo "[india_ci_alert] sent"
-          else
-            echo "[india_ci_alert] TELEGRAM secrets missing · alert skipped"
-          fi
+          python scripts/telegram_failure_alert.py \n            --market india \n            --run-id "${{ github.run_id }}" \n            --sha "${{ github.sha }}" \n            --workflow "${{ github.workflow }}"
 
-      # ═══════════════════════════════════════════════════════════════════════
-      # Research post-processing (2026-08-11 · CEO final wiring)
-      # Runs AFTER production commit · never blocks the pipeline · alerts on failure.
-      # NEVER feeds research findings back into R1/R2 automatically.
-      # ═══════════════════════════════════════════════════════════════════════
       - name: Research P0 · rebuild canonical Outcome Dataset
         # ENG003 discipline: no `|| echo` mask. `continue-on-error: true` gives
         # non-blocking behavior; a real failure surfaces as a red step visibly.
