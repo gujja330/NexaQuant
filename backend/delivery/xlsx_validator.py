@@ -247,7 +247,13 @@ class XlsxValidator:
         "Dist to Stop %": ["Dist to Stop %", "Stop Distance %"],
         "Stop":          ["Dynamic Stop", "Stop Loss", "Stop"],
         "P&L %":         ["Unrealized P&L %", "P&L %", "P&L"],
-        "Holding Days":  ["Holding Days", "Days"],
+        # CEO 2026-11-07 · CURRENT gained a `Days Held` column, so the
+        # PORTFOLIO alias set needs the name too. EXIT_HISTORY's group
+        # already carried it; this one did not, and a column the
+        # resolver cannot name is exactly the alias drift that fired
+        # I11/I16/I23/I27 on a renamed field. One name added, nothing
+        # renamed or removed.
+        "Holding Days":  ["Holding Days", "Days Held", "Days"],
         "Verdict":       ["Engine Verdict", "🎯 DECISION", "Decision",
                             "🎯 ACTION", "Action"],
         "Sector":        ["Sector"],

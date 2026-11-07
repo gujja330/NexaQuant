@@ -75,9 +75,13 @@ def test_r3_column_sits_beside_action():
 
 
 def test_r2_column_set_is_unchanged_by_the_r3_block():
+    # CEO 2026-11-07 · `Days Held` added immediately after Entry Date
+    # under an explicit "override the xlsx contract lock". CURRENT goes
+    # 23 -> 24 columns; nothing is reordered or renamed.
     assert w2.CURRENT_COLUMNS_R2 == [
         "Market", "Ticker", "Engine", "Action", "Admission Status",
-        "Entry Date", "Entry Price", "Last Price", "Market Data As-of",
+        "Entry Date", "Days Held", "Entry Price", "Last Price",
+        "Market Data As-of",
         "P&L %", "Confidence %", "Sector", "Current Market Cap",
         "Market Cap As-of", "Size",
         "Stop", "Stop State", "Stop Distance %", "Max Loss if Stop %",

@@ -58,7 +58,8 @@ TWO_SHEETS = ["CURRENT", "EXIT HISTORY"]
 #   "Dist to Stop %"  -> "Stop Distance %"
 CURRENT_COLUMNS_R2 = [
     "Market", "Ticker", "Engine", "Action", "Admission Status",
-    "Entry Date", "Entry Price", "Last Price", "Market Data As-of",
+    "Entry Date", "Days Held", "Entry Price", "Last Price",
+    "Market Data As-of",
     "P&L %", "Confidence %", "Sector", "Current Market Cap",
     "Market Cap As-of", "Size",
     "Stop", "Stop State", "Stop Distance %", "Max Loss if Stop %",
@@ -120,6 +121,35 @@ EXIT_COLUMNS = [
     "Exit Reason", "Entry Confidence %", "Exit Trigger", "Position ID",
     "Source",
 ]
+
+
+def _days_held(entry_date, asof):
+    """Calendar days a position has been held · CEO 2026-11-07.
+
+    Operator request: CURRENT showed Entry Date but not duration, so
+    holding age had to be worked out by hand. EXIT HISTORY already
+    carries Holding Days; this is the same measure for open positions.
+
+    Derived from the LIFECYCLE as-of, not the wall clock. A wall-clock
+    value would re-print differently every time the workbook is rebuilt,
+    and rebuilding a historical workbook would show today's age against
+    an old entry - the same class of defect as the freshness checks that
+    certified `age 0` over day-old bars. Taking it from the artifact's
+    own as-of keeps a rebuild deterministic.
+
+    Returns the em-dash the delivery contract uses for an unavailable
+    cell rather than 0, which would read as "entered today".
+    """
+    from datetime import date as _date
+    try:
+        e = _date.fromisoformat(str(entry_date)[:10])
+        a = _date.fromisoformat(str(asof)[:10])
+    except Exception:
+        return "—"
+    n = (a - e).days
+    # A negative age means entry_date is after the as-of · that is a
+    # lifecycle defect, not a duration, and must not be rendered as one.
+    return n if n >= 0 else "—"
 
 
 def _fmt(x, dash="—"):
@@ -341,7 +371,9 @@ def emit_current(wb, d: dict):
     _cap_col = CURRENT_COLUMNS.index("Current Market Cap") + 1
     for i, w in enumerate([9, 12, 10, 10,
                            40,          # R3 SHADOW · beside Action
-                           20, 12, 12, 13, 17, 10, 22,
+                           20, 12,
+                           10,          # Days Held · beside Entry Date
+                           12, 13, 17, 10, 22,
                            20, 18, 16, 8, 12, 13, 15, 17, 12, 30, 50], 1):
         ws.column_dimensions[get_column_letter(i)].width = w
     r = 8
@@ -354,6 +386,7 @@ def emit_current(wb, d: dict):
                       row.get("engine")),
             row.get("admission_status") or "—",
             row.get("entry_date"),
+            _days_held(row.get("entry_date"), d.get("asof")),
             _fmt(row.get("entry_price")), _fmt(row.get("current_price")),
             _fmt(row.get("market_data_asof"), "UNAVAILABLE"),
             _fmt(row.get("pnl_pct")),
