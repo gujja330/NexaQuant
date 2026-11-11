@@ -2,15 +2,15 @@
   "engine": "ai_portfolio_narrative",
   "version": "v1.0",
   "market": "usa",
-  "run_utc": "2026-11-10T22:12:54+00:00",
-  "asof": "2026-11-10",
+  "run_utc": "2026-11-11T18:57:07+00:00",
+  "asof": "2026-11-11",
   "output": {
     "agent": "portfolio_analyst",
     "version": "v1.0",
     "market": "usa",
-    "asof": "2026-11-10",
-    "headline": "15 positions \u00b7 gross 95.0% \u00b7 cash 5.0% \u00b7 HHI 0.067 \u00b7 effN 14.9 \u00b7 turnover 6.8% \u00b7 regime=neutral",
-    "narrative": "15 positions \u00b7 gross 95.0% \u00b7 cash 5.0% \u00b7 HHI 0.067 \u00b7 effN 14.9 \u00b7 turnover 6.8% \u00b7 regime=neutral.\n\nDescriptive portfolio audit. Highlights diversification quality, concentration risks, cash policy compliance, and rebalance turnover. Does NOT approve or promote \u2014 every portfolio snapshot is EXPERIMENTAL until promoted via backend.promotion.promotion_gate. Trades in portfolio_diff.json are candidate instructions for Sprint 7 Execution Simulator.",
+    "asof": "2026-11-11",
+    "headline": "15 positions \u00b7 gross 95.0% \u00b7 cash 5.0% \u00b7 HHI 0.067 \u00b7 effN 14.9 \u00b7 turnover 20.6% \u00b7 regime=neutral",
+    "narrative": "15 positions \u00b7 gross 95.0% \u00b7 cash 5.0% \u00b7 HHI 0.067 \u00b7 effN 14.9 \u00b7 turnover 20.6% \u00b7 regime=neutral.\n\nDescriptive portfolio audit. Highlights diversification quality, concentration risks, cash policy compliance, and rebalance turnover. Does NOT approve or promote \u2014 every portfolio snapshot is EXPERIMENTAL until promoted via backend.promotion.promotion_gate. Trades in portfolio_diff.json are candidate instructions for Sprint 7 Execution Simulator.",
     "findings": [
       {
         "type": "composition",
@@ -24,39 +24,45 @@
       {
         "type": "diversification",
         "hhi": 0.0673,
-        "effective_n": 14.86,
-        "top_5_pct": 0.3726,
+        "effective_n": 14.87,
+        "top_5_pct": 0.3704,
         "n_sectors": 9,
         "per_sector_pct": {
-          "Healthcare": 0.2519,
-          "Real Estate": 0.1462,
-          "Financials": 0.066,
-          "Consumer Cyclical": 0.0687,
-          "Technology": 0.0646,
-          "Consumer Defensive": 0.1769,
-          "Energy": 0.0626,
-          "Basic Materials": 0.0584,
-          "Financial Services": 0.0548
+          "Real Estate": 0.072,
+          "Healthcare": 0.3199,
+          "Financial Services": 0.1278,
+          "Consumer Cyclical": 0.0679,
+          "Financials": 0.0641,
+          "Energy": 0.1234,
+          "Technology": 0.062,
+          "Basic Materials": 0.0582,
+          "Consumer Defensive": 0.0545
         }
       },
       {
+        "type": "sector_concentration",
+        "sector": "Healthcare",
+        "exposure_pct": 0.3199,
+        "note": "sector Healthcare exposure 32.0% > 30% \u2014 verify against risk_budget.yaml sector cap"
+      },
+      {
         "type": "rebalance_summary",
-        "turnover_pct": 0.06797,
+        "turnover_pct": 0.20626,
         "turnover_warning_threshold": 0.3,
         "prior_asof": "2026-11-10",
-        "n_open": 1,
-        "n_close": 1,
+        "n_open": 3,
+        "n_close": 3,
         "n_increase": 0,
-        "n_decrease": 0,
-        "n_hold": 14
+        "n_decrease": 1,
+        "n_hold": 11
       }
     ],
     "evidence": {
       "n_positions": 15,
       "cash_pct": 0.050002,
       "hhi": 0.0673,
-      "effective_n": 14.86,
-      "turnover_pct": 0.06797
+      "effective_n": 14.87,
+      "turnover_pct": 0.20626
     },
     "citations": [
       "backend/portfolio/engine.py",
