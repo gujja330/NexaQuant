@@ -2,15 +2,15 @@
   "engine": "ai_macro_narrative",
   "version": "v1.0",
   "market": "usa",
-  "run_utc": "2026-11-17T23:55:58+00:00",
-  "asof": "2026-11-17",
+  "run_utc": "2026-11-18T19:39:01+00:00",
+  "asof": "2026-11-18",
   "output": {
     "agent": "macro_analyst",
     "version": "v1.0",
     "market": "usa",
-    "asof": "2026-11-17",
-    "headline": "regime=unknown \u00b7 vol=elevated \u00b7 active_impacts=1 \u00b7 macro_score=-0.20",
-    "narrative": "regime=unknown \u00b7 vol=elevated \u00b7 active_impacts=1 \u00b7 macro_score=-0.20.\n\nAEGIS Macro & Intermarket Intelligence audit. Combines commodity moves, currency pressures, yield curve, VIX regime, and sector rotation into a single macro regime call. Emits an impact matrix + knowledge graph that downstream engines (Recommendation, Risk, Portfolio, Learning, AI Auditor) will consume from Sprint 8 onward.\n\nDoes NOT approve or promote \u2014 every commodity impact, sector rotation call, and regime label is DESCRIPTIVE and requires operator interpretation. AI never trades on macro alone.",
+    "asof": "2026-11-18",
+    "headline": "regime=unknown \u00b7 vol=elevated \u00b7 active_impacts=3 \u00b7 macro_score=-0.20",
+    "narrative": "regime=unknown \u00b7 vol=elevated \u00b7 active_impacts=3 \u00b7 macro_score=-0.20.\n\nAEGIS Macro & Intermarket Intelligence audit. Combines commodity moves, currency pressures, yield curve, VIX regime, and sector rotation into a single macro regime call. Emits an impact matrix + knowledge graph that downstream engines (Recommendation, Risk, Portfolio, Learning, AI Auditor) will consume from Sprint 8 onward.\n\nDoes NOT approve or promote \u2014 every commodity impact, sector rotation call, and regime label is DESCRIPTIVE and requires operator interpretation. AI never trades on macro alone.",
     "findings": [
       {
         "type": "macro_regime",
@@ -20,30 +20,68 @@
         "macro_score": -0.2,
         "evidence": {
           "vol_regime": "elevated",
-          "oil_1w_pct": 2.033,
-          "gold_1w_pct": -4.454,
-          "usd_1w_pct": 1.338,
+          "oil_1w_pct": -3.967,
+          "gold_1w_pct": -6.749,
+          "usd_1w_pct": 0.971,
           "yield_curve_inversion": false,
-          "ten_year_1m_bps": -16.824591
+          "ten_year_1m_bps": -16.169352
         }
       },
       {
         "type": "volatility",
         "symbol": "^VIX",
-        "level": 25.46,
+        "level": 24.36,
         "regime": "elevated",
-        "chg_1m_pct": 68.833
+        "chg_1m_pct": 58.079
       },
       {
         "type": "central_bank_state",
         "bank": "Fed",
         "rate_cycle": "neutral",
-        "yield_curve_slope": 20.3,
+        "yield_curve_slope": 18.2,
         "inversion": false,
         "liquidity_score": 0.0,
         "notes": [
-          "Fed: cycle=neutral \u00b7 short_1m=10.353276bps"
+          "Fed: cycle=neutral \u00b7 short_1m=10.457835bps"
         ]
+      },
+      {
+        "type": "commodity_impact",
+        "commodity": "Brent Crude",
+        "direction": "down",
+        "positive_sectors": [
+          "Airlines",
+          "Transportation",
+          "Auto",
+          "Paints"
+        ],
+        "negative_sectors": [
+          "Energy",
+          "Oil Producers"
+        ],
+        "confidence": 0.88,
+        "rationale": ""
+      },
+      {
+        "type": "commodity_impact",
+        "commodity": "WTI Crude",
+        "direction": "down",
+        "positive_sectors": [
+          "Airlines",
+          "Transportation",
+          "Consumer Discretionary",
+          "Paints",
+          "FMCG",
+          "Auto",
+          "Logistics"
+        ],
+        "negative_sectors": [
+          "Energy",
+          "Oil Producers",
+          "Oil Services"
+        ],
+        "confidence": 0.9,
+        "rationale": "Falling oil reduces input costs; downstream margins expand. Upstream capex compresses."
       },
       {
         "type": "commodity_impact",
@@ -63,41 +101,43 @@
         "leaders": [
           {
             "sector": "Consumer Staples",
-            "return_pct": 11.95
+            "return_pct": 9.44
           },
           {
             "sector": "Healthcare",
-            "return_pct": 9.73
+            "return_pct": 7.59
           },
           {
-            "sector": "Real Estate",
-            "return_pct": 7.44
+            "sector": "Consumer Discretionary",
+            "return_pct": 6.78
           }
         ],
         "laggards": [
           {
             "sector": "Technology",
-            "return_pct": -18.93
+            "return_pct": -17.55
+          },
+          {
+            "sector": "Energy",
+            "return_pct": -6.0
           },
           {
             "sector": "Communication Services",
-            "return_pct": -5.39
-          },
-          {
-            "sector": "Industrials",
-            "return_pct": -1.84
+            "return_pct": -5.55
           }
         ],
-        "rotation_strength": 0.69
+        "rotation_strength": 0.675
       },
       {
         "type": "knowledge_graph_summary",
-        "n_entries": 2,
+        "n_entries": 4,
         "factor_kinds": [
           "commodity",
           "rate"
         ],
         "top_factors": [
+          "Brent Crude",
+          "WTI Crude",
           "Gold",
           "10Y Treasury Yield"
         ]
@@ -107,14 +147,14 @@
         "n_commodities": 3,
         "n_currencies": 1,
         "n_bonds": 4,
-        "n_active_impacts": 1,
-        "n_kg_entries": 2
+        "n_active_impacts": 3,
+        "n_kg_entries": 4
       }
     ],
     "evidence": {
       "primary_regime": "unknown",
       "vol_regime": "elevated",
-      "n_active_impacts": 1,
+      "n_active_impacts": 3,
       "macro_score": -0.2
     },
     "citations": [
