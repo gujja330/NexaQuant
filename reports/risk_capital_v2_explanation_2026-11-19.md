@@ -1,6 +1,6 @@
 # Risk & Capital Engine · v2.0 · 2026-11-19
 
-_Generated 2026-11-19T07:48:36.428182+00:00Z · regime **Neutral**_
+_Generated 2026-11-19T09:12:50.516468+00:00Z · regime **Neutral**_
 
 ## Portfolio-level risk
 
