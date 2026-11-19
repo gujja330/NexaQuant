@@ -2,67 +2,75 @@
   "engine": "ai_portfolio_narrative",
   "version": "v1.0",
   "market": "usa",
-  "run_utc": "2026-11-18T23:23:47+00:00",
-  "asof": "2026-11-18",
+  "run_utc": "2026-11-19T19:42:47+00:00",
+  "asof": "2026-11-19",
   "output": {
     "agent": "portfolio_analyst",
     "version": "v1.0",
     "market": "usa",
-    "asof": "2026-11-18",
-    "headline": "15 positions \u00b7 gross 95.0% \u00b7 cash 5.0% \u00b7 HHI 0.068 \u00b7 effN 14.7 \u00b7 turnover 5.3% \u00b7 regime=neutral",
-    "narrative": "15 positions \u00b7 gross 95.0% \u00b7 cash 5.0% \u00b7 HHI 0.068 \u00b7 effN 14.7 \u00b7 turnover 5.3% \u00b7 regime=neutral.\n\nDescriptive portfolio audit. Highlights diversification quality, concentration risks, cash policy compliance, and rebalance turnover. Does NOT approve or promote \u2014 every portfolio snapshot is EXPERIMENTAL until promoted via backend.promotion.promotion_gate. Trades in portfolio_diff.json are candidate instructions for Sprint 7 Execution Simulator.",
+    "asof": "2026-11-19",
+    "headline": "8 positions \u00b7 gross 80.0% \u00b7 cash 20.0% \u00b7 HHI 0.155 \u00b7 effN 6.5 \u00b7 turnover 81.5% \u00b7 regime=stress",
+    "narrative": "8 positions \u00b7 gross 80.0% \u00b7 cash 20.0% \u00b7 HHI 0.155 \u00b7 effN 6.5 \u00b7 turnover 81.5% \u00b7 regime=stress.\n\nDescriptive portfolio audit. Highlights diversification quality, concentration risks, cash policy compliance, and rebalance turnover. Does NOT approve or promote \u2014 every portfolio snapshot is EXPERIMENTAL until promoted via backend.promotion.promotion_gate. Trades in portfolio_diff.json are candidate instructions for Sprint 7 Execution Simulator.",
     "findings": [
       {
         "type": "composition",
-        "n_positions": 15,
-        "n_long": 15,
+        "n_positions": 8,
+        "n_long": 8,
         "n_short": 0,
-        "total_weight": 0.950001,
-        "cash_pct": 0.049999,
-        "cash_reserve_target": 0.05
+        "total_weight": 0.8,
+        "cash_pct": 0.2,
+        "cash_reserve_target": 0.2
       },
       {
         "type": "diversification",
-        "hhi": 0.0681,
-        "effective_n": 14.69,
-        "top_5_pct": 0.3835,
-        "n_sectors": 9,
+        "hhi": 0.1547,
+        "effective_n": 6.46,
+        "top_5_pct": 0.8075,
+        "n_sectors": 5,
         "per_sector_pct": {
-          "Real Estate": 0.0729,
-          "Financials": 0.0671,
-          "Healthcare": 0.4124,
-          "Financial Services": 0.1281,
-          "Consumer Defensive": 0.0622,
-          "Consumer Cyclical": 0.0595,
-          "Tech": 0.0547,
-          "Technology": 0.0474,
-          "Energy": 0.0457
+          "Consumer Cyclical": 0.3139,
+          "Technology": 0.2765,
+          "Financial Services": 0.0989,
+          "Healthcare": 0.0728,
+          "Industrials": 0.0378
         }
       },
       {
+        "type": "concentration_warning",
+        "effective_n": 6.46,
+        "threshold": 8.0,
+        "note": "effective N (6.5) below policy floor (8.0) \u2014 portfolio too concentrated"
+      },
+      {
         "type": "sector_concentration",
-        "sector": "Healthcare",
-        "exposure_pct": 0.4124,
-        "note": "sector Healthcare exposure 41.2% > 30% \u2014 verify against risk_budget.yaml sector cap"
+        "sector": "Consumer Cyclical",
+        "exposure_pct": 0.3139,
+        "note": "sector Consumer Cyclical exposure 31.4% > 30% \u2014 verify against risk_budget.yaml sector cap"
       },
       {
         "type": "rebalance_summary",
-        "turnover_pct": 0.05293,
+        "turnover_pct": 0.81545,
         "turnover_warning_threshold": 0.3,
         "prior_asof": "2026-11-18",
-        "n_open": 1,
-        "n_close": 1,
-        "n_increase": 0,
+        "n_open": 7,
+        "n_close": 14,
+        "n_increase": 1,
         "n_decrease": 0,
-        "n_hold": 14
+        "n_hold": 0
+      },
+      {
+        "type": "high_turnover_warning",
+        "turnover_pct": 0.81545,
+        "threshold": 0.3,
+        "note": "high daily turnover \u2014 consider raising rebalance_threshold_bps or reducing sizing sensitivity"
       }
     ],
     "evidence": {
-      "n_positions": 15,
-      "cash_pct": 0.049999,
-      "hhi": 0.0681,
-      "effective_n": 14.69,
-      "turnover_pct": 0.05293
+      "n_positions": 8,
+      "cash_pct": 0.2,
+      "hhi": 0.1547,
+      "effective_n": 6.46,
+      "turnover_pct": 0.81545
     },
     "citations": [
       "backend/portfolio/engine.py",
