@@ -1,6 +1,6 @@
 {
-  "run_utc": "2026-11-24T10:17:23.609572+00:00Z",
-  "code_sha": "fe1b09a35b5e",
+  "run_utc": "2026-11-24T11:27:12.487891+00:00Z",
+  "code_sha": "8a78734054a6",
   "engine": "Adaptive Recommendation Engine",
   "version": "v2.1 \u00b7 Intelligence Fusion",
   "as_of": "2026-11-24",
@@ -6409,7 +6409,7 @@
       "sector": "",
       "industry": "",
       "raw_recommendation": "BUY",
-      "raw_composite_score": 58.495,
+      "raw_composite_score": 58.51,
       "raw_confidence": 0.445,
       "intelligence_score": 36.16,
       "fusion_decision": "Avoid",
@@ -8263,7 +8263,7 @@
       "sector": "",
       "industry": "",
       "raw_recommendation": "BUY",
-      "raw_composite_score": 56.9,
+      "raw_composite_score": 56.94,
       "raw_confidence": 0.3693,
       "intelligence_score": 36.16,
       "fusion_decision": "Avoid",
@@ -9293,7 +9293,7 @@
       "sector": "",
       "industry": "",
       "raw_recommendation": "BUY",
-      "raw_composite_score": 56.5,
+      "raw_composite_score": 56.485,
       "raw_confidence": 0.5361,
       "intelligence_score": 36.16,
       "fusion_decision": "Avoid",
@@ -9907,6 +9907,212 @@
       "conflict_severity": "MINOR"
     },
     {
+      "ticker": "MARUTI.NS",
+      "sector": "",
+      "industry": "",
+      "raw_recommendation": "HOLD",
+      "raw_composite_score": 56.405,
+      "raw_confidence": 0.4655,
+      "intelligence_score": 36.16,
+      "fusion_decision": "Avoid",
+      "dimensions": [
+        {
+          "name": "research",
+          "score": null,
+          "explanation": "no research scores available",
+          "source": "recommendations.json",
+          "weight_hint": 0.15
+        },
+        {
+          "name": "historical",
+          "score": null,
+          "explanation": "no historical trades on file for this ticker",
+          "source": "learning.parquet (DEV025)",
+          "weight_hint": 0.1
+        },
+        {
+          "name": "validation",
+          "score": 55.0,
+          "explanation": "only 0 reconciled trades so far \u00b7 drift=insufficient_evidence \u00b7 giving neutral bias 55 pending more evidence",
+          "source": "validation_v2_latest.json (v2.0)",
+          "weight_hint": 0.1
+        },
+        {
+          "name": "risk",
+          "score": 45,
+          "explanation": "ticker not in top-K sized universe \u00b7 portfolio verdict=empty portfolio -> default 45",
+          "source": "risk_capital_v2_latest.json (v2.0)",
+          "weight_hint": 0.1
+        },
+        {
+          "name": "portfolio_fit",
+          "score": 0,
+          "explanation": "included in 0 of 99 portfolio constructions -> 0.0",
+          "source": "recommendations.json (DEV022 rollup)",
+          "weight_hint": 0.1
+        },
+        {
+          "name": "knowledge_graph",
+          "score": 35.05,
+          "explanation": "influence=0.0017 \u00b7 degree_centrality=0.0017 -> 35.1",
+          "source": "entity_network.json (DEV031-B)",
+          "weight_hint": 0.05
+        },
+        {
+          "name": "dna",
+          "score": 50.0,
+          "explanation": "no historical DNA pattern for MARUTI.NS \u2014 neutral",
+          "source": "recommendation_dna_feedback.json (v1.5)",
+          "weight_hint": 0.1
+        },
+        {
+          "name": "calibration",
+          "score": 50.0,
+          "explanation": "calibration metrics incomplete",
+          "source": "confidence_calibration.json",
+          "weight_hint": 0.05
+        },
+        {
+          "name": "learning",
+          "score": 0,
+          "explanation": "same_ticker=0 \u00b7 same_industry=0 \u00b7 same_sector=0 -> 0.0",
+          "source": "learning.parquet (DEV025)",
+          "weight_hint": 0.05
+        },
+        {
+          "name": "explainability",
+          "score": 40.0,
+          "explanation": "no evidence path for MARUTI.NS",
+          "source": "recommendation_paths.json (DEV031-B)",
+          "weight_hint": 0.05
+        }
+      ],
+      "contributions": [
+        {
+          "name": "risk",
+          "score": 45,
+          "weight": 0.15,
+          "weight_norm": 0.2308,
+          "contribution": 10.385,
+          "source": "risk_capital_v2_latest.json (v2.0)"
+        },
+        {
+          "name": "validation",
+          "score": 55.0,
+          "weight": 0.1,
+          "weight_norm": 0.1538,
+          "contribution": 8.462,
+          "source": "validation_v2_latest.json (v2.0)"
+        },
+        {
+          "name": "dna",
+          "score": 50.0,
+          "weight": 0.1,
+          "weight_norm": 0.1538,
+          "contribution": 7.692,
+          "source": "recommendation_dna_feedback.json (v1.5)"
+        },
+        {
+          "name": "calibration",
+          "score": 50.0,
+          "weight": 0.05,
+          "weight_norm": 0.0769,
+          "contribution": 3.846,
+          "source": "confidence_calibration.json"
+        },
+        {
+          "name": "explainability",
+          "score": 40.0,
+          "weight": 0.05,
+          "weight_norm": 0.0769,
+          "contribution": 3.077,
+          "source": "recommendation_paths.json (DEV031-B)"
+        },
+        {
+          "name": "knowledge_graph",
+          "score": 35.05,
+          "weight": 0.05,
+          "weight_norm": 0.0769,
+          "contribution": 2.696,
+          "source": "entity_network.json (DEV031-B)"
+        },
+        {
+          "name": "portfolio_fit",
+          "score": 0,
+          "weight": 0.1,
+          "weight_norm": 0.1538,
+          "contribution": 0.0,
+          "source": "recommendations.json (DEV022 rollup)"
+        },
+        {
+          "name": "learning",
+          "score": 0,
+          "weight": 0.05,
+          "weight_norm": 0.0769,
+          "contribution": 0.0,
+          "source": "learning.parquet (DEV025)"
+        }
+      ],
+      "top_contributors": [
+        "risk",
+        "validation",
+        "dna"
+      ],
+      "bottom_contributors": [
+        "knowledge_graph",
+        "portfolio_fit",
+        "learning"
+      ],
+      "n_dimensions_used": 8,
+      "n_dimensions_missing": 2,
+      "missing_dimensions": [
+        "research",
+        "historical"
+      ],
+      "why_this": [
+        {
+          "name": "validation",
+          "score": 55.0,
+          "why": "only 0 reconciled trades so far \u00b7 drift=insufficient_evidence \u00b7 giving neutral bias 55 pending more evidence"
+        },
+        {
+          "name": "dna",
+          "score": 50.0,
+          "why": "no historical DNA pattern for MARUTI.NS \u2014 neutral"
+        },
+        {
+          "name": "calibration",
+          "score": 50.0,
+          "why": "calibration metrics incomplete"
+        }
+      ],
+      "why_not_stronger": [
+        {
+          "name": "portfolio_fit",
+          "score": 0,
+          "why": "included in 0 of 99 portfolio constructions -> 0.0"
+        },
+        {
+          "name": "learning",
+          "score": 0,
+          "why": "same_ticker=0 \u00b7 same_industry=0 \u00b7 same_sector=0 -> 0.0"
+        },
+        {
+          "name": "knowledge_graph",
+          "score": 35.05,
+          "why": "influence=0.0017 \u00b7 degree_centrality=0.0017 -> 35.1"
+        }
+      ],
+      "conflicts": [
+        {
+          "severity": "MINOR",
+          "rule": "wide_dimension_spread",
+          "detail": "Wide spread: validation=55 vs portfolio_fit=0 (gap 55) \u2014 check evidence quality per dimension."
+        }
+      ],
+      "conflict_severity": "MINOR"
+    },
+    {
       "ticker": "COLPAL.NS",
       "sector": "",
       "industry": "",
@@ -10285,212 +10491,6 @@
           "name": "dna",
           "score": 50.0,
           "why": "no historical DNA pattern for LTTS.NS \u2014 neutral"
-        },
-        {
-          "name": "calibration",
-          "score": 50.0,
-          "why": "calibration metrics incomplete"
-        }
-      ],
-      "why_not_stronger": [
-        {
-          "name": "portfolio_fit",
-          "score": 0,
-          "why": "included in 0 of 99 portfolio constructions -> 0.0"
-        },
-        {
-          "name": "learning",
-          "score": 0,
-          "why": "same_ticker=0 \u00b7 same_industry=0 \u00b7 same_sector=0 -> 0.0"
-        },
-        {
-          "name": "knowledge_graph",
-          "score": 35.05,
-          "why": "influence=0.0017 \u00b7 degree_centrality=0.0017 -> 35.1"
-        }
-      ],
-      "conflicts": [
-        {
-          "severity": "MINOR",
-          "rule": "wide_dimension_spread",
-          "detail": "Wide spread: validation=55 vs portfolio_fit=0 (gap 55) \u2014 check evidence quality per dimension."
-        }
-      ],
-      "conflict_severity": "MINOR"
-    },
-    {
-      "ticker": "MARUTI.NS",
-      "sector": "",
-      "industry": "",
-      "raw_recommendation": "HOLD",
-      "raw_composite_score": 56.345,
-      "raw_confidence": 0.4655,
-      "intelligence_score": 36.16,
-      "fusion_decision": "Avoid",
-      "dimensions": [
-        {
-          "name": "research",
-          "score": null,
-          "explanation": "no research scores available",
-          "source": "recommendations.json",
-          "weight_hint": 0.15
-        },
-        {
-          "name": "historical",
-          "score": null,
-          "explanation": "no historical trades on file for this ticker",
-          "source": "learning.parquet (DEV025)",
-          "weight_hint": 0.1
-        },
-        {
-          "name": "validation",
-          "score": 55.0,
-          "explanation": "only 0 reconciled trades so far \u00b7 drift=insufficient_evidence \u00b7 giving neutral bias 55 pending more evidence",
-          "source": "validation_v2_latest.json (v2.0)",
-          "weight_hint": 0.1
-        },
-        {
-          "name": "risk",
-          "score": 45,
-          "explanation": "ticker not in top-K sized universe \u00b7 portfolio verdict=empty portfolio -> default 45",
-          "source": "risk_capital_v2_latest.json (v2.0)",
-          "weight_hint": 0.1
-        },
-        {
-          "name": "portfolio_fit",
-          "score": 0,
-          "explanation": "included in 0 of 99 portfolio constructions -> 0.0",
-          "source": "recommendations.json (DEV022 rollup)",
-          "weight_hint": 0.1
-        },
-        {
-          "name": "knowledge_graph",
-          "score": 35.05,
-          "explanation": "influence=0.0017 \u00b7 degree_centrality=0.0017 -> 35.1",
-          "source": "entity_network.json (DEV031-B)",
-          "weight_hint": 0.05
-        },
-        {
-          "name": "dna",
-          "score": 50.0,
-          "explanation": "no historical DNA pattern for MARUTI.NS \u2014 neutral",
-          "source": "recommendation_dna_feedback.json (v1.5)",
-          "weight_hint": 0.1
-        },
-        {
-          "name": "calibration",
-          "score": 50.0,
-          "explanation": "calibration metrics incomplete",
-          "source": "confidence_calibration.json",
-          "weight_hint": 0.05
-        },
-        {
-          "name": "learning",
-          "score": 0,
-          "explanation": "same_ticker=0 \u00b7 same_industry=0 \u00b7 same_sector=0 -> 0.0",
-          "source": "learning.parquet (DEV025)",
-          "weight_hint": 0.05
-        },
-        {
-          "name": "explainability",
-          "score": 40.0,
-          "explanation": "no evidence path for MARUTI.NS",
-          "source": "recommendation_paths.json (DEV031-B)",
-          "weight_hint": 0.05
-        }
-      ],
-      "contributions": [
-        {
-          "name": "risk",
-          "score": 45,
-          "weight": 0.15,
-          "weight_norm": 0.2308,
-          "contribution": 10.385,
-          "source": "risk_capital_v2_latest.json (v2.0)"
-        },
-        {
-          "name": "validation",
-          "score": 55.0,
-          "weight": 0.1,
-          "weight_norm": 0.1538,
-          "contribution": 8.462,
-          "source": "validation_v2_latest.json (v2.0)"
-        },
-        {
-          "name": "dna",
-          "score": 50.0,
-          "weight": 0.1,
-          "weight_norm": 0.1538,
-          "contribution": 7.692,
-          "source": "recommendation_dna_feedback.json (v1.5)"
-        },
-        {
-          "name": "calibration",
-          "score": 50.0,
-          "weight": 0.05,
-          "weight_norm": 0.0769,
-          "contribution": 3.846,
-          "source": "confidence_calibration.json"
-        },
-        {
-          "name": "explainability",
-          "score": 40.0,
-          "weight": 0.05,
-          "weight_norm": 0.0769,
-          "contribution": 3.077,
-          "source": "recommendation_paths.json (DEV031-B)"
-        },
-        {
-          "name": "knowledge_graph",
-          "score": 35.05,
-          "weight": 0.05,
-          "weight_norm": 0.0769,
-          "contribution": 2.696,
-          "source": "entity_network.json (DEV031-B)"
-        },
-        {
-          "name": "portfolio_fit",
-          "score": 0,
-          "weight": 0.1,
-          "weight_norm": 0.1538,
-          "contribution": 0.0,
-          "source": "recommendations.json (DEV022 rollup)"
-        },
-        {
-          "name": "learning",
-          "score": 0,
-          "weight": 0.05,
-          "weight_norm": 0.0769,
-          "contribution": 0.0,
-          "source": "learning.parquet (DEV025)"
-        }
-      ],
-      "top_contributors": [
-        "risk",
-        "validation",
-        "dna"
-      ],
-      "bottom_contributors": [
-        "knowledge_graph",
-        "portfolio_fit",
-        "learning"
-      ],
-      "n_dimensions_used": 8,
-      "n_dimensions_missing": 2,
-      "missing_dimensions": [
-        "research",
-        "historical"
-      ],
-      "why_this": [
-        {
-          "name": "validation",
-          "score": 55.0,
-          "why": "only 0 reconciled trades so far \u00b7 drift=insufficient_evidence \u00b7 giving neutral bias 55 pending more evidence"
-        },
-        {
-          "name": "dna",
-          "score": 50.0,
-          "why": "no historical DNA pattern for MARUTI.NS \u2014 neutral"
         },
         {
           "name": "calibration",
@@ -14443,7 +14443,7 @@
       "sector": "",
       "industry": "",
       "raw_recommendation": "HOLD",
-      "raw_composite_score": 54.375,
+      "raw_composite_score": 54.42,
       "raw_confidence": 0.3586,
       "intelligence_score": 36.16,
       "fusion_decision": "Avoid",
@@ -18563,7 +18563,7 @@
       "sector": "",
       "industry": "",
       "raw_recommendation": "HOLD",
-      "raw_composite_score": 52.89,
+      "raw_composite_score": 52.845,
       "raw_confidence": 0.366,
       "intelligence_score": 36.16,
       "fusion_decision": "Avoid",
@@ -22889,7 +22889,7 @@
       "sector": "",
       "industry": "",
       "raw_recommendation": "HOLD",
-      "raw_composite_score": 51.905,
+      "raw_composite_score": 51.845,
       "raw_confidence": 0.5152,
       "intelligence_score": 36.16,
       "fusion_decision": "Avoid",
@@ -24743,7 +24743,7 @@
       "sector": "",
       "industry": "",
       "raw_recommendation": "HOLD",
-      "raw_composite_score": 51.005,
+      "raw_composite_score": 51.05,
       "raw_confidence": 0.4607,
       "intelligence_score": 36.16,
       "fusion_decision": "Avoid",
@@ -29477,212 +29477,6 @@
       "conflict_severity": "MINOR"
     },
     {
-      "ticker": "HAL.NS",
-      "sector": "",
-      "industry": "",
-      "raw_recommendation": "HOLD",
-      "raw_composite_score": 49.4,
-      "raw_confidence": 0.3462,
-      "intelligence_score": 36.16,
-      "fusion_decision": "Avoid",
-      "dimensions": [
-        {
-          "name": "research",
-          "score": null,
-          "explanation": "no research scores available",
-          "source": "recommendations.json",
-          "weight_hint": 0.15
-        },
-        {
-          "name": "historical",
-          "score": null,
-          "explanation": "no historical trades on file for this ticker",
-          "source": "learning.parquet (DEV025)",
-          "weight_hint": 0.1
-        },
-        {
-          "name": "validation",
-          "score": 55.0,
-          "explanation": "only 0 reconciled trades so far \u00b7 drift=insufficient_evidence \u00b7 giving neutral bias 55 pending more evidence",
-          "source": "validation_v2_latest.json (v2.0)",
-          "weight_hint": 0.1
-        },
-        {
-          "name": "risk",
-          "score": 45,
-          "explanation": "ticker not in top-K sized universe \u00b7 portfolio verdict=empty portfolio -> default 45",
-          "source": "risk_capital_v2_latest.json (v2.0)",
-          "weight_hint": 0.1
-        },
-        {
-          "name": "portfolio_fit",
-          "score": 0,
-          "explanation": "included in 0 of 99 portfolio constructions -> 0.0",
-          "source": "recommendations.json (DEV022 rollup)",
-          "weight_hint": 0.1
-        },
-        {
-          "name": "knowledge_graph",
-          "score": 35.05,
-          "explanation": "influence=0.0017 \u00b7 degree_centrality=0.0017 -> 35.1",
-          "source": "entity_network.json (DEV031-B)",
-          "weight_hint": 0.05
-        },
-        {
-          "name": "dna",
-          "score": 50.0,
-          "explanation": "no historical DNA pattern for HAL.NS \u2014 neutral",
-          "source": "recommendation_dna_feedback.json (v1.5)",
-          "weight_hint": 0.1
-        },
-        {
-          "name": "calibration",
-          "score": 50.0,
-          "explanation": "calibration metrics incomplete",
-          "source": "confidence_calibration.json",
-          "weight_hint": 0.05
-        },
-        {
-          "name": "learning",
-          "score": 0,
-          "explanation": "same_ticker=0 \u00b7 same_industry=0 \u00b7 same_sector=0 -> 0.0",
-          "source": "learning.parquet (DEV025)",
-          "weight_hint": 0.05
-        },
-        {
-          "name": "explainability",
-          "score": 40.0,
-          "explanation": "no evidence path for HAL.NS",
-          "source": "recommendation_paths.json (DEV031-B)",
-          "weight_hint": 0.05
-        }
-      ],
-      "contributions": [
-        {
-          "name": "risk",
-          "score": 45,
-          "weight": 0.15,
-          "weight_norm": 0.2308,
-          "contribution": 10.385,
-          "source": "risk_capital_v2_latest.json (v2.0)"
-        },
-        {
-          "name": "validation",
-          "score": 55.0,
-          "weight": 0.1,
-          "weight_norm": 0.1538,
-          "contribution": 8.462,
-          "source": "validation_v2_latest.json (v2.0)"
-        },
-        {
-          "name": "dna",
-          "score": 50.0,
-          "weight": 0.1,
-          "weight_norm": 0.1538,
-          "contribution": 7.692,
-          "source": "recommendation_dna_feedback.json (v1.5)"
-        },
-        {
-          "name": "calibration",
-          "score": 50.0,
-          "weight": 0.05,
-          "weight_norm": 0.0769,
-          "contribution": 3.846,
-          "source": "confidence_calibration.json"
-        },
-        {
-          "name": "explainability",
-          "score": 40.0,
-          "weight": 0.05,
-          "weight_norm": 0.0769,
-          "contribution": 3.077,
-          "source": "recommendation_paths.json (DEV031-B)"
-        },
-        {
-          "name": "knowledge_graph",
-          "score": 35.05,
-          "weight": 0.05,
-          "weight_norm": 0.0769,
-          "contribution": 2.696,
-          "source": "entity_network.json (DEV031-B)"
-        },
-        {
-          "name": "portfolio_fit",
-          "score": 0,
-          "weight": 0.1,
-          "weight_norm": 0.1538,
-          "contribution": 0.0,
-          "source": "recommendations.json (DEV022 rollup)"
-        },
-        {
-          "name": "learning",
-          "score": 0,
-          "weight": 0.05,
-          "weight_norm": 0.0769,
-          "contribution": 0.0,
-          "source": "learning.parquet (DEV025)"
-        }
-      ],
-      "top_contributors": [
-        "risk",
-        "validation",
-        "dna"
-      ],
-      "bottom_contributors": [
-        "knowledge_graph",
-        "portfolio_fit",
-        "learning"
-      ],
-      "n_dimensions_used": 8,
-      "n_dimensions_missing": 2,
-      "missing_dimensions": [
-        "research",
-        "historical"
-      ],
-      "why_this": [
-        {
-          "name": "validation",
-          "score": 55.0,
-          "why": "only 0 reconciled trades so far \u00b7 drift=insufficient_evidence \u00b7 giving neutral bias 55 pending more evidence"
-        },
-        {
-          "name": "dna",
-          "score": 50.0,
-          "why": "no historical DNA pattern for HAL.NS \u2014 neutral"
-        },
-        {
-          "name": "calibration",
-          "score": 50.0,
-          "why": "calibration metrics incomplete"
-        }
-      ],
-      "why_not_stronger": [
-        {
-          "name": "portfolio_fit",
-          "score": 0,
-          "why": "included in 0 of 99 portfolio constructions -> 0.0"
-        },
-        {
-          "name": "learning",
-          "score": 0,
-          "why": "same_ticker=0 \u00b7 same_industry=0 \u00b7 same_sector=0 -> 0.0"
-        },
-        {
-          "name": "knowledge_graph",
-          "score": 35.05,
-          "why": "influence=0.0017 \u00b7 degree_centrality=0.0017 -> 35.1"
-        }
-      ],
-      "conflicts": [
-        {
-          "severity": "MINOR",
-          "rule": "wide_dimension_spread",
-          "detail": "Wide spread: validation=55 vs portfolio_fit=0 (gap 55) \u2014 check evidence quality per dimension."
-        }
-      ],
-      "conflict_severity": "MINOR"
-    },
-    {
       "ticker": "SYNGENE.NS",
       "sector": "",
       "industry": "",
@@ -29855,6 +29649,212 @@
           "name": "dna",
           "score": 50.0,
           "why": "no historical DNA pattern for SYNGENE.NS \u2014 neutral"
+        },
+        {
+          "name": "calibration",
+          "score": 50.0,
+          "why": "calibration metrics incomplete"
+        }
+      ],
+      "why_not_stronger": [
+        {
+          "name": "portfolio_fit",
+          "score": 0,
+          "why": "included in 0 of 99 portfolio constructions -> 0.0"
+        },
+        {
+          "name": "learning",
+          "score": 0,
+          "why": "same_ticker=0 \u00b7 same_industry=0 \u00b7 same_sector=0 -> 0.0"
+        },
+        {
+          "name": "knowledge_graph",
+          "score": 35.05,
+          "why": "influence=0.0017 \u00b7 degree_centrality=0.0017 -> 35.1"
+        }
+      ],
+      "conflicts": [
+        {
+          "severity": "MINOR",
+          "rule": "wide_dimension_spread",
+          "detail": "Wide spread: validation=55 vs portfolio_fit=0 (gap 55) \u2014 check evidence quality per dimension."
+        }
+      ],
+      "conflict_severity": "MINOR"
+    },
+    {
+      "ticker": "HAL.NS",
+      "sector": "",
+      "industry": "",
+      "raw_recommendation": "HOLD",
+      "raw_composite_score": 49.31,
+      "raw_confidence": 0.3462,
+      "intelligence_score": 36.16,
+      "fusion_decision": "Avoid",
+      "dimensions": [
+        {
+          "name": "research",
+          "score": null,
+          "explanation": "no research scores available",
+          "source": "recommendations.json",
+          "weight_hint": 0.15
+        },
+        {
+          "name": "historical",
+          "score": null,
+          "explanation": "no historical trades on file for this ticker",
+          "source": "learning.parquet (DEV025)",
+          "weight_hint": 0.1
+        },
+        {
+          "name": "validation",
+          "score": 55.0,
+          "explanation": "only 0 reconciled trades so far \u00b7 drift=insufficient_evidence \u00b7 giving neutral bias 55 pending more evidence",
+          "source": "validation_v2_latest.json (v2.0)",
+          "weight_hint": 0.1
+        },
+        {
+          "name": "risk",
+          "score": 45,
+          "explanation": "ticker not in top-K sized universe \u00b7 portfolio verdict=empty portfolio -> default 45",
+          "source": "risk_capital_v2_latest.json (v2.0)",
+          "weight_hint": 0.1
+        },
+        {
+          "name": "portfolio_fit",
+          "score": 0,
+          "explanation": "included in 0 of 99 portfolio constructions -> 0.0",
+          "source": "recommendations.json (DEV022 rollup)",
+          "weight_hint": 0.1
+        },
+        {
+          "name": "knowledge_graph",
+          "score": 35.05,
+          "explanation": "influence=0.0017 \u00b7 degree_centrality=0.0017 -> 35.1",
+          "source": "entity_network.json (DEV031-B)",
+          "weight_hint": 0.05
+        },
+        {
+          "name": "dna",
+          "score": 50.0,
+          "explanation": "no historical DNA pattern for HAL.NS \u2014 neutral",
+          "source": "recommendation_dna_feedback.json (v1.5)",
+          "weight_hint": 0.1
+        },
+        {
+          "name": "calibration",
+          "score": 50.0,
+          "explanation": "calibration metrics incomplete",
+          "source": "confidence_calibration.json",
+          "weight_hint": 0.05
+        },
+        {
+          "name": "learning",
+          "score": 0,
+          "explanation": "same_ticker=0 \u00b7 same_industry=0 \u00b7 same_sector=0 -> 0.0",
+          "source": "learning.parquet (DEV025)",
+          "weight_hint": 0.05
+        },
+        {
+          "name": "explainability",
+          "score": 40.0,
+          "explanation": "no evidence path for HAL.NS",
+          "source": "recommendation_paths.json (DEV031-B)",
+          "weight_hint": 0.05
+        }
+      ],
+      "contributions": [
+        {
+          "name": "risk",
+          "score": 45,
+          "weight": 0.15,
+          "weight_norm": 0.2308,
+          "contribution": 10.385,
+          "source": "risk_capital_v2_latest.json (v2.0)"
+        },
+        {
+          "name": "validation",
+          "score": 55.0,
+          "weight": 0.1,
+          "weight_norm": 0.1538,
+          "contribution": 8.462,
+          "source": "validation_v2_latest.json (v2.0)"
+        },
+        {
+          "name": "dna",
+          "score": 50.0,
+          "weight": 0.1,
+          "weight_norm": 0.1538,
+          "contribution": 7.692,
+          "source": "recommendation_dna_feedback.json (v1.5)"
+        },
+        {
+          "name": "calibration",
+          "score": 50.0,
+          "weight": 0.05,
+          "weight_norm": 0.0769,
+          "contribution": 3.846,
+          "source": "confidence_calibration.json"
+        },
+        {
+          "name": "explainability",
+          "score": 40.0,
+          "weight": 0.05,
+          "weight_norm": 0.0769,
+          "contribution": 3.077,
+          "source": "recommendation_paths.json (DEV031-B)"
+        },
+        {
+          "name": "knowledge_graph",
+          "score": 35.05,
+          "weight": 0.05,
+          "weight_norm": 0.0769,
+          "contribution": 2.696,
+          "source": "entity_network.json (DEV031-B)"
+        },
+        {
+          "name": "portfolio_fit",
+          "score": 0,
+          "weight": 0.1,
+          "weight_norm": 0.1538,
+          "contribution": 0.0,
+          "source": "recommendations.json (DEV022 rollup)"
+        },
+        {
+          "name": "learning",
+          "score": 0,
+          "weight": 0.05,
+          "weight_norm": 0.0769,
+          "contribution": 0.0,
+          "source": "learning.parquet (DEV025)"
+        }
+      ],
+      "top_contributors": [
+        "risk",
+        "validation",
+        "dna"
+      ],
+      "bottom_contributors": [
+        "knowledge_graph",
+        "portfolio_fit",
+        "learning"
+      ],
+      "n_dimensions_used": 8,
+      "n_dimensions_missing": 2,
+      "missing_dimensions": [
+        "research",
+        "historical"
+      ],
+      "why_this": [
+        {
+          "name": "validation",
+          "score": 55.0,
+          "why": "only 0 reconciled trades so far \u00b7 drift=insufficient_evidence \u00b7 giving neutral bias 55 pending more evidence"
+        },
+        {
+          "name": "dna",
+          "score": 50.0,
+          "why": "no historical DNA pattern for HAL.NS \u2014 neutral"
         },
         {
           "name": "calibration",
@@ -30511,7 +30511,7 @@
       "sector": "",
       "industry": "",
       "raw_recommendation": "HOLD",
-      "raw_composite_score": 49.07,
+      "raw_composite_score": 49.09,
       "raw_confidence": 0.3693,
       "intelligence_score": 36.16,
       "fusion_decision": "Avoid",
@@ -30679,6 +30679,212 @@
           "name": "dna",
           "score": 50.0,
           "why": "no historical DNA pattern for PIIND.NS \u2014 neutral"
+        },
+        {
+          "name": "calibration",
+          "score": 50.0,
+          "why": "calibration metrics incomplete"
+        }
+      ],
+      "why_not_stronger": [
+        {
+          "name": "portfolio_fit",
+          "score": 0,
+          "why": "included in 0 of 99 portfolio constructions -> 0.0"
+        },
+        {
+          "name": "learning",
+          "score": 0,
+          "why": "same_ticker=0 \u00b7 same_industry=0 \u00b7 same_sector=0 -> 0.0"
+        },
+        {
+          "name": "knowledge_graph",
+          "score": 35.05,
+          "why": "influence=0.0017 \u00b7 degree_centrality=0.0017 -> 35.1"
+        }
+      ],
+      "conflicts": [
+        {
+          "severity": "MINOR",
+          "rule": "wide_dimension_spread",
+          "detail": "Wide spread: validation=55 vs portfolio_fit=0 (gap 55) \u2014 check evidence quality per dimension."
+        }
+      ],
+      "conflict_severity": "MINOR"
+    },
+    {
+      "ticker": "PATANJALI.NS",
+      "sector": "",
+      "industry": "",
+      "raw_recommendation": "HOLD",
+      "raw_composite_score": 49.09,
+      "raw_confidence": 0.4187,
+      "intelligence_score": 36.16,
+      "fusion_decision": "Avoid",
+      "dimensions": [
+        {
+          "name": "research",
+          "score": null,
+          "explanation": "no research scores available",
+          "source": "recommendations.json",
+          "weight_hint": 0.15
+        },
+        {
+          "name": "historical",
+          "score": null,
+          "explanation": "no historical trades on file for this ticker",
+          "source": "learning.parquet (DEV025)",
+          "weight_hint": 0.1
+        },
+        {
+          "name": "validation",
+          "score": 55.0,
+          "explanation": "only 0 reconciled trades so far \u00b7 drift=insufficient_evidence \u00b7 giving neutral bias 55 pending more evidence",
+          "source": "validation_v2_latest.json (v2.0)",
+          "weight_hint": 0.1
+        },
+        {
+          "name": "risk",
+          "score": 45,
+          "explanation": "ticker not in top-K sized universe \u00b7 portfolio verdict=empty portfolio -> default 45",
+          "source": "risk_capital_v2_latest.json (v2.0)",
+          "weight_hint": 0.1
+        },
+        {
+          "name": "portfolio_fit",
+          "score": 0,
+          "explanation": "included in 0 of 99 portfolio constructions -> 0.0",
+          "source": "recommendations.json (DEV022 rollup)",
+          "weight_hint": 0.1
+        },
+        {
+          "name": "knowledge_graph",
+          "score": 35.05,
+          "explanation": "influence=0.0017 \u00b7 degree_centrality=0.0017 -> 35.1",
+          "source": "entity_network.json (DEV031-B)",
+          "weight_hint": 0.05
+        },
+        {
+          "name": "dna",
+          "score": 50.0,
+          "explanation": "no historical DNA pattern for PATANJALI.NS \u2014 neutral",
+          "source": "recommendation_dna_feedback.json (v1.5)",
+          "weight_hint": 0.1
+        },
+        {
+          "name": "calibration",
+          "score": 50.0,
+          "explanation": "calibration metrics incomplete",
+          "source": "confidence_calibration.json",
+          "weight_hint": 0.05
+        },
+        {
+          "name": "learning",
+          "score": 0,
+          "explanation": "same_ticker=0 \u00b7 same_industry=0 \u00b7 same_sector=0 -> 0.0",
+          "source": "learning.parquet (DEV025)",
+          "weight_hint": 0.05
+        },
+        {
+          "name": "explainability",
+          "score": 40.0,
+          "explanation": "no evidence path for PATANJALI.NS",
+          "source": "recommendation_paths.json (DEV031-B)",
+          "weight_hint": 0.05
+        }
+      ],
+      "contributions": [
+        {
+          "name": "risk",
+          "score": 45,
+          "weight": 0.15,
+          "weight_norm": 0.2308,
+          "contribution": 10.385,
+          "source": "risk_capital_v2_latest.json (v2.0)"
+        },
+        {
+          "name": "validation",
+          "score": 55.0,
+          "weight": 0.1,
+          "weight_norm": 0.1538,
+          "contribution": 8.462,
+          "source": "validation_v2_latest.json (v2.0)"
+        },
+        {
+          "name": "dna",
+          "score": 50.0,
+          "weight": 0.1,
+          "weight_norm": 0.1538,
+          "contribution": 7.692,
+          "source": "recommendation_dna_feedback.json (v1.5)"
+        },
+        {
+          "name": "calibration",
+          "score": 50.0,
+          "weight": 0.05,
+          "weight_norm": 0.0769,
+          "contribution": 3.846,
+          "source": "confidence_calibration.json"
+        },
+        {
+          "name": "explainability",
+          "score": 40.0,
+          "weight": 0.05,
+          "weight_norm": 0.0769,
+          "contribution": 3.077,
+          "source": "recommendation_paths.json (DEV031-B)"
+        },
+        {
+          "name": "knowledge_graph",
+          "score": 35.05,
+          "weight": 0.05,
+          "weight_norm": 0.0769,
+          "contribution": 2.696,
+          "source": "entity_network.json (DEV031-B)"
+        },
+        {
+          "name": "portfolio_fit",
+          "score": 0,
+          "weight": 0.1,
+          "weight_norm": 0.1538,
+          "contribution": 0.0,
+          "source": "recommendations.json (DEV022 rollup)"
+        },
+        {
+          "name": "learning",
+          "score": 0,
+          "weight": 0.05,
+          "weight_norm": 0.0769,
+          "contribution": 0.0,
+          "source": "learning.parquet (DEV025)"
+        }
+      ],
+      "top_contributors": [
+        "risk",
+        "validation",
+        "dna"
+      ],
+      "bottom_contributors": [
+        "knowledge_graph",
+        "portfolio_fit",
+        "learning"
+      ],
+      "n_dimensions_used": 8,
+      "n_dimensions_missing": 2,
+      "missing_dimensions": [
+        "research",
+        "historical"
+      ],
+      "why_this": [
+        {
+          "name": "validation",
+          "score": 55.0,
+          "why": "only 0 reconciled trades so far \u00b7 drift=insufficient_evidence \u00b7 giving neutral bias 55 pending more evidence"
+        },
+        {
+          "name": "dna",
+          "score": 50.0,
+          "why": "no historical DNA pattern for PATANJALI.NS \u2014 neutral"
         },
         {
           "name": "calibration",
@@ -30885,212 +31091,6 @@
           "name": "dna",
           "score": 50.0,
           "why": "no historical DNA pattern for PFC.NS \u2014 neutral"
-        },
-        {
-          "name": "calibration",
-          "score": 50.0,
-          "why": "calibration metrics incomplete"
-        }
-      ],
-      "why_not_stronger": [
-        {
-          "name": "portfolio_fit",
-          "score": 0,
-          "why": "included in 0 of 99 portfolio constructions -> 0.0"
-        },
-        {
-          "name": "learning",
-          "score": 0,
-          "why": "same_ticker=0 \u00b7 same_industry=0 \u00b7 same_sector=0 -> 0.0"
-        },
-        {
-          "name": "knowledge_graph",
-          "score": 35.05,
-          "why": "influence=0.0017 \u00b7 degree_centrality=0.0017 -> 35.1"
-        }
-      ],
-      "conflicts": [
-        {
-          "severity": "MINOR",
-          "rule": "wide_dimension_spread",
-          "detail": "Wide spread: validation=55 vs portfolio_fit=0 (gap 55) \u2014 check evidence quality per dimension."
-        }
-      ],
-      "conflict_severity": "MINOR"
-    },
-    {
-      "ticker": "PATANJALI.NS",
-      "sector": "",
-      "industry": "",
-      "raw_recommendation": "HOLD",
-      "raw_composite_score": 49.05,
-      "raw_confidence": 0.4187,
-      "intelligence_score": 36.16,
-      "fusion_decision": "Avoid",
-      "dimensions": [
-        {
-          "name": "research",
-          "score": null,
-          "explanation": "no research scores available",
-          "source": "recommendations.json",
-          "weight_hint": 0.15
-        },
-        {
-          "name": "historical",
-          "score": null,
-          "explanation": "no historical trades on file for this ticker",
-          "source": "learning.parquet (DEV025)",
-          "weight_hint": 0.1
-        },
-        {
-          "name": "validation",
-          "score": 55.0,
-          "explanation": "only 0 reconciled trades so far \u00b7 drift=insufficient_evidence \u00b7 giving neutral bias 55 pending more evidence",
-          "source": "validation_v2_latest.json (v2.0)",
-          "weight_hint": 0.1
-        },
-        {
-          "name": "risk",
-          "score": 45,
-          "explanation": "ticker not in top-K sized universe \u00b7 portfolio verdict=empty portfolio -> default 45",
-          "source": "risk_capital_v2_latest.json (v2.0)",
-          "weight_hint": 0.1
-        },
-        {
-          "name": "portfolio_fit",
-          "score": 0,
-          "explanation": "included in 0 of 99 portfolio constructions -> 0.0",
-          "source": "recommendations.json (DEV022 rollup)",
-          "weight_hint": 0.1
-        },
-        {
-          "name": "knowledge_graph",
-          "score": 35.05,
-          "explanation": "influence=0.0017 \u00b7 degree_centrality=0.0017 -> 35.1",
-          "source": "entity_network.json (DEV031-B)",
-          "weight_hint": 0.05
-        },
-        {
-          "name": "dna",
-          "score": 50.0,
-          "explanation": "no historical DNA pattern for PATANJALI.NS \u2014 neutral",
-          "source": "recommendation_dna_feedback.json (v1.5)",
-          "weight_hint": 0.1
-        },
-        {
-          "name": "calibration",
-          "score": 50.0,
-          "explanation": "calibration metrics incomplete",
-          "source": "confidence_calibration.json",
-          "weight_hint": 0.05
-        },
-        {
-          "name": "learning",
-          "score": 0,
-          "explanation": "same_ticker=0 \u00b7 same_industry=0 \u00b7 same_sector=0 -> 0.0",
-          "source": "learning.parquet (DEV025)",
-          "weight_hint": 0.05
-        },
-        {
-          "name": "explainability",
-          "score": 40.0,
-          "explanation": "no evidence path for PATANJALI.NS",
-          "source": "recommendation_paths.json (DEV031-B)",
-          "weight_hint": 0.05
-        }
-      ],
-      "contributions": [
-        {
-          "name": "risk",
-          "score": 45,
-          "weight": 0.15,
-          "weight_norm": 0.2308,
-          "contribution": 10.385,
-          "source": "risk_capital_v2_latest.json (v2.0)"
-        },
-        {
-          "name": "validation",
-          "score": 55.0,
-          "weight": 0.1,
-          "weight_norm": 0.1538,
-          "contribution": 8.462,
-          "source": "validation_v2_latest.json (v2.0)"
-        },
-        {
-          "name": "dna",
-          "score": 50.0,
-          "weight": 0.1,
-          "weight_norm": 0.1538,
-          "contribution": 7.692,
-          "source": "recommendation_dna_feedback.json (v1.5)"
-        },
-        {
-          "name": "calibration",
-          "score": 50.0,
-          "weight": 0.05,
-          "weight_norm": 0.0769,
-          "contribution": 3.846,
-          "source": "confidence_calibration.json"
-        },
-        {
-          "name": "explainability",
-          "score": 40.0,
-          "weight": 0.05,
-          "weight_norm": 0.0769,
-          "contribution": 3.077,
-          "source": "recommendation_paths.json (DEV031-B)"
-        },
-        {
-          "name": "knowledge_graph",
-          "score": 35.05,
-          "weight": 0.05,
-          "weight_norm": 0.0769,
-          "contribution": 2.696,
-          "source": "entity_network.json (DEV031-B)"
-        },
-        {
-          "name": "portfolio_fit",
-          "score": 0,
-          "weight": 0.1,
-          "weight_norm": 0.1538,
-          "contribution": 0.0,
-          "source": "recommendations.json (DEV022 rollup)"
-        },
-        {
-          "name": "learning",
-          "score": 0,
-          "weight": 0.05,
-          "weight_norm": 0.0769,
-          "contribution": 0.0,
-          "source": "learning.parquet (DEV025)"
-        }
-      ],
-      "top_contributors": [
-        "risk",
-        "validation",
-        "dna"
-      ],
-      "bottom_contributors": [
-        "knowledge_graph",
-        "portfolio_fit",
-        "learning"
-      ],
-      "n_dimensions_used": 8,
-      "n_dimensions_missing": 2,
-      "missing_dimensions": [
-        "research",
-        "historical"
-      ],
-      "why_this": [
-        {
-          "name": "validation",
-          "score": 55.0,
-          "why": "only 0 reconciled trades so far \u00b7 drift=insufficient_evidence \u00b7 giving neutral bias 55 pending more evidence"
-        },
-        {
-          "name": "dna",
-          "score": 50.0,
-          "why": "no historical DNA pattern for PATANJALI.NS \u2014 neutral"
         },
         {
           "name": "calibration",
@@ -31953,7 +31953,7 @@
       "sector": "",
       "industry": "",
       "raw_recommendation": "HOLD",
-      "raw_composite_score": 48.265,
+      "raw_composite_score": 48.225,
       "raw_confidence": 0.3961,
       "intelligence_score": 36.16,
       "fusion_decision": "Avoid",
@@ -32773,6 +32773,212 @@
       "conflict_severity": "MINOR"
     },
     {
+      "ticker": "VINATIORGA.NS",
+      "sector": "",
+      "industry": "",
+      "raw_recommendation": "HOLD",
+      "raw_composite_score": 47.655,
+      "raw_confidence": 0.3081,
+      "intelligence_score": 36.16,
+      "fusion_decision": "Avoid",
+      "dimensions": [
+        {
+          "name": "research",
+          "score": null,
+          "explanation": "no research scores available",
+          "source": "recommendations.json",
+          "weight_hint": 0.15
+        },
+        {
+          "name": "historical",
+          "score": null,
+          "explanation": "no historical trades on file for this ticker",
+          "source": "learning.parquet (DEV025)",
+          "weight_hint": 0.1
+        },
+        {
+          "name": "validation",
+          "score": 55.0,
+          "explanation": "only 0 reconciled trades so far \u00b7 drift=insufficient_evidence \u00b7 giving neutral bias 55 pending more evidence",
+          "source": "validation_v2_latest.json (v2.0)",
+          "weight_hint": 0.1
+        },
+        {
+          "name": "risk",
+          "score": 45,
+          "explanation": "ticker not in top-K sized universe \u00b7 portfolio verdict=empty portfolio -> default 45",
+          "source": "risk_capital_v2_latest.json (v2.0)",
+          "weight_hint": 0.1
+        },
+        {
+          "name": "portfolio_fit",
+          "score": 0,
+          "explanation": "included in 0 of 99 portfolio constructions -> 0.0",
+          "source": "recommendations.json (DEV022 rollup)",
+          "weight_hint": 0.1
+        },
+        {
+          "name": "knowledge_graph",
+          "score": 35.05,
+          "explanation": "influence=0.0017 \u00b7 degree_centrality=0.0017 -> 35.1",
+          "source": "entity_network.json (DEV031-B)",
+          "weight_hint": 0.05
+        },
+        {
+          "name": "dna",
+          "score": 50.0,
+          "explanation": "no historical DNA pattern for VINATIORGA.NS \u2014 neutral",
+          "source": "recommendation_dna_feedback.json (v1.5)",
+          "weight_hint": 0.1
+        },
+        {
+          "name": "calibration",
+          "score": 50.0,
+          "explanation": "calibration metrics incomplete",
+          "source": "confidence_calibration.json",
+          "weight_hint": 0.05
+        },
+        {
+          "name": "learning",
+          "score": 0,
+          "explanation": "same_ticker=0 \u00b7 same_industry=0 \u00b7 same_sector=0 -> 0.0",
+          "source": "learning.parquet (DEV025)",
+          "weight_hint": 0.05
+        },
+        {
+          "name": "explainability",
+          "score": 40.0,
+          "explanation": "no evidence path for VINATIORGA.NS",
+          "source": "recommendation_paths.json (DEV031-B)",
+          "weight_hint": 0.05
+        }
+      ],
+      "contributions": [
+        {
+          "name": "risk",
+          "score": 45,
+          "weight": 0.15,
+          "weight_norm": 0.2308,
+          "contribution": 10.385,
+          "source": "risk_capital_v2_latest.json (v2.0)"
+        },
+        {
+          "name": "validation",
+          "score": 55.0,
+          "weight": 0.1,
+          "weight_norm": 0.1538,
+          "contribution": 8.462,
+          "source": "validation_v2_latest.json (v2.0)"
+        },
+        {
+          "name": "dna",
+          "score": 50.0,
+          "weight": 0.1,
+          "weight_norm": 0.1538,
+          "contribution": 7.692,
+          "source": "recommendation_dna_feedback.json (v1.5)"
+        },
+        {
+          "name": "calibration",
+          "score": 50.0,
+          "weight": 0.05,
+          "weight_norm": 0.0769,
+          "contribution": 3.846,
+          "source": "confidence_calibration.json"
+        },
+        {
+          "name": "explainability",
+          "score": 40.0,
+          "weight": 0.05,
+          "weight_norm": 0.0769,
+          "contribution": 3.077,
+          "source": "recommendation_paths.json (DEV031-B)"
+        },
+        {
+          "name": "knowledge_graph",
+          "score": 35.05,
+          "weight": 0.05,
+          "weight_norm": 0.0769,
+          "contribution": 2.696,
+          "source": "entity_network.json (DEV031-B)"
+        },
+        {
+          "name": "portfolio_fit",
+          "score": 0,
+          "weight": 0.1,
+          "weight_norm": 0.1538,
+          "contribution": 0.0,
+          "source": "recommendations.json (DEV022 rollup)"
+        },
+        {
+          "name": "learning",
+          "score": 0,
+          "weight": 0.05,
+          "weight_norm": 0.0769,
+          "contribution": 0.0,
+          "source": "learning.parquet (DEV025)"
+        }
+      ],
+      "top_contributors": [
+        "risk",
+        "validation",
+        "dna"
+      ],
+      "bottom_contributors": [
+        "knowledge_graph",
+        "portfolio_fit",
+        "learning"
+      ],
+      "n_dimensions_used": 8,
+      "n_dimensions_missing": 2,
+      "missing_dimensions": [
+        "research",
+        "historical"
+      ],
+      "why_this": [
+        {
+          "name": "validation",
+          "score": 55.0,
+          "why": "only 0 reconciled trades so far \u00b7 drift=insufficient_evidence \u00b7 giving neutral bias 55 pending more evidence"
+        },
+        {
+          "name": "dna",
+          "score": 50.0,
+          "why": "no historical DNA pattern for VINATIORGA.NS \u2014 neutral"
+        },
+        {
+          "name": "calibration",
+          "score": 50.0,
+          "why": "calibration metrics incomplete"
+        }
+      ],
+      "why_not_stronger": [
+        {
+          "name": "portfolio_fit",
+          "score": 0,
+          "why": "included in 0 of 99 portfolio constructions -> 0.0"
+        },
+        {
+          "name": "learning",
+          "score": 0,
+          "why": "same_ticker=0 \u00b7 same_industry=0 \u00b7 same_sector=0 -> 0.0"
+        },
+        {
+          "name": "knowledge_graph",
+          "score": 35.05,
+          "why": "influence=0.0017 \u00b7 degree_centrality=0.0017 -> 35.1"
+        }
+      ],
+      "conflicts": [
+        {
+          "severity": "MINOR",
+          "rule": "wide_dimension_spread",
+          "detail": "Wide spread: validation=55 vs portfolio_fit=0 (gap 55) \u2014 check evidence quality per dimension."
+        }
+      ],
+      "conflict_severity": "MINOR"
+    },
+    {
       "ticker": "GUJGASLTD.NS",
       "sector": "",
       "industry": "",
@@ -32945,212 +33151,6 @@
           "name": "dna",
           "score": 50.0,
           "why": "no historical DNA pattern for GUJGASLTD.NS \u2014 neutral"
-        },
-        {
-          "name": "calibration",
-          "score": 50.0,
-          "why": "calibration metrics incomplete"
-        }
-      ],
-      "why_not_stronger": [
-        {
-          "name": "portfolio_fit",
-          "score": 0,
-          "why": "included in 0 of 99 portfolio constructions -> 0.0"
-        },
-        {
-          "name": "learning",
-          "score": 0,
-          "why": "same_ticker=0 \u00b7 same_industry=0 \u00b7 same_sector=0 -> 0.0"
-        },
-        {
-          "name": "knowledge_graph",
-          "score": 35.05,
-          "why": "influence=0.0017 \u00b7 degree_centrality=0.0017 -> 35.1"
-        }
-      ],
-      "conflicts": [
-        {
-          "severity": "MINOR",
-          "rule": "wide_dimension_spread",
-          "detail": "Wide spread: validation=55 vs portfolio_fit=0 (gap 55) \u2014 check evidence quality per dimension."
-        }
-      ],
-      "conflict_severity": "MINOR"
-    },
-    {
-      "ticker": "VINATIORGA.NS",
-      "sector": "",
-      "industry": "",
-      "raw_recommendation": "HOLD",
-      "raw_composite_score": 47.61,
-      "raw_confidence": 0.3081,
-      "intelligence_score": 36.16,
-      "fusion_decision": "Avoid",
-      "dimensions": [
-        {
-          "name": "research",
-          "score": null,
-          "explanation": "no research scores available",
-          "source": "recommendations.json",
-          "weight_hint": 0.15
-        },
-        {
-          "name": "historical",
-          "score": null,
-          "explanation": "no historical trades on file for this ticker",
-          "source": "learning.parquet (DEV025)",
-          "weight_hint": 0.1
-        },
-        {
-          "name": "validation",
-          "score": 55.0,
-          "explanation": "only 0 reconciled trades so far \u00b7 drift=insufficient_evidence \u00b7 giving neutral bias 55 pending more evidence",
-          "source": "validation_v2_latest.json (v2.0)",
-          "weight_hint": 0.1
-        },
-        {
-          "name": "risk",
-          "score": 45,
-          "explanation": "ticker not in top-K sized universe \u00b7 portfolio verdict=empty portfolio -> default 45",
-          "source": "risk_capital_v2_latest.json (v2.0)",
-          "weight_hint": 0.1
-        },
-        {
-          "name": "portfolio_fit",
-          "score": 0,
-          "explanation": "included in 0 of 99 portfolio constructions -> 0.0",
-          "source": "recommendations.json (DEV022 rollup)",
-          "weight_hint": 0.1
-        },
-        {
-          "name": "knowledge_graph",
-          "score": 35.05,
-          "explanation": "influence=0.0017 \u00b7 degree_centrality=0.0017 -> 35.1",
-          "source": "entity_network.json (DEV031-B)",
-          "weight_hint": 0.05
-        },
-        {
-          "name": "dna",
-          "score": 50.0,
-          "explanation": "no historical DNA pattern for VINATIORGA.NS \u2014 neutral",
-          "source": "recommendation_dna_feedback.json (v1.5)",
-          "weight_hint": 0.1
-        },
-        {
-          "name": "calibration",
-          "score": 50.0,
-          "explanation": "calibration metrics incomplete",
-          "source": "confidence_calibration.json",
-          "weight_hint": 0.05
-        },
-        {
-          "name": "learning",
-          "score": 0,
-          "explanation": "same_ticker=0 \u00b7 same_industry=0 \u00b7 same_sector=0 -> 0.0",
-          "source": "learning.parquet (DEV025)",
-          "weight_hint": 0.05
-        },
-        {
-          "name": "explainability",
-          "score": 40.0,
-          "explanation": "no evidence path for VINATIORGA.NS",
-          "source": "recommendation_paths.json (DEV031-B)",
-          "weight_hint": 0.05
-        }
-      ],
-      "contributions": [
-        {
-          "name": "risk",
-          "score": 45,
-          "weight": 0.15,
-          "weight_norm": 0.2308,
-          "contribution": 10.385,
-          "source": "risk_capital_v2_latest.json (v2.0)"
-        },
-        {
-          "name": "validation",
-          "score": 55.0,
-          "weight": 0.1,
-          "weight_norm": 0.1538,
-          "contribution": 8.462,
-          "source": "validation_v2_latest.json (v2.0)"
-        },
-        {
-          "name": "dna",
-          "score": 50.0,
-          "weight": 0.1,
-          "weight_norm": 0.1538,
-          "contribution": 7.692,
-          "source": "recommendation_dna_feedback.json (v1.5)"
-        },
-        {
-          "name": "calibration",
-          "score": 50.0,
-          "weight": 0.05,
-          "weight_norm": 0.0769,
-          "contribution": 3.846,
-          "source": "confidence_calibration.json"
-        },
-        {
-          "name": "explainability",
-          "score": 40.0,
-          "weight": 0.05,
-          "weight_norm": 0.0769,
-          "contribution": 3.077,
-          "source": "recommendation_paths.json (DEV031-B)"
-        },
-        {
-          "name": "knowledge_graph",
-          "score": 35.05,
-          "weight": 0.05,
-          "weight_norm": 0.0769,
-          "contribution": 2.696,
-          "source": "entity_network.json (DEV031-B)"
-        },
-        {
-          "name": "portfolio_fit",
-          "score": 0,
-          "weight": 0.1,
-          "weight_norm": 0.1538,
-          "contribution": 0.0,
-          "source": "recommendations.json (DEV022 rollup)"
-        },
-        {
-          "name": "learning",
-          "score": 0,
-          "weight": 0.05,
-          "weight_norm": 0.0769,
-          "contribution": 0.0,
-          "source": "learning.parquet (DEV025)"
-        }
-      ],
-      "top_contributors": [
-        "risk",
-        "validation",
-        "dna"
-      ],
-      "bottom_contributors": [
-        "knowledge_graph",
-        "portfolio_fit",
-        "learning"
-      ],
-      "n_dimensions_used": 8,
-      "n_dimensions_missing": 2,
-      "missing_dimensions": [
-        "research",
-        "historical"
-      ],
-      "why_this": [
-        {
-          "name": "validation",
-          "score": 55.0,
-          "why": "only 0 reconciled trades so far \u00b7 drift=insufficient_evidence \u00b7 giving neutral bias 55 pending more evidence"
-        },
-        {
-          "name": "dna",
-          "score": 50.0,
-          "why": "no historical DNA pattern for VINATIORGA.NS \u2014 neutral"
         },
         {
           "name": "calibration",
@@ -33601,7 +33601,7 @@
       "sector": "",
       "industry": "",
       "raw_recommendation": "HOLD",
-      "raw_composite_score": 47.46,
+      "raw_composite_score": 47.415,
       "raw_confidence": 0.4914,
       "intelligence_score": 36.16,
       "fusion_decision": "Avoid",
@@ -34013,7 +34013,7 @@
       "sector": "",
       "industry": "",
       "raw_recommendation": "HOLD",
-      "raw_composite_score": 47.2,
+      "raw_composite_score": 47.155,
       "raw_confidence": 0.3024,
       "intelligence_score": 36.16,
       "fusion_decision": "Avoid",
@@ -34219,7 +34219,7 @@
       "sector": "",
       "industry": "",
       "raw_recommendation": "HOLD",
-      "raw_composite_score": 47.16,
+      "raw_composite_score": 47.115,
       "raw_confidence": 0.4607,
       "intelligence_score": 36.16,
       "fusion_decision": "Avoid",
@@ -34631,7 +34631,7 @@
       "sector": "",
       "industry": "",
       "raw_recommendation": "HOLD",
-      "raw_composite_score": 46.675,
+      "raw_composite_score": 46.66,
       "raw_confidence": 0.3481,
       "intelligence_score": 36.16,
       "fusion_decision": "Avoid",
@@ -37515,7 +37515,7 @@
       "sector": "",
       "industry": "",
       "raw_recommendation": "SELL",
-      "raw_composite_score": 45.665,
+      "raw_composite_score": 45.75,
       "raw_confidence": 0.5221,
       "intelligence_score": 36.16,
       "fusion_decision": "Avoid",
@@ -38129,212 +38129,6 @@
       "conflict_severity": "MINOR"
     },
     {
-      "ticker": "RAMCOCEM.NS",
-      "sector": "",
-      "industry": "",
-      "raw_recommendation": "SELL",
-      "raw_composite_score": 45.25,
-      "raw_confidence": 0.3462,
-      "intelligence_score": 36.16,
-      "fusion_decision": "Avoid",
-      "dimensions": [
-        {
-          "name": "research",
-          "score": null,
-          "explanation": "no research scores available",
-          "source": "recommendations.json",
-          "weight_hint": 0.15
-        },
-        {
-          "name": "historical",
-          "score": null,
-          "explanation": "no historical trades on file for this ticker",
-          "source": "learning.parquet (DEV025)",
-          "weight_hint": 0.1
-        },
-        {
-          "name": "validation",
-          "score": 55.0,
-          "explanation": "only 0 reconciled trades so far \u00b7 drift=insufficient_evidence \u00b7 giving neutral bias 55 pending more evidence",
-          "source": "validation_v2_latest.json (v2.0)",
-          "weight_hint": 0.1
-        },
-        {
-          "name": "risk",
-          "score": 45,
-          "explanation": "ticker not in top-K sized universe \u00b7 portfolio verdict=empty portfolio -> default 45",
-          "source": "risk_capital_v2_latest.json (v2.0)",
-          "weight_hint": 0.1
-        },
-        {
-          "name": "portfolio_fit",
-          "score": 0,
-          "explanation": "included in 0 of 99 portfolio constructions -> 0.0",
-          "source": "recommendations.json (DEV022 rollup)",
-          "weight_hint": 0.1
-        },
-        {
-          "name": "knowledge_graph",
-          "score": 35.05,
-          "explanation": "influence=0.0017 \u00b7 degree_centrality=0.0017 -> 35.1",
-          "source": "entity_network.json (DEV031-B)",
-          "weight_hint": 0.05
-        },
-        {
-          "name": "dna",
-          "score": 50.0,
-          "explanation": "no historical DNA pattern for RAMCOCEM.NS \u2014 neutral",
-          "source": "recommendation_dna_feedback.json (v1.5)",
-          "weight_hint": 0.1
-        },
-        {
-          "name": "calibration",
-          "score": 50.0,
-          "explanation": "calibration metrics incomplete",
-          "source": "confidence_calibration.json",
-          "weight_hint": 0.05
-        },
-        {
-          "name": "learning",
-          "score": 0,
-          "explanation": "same_ticker=0 \u00b7 same_industry=0 \u00b7 same_sector=0 -> 0.0",
-          "source": "learning.parquet (DEV025)",
-          "weight_hint": 0.05
-        },
-        {
-          "name": "explainability",
-          "score": 40.0,
-          "explanation": "no evidence path for RAMCOCEM.NS",
-          "source": "recommendation_paths.json (DEV031-B)",
-          "weight_hint": 0.05
-        }
-      ],
-      "contributions": [
-        {
-          "name": "risk",
-          "score": 45,
-          "weight": 0.15,
-          "weight_norm": 0.2308,
-          "contribution": 10.385,
-          "source": "risk_capital_v2_latest.json (v2.0)"
-        },
-        {
-          "name": "validation",
-          "score": 55.0,
-          "weight": 0.1,
-          "weight_norm": 0.1538,
-          "contribution": 8.462,
-          "source": "validation_v2_latest.json (v2.0)"
-        },
-        {
-          "name": "dna",
-          "score": 50.0,
-          "weight": 0.1,
-          "weight_norm": 0.1538,
-          "contribution": 7.692,
-          "source": "recommendation_dna_feedback.json (v1.5)"
-        },
-        {
-          "name": "calibration",
-          "score": 50.0,
-          "weight": 0.05,
-          "weight_norm": 0.0769,
-          "contribution": 3.846,
-          "source": "confidence_calibration.json"
-        },
-        {
-          "name": "explainability",
-          "score": 40.0,
-          "weight": 0.05,
-          "weight_norm": 0.0769,
-          "contribution": 3.077,
-          "source": "recommendation_paths.json (DEV031-B)"
-        },
-        {
-          "name": "knowledge_graph",
-          "score": 35.05,
-          "weight": 0.05,
-          "weight_norm": 0.0769,
-          "contribution": 2.696,
-          "source": "entity_network.json (DEV031-B)"
-        },
-        {
-          "name": "portfolio_fit",
-          "score": 0,
-          "weight": 0.1,
-          "weight_norm": 0.1538,
-          "contribution": 0.0,
-          "source": "recommendations.json (DEV022 rollup)"
-        },
-        {
-          "name": "learning",
-          "score": 0,
-          "weight": 0.05,
-          "weight_norm": 0.0769,
-          "contribution": 0.0,
-          "source": "learning.parquet (DEV025)"
-        }
-      ],
-      "top_contributors": [
-        "risk",
-        "validation",
-        "dna"
-      ],
-      "bottom_contributors": [
-        "knowledge_graph",
-        "portfolio_fit",
-        "learning"
-      ],
-      "n_dimensions_used": 8,
-      "n_dimensions_missing": 2,
-      "missing_dimensions": [
-        "research",
-        "historical"
-      ],
-      "why_this": [
-        {
-          "name": "validation",
-          "score": 55.0,
-          "why": "only 0 reconciled trades so far \u00b7 drift=insufficient_evidence \u00b7 giving neutral bias 55 pending more evidence"
-        },
-        {
-          "name": "dna",
-          "score": 50.0,
-          "why": "no historical DNA pattern for RAMCOCEM.NS \u2014 neutral"
-        },
-        {
-          "name": "calibration",
-          "score": 50.0,
-          "why": "calibration metrics incomplete"
-        }
-      ],
-      "why_not_stronger": [
-        {
-          "name": "portfolio_fit",
-          "score": 0,
-          "why": "included in 0 of 99 portfolio constructions -> 0.0"
-        },
-        {
-          "name": "learning",
-          "score": 0,
-          "why": "same_ticker=0 \u00b7 same_industry=0 \u00b7 same_sector=0 -> 0.0"
-        },
-        {
-          "name": "knowledge_graph",
-          "score": 35.05,
-          "why": "influence=0.0017 \u00b7 degree_centrality=0.0017 -> 35.1"
-        }
-      ],
-      "conflicts": [
-        {
-          "severity": "MINOR",
-          "rule": "wide_dimension_spread",
-          "detail": "Wide spread: validation=55 vs portfolio_fit=0 (gap 55) \u2014 check evidence quality per dimension."
-        }
-      ],
-      "conflict_severity": "MINOR"
-    },
-    {
       "ticker": "TATACONSUM.NS",
       "sector": "",
       "industry": "",
@@ -38507,6 +38301,212 @@
           "name": "dna",
           "score": 50.0,
           "why": "no historical DNA pattern for TATACONSUM.NS \u2014 neutral"
+        },
+        {
+          "name": "calibration",
+          "score": 50.0,
+          "why": "calibration metrics incomplete"
+        }
+      ],
+      "why_not_stronger": [
+        {
+          "name": "portfolio_fit",
+          "score": 0,
+          "why": "included in 0 of 99 portfolio constructions -> 0.0"
+        },
+        {
+          "name": "learning",
+          "score": 0,
+          "why": "same_ticker=0 \u00b7 same_industry=0 \u00b7 same_sector=0 -> 0.0"
+        },
+        {
+          "name": "knowledge_graph",
+          "score": 35.05,
+          "why": "influence=0.0017 \u00b7 degree_centrality=0.0017 -> 35.1"
+        }
+      ],
+      "conflicts": [
+        {
+          "severity": "MINOR",
+          "rule": "wide_dimension_spread",
+          "detail": "Wide spread: validation=55 vs portfolio_fit=0 (gap 55) \u2014 check evidence quality per dimension."
+        }
+      ],
+      "conflict_severity": "MINOR"
+    },
+    {
+      "ticker": "RAMCOCEM.NS",
+      "sector": "",
+      "industry": "",
+      "raw_recommendation": "SELL",
+      "raw_composite_score": 45.205,
+      "raw_confidence": 0.3462,
+      "intelligence_score": 36.16,
+      "fusion_decision": "Avoid",
+      "dimensions": [
+        {
+          "name": "research",
+          "score": null,
+          "explanation": "no research scores available",
+          "source": "recommendations.json",
+          "weight_hint": 0.15
+        },
+        {
+          "name": "historical",
+          "score": null,
+          "explanation": "no historical trades on file for this ticker",
+          "source": "learning.parquet (DEV025)",
+          "weight_hint": 0.1
+        },
+        {
+          "name": "validation",
+          "score": 55.0,
+          "explanation": "only 0 reconciled trades so far \u00b7 drift=insufficient_evidence \u00b7 giving neutral bias 55 pending more evidence",
+          "source": "validation_v2_latest.json (v2.0)",
+          "weight_hint": 0.1
+        },
+        {
+          "name": "risk",
+          "score": 45,
+          "explanation": "ticker not in top-K sized universe \u00b7 portfolio verdict=empty portfolio -> default 45",
+          "source": "risk_capital_v2_latest.json (v2.0)",
+          "weight_hint": 0.1
+        },
+        {
+          "name": "portfolio_fit",
+          "score": 0,
+          "explanation": "included in 0 of 99 portfolio constructions -> 0.0",
+          "source": "recommendations.json (DEV022 rollup)",
+          "weight_hint": 0.1
+        },
+        {
+          "name": "knowledge_graph",
+          "score": 35.05,
+          "explanation": "influence=0.0017 \u00b7 degree_centrality=0.0017 -> 35.1",
+          "source": "entity_network.json (DEV031-B)",
+          "weight_hint": 0.05
+        },
+        {
+          "name": "dna",
+          "score": 50.0,
+          "explanation": "no historical DNA pattern for RAMCOCEM.NS \u2014 neutral",
+          "source": "recommendation_dna_feedback.json (v1.5)",
+          "weight_hint": 0.1
+        },
+        {
+          "name": "calibration",
+          "score": 50.0,
+          "explanation": "calibration metrics incomplete",
+          "source": "confidence_calibration.json",
+          "weight_hint": 0.05
+        },
+        {
+          "name": "learning",
+          "score": 0,
+          "explanation": "same_ticker=0 \u00b7 same_industry=0 \u00b7 same_sector=0 -> 0.0",
+          "source": "learning.parquet (DEV025)",
+          "weight_hint": 0.05
+        },
+        {
+          "name": "explainability",
+          "score": 40.0,
+          "explanation": "no evidence path for RAMCOCEM.NS",
+          "source": "recommendation_paths.json (DEV031-B)",
+          "weight_hint": 0.05
+        }
+      ],
+      "contributions": [
+        {
+          "name": "risk",
+          "score": 45,
+          "weight": 0.15,
+          "weight_norm": 0.2308,
+          "contribution": 10.385,
+          "source": "risk_capital_v2_latest.json (v2.0)"
+        },
+        {
+          "name": "validation",
+          "score": 55.0,
+          "weight": 0.1,
+          "weight_norm": 0.1538,
+          "contribution": 8.462,
+          "source": "validation_v2_latest.json (v2.0)"
+        },
+        {
+          "name": "dna",
+          "score": 50.0,
+          "weight": 0.1,
+          "weight_norm": 0.1538,
+          "contribution": 7.692,
+          "source": "recommendation_dna_feedback.json (v1.5)"
+        },
+        {
+          "name": "calibration",
+          "score": 50.0,
+          "weight": 0.05,
+          "weight_norm": 0.0769,
+          "contribution": 3.846,
+          "source": "confidence_calibration.json"
+        },
+        {
+          "name": "explainability",
+          "score": 40.0,
+          "weight": 0.05,
+          "weight_norm": 0.0769,
+          "contribution": 3.077,
+          "source": "recommendation_paths.json (DEV031-B)"
+        },
+        {
+          "name": "knowledge_graph",
+          "score": 35.05,
+          "weight": 0.05,
+          "weight_norm": 0.0769,
+          "contribution": 2.696,
+          "source": "entity_network.json (DEV031-B)"
+        },
+        {
+          "name": "portfolio_fit",
+          "score": 0,
+          "weight": 0.1,
+          "weight_norm": 0.1538,
+          "contribution": 0.0,
+          "source": "recommendations.json (DEV022 rollup)"
+        },
+        {
+          "name": "learning",
+          "score": 0,
+          "weight": 0.05,
+          "weight_norm": 0.0769,
+          "contribution": 0.0,
+          "source": "learning.parquet (DEV025)"
+        }
+      ],
+      "top_contributors": [
+        "risk",
+        "validation",
+        "dna"
+      ],
+      "bottom_contributors": [
+        "knowledge_graph",
+        "portfolio_fit",
+        "learning"
+      ],
+      "n_dimensions_used": 8,
+      "n_dimensions_missing": 2,
+      "missing_dimensions": [
+        "research",
+        "historical"
+      ],
+      "why_this": [
+        {
+          "name": "validation",
+          "score": 55.0,
+          "why": "only 0 reconciled trades so far \u00b7 drift=insufficient_evidence \u00b7 giving neutral bias 55 pending more evidence"
+        },
+        {
+          "name": "dna",
+          "score": 50.0,
+          "why": "no historical DNA pattern for RAMCOCEM.NS \u2014 neutral"
         },
         {
           "name": "calibration",
@@ -39163,7 +39163,7 @@
       "sector": "",
       "industry": "",
       "raw_recommendation": "SELL",
-      "raw_composite_score": 45.02,
+      "raw_composite_score": 44.975,
       "raw_confidence": 0.4607,
       "intelligence_score": 36.16,
       "fusion_decision": "Avoid",
@@ -42459,7 +42459,7 @@
       "sector": "",
       "industry": "",
       "raw_recommendation": "STRONG SELL",
-      "raw_composite_score": 43.04,
+      "raw_composite_score": 43.085,
       "raw_confidence": 0.3462,
       "intelligence_score": 36.16,
       "fusion_decision": "Avoid",
@@ -43489,7 +43489,7 @@
       "sector": "",
       "industry": "",
       "raw_recommendation": "STRONG SELL",
-      "raw_composite_score": 42.025,
+      "raw_composite_score": 42.065,
       "raw_confidence": 0.3693,
       "intelligence_score": 36.16,
       "fusion_decision": "Avoid",
@@ -43695,7 +43695,7 @@
       "sector": "",
       "industry": "",
       "raw_recommendation": "STRONG SELL",
-      "raw_composite_score": 42.0,
+      "raw_composite_score": 42.015,
       "raw_confidence": 0.4914,
       "intelligence_score": 36.16,
       "fusion_decision": "Avoid",
@@ -46163,212 +46163,6 @@
       "conflict_severity": "MINOR"
     },
     {
-      "ticker": "RATNAMANI.NS",
-      "sector": "",
-      "industry": "",
-      "raw_recommendation": "STRONG SELL",
-      "raw_composite_score": 38.045,
-      "raw_confidence": 0.5092,
-      "intelligence_score": 36.16,
-      "fusion_decision": "Avoid",
-      "dimensions": [
-        {
-          "name": "research",
-          "score": null,
-          "explanation": "no research scores available",
-          "source": "recommendations.json",
-          "weight_hint": 0.15
-        },
-        {
-          "name": "historical",
-          "score": null,
-          "explanation": "no historical trades on file for this ticker",
-          "source": "learning.parquet (DEV025)",
-          "weight_hint": 0.1
-        },
-        {
-          "name": "validation",
-          "score": 55.0,
-          "explanation": "only 0 reconciled trades so far \u00b7 drift=insufficient_evidence \u00b7 giving neutral bias 55 pending more evidence",
-          "source": "validation_v2_latest.json (v2.0)",
-          "weight_hint": 0.1
-        },
-        {
-          "name": "risk",
-          "score": 45,
-          "explanation": "ticker not in top-K sized universe \u00b7 portfolio verdict=empty portfolio -> default 45",
-          "source": "risk_capital_v2_latest.json (v2.0)",
-          "weight_hint": 0.1
-        },
-        {
-          "name": "portfolio_fit",
-          "score": 0,
-          "explanation": "included in 0 of 99 portfolio constructions -> 0.0",
-          "source": "recommendations.json (DEV022 rollup)",
-          "weight_hint": 0.1
-        },
-        {
-          "name": "knowledge_graph",
-          "score": 35.05,
-          "explanation": "influence=0.0017 \u00b7 degree_centrality=0.0017 -> 35.1",
-          "source": "entity_network.json (DEV031-B)",
-          "weight_hint": 0.05
-        },
-        {
-          "name": "dna",
-          "score": 50.0,
-          "explanation": "no historical DNA pattern for RATNAMANI.NS \u2014 neutral",
-          "source": "recommendation_dna_feedback.json (v1.5)",
-          "weight_hint": 0.1
-        },
-        {
-          "name": "calibration",
-          "score": 50.0,
-          "explanation": "calibration metrics incomplete",
-          "source": "confidence_calibration.json",
-          "weight_hint": 0.05
-        },
-        {
-          "name": "learning",
-          "score": 0,
-          "explanation": "same_ticker=0 \u00b7 same_industry=0 \u00b7 same_sector=0 -> 0.0",
-          "source": "learning.parquet (DEV025)",
-          "weight_hint": 0.05
-        },
-        {
-          "name": "explainability",
-          "score": 40.0,
-          "explanation": "no evidence path for RATNAMANI.NS",
-          "source": "recommendation_paths.json (DEV031-B)",
-          "weight_hint": 0.05
-        }
-      ],
-      "contributions": [
-        {
-          "name": "risk",
-          "score": 45,
-          "weight": 0.15,
-          "weight_norm": 0.2308,
-          "contribution": 10.385,
-          "source": "risk_capital_v2_latest.json (v2.0)"
-        },
-        {
-          "name": "validation",
-          "score": 55.0,
-          "weight": 0.1,
-          "weight_norm": 0.1538,
-          "contribution": 8.462,
-          "source": "validation_v2_latest.json (v2.0)"
-        },
-        {
-          "name": "dna",
-          "score": 50.0,
-          "weight": 0.1,
-          "weight_norm": 0.1538,
-          "contribution": 7.692,
-          "source": "recommendation_dna_feedback.json (v1.5)"
-        },
-        {
-          "name": "calibration",
-          "score": 50.0,
-          "weight": 0.05,
-          "weight_norm": 0.0769,
-          "contribution": 3.846,
-          "source": "confidence_calibration.json"
-        },
-        {
-          "name": "explainability",
-          "score": 40.0,
-          "weight": 0.05,
-          "weight_norm": 0.0769,
-          "contribution": 3.077,
-          "source": "recommendation_paths.json (DEV031-B)"
-        },
-        {
-          "name": "knowledge_graph",
-          "score": 35.05,
-          "weight": 0.05,
-          "weight_norm": 0.0769,
-          "contribution": 2.696,
-          "source": "entity_network.json (DEV031-B)"
-        },
-        {
-          "name": "portfolio_fit",
-          "score": 0,
-          "weight": 0.1,
-          "weight_norm": 0.1538,
-          "contribution": 0.0,
-          "source": "recommendations.json (DEV022 rollup)"
-        },
-        {
-          "name": "learning",
-          "score": 0,
-          "weight": 0.05,
-          "weight_norm": 0.0769,
-          "contribution": 0.0,
-          "source": "learning.parquet (DEV025)"
-        }
-      ],
-      "top_contributors": [
-        "risk",
-        "validation",
-        "dna"
-      ],
-      "bottom_contributors": [
-        "knowledge_graph",
-        "portfolio_fit",
-        "learning"
-      ],
-      "n_dimensions_used": 8,
-      "n_dimensions_missing": 2,
-      "missing_dimensions": [
-        "research",
-        "historical"
-      ],
-      "why_this": [
-        {
-          "name": "validation",
-          "score": 55.0,
-          "why": "only 0 reconciled trades so far \u00b7 drift=insufficient_evidence \u00b7 giving neutral bias 55 pending more evidence"
-        },
-        {
-          "name": "dna",
-          "score": 50.0,
-          "why": "no historical DNA pattern for RATNAMANI.NS \u2014 neutral"
-        },
-        {
-          "name": "calibration",
-          "score": 50.0,
-          "why": "calibration metrics incomplete"
-        }
-      ],
-      "why_not_stronger": [
-        {
-          "name": "portfolio_fit",
-          "score": 0,
-          "why": "included in 0 of 99 portfolio constructions -> 0.0"
-        },
-        {
-          "name": "learning",
-          "score": 0,
-          "why": "same_ticker=0 \u00b7 same_industry=0 \u00b7 same_sector=0 -> 0.0"
-        },
-        {
-          "name": "knowledge_graph",
-          "score": 35.05,
-          "why": "influence=0.0017 \u00b7 degree_centrality=0.0017 -> 35.1"
-        }
-      ],
-      "conflicts": [
-        {
-          "severity": "MINOR",
-          "rule": "wide_dimension_spread",
-          "detail": "Wide spread: validation=55 vs portfolio_fit=0 (gap 55) \u2014 check evidence quality per dimension."
-        }
-      ],
-      "conflict_severity": "MINOR"
-    },
-    {
       "ticker": "VBL.NS",
       "sector": "",
       "industry": "",
@@ -46541,6 +46335,212 @@
           "name": "dna",
           "score": 50.0,
           "why": "no historical DNA pattern for VBL.NS \u2014 neutral"
+        },
+        {
+          "name": "calibration",
+          "score": 50.0,
+          "why": "calibration metrics incomplete"
+        }
+      ],
+      "why_not_stronger": [
+        {
+          "name": "portfolio_fit",
+          "score": 0,
+          "why": "included in 0 of 99 portfolio constructions -> 0.0"
+        },
+        {
+          "name": "learning",
+          "score": 0,
+          "why": "same_ticker=0 \u00b7 same_industry=0 \u00b7 same_sector=0 -> 0.0"
+        },
+        {
+          "name": "knowledge_graph",
+          "score": 35.05,
+          "why": "influence=0.0017 \u00b7 degree_centrality=0.0017 -> 35.1"
+        }
+      ],
+      "conflicts": [
+        {
+          "severity": "MINOR",
+          "rule": "wide_dimension_spread",
+          "detail": "Wide spread: validation=55 vs portfolio_fit=0 (gap 55) \u2014 check evidence quality per dimension."
+        }
+      ],
+      "conflict_severity": "MINOR"
+    },
+    {
+      "ticker": "RATNAMANI.NS",
+      "sector": "",
+      "industry": "",
+      "raw_recommendation": "STRONG SELL",
+      "raw_composite_score": 38.005,
+      "raw_confidence": 0.5092,
+      "intelligence_score": 36.16,
+      "fusion_decision": "Avoid",
+      "dimensions": [
+        {
+          "name": "research",
+          "score": null,
+          "explanation": "no research scores available",
+          "source": "recommendations.json",
+          "weight_hint": 0.15
+        },
+        {
+          "name": "historical",
+          "score": null,
+          "explanation": "no historical trades on file for this ticker",
+          "source": "learning.parquet (DEV025)",
+          "weight_hint": 0.1
+        },
+        {
+          "name": "validation",
+          "score": 55.0,
+          "explanation": "only 0 reconciled trades so far \u00b7 drift=insufficient_evidence \u00b7 giving neutral bias 55 pending more evidence",
+          "source": "validation_v2_latest.json (v2.0)",
+          "weight_hint": 0.1
+        },
+        {
+          "name": "risk",
+          "score": 45,
+          "explanation": "ticker not in top-K sized universe \u00b7 portfolio verdict=empty portfolio -> default 45",
+          "source": "risk_capital_v2_latest.json (v2.0)",
+          "weight_hint": 0.1
+        },
+        {
+          "name": "portfolio_fit",
+          "score": 0,
+          "explanation": "included in 0 of 99 portfolio constructions -> 0.0",
+          "source": "recommendations.json (DEV022 rollup)",
+          "weight_hint": 0.1
+        },
+        {
+          "name": "knowledge_graph",
+          "score": 35.05,
+          "explanation": "influence=0.0017 \u00b7 degree_centrality=0.0017 -> 35.1",
+          "source": "entity_network.json (DEV031-B)",
+          "weight_hint": 0.05
+        },
+        {
+          "name": "dna",
+          "score": 50.0,
+          "explanation": "no historical DNA pattern for RATNAMANI.NS \u2014 neutral",
+          "source": "recommendation_dna_feedback.json (v1.5)",
+          "weight_hint": 0.1
+        },
+        {
+          "name": "calibration",
+          "score": 50.0,
+          "explanation": "calibration metrics incomplete",
+          "source": "confidence_calibration.json",
+          "weight_hint": 0.05
+        },
+        {
+          "name": "learning",
+          "score": 0,
+          "explanation": "same_ticker=0 \u00b7 same_industry=0 \u00b7 same_sector=0 -> 0.0",
+          "source": "learning.parquet (DEV025)",
+          "weight_hint": 0.05
+        },
+        {
+          "name": "explainability",
+          "score": 40.0,
+          "explanation": "no evidence path for RATNAMANI.NS",
+          "source": "recommendation_paths.json (DEV031-B)",
+          "weight_hint": 0.05
+        }
+      ],
+      "contributions": [
+        {
+          "name": "risk",
+          "score": 45,
+          "weight": 0.15,
+          "weight_norm": 0.2308,
+          "contribution": 10.385,
+          "source": "risk_capital_v2_latest.json (v2.0)"
+        },
+        {
+          "name": "validation",
+          "score": 55.0,
+          "weight": 0.1,
+          "weight_norm": 0.1538,
+          "contribution": 8.462,
+          "source": "validation_v2_latest.json (v2.0)"
+        },
+        {
+          "name": "dna",
+          "score": 50.0,
+          "weight": 0.1,
+          "weight_norm": 0.1538,
+          "contribution": 7.692,
+          "source": "recommendation_dna_feedback.json (v1.5)"
+        },
+        {
+          "name": "calibration",
+          "score": 50.0,
+          "weight": 0.05,
+          "weight_norm": 0.0769,
+          "contribution": 3.846,
+          "source": "confidence_calibration.json"
+        },
+        {
+          "name": "explainability",
+          "score": 40.0,
+          "weight": 0.05,
+          "weight_norm": 0.0769,
+          "contribution": 3.077,
+          "source": "recommendation_paths.json (DEV031-B)"
+        },
+        {
+          "name": "knowledge_graph",
+          "score": 35.05,
+          "weight": 0.05,
+          "weight_norm": 0.0769,
+          "contribution": 2.696,
+          "source": "entity_network.json (DEV031-B)"
+        },
+        {
+          "name": "portfolio_fit",
+          "score": 0,
+          "weight": 0.1,
+          "weight_norm": 0.1538,
+          "contribution": 0.0,
+          "source": "recommendations.json (DEV022 rollup)"
+        },
+        {
+          "name": "learning",
+          "score": 0,
+          "weight": 0.05,
+          "weight_norm": 0.0769,
+          "contribution": 0.0,
+          "source": "learning.parquet (DEV025)"
+        }
+      ],
+      "top_contributors": [
+        "risk",
+        "validation",
+        "dna"
+      ],
+      "bottom_contributors": [
+        "knowledge_graph",
+        "portfolio_fit",
+        "learning"
+      ],
+      "n_dimensions_used": 8,
+      "n_dimensions_missing": 2,
+      "missing_dimensions": [
+        "research",
+        "historical"
+      ],
+      "why_this": [
+        {
+          "name": "validation",
+          "score": 55.0,
+          "why": "only 0 reconciled trades so far \u00b7 drift=insufficient_evidence \u00b7 giving neutral bias 55 pending more evidence"
+        },
+        {
+          "name": "dna",
+          "score": 50.0,
+          "why": "no historical DNA pattern for RATNAMANI.NS \u2014 neutral"
         },
         {
           "name": "calibration",
