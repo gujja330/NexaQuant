@@ -1,4 +1,4 @@
-# AEGIS USA · Morning Research · 2026-11-23 18:58 EDT
+# AEGIS USA · Morning Research · 2026-11-23 23:21 EDT
 
 _Currency: USD ($) · Benchmark: S&P 500_
 
@@ -23,4 +23,4 @@ _Currency: USD ($) · Benchmark: S&P 500_
 - **29** trading days until Winner Genome activates
 
 ---
-_Generated 2026-11-23 18:58 EDT · AEGIS USA v1.0 · USD_
+_Generated 2026-11-23 23:21 EDT · AEGIS USA v1.0 · USD_
