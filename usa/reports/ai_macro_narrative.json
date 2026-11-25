@@ -2,86 +2,48 @@
   "engine": "ai_macro_narrative",
   "version": "v1.0",
   "market": "usa",
-  "run_utc": "2026-11-25T01:18:12+00:00",
+  "run_utc": "2026-11-25T20:43:36+00:00",
   "asof": "2026-11-25",
   "output": {
     "agent": "macro_analyst",
     "version": "v1.0",
     "market": "usa",
     "asof": "2026-11-25",
-    "headline": "regime=unknown \u00b7 vol=elevated \u00b7 active_impacts=3 \u00b7 macro_score=+0.05",
-    "narrative": "regime=unknown \u00b7 vol=elevated \u00b7 active_impacts=3 \u00b7 macro_score=+0.05.\n\nAEGIS Macro & Intermarket Intelligence audit. Combines commodity moves, currency pressures, yield curve, VIX regime, and sector rotation into a single macro regime call. Emits an impact matrix + knowledge graph that downstream engines (Recommendation, Risk, Portfolio, Learning, AI Auditor) will consume from Sprint 8 onward.\n\nDoes NOT approve or promote \u2014 every commodity impact, sector rotation call, and regime label is DESCRIPTIVE and requires operator interpretation. AI never trades on macro alone.",
+    "headline": "regime=unknown \u00b7 vol=elevated \u00b7 active_impacts=1 \u00b7 macro_score=-0.20",
+    "narrative": "regime=unknown \u00b7 vol=elevated \u00b7 active_impacts=1 \u00b7 macro_score=-0.20.\n\nAEGIS Macro & Intermarket Intelligence audit. Combines commodity moves, currency pressures, yield curve, VIX regime, and sector rotation into a single macro regime call. Emits an impact matrix + knowledge graph that downstream engines (Recommendation, Risk, Portfolio, Learning, AI Auditor) will consume from Sprint 8 onward.\n\nDoes NOT approve or promote \u2014 every commodity impact, sector rotation call, and regime label is DESCRIPTIVE and requires operator interpretation. AI never trades on macro alone.",
     "findings": [
       {
         "type": "macro_regime",
         "primary": "unknown",
-        "secondary": "deflationary",
+        "secondary": null,
         "confidence": 0.9,
-        "macro_score": 0.05,
+        "macro_score": -0.2,
         "evidence": {
           "vol_regime": "elevated",
-          "oil_1w_pct": -5.046,
-          "gold_1w_pct": -8.281,
-          "usd_1w_pct": NaN,
+          "oil_1w_pct": -1.49,
+          "gold_1w_pct": -3.717,
+          "usd_1w_pct": -0.051,
           "yield_curve_inversion": false,
-          "ten_year_1m_bps": -27.025944
+          "ten_year_1m_bps": -22.960127999999997
         }
       },
       {
         "type": "volatility",
         "symbol": "^VIX",
-        "level": 26.36,
+        "level": 27.99,
         "regime": "elevated",
-        "chg_1m_pct": 56.254
+        "chg_1m_pct": 70.049
       },
       {
         "type": "central_bank_state",
         "bank": "Fed",
         "rate_cycle": "neutral",
-        "yield_curve_slope": 19.2,
+        "yield_curve_slope": 18.8,
         "inversion": false,
         "liquidity_score": 0.0,
         "notes": [
-          "Fed: cycle=neutral \u00b7 short_1m=8.469376bps"
+          "Fed: cycle=neutral \u00b7 short_1m=6.810045000000001bps"
         ]
-      },
-      {
-        "type": "commodity_impact",
-        "commodity": "Brent Crude",
-        "direction": "down",
-        "positive_sectors": [
-          "Airlines",
-          "Transportation",
-          "Auto",
-          "Paints"
-        ],
-        "negative_sectors": [
-          "Energy",
-          "Oil Producers"
-        ],
-        "confidence": 0.88,
-        "rationale": ""
-      },
-      {
-        "type": "commodity_impact",
-        "commodity": "WTI Crude",
-        "direction": "down",
-        "positive_sectors": [
-          "Airlines",
-          "Transportation",
-          "Consumer Discretionary",
-          "Paints",
-          "FMCG",
-          "Auto",
-          "Logistics"
-        ],
-        "negative_sectors": [
-          "Energy",
-          "Oil Producers",
-          "Oil Services"
-        ],
-        "confidence": 0.9,
-        "rationale": "Falling oil reduces input costs; downstream margins expand. Upstream capex compresses."
       },
       {
         "type": "commodity_impact",
@@ -100,44 +62,42 @@
         "type": "sector_rotation",
         "leaders": [
           {
-            "sector": "Materials",
-            "return_pct": NaN
+            "sector": "Consumer Staples",
+            "return_pct": 6.53
           },
           {
-            "sector": "Communication Services",
-            "return_pct": NaN
+            "sector": "Utilities",
+            "return_pct": 4.69
           },
           {
-            "sector": "Energy",
-            "return_pct": NaN
+            "sector": "Real Estate",
+            "return_pct": 4.38
           }
         ],
         "laggards": [
           {
-            "sector": "Consumer Discretionary",
-            "return_pct": NaN
+            "sector": "Technology",
+            "return_pct": -18.37
           },
           {
-            "sector": "Healthcare",
-            "return_pct": NaN
+            "sector": "Energy",
+            "return_pct": -8.49
           },
           {
-            "sector": "Utilities",
-            "return_pct": NaN
+            "sector": "Communication Services",
+            "return_pct": -6.51
           }
         ],
-        "rotation_strength": 0.0
+        "rotation_strength": 0.571
       },
       {
         "type": "knowledge_graph_summary",
-        "n_entries": 4,
+        "n_entries": 2,
         "factor_kinds": [
           "commodity",
           "rate"
         ],
         "top_factors": [
-          "Brent Crude",
-          "WTI Crude",
           "Gold",
           "10Y Treasury Yield"
         ]
@@ -147,15 +107,15 @@
         "n_commodities": 3,
         "n_currencies": 1,
         "n_bonds": 4,
-        "n_active_impacts": 3,
-        "n_kg_entries": 4
+        "n_active_impacts": 1,
+        "n_kg_entries": 2
       }
     ],
     "evidence": {
       "primary_regime": "unknown",
       "vol_regime": "elevated",
-      "n_active_impacts": 3,
-      "macro_score": 0.05
+      "n_active_impacts": 1,
+      "macro_score": -0.2
     },
     "citations": [
       "backend/macro_intel/engine.py",
