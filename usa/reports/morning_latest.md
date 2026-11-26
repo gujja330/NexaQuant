@@ -1,9 +1,9 @@
-# AEGIS USA · Morning Research · 2026-11-25 20:56 EDT
+# AEGIS USA · Morning Research · 2026-11-26 16:24 EDT
 
 _Currency: USD ($) · Benchmark: S&P 500_
 
 ## Portfolio Summary
-- **Total recommendations:** 516
+- **Total recommendations:** 493
 - **Actions:** 
 
 ## Risk & Capital
@@ -23,4 +23,4 @@ _Currency: USD ($) · Benchmark: S&P 500_
 - **29** trading days until Winner Genome activates
 
 ---
-_Generated 2026-11-25 20:56 EDT · AEGIS USA v1.0 · USD_
+_Generated 2026-11-26 16:24 EDT · AEGIS USA v1.0 · USD_
