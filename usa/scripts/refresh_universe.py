@@ -19,12 +19,13 @@ Article 3 of AEGIS v3.0 Constitutional Directive:
 """
 from __future__ import annotations
 
+import hashlib
 import io
 import json
-import re
 import sys
 import urllib.request
 from datetime import datetime, timezone
+from html.parser import HTMLParser
 from pathlib import Path
 
 try:
@@ -35,7 +36,10 @@ except Exception:
 _ROOT = Path(__file__).resolve().parents[2]
 _USA = _ROOT / "usa"
 OUT_DIR = _USA / "configs" / "universes"
-OUT_DIR.mkdir(parents=True, exist_ok=True)
+sys.path.insert(0, str(_ROOT))
+
+from backend.ingest.security_master import normalize, update
+from backend.shared.atomic_io import write_text_atomic
 
 
 UA = "Mozilla/5.0 (compatible; AEGIS-universe-fetcher/1.0)"
@@ -62,29 +66,68 @@ def _fetch_html(url: str) -> str:
         return resp.read().decode("utf-8", errors="replace")
 
 
+class _ConstituentTable(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.depth = 0
+        self.rows = []
+        self.row = None
+        self.cell = None
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "table" and (self.depth or dict(attrs).get("id") == "constituents"):
+            self.depth += 1
+        if self.depth != 1:
+            return
+        if tag == "tr":
+            self.row = []
+        elif tag in {"td", "th"} and self.row is not None:
+            self.cell = []
+
+    def handle_data(self, data):
+        if self.depth == 1 and self.cell is not None:
+            self.cell.append(data)
+
+    def handle_endtag(self, tag):
+        if self.depth == 1 and tag in {"td", "th"} and self.cell is not None:
+            self.row.append("".join(self.cell).strip())
+            self.cell = None
+        elif self.depth == 1 and tag == "tr" and self.row is not None:
+            if self.row:
+                self.rows.append(self.row)
+            self.row = None
+        elif tag == "table" and self.depth:
+            self.depth -= 1
+
+
 def _extract_tickers(html: str) -> list[str]:
-    """Wikipedia S&P constituent tables have ticker as first-column <a>Ticker</a>.
-    Regex is intentionally loose to survive minor markup changes."""
-    hits = re.findall(r'<td[^>]*><a[^>]*>([A-Z][A-Z0-9\.\-]{0,5})</a>', html)
-    # Filter obvious noise (page section anchors etc.)
-    tickers = []
-    seen = set()
-    for t in hits:
-        if len(t) > 6 or "." in t and len(t) > 5:
-            continue
-        if t in seen:
-            continue
-        seen.add(t)
-        tickers.append(t)
-    return tickers
+    parser = _ConstituentTable()
+    parser.feed(html)
+    if not parser.rows or parser.rows[0][0].lower() not in {"symbol", "ticker", "ticker symbol"}:
+        raise ValueError("constituents table has no recognizable ticker column")
+    return [row[0] for row in parser.rows[1:]]
+
+
+def refresh_reference(root, key, seed):
+    spec = INDEX_SOURCES[key]
+
+    def fetch():
+        members = _extract_tickers(_fetch_html(spec["url"]))
+        return {"market": "usa", "index": key, "members": members,
+                "observed_utc": datetime.now(timezone.utc).isoformat(),
+                "source": spec["url"], "source_type": "PUBLIC_SECONDARY",
+                "source_revision": hashlib.sha256("\n".join(members).encode()).hexdigest()}
+
+    return update(root / "usa/reports/security_master", "usa", key, seed, fetch,
+                  bounds=(spec["min"], spec["expected"] + 50))
 
 
 def fetch_index(key: str, spec: dict) -> dict:
     print(f"[{key}] fetching {spec['url']}")
     html = _fetch_html(spec["url"])
-    tickers = _extract_tickers(html)
+    tickers = normalize(_extract_tickers(html))
     n = len(tickers)
-    status = "ok" if n >= spec["min"] else "insufficient"
+    status = "ok" if spec["min"] <= n <= spec["expected"] + 50 else "insufficient"
     print(f"[{key}] extracted {n} tickers · expected ~{spec['expected']} · status={status}")
     return {
         "engine":       "aegis.usa.universe.fetcher.v1",
@@ -106,15 +149,24 @@ def main() -> int:
         try:
             data = fetch_index(key, spec)
             out = OUT_DIR / f"{key}.json"
-            out.write_text(json.dumps(data, indent=2), encoding="utf-8")
-            print(f"[{key}] wrote {out.relative_to(_ROOT)}  ({data['n_tickers']} tickers)")
             if data["status"] != "ok":
                 all_ok = False
+                continue
+            old = json.loads(out.read_text(encoding="utf-8")) if out.is_file() else {}
+            before, after = set(old.get("tickers") or ()), set(data["tickers"])
+            if before and len(before ^ after) > 0.12 * len(before):
+                print(f"[{key}] change exceeds review threshold; retained previous file")
+                all_ok = False
+                continue
+            write_text_atomic(out, json.dumps(data, indent=2))
+            print(f"[{key}] wrote {out.relative_to(_ROOT)}  ({data['n_tickers']} tickers)")
         except Exception as e:
             print(f"[{key}] FAILED: {type(e).__name__}: {e}")
             all_ok = False
 
     # Also emit a combined universe file (union of both, deduplicated)
+    if not all_ok:
+        return 1
     try:
         sp500 = json.loads((OUT_DIR / "sp500.json").read_text(encoding="utf-8")).get("tickers", [])
         sp400 = json.loads((OUT_DIR / "sp400_midcap.json").read_text(encoding="utf-8")).get("tickers", [])
@@ -129,8 +181,9 @@ def main() -> int:
             "status":       "ok" if len(combined) >= 800 else "insufficient",
             "tickers":      combined,
         }
-        (OUT_DIR / "sp500_plus_midcap400.json").write_text(
-            json.dumps(combined_data, indent=2), encoding="utf-8")
+        if combined_data["status"] != "ok":
+            return 1
+        write_text_atomic(OUT_DIR / "sp500_plus_midcap400.json", json.dumps(combined_data, indent=2))
         print(f"[combined] {len(combined)} unique tickers (union) · wrote "
               f"{(OUT_DIR / 'sp500_plus_midcap400.json').relative_to(_ROOT)}")
     except Exception as e:

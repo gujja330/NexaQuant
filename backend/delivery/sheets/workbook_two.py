@@ -26,6 +26,7 @@ the only place to fix it.
 """
 from __future__ import annotations
 
+from copy import copy
 import json
 from pathlib import Path
 from typing import Optional
@@ -38,6 +39,15 @@ from backend.delivery.lifecycle.canonical_daily_lifecycle import (  # noqa: E402
 )
 
 TWO_SHEETS = ["CURRENT", "EXIT HISTORY"]
+
+
+def _style_pnl_text(cell):
+    value = cell.value
+    if not isinstance(value, (int, float)) or not value:
+        return
+    font = copy(cell.font)
+    font.color = "FF166534" if value > 0 else "FF991B1B"
+    cell.font = font
 
 # R2's own columns. Nothing in the R3 block below may ever be inserted
 # among these - the separation is the point.
@@ -102,6 +112,13 @@ def _with_r3(base: list) -> list:
 
 
 CURRENT_COLUMNS = _with_r3(CURRENT_COLUMNS_R2)
+INDIA_CURRENT_COLUMNS = [
+    {"Max Loss if Stop %": "Return at Stop %", "Entry Date": "Admission Date"}.get(column, column)
+    for column in CURRENT_COLUMNS
+] + ["Target Status", "Target Basis", "Remaining Upside %",
+     "Profit Giveback (pp)", "Reward to Risk", "Actionability", "Price Freshness",
+     "Entry Class", "Original Stop", "Stop Management", "Exit Decision", "Decision As-of",
+     "Entry Price Basis"]
 
 # R3 comments on R2 candidates only · it has nothing to say about an R1
 # advisory row and must not pretend otherwise.
@@ -150,6 +167,124 @@ def _days_held(entry_date, asof):
     # A negative age means entry_date is after the as-of · that is a
     # lifecycle defect, not a duration, and must not be rendered as one.
     return n if n >= 0 else "—"
+
+
+def _target_status(row):
+    target, close = row.get("target"), row.get("current_price")
+    if not isinstance(target, (int, float)) or target <= 0:
+        return "TARGET NOT AVAILABLE" if row.get("engine") == ENGINE_R2 else "TARGET NOT APPLICABLE"
+    if not isinstance(close, (int, float)) or close <= 0:
+        return "MARKET DATA UNAVAILABLE"
+    if close > target:
+        return "TARGET EXCEEDED"
+    if close == target:
+        return "TARGET REACHED"
+    return "TARGET NOT REACHED"
+
+
+def _india_decision_cells(row):
+    from backend.delivery.governance.advisory_state import is_advisory
+
+    close, stop, target = (row.get(key) for key in ("current_price", "stop", "target"))
+    pnl, return_at_stop = row.get("pnl_pct"), row.get("max_loss_if_stop_pct")
+    upside = ratio = giveback = None
+    if isinstance(close, (int, float)) and close > 0 and isinstance(target, (int, float)):
+        upside = round(max(0, (target / close - 1) * 100), 2)
+        if isinstance(stop, (int, float)) and target > close > stop > 0:
+            ratio = round((target - close) / (close - stop), 2)
+    if isinstance(pnl, (int, float)) and pnl > 0 and isinstance(return_at_stop, (int, float)):
+        giveback = round(min(pnl, max(0, pnl - return_at_stop)), 2)
+    engine = row.get("engine")
+    advisory = engine == ENGINE_R1 or is_advisory("india", engine)
+    return [
+        _target_status(row), _fmt(row.get("target_basis"), "SOURCE UNAVAILABLE"),
+        _fmt(upside), _fmt(giveback), _fmt(ratio),
+        "NOT ACTIONABLE" if row.get("price_freshness") in {"STALE DATA", "MARKET DATA UNAVAILABLE"} else
+        "ADVISORY" if advisory else "UNAVAILABLE",
+        _fmt(row.get("price_freshness"), "UNAVAILABLE"),
+        _fmt(row.get("entry_class"), "UNAVAILABLE"), _fmt(row.get("original_stop")),
+        _fmt(row.get("stop_management"), "UNAVAILABLE"),
+        _fmt(row.get("exit_decision"), "UNAVAILABLE"), _fmt(row.get("decision_asof")),
+        _fmt(row.get("entry_price_basis"), "UNAVAILABLE"),
+
+    ]
+
+
+def _style_india_table(ws, columns, header, end):
+    from datetime import date
+    from math import ceil
+    from openpyxl.formatting.rule import FormulaRule
+    from openpyxl.styles import Alignment, PatternFill
+    from openpyxl.utils import get_column_letter
+
+    ws.freeze_panes = f"C{header + 1}"
+    ws.auto_filter.ref = f"A{header}:{get_column_letter(len(columns))}{end}"
+    ws.row_dimensions[header].height = 33
+    if end <= header:
+        return
+    columns_by_name = {name: idx for idx, name in enumerate(columns, 1)}
+    size_requirements = {
+        "Ticker": 17, "Current Market Cap": 29, "Entry Price": 17,
+        "Last Price": 17, "Exit Price": 17, "Stop": 17, "Target": 17,
+        "Original Stop": 17,
+    }
+    for name, width in size_requirements.items():
+        if name in columns_by_name:
+            column = get_column_letter(columns_by_name[name])
+            ws.column_dimensions[column].width = max(ws.column_dimensions[column].width, width)
+    fills = {name: PatternFill("solid", fgColor="FF" + code, bgColor="FF" + code)
+             for name, code in {
+        "green": "DCFCE7", "red": "FEE2E2", "blue": "DBEAFE",
+        "amber": "FEF3C7",
+    }.items()}
+    for name in ("P&L %", "Return at Stop %"):
+        if name in columns_by_name:
+            column = get_column_letter(columns_by_name[name])
+            anchor = f"{column}{header + 1}"
+            for operator, color in ((">", "green"), ("<", "red")):
+                ws.conditional_formatting.add(
+                    f"{anchor}:{column}{end}",
+                    FormulaRule(formula=[f"AND(ISNUMBER({anchor}),{anchor}{operator}0)"],
+                                fill=fills[color]),
+                )
+    status_colors = {
+        "NEW": "blue", "ACTIVE+": "green", "TARGET REACHED": "green",
+        "TARGET EXCEEDED": "green", "REVIEW": "amber", "STOP BREACH": "red",
+        "STOP-BREACH MARK": "red", "BREACHED": "red", "EXIT": "red",
+        "REALIZED EXIT": "red", "STALE DATA": "amber", "ADVISORY": "amber",
+        "NOT ACTIONABLE": "amber",
+    }
+    for row in ws.iter_rows(min_row=header + 1, max_row=end):
+        for name, cell in zip(columns, row):
+            value = cell.value
+            if name in ("Action", "Admission Status", "Stop State", "Target Status",
+                        "Record Type", "Actionability", "Price Freshness", "Exit Decision", "Entry Class"):
+                if value in status_colors:
+                    cell.fill = fills[status_colors[value]]
+            elif isinstance(value, (int, float)):
+                cell.alignment = Alignment(horizontal="right", vertical="center", indent=1)
+                if name.endswith(" %") or name == "Profit Giveback (pp)":
+                    cell.number_format = "0.00"
+                if name in ("P&L %", "Return at Stop %") and value != 0:
+                    cell.fill = fills["green" if value > 0 else "red"]
+                    _style_pnl_text(cell)
+                if name in ("Entry Price", "Last Price", "Exit Price", "Stop", "Target", "Original Stop"):
+                    cell.number_format = '"INR "#,##0.00'
+                elif name == "Current Market Cap":
+                    cell.number_format = '"INR "#,##0'
+            if name in ("Entry Date", "Admission Date", "Exit Date", "Market Data As-of",
+                        "Market Cap As-of", "Decision As-of") and isinstance(value, str):
+                try:
+                    cell.value = date.fromisoformat(value)
+                    cell.number_format = "dd-mmm-yyyy"
+                except ValueError:
+                    pass
+            if name in ("Reason", "Exit Reason"):
+                cell.alignment = Alignment(vertical="center", wrap_text=True)
+                width = (ws.column_dimensions[cell.column_letter].width or 26) - 4
+                lines = sum(max(1, ceil(len(text) / max(8, width)))
+                            for text in str(value or "").splitlines())
+                ws.row_dimensions[cell.row].height = max(30, lines * 12 + 6)
 
 
 def _fmt(x, dash="—"):
@@ -264,7 +399,9 @@ def emit_current(wb, d: dict):
     c = d.get("counts") or {}
     _r3 = d.get("_r3") or {}
     ws = wb.create_sheet("CURRENT")
-    n = len(CURRENT_COLUMNS)
+    india = str(d.get("market", "")).lower() == "india"
+    columns = INDIA_CURRENT_COLUMNS if india else CURRENT_COLUMNS
+    n = len(columns)
     # The header date is the WORKBOOK date. The prices are the last
     # completed close, which on a pre-close run is the previous session.
     # Both are stated, because showing only the first invites the reader
@@ -363,7 +500,10 @@ def emit_current(wb, d: dict):
         "and explicit authorisation. %d candidate(s) reviewed today."
         % _n_r3)
     _sub(ws, "   ||   ".join(_row6), n, 6)
-    _header(ws, CURRENT_COLUMNS, 7)
+    _header(ws, columns, 7)
+    if india:
+        for i, width in enumerate((27, 31, 19, 20, 17, 20, 25, 17, 17, 32, 19, 20, 43), len(CURRENT_COLUMNS) + 1):
+            ws.column_dimensions[get_column_letter(i)].width = width
     # A capitalisation is a 12-digit number. Left raw it reads as noise
     # (213353612143.8); grouped it reads as a size. The stored value is
     # unchanged - this is display only, so a reader can still compute on
@@ -395,9 +535,7 @@ def emit_current(wb, d: dict):
             # cell says so instead of leaving the reader to guess.
             _fmt(row.get("confidence_pct"), "Historical score unavailable"),
             _fmt(row.get("sector"), "NOT_AVAILABLE"),
-            # Never a liquidity bucket wearing a cap label. India's
-            # fundamentals feed carries no capitalisation at all (0/228),
-            # so India says so rather than borrowing avg_dv_60d.
+            # Market cap is supplied by the canonical dated source.
             _fmt(row.get("market_cap"), "MARKET_CAP_UNAVAILABLE"),
             _fmt(row.get("market_cap_asof"), "—"),
             _fmt(row.get("size"), "—"),
@@ -409,21 +547,30 @@ def emit_current(wb, d: dict):
             # passed · it is not a target and is withheld rather than
             # shown. Four R1 advisory rows carried one on 2026-09-09
             # (CRM: 221.57 against a current 249.12).
-            _fmt(None if (isinstance(row.get("target"), (int, float))
-                          and isinstance(row.get("current_price"), (int, float))
-                          and row["target"] <= row["current_price"])
-                 else row.get("target")),
+            _fmt(row.get("target") if india else (
+                None if isinstance(row.get("target"), (int, float))
+                and isinstance(row.get("current_price"), (int, float))
+                and row["target"] <= row["current_price"] else row.get("target")
+            )),
             row.get("position_id"), row.get("reason"),
-        ], r, pnl_col_idx=11)
+            *(_india_decision_cells(row) if india else []),
+        ], r, pnl_col_idx=None if india else columns.index("P&L %") + 1)
+        if not india:
+            _style_pnl_text(ws.cell(r, columns.index("P&L %") + 1))
         _c = ws.cell(r, _cap_col)
         if isinstance(_c.value, (int, float)):
             _c.number_format = "#,##0"
         r += 1
+    if india:
+        _style_india_table(ws, columns, 7, r - 1)
     if not rows:
         ws.cell(r, 1, "Nothing investable today.").font = FONT_BODY
         r += 1
     r += 2
     _legend(ws, [
+        *(["Percent-based columns show decimal values in percentage points. A value of 2.50 means 2.50%."] if india else []),
+        *(["Admission Date records when AEGIS registered the episode. Entry Price Basis describes "
+           "the reference used for AEGIS P&L. Consult broker records for executed fills."] if india else []),
         "Stop distance % · the DOWNSIDE from the current price to the "
         "stop. It is not a profit target and no target is implied by it.",
         "Target · withheld (—) when the stored target sits at or below the "
@@ -555,13 +702,22 @@ def emit_exit_history(wb, d: dict):
             # USA), so the honest cell says why it is empty.
             _fmt(e.get("entry_confidence_pct"), "Historical score unavailable"),
             e.get("exit_trigger"), e.get("position_id"), e.get("source"),
-        ], r, pnl_col_idx=10)
+        ], r, pnl_col_idx=None if str(d.get("market", "")).lower() == "india"
+           else EXIT_COLUMNS.index("P&L %") + 1)
+        if str(d.get("market", "")).lower() != "india":
+            _style_pnl_text(ws.cell(r, EXIT_COLUMNS.index("P&L %") + 1))
         r += 1
+    if str(d.get("market", "")).lower() == "india":
+        _style_india_table(ws, EXIT_COLUMNS, 4, r - 1)
     if not rows:
         ws.cell(r, 1, "No exits recorded.").font = FONT_BODY
         r += 1
     r += 2
     _legend(ws, [
+        *(["P&L is shown in percentage points. A value of 2.50 means 2.50%."]
+          if str(d.get("market", "")).lower() == "india" else []),
+        *(["India exit dates, prices and realized P&L refer to AEGIS lifecycle events. "
+           "Consult broker records for executed fills."] if str(d.get("market", "")).lower() == "india" else []),
         # The banner's overclaim was removed and this line still carried
         # it. A legend is read as authoritative and must not restate a
         # coverage claim the data cannot support.

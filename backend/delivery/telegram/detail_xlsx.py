@@ -425,7 +425,18 @@ def _rec_to_row(rec: Mapping, market: str, root: Path,
     # The calculation is KEPT and still rendered - it is useful advisory
     # information. It simply no longer decides a lifecycle transition.
     # Genuine sell/exit signals below are untouched and still exit.
-    if entry_action == "SELL" or if_holding in ("EXIT", "REDUCE", "SELL"):
+    unavailable = {}
+    if market.lower() == "india":
+        from india.price_availability import unavailable_prices
+
+        unavailable = unavailable_prices(root, asof)
+    if ticker.upper() in unavailable:
+        status = "HOLD"
+    elif if_holding == "REDUCE":
+        # This path has no partial-exit accounting. Governed risk exits
+        # can still close the episode through the dynamic exit bridge.
+        status = "HOLD"
+    elif entry_action == "SELL" or if_holding in ("EXIT", "SELL"):
         status = "EXIT"
     elif entry_action == "BUY" and pct_action == "STRONG_BUY":
         status = "STRONG BUY"
@@ -446,8 +457,6 @@ def _rec_to_row(rec: Mapping, market: str, root: Path,
         # reported as the cause of one.
         if if_holding == "EXIT":
             exit_reason = risk_first or "Exit signal (defensive)"
-        elif if_holding == "REDUCE":
-            exit_reason = risk_first or "Reduce position (defensive)"
         elif entry_action == "SELL":
             exit_reason = risk_first or "Sell signal"
         else:

@@ -1,5 +1,5 @@
 version: 1.0
-last_amended: 2026-08-24
+last_amended: 2026-11-24
 # Ticker rename / demerger alias map.
 # Consumed by backend.ingest.ticker_health::resolve_alias(root, market, ticker).
 # When yfinance returns 404 for a legacy symbol, ingest modules can call
@@ -24,9 +24,14 @@ india:
   # Alias kept below in case legacy code references MM.
   MM: "M&M"
 
-  # LTIMindtree · post LTI + Mindtree merger the NSE symbol became LTIM
-  # but some feeds still fail. Verify + alias if needed.
-  # LTIM: LTIM-NEW
+  # Provider symbol only. NSE/FAOP/72935 effective 2026-02-27.
+  LTIM: LTM
+
+  # NSE/CML/74850 effective 2026-07-01; keep the legacy storage and episode key.
+  GUJGASLTD: GUJENERGY
+
+  # NSE/CML/76967 effective 2026-10-23, same ISIN INE726G01019.
+  ICICIPRULI: ICICILIFE
 
   # Piramal Enterprises · Piramal Pharma demerged in 2022 · symbol split.
   # PEL: PIRAMALENT     # verify · may need "PPLPHARMA" for the demerged entity

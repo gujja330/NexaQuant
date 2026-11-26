@@ -69,15 +69,27 @@ def test_build_portfolio_drops_below_min():
     print(f"  [OK] build_portfolio drops positions below min_position_size")
 
 
-def test_build_portfolio_normalizes_to_target_gross():
+def test_build_portfolio_preserves_upstream_weights_below_cash_ceiling():
     positions = build_portfolio(
         _sample_sized_positions(), target_n=20, min_position_size=0.001,
         cash_reserve=0.10, asof="2026-07-21", market="usa",
     )
     gross = sum(abs(p.weight) for p in positions)
-    # Weights are rounded to 6dp per position; N positions → tolerance N × 1e-6
-    assert abs(gross - 0.90) < 1e-4, f"expected gross≈0.90 got {gross}"
-    print(f"  [OK] build_portfolio normalizes to (1 - cash_reserve) ≈ 0.90 (got {gross:.6f})")
+    assert abs(gross - 0.191) < 1e-6
+    assert {p.ticker: p.weight for p in positions} == {
+        p["ticker"]: p["target_weight"] for p in _sample_sized_positions()
+    }
+
+
+def test_build_portfolio_scales_down_to_cash_ceiling():
+    positions = build_portfolio(
+        _sample_sized_positions(), target_n=20, min_position_size=0.001,
+        cash_reserve=0.90, asof="2026-07-21", market="india",
+    )
+    assert abs(sum(abs(p.weight) for p in positions) - 0.10) < 1e-5
+    original = {p["ticker"]: p["target_weight"] for p in _sample_sized_positions()}
+    assert all(abs(p.weight) <= abs(original[p.ticker]) and p.weight * original[p.ticker] > 0
+               for p in positions)
 
 
 def test_build_portfolio_top_n_cap():
@@ -175,8 +187,10 @@ def test_engine_end_to_end():
     ts_map = {"T1": "Tech", "T2": "Tech", "T3": "Health", "T4": "Energy"}
     snap, diff = engine.run(_sample_sized_positions(), ts_map, asof=date(2026, 7, 21))
     assert snap.n_positions >= 3   # T5 dropped
-    assert 0.90 <= sum(abs(p.weight) for p in snap.positions) <= 0.96  # gross = ~0.95
-    assert snap.cash_pct >= 0.04
+    expected_gross = sum(abs(p["target_weight"]) for p in _sample_sized_positions()
+                         if abs(p["target_weight"]) >= engine.min_position_size)
+    assert abs(sum(abs(p.weight) for p in snap.positions) - expected_gross) < 1e-6
+    assert abs(snap.cash_pct - (1 - expected_gross)) < 1e-6
     assert snap.hhi > 0 and snap.effective_n > 1
     print(f"  [OK] engine end-to-end: n={snap.n_positions} gross={1-snap.cash_pct:.3f} HHI={snap.hhi:.3f}")
 
@@ -279,7 +293,8 @@ def test_usa_runner(_OUT_ROOT):
 
 TESTS = [
     test_cash_reserve_stress_uses_higher, test_cash_reserve_bear_midpoint, test_cash_reserve_default_min,
-    test_build_portfolio_drops_below_min, test_build_portfolio_normalizes_to_target_gross,
+    test_build_portfolio_drops_below_min, test_build_portfolio_preserves_upstream_weights_below_cash_ceiling,
+    test_build_portfolio_scales_down_to_cash_ceiling,
     test_build_portfolio_top_n_cap,
     test_diversification_effective_n_matches_1_over_hhi, test_diversification_sector_map,
     test_diff_open_and_close, test_diff_hold_when_delta_below_threshold,

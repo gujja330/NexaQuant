@@ -392,9 +392,26 @@ def compute(root: Path, market: str, asof: str) -> dict:
 
     m = market.lower()
     retired = retired_runners(root)
-    reg_data = _load_registry(root, m, retired)
+    reg_data = _load_registry(root, m, retired, asof=asof if m == "india" else None)
     # CANONICAL R2 STOP · the one source. Nothing downstream recomputes it.
     dr_by_pid = _load_dynamic_risk(root, m)
+
+    india_registry = {}
+    india_positions = {}
+    exit_audits = {}
+    if m == "india":
+        from backend.research.opportunity_registry import load_all
+        from backend.portfolio.position_store.store import load_all_positions
+
+        india_registry = load_all(root)
+        india_positions = load_all_positions(root / "reports", m)
+        audit_path = root / "reports" / "audit" / f"dynamic_exit_decisions_{m}_{asof}.json"
+        try:
+            audit = json.loads(audit_path.read_text(encoding="utf-8"))
+            if audit.get("asof") == asof:
+                exit_audits = {item["opportunity_id"]: item for item in audit.get("decisions", [])}
+        except (OSError, ValueError, KeyError):
+            pass
 
     current, exits, filtered, breached = [], [], [], []
     latched = load_breach_ledger(root, m)
@@ -421,12 +438,18 @@ def compute(root: Path, market: str, asof: str) -> dict:
                 return round(float(v) * 100, 1) if 0 <= v <= 1 else round(float(v), 1)
         return None
 
+    unavailable = {}
+    if m == "india":
+        from india.price_availability import unavailable_prices
+
+        unavailable = unavailable_prices(root, asof)
+
     def _emit_current(o, engine: str):
         action = classify_action(o.status, o.initial_signal,
                                  o.created_date, asof)
         sig = str(o.initial_signal or "")
         if not is_investable(action, o.initial_signal):
-            filtered.append({"ticker": str(o.ticker).upper().split(".", 1)[0],
+            filtered.append({"ticker": _norm_ticker(o.ticker),
                              "engine": engine, "action": action,
                              "signal": sig,
                              "reason": ("NEW without a BUY-family signal"
@@ -434,7 +457,7 @@ def compute(root: Path, market: str, asof: str) -> dict:
                                         else "action is not investable")})
             return
         entry = _close_on_or_before(root, o.ticker, m, o.created_date or "")
-        curr = _close_on_or_before(root, o.ticker, m, asof)
+        curr, close_date = _close_on_or_before(root, o.ticker, m, asof, with_date=True)
         pnl = round((curr / entry - 1.0) * 100, 2) if (entry and curr and entry > 0) else None
 
         # STOP · engine-bound by governance.
@@ -454,11 +477,18 @@ def compute(root: Path, market: str, asof: str) -> dict:
                 stop = _num(float(entry) - 2.0 * float(atr))
                 basis = "ATR14 SUGGESTED · advisory · NOT enforced"
 
-        target = _target_from_registry(o)
+        decision = exit_audits.get(o.opportunity_id, {})
+        target = _num(decision.get("t1_price"))
+        target_basis = "EXIT BRIDGE T1" if target else None
+        if not target:
+            target = _target_from_registry(o)
+            target_basis = "REGISTRY TARGET" if target else None
         if not target and entry:
             target = _target_from_atr_fallback(
                 entry, _atr14_at_date(root, m, o.ticker, o.created_date or asof),
                 m_target=3.0)
+            if target:
+                target_basis = "ATR ESTIMATE ? ADVISORY"
         days = None
         try:
             days = (date.fromisoformat(asof)
@@ -514,7 +544,7 @@ def compute(root: Path, market: str, asof: str) -> dict:
             worst = round((stop / entry - 1.0) * 100, 2)
         row = {
             "market": m.upper(),
-            "ticker": str(o.ticker).upper().split(".", 1)[0],
+            "ticker": _norm_ticker(o.ticker),
             "engine": engine, "action": action,
             "entry_date": o.created_date or "",
             "entry_price": _num(entry, 2), "current_price": curr_shown,
@@ -522,6 +552,8 @@ def compute(root: Path, market: str, asof: str) -> dict:
             "stop": stop, "stop_basis": basis, "stop_state": stop_state,
             "dist_to_stop_pct": dist, "max_loss_if_stop_pct": worst,
             "target": _num(target, 2),
+            **({"target_basis": target_basis, "market_data_asof": close_date}
+               if m == "india" else {}),
             "position_id": getattr(o, "opportunity_id", ""),
             "holding_days": days,
             # CEO 2026-10-27 · R2 India advisory notice rides on the
@@ -537,6 +569,26 @@ def compute(root: Path, market: str, asof: str) -> dict:
                         f"· stop {basis}"))),
             "source": "registry:active",
         }
+        if m == "india":
+            prior = india_registry.get((m, o.runner.upper(), _norm_ticker(o.ticker)), [])
+            reentry = any(
+                p.status == "CLOSED" and p.closed_date and p.closed_date < o.created_date
+                and _record_type("registry:production", p.closed_reason or "") == RT_REALIZED
+                for p in prior
+            )
+            position = india_positions.get(o.ticker) or india_positions.get(f"{o.ticker}.NS")
+            row["entry_class"] = "RE-ENTRY" if reentry else "NEW"
+            row["original_stop"] = (
+                _num(position.initial_stop, 2)
+                if engine == ENGINE_R2 and position and position.first_seen_date == o.created_date
+                else None
+            )
+            row["stop_management"] = decision.get("stop_source")
+            row["decision_asof"] = decision.get("asof")
+            row["exit_decision"] = decision.get("event")
+            if decision.get("reason"):
+                row["reason"] += f" ? {decision['reason']}"
+
         # BREACHED IS AN EXIT TRANSITION - CEO 2026-09-08.
         #
         # > "Breached means EXIT transition, not CURRENT. Keeping a
@@ -551,7 +603,12 @@ def compute(root: Path, market: str, asof: str) -> dict:
         # its breach reason and its P&L into EXIT HISTORY so the loss
         # stays visible rather than merely disappearing from the view.
         _latch = latched.get(row["position_id"])
-        if stop_state == "BREACHED" or _latch:
+        if row["ticker"] in unavailable and not _latch:
+            row.update(stop_state="STALE DATA", price_freshness="STALE DATA", exit_decision="DATA REVIEW",
+                       max_loss_if_stop_pct=None, dist_to_stop_pct=None,
+                       reason=unavailable[row["ticker"]]["reason"])
+            current.append(row)
+        elif stop_state == "BREACHED" or _latch:
             if _latch and stop_state != "BREACHED":
                 # Price recovered above the stop after the latch was set.
                 # The exit stands - see load_breach_ledger.
@@ -604,7 +661,7 @@ def compute(root: Path, market: str, asof: str) -> dict:
             raw = getattr(o, "closed_reason", "") or ""
             exits.append({
                 "exit_date": o.closed_date or "",
-                "ticker": str(o.ticker).upper().split(".", 1)[0],
+                "ticker": _norm_ticker(o.ticker),
                 "market": m.upper(), "engine": engine,
                 "entry_date": o.created_date or "",
                 "entry_price": _num(entry, 2), "exit_price": _num(exitp, 2),
@@ -701,14 +758,13 @@ def compute(root: Path, market: str, asof: str) -> dict:
     #
     # CEO 2026-09-10: "do not fabricate it · explicitly report
     # MARKET_CAP_UNAVAILABLE · never substitute avg_dv_60d silently."
-    # Measured coverage of `fund_market_cap_log` in today's snapshot:
-    # USA 504/516, INDIA 0/228 - the India fundamentals feed carries no
-    # capitalisation at all. So USA shows a real number and India says so.
+    # USA consumes the feature snapshot. India uses the dated NSE equity
+    # market-cap report once the canonical market data session is known.
     #
     # This is TODAY's capitalisation, not the capitalisation at entry.
     # No PIT cap history exists, so the column is labelled CURRENT and
     # never implies it held on the entry date.
-    _caps, _cap_asof = _market_cap_map(root, m)
+    _caps, _cap_asof = _market_cap_map(root, m) if m != "india" else ({}, None)
     for _row in current:
         _row["market_cap"] = _caps.get(_norm_ticker(_row.get("ticker")))
         _row["market_cap_basis"] = "CURRENT" if _row["market_cap"] else None
@@ -778,7 +834,34 @@ def compute(root: Path, market: str, asof: str) -> dict:
     except Exception:
         pass
     for _row in current:
-        _row["market_data_asof"] = _md_asof
+        if m == "india":
+            price_day = _row.get("market_data_asof")
+            _row["price_freshness"] = (
+                "MARKET DATA UNAVAILABLE" if not price_day or not _md_asof else
+                "STALE DATA" if price_day < _md_asof else "CURRENT CLOSE"
+            )
+            _row["entry_price_basis"] = "AEGIS registry reference price"
+            if (_row.get("entry_date") == str(asof)[:10] and price_day
+                    and price_day < _row["entry_date"] and _row.get("entry_price") is not None
+                    and _row["entry_price"] == _row.get("current_price")):
+                _row["entry_price_basis"] = f"AEGIS reference matches NSE close {price_day}"
+        else:
+            _row["market_data_asof"] = _md_asof
+
+    if m == "india" and _md_asof:
+        from backend.ingest.ticker_health import resolve_alias
+        from india.nse_market_cap import artifact
+
+        cap_file = artifact(root, _md_asof)
+        if cap_file.is_file():
+            cap_snapshot = json.loads(cap_file.read_text(encoding="utf-8"))
+            if cap_snapshot.get("asof") == _md_asof:
+                for row in current:
+                    symbol = resolve_alias(root, m, _norm_ticker(row.get("ticker")))
+                    cap = cap_snapshot["rows"].get(symbol, {}).get("market_cap_inr")
+                    if cap:
+                        row.update(market_cap=cap, market_cap_basis="NSE dated equity market cap",
+                                   market_cap_asof=_md_asof, size=_size_bucket(cap, m))
 
     return {
         "schema_version": SCHEMA_VERSION,
@@ -822,7 +905,7 @@ def _todays_confidence(root: Path, market: str) -> dict:
 
 
 def _norm_ticker(t) -> str:
-    return str(t or "").replace(".NS", "").replace(".BO", "").upper().strip()
+    return str(t or "").upper().strip().removesuffix(".NS").removesuffix(".BO")
 
 
 # One sector, one spelling. Extend deliberately; never guess a mapping.
@@ -994,12 +1077,11 @@ def emit(root: Path, rep: dict) -> Path:
 
 def load(root: Path, market: str) -> Optional[dict]:
     """Read the canonical dataset · the ONLY input a renderer may use."""
-    p = artifact_path(root, market)
-    if not p.exists():
-        return None
+    from backend.shared.atomic_io import read_text_with_retry
+
     try:
-        return json.loads(p.read_text(encoding="utf-8"))
-    except Exception:
+        return json.loads(read_text_with_retry(artifact_path(root, market)))
+    except FileNotFoundError:
         return None
 
 

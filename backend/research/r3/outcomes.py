@@ -59,14 +59,14 @@ def _bars_after(df, asof: str):
 
 
 def measure(root: Path, market: str, ticker: str, asof: str,
-            entry_price: Optional[float], today: str) -> dict:
+            entry_price: Optional[float], today: str, *, load_prices=None) -> dict:
     """Return the outcome block updates that are legitimately knowable.
 
     Only horizons whose bar count has been reached AND whose closing date
     is on/before `today` are filled.
     """
     res = {}
-    loaded = _price_series(root, market, ticker)
+    loaded = (load_prices or _price_series)(root, market, ticker)
     if loaded is None:
         # Unreadable price data · say so rather than emitting 0.0.
         for h in HORIZONS:
@@ -127,8 +127,10 @@ def accumulate(root: Path, today: str, market: Optional[str] = None) -> dict:
     Returns a summary. Never rewrites a horizon that already holds a real
     measurement.
     """
+    from functools import lru_cache
     from backend.research.r3 import shadow_ledger as sl
 
+    load_prices = lru_cache(maxsize=1024)(_price_series)
     p = sl._ledger_path(root)
     if not p.exists():
         return {"status": "NO_LEDGER", "path": str(p)}
@@ -157,7 +159,8 @@ def accumulate(root: Path, today: str, market: Optional[str] = None) -> dict:
             continue
         upd = measure(root, rec.get("market"), rec.get("ticker"),
                       rec.get("asof"),
-                      (rec.get("risk") or {}).get("entry_price"), today)
+                      (rec.get("risk") or {}).get("entry_price"), today,
+                      load_prices=load_prices)
         touched = False
         for k, v in upd.items():
             # Only fill a slot that is still PENDING · never restate.

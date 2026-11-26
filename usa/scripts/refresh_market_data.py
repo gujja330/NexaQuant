@@ -19,7 +19,7 @@ import io
 import json
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 try:
@@ -37,6 +37,11 @@ except ImportError as e:
 
 _ROOT     = Path(__file__).resolve().parents[2]
 _USA      = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(_ROOT))
+from backend.ingest.ticker_health import yahoo_symbol
+from backend.research.evidence.trading_calendars import completed_nyse_session
+from backend.shared.atomic_io import replace_with_retry
+
 UNIVERSE  = _USA / "reports" / "universe.json"
 RAW_DIR   = _USA / "data" / "raw" / "us"
 
@@ -62,25 +67,73 @@ MIN_SUCCESS_FRACTION = 0.85
 INTER_REQUEST_SLEEP_SEC = 0.05
 
 
-def _fetch_one(symbol: str) -> pd.DataFrame | None:
+def _completed_bar_date(now: datetime) -> date:
+    return completed_nyse_session(now)
+
+
+def _new_bars_on_saved_basis(feed: pd.DataFrame, saved: pd.DataFrame | None) -> pd.DataFrame:
+    """Keep historical rows and continue only a close basis evidenced by overlap."""
+    fields = [c for c in ("open", "high", "low", "close", "volume") if c in feed]
+    raw = feed[fields]
+    adjusted = raw.copy()
+    factors = feed["adj close"] / feed["close"]
+    for col in ("open", "high", "low", "close"):
+        if col in adjusted:
+            adjusted[col] = adjusted[col] * factors
+    if saved is None or saved.empty:
+        return adjusted
+    if not saved.index.is_unique or not saved.index.is_monotonic_increasing:
+        raise ValueError("saved prices must have a unique increasing date axis")
+    if not (saved["close"] > 0).all():
+        raise ValueError("saved bars contain invalid closes")
+    if raw.index.max() <= saved.index.max():
+        return saved
+    overlap = saved.index.intersection(raw.index)[-5:]
+    if len(overlap) != 5:
+        raise ValueError("insufficient overlapping closes to verify the price basis")
+    if not set(saved.columns) <= set(fields):
+        raise ValueError("provider does not supply the saved bar schema")
+    reference = saved.loc[overlap, "close"]
+    for candidate in (adjusted, raw):
+        ratio = candidate.loc[overlap, "close"] / reference
+        if ((ratio - 1).abs() <= 0.00005).all():
+            added = candidate.loc[candidate.index > saved.index.max(), saved.columns]
+            added = added.rename_axis(saved.index.name)
+            return pd.concat([saved, added])
+    raise ValueError("provider close basis disagrees with saved overlapping sessions")
+
+
+def _fetch_one(symbol: str, saved: pd.DataFrame | None = None) -> pd.DataFrame | None:
     """Fetch OHLCV for one symbol with retries. Returns cleaned DataFrame
     or None if all retries fail."""
+    provider_symbol = yahoo_symbol(_ROOT, "usa", symbol)
+    cutoff = pd.Timestamp(_completed_bar_date(datetime.now(timezone.utc)))
+    if saved is not None and not saved.empty and saved.index.max() > cutoff:
+        print(f"    [BASIS BLOCK] {symbol}: saved bars extend beyond the last completed session")
+        return None
     for attempt in range(1, MAX_RETRIES + 1):
         try:
-            df = yf.Ticker(symbol).history(period=HISTORY_PERIOD, auto_adjust=True)
+            period = HISTORY_PERIOD
+            if saved is not None and not saved.empty and (cutoff - saved.index.max()).days <= 14:
+                period = "1mo"
+            df = yf.Ticker(provider_symbol).history(period=period, auto_adjust=False)
             if df is None or df.empty:
                 raise RuntimeError("empty response")
             # Normalise: rename to lower-case, keep OHLCV, tz-strip index
             df = df.rename(columns=str.lower)
-            keep = [c for c in ("open", "high", "low", "close", "volume") if c in df.columns]
+            keep = [c for c in ("open", "high", "low", "close", "adj close", "volume") if c in df.columns]
             df = df[keep].copy()
             df.index = pd.to_datetime(df.index).tz_localize(None) if df.index.tz else df.index
             df.index.name = "date"
             df = df.sort_index()
-            df = df.dropna(subset=["close"])
+            df = df.loc[df.index <= cutoff]
+            df = df.loc[(df["close"] > 0) & (df["adj close"] > 0)]
             if df.empty:
                 raise RuntimeError("all-null close column after cleaning")
-            return df
+            return _new_bars_on_saved_basis(df, saved)
+        except ValueError as e:
+            print(f"    [BASIS BLOCK] {symbol}: {e}")
+            return None
         except Exception as e:
             if attempt == MAX_RETRIES:
                 print(f"    [FAIL] {symbol}: {e}")
@@ -92,7 +145,7 @@ def _fetch_one(symbol: str) -> pd.DataFrame | None:
 def _write_parquet(df: pd.DataFrame, path: Path) -> int:
     tmp = path.with_suffix(".tmp.parquet")
     df.to_parquet(tmp, index=True)
-    tmp.replace(path)   # atomic on posix; on Windows Path.replace is atomic if same volume
+    replace_with_retry(tmp, path)
     return path.stat().st_size
 
 
@@ -108,6 +161,18 @@ def main() -> int:
 
     universe = json.loads(UNIVERSE.read_text(encoding="utf-8"))
     tickers  = [str(t.get("symbol")) for t in (universe.get("tickers") or []) if t.get("symbol")]
+    from backend.delivery.canonical.retirement import retired_runners
+    from backend.research.opportunity_registry import load_all
+
+    retired = retired_runners(_ROOT)
+    monitored = {
+        position.ticker for group in load_all(_ROOT).values() for position in group
+        if position.market.lower() == "usa" and position.status == "ACTIVE"
+        and position.runner not in retired
+    }
+    outside = monitored - set(tickers)
+    tickers.extend(sorted(outside))
+    print(f"  active positions outside scoring universe: {len(outside)}")
     benches  = universe.get("benchmarks") or {}
     for role, spec in benches.items():
         sym = spec.get("symbol") if isinstance(spec, dict) else None
@@ -115,6 +180,9 @@ def main() -> int:
 
     # Deduplicate + sort for deterministic iteration
     tickers = sorted(set(tickers))
+    required_symbols = set(tickers)
+    pending_symbols = set((universe.get("security_master") or {}).get("pending") or ()) - required_symbols
+    tickers.extend(sorted(pending_symbols))
     print(f"  universe: {universe.get('active_universe')}  ·  {len(tickers)} symbols to refresh")
     print(f"  period:   {HISTORY_PERIOD}")
     print(f"  target:   {RAW_DIR.relative_to(_ROOT)}/")
@@ -132,7 +200,12 @@ def main() -> int:
         safe = sym.replace("^", "_IDX_")
         out_path = RAW_DIR / f"{safe}_D1.parquet"
 
-        df = _fetch_one(sym)
+        try:
+            saved = pd.read_parquet(out_path) if out_path.exists() else None
+            df = _fetch_one(sym, saved)
+        except (OSError, ValueError, TypeError) as error:
+            print(f"  {sym}: refresh deferred: {type(error).__name__}")
+            df = None
         if df is None:
             fail += 1
             failed_symbols.append(sym)
@@ -140,7 +213,7 @@ def main() -> int:
             time.sleep(INTER_REQUEST_SLEEP_SEC)
             continue
 
-        b = _write_parquet(df, out_path)
+        b = _write_parquet(df, out_path) if df is not saved else out_path.stat().st_size
         total_bytes += b
         ok += 1
         last_date = str(df.index[-1].date())
@@ -178,11 +251,11 @@ def main() -> int:
     # symbols above for operator inspection. Only true outages (< threshold)
     # fail the step. This matches the operator's Evidence-Gated Improvement
     # Cycle Ticket 7 (Data Source Governance · partial-failure tolerance).
-    n_total = len(tickers)
+    n_total = len(required_symbols)
     if n_total == 0:
         print("  no tickers in universe · treating as failure")
         return 1
-    success_fraction = ok / n_total
+    success_fraction = len(required_symbols & freshness_by_symbol.keys()) / n_total
     if success_fraction >= MIN_SUCCESS_FRACTION:
         print(f"  verdict: PASS · success {success_fraction:.1%} >= threshold {MIN_SUCCESS_FRACTION:.0%}")
         return 0

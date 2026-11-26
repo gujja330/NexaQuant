@@ -40,7 +40,7 @@ def _df_to_records(df) -> list[dict]:
     return _sanitize(df.to_dict(orient="records"))
 
 
-def build_and_publish(result: dict, suggestions: list[dict]) -> dict:
+def build_and_publish(result: dict, suggestions: list[dict], *, simulated_append: bool = False) -> dict:
     PUBLISH_DIR.mkdir(parents=True, exist_ok=True)
 
     # ── learning_summary.json ──
@@ -79,7 +79,9 @@ def build_and_publish(result: dict, suggestions: list[dict]) -> dict:
         "calibration_curve":    _df_to_records(result["calibration_curve"]),
         "per_sector_calibration": _df_to_records(result["sector_calibration"]),
     })
-    with (PUBLISH_DIR / "confidence_calibration.json").open("w", encoding="utf-8") as f:
+    calibration_name = ("simulated_confidence_calibration.json" if simulated_append
+                        else "confidence_calibration.json")
+    with (PUBLISH_DIR / calibration_name).open("w", encoding="utf-8") as f:
         json.dump(calib, f, indent=2, default=str)
 
     # ── pattern_discovery.json ──
@@ -111,7 +113,13 @@ def build_and_publish(result: dict, suggestions: list[dict]) -> dict:
     # ── learning.parquet — per-trade rows ──
     trades = result.get("trades")
     if trades is not None and hasattr(trades, "empty") and not trades.empty:
-        trades.to_parquet(PUBLISH_DIR / "learning.parquet", index=False)
+        output = PUBLISH_DIR / "learning.parquet"
+        temp = output.with_suffix(".tmp")
+        try:
+            trades.to_parquet(temp, index=False)
+            temp.replace(output)
+        finally:
+            temp.unlink(missing_ok=True)
 
     return {
         "n_trades":     result["aggregate"]["n_trades"],

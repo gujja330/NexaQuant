@@ -18,28 +18,29 @@ Optional env:
 Run: python scripts/check_data_freshness.py
 """
 import os, sys, json, urllib.parse, urllib.request
-from datetime import date, timedelta
+from datetime import date, datetime, time, timedelta, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
 RAW = ROOT / "data" / "raw" / "india"
 
-# Small hand-curated NSE 2026 holidays (major only). Add as needed; freshness will still be
-# correct on unknown holidays because we abort on stale-gap > 1 (single missed day is tolerated).
+# NSE Capital Market circular CMTR/71775, published December 12, 2025.
 NSE_HOLIDAYS_2026 = {
-    date(2026, 1, 26),   # Republic Day
-    date(2026, 3, 6),    # Holi
-    date(2026, 3, 31),   # Id-Ul-Fitr
-    date(2026, 4, 3),    # Mahavir Jayanti
-    date(2026, 4, 10),   # Good Friday
-    date(2026, 4, 14),   # Ambedkar Jayanti
-    date(2026, 5, 1),    # Maharashtra Day
-    date(2026, 8, 15),   # Independence Day
-    date(2026, 10, 2),   # Gandhi Jayanti
-    date(2026, 11, 8),   # Diwali (Muhurat Trading — half day; treat as holiday for daily bar)
-    date(2026, 11, 25),  # Guru Nanak Jayanti
-    date(2026, 12, 25),  # Christmas
+    date(2026, month, day)
+    for month, day in ((1, 26), (3, 3), (3, 26), (3, 31), (4, 3), (4, 14),
+                       (5, 1), (5, 28), (6, 26), (9, 14), (10, 2), (10, 20),
+                       (11, 10), (11, 24), (12, 25))
 }
+NSE_IST = timezone(timedelta(hours=5, minutes=30))
+
+
+def completed_nse_session(now=None):
+    local = (now or datetime.now(timezone.utc)).astimezone(NSE_IST)
+    current = local.date()
+    if local.time() >= time(15, 30) and current.weekday() < 5 and current not in NSE_HOLIDAYS_2026:
+        return current
+    return expected_previous_session(current)
 
 
 def expected_previous_session(today=None):
@@ -56,7 +57,7 @@ def latest_bar_date():
     """Return the max last-bar date across all Nifty-200 parquet files, and how many were read."""
     import pandas as pd
     dates = []
-    files = list(RAW.glob("*_D1.parquet"))
+    files = [path for path in RAW.glob("*_D1.parquet") if path.stem != "SP500_D1"]
     for p in files:
         try:
             df = pd.read_parquet(p)
@@ -150,7 +151,7 @@ def main():
         sys.exit(0)
 
     latest, n = latest_bar_date()
-    expected = expected_previous_session()
+    expected = completed_nse_session()
 
     if latest is None:
         print(f"  NO DATA in {RAW} (scanned {n} files)")
@@ -159,6 +160,9 @@ def main():
 
     gap = (expected - latest).days
     print(f"  latest bar: {latest}  expected session: {expected}  gap: {gap}d  ({n} files scanned)")
+    if latest > expected:
+        print("  UNFINALIZED BAR ? latest India bar is ahead of the completed NSE session")
+        sys.exit(2)
     if gap >= 1:
         print(f"  STALE — refusing to publish stale recommendations.")
         # CEO 2026-10-20 · SELF-DIAGNOSING FAILURE. On 2026-10-20 this gate
@@ -169,6 +173,19 @@ def main():
         _write_diagnostic(latest, expected, gap, n)
         send_stale_alert(latest, expected, gap)
         sys.exit(2)
+    from india.price_availability import REPORT
+    from backend.pipeline.contract.readiness import MIN_FEATURE_COVERAGE_PCT
+
+    availability_file = ROOT / REPORT
+    if availability_file.is_file():
+        coverage = json.loads(availability_file.read_text(encoding="utf-8"))
+        universe = coverage.get("universe_count", 0)
+        if coverage.get("session") == expected.isoformat() and universe:
+            ready = coverage["available_universe_count"]
+            if ready * 100 / universe < MIN_FEATURE_COVERAGE_PCT:
+                print(f"  MARKET DATA INSUFFICIENT: only {ready}/{universe} prices qualify for scoring "
+                      f"against the existing {MIN_FEATURE_COVERAGE_PCT:g}% coverage floor")
+                sys.exit(2)
     print("  FRESH — proceed with recommendation_generator.")
     sys.exit(0)
 

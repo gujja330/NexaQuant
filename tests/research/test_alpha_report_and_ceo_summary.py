@@ -62,6 +62,23 @@ class TestLifecycleCanonical:
 # ═════════════════════════════════════════════════════════════════
 class TestAlphaReport:
 
+    def test_overall_metrics_use_one_exit_population(self, tmp_path):
+        from backend.research.aegis_alpha_report import _overall_metrics
+
+        folder = tmp_path / "reports/research"
+        folder.mkdir(parents=True)
+        (folder / "win_patterns_india.json").write_text('{"n_wins": 100, "winners": []}')
+        (folder / "loss_patterns_india.json").write_text(json.dumps({"exits": [
+            {"is_win": True, "pnl_pct": 6.0},
+            {"is_win": False, "pnl_pct": -3.0},
+            {"is_win": False, "pnl_pct": 0.0},
+        ]}))
+        result = _overall_metrics(tmp_path, "india")
+        assert result["n_closed"] == 3
+        assert result["win_rate_pct"] == 33.3
+        assert result["profit_factor"] == 2.0
+        assert result["expectancy_pct"] == 1.0
+
     def test_empty_root_still_produces_report(self, tmp_path):
         from backend.research import aegis_alpha_report as _ar
         rep = _ar.compute(tmp_path, "india")

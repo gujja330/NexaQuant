@@ -37,10 +37,11 @@ def _sector_industry_lookup(ticker: str) -> tuple[str, str]:
 def build_trade_history(top_n: int = 20,
                           start_date: str = "2022-01-01",
                           end_date: str = "2026-06-30",
-                          verbose: bool = True) -> pd.DataFrame:
+                          verbose: bool = True, *, nifty: pd.Series | None = None) -> pd.DataFrame:
     """Walk-forward: at each month-end, pick top-N by PIT score, record next-month return."""
     price_data = load_all_universe()
-    nifty = load_nifty_series()
+    if nifty is None:
+        nifty = load_nifty_series()
     if verbose:
         print(f"  loaded {len(price_data)} tickers")
 

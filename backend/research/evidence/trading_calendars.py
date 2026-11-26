@@ -11,7 +11,8 @@ gain. When the holiday set drifts (e.g. NSE announces a new observed
 holiday), add the date here + note the year.
 """
 from __future__ import annotations
-from datetime import date, timedelta
+from datetime import date, datetime, time, timedelta
+from zoneinfo import ZoneInfo
 
 
 # NSE holidays 2020-2027 (major observed exchange holidays · not exhaustive)
@@ -79,6 +80,24 @@ CALENDARS = {
     "india": NSE_HOLIDAYS,
     "usa":   NYSE_HOLIDAYS,
 }
+
+# NYSE published equity core-session early closes for 2026.
+NYSE_EARLY_CLOSES = frozenset({date(2026, 11, 27), date(2026, 12, 24)})
+
+
+def completed_nyse_session(now: datetime, *, through: date | None = None) -> date:
+    if now.tzinfo is None or now.utcoffset() is None:
+        raise ValueError("NYSE session clock requires a timezone-aware timestamp")
+    local = now.astimezone(ZoneInfo("America/New_York"))
+    day = local.date()
+    close = time(13 if day in NYSE_EARLY_CLOSES else 16)
+    if local.time() < close:
+        day -= timedelta(days=1)
+    if through is not None:
+        day = min(day, through)
+    while not is_trading_day(day, "usa"):
+        day -= timedelta(days=1)
+    return day
 
 
 def is_trading_day(d: date, market: str) -> bool:

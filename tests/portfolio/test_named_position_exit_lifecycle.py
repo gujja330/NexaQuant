@@ -112,12 +112,60 @@ def test_bridge_enforcement_invariant_authoritative_only():
                 )
 
 
+def test_stop_observation_does_not_backdate_todays_dynamic_stop(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+
+    import pandas as pd
+    from backend.research import opportunity_registry
+    from scripts import apply_dynamic_exits as bridge
+
+    raw = tmp_path / "data/raw/india"
+    raw.mkdir(parents=True)
+    pd.DataFrame({"close": [80.0, 110.0, 90.0]},
+                 index=pd.to_datetime(["2026-11-19", "2026-11-20", "2026-11-23"])).to_parquet(raw / "COMP_D1.parquet")
+    opp = SimpleNamespace(ticker="COMP", market="india", runner="R2", status="ACTIVE",
+                          created_date="2026-11-19", opportunity_id="fixture")
+    monkeypatch.setattr(opportunity_registry, "load_all", lambda _: {"key": [opp]})
+    monkeypatch.setattr(bridge, "_load_dynamic_stops",
+                        lambda *_: {"fixture": {"new_stop": 100.0, "stop_type": "trail"}})
+    monkeypatch.setattr(bridge, "_load_rec_lookup", lambda *_: {})
+    decision = bridge.apply_market(tmp_path, "india", "2026-11-24", enforce=False)["decisions"][0]
+    assert decision["event"] == "EXIT_STOP"
+    assert decision["trigger_date"] == "2026-11-24"
+    assert decision["price_basis_date"] == "2026-11-23"
+
+
 def test_bridge_declares_authoritative_only_rule_in_notes():
     """Ensure the bridge output documents the enforcement invariant."""
     for market in ("india", "usa"):
         d = _load_decisions(market)
         notes = " ".join(d.get("notes") or [])
         assert "authoritative" in notes.lower() or "invariant" in notes.lower()
+
+
+def test_usa_exit_rejects_stale_observation(tmp_path, monkeypatch):
+    from datetime import date
+    from types import SimpleNamespace
+    from unittest.mock import Mock
+
+    from backend.research import opportunity_registry
+    from backend.research.evidence import trading_calendars
+    from scripts import apply_dynamic_exits as bridge
+
+    opp = SimpleNamespace(ticker="AAPL", market="usa", runner="R2", status="ACTIVE",
+                          created_date="2026-11-19", opportunity_id="fixture")
+    monkeypatch.setattr(opportunity_registry, "load_all", lambda _: {"key": [opp]})
+    close = Mock()
+    monkeypatch.setattr(opportunity_registry, "close", close)
+    monkeypatch.setattr(trading_calendars, "completed_nyse_session",
+                        lambda *_, **__: date(2026, 11, 25))
+    monkeypatch.setattr(bridge, "_load_dynamic_stops",
+                        lambda *_: {"fixture": {"new_stop": 100.0, "stop_type": "trail"}})
+    monkeypatch.setattr(bridge, "_close_observation", lambda *_: ("2026-11-24", 90.0))
+    decision = bridge.apply_market(tmp_path, "usa", "2026-11-26", enforce=True)["decisions"][0]
+    assert decision["action"] == "SKIP"
+    assert decision["expected_session"] == "2026-11-25"
+    close.assert_not_called()
 
 
 def test_all_india_positions_have_dynamic_risk_source():

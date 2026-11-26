@@ -30,6 +30,7 @@ except Exception:
 warnings.simplefilter("ignore")
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
+from backend.ingest.ticker_health import yahoo_symbol
 from india.data_nse import UNIVERSE  # tenant-generic — read from repo's canonical universe
 
 OUT = ROOT / "data" / "raw" / "india" / "corporate_actions.parquet"
@@ -48,14 +49,17 @@ def pull(tickers: list[str]) -> pd.DataFrame:
         if sym.startswith("^"):
             continue
         try:
-            t = yf.Ticker(sym)
-            acts = t.actions  # DataFrame indexed by date, columns=['Dividends','Stock Splits']
+            t = yf.Ticker(yahoo_symbol(ROOT, "india", sym))
+            acts = t.history(period="1y", auto_adjust=False, actions=True)
             if acts is None or acts.empty:
                 continue
             # keep last KEEP_DAYS window
             idx = pd.to_datetime(acts.index).tz_localize(None)
             mask = idx >= cutoff
-            for dt, dv, sp in zip(idx[mask], acts["Dividends"][mask], acts["Stock Splits"][mask]):
+            empty = pd.Series(0.0, index=acts.index)
+            dividends = pd.to_numeric(acts.get("Dividends", empty), errors="coerce").fillna(0.0)
+            splits = pd.to_numeric(acts.get("Stock Splits", empty), errors="coerce").fillna(0.0)
+            for dt, dv, sp in zip(idx[mask], dividends[mask], splits[mask]):
                 if (dv is None or float(dv) == 0.0) and (sp is None or float(sp) == 0.0):
                     continue
                 rows.append({
@@ -67,7 +71,7 @@ def pull(tickers: list[str]) -> pd.DataFrame:
                 })
         except Exception as e:
             print(f"    | WARN {sym}: {type(e).__name__}: {e}")
-    return pd.DataFrame(rows)
+    return pd.DataFrame(rows, columns=["ticker", "action_date", "dividend", "split_ratio", "ingested_utc"])
 
 
 def main() -> int:
@@ -75,23 +79,21 @@ def main() -> int:
     print(f"corporate_actions · pulling actions for {len(tickers)} NSE tickers "
           f"(trailing {KEEP_DAYS} days)")
     df = pull(tickers)
-    if df.empty:
-        print("  no actions in window — writing empty ledger")
-    else:
-        # dedupe on (ticker, action_date) — a repeat pull is idempotent
-        df = df.drop_duplicates(subset=["ticker", "action_date"], keep="last") \
-               .sort_values(["ticker", "action_date"]).reset_index(drop=True)
-    # APPEND-only: merge with existing corpus, dedupe on (ticker, action_date).
     OUT.parent.mkdir(parents=True, exist_ok=True)
-    if OUT.exists() and not df.empty:
-        try:
-            df_old = pd.read_parquet(OUT)
-            df = pd.concat([df_old, df], ignore_index=True) \
-                    .drop_duplicates(subset=["ticker", "action_date"], keep="last") \
-                    .sort_values(["ticker", "action_date"]).reset_index(drop=True)
-        except Exception:
-            pass
-    df.to_parquet(OUT, index=False)
+    if OUT.exists():
+        old = pd.read_parquet(OUT)
+        if df.empty:
+            print(f"  no new actions returned; retained {len(old)} saved rows")
+            return 0
+        df = pd.concat([old, df], ignore_index=True)
+    df = df.drop_duplicates(subset=["ticker", "action_date"], keep="first") \
+           .sort_values(["ticker", "action_date"]).reset_index(drop=True)
+    temporary = OUT.with_suffix(".tmp")
+    try:
+        df.to_parquet(temporary, index=False)
+        temporary.replace(OUT)
+    finally:
+        temporary.unlink(missing_ok=True)
     n_div = int((df.get("dividend", pd.Series(dtype=float)) > 0).sum()) if not df.empty else 0
     n_split = int((df.get("split_ratio", pd.Series(dtype=float)) > 0).sum()) if not df.empty else 0
     print(f"  wrote {OUT.relative_to(ROOT)} · {len(df)} rows · {n_div} dividends · {n_split} splits")

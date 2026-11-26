@@ -33,7 +33,8 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
+from math import isfinite
 from pathlib import Path
 
 _ROOT = Path(__file__).resolve().parents[1]
@@ -69,7 +70,7 @@ def _load_rec_lookup(root: Path, market: str) -> dict[str, dict]:
     except Exception:
         return out
     for r in (data.get("recommendations") or []):
-        tk = str(r.get("ticker", "")).split(".", 1)[0].upper()
+        tk = str(r.get("ticker", "")).upper().removesuffix(".NS").removesuffix(".BO")
         if not tk: continue
         ez = r.get("entry_zone") or {}
         out[tk] = {
@@ -82,7 +83,7 @@ def _load_rec_lookup(root: Path, market: str) -> dict[str, dict]:
     return out
 
 
-def _close_on_or_before(root: Path, ticker: str, market: str, target_date: str):
+def _close_observation(root: Path, ticker: str, market: str, target_date: str):
     import pandas as pd
     dir_ = "usa/data/raw/us" if market.lower() == "usa" else "data/raw/india"
     ext = "" if market.lower() == "usa" else ".NS"
@@ -96,34 +97,15 @@ def _close_on_or_before(root: Path, ticker: str, market: str, target_date: str):
             df = df.copy(); df.index = idx
             sub = df.loc[df.index <= target_date]
             if sub.empty: continue
-            return float(sub.iloc[-1]["close"])
+            return str(sub.index[-1]), float(sub.iloc[-1]["close"])
         except Exception:
             continue
     return None
 
 
-def _first_stop_cross_date(root: Path, ticker: str, market: str,
-                              entry_date: str, asof: str, stop_price: float):
-    """Find the first trading day (>= entry_date) where close <= stop_price."""
-    import pandas as pd
-    dir_ = "usa/data/raw/us" if market.lower() == "usa" else "data/raw/india"
-    ext = "" if market.lower() == "usa" else ".NS"
-    for p in (root / dir_ / f"{ticker.upper()}{ext}_D1.parquet",
-                root / dir_ / f"{ticker.upper()}_D1.parquet"):
-        if not p.exists(): continue
-        try:
-            df = pd.read_parquet(p)
-            if "close" not in df.columns: continue
-            idx = pd.to_datetime(df.index).strftime("%Y-%m-%d")
-            df = df.copy(); df.index = idx
-            sub = df.loc[(df.index >= entry_date) & (df.index <= asof)]
-            for d, c in sub["close"].items():
-                if float(c) <= stop_price:
-                    return d
-            return None
-        except Exception:
-            continue
-    return None
+def _close_on_or_before(root: Path, ticker: str, market: str, target_date: str):
+    observation = _close_observation(root, ticker, market, target_date)
+    return observation[1] if observation else None
 
 
 def apply_market(root: Path, market: str, asof: str, enforce: bool) -> dict:
@@ -133,6 +115,18 @@ def apply_market(root: Path, market: str, asof: str, enforce: bool) -> dict:
 
     dynamic_stops = _load_dynamic_stops(root, market)
     rec_lookup = _load_rec_lookup(root, market)
+    unavailable = {}
+    price_session = asof
+    if market == "usa":
+        from backend.research.evidence.trading_calendars import completed_nyse_session
+
+        price_session = completed_nyse_session(
+            datetime.now(timezone.utc), through=date.fromisoformat(asof),
+        ).isoformat()
+    if market == "india":
+        from india.price_availability import unavailable_prices
+
+        unavailable = unavailable_prices(root, asof)
 
     reg = oreg.load_all(root)
     decisions = []
@@ -145,7 +139,13 @@ def apply_market(root: Path, market: str, asof: str, enforce: bool) -> dict:
             if opp.runner in retired: continue      # skip retired runners
             if opp.status != "ACTIVE": continue
             pid = opp.opportunity_id      # canonical PID · not the reg dict key
-            tk = str(opp.ticker or "").split(".", 1)[0].upper()
+            tk = str(opp.ticker or "").upper().removesuffix(".NS").removesuffix(".BO")
+            if tk in unavailable:
+                decisions.append({"opportunity_id": pid, "ticker": tk, "runner": opp.runner,
+                                  "action": "SKIP", "asof": asof,
+                                  "price_basis_date": unavailable[tk]["last_price_date"],
+                                  "reason": unavailable[tk]["reason"]})
+                continue
 
             # Determine stop_price · prefer dynamic_risk_v2 · fall back to rec
             stop_price = None
@@ -166,12 +166,21 @@ def apply_market(root: Path, market: str, asof: str, enforce: bool) -> dict:
             t1_price = rec_lookup.get(tk, {}).get("target_1")
             t2_price = rec_lookup.get(tk, {}).get("target_2")
             horizon_days = rec_lookup.get(tk, {}).get("horizon_days") or 60
-            current_price = _close_on_or_before(root, tk, market, asof)
+            observation = _close_observation(root, tk, market, price_session)
 
-            if current_price is None:
+            if observation is None:
                 decisions.append({
                     "opportunity_id": pid, "ticker": tk, "runner": opp.runner,
                     "action": "SKIP", "reason": "no current price",
+                })
+                continue
+            price_basis_date, current_price = observation
+            if market == "usa" and (price_basis_date != price_session
+                                    or not isfinite(current_price) or current_price <= 0):
+                decisions.append({
+                    "opportunity_id": pid, "ticker": tk, "runner": opp.runner,
+                    "action": "SKIP", "reason": "no valid close for the completed NYSE session",
+                    "price_basis_date": price_basis_date, "expected_session": price_session,
                 })
                 continue
 
@@ -195,8 +204,9 @@ def apply_market(root: Path, market: str, asof: str, enforce: bool) -> dict:
                 reason = (f"stop-loss triggered at {current_price:.2f} · "
                             f"stop={stop_price:.2f} · source={stop_source}")
                 trigger_price = current_price
-                trigger_date = _first_stop_cross_date(root, tk, market,
-                                                        entry_dt, asof, stop_price)
+                # Today's dynamic stop cannot establish that an earlier
+                # crossing was actionable with the stop set on that day.
+                trigger_date = asof
             elif t2_price is not None and current_price >= t2_price:
                 event = "EXIT_TARGET"
                 reason = f"T2 hit at {current_price:.2f} · T2={t2_price:.2f}"
@@ -222,6 +232,16 @@ def apply_market(root: Path, market: str, asof: str, enforce: bool) -> dict:
             # the reason so the operator can see the coverage gap.
             _authoritative = stop_source.startswith("dynamic_risk_v2:")
             _would_enforce = enforce and _authoritative
+            entry_reference = (_close_on_or_before(root, tk, market, entry_dt)
+                               if market == "india" or event is not None else None)
+            evidence = {}
+            if market == "india" and entry_reference is not None and entry_reference > 0:
+                evidence = {
+                    "entry_reference_price": entry_reference,
+                    "mark_return_pct": round((current_price / entry_reference - 1) * 100, 4),
+                    "return_at_stop_pct": (round((stop_price / entry_reference - 1) * 100, 4)
+                                           if stop_price is not None and stop_price > 0 else None),
+                }
 
             if event is None:
                 # No trigger · still ACTIVE · record the HOLD verdict so the
@@ -233,6 +253,7 @@ def apply_market(root: Path, market: str, asof: str, enforce: bool) -> dict:
                     "runner": opp.runner,
                     "entry_date": entry_dt,
                     "current_price": current_price,
+                    "price_basis_date": price_basis_date,
                     "stop_price": stop_price,
                     "stop_source": stop_source,
                     "authoritative_dynamic": _authoritative,
@@ -245,6 +266,7 @@ def apply_market(root: Path, market: str, asof: str, enforce: bool) -> dict:
                     "trigger_date": None,
                     "asof": asof,
                     "action": "AUDIT_ONLY",
+                    **evidence,
                 })
                 continue
 
@@ -253,8 +275,9 @@ def apply_market(root: Path, market: str, asof: str, enforce: bool) -> dict:
                 "ticker": tk,
                 "runner": opp.runner,
                 "entry_date": entry_dt,
-                "entry_price_approx": _close_on_or_before(root, tk, market, entry_dt),
+                "entry_price_approx": entry_reference,
                 "current_price": current_price,
+                "price_basis_date": price_basis_date,
                 "stop_price": stop_price,
                 "stop_source": stop_source,
                 "authoritative_dynamic": _authoritative,
@@ -266,6 +289,7 @@ def apply_market(root: Path, market: str, asof: str, enforce: bool) -> dict:
                 "reason": reason,
                 "trigger_date": trigger_date,
                 "asof": asof,
+                **evidence,
                 "action": (
                     "ENFORCED" if _would_enforce
                     else ("AUDIT_ONLY_NON_AUTHORITATIVE" if enforce
@@ -277,7 +301,7 @@ def apply_market(root: Path, market: str, asof: str, enforce: bool) -> dict:
                 # Use asof as closed_date · include trigger_date in reason
                 # so backdating is documented, not applied to Registry.
                 close_reason = (
-                    f"{event} · trigger crossed {trigger_date} · "
+                    f"{event} · evaluated {trigger_date} · price_asof={price_basis_date} · "
                     f"stop_source={stop_source} · enforced_on={asof}"
                 )
                 oreg.close(root, pid, asof, reason=close_reason)

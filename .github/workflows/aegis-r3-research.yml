@@ -1,0 +1,158 @@
+name: AEGIS R3 Research (shadow)
+
+# CEO 2026-10-28 · SEPARATE workflow, research-only.
+#
+# It exists as its own file so it cannot alter production. It does not
+# touch aegis-daily.yml or aegis-usa.yml, it never runs the R2 engine,
+# and it writes only under reports/research/r3/experiment/.
+#
+# WHY workflow_run AND NOT A CRON
+# -------------------------------
+# R3's decisions are taken from history/<market>/<date>/r2_scores.parquet,
+# the SEALED snapshot. A cron would race the sealing step and read either
+# a stale date or a half-written file. workflow_run fires only once the
+# producing workflow has finished, so the snapshot is already sealed.
+#
+# WHY IT DOES NOT INHERIT THE .published GUARD
+# --------------------------------------------
+# aegis-daily no-ops when data/.published already equals today IST. That
+# guard protects Telegram from duplicate sends - a delivery concern. The
+# research ledger has the opposite requirement: it must receive every
+# eligible sealed snapshot. Inheriting the guard would silently drop
+# observations on backup runs, which is how artifact persistence went
+# five consecutive runs unverified. Duplicate work is prevented instead
+# by comparing sealed dates against what the ledger already holds, which
+# is idempotent by construction rather than by schedule.
+
+on:
+  workflow_run:
+    workflows: ["AEGIS Daily", "AEGIS USA"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      market:
+        description: "market to process"
+        required: true
+        default: "both"
+        type: choice
+        options: [both, india, usa]
+
+# Least privilege. Needs to commit its own research artifacts and nothing
+# else - no packages, no deployments, no issues, no PRs.
+permissions:
+  contents: write
+
+# Serialise per market so two upstream completions cannot process the
+# same snapshot concurrently. cancel-in-progress stays FALSE: cancelling
+# mid-write is exactly how a half-persisted ledger happens.
+concurrency:
+  group: aegis-r3-research-${{ github.event.workflow_run.name || github.event.inputs.market || 'manual' }}
+  cancel-in-progress: false
+
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Resolve market and upstream conclusion
+        id: ctx
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "market=${{ github.event.inputs.market }}" >> $GITHUB_OUTPUT
+            echo "upstream=success" >> $GITHUB_OUTPUT
+            echo "manual dispatch · market=${{ github.event.inputs.market }}"
+            exit 0
+          fi
+          # Map the producing workflow to its market. An unknown name must
+          # not silently default to a market - it would attribute one
+          # market's snapshot to the other.
+          case "${{ github.event.workflow_run.name }}" in
+            "AEGIS Daily") M=india ;;
+            "AEGIS USA")   M=usa ;;
+            *) echo "::error::unmapped upstream workflow '${{ github.event.workflow_run.name }}'"; exit 1 ;;
+          esac
+          echo "market=$M" >> $GITHUB_OUTPUT
+          echo "upstream=${{ github.event.workflow_run.conclusion }}" >> $GITHUB_OUTPUT
+          echo "upstream='${{ github.event.workflow_run.name }}' concluded '${{ github.event.workflow_run.conclusion }}' -> market $M"
+
+      - uses: actions/checkout@v4
+        with:
+          # The research ledger is append-only across runs, so the commit
+          # the upstream run produced must be present - not the SHA that
+          # triggered it.
+          ref: main
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas pyarrow
+
+      # The runner itself classifies the terminal state and decides the
+      # exit code. It is unit-tested in
+      # tests/pipeline/test_r3_research_ci.py, which is why the logic is
+      # here and not in shell.
+      - name: R3 research run
+        id: r3
+        run: |
+          python scripts/ci_r3_research_run.py \
+            --market "${{ steps.ctx.outputs.market }}" \
+            --upstream-conclusion "${{ steps.ctx.outputs.upstream }}"
+
+      - name: Summarise terminal state
+        if: always()
+        run: |
+          set -uo pipefail
+          M="${{ steps.ctx.outputs.market }}"
+          echo "## AEGIS R3 research · $M" >> $GITHUB_STEP_SUMMARY
+          for f in reports/research/r3/experiment/coverage_*.jsonl; do
+            [ -f "$f" ] || continue
+            echo "### $(basename "$f")" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            tail -n 1 "$f" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          done
+          echo "step outcome: ${{ steps.r3.outcome }}" >> $GITHUB_STEP_SUMMARY
+
+      # EXPLICIT PATHS ONLY, and all of them under the experiment
+      # directory. No globs that could reach reports/context, no shadow
+      # ledger, nothing R2 owns. `always()` so a PERSISTENCE_FAILURE or
+      # EXECUTION_FAILURE still commits its coverage row - the audit trail
+      # of a failed attempt is the point.
+      - name: Commit research artifacts (experiment directory only)
+        if: always()
+        run: |
+          set -uo pipefail
+          git config user.name  "aegis-bot"
+          git config user.email "aegis-bot@users.noreply.github.com"
+          D=reports/research/r3/experiment
+          for f in \
+            "$D/recommendations_india.jsonl" "$D/recommendations_usa.jsonl" \
+            "$D/outcomes_india.jsonl"        "$D/outcomes_usa.jsonl" \
+            "$D/coverage_india.jsonl"        "$D/coverage_usa.jsonl" \
+            "$D/clock_start_india.json"      "$D/clock_start_usa.json" \
+            "$D/protocol.json" ; do
+            [ -f "$f" ] && git add "$f" || true
+          done
+          if git diff --cached --quiet; then
+            echo "no research artifact changes to commit"
+            exit 0
+          fi
+          git commit -m "AEGIS R3 research: shadow decisions + outcomes [skip ci]"
+          for i in 1 2 3; do
+            git pull --rebase --autostash origin main && break || sleep $((i*5))
+          done
+          git push origin HEAD:main
+
+      # A run whose research step failed must not read green. This is
+      # deliberately the LAST step so the commit above still happens.
+      - name: Fail the run if the research step failed
+        if: always() && steps.r3.outcome != 'success'
+        run: |
+          echo "::error::R3 research step concluded '${{ steps.r3.outcome }}' · see the coverage row for the terminal state"
+          exit 1

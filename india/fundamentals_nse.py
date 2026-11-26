@@ -16,6 +16,7 @@ Output: data/raw/india/fundamentals.parquet (quality score + raw metrics + next_
 Run:  python india/fundamentals_nse.py
 """
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 import numpy as np
 import pandas as pd
@@ -23,6 +24,7 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from india.data_nse import UNIVERSE
+from backend.research.fundamentals.snapshot import eps_snapshot
 OUT = ROOT / "data" / "raw" / "india" / "fundamentals.parquet"
 
 # higher is better (+1) or lower is better (-1) for the quality score
@@ -40,6 +42,7 @@ def pull():
             t = yf.Ticker(sym)
             i = t.info
             rec = {m: i.get(m) for m in METRICS}
+            rec.update(eps_snapshot(i, datetime.now(timezone.utc).isoformat()))
             # next earnings date (for the calendar / PEAD + risk-aware sizing)
             nxt = None
             try:

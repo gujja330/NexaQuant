@@ -134,7 +134,8 @@ def _short_ticker(t: str) -> str:
     """Strip .NS / .BO suffixes to save chars on India tickers."""
     if not t:
         return "?"
-    return str(t).split(".", 1)[0]
+    symbol = str(t).strip()
+    return symbol[:-3] if symbol.upper().endswith((".NS", ".BO")) else symbol
 
 
 # Static well-known company-name lookups per market. Used when the

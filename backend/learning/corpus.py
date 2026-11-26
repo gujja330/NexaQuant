@@ -9,12 +9,12 @@ from __future__ import annotations
 
 import json
 from dataclasses import asdict
-from datetime import date, datetime
 from pathlib import Path
 
 import pandas as pd
 
 from backend.learning.types import LearningRow
+from backend.shared.atomic_io import write_bytes_atomic
 
 
 CORPUS_FILE = "learning_corpus.parquet"
@@ -37,10 +37,7 @@ def read_corpus(repo_root: Path, market: str) -> pd.DataFrame:
     p = corpus_path(repo_root, market)
     if not p.exists():
         return pd.DataFrame()
-    try:
-        return pd.read_parquet(p)
-    except Exception:
-        return pd.DataFrame()
+    return pd.read_parquet(p)
 
 
 def corpus_asof(corpus: pd.DataFrame, asof) -> pd.DataFrame:
@@ -52,19 +49,23 @@ def corpus_asof(corpus: pd.DataFrame, asof) -> pd.DataFrame:
     failure clusters computed from outcomes that had not happened yet -
     `run(asof=2020-01-01)` was returning rows closed in late 2026.
 
-    Rows whose `close_asof` is missing or unparseable are EXCLUDED, not
-    kept: an outcome with no close date cannot be shown to have been
-    available, and keeping it would restore the leak for exactly the rows
-    least able to justify themselves. A corpus without a `close_asof`
-    column cannot be cut at all, so it is returned empty rather than
-    whole, for the same reason.
+    Legacy rows are eligible only when the original recommendation date
+    and persisted observed duration establish a valid close date.
     """
     if corpus is None or corpus.empty:
         return pd.DataFrame() if corpus is None else corpus
-    if "close_asof" not in corpus.columns:
-        return corpus.iloc[0:0]
     cut = pd.Timestamp(str(asof)[:10])
-    closed = pd.to_datetime(corpus["close_asof"], errors="coerce")
+    explicit = corpus.get("close_asof", pd.Series(pd.NA, index=corpus.index))
+    closed = pd.to_datetime(explicit, errors="coerce")
+    if {"rec_asof", "horizon_days", "horizon_close_date"}.issubset(corpus.columns):
+        # Legacy rows saved the scheduled date, but horizon_days counted
+        # through the actual price observation, including any weekend gap.
+        rec_dates = pd.to_datetime(corpus["rec_asof"], errors="coerce")
+        days = pd.to_numeric(corpus["horizon_days"], errors="coerce")
+        valid_days = days.where(days.between(1, 36500) & days.mod(1).eq(0))
+        observed = rec_dates + pd.to_timedelta(valid_days, unit="D")
+        scheduled = pd.to_datetime(corpus["horizon_close_date"], errors="coerce")
+        closed = closed.where(explicit.notna(), observed.where(observed >= scheduled))
     return corpus[closed.notna() & (closed <= cut)]
 
 
@@ -78,6 +79,7 @@ def _row_to_dict(row: LearningRow) -> dict:
     d = asdict(row)
     d["rec_asof"] = row.rec_asof.isoformat()
     d["horizon_close_date"] = row.horizon_close_date.isoformat()
+    d["close_asof"] = d["horizon_close_date"]
     # JSON-encode complex fields for parquet compatibility
     for k in ("feature_attribution", "model_attribution", "model_stamp_at_rec"):
         d[k] = json.dumps(d.get(k) or {}, default=str)
@@ -99,24 +101,20 @@ def append_corpus(repo_root: Path, market: str,
     p = corpus_path(repo_root, market)
     p.parent.mkdir(parents=True, exist_ok=True)
 
-    df_new = pd.DataFrame([_row_to_dict(r) for r in new_rows])
+    keys = ["market", "ticker", "rec_asof"]
+    df_new = pd.DataFrame([_row_to_dict(r) for r in new_rows]).drop_duplicates(keys)
     if p.exists():
-        try:
-            df_old = pd.read_parquet(p)
-            # Natural key dedup
-            keys_old = set(zip(df_old["market"], df_old["ticker"], df_old["rec_asof"]))
-            keys_new = set(zip(df_new["market"], df_new["ticker"], df_new["rec_asof"]))
-            fresh_keys = keys_new - keys_old
-            df_fresh = df_new[df_new.apply(
-                lambda r: (r["market"], r["ticker"], r["rec_asof"]) in fresh_keys, axis=1)]
-            combined = pd.concat([df_old, df_fresh], ignore_index=True) \
-                          .sort_values(["market", "rec_asof", "ticker"]).reset_index(drop=True)
-            combined.to_parquet(p, index=False)
-            return p, int(len(df_fresh))
-        except Exception:
-            df_new.to_parquet(p, index=False)
-            return p, int(len(df_new))
-    df_new.to_parquet(p, index=False)
+        df_old = pd.read_parquet(p)
+        df_new = df_new.loc[~pd.MultiIndex.from_frame(df_new[keys]).isin(
+            pd.MultiIndex.from_frame(df_old[keys])
+        )]
+        if df_new.empty:
+            return p, 0
+        combined = pd.concat([df_old, df_new], ignore_index=True)
+    else:
+        combined = df_new
+    ordered = combined.sort_values(["market", "rec_asof", "ticker"])
+    write_bytes_atomic(p, ordered.to_parquet(index=False))
     return p, int(len(df_new))
 
 
@@ -129,7 +127,4 @@ def load_recommendation_history(repo_root: Path, market: str) -> pd.DataFrame:
     p = rec_history_path(repo_root, market)
     if not p.exists():
         return pd.DataFrame()
-    try:
-        return pd.read_parquet(p)
-    except Exception:
-        return pd.DataFrame()
+    return pd.read_parquet(p)

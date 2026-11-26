@@ -151,6 +151,8 @@ def render(ctx: RunContext) -> str:
     order = ["DATA_READY", "INTERMARKET", "FEATURES_READY", "SCORES_READY",
              "DECISION_READY", STAGE_LIFECYCLE, "FIELDS_COMPLETE",
              STAGE_DELIVERY]
+    if ctx.market == "india":
+        order.insert(-1, "PRICE_INTEGRITY")
     first_fail = ctx.first_failure
     hit = False
 
@@ -296,7 +298,7 @@ def render(ctx: RunContext) -> str:
         L.append(_row(c.stage, "%.2fs" % c.elapsed_s))
     L.append(_row("TOTAL", "%.2fs" % total))
     L.append(BAR)
-    if hit and first_fail:
+    if first_fail:
         L.append("FINAL: ❌ BLOCKED")
         L.append("FIRST FAILURE: %s  (%s)" % (first_fail["code"],
                                               first_fail["stage"]))

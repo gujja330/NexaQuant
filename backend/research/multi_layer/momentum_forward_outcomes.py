@@ -19,23 +19,31 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from datetime import date, timedelta
+from datetime import date
+from math import isfinite
 from pathlib import Path
 
 _ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(_ROOT))
+
+from backend.shared.atomic_io import write_text_atomic
 
 WINDOWS = [("d1", 1), ("d3", 3), ("d5", 5), ("d10", 10), ("d20", 20)]
 
 
 def _load_closes(root: Path, ticker: str, market: str):
     """Return list of (date, close) sorted ascending · or None."""
-    suffix = ".NS" if market.lower() == "india" else ""
-    candidates = [
-        root / "data" / "raw" / f"{ticker.upper()}{suffix}_D1.parquet",
-        root / "data" / "raw" / f"{ticker.upper()}_D1.parquet",
-    ]
-    parq = next((p for p in candidates if p.exists()), None)
+    from backend.research._paths import price_parquet_path
+
+    symbol = ticker.upper().removesuffix(".NS").removesuffix(".BO")
+    parq = price_parquet_path(root, market, symbol)
+    if parq is None:
+        suffix = ".NS" if market.lower() == "india" else ""
+        candidates = [
+            root / "data" / "raw" / f"{symbol}{suffix}_D1.parquet",
+            root / "data" / "raw" / f"{symbol}_D1.parquet",
+        ]
+        parq = next((p for p in candidates if p.exists()), None)
     if parq is None:
         return None
     try:
@@ -64,18 +72,22 @@ def _forward_return_pct(closes, from_date: str, n_trading_days: int):
     base = closes[idx][1]
     target = idx + n_trading_days
     if target >= len(closes): return "UNAVAILABLE"
-    if base <= 0: return "UNAVAILABLE"
+    if not isfinite(base) or base <= 0 or not isfinite(closes[target][1]):
+        return "UNAVAILABLE"
     return round((closes[target][1] - base) / base * 100, 3)
 
 
 def measure(root: Path, market: str, asof: str) -> dict:
     snap_dir = root / "reports" / "research" / "momentum_snapshots"
     if not snap_dir.exists():
-        return {"error": "no snapshots directory yet", "market": market}
+        return {"asof": asof, "status": "NO_SNAPSHOTS", "market": market}
     files = sorted(snap_dir.glob(f"{market.lower()}_*.jsonl"))
     today_d = date.fromisoformat(asof)
     n_updated = 0
     n_snapshots = 0
+    resolved = 0
+    malformed_snapshots = []
+    closes_by_ticker = {}
     for f in files:
         # Extract snapshot date from filename
         try:
@@ -90,37 +102,50 @@ def measure(root: Path, market: str, asof: str) -> dict:
 
         # Load + update
         entries = []
-        for line in f.read_text(encoding="utf-8").splitlines():
-            if not line.strip(): continue
-            try:
-                entries.append(json.loads(line))
-            except json.JSONDecodeError:
-                continue
+        try:
+            for line in f.read_text(encoding="utf-8").splitlines():
+                if line.strip():
+                    entry = json.loads(line)
+                    if not isinstance(entry, dict) or not entry.get("ticker"):
+                        raise ValueError("snapshot row has no ticker")
+                    entries.append(entry)
+        except ValueError:
+            malformed_snapshots.append(f.name)
+            continue
         changed_any = False
         for e in entries:
             fo = e.get("forward_outcomes") or {}
             for key, n in WINDOWS:
                 if elapsed < n: continue
-                # Only measure if not yet measured (NOT_MEASURED_YET)
-                if str(fo.get(key, "")) == "NOT_MEASURED_YET":
-                    closes = _load_closes(root, e["ticker"], market)
-                    if closes is None:
-                        fo[key] = "UNAVAILABLE"
-                    else:
-                        fo[key] = _forward_return_pct(closes, snap_date_str, n)
+                if fo.get(key) not in (None, "NOT_MEASURED_YET", "UNAVAILABLE"):
+                    continue
+                ticker = e["ticker"]
+                if ticker not in closes_by_ticker:
+                    closes = _load_closes(root, ticker, market) or []
+                    closes_by_ticker[ticker] = [(day, price) for day, price in closes if day <= asof]
+                value = _forward_return_pct(closes_by_ticker[ticker], snap_date_str, n)
+                if isinstance(value, (int, float)):
+                    fo[key] = value
                     changed_any = True
+                    resolved += 1
             e["forward_outcomes"] = fo
         if changed_any:
-            with f.open("w", encoding="utf-8") as fh:
-                for e in entries:
-                    fh.write(json.dumps(e, ensure_ascii=False,
-                                          default=str) + "\n")
+            temp = f.with_suffix(".tmp")
+            try:
+                with temp.open("w", encoding="utf-8") as handle:
+                    for entry in entries:
+                        handle.write(json.dumps(entry, ensure_ascii=False, default=str) + "\n")
+                temp.replace(f)
+            finally:
+                temp.unlink(missing_ok=True)
             n_updated += 1
     return {
         "market": market.lower(),
         "asof": asof,
         "n_snapshots_scanned": n_snapshots,
         "n_snapshots_updated": n_updated,
+        "n_horizons_resolved": resolved,
+        "malformed_snapshots": malformed_snapshots,
         "windows": [k for k, _ in WINDOWS],
     }
 
@@ -131,10 +156,15 @@ def main() -> int:
                      default="both")
     ap.add_argument("--asof", default=date.today().isoformat())
     args = ap.parse_args()
+    failed = False
     for m in (["india", "usa"] if args.market == "both" else [args.market]):
         rep = measure(_ROOT, m, args.asof)
-        print(json.dumps(rep, indent=2, ensure_ascii=False))
-    return 0
+        payload = json.dumps(rep, indent=2, ensure_ascii=False)
+        receipt = _ROOT / "reports" / "research" / "momentum_snapshots" / f"receipt_{m}_{args.asof}.json"
+        write_text_atomic(receipt, payload)
+        print(payload)
+        failed |= bool(rep.get("malformed_snapshots"))
+    return int(failed)
 
 
 if __name__ == "__main__":

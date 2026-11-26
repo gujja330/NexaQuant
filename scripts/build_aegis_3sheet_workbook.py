@@ -117,7 +117,7 @@ def _load_r1_active_for_investments(root, market):
     return out
 
 
-def _load_registry(root, market, retired):
+def _load_registry(root, market, retired, *, asof=None):
     """R1 retired workbook-wide: excluded from BOTH Portfolio and
     Exit History. Historical R1 CLOSED go to orphan_audit_{market}.jsonl
     (documented sink) so A23 lineage validation passes without
@@ -129,7 +129,8 @@ def _load_registry(root, market, retired):
     Together: R2 CLOSED → EH body · R1 CLOSED → orphan_audit sink."""
     from backend.research import opportunity_registry as oreg
     reg = oreg.load_all(root)
-    cutoff = (date.today() - timedelta(days=90)).isoformat()
+    cutoff = ((date.fromisoformat(asof) if asof else date.today())
+              - timedelta(days=90)).isoformat()
     active, closed, closed_retired = [], [], []
     # CEO 2026-09-02 · all admin/retired CLOSED must land in orphan_audit
     # (A23 sink) · otherwise USA delivery blocks daily on ORPHAN_AUTO_CLOSE
@@ -368,7 +369,7 @@ def _sector_for(sector_cache, market, ticker):
     return market_bucket.get(short) or "—"
 
 
-def _close_on_or_before(root, ticker, market, target_date):
+def _close_on_or_before(root, ticker, market, target_date, *, with_date=False):
     import pandas as pd
     dir_ = "usa/data/raw/us" if market.lower() == "usa" else "data/raw/india"
     ext = "" if market.lower() == "usa" else ".NS"
@@ -382,10 +383,11 @@ def _close_on_or_before(root, ticker, market, target_date):
             df = df.copy(); df.index = idx
             sub = df.loc[df.index <= target_date]
             if sub.empty: continue
-            return float(sub.iloc[-1]["close"])
+            value = float(sub.iloc[-1]["close"])
+            return (value, sub.index[-1]) if with_date else value
         except Exception:
             continue
-    return None
+    return (None, None) if with_date else None
 
 
 def _canonical_ticker(t):

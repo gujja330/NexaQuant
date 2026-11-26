@@ -202,19 +202,22 @@ def exit_history_episode_ids(root: Path, market: str) -> set:
         if sheet is None:
             return out
         hdr_row = pid_col = None
-        for r in range(1, 13):
-            for c in range(1, 30):
-                if str(sheet.cell(r, c).value or "").strip() == "Position ID":
-                    hdr_row, pid_col = r, c
-                    break
-            if hdr_row:
+        rows = sheet.iter_rows(max_col=29, values_only=True)
+        for row_number, row in enumerate(rows, start=1):
+            if row_number > 12:
                 break
-        if not hdr_row or not pid_col:
+            for column, value in enumerate(row):
+                if str(value or "").strip() == "Position ID":
+                    hdr_row, pid_col = row_number, column
+                    break
+            if hdr_row is not None:
+                break
+        if pid_col is None:
             return out
-        for r in range(hdr_row + 1, sheet.max_row + 1):
-            v = sheet.cell(r, pid_col).value
-            if v and str(v).strip():
-                out.add(str(v).strip())
+        for row in rows:
+            value = row[pid_col]
+            if value and str(value).strip():
+                out.add(str(value).strip())
         return out
     finally:
         try:

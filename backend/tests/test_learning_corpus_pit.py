@@ -34,6 +34,44 @@ def _corpus(rows):
     } for t, r, c, p in rows])
 
 
+def test_legacy_corpus_uses_price_observation_date():
+    corpus = pd.DataFrame([{
+        "rec_asof": "2026-11-20",
+        "horizon_close_date": "2026-11-22",
+        "horizon_days": 3,
+    }])
+    assert corpus_asof(corpus, "2026-11-22").empty
+    assert len(corpus_asof(corpus, "2026-11-23")) == 1
+
+
+def test_outcome_requires_observed_close_by_cutoff(monkeypatch, tmp_path):
+    from backend.learning import outcome_computer
+
+    prices = pd.DataFrame({
+        "date": pd.to_datetime(["2026-11-20", "2026-11-23"]),
+        "close": [100.0, 102.0],
+    })
+    monkeypatch.setattr(outcome_computer, "_load_price_series", lambda *_: prices)
+    history = pd.DataFrame([{"rec_asof": "2026-11-20", "ticker": "AAPL", "action": "BUY"}])
+    assert outcome_computer.compute_outcomes(tmp_path, "usa", history, date(2026, 11, 22), 2) == []
+    rows = outcome_computer.compute_outcomes(tmp_path, "usa", history, date(2026, 11, 23), 2)
+    assert [row.horizon_close_date for row in rows] == [date(2026, 11, 23)]
+
+
+def test_corpus_append_preserves_unreadable_file(tmp_path):
+    from backend.learning.corpus import append_corpus, corpus_path
+    from backend.learning.types import LearningRow
+
+    path = corpus_path(tmp_path, "usa")
+    path.parent.mkdir(parents=True)
+    path.write_bytes(b"unreadable historical bytes")
+    row = LearningRow("usa", "AAPL", date(2026, 11, 20), date(2026, 11, 23),
+                      "BUY", 0.5, 0.4, "neutral", 100.0, 102.0, 0.02, True, 3)
+    with pytest.raises(Exception):
+        append_corpus(tmp_path, "usa", [row])
+    assert path.read_bytes() == b"unreadable historical bytes"
+
+
 class TestCorpusAsof:
     def test_a_row_closing_after_asof_is_excluded(self):
         c = _corpus([("AAA", "2026-07-01", "2026-09-23", 5.0)])

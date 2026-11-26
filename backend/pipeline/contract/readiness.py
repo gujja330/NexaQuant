@@ -346,6 +346,11 @@ def _price_bars_truth(root: Path, market: str,
            "n_readable": 0, "n_unreadable": 0, "dir": None,
            "scope": "all_files"}
     m = str(market).lower()
+
+    def ticker(value: str) -> str:
+        symbol = str(value).upper()
+        return symbol.removesuffix(".NS").removesuffix(".BO") if m == "india" else symbol
+
     for rel in _BAR_DIRS.get(m, ()):
         d = root / rel
         if not d.exists():
@@ -362,11 +367,13 @@ def _price_bars_truth(root: Path, market: str,
         # is not a reason to block, and a fresh one is not a licence.
         keep = fs
         if universe:
-            want = {str(t).upper().split(".")[0] for t in universe}
-            sel = [f for f in fs
-                   if f.stem.split("_")[0].upper() in want]
-            if sel:
-                keep, out["scope"] = sel, "universe"
+            want = {ticker(t) for t in universe}
+            selected = {}
+            for path in fs:
+                symbol = ticker(path.stem.removesuffix("_D1"))
+                if symbol in want:
+                    selected[symbol] = path
+            keep, out["scope"] = list(selected.values()), "universe"
         out["n_files"] = len(keep)
         # CEO 2026-10-26 · COVERAGE, not just the files that happen to be
         # here. `n_files` counts universe names that HAVE a parquet, so the
@@ -384,29 +391,21 @@ def _price_bars_truth(root: Path, market: str,
         # over names that are delisted or renamed upstream, which is a
         # universe-maintenance decision, not a data-pipeline verdict.
         if universe:
-            have = {f.stem.split("_")[0].upper() for f in keep}
-            want_all = {str(t).upper().split(".")[0] for t in universe}
-            out["n_universe"] = len(want_all)
-            out["universe_missing"] = sorted(want_all - have)
+            out["n_universe"] = len(want)
+            out["universe_missing"] = sorted(want - selected.keys())
             out["n_universe_missing"] = len(out["universe_missing"])
-        dates = []
-        for f in keep:
-            bd = _bar_date(f)
-            if bd:
-                dates.append(bd)
-            else:
-                out["n_unreadable"] += 1
+        file_dates = {path: _bar_date(path) for path in keep}
+        dates = sorted(d for d in file_dates.values() if d)
+        out["n_unreadable"] = len(keep) - len(dates)
         out["n_readable"] = len(dates)
         if dates:
-            dates.sort()
             out["asof"] = dates[-1]
             out["median_asof"] = dates[len(dates) // 2]
             lead = dates[-1]
             behind = []
-            for f in keep:
-                bd = _bar_date(f)
+            for f, bd in file_dates.items():
                 if bd and bd < lead:
-                    behind.append({"ticker": f.stem.split("_")[0].upper(),
+                    behind.append({"ticker": ticker(f.stem.removesuffix("_D1")),
                                    "newest_bar": bd})
             behind.sort(key=lambda r: r["newest_bar"])
             out["n_behind_lead"] = len(behind)

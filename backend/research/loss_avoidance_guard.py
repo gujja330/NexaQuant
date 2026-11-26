@@ -298,7 +298,10 @@ def compute(root: Path, market: str,
             ma20=ma20, ma50=ma50, return_5d=r5, return_20d=r20,
             quality_band=qb, sector=sec, sector_status=ss,
         )
-        rep.verdicts.append(asdict(v))
+        record = asdict(v)
+        if pos.get("position_id"):
+            record["position_id"] = pos["position_id"]
+        rep.verdicts.append(record)
         if v.verdict == "HOLD":         rep.n_hold += 1
         elif v.verdict == "TIGHTEN_STOP": rep.n_tighten += 1
         elif v.verdict == "EXIT":       rep.n_exit += 1

@@ -183,3 +183,15 @@ def resolve_alias(root: Path, market: str, ticker: str) -> str:
     bare = str(ticker).upper().replace(".NS","").replace(".BO","")
     aliases = _load_aliases(root, market)
     return aliases.get(bare, ticker)
+
+
+def yahoo_symbol(root: Path, market: str, ticker: str) -> str:
+    """Resolve an equity's provider symbol without changing registry identity."""
+    symbol = resolve_alias(root, market, ticker).upper()
+    if symbol.startswith("^"):
+        return symbol
+    if market.lower() == "india" and not symbol.endswith((".NS", ".BO")):
+        return f"{symbol}.NS"
+    if market.lower() == "usa":
+        return symbol.replace(".", "-")
+    return symbol

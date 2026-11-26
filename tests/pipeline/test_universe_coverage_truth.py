@@ -77,3 +77,15 @@ def test_certification_reports_the_universe_denominator():
         "denominator, which always reads 100%")
     assert "no bars at all" in src, "missing names must be named"
     assert "behind leading bar" in src, "trailing names must be named"
+def test_class_share_is_matched_without_borrowing_other_symbols(tmp_path, monkeypatch):
+    from backend.pipeline.contract import readiness
+
+    bars = tmp_path / "usa/data/raw/us"
+    bars.mkdir(parents=True)
+    (bars / "BRK.B_D1.parquet").touch()
+    (bars / "BRK_D1.parquet").touch()
+    monkeypatch.setattr(readiness, "_bar_date", lambda _: "2026-11-23")
+    report = readiness._price_bars_truth(tmp_path, "usa", ["BRK.B"])
+    absent = readiness._price_bars_truth(tmp_path, "usa", ["BF.B"])
+    assert report["n_files"] == 1 and report["universe_missing"] == []
+    assert absent["asof"] is None and absent["universe_missing"] == ["BF.B"]

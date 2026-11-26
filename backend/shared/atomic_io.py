@@ -96,6 +96,21 @@ def write_text_atomic(dest, text: str, encoding: str = "utf-8",
         raise
 
 
+def read_text_with_retry(path, encoding: str = "utf-8") -> str:
+    """Read a complete file while a Windows publisher is replacing it."""
+    path = Path(path)
+    for attempt in range(1, DEFAULT_ATTEMPTS + 1):
+        try:
+            return path.read_text(encoding=encoding)
+        except OSError as error:
+            sharing_error = (getattr(error, "winerror", None) in _WINDOWS_SHARING_ERRNOS
+                             or error.errno in _WINDOWS_SHARING_ERRNOS)
+            replacing = os.name == "nt" and isinstance(error, FileNotFoundError) and attempt < 4
+            if attempt == DEFAULT_ATTEMPTS or not (sharing_error or replacing):
+                raise
+            time.sleep(min(DEFAULT_BASE_DELAY_S * attempt, MAX_DELAY_S))
+
+
 def write_bytes_atomic(dest, data: bytes, **retry) -> Path:
     """Byte equivalent of `write_text_atomic`, for workbooks and parquet."""
     dest = Path(dest)

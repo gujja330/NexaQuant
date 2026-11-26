@@ -118,9 +118,8 @@ def stop_distance_invariant(root: Path, market: str) -> dict:
     Nothing is repaired here. A row that cannot agree FAILS DELIVERY, so
     a silently corrected display can never ship.
 
-    A `target` at or below the current price is also incoherent - it is a
-    target already passed - and is reported so it can be withheld rather
-    than shown.
+    The legacy USA view still reports targets at or below the current price.
+    India validates the rendered status in the workbook scan.
     """
     import json
     p = (Path(root) / "reports" / "context"
@@ -172,7 +171,7 @@ def stop_distance_invariant(root: Path, market: str) -> dict:
                 "stop": stop, "displayed_distance": shown,
                 "expected_distance": round(expected, 4)})
         t = r.get("target")
-        if isinstance(t, (int, float)) and t <= price:
+        if market.lower() != "india" and isinstance(t, (int, float)) and t <= price:
             out["incoherent_targets"].append({
                 "ticker": tk, "engine": r.get("engine"), "target": t,
                 "current_price": price})
@@ -184,16 +183,32 @@ def scan_workbook(root: Path, market: str) -> dict:
     """Read the RENDERED sheet · what the operator will actually see."""
     from openpyxl import load_workbook
 
-    from backend.delivery.xlsx_contract import resolve_exit_history_sheet
+    from backend.delivery.sheets.workbook_two import _target_status
     p = root / "reports" / "telegram" / ("aegis_history_%s.xlsx" % market)
     if not p.exists():
         return {"error": "workbook missing: %s" % p.name}
-    wb = load_workbook(p, read_only=True)
+    # The small per-market workbook is inspected by cell coordinate.
+    wb = load_workbook(p)
     out = {"sheets": list(wb.sheetnames), "required_gaps": [],
            "expected_gaps": [], "rows_checked": 0}
+    india = market.lower() == "india"
+    actual_episodes = {"current": [], "exits": []}
+    canonical = {}
 
     if "CURRENT" in wb.sheetnames:
         ws = wb["CURRENT"]
+        if india:
+            import json
+            from datetime import date, datetime
+            from backend.delivery.lifecycle.canonical_daily_lifecycle import _size_bucket
+            from backend.ingest.ticker_health import resolve_alias
+            from india.nse_market_cap import artifact
+
+            canonical_path = root / "reports/context/canonical_lifecycle_india.json"
+            canonical = json.loads(canonical_path.read_text(encoding="utf-8")) if canonical_path.is_file() else {}
+            cap_asof = canonical.get("market_data_asof")
+            cap_file = artifact(root, cap_asof) if cap_asof else None
+            caps = json.loads(cap_file.read_text(encoding="utf-8"))["rows"] if cap_file and cap_file.is_file() else {}
         hdr = [str(c.value).strip() if c.value else "" for c in ws[7]]
         idx = {h: i for i, h in enumerate(hdr) if h}
         for r in range(8, ws.max_row + 1):
@@ -205,6 +220,35 @@ def scan_workbook(root: Path, market: str) -> dict:
             action = str(row.get("Action") or "").upper()
             engine = str(row.get("Engine") or "").upper()
             req = REQUIRED_BY_ACTION.get(action, ())
+            if india:
+                actual_episodes["current"].append((row.get("Position ID"), row.get("P&L %")))
+                expected_target = _target_status({
+                    "engine": engine, "target": row.get("Target"),
+                    "current_price": row.get("Last Price"),
+                })
+                if row.get("Target Status") != expected_target:
+                    out["required_gaps"].append({
+                        "ticker": str(tk), "field": "Target Status",
+                        "value": str(row.get("Target Status")), "expected": expected_target,
+                        "why": "column absent" if "Target Status" not in idx else "status mismatch",
+                    })
+                cap = caps.get(resolve_alias(root, market, str(tk).upper()), {}).get("market_cap_inr")
+                shown_day = row.get("Market Cap As-of")
+                if isinstance(shown_day, datetime):
+                    shown_day = shown_day.date()
+                admission = row.get("Admission Date")
+                for field, valid in {
+                    "Current Market Cap": cap is not None and row.get("Current Market Cap") == cap,
+                    "Market Cap As-of": cap is not None and isinstance(shown_day, date)
+                    and shown_day.isoformat() == cap_asof,
+                    "Size": cap is not None and row.get("Size") == _size_bucket(cap, market),
+                    "Admission Date": isinstance(admission, date),
+                    "Entry Price Basis": str(row.get("Entry Price Basis") or "").startswith("AEGIS "),
+                }.items():
+                    if not valid:
+                        out["required_gaps"].append({"ticker": str(tk), "field": field,
+                                                     "value": str(row.get(field)),
+                                                     "why": "missing or mismatched source evidence"})
             for f in req:
                 if f not in idx:
                     out["required_gaps"].append(
@@ -231,11 +275,28 @@ def scan_workbook(root: Path, market: str) -> dict:
             if ws.cell(r, 1).value in (None, ""):
                 break
             n_ex += 1
+            if india and "Position ID" in idx and "P&L %" in idx:
+                actual_episodes["exits"].append(tuple(ws.cell(r, idx[name] + 1).value
+                                                      for name in ("Position ID", "P&L %")))
             if "Sector" in idx and not _blank(
                     ws.cell(r, idx["Sector"] + 1).value, "Sector"):
                 sect += 1
         out["exit_rows"] = n_ex
         out["exit_sector_populated"] = sect
+    if india:
+        from collections import Counter
+
+        out["reconciliation_errors"] = []
+        for population, records in actual_episodes.items():
+            pnl_key = "pnl_pct" if population == "current" else "realized_pnl_pct"
+            expected = Counter((row.get("position_id"), row.get(pnl_key)) for row in canonical.get(population, []))
+            actual = Counter((position, pnl if isinstance(pnl, (int, float)) else None)
+                             for position, pnl in records)
+            if not canonical or expected != actual:
+                out["reconciliation_errors"].append({"population": population,
+                    "expected": sum(expected.values()), "actual": sum(actual.values()),
+                    "missing_or_mismatched": sorted(str(item) for item in (expected - actual).elements()),
+                    "unexpected": sorted(str(item) for item in (actual - expected).elements())})
     wb.close()
     return out
 

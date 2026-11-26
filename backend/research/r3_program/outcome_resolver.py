@@ -81,7 +81,7 @@ def _tkey(t) -> str:
 
 
 def _bars(root: Path, market: str, ticker: str) -> Optional[pd.DataFrame]:
-    k = (market, _tkey(ticker))
+    k = (Path(root).resolve(), market, _tkey(ticker))
     if k in _cache:
         return _cache[k]
     p = Path(root) / (BARS[market] % _tkey(ticker))

@@ -141,10 +141,12 @@ def _send_document(token: str, chat_id: str, file_path: Path,
         # No parse_mode · plain text · avoids Markdown-parse errors from
         # underscores in field names (Run_Type) or dashes in tickers.
     file_bytes = file_path.read_bytes()
+    content_type = ("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    if file_path.suffix.lower() == ".xlsx" else "text/markdown")
     body.append(f"--{boundary}\r\n"
                    f'Content-Disposition: form-data; name="document"; '
                    f'filename="{file_path.name}"\r\n'
-                   f"Content-Type: text/markdown\r\n\r\n")
+                   f"Content-Type: {content_type}\r\n\r\n")
     # Build multipart payload as bytes
     prefix = "".join(body).encode("utf-8")
     suffix = f"\r\n--{boundary}--\r\n".encode("utf-8")
@@ -167,7 +169,11 @@ def _send_document(token: str, chat_id: str, file_path: Path,
         try:
             parsed = json.loads(resp)
             _LAST_SEND["telegram_ok"] = bool(parsed.get("ok"))
-            _LAST_SEND["message_id"] = (parsed.get("result") or {}).get("message_id")
+            result = parsed.get("result") or {}
+            document = result.get("document") or {}
+            _LAST_SEND.update(message_id=result.get("message_id"),
+                              document_filename=document.get("file_name"),
+                              document_bytes=document.get("file_size"))
         except Exception:
             pass
         return True, resp[:120]
@@ -348,6 +354,8 @@ def record_attachment_delivery(market: str, attachment: "Path | None",
         "message_id":          _LAST_SEND.get("message_id"),
         "http_status":         _LAST_SEND.get("http_status"),
         "telegram_ok":         _LAST_SEND.get("telegram_ok"),
+        "telegram_filename":   _LAST_SEND.get("document_filename"),
+        "telegram_bytes":      _LAST_SEND.get("document_bytes"),
         "delivered_at_utc":    (datetime.now(timezone.utc).isoformat()
                                 if sent_ok else None),
         "error_code":          _LAST_SEND.get("error_code"),
@@ -361,6 +369,64 @@ def record_attachment_delivery(market: str, attachment: "Path | None",
                                     and rec["message_id"] is not None)
     _append_delivery_ledger(rec)
     return rec
+
+
+def send_certified_workbook(market: str, asof: str, attachment: Path,
+                            sha256: str, runtime: Path) -> dict:
+    """Send the already validated bytes once, under the caller's execution lock."""
+    from backend.shared.atomic_io import write_text_atomic
+
+    expected = _ROOT / "reports" / "telegram" / f"aegis_{market}_{asof}.xlsx"
+    if attachment.resolve() != expected.resolve() or _file_sha256(attachment) != sha256:
+        raise RuntimeError(f"published workbook does not match certified bytes: {attachment}")
+    _load_env()
+    token = os.environ.get("TELEGRAM_BOT_TOKEN")
+    chat = os.environ.get("TELEGRAM_CHAT_ID")
+    if not token or not chat:
+        raise RuntimeError("Telegram bot token or destination is missing in the project environment")
+
+    def verified_receipt():
+        for ledger in sorted((_ROOT / "reports").glob("telegram_command_center_*.jsonl"), reverse=True):
+            for line in ledger.read_text(encoding="utf-8-sig").splitlines():
+                try:
+                    record = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if (record.get("market") == market and record.get("receipt_verified") is True
+                        and record.get("telegram_ok") is True and isinstance(record.get("message_id"), int)
+                        and record.get("telegram_chat_id") == _chat_fingerprint(chat)
+                        and record.get("attachment_filename") == attachment.name):
+                    return record
+        return None
+
+    existing = verified_receipt()
+    if existing:
+        if existing.get("attachment_sha256") != sha256:
+            raise RuntimeError(f"today's workbook already delivered as message {existing['message_id']} with different bytes")
+        return existing
+    intent = runtime / f"telegram-{market}-{asof}.pending.json"
+    if intent.exists():
+        raise RuntimeError(f"prior Telegram outcome is unresolved; reconcile the destination and {intent}")
+    write_text_atomic(intent, json.dumps({"attachment": str(attachment), "sha256": sha256,
+                                         "destination": _chat_fingerprint(chat)}) + "\n")
+    ok, _ = _send_document(token, chat, attachment, f"AEGIS {market.upper()} · {asof}")
+    accepted = bool(ok and _LAST_SEND.get("telegram_ok") is True
+                    and isinstance(_LAST_SEND.get("message_id"), int)
+                    and _LAST_SEND.get("document_filename") == attachment.name
+                    and _LAST_SEND.get("document_bytes") == attachment.stat().st_size)
+    record = record_attachment_delivery(market, attachment, accepted, chat_id=chat,
+                                        detail="certified daily workbook")
+    if not accepted:
+        status = record.get("http_status")
+        if isinstance(status, int) and 400 <= status < 500:
+            intent.unlink()
+        raise RuntimeError(f"Telegram delivery unverified (HTTP {status}, error {record.get('error_code')}); "
+                           f"certified workbook retained at {attachment}")
+    verified = verified_receipt()
+    if not verified or verified.get("message_id") != record["message_id"]:
+        raise RuntimeError(f"Telegram receipt could not be read back from the ledger; reconcile {intent}")
+    intent.unlink()
+    return verified
 
 
 def _append_delivery_ledger(record: dict) -> None:
@@ -511,7 +577,7 @@ def main() -> int:
         return 2   # non-fatal · matches optional-step convention
 
     all_ok = True
-    if args.with_message:
+    if args.with_message and not args.build_only:
         for m in markets:
             ok, _ = _send_one_market(m, token, chat_id)
             all_ok = all_ok and ok
@@ -663,7 +729,8 @@ def main() -> int:
             # if it fails · so we don't retry every send for delisted).
             try:
                 import yfinance as _yf
-                _sym = short + (".NS" if mkt == "india" else "")
+                from backend.ingest.ticker_health import yahoo_symbol
+                _sym = yahoo_symbol(_ROOT, mkt, short)
                 _info = _yf.Ticker(_sym).info or {}
                 _sec = str(_info.get("sector") or "").strip()
                 if _sec:
@@ -758,12 +825,15 @@ def main() -> int:
                     if _stale_days >= 3:
                         print(f"[stale-data-skip:{mkt_key}] recommendations.json "
                               f"asof={_recs_asof} · stale {_stale_days} days · "
-                              f"skipping sender gracefully · upstream data pipeline "
-                              f"needs refresh · returning True to keep CI green")
-                        return True
+                              f"workbook blocked: upstream recommendations need refresh")
+                        return False
                 except Exception as _e_stale:
                     print(f"[stale-data-skip:{mkt_key}] check failed · "
-                          f"{type(_e_stale).__name__}: {_e_stale} · continuing")
+                          f"{type(_e_stale).__name__}: {_e_stale}")
+                    return False
+            else:
+                print(f"[stale-data-skip:{mkt_key}] recommendations.json missing")
+                return False
             src_wb = _lwb(xlsx_path)
             src_ws = src_wb["AEGIS Daily"] if "AEGIS Daily" in src_wb.sheetnames else src_wb.active
             h = [c.value for c in src_ws[1]]
@@ -2734,27 +2804,15 @@ def main() -> int:
                     _canon_runner = r[c_run - 1].value if c_run else None
                     _canon = _canon_resolve(
                         _ROOT, market=mkt_key, ticker=str(tk or ""),
-                        runner=str(_canon_runner or ""),
-                        entry_date=rec_dt)
-                    if _canon.source in ("snapshot", "parquet_backfill") \
-                            and _canon.entry_price > 0:
-                        if not isinstance(entry_v, (int, float)) \
-                                or abs(entry_v - _canon.entry_price) \
-                                    / _canon.entry_price > 0.001:
-                            _prev = entry_v
+                        runner=str(_canon_runner or ""), entry_date=rec_dt,
+                        backfill_snapshot=False, exact_snapshot=True,
+                    )
+                    if _canon.source == "snapshot" and _canon.entry_date == rec_dt:
+                        if not isinstance(entry_v, (int, float)) or entry_v <= 0:
                             entry_v = _canon.entry_price
-                            print(f"[xlsx:{mkt_key}] canonical entry "
-                                  f"override · {tk} entry_price "
-                                  f"{_prev} → {entry_v} "
-                                  f"(source={_canon.source} · "
-                                  f"pid={_canon.prediction_id})")
-                        if _canon.entry_date and _canon.entry_date != rec_dt:
-                            _prev_rd = rec_dt
-                            rec_dt = _canon.entry_date
-                            print(f"[xlsx:{mkt_key}] canonical entry "
-                                  f"override · {tk} entry_date "
-                                  f"{_prev_rd} → {rec_dt} "
-                                  f"(source={_canon.source})")
+                        elif abs(entry_v - _canon.entry_price) / _canon.entry_price > 0.001:
+                            print(f"[xlsx:{mkt_key}] entry price discrepancy {tk}: "
+                                  f"{entry_v} vs {_canon.entry_price} ({_canon.prediction_id})")
                 except Exception as _e_canon:
                     # Best-effort · never abort delivery on canonical
                     # lookup failure. If canonical lookup fails, I26
@@ -4379,13 +4437,27 @@ def main() -> int:
                     print(f"[xlsx:{mkt_key}] WARN 3-sheet restore FAILED · "
                           f"legacy 5-sheet remains · "
                           f"{type(_e_3s).__name__}: {_e_3s}")
+                    return False
             except Exception as _e_std:
                 print(f"[xlsx:{mkt_key}] standard-name snapshot failed · "
                       f"{type(_e_std).__name__}: {_e_std}")
+                return False
             # Skip send if market has 0 rows (e.g., USA freshly wiped for S&P 500 reset)
             if len(keep_rows) == 0:
                 print(f"[xlsx:{mkt_key}] SKIPPED · 0 rows for market (fresh start · awaiting next pipeline run)")
-                return True
+                return False
+            from backend.context import price_integrity_guard as _pig
+            _pig_positions = _pig.workbook_positions(out_path, mkt_key)
+            # Settle aged-out closures before A23 evaluates the new workbook.
+            try:
+                from backend.delivery.lineage import episode_lineage
+                lineage = episode_lineage.reconcile(_ROOT, mkt_key.lower(), asof)
+                print(f"[lineage:{mkt_key}] {episode_lineage.summary_line(lineage)}")
+                if lineage["unaccounted_after"]:
+                    return False
+            except Exception as exc:
+                print(f"[lineage:{mkt_key}] reconciliation failed: {exc}")
+                return False
             # 2026-08-25 · CRITICAL FIX · re-compute wave_regression AFTER
             # the safety-net has fixed the built XLSX. The earlier
             # wave_regression run at line ~1240 fires BEFORE the XLSX is
@@ -4434,33 +4506,9 @@ def main() -> int:
 
             try:
                 from backend.research import loss_avoidance_guard as _lag
-                # Build active positions from keep_rows · sender's canonical
-                # ACTIVE set (post-canonical-collapse · minus EXITs)
-                _lag_positions: list = []
-                _seen_tk: set = set()
-                for _r_lag in keep_rows:
-                    _st_lag = str(_r_lag[c_st-1].value or "").upper()
-                    if _st_lag == "EXIT": continue
-                    _tk_lag = str(_r_lag[c_tk-1].value or "")
-                    if not _tk_lag or _tk_lag in _seen_tk: continue
-                    _e_lag = _r_lag[c_entry-1].value if c_entry else None
-                    _c_lag = _r_lag[c_current-1].value if c_current else None
-                    _stop_lag = _r_lag[c_stop-1].value if c_stop else None
-                    _rec_lag = (str(_r_lag[_c_rec_date-1].value or "")[:10]
-                                if _c_rec_date else "")
-                    if not (isinstance(_e_lag, (int, float)) and _e_lag > 0
-                            and isinstance(_c_lag, (int, float)) and _c_lag > 0):
-                        continue
-                    _seen_tk.add(_tk_lag)
-                    _lag_positions.append({
-                        "ticker": _tk_lag,
-                        "entry_date": _rec_lag,
-                        "entry_price": float(_e_lag),
-                        "current_price": float(_c_lag),
-                        "stop_price": (float(_stop_lag)
-                                       if isinstance(_stop_lag, (int, float))
-                                       else None),
-                    })
+                _lag_positions = [
+                    position for position in _pig_positions if position["status"] == "ACTIVE"
+                ]
                 _lag_rep = _lag.compute(_ROOT, mkt_key.lower(),
                                         _lag_positions)
                 _lag.emit(_ROOT, _lag_rep)
@@ -4686,34 +4734,8 @@ def main() -> int:
             # freshly-built XLSX so we validate what the operator will
             # actually see.
             try:
-                from backend.context import price_integrity_guard as _pig
-                _pig_positions: list = []
-                # Walk keep_rows · build the position-dict list the
-                # guard expects.  status/entry/exit/dates from the raw
-                # source XLSX · unchanged by build.
-                for _r_pi in keep_rows:
-                    _tk_pi = str(_r_pi[c_tk-1].value or "").upper() \
-                             .replace(".NS","").replace(".BO","")
-                    if not _tk_pi: continue
-                    _st_pi = str(_r_pi[c_st-1].value or "").upper()
-                    _rec_pi = (str(_r_pi[_c_rec_date-1].value or "")[:10]
-                               if _c_rec_date else "")
-                    _date_pi = str(_r_pi[c_date-1].value or "")[:10] \
-                               if c_date else ""
-                    _entry_pi = (_r_pi[c_entry-1].value
-                                 if c_entry else None)
-                    _curr_pi = (_r_pi[c_current-1].value
-                                if c_current else None)
-                    _pig_positions.append({
-                        "ticker": _tk_pi,
-                        "status": _st_pi,
-                        "entry_date": _rec_pi,
-                        "entry_price": _entry_pi,
-                        "exit_date": _date_pi if _st_pi == "EXIT" else None,
-                        "exit_price": _curr_pi if _st_pi == "EXIT" else None,
-                    })
                 _pig_rep = _pig.compute(_ROOT, mkt_key.lower(),
-                                        _pig_positions, latest_date)
+                                        _pig_positions, asof)
                 _pig.emit(_ROOT, _pig_rep)
                 print(f"[price_integrity:{mkt_key}] "
                       f"{_pig.summary_line(_pig_rep)}")
@@ -4723,9 +4745,12 @@ def main() -> int:
                               f"{_pig_chk.detail}")
                         for _v in _pig_chk.violations[:3]:
                             print(f"    · {_v}")
+                if any(check.status == "FAIL" and check.code in {"PI1", "PI2", "PI5"}
+                       for check in _pig_rep.checks):
+                    return False
             except Exception as _e_pig:
-                print(f"[price_integrity:{mkt_key}] skipped · "
-                      f"{type(_e_pig).__name__}: {_e_pig}")
+                print(f"[price_integrity:{mkt_key}] check failed: {_e_pig}")
+                return False
 
             # 2026-08-25 · ZERO-TOLERANCE DELIVERY GATE ·
             # operator: "u shouldnt give me a chance to question right"
@@ -4753,9 +4778,11 @@ def main() -> int:
                         print(f"[gate:{mkt_key}] BUILD-ONLY mode · no Telegram alert · exiting with BLOCK verdict")
                         return False
                 if _gd.override_used:
-                    print(f"[gate:{mkt_key}] ⚠️ OVERRIDE ACTIVE · shipping despite {len(_gd.blocking_codes)} fails")
+                    print(f"[gate:{mkt_key}] delivery blocked: gate override is active")
+                    return False
             except Exception as _e:
-                print(f"[gate:{mkt_key}] gate check errored · {type(_e).__name__}: {_e} · shipping anyway (fail-open)")
+                print(f"[gate:{mkt_key}] gate check errored · {type(_e).__name__}: {_e} · delivery blocked")
+                return False
 
             # ─────────────────────────────────────────────────────────
             # 2026-08-26 · CEO DELIVERY CONTRACT · xlsx_validator runs
@@ -4782,7 +4809,8 @@ def main() -> int:
                     return False
             except Exception as _e_val:
                 print(f"[xlsx_validator:{mkt_key}] validator errored · "
-                      f"{type(_e_val).__name__}: {_e_val} · shipping anyway (fail-open)")
+                      f"{type(_e_val).__name__}: {_e_val} · delivery blocked")
+                return False
 
             # BUILD-ONLY · XLSX is written · skip Telegram POST · return OK
             if _build_only_mode:
@@ -4869,6 +4897,9 @@ def main() -> int:
                     print(f"    ✗ {i.get('type')}: {i.get('ticker')} {i.get('date','')}")
         except Exception as _e:
             print(f"[guard10:integrity] check failed · {type(_e).__name__}: {_e}")
+
+        if args.build_only:
+            return 0 if xlsx_ok else 1
 
         # Record successful heartbeat (only if send actually worked)
         if xlsx_ok:

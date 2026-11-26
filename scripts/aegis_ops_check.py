@@ -212,8 +212,8 @@ def check_fingerprint() -> dict:
 
 # ── 4. Health rollup from orchestrator history ────────────────────
 
-def check_health() -> dict:
-    ledger = REPORTS / "aegis_daily_v2_history.jsonl"
+def check_health(current: Path | None = None) -> dict:
+    ledger = current or REPORTS / "aegis_daily_v2_history.jsonl"
     if not ledger.exists():
         return {"checked": False, "reason": "no history ledger"}
     lines = [ln.strip() for ln in ledger.read_text(encoding="utf-8").splitlines() if ln.strip()]
@@ -225,14 +225,22 @@ def check_health() -> dict:
     except Exception:
         return {"checked": False, "reason": "unparseable ledger tail"}
     steps = latest.get("steps") or latest.get("results") or []
-    n_ok    = sum(1 for s in steps if s.get("verdict") in ("OK", "SUCCESS", "SKIPPED_OPTIONAL"))
-    n_fail  = sum(1 for s in steps if s.get("verdict") not in ("OK", "SUCCESS", "SKIPPED_OPTIONAL"))
+    success = {"OK", "SUCCESS", "SUCCESS_CACHED", "SUCCESS_VERIFIED_REUSE", "SKIPPED_OPTIONAL"}
+    unverified = {"SUCCESS_UNVERIFIABLE", "SUCCESS_NO_REFRESH", "SUCCESS_STALE_CONTENT"}
+    n_ok = sum(s.get("verdict") in success for s in steps)
+    n_unverified = sum(s.get("verdict") in unverified for s in steps)
+    failed = [s for s in steps if s.get("verdict") not in success | unverified]
+    n_optional_fail = sum(s.get("required") is False for s in failed)
+    n_fail = len(failed) - n_optional_fail
     return {
         "checked":      True,
         "run_utc":      latest.get("run_utc"),
         "n_steps":      len(steps),
         "n_ok":         n_ok,
         "n_fail":       n_fail,
+        "n_unverified": n_unverified,
+        "n_optional_fail": n_optional_fail,
+        "source":       "current execution" if current else "previous completed execution",
         "elapsed_s":    latest.get("elapsed_s") or latest.get("total_elapsed_s"),
     }
 
@@ -283,6 +291,8 @@ def build_verdict(artifacts: dict, schemas: dict, fingerprint: dict, health: dic
         degraded.append("fingerprint not verifiable")
     if health.get("checked") and 0 < health.get("n_fail", 0) <= 2:
         degraded.append(f"{health['n_fail']} step warning(s)")
+    if health.get("n_optional_fail"):
+        degraded.append(f"{health['n_optional_fail']} optional stage failure(s)")
 
     # Backend validation rollup (Sprint 1)
     if backend and backend.get("checked"):
@@ -298,13 +308,17 @@ def build_verdict(artifacts: dict, schemas: dict, fingerprint: dict, health: dic
 
 
 def main() -> int:
-    import sys as _sys
+    import argparse
     # `--ci` / `--skip-backend` mode: skip the backend_validation rollup so
     # CI push events (which run on a fresh checkout with stale committed
     # reports and no live market data) don't fail on freshness alone.
     # Freshness gating is the daily pipeline's responsibility; CI validates
     # code + schema + artifact presence + fingerprint.
-    ci_mode = ("--ci" in _sys.argv) or ("--skip-backend" in _sys.argv)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--ci", "--skip-backend", action="store_true")
+    parser.add_argument("--current-health", type=Path)
+    args = parser.parse_args()
+    ci_mode = args.ci
 
     print("=" * 68)
     print(f"  AEGIS OPS CHECK · artifact + schema + fingerprint + health"
@@ -314,7 +328,7 @@ def main() -> int:
     artifacts = check_artifacts()
     schemas   = check_schemas()
     fingerprint = check_fingerprint()
-    health    = (check_health() if not ci_mode
+    health    = (check_health(args.current_health) if not ci_mode
                     else {"checked": False, "reason": "skipped in CI mode (health is a daily-pipeline concern)"})
     backend   = (check_backend_validation() if not ci_mode
                     else {"checked": False, "reason": "skipped in CI mode (freshness is a daily-pipeline concern)"})

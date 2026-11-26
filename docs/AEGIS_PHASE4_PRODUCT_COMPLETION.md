@@ -230,3 +230,521 @@ Options for the FIRST Phase 4 work to start:
 ---
 
 **End of Phase 4 · Product Completion Program · LOCKED 2026-07-24**
+
+# MANDATORY PRIORITY OVERRIDE — INDIA FIRST, USA SECOND
+
+Revise the Phase 4 execution plan immediately.
+
+The user requires sequential production certification rather than parallel stabilization of India and USA.
+
+## 1. Strict execution priority
+
+Follow this order:
+
+1. Complete India pipeline execution.
+2. Complete India dataset validation.
+3. Complete India lifecycle and historical reconciliation.
+4. Complete India XLSX information and formatting corrections.
+5. Complete India research and final processing.
+6. Certify India repeat-run reliability.
+7. Declare India 100% certified only with complete execution evidence.
+8. Only then begin USA stabilization.
+9. Complete USA using the same certification standards.
+10. Certify the combined daily local execution.
+
+Do not alternate between unresolved India and USA issues.
+
+Do not begin USA-specific remediation while India remains uncertified.
+
+Shared infrastructure fixes required for India are permitted, but preserve USA state and verify that shared changes do not introduce regressions.
+
+## 2. India — mandatory 100% completion
+
+India is the immediate and exclusive production priority.
+
+The user recalls approximately 81 core pipeline stages followed by eight final processing steps.
+
+Discover the authoritative stage counts from the current repository, including all nested subprocesses, workflow definitions, local runners and stage registries.
+
+Do not assume the remembered counts are correct.
+
+Verify every applicable stage individually.
+
+For each stage, establish:
+
+- Stage identifier and name.
+- Actual command.
+- Required inputs.
+- Input freshness.
+- Expected outputs.
+- Actual outputs.
+- Output schema correctness.
+- Output semantic correctness.
+- Execution duration.
+- Exit code.
+- Final validation status.
+
+Every applicable required stage must PASS.
+
+Every applicable optional stage must also be executed and evaluated. Resolve unexpected optional-stage failures rather than ignoring them.
+
+Legitimately conditional or inapplicable stages must have documented reasons and evidence.
+
+Do not classify a failed stage as optional merely to achieve certification.
+
+Do not count unit tests as production stage executions.
+
+Do not declare success based only on the parent process exit code.
+
+## 3. Resolve all outstanding India blockers
+
+Complete the following:
+
+- Resolve all five stale backend datasets identified in Phase 3.
+- Trace each dataset to its authoritative producer.
+- Correct missing producer execution and dependency ordering.
+- Complete the full India V2 rerun.
+- Verify the same-day recommendation reuse correction in full execution.
+- Verify R1 and R2 integration.
+- Verify all applicable scoring engines.
+- Verify market and sector intelligence.
+- Verify feature-store freshness.
+- Verify recommendation generation.
+- Verify admission decisions.
+- Verify stop-loss and target calculations.
+- Verify lifecycle transitions.
+- Verify authorized exit propagation.
+- Verify historical lineage.
+- Verify SSOT.
+- Verify final reconciliation.
+- Verify Research P0 and P1.
+- Verify workbook generation.
+- Verify all final processing steps.
+- Verify publication protection.
+- Verify delivery preflight without sending Telegram messages.
+
+Investigate and fix any additional defects discovered during execution.
+
+Do not stop after fixing only the currently known issues.
+
+Continue until the entire India execution contract is satisfied.
+
+## 4. India XLSX — mandatory product quality correction
+
+India cannot be certified until its generated XLSX is accurate, complete, professionally formatted and suitable for daily investment analysis.
+
+Implement all XLSX requirements specified in the previous Phase 4 extension.
+
+Retain the existing two-sheet architecture:
+
+- CURRENT
+- EXIT HISTORY
+
+Correct the workbook generation source code rather than manually editing generated files.
+
+### 4.1 Column correctness
+
+Audit every existing column and its authoritative source.
+
+Correct misleading names, incorrect calculations, stale information, missing values, invalid defaults and inconsistent data types.
+
+Ensure the workbook provides accurate information for:
+
+- Stock identity.
+- Sector.
+- Market capitalization and its as-of date.
+- Engine.
+- Action.
+- Admission status.
+- Actionability.
+- NEW or RE-ENTRY classification.
+- Entry date.
+- Days held.
+- Entry price.
+- Latest price.
+- Market data as-of date.
+- P&L percentage.
+- Confidence.
+- Original stop, where available.
+- Current stop.
+- Stop state.
+- Stop distance.
+- Return at stop.
+- Potential profit giveback.
+- Target price.
+- Target status.
+- Remaining upside.
+- Reward-to-risk ratio, where applicable.
+- Decision reason.
+- Decision freshness.
+- Position identity.
+
+Reuse existing columns wherever possible.
+
+Add or rename columns only when necessary to correct information or provide decision-critical clarity.
+
+Update affected downstream readers and validators.
+
+Do not fabricate unavailable information.
+
+### 4.2 Correct target presentation
+
+Phase 3 identified 27 blank India R2 targets caused by suppression of targets already at or below the latest price.
+
+Correct this behavior.
+
+Preserve the authoritative target price.
+
+Clearly distinguish:
+
+- TARGET NOT REACHED.
+- TARGET REACHED.
+- TARGET EXCEEDED.
+- TARGET NOT AVAILABLE.
+- TARGET NOT APPLICABLE.
+
+Explain whether the target is advisory or an actual exit trigger.
+
+Do not silently remove achieved targets.
+
+Do not invent replacement targets.
+
+### 4.3 Explain profitable HOLD positions
+
+For every profitable position that remains open, verify the actual production decision.
+
+Where supported by existing evidence, communicate:
+
+- Why the position remains active.
+- Whether the target has been achieved.
+- Whether the investment thesis remains intact.
+- Whether the trend remains intact.
+- Whether trailing-stop management is active.
+- How much return is protected at the current stop.
+- How much accumulated profit could be surrendered before reaching the stop.
+- Whether an authorized exit signal exists.
+
+Investigate the actual role of the 60-day and 90-day horizons.
+
+Distinguish mandatory holding periods, maximum holding horizons, prediction horizons and research evaluation windows.
+
+Fix confirmed decision propagation defects.
+
+Do not change the investment strategy without separate approval.
+
+### 4.4 Improve NEW recommendation visibility
+
+Make fresh recommendations easy to identify and evaluate.
+
+Display verified entry price, target, stop, potential upside, downside, reward-to-risk ratio, confidence, recommendation reason and actionability.
+
+Distinguish genuinely new opportunities from re-entry opportunities.
+
+Preserve the existing no-measured-edge and NOT ACTIONABLE warnings where applicable.
+
+Do not generate additional recommendations by weakening admission thresholds.
+
+### 4.5 Restore profit and loss colour coding
+
+The user specifically identified missing P&L colour formatting.
+
+Restore consistent formatting across CURRENT and EXIT HISTORY.
+
+Required formatting:
+
+- Positive P&L: green.
+- Negative P&L: red.
+- Zero P&L: neutral.
+- Positive return at stop: green.
+- Negative return at stop: red.
+- NEW recommendations: blue.
+- ACTIVE+: green.
+- HOLD: neutral or existing active styling.
+- TARGET REACHED or EXCEEDED: green.
+- REVIEW: amber.
+- STOP BREACH: red.
+- EXIT: red.
+- STALE DATA: amber.
+- ADVISORY or NOT ACTIONABLE: clearly distinguishable warning styling.
+
+Apply formatting dynamically using actual numeric values and canonical statuses.
+
+Do not hardcode individual stock names.
+
+Ensure formatting survives every workbook regeneration.
+
+### 4.6 Professional workbook usability
+
+Verify and correct:
+
+- Header formatting.
+- Column widths.
+- Row heights.
+- Frozen headers.
+- Frozen identity columns where appropriate.
+- Auto-filters.
+- Numeric cell types.
+- Percentage formats.
+- INR currency formats.
+- Date formats.
+- Text wrapping.
+- Reason column readability.
+- Section hierarchy.
+- Alignment.
+- Missing-value presentation.
+- Conditional formatting.
+- Formatting consistency between sheets.
+
+Ensure there are no clipped headers, incorrect percentage scaling, misleading blank cells or unnecessary duplicate columns.
+
+Maintain compatibility with Microsoft Excel on Windows.
+
+## 5. India historical integrity
+
+Reconcile the complete India registry against CURRENT, EXIT HISTORY and durable lineage.
+
+Verify:
+
+- No unexplained disappearing stocks.
+- No missing active episodes.
+- No duplicate positions.
+- No duplicate exits.
+- No unauthorized historical price changes.
+- No incorrect episode associations.
+- No stale GitHub artifacts overwriting newer local state.
+- No administrative closures incorrectly counted as trading outcomes.
+- No stop-breach marks incorrectly counted as realized exits.
+
+Preserve legitimate retired and advisory records.
+
+Verify the historical performance statistics against their documented populations and formulas.
+
+## 6. India XLSX automated certification
+
+Generate the corrected India workbook in staging.
+
+Reopen the actual generated XLSX and verify every column, row, calculation, record classification and formatting rule.
+
+Test representative cases for:
+
+- Positive P&L.
+- Negative P&L.
+- Zero P&L.
+- NEW recommendation.
+- RE-ENTRY recommendation.
+- Target reached.
+- Target exceeded.
+- Missing target.
+- Profitable HOLD.
+- Stop breach.
+- Realized exit.
+- Administrative closure.
+- Advisory position.
+- Stale market data.
+
+Verify that the workbook accurately reflects authoritative production state.
+
+Perform visual inspection where supported.
+
+Produce the corrected staged India XLSX for user review.
+
+## 7. India fresh execution and repeat-run certification
+
+After implementing all corrections:
+
+1. Run all relevant regression tests.
+2. Execute the complete India pipeline using fresh market data.
+3. Verify every applicable core stage.
+4. Verify every final processing step.
+5. Verify every required output artifact.
+6. Verify all dataset freshness and integrity checks.
+7. Verify the generated India workbook.
+8. Verify research outputs.
+9. Verify delivery preflight.
+10. Repeat the complete execution against the same effective market-data dates.
+11. Verify repeat-run idempotency.
+12. Verify automatic recovery and last-known-good state protection.
+
+A staged execution using old saved inputs is not sufficient for final certification.
+
+An isolated successful test is not sufficient.
+
+A successful workbook generation alone is not sufficient.
+
+Do not promote live production workbooks or send Telegram messages without approval.
+
+## 8. Mandatory India certification report
+
+Before beginning USA remediation, produce a consolidated India certification report containing:
+
+- Exact total core stage count.
+- Exact final processing step count.
+- Required stage count.
+- Optional stage count.
+- Successfully executed stage count.
+- Validated reuse count.
+- Failed stage count.
+- Blocked stage count.
+- Unexpected skipped stage count.
+- Legitimately inapplicable stage count.
+- Output artifacts validated.
+- Dataset freshness results.
+- Price integrity results.
+- Lifecycle results.
+- Historical lineage results.
+- Research results.
+- XLSX column correctness results.
+- XLSX formatting results.
+- Repeat-run results.
+- State protection results.
+- Delivery preflight results.
+
+Provide a machine-readable stage verification matrix with evidence for every PASS.
+
+Explicitly report:
+
+INDIA CORE PIPELINE: PASS / FAIL / BLOCKED
+
+INDIA FINAL PROCESSING: PASS / FAIL / BLOCKED
+
+INDIA DATA INTEGRITY: PASS / FAIL / BLOCKED
+
+INDIA HISTORICAL INTEGRITY: PASS / FAIL / BLOCKED
+
+INDIA INVESTMENT DECISION CORRECTNESS: PASS / FAIL / BLOCKED
+
+INDIA XLSX DATA CORRECTNESS: PASS / FAIL / BLOCKED
+
+INDIA XLSX FORMATTING: PASS / FAIL / BLOCKED
+
+INDIA RESEARCH: PASS / FAIL / BLOCKED
+
+INDIA REPEAT-RUN SAFETY: PASS / FAIL / BLOCKED
+
+INDIA PRODUCTION READINESS: PASS / FAIL / BLOCKED
+
+INDIA 100% CERTIFIED: YES / NO
+
+India may be declared 100% certified only when all applicable requirements have passed, no unresolved production blockers remain, and all exclusions are explicitly justified.
+
+Do not use approximate completion percentages as a substitute for certification.
+
+## 9. USA — begin only after India certification
+
+Once India is 100% certified, proceed to USA.
+
+Apply the proven India execution, validation, state protection and XLSX quality standards wherever applicable.
+
+Resolve the outstanding USA issues, including:
+
+- Backend dataset validation failures.
+- Seven missing scoring symbols.
+- Price freshness.
+- CNP price-basis integrity.
+- USA universe correctness.
+- Current research coverage.
+- Historical episode preservation.
+- All applicable pipeline stages.
+- All final processing steps.
+- XLSX column accuracy.
+- XLSX formatting.
+- Repeat-run reliability.
+
+Do not perform destructive universe resets.
+
+Do not weaken validation gates.
+
+Do not introduce regressions into the certified India pipeline.
+
+After USA-specific fixes, rerun relevant India regression and integration checks.
+
+## 10. Final combined certification
+
+Only after India and USA are independently certified, execute the canonical combined local command.
+
+Verify complete execution for both markets, market isolation, historical preservation, workbook correctness, research completeness and publication protection.
+
+Provide the final Windows PowerShell daily execution command.
+
+The final product must support reliable manual daily operation without depending on GitHub Actions.
+
+## 11. Execution directive
+
+Continue actual implementation and testing.
+
+Do not stop at another audit, recommendation, theoretical report or partial fix.
+
+Do not move to USA while India remains incomplete.
+
+If an external dependency genuinely prevents India certification, identify the exact blocker, evidence, attempted remedies and required user action. Do not falsely declare success or silently move to USA.
+
+The immediate objective is:
+
+INDIA FIRST — EVERY STAGE — EVERY OUTPUT — COMPLETE XLSX — 100% CERTIFICATION.
+
+USA SECOND — APPLY THE SAME STANDARD.
+
+COMBINED DAILY EXECUTION LAST.
+
+This priority override supersedes all previous instructions to work on India and USA concurrently.
+
+## **Revised execution roadmap**
+
+## **Phase 4A — India**
+
+Immediate priority
+
+Resolve five stale datasets
+
+Complete full V2 execution
+
+Verify every core stage (\~81, subject to confirmation)
+
+Verify every final step (\~8, subject to confirmation)
+
+Correct XLSX columns and calculations
+
+Restore profit/loss colour formatting
+
+Verify historical integrity
+
+Complete fresh execution and repeat-run tests
+
+Achieve 100% India certification
+
+**Mandatory gate: India 100% certified**
+
+No unresolved production blockers
+
+## **Phase 4B — USA**
+
+Begin only after India passes
+
+Resolve USA-specific issues and apply the same complete certification standards.
+
+## **Phase 4C — Combined certification**
+
+Verify both markets through one reliable daily local command.
+
+## **Expected final India certification**
+
+| Certification area                 | Required result               |
+| ---------------------------------- | ----------------------------- |
+| Core pipeline stages               | 100% applicable stages passed |
+| Final processing steps             | 100% applicable steps passed  |
+| Backend datasets                   | All required datasets valid   |
+| Unexpected failures                | 0                             |
+| Unexplained missing positions      | 0                             |
+| Duplicate episodes                 | 0                             |
+| Unresolved price integrity defects | 0                             |
+| XLSX column correctness            | PASS                          |
+| XLSX profit/loss formatting        | PASS                          |
+| Investment decision consistency    | PASS                          |
+| Research completeness              | PASS                          |
+| Fresh execution                    | PASS                          |
+| Repeat-run safety                  | PASS                          |
+| Publication protection             | PASS                          |
+
+**Do not accept another summary saying India is nearly complete.** We need the actual stage-by-stage execution evidence, corrected India Excel workbook and a definitive certification result.
+
+The remembered 81 stages and eight final steps still need confirmation from the repository. I have deliberately retained that verification requirement rather than assuming those counts are accurate.

@@ -164,6 +164,41 @@ def _postflight(root: Path, market: str, asof: str) -> tuple[bool, dict]:
     return ok, checks
 
 
+def verify_published(root: Path, market: str, asof: str) -> tuple[bool, dict]:
+    """Validate the sealed output of the nested SSoT step without republishing."""
+    ok, checks = _postflight(root, market, asof)
+    if not ok:
+        return False, checks
+    reports = _reports_dir(root, market)
+    from backend.recommendation.snapshot.store import load_snapshot_for_date
+    from backend.recommendation.ssot.price_session import expected_session
+
+    archived = load_snapshot_for_date(reports, market, asof) or {}
+    current = json.loads((reports / "recommendations.json").read_text(encoding="utf-8"))
+    health_path = root / "reports/context/ssot_health.json"
+    health = json.loads(health_path.read_text(encoding="utf-8")).get(market, {}) if health_path.exists() else {}
+    checks["matching_archive"] = (
+        archived.get("snapshot_asof") == asof
+        and isinstance(current.get("recommendations"), list)
+        and archived.get("recommendations") == current.get("recommendations")
+    )
+    session = expected_session(root, market, asof)
+    if session:
+        from india.price_availability import unavailable_prices
+
+        checks["expected_price_session"] = session
+        checks["output_price_session"] = current.get("price_session")
+        checks["matching_price_session"] = archived.get("price_session") == current.get("price_session") == session
+        exclusions = sorted(unavailable_prices(root, asof))
+        checks["matching_price_exclusions"] = (archived.get("price_excluded_tickers", [])
+                                                == current.get("price_excluded_tickers", []) == exclusions)
+    checks["fresh_guard_report"] = (
+        health.get("verdict") == "GREEN" and health.get("output_asof") == asof
+    )
+    return (checks["matching_archive"] and checks["fresh_guard_report"] and
+            checks.get("matching_price_session", True) and checks.get("matching_price_exclusions", True)), checks
+
+
 def _invoke_ssot(root: Path, market: str, asof: str, force: bool = False) -> tuple[bool, str]:
     """Run the SSoT module as a subprocess with timeout. Returns (ok, error).
 
@@ -376,9 +411,16 @@ def _main() -> int:
     ap.add_argument("--asof", default=None, help="YYYY-MM-DD · default today")
     ap.add_argument("--force", action="store_true",
                        help="pass --force to SSoT · destroys today's snapshot")
+    ap.add_argument("--verify-only", action="store_true", help="check the sealed output without writing")
     args = ap.parse_args()
 
     root = Path(__file__).resolve().parents[3]
+    if args.verify_only:
+        if args.force:
+            ap.error("--verify-only cannot be combined with --force")
+        ok, checks = verify_published(root, args.market, args.asof or date.today().isoformat())
+        print(f"[ssot_verify:{args.market}] {'PASS' if ok else 'FAIL'} {checks}")
+        return 0 if ok else 1
     h = run_guarded(root, args.market, args.asof, force=args.force)
     print(f"[ssot_guard:{args.market}] verdict={h.verdict} · attempts={h.n_attempts}"
               f"{' · fallback=' + h.fallback_source_date if h.used_fallback else ''}"

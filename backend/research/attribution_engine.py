@@ -168,11 +168,11 @@ def failure_profile(df, bottom_n_combos: int = 5) -> list:
     return result
 
 
-def run(root: Path) -> dict:
+def run(root: Path, output_dir: Path | None = None) -> dict:
     """Full attribution analysis · reads outcome_dataset.parquet."""
     import pandas as pd
 
-    ds_path = root / "reports" / "research" / "outcome_dataset.parquet"
+    ds_path = (output_dir or root / "reports" / "research") / "outcome_dataset.parquet"
     if not ds_path.exists():
         return {"error": "outcome_dataset.parquet missing · run build_outcome_dataset first"}
 
@@ -225,15 +225,15 @@ def _tier_emoji(tier: str) -> str:
     }.get(tier, "?")
 
 
-def emit_json(root: Path, result: dict) -> Path:
-    p = root / "reports" / "research" / "attribution_analysis.json"
+def emit_json(root: Path, result: dict, output_dir: Path | None = None) -> Path:
+    p = (output_dir or root / "reports" / "research") / "attribution_analysis.json"
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(json.dumps(result, indent=2, default=str, ensure_ascii=False),
                      encoding="utf-8")
     return p
 
 
-def emit_markdown(root: Path, result: dict) -> Path:
+def emit_markdown(root: Path, result: dict, output_dir: Path | None = None) -> Path:
     """Human-readable attribution report."""
     lines = []
     lines.append(f"# AEGIS Attribution Report")
@@ -310,7 +310,7 @@ def emit_markdown(root: Path, result: dict) -> Path:
                        "No interaction claims below tier 'research signal' (n≥15). "
                        "Winner/failure profiles are early observations · sample sizes noted.")
 
-    p = root / "reports" / "research" / "attribution_report.md"
+    p = (output_dir or root / "reports" / "research") / "attribution_report.md"
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text("\n".join(lines), encoding="utf-8")
     return p

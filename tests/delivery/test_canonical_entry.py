@@ -24,6 +24,22 @@ def _write_parquet(tmp_path: Path, market: str, ticker: str,
     df.to_parquet(d / f"{ticker}_D1.parquet")
 
 
+def test_renderer_refuses_snapshot_from_another_episode(tmp_path):
+    from backend.delivery.canonical_entry import resolve
+    from backend.delivery.prediction_snapshot import record_snapshot
+
+    record_snapshot(tmp_path, market="usa", ticker="PLTR",
+                    prediction_date="2026-08-10", entry_date="2026-08-10",
+                    entry_price=175.23, source_close_date="2026-08-10",
+                    source_dataset_version="fixture", canonical_signal="R2")
+    args = dict(market="usa", ticker="PLTR", exact_snapshot=True)
+    first = resolve(tmp_path, **args, runner="R2", entry_date="2026-08-10")
+    later = resolve(tmp_path, **args, runner="R2", entry_date="2026-09-10")
+    wrong_runner = resolve(tmp_path, **args, runner="R1", entry_date="2026-08-10")
+    assert first.entry_price == 175.23
+    assert later.source == wrong_runner.source == "unavailable"
+
+
 # ── 1 · Exact PLTR row from CI run 33079144704 ──
 
 

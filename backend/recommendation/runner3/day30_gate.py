@@ -63,8 +63,12 @@ def _compute_shadow_returns(root: Path, market: str) -> list[float]:
 
 
 def _sharpe(returns: list[float], rf_annual: float = 0.04) -> float | None:
-    if len(returns) < 2: return None
+    import math
     import statistics
+
+    returns = [value for value in returns if math.isfinite(value)]
+    if len(returns) < 2:
+        return None
     mean_r = statistics.mean(returns)
     stdev_r = statistics.stdev(returns) or 0.0001
     return round(((mean_r - rf_annual / 252) / stdev_r) * (252 ** 0.5), 3)

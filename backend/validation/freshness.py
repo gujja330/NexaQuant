@@ -24,12 +24,20 @@ from .base import Validator, ValidationResult, Verdict, Issue, Severity
 class FreshnessValidator(Validator):
     name = "freshness"
 
-    def __init__(self, weekend_aware: bool = True):
+    def __init__(self, weekend_aware: bool = True, *, market: str = ""):
         self.weekend_aware = weekend_aware
+        self.market = market
 
     def _trading_days_between(self, a: datetime, b: datetime) -> int:
         """Business days between two dates (exclusive-exclusive)."""
         if a > b: a, b = b, a
+        if self.market == "india":
+            from scripts.check_data_freshness import NSE_HOLIDAYS_2026, NSE_IST
+
+            start = a.astimezone(NSE_IST).date()
+            end = b.astimezone(NSE_IST).date()
+            return sum(day.date() > start and day.date() not in NSE_HOLIDAYS_2026
+                       for day in pd.bdate_range(start, end))
         return len(pd.bdate_range(a.date(), b.date())) - 1
 
     def validate(self, spec: dict, root: Path) -> ValidationResult:
@@ -67,6 +75,27 @@ class FreshnessValidator(Validator):
             "trading_days_old":  trading_days_old,
             "sla_trading_days":  sla_days,
         })
+
+        if self.market == "india" and spec.get("kind") == "price" and path.suffix == ".parquet":
+            from scripts.check_data_freshness import completed_nse_session, NSE_IST
+
+            sessions = pd.read_parquet(path, columns=[]).index
+            actual = pd.to_datetime(sessions).max()
+            expected = completed_nse_session(now)
+            evidence["expected_completed_session"] = expected.isoformat()
+            if pd.isna(actual) or actual.date() > expected:
+                issues.append(Issue(Severity.CRITICAL, "Missing completed bars or unfinalized bar present"))
+                return ValidationResult(
+                    validator=self.name, dataset=dataset, verdict=Verdict.FAIL, confidence=1.0,
+                    issues=issues, evidence=evidence, elapsed_ms=(time.time() - t0) * 1000,
+                )
+            actual_date = actual.date()
+            trading_days_old = self._trading_days_between(
+                datetime.combine(actual_date, datetime.min.time(), tzinfo=NSE_IST),
+                datetime.combine(expected, datetime.min.time(), tzinfo=NSE_IST),
+            )
+            evidence["price_session"] = actual_date.isoformat()
+            evidence["trading_days_old"] = trading_days_old
 
         # Try to read run_utc from JSON payload for a more authoritative timestamp
         if path.suffix == ".json":

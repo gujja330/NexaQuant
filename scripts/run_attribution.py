@@ -8,6 +8,7 @@ Reads reports/research/outcome_dataset.parquet · emits:
 """
 from __future__ import annotations
 
+import argparse
 import sys
 from pathlib import Path
 
@@ -20,13 +21,20 @@ def main() -> int:
     sys.path.insert(0, str(_ROOT))
     from backend.research.attribution_engine import run, emit_json, emit_markdown
 
-    result = run(_ROOT)
+    parser = argparse.ArgumentParser(description=__doc__)
+    scope = parser.add_mutually_exclusive_group()
+    scope.add_argument("--india-only", action="store_true")
+    scope.add_argument("--usa-only", action="store_true")
+    options = parser.parse_args()
+    market = "india" if options.india_only else "usa" if options.usa_only else None
+    output = _ROOT / "reports" / "research" / market if market else None
+    result = run(_ROOT, output)
     if "error" in result:
         print(f"[attribution] ERROR · {result['error']}")
         return 1
 
-    json_path = emit_json(_ROOT, result)
-    md_path = emit_markdown(_ROOT, result)
+    json_path = emit_json(_ROOT, result, output)
+    md_path = emit_markdown(_ROOT, result, output)
 
     print(f"[attribution] n_positions={result['n_positions']} · "
               f"closed={result['n_closed']} · open={result['n_open']}")

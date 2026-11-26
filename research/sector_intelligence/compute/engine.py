@@ -94,6 +94,13 @@ def series_for(df: pd.DataFrame, variable_key: str) -> pd.Series:
     if df.empty:
         return pd.Series(dtype=float)
     sub = df[df["variable_key"] == variable_key].copy()
+    from scripts.check_data_freshness import completed_nse_session
+    from sector_intelligence.ingest.nse_index_archive import INDEX_NAMES, SOURCE
+
+    if variable_key.startswith(("sector.india.", "equity_index.india.")):
+        sub = sub.loc[pd.to_datetime(sub["asof_utc"]).dt.date <= completed_nse_session()]
+    if variable_key.removesuffix(".close") in INDEX_NAMES:
+        sub = sub[sub["source_id"] == SOURCE]
     sub = sub.sort_values("asof_utc").drop_duplicates(subset=["asof_utc"], keep="last")
     return pd.Series(sub["value"].values.astype(float),
                       index=pd.to_datetime(sub["asof_utc"]).values,

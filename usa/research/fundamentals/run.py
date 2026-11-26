@@ -37,6 +37,9 @@ except ImportError:
 
 _ROOT = Path(__file__).resolve().parents[3]
 _USA  = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(_ROOT))
+from backend.research.fundamentals.snapshot import eps_snapshot
+from backend.ingest.ticker_health import yahoo_symbol
 
 
 def _get(info: dict, key: str) -> float | None:
@@ -150,8 +153,9 @@ def classify(score: float | None) -> str:
 
 
 def fetch_one(symbol: str) -> dict:
+    provider_symbol = yahoo_symbol(_ROOT, "usa", symbol)
     try:
-        info = yf.Ticker(symbol).info or {}
+        info = yf.Ticker(provider_symbol).info or {}
     except Exception as e:
         return {"symbol": symbol, "available": False, "error": str(e)[:120]}
     if not info or info.get("regularMarketPrice") is None:
@@ -159,17 +163,18 @@ def fetch_one(symbol: str) -> dict:
 
     de = _get(info, "debtToEquity")
     dy = _get(info, "dividendYield")
+    observed_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
 
     f = {
         "symbol":            symbol,
+        "provider_symbol":   provider_symbol,
         "available":         True,
-        "as_of_utc":         datetime.now(timezone.utc).isoformat(timespec="seconds") + "Z",
+        "as_of_utc":         observed_at + "Z",
         "pe_ratio":          _get(info, "trailingPE"),
         "forward_pe":        _get(info, "forwardPE"),
         "peg_ratio":         _get(info, "pegRatio"),
         "price_to_book":     _get(info, "priceToBook"),
-        "eps_trailing":      _get(info, "trailingEps"),
-        "eps_forward":       _get(info, "forwardEps"),
+        **eps_snapshot(info, observed_at),
         "earnings_growth":   _get(info, "earningsGrowth"),
         "revenue_growth":    _get(info, "revenueGrowth"),
         "debt_to_equity":    de,

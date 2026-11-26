@@ -47,7 +47,10 @@ class BackendValidationPipeline:
         self.market = market
         self.datasets = datasets
         self.root = Path(root)
-        self.validators = validators or DEFAULT_VALIDATORS
+        self.validators = validators or [
+            FreshnessValidator(market="india") if market == "india" and isinstance(v, FreshnessValidator)
+            else v for v in DEFAULT_VALIDATORS
+        ]
         self.aggregator = ConfidenceAggregator()
 
     def run(self) -> dict:

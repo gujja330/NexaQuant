@@ -282,6 +282,18 @@ def main(argv=None) -> int:
             else:
                 print("  [postflight:%s] LEDGER INTACT · any failure is "
                       "downstream of accounting" % mk)
+            if mk == "india":
+                from backend.pipeline.contract.completeness import scan_workbook
+
+                workbook = scan_workbook(root, mk)
+                res["workbook"] = workbook
+                if (workbook.get("error") or workbook.get("sheets") != ["CURRENT", "EXIT HISTORY"]
+                        or workbook.get("required_gaps") or workbook.get("reconciliation_errors")):
+                    print(f"  [postflight:india] workbook gate failed: {workbook}")
+                    worst = max(worst, 1)
+                else:
+                    print(f"  [postflight:india] workbook gate PASS: {workbook['rows_checked']} CURRENT, "
+                          f"{workbook['exit_rows']} EXIT HISTORY")
             try:
                 (root / "reports" / "context"
                  / ("delivery_postflight_%s.json" % mk)).write_text(

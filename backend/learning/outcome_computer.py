@@ -11,6 +11,8 @@ historical recommendations are considered).
 from __future__ import annotations
 
 from datetime import date, timedelta
+from functools import lru_cache
+from math import isfinite
 from pathlib import Path
 from typing import Iterable
 
@@ -110,6 +112,7 @@ def compute_outcomes(repo_root: Path, market: str,
 
     already = already_closed_keys or set()
     rows: list[LearningRow] = []
+    load_prices = lru_cache(maxsize=32)(_load_price_series)
 
     for _, r in rec_history.iterrows():
         try:
@@ -131,17 +134,18 @@ def compute_outcomes(repo_root: Path, market: str,
         action = str(r.get("action") or "HOLD")
         if action == "HOLD": continue    # HOLDs don't generate outcomes
 
-        prices = _load_price_series(repo_root, market, ticker)
+        prices = load_prices(repo_root, market, ticker)
         entry_ref = _to_float(r.get("entry_reference"))
         entry_price, entry_date = _price_on_or_after(prices, rec_asof)
         # Prefer the ref price recorded at rec time; fall back to first market close on/after rec_asof
         if entry_ref is not None and entry_ref > 0:
             entry_price = entry_ref
-        if entry_price is None or entry_price <= 0:
+        if entry_price is None or not isfinite(entry_price) or entry_price <= 0:
             continue      # can't compute outcome without an entry
 
         exit_price, exit_date = _price_on_or_after(prices, horizon_close)
-        if exit_price is None:
+        if (exit_price is None or not isfinite(exit_price) or exit_price <= 0
+                or exit_date is None or exit_date > cutoff):
             # Horizon closed but no market data → skip until data lands
             continue
 
@@ -169,7 +173,7 @@ def compute_outcomes(repo_root: Path, market: str,
 
         rows.append(LearningRow(
             market=market, ticker=ticker,
-            rec_asof=rec_asof, horizon_close_date=horizon_close,
+            rec_asof=rec_asof, horizon_close_date=exit_date,
             action=action,
             ensemble_score=_to_float(r.get("ensemble_score")) or 0.0,
             calibrated_confidence=_to_float(r.get("calibrated_confidence"))

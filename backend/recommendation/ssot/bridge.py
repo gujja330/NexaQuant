@@ -210,6 +210,16 @@ def publish_ssot(v3_path: Path,
                                                      r.get("score", 0.0))))
     legacy_recs = [translate_v3_to_legacy(r, rank=i + 1)
                    for i, r in enumerate(v3_sorted)]
+    if market == "india":
+        from india.price_availability import unavailable_prices
+
+        day = asof.isoformat() if isinstance(asof, date) else (asof or date.today().isoformat())
+        unavailable = unavailable_prices(out_path.parent.parent, day)
+        for row in legacy_recs:
+            ticker = str(row.get("ticker") or "").upper().removesuffix(".NS").removesuffix(".BO")
+            if ticker in unavailable:
+                row.update(action="HOLD", recommendation="HOLD", signal_quality="INSUFFICIENT",
+                           price_unavailable=unavailable[ticker])
 
     # Institutional Completion Program · consume Opportunity Cost engine
     if apply_opportunity_cost:

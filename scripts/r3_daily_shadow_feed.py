@@ -333,7 +333,7 @@ def main() -> int:
 
     if a.accumulate_outcomes:
         from backend.research.r3.outcomes import accumulate
-        print(json.dumps(accumulate(root, a.asof), indent=2, default=str))
+        print(json.dumps(accumulate(root, a.asof, market=None if a.market == "both" else a.market), indent=2, default=str))
     return 0
 
 

@@ -161,15 +161,6 @@ STEPS = [
         "staleness_skip_hours": 48,
     },
     {
-        "name":     "backend_validation",
-        "desc":     "USA Backend Data Foundation validator (Sprint 1)",
-        "script":   "usa/backend_validation/run.py",
-        "produces": ["usa/reports/backend_validation.json",
-                       "usa/reports/backend_validation_summary.json"],
-        "requires": [],
-        "optional": True,
-    },
-    {
         "name":     "macro_intel",
         "desc":     "Sprint 6.5 · USA Macro & Intermarket Intelligence (commodities+currencies+bonds+CB+vol+rotation+regime, USD)",
         "script":   "usa/research/macro_intel/run.py",
@@ -185,7 +176,7 @@ STEPS = [
                        "usa/reports/ai_macro_narrative.json",
                        "usa/reports/macro_history.parquet"],
         "requires": [],
-        "optional": True,
+        "optional": False,
     },
     {
         "name":     "factor_library",
@@ -205,7 +196,7 @@ STEPS = [
                        "usa/reports/market_intelligence_summary.json",
                        "usa/reports/ai_market_narrative.json"],
         "requires": [],
-        "optional": True,
+        "optional": False,
     },
     {
         "name":     "feature_store",
@@ -340,7 +331,7 @@ STEPS = [
         "produces": ["usa/reports/recommendations.json",
                         "reports/context/ssot_health.json"],
         "requires": ["usa/reports/recommendations_v3.json"],
-        "optional": True,
+        "optional": False,
     },
     {
         "name":     "recommendation_lifecycle",
@@ -445,6 +436,16 @@ STEPS = [
         "script":   "usa/research/morning_report/run.py",
         "produces": ["usa/reports/morning_latest.md", "usa/reports/morning_latest.html"],
         "requires": ["usa/reports/recommendations.json", "usa/reports/benchmark.json"],
+    },
+    # Validate after the daily producers so ops sees this run's artifacts.
+    {
+        "name":     "backend_validation",
+        "desc":     "USA Backend Data Foundation validator (Sprint 1)",
+        "script":   "usa/backend_validation/run.py",
+        "produces": ["usa/reports/backend_validation.json",
+                       "usa/reports/backend_validation_summary.json"],
+        "requires": [],
+        "optional": False,
     },
     {
         "name":     "ops_check",

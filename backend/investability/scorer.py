@@ -87,14 +87,15 @@ class Investability:
     debug: dict                     # per-engine detail
 
 
-def _fetch_info(ticker: str, market: str) -> dict:
+def _fetch_info(ticker: str, market: str, root: Path) -> dict:
     """yfinance ticker.info · returns empty dict on any failure."""
     try:
         import yfinance as yf
     except ImportError:
         return {}
-    yf_ticker = f"{ticker}.NS" if market.lower() == "india" and not ticker.endswith(".NS") \
-                        else ticker
+    from backend.ingest.ticker_health import yahoo_symbol
+
+    yf_ticker = yahoo_symbol(root, market, ticker)
     try:
         return yf.Ticker(yf_ticker).info or {}
     except Exception:
@@ -138,7 +139,7 @@ def score_ticker(ticker: str, market: str, root: Path,
     If `info` is None, fetches from yfinance (network call).
     """
     if info is None:
-        info = _fetch_info(ticker, market)
+        info = _fetch_info(ticker, market, root)
 
     # Full 11-engine scoring
     fund_score,   fund_dbg    = fundamental.score(info)

@@ -12,7 +12,7 @@ from __future__ import annotations
 import io
 import json
 import sys
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 try:
@@ -28,6 +28,56 @@ except ImportError:
 
 _ROOT = Path(__file__).resolve().parents[2]     # repo root
 _USA  = Path(__file__).resolve().parents[1]     # usa/
+sys.path.insert(0, str(_ROOT))
+
+from backend.shared.atomic_io import write_text_atomic
+
+
+def _ready_for_scoring(symbol, earliest):
+    import pandas as pd
+    from backend.feature_store.features.technical import BARS_52W
+
+    path = _USA / "data/raw/us" / f"{symbol}_D1.parquet"
+    if not path.is_file():
+        return False
+    try:
+        bars = pd.read_parquet(path, columns=["close"])
+        closes = pd.to_numeric(bars["close"], errors="coerce")
+        return (bars.index.is_unique and bars.index.is_monotonic_increasing
+                and int((closes.notna() & closes.gt(0) & closes.lt(float("inf"))).sum()) >= BARS_52W
+                and earliest.isoformat() <= str(bars.index[-1])[:10]
+                and 0 < closes.iloc[-1] < float("inf"))
+    except (OSError, ValueError, KeyError, TypeError):
+        return False
+
+
+def _sp500_candidates(configured):
+    from backend.ingest.security_master import populations
+    from backend.research.evidence.trading_calendars import completed_nyse_session
+    from backend.research.opportunity_registry import active_opportunities, load_all
+    from usa.scripts.refresh_universe import refresh_reference
+
+    reference, status = refresh_reference(_ROOT, "sp500", configured)
+    prior_path = _USA / "reports/universe.json"
+    previous = set(configured)
+    if prior_path.is_file():
+        prior = json.loads(prior_path.read_text(encoding="utf-8"))
+        if prior.get("active_universe") == "sp500" and prior.get("security_master"):
+            previous = {row["symbol"] for row in prior["tickers"]}
+    members = set(reference["members"])
+    now = datetime.now(timezone.utc)
+    latest = completed_nyse_session(now)
+    earliest = completed_nyse_session(now, through=latest - timedelta(days=1))
+    eligible = (previous & members) | {symbol for symbol in members - previous
+                                      if _ready_for_scoring(symbol, earliest)}
+    pending = members - eligible
+    held = {position.ticker for position in active_opportunities(load_all(_ROOT))
+            if position.market == "usa"}
+    return sorted(eligible), {
+        **populations(_ROOT, "usa", members, held, (), pending),
+        "source_status": status["status"], "observation_utc": reference["observed_utc"],
+        "reason": status.get("reason"), "eligible_for_scoring": sorted(eligible),
+    }
 
 
 def main() -> int:
@@ -45,6 +95,7 @@ def main() -> int:
         return 1
 
     tickers = universe.get("tickers") or []
+    security_master = None
 
     # v3.0 dynamic universe · Article 3 compliance:
     # A universe may point to an external JSON list via `tickers_from_json`.
@@ -61,6 +112,8 @@ def main() -> int:
         import json as _json
         payload = _json.loads(json_path.read_text(encoding="utf-8"))
         raw_tickers = payload.get("tickers") or []
+        if active_name == "sp500" and raw_tickers:
+            raw_tickers, security_master = _sp500_candidates(raw_tickers)
         # Compose ticker dicts with metadata defaults
         default_sector = universe.get("default_sector", "Unknown")
         default_exchange = universe.get("default_exchange", "NYSE")
@@ -101,11 +154,13 @@ def main() -> int:
         "benchmarks":    cfg.get("benchmarks", {}),
         "market":        cfg.get("market", {}),
     }
+    if security_master is not None:
+        out["security_master"] = security_master
 
     reports_dir = _USA / "reports"
     reports_dir.mkdir(parents=True, exist_ok=True)
     out_path = reports_dir / "universe.json"
-    out_path.write_text(json.dumps(out, indent=2, default=str), encoding="utf-8")
+    write_text_atomic(out_path, json.dumps(out, indent=2, default=str))
 
     print("=" * 70)
     print(f"  AEGIS USA · Universe · {active_name}")

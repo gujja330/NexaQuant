@@ -109,7 +109,8 @@ def _parquet_close(root: Path, market: str, ticker: str,
 
 def resolve(root: Path, *, market: str, ticker: str, runner: str,
             entry_date: str,
-            backfill_snapshot: bool = True) -> CanonicalEntry:
+            backfill_snapshot: bool = True,
+            exact_snapshot: bool = False) -> CanonicalEntry:
     """Return the canonical entry for one Portfolio row.
 
     Priority:
@@ -125,10 +126,20 @@ def resolve(root: Path, *, market: str, ticker: str, runner: str,
          emitted for locked rows).
     """
     from backend.delivery.prediction_snapshot import (
-        get_by_ticker, record_snapshot,
+        _make_prediction_id, get_by_ticker, get_snapshot, record_snapshot,
     )
+    ed = str(entry_date or "")[:10]
     # 1 · Snapshot lookup (canonical)
-    snap = get_by_ticker(root, market, ticker, runner)
+    if exact_snapshot and ed:
+        snap = get_snapshot(root, _make_prediction_id(market, ticker, ed, 0))
+        if snap:
+            snap_runner = str(snap.get("runner") or snap.get("canonical_signal") or "")
+            if snap_runner.upper().removesuffix("_NEW") != runner.upper().removesuffix("_NEW"):
+                snap = None
+    elif exact_snapshot:
+        snap = None
+    else:
+        snap = get_by_ticker(root, market, ticker, runner)
     if snap is not None and not snap.get("_quarantined"):
         ep = snap.get("entry_price")
         ed = str(snap.get("entry_date") or "")[:10]
@@ -139,6 +150,11 @@ def resolve(root: Path, *, market: str, ticker: str, runner: str,
                 entry_date=ed, entry_price=float(ep),
                 source="snapshot",
                 prediction_id=snap.get("prediction_id"))
+    if exact_snapshot:
+        return CanonicalEntry(
+            ticker=ticker, runner=runner, entry_date=ed, entry_price=0.0,
+            source="unavailable",
+        )
     # 2 · Parquet backfill
     ed = str(entry_date or "")[:10]
     if not ed:

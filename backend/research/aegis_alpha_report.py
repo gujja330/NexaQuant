@@ -249,31 +249,25 @@ def _reentry_rate(root: Path, mkt: str) -> float:
 
 def _overall_metrics(root: Path, mkt: str) -> dict:
     d_loss = _load(root, f"reports/research/loss_patterns_{mkt}.json")
-    d_win = _load(root, f"reports/research/win_patterns_{mkt}.json")
-    n_exits = d_loss.get("n_positions", 0)
-    n_wins = d_win.get("n_wins", 0)
-    n_losses = n_exits - n_wins
+    exits = d_loss.get("exits", [])
+    n_exits = len(exits)
+    n_wins = sum(bool(row.get("is_win")) for row in exits)
     win_rate = round(n_wins / max(n_exits, 1) * 100, 1)
-    all_pnl_wins = sum(w.get("pnl_pct", 0)
-                       for w in d_win.get("winners", []))
-    all_pnl_losses = sum(e.get("pnl_pct", 0)
-                         for e in d_loss.get("exits", [])
-                         if not e.get("is_win"))
-    avg_win = round(all_pnl_wins / max(n_wins, 1), 2)
-    avg_loss = round(all_pnl_losses / max(n_losses, 1), 2)
+    pnls = [row["pnl_pct"] for row in exits]
+    wins = [pnl for pnl in pnls if pnl > 0.5]
+    losses = [pnl for pnl in pnls if pnl < -0.5]
+    avg_win = sum(wins) / max(len(wins), 1)
+    avg_loss = sum(losses) / max(len(losses), 1)
     pf = round(abs(avg_win / avg_loss), 2) if avg_loss else 0.0
-    expectancy = round((win_rate / 100) * avg_win
-                        + (1 - win_rate / 100) * avg_loss, 2)
-    max_dd = round(min([e.get("pnl_pct", 0)
-                       for e in d_loss.get("exits", [])],
-                      default=0), 2)
+    expectancy = round(sum(pnls) / max(n_exits, 1), 2)
+    max_dd = round(min(pnls, default=0), 2)
     return {
         "n_closed": n_exits,
         "win_rate_pct": win_rate,
         "profit_factor": pf,
         "expectancy_pct": expectancy,
-        "avg_win_pct": avg_win,
-        "avg_loss_pct": avg_loss,
+        "avg_win_pct": round(avg_win, 2),
+        "avg_loss_pct": round(avg_loss, 2),
         "max_drawdown_pct": max_dd,
     }
 

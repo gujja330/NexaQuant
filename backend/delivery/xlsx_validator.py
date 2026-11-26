@@ -82,7 +82,10 @@ class XlsxValidator:
         if self._wb is not None: return self._wb
         try:
             from openpyxl import load_workbook
-            self._wb = load_workbook(self.xlsx_path, read_only=True)
+            # The delivered workbook is small and the invariants revisit
+            # individual cells. Read-only random access reparses the XML
+            # from the start of the sheet for each lookup.
+            self._wb = load_workbook(self.xlsx_path)
             return self._wb
         except Exception:
             return None
@@ -235,7 +238,7 @@ class XlsxValidator:
         # field under its current name - the same alias-drift that made
         # A19/A23 fire on a renamed sheet. Alias it, do not branch on it.
         "Runner":        ["Runner", "Engine"],
-        "Entry Date":    ["Entry Date"],
+        "Entry Date":    ["Admission Date", "Entry Date"],
         "Entry Price":   ["Entry Price", "Entry"],
         # RENAMED 2026-09-10 · "Current Price" -> "Last Price", because
         # the cell holds the last completed CLOSE, not a live quote. The

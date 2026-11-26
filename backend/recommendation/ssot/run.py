@@ -31,6 +31,7 @@ sys.path.insert(0, str(_ROOT))
 
 import json  # noqa: E402
 from backend.recommendation.ssot.bridge import publish_ssot  # noqa: E402
+from backend.recommendation.ssot.price_session import expected_session, snapshot_session  # noqa: E402
 from backend.recommendation.investor_actionable import (  # noqa: E402
     enrich_batch, summarize_batch, build_ceo_summary,
 )
@@ -175,7 +176,33 @@ def main() -> int:
     # Display-layer changes should use scripts/stamp_only.py which is non-destructive.
     snap_existing = (reports / "recommendations_history" / args.market
                         / f"{asof_run}.json")
-    if snap_existing.exists() and not args.force:
+    session = expected_session(_ROOT, args.market, asof_run)
+    unavailable = {}
+    if session:
+        from india.price_availability import unavailable_prices
+
+        unavailable = unavailable_prices(_ROOT, asof_run)
+    excluded_tickers = sorted(unavailable)
+    refresh_session = False
+    if snap_existing.is_file() and session:
+        import hashlib
+        from backend.shared.atomic_io import write_bytes_atomic
+
+        previous_bytes = snap_existing.read_bytes()
+        previous_snapshot = json.loads(previous_bytes)
+        previous_session = snapshot_session(previous_snapshot)
+        refresh_session = (previous_session is None or previous_session < session
+                           or (previous_session == session and (not previous_snapshot.get("price_session")
+                               or previous_snapshot.get("price_excluded_tickers", []) != excluded_tickers)))
+        if refresh_session:
+            receipt = (snap_existing.parent / "superseded" / asof_run
+                       / f"{hashlib.sha256(previous_bytes).hexdigest()}.json")
+            receipt.parent.mkdir(parents=True, exist_ok=True)
+            if not receipt.exists():
+                write_bytes_atomic(receipt, previous_bytes)
+            if receipt.read_bytes() != previous_bytes:
+                raise RuntimeError(f"superseded recommendation archive checksum differs: {receipt}")
+    if snap_existing.exists() and not (args.force or refresh_session):
         print(f"[recommendation_ssot:{args.market}] REFUSED · snapshot for "
                 f"{asof_run} already exists at {snap_existing.relative_to(_ROOT)}.")
         print(f"  · Use 'scripts/stamp_only.py --market {args.market}' for display "
@@ -187,6 +214,12 @@ def main() -> int:
     payload = publish_ssot(v3, out, market=args.market,
                              asof=asof_run,
                              run_utc=datetime.now(timezone.utc).isoformat())
+    if session:
+        from backend.shared.atomic_io import write_text_atomic
+
+        payload["price_session"] = session
+        payload["price_excluded_tickers"] = excluded_tickers
+        write_text_atomic(out, json.dumps(payload, indent=2, ensure_ascii=False) + "\n")
     print(f"[recommendation_ssot:{args.market}] "
           f"n={payload['n']} (source: {payload['source']}) -> {out.name}")
 
@@ -229,11 +262,18 @@ def main() -> int:
                             previous_ticker_map=previous_ticker_map,
                             asof=asof_str,
                             history_asof_map=history_asof_map)
+            for row in recs:
+                if row.get("price_unavailable"):
+                    row["investor_action"] = {"entry": "AVOID", "if_holding": "HOLD",
+                        "is_actionable_entry": False, "is_actionable_if_holding": False,
+                        "user_facing_label": "Price unavailable. Decisions paused."}
+                    row["rotation_intelligence"] = {"should_rotate": False}
 
             # Update position store AFTER enrichment so entry_zone.current_price
             # is populated. Position store is idempotent per (ticker, asof).
             try:
-                update_from_recs(reports, args.market, recs, asof=asof_str or "")
+                update_from_recs(reports, args.market, [row for row in recs if not row.get("price_unavailable")],
+                                 asof=asof_str or "")
             except Exception as _e:
                 print(f"[position_store:{args.market}] update failed · {type(_e).__name__}: {_e}")
 

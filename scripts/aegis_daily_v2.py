@@ -33,7 +33,7 @@ import os
 import subprocess
 import sys
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 try:
@@ -128,6 +128,47 @@ STEPS = [
         "requires": [],
         "optional": True,
         "staleness_skip_hours": 20,  # Part 29 Lever A · daily cadence enough
+    },
+    {
+        "name": "global_context",
+        "desc": "Refresh India global intelligence context",
+        "script": "research/global_intelligence/run.py",
+        "produces": ["reports/global_context.json"],
+        "requires": [],
+        "optional": False,
+    },
+    {
+        "name": "sector_context",
+        "desc": "Refresh India sector intelligence context",
+        "script": "research/sector_intelligence/run.py",
+        "produces": ["reports/sector_context.json"],
+        "requires": ['reports/global_context.json'],
+        "optional": False,
+    },
+    {
+        "name": "industry_context",
+        "desc": "Refresh India industry intelligence context",
+        "script": "research/industry_intelligence/run.py",
+        "produces": ["reports/industry_context.json"],
+        "requires": ['reports/global_context.json', 'reports/sector_context.json'],
+        "optional": False,
+    },
+    {
+        "name": "company_context",
+        "desc": "Refresh India company intelligence context",
+        "script": "research/company_intelligence/run.py",
+        "produces": ["reports/company_context.json"],
+        "requires": ['reports/global_context.json', 'reports/sector_context.json', 'reports/industry_context.json'],
+        "optional": False,
+    },
+    {
+        "name": "learning_corpus",
+        "desc": "Extend the simulated learning corpus through completed monthly windows",
+        "script": "research/adaptive_learning/run.py",
+        "script_args": ["--append-completed"],
+        "produces": ["reports/learning.parquet", "reports/learning_summary.json"],
+        "requires": ["data/raw/india/NSEI_D1.parquet", "reports/learning.parquet"],
+        "optional": False,
     },
     {
         "name": "backend_validation",
@@ -671,7 +712,8 @@ STEPS = [
         "desc": "Update momentum snapshots at t+1/3/5/10/20d forward outcomes",
         "script": "backend/research/multi_layer/momentum_forward_outcomes.py",
         "script_args": ["--market", "both"],
-        "produces": [],
+        "produces": ["reports/research/momentum_snapshots/receipt_india_{asof}.json",
+                     "reports/research/momentum_snapshots/receipt_usa_{asof}.json"],
         "requires": [],
         "optional": True,
     },
@@ -755,7 +797,7 @@ STEPS = [
         "desc":       ("MR forward-validation refresh · recompute matured "
                         "5/10/20d outcomes + re-enrich entry features "
                         "(research-only · no production write)"),
-        "script":     "backend/research/mr_prediction_autopsy.py",
+        "module":     "backend.research.mr_prediction_autopsy",
         "script_args": ["--market", "both"],
         "produces":   ["reports/research/mr_prediction_autopsy_india.jsonl",
                         "reports/research/mr_prediction_autopsy_usa.jsonl"],
@@ -766,7 +808,7 @@ STEPS = [
         "name":       "mr_feature_enrich",
         "desc":       ("MR entry-feature enrichment · PIT features joined to "
                         "matured forward outcomes (research-only)"),
-        "script":     "backend/research/mr_feature_enricher.py",
+        "module":     "backend.research.mr_feature_enricher",
         "script_args": ["--market", "both"],
         "produces":   ["reports/research/mr_prediction_autopsy_india_enriched.jsonl",
                         "reports/research/mr_prediction_autopsy_usa_enriched.jsonl"],
@@ -1052,7 +1094,7 @@ STEPS = [
         "name":     "monthly_rollups",
         "desc":     "Confidence Calibration · Rotation Accuracy · Feature Attribution rollups",
         "script":   "scripts/monthly_rollups.py",
-        "produces": [],       # reports/research/monthly/* · idempotent
+        "produces": ["reports/research/monthly/summary_{month}.json"],
         "requires": [],
         "optional": True,
     },
@@ -1072,7 +1114,7 @@ STEPS = [
         "desc":       "Runner 3 legacy shadow · NON-CANONICAL · comparator/risk fields only (isolated)",
         "script":     "backend/recommendation/runner3/run.py",
         "script_args": ["--market", "india"],
-        "produces":   [],     # reports/research/runner3/* · isolated dir
+        "produces":   ["reports/research/runner3/picks_india_{asof}.json"],
         "requires":   ["reports/recommendations.json"],
         "optional":   True,
     },
@@ -1178,10 +1220,9 @@ def _expand_asof(rel: str) -> str:
     Declared paths are matched against the filesystem, so a template left
     unexpanded can never match anything.
     """
-    if "{asof}" not in str(rel):
-        return rel
     from datetime import date as _d
-    return str(rel).replace("{asof}", _d.today().isoformat())
+    today = _d.today().isoformat()
+    return str(rel).replace("{asof}", today).replace("{month}", today[:7])
 
 
 def _check_produced(step: dict, before_mtimes: dict[str, str | None]) -> dict:
@@ -1231,6 +1272,16 @@ def _check_produced(step: dict, before_mtimes: dict[str, str | None]) -> dict:
                           "content_fresh": content_fresh,
                           "refreshed": refreshed}
     return results
+
+
+def step_contract(step):
+    command = ["-m", step["module"]] if step.get("module") else [step["script"]]
+    return {
+        "command": [sys.executable, *command, *step.get("script_args", [])],
+        "required": not step.get("optional", False),
+        "inputs": [_expand_asof(path) for path in step.get("requires", [])],
+        "expected_outputs": [_expand_asof(path) for path in step.get("produces", [])],
+    }
 
 
 def _run_step(step: dict, dry_run: bool = False) -> dict:
@@ -1376,6 +1427,12 @@ def _run_step(step: dict, dry_run: bool = False) -> dict:
             verdict = "SUCCESS_STALE_CONTENT"
         else:
             verdict = "SUCCESS_NO_REFRESH"
+        if step["name"] == "recommendation_ssot" and verdict == "SUCCESS_NO_REFRESH":
+            from backend.recommendation.ssot.guard import verify_published
+
+            verified, _ = verify_published(_ROOT, "india", date.today().isoformat())
+            if verified:
+                verdict = "SUCCESS_VERIFIED_REUSE"
         rc = r.returncode
     except subprocess.TimeoutExpired as e:
         elapsed = time.perf_counter() - t0
@@ -1419,8 +1476,17 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--continue", dest="cont", action="store_true",
                      help="continue on step failure (default: fail-fast)")
+    ap.add_argument("--required-only-exit", action="store_true",
+                    help="Fail on critical steps and verdict write errors; report optional failures separately")
+    ap.add_argument("--strict-local-exit", action="store_true",
+                    help="Fail closed on required outputs and critical operational findings")
+    ap.add_argument("--india-only-registry", action="store_true",
+                    help="Scope cross-market stages to India and exclude legacy sending")
+    ap.add_argument("--two-sheet-local", action="store_true",
+                    help="Use the local contract rather than legacy five-sheet-only audits")
     ap.add_argument("--only", metavar="NAME",
                      help="run only the named step (repeatable, comma-separated)")
+    ap.add_argument("--plan-json", action="store_true", help="emit the selected stage contracts")
     ap.add_argument("--list", action="store_true",
                      help="print the plan and exit")
     ap.add_argument("--dry-run", action="store_true",
@@ -1440,9 +1506,66 @@ def main() -> int:
         only = set(x.strip() for x in args.only.split(","))
 
     plan = [s for s in STEPS if not only or s["name"] in only]
+    excluded = {}
+    if args.two_sheet_local and not only:
+        legacy = {
+            "five_sheet_workbook_audit", "aegis_provenance_companion",
+            "aegis_overlap_classifier", "aegis_visual_signoff",
+            "aegis_final_reconciler", "aegis_local_certification",
+        }
+        excluded.update({s["name"]: "Legacy five-sheet audit replaced by the two-sheet contract"
+                         for s in plan if s["name"] in legacy})
+        plan = [s for s in plan if s["name"] not in legacy]
+    if args.india_only_registry:
+        india_outputs = {
+            "multi_layer_momentum_ledger": "reports/research/multi_layer/momentum_ledger_india_{asof}.json",
+            "multi_layer_stress_regime": "reports/research/multi_layer/stress_regime_india_{asof}.json",
+            "multi_layer_crash_resilience": "reports/research/multi_layer/crash_resilience_india_{asof}.json",
+            "multi_layer_runner_india": "reports/research/multi_layer/evidence_india_{asof}.json",
+            "dynamic_exit_bridge": "reports/audit/dynamic_exit_decisions_india_{asof}.json",
+            "aegis_r1_producer_audit": "reports/audit/r1_producer_audit_india_{asof}.json",
+            "aegis_3sheet_workbook": "reports/telegram/aegis_india_{asof}.xlsx",
+            "aegis_determinism_hash": "reports/reconcile/determinism_hash_india.json",
+            "r3_shadow": "reports/research/r3/shadow/summary_india.json",
+        }
+        scoped = []
+        for step in plan:
+            script_args = step.get("script_args", [])
+            if "usa" in script_args or step["name"] == "telegram":
+                excluded[step["name"]] = (
+                    "The standard local runner handles Telegram after certification" if step["name"] == "telegram"
+                    else "USA-only stage is deferred until India certification"
+                )
+                continue
+            if step["name"] == "monthly_rollups":
+                script_args = ["--market", "india"]
+            if "both" in script_args:
+                step = dict(
+                    step,
+                    script_args=["india" if arg == "both" else arg for arg in script_args],
+                    produces=[path for path in step["produces"] if "_usa" not in path],
+                    requires=[path for path in step["requires"] if "_usa" not in path],
+                )
+            elif step["name"] == "monthly_rollups":
+                step = dict(step, script_args=script_args)
+            if step["name"] in india_outputs:
+                step = dict(step, produces=[india_outputs[step["name"]]])
+            if step["name"] == "backend_validation":
+                step = dict(step, optional=False)
+            scoped.append(step)
+        plan = scoped
     if not plan:
         print(f"no steps match --only={args.only!r}")
         return 2
+
+    if args.plan_json:
+        print(json.dumps({
+            "stages": [dict(name=step["name"], **step_contract(step)) for step in plan],
+            "excluded": excluded,
+        }, indent=2))
+        return 0
+    for name, reason in excluded.items():
+        print(f"Out of scope: {name} - {reason}")
 
     _banner("AEGIS DAILY · PHASE 2 v2 · orchestrator")
     print(f"  wall clock (IST): {_now_ist()}")
@@ -1459,7 +1582,22 @@ def main() -> int:
     t_all = time.perf_counter()
     for i, step in enumerate(plan, 1):
         _banner(f"STEP {i}/{len(plan)} · {step['name']} · {step['desc']}")
-        result = _run_step(step, dry_run=args.dry_run)
+        if step["name"] == "ops_check" and not args.dry_run and not args.only:
+            from backend.shared.atomic_io import write_text_atomic
+
+            health = Path("reports/context/v2_ops_input_india.json")
+            (_ROOT / health).parent.mkdir(parents=True, exist_ok=True)
+            write_text_atomic(_ROOT / health, json.dumps({"run_utc": _iso_utc(), "results": [
+                {"name": part["name"], "verdict": part["verdict"], "required": part["required"]}
+                for part in results
+            ]}) + "\n")
+            step = {**step, "script_args": [*step.get("script_args", []), "--current-health", str(health)]}
+        contract = step_contract(step)
+        if not args.dry_run:
+            contract["input_mtimes"] = {
+                path: _mtime_iso(_ROOT / path) for path in contract["inputs"]
+            }
+        result = {**contract, **_run_step(step, dry_run=args.dry_run)}
         results.append(result)
 
         verdict = result["verdict"]
@@ -1482,7 +1620,7 @@ def main() -> int:
     n_success = 0; n_fail = 0
     for r in results:
         v = r["verdict"]
-        if v == "SUCCESS":
+        if v in {"SUCCESS", "SUCCESS_CACHED", "SUCCESS_VERIFIED_REUSE"}:
             n_success += 1
         elif v in ("FAILURE", "MISSING_SCRIPT", "MISSING_INPUTS"):
             n_fail += 1
@@ -1512,7 +1650,7 @@ def main() -> int:
     for r in results:
         sub = _subsystem_of(r["name"])
         d = subsystems.setdefault(sub, {"n_ok": 0, "n_fail": 0, "failures": []})
-        if r["verdict"] == "SUCCESS":
+        if r["verdict"] in {"SUCCESS", "SUCCESS_CACHED", "SUCCESS_VERIFIED_REUSE"}:
             d["n_ok"] += 1
         else:
             d["n_fail"] += 1
@@ -1636,7 +1774,15 @@ def main() -> int:
                  len(optional_failures)))
     except Exception as e:
         print("  (orchestrator verdict write failed: %s)" % e)
+        if args.required_only_exit or args.strict_local_exit:
+            return 1
 
+    if args.strict_local_exit:
+        if optional_failures:
+            print(f"  Optional stages failed: {', '.join(optional_failures)}. Required validation continues.")
+        return int(bool(critical_failures or reporter_findings))
+    if args.required_only_exit:
+        return int(bool(critical_failures))
     if n_fail > 0:
         return 1
     _banner("DONE — dashboards will pick up new data within 60s (auto-refresh) "

@@ -28,10 +28,44 @@ def _git_sha() -> str:
         return "nogit"
 
 
+def extend_corpus(top_n: int, verbose: bool) -> pd.DataFrame:
+    """Extend the published simulated corpus from its last completed window."""
+    from backtesting.compute.backtest_engine import month_ends
+
+    trades = pd.read_parquet(REPORTS_DIR / "learning.parquet")
+    last_exit = pd.to_datetime(trades["exit_date"], errors="raise").max()
+    nifty = pd.read_parquet(_ROOT / "data" / "raw" / "india" / "NSEI_D1.parquet")["close"].dropna()
+    nifty.index = pd.to_datetime(nifty.index).tz_localize(None).normalize()
+    if not nifty.index.is_unique or not nifty.index.is_monotonic_increasing:
+        raise ValueError("daily Nifty history contains duplicate or unordered sessions")
+    if trades.empty or nifty.empty:
+        raise ValueError("missing learning history or Nifty observations")
+    cutoff = nifty.index.max().normalize()
+    due = month_ends(last_exit, cutoff)
+    if len(due) < 2:
+        return trades
+    appended = trade_history.build_trade_history(
+        top_n, last_exit.date().isoformat(), cutoff.date().isoformat(), verbose, nifty=nifty,
+    )
+    expected = {day.date().isoformat() for day in due[1:]}
+    if appended.empty or set(appended["exit_date"]) != expected:
+        raise ValueError("learning history is missing a completed monthly window")
+    if set(appended.columns) != set(trades.columns):
+        raise ValueError("learning history schema differs from the published corpus")
+    combined = pd.concat([trades, appended], ignore_index=True)
+    if combined.duplicated(["ticker", "entry_date", "exit_date"]).any():
+        raise ValueError("duplicate simulated trade episode in learning history")
+    return combined
+
+
 def run(top_n: int = 20, start_date: str = "2022-01-01", end_date: str = "2026-06-30",
-         use_cache: bool = True, verbose: bool = True) -> dict:
+         use_cache: bool = True, verbose: bool = True, append_completed: bool = False) -> dict:
     """Build (or load) trade history + all learning artifacts."""
-    if use_cache and TRADE_HISTORY_CACHE.exists():
+    if append_completed:
+        trades = extend_corpus(top_n, verbose)
+        start_date = str(trades["entry_date"].min())
+        end_date = str(trades["exit_date"].max())
+    elif use_cache and TRADE_HISTORY_CACHE.exists():
         try:
             trades = pd.read_parquet(TRADE_HISTORY_CACHE)
             if verbose:

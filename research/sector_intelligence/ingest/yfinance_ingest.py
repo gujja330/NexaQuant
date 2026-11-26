@@ -15,6 +15,7 @@ import pandas as pd
 
 _ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(_ROOT / "research"))
+sys.path.insert(0, str(_ROOT))
 
 from global_intelligence.lib.schema import RawObservation, as_dict           # noqa: E402
 from sector_intelligence.lib import sector_catalog                             # noqa: E402
@@ -51,13 +52,18 @@ def _fetch_one(ticker: str, period_days: int) -> pd.DataFrame:
 
 def fetch_sector(spec: sector_catalog.SectorSpec, period_days: int = 300) -> tuple[list[RawObservation], str | None]:
     """Try each yfinance ticker in order; return (observations, ticker_used) or ([], None)."""
+    from scripts.check_data_freshness import completed_nse_session
+
     code_sha = _git_sha()
+    cutoff = completed_nse_session()
     for ticker in spec.yfinance_tickers:
         df = _fetch_one(ticker, period_days)
         if df is None or df.empty:
             continue
         out: list[RawObservation] = []
         for ts, row in df.iterrows():
+            if pd.Timestamp(ts).date() > cutoff:
+                continue
             close = row.get("Close")
             if pd.isna(close):
                 continue
@@ -109,11 +115,22 @@ def store(observations: list[RawObservation]) -> Path:
 def fetch_all(verbose: bool = True) -> dict:
     result = {"attempted": 0, "succeeded": 0, "rows_written": 0,
                 "failures": [], "used_tickers": {}, "partition": None}
-    all_new: list[RawObservation] = []
+    from sector_intelligence.compute.engine import load_recent_raw
+    from sector_intelligence.ingest import nse_index_archive
+
+    all_new, official = nse_index_archive.fetch(_ROOT, load_recent_raw(), _git_sha())
     for spec in sector_catalog.SECTORS:
         result["attempted"] += 1
         if verbose:
             print(f"        [{spec.sector_key:<36}] fetching ", end="", flush=True)
+        if spec.sector_key in official:
+            values = official[spec.sector_key]
+            latest = max(values)
+            result["succeeded"] += 1
+            result["used_tickers"][spec.sector_key] = nse_index_archive.INDEX_NAMES[spec.sector_key]
+            if verbose:
+                print(f" -> {len(values)} verified NSE bars, latest={values[latest]:.2f} @ {latest}")
+            continue
         rows, used = fetch_sector(spec)
         if rows:
             result["succeeded"] += 1

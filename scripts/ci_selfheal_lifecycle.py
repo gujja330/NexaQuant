@@ -171,7 +171,16 @@ def closed_in_current(market: str) -> list:
     return sorted(out)
 
 
-def unaccounted(market: str) -> set:
+def unaccounted(market: str, asof: str | None = None) -> set:
+    if market == "india":
+        sys.path.insert(0, str(ROOT))
+        from backend.delivery.lineage import episode_lineage
+
+        accounting = episode_lineage.account(ROOT, market, asof or date.today().isoformat())
+        return {
+            episode.opportunity_id or f"{episode.ticker}:{episode.created_date}"
+            for episode in accounting["by_status"][episode_lineage.STATUS_UNACCOUNTED]
+        }
     return (_closed_registry(market)
             - _exit_history_tickers(market)
             - _orphan_audit_tickers(market))
@@ -186,9 +195,10 @@ def heal(market: str, asof: str) -> bool:
     """Regenerate the derived artifacts, then re-check."""
     print("  [self-heal] regenerating lifecycle + reconciler + workbook for "
           "%s (asof %s)" % (market, asof))
-    _run([sys.executable, "-W", "ignore", "-m",
+    if _run([sys.executable, "-W", "ignore", "-m",
           "backend.delivery.lifecycle.canonical_daily_lifecycle",
-          "--market", market, "--asof", asof])
+          "--market", market, "--asof", asof]):
+        return False
     # CEO 2026-11-05 · THE RECONCILER DESCRIBES WHICHEVER CURRENT IT READ.
     #
     # heal() regenerated the lifecycle and the workbook but not
@@ -206,13 +216,19 @@ def heal(market: str, asof: str) -> bool:
     # other reintroduces the disagreement the ordering exists to remove.
     # Same class as the defect this healer is repairing: two artifacts
     # describing two different moments.
-    _run([sys.executable, "-W", "ignore", "-m",
+    if _run([sys.executable, "-W", "ignore", "-m",
           "backend.delivery.lifecycle.why_not_current",
-          "--market", market])
-    _run([sys.executable, "-W", "ignore",
+          "--market", market]):
+        return False
+    if _run([sys.executable, "-W", "ignore",
           str(ROOT / "scripts" / "build_aegis_3sheet_workbook.py"),
-          "--market", market, "--asof", asof])
-    return not unaccounted(market) and not closed_in_current(market)
+          "--market", market, "--asof", asof]):
+        return False
+    from backend.delivery.lineage.episode_lineage import reconcile
+
+    if reconcile(ROOT, market, asof)["unaccounted_after"]:
+        return False
+    return not unaccounted(market, asof) and not closed_in_current(market)
 
 
 def main() -> int:
@@ -225,13 +241,13 @@ def main() -> int:
 
     bad = False
     for m in markets:
-        miss = unaccounted(m)
+        miss = unaccounted(m, a.asof)
         shown = closed_in_current(m)
         if not miss and not shown:
             print("  [self-heal] %-6s invariants OK · nothing to repair" % m)
             continue
         if miss:
-            print("  [self-heal] %-6s DIVERGENCE · %d registry-CLOSED ticker(s) not "
+            print("  [self-heal] %-6s DIVERGENCE · %d registry closures not "
                   "accounted for: %s" % (m, len(miss), sorted(miss)[:10]))
         if shown:
             print("  [self-heal] %-6s STALE CURRENT · %d registry-CLOSED position(s) "
@@ -240,7 +256,7 @@ def main() -> int:
         if heal(m, a.asof):
             print("  [self-heal] %-6s REPAIRED · invariant restored" % m)
         else:
-            still_a23 = sorted(unaccounted(m))[:10]
+            still_a23 = sorted(unaccounted(m, a.asof))[:10]
             still_cur = closed_in_current(m)[:10]
             print("::error::[self-heal] %s STILL BROKEN after regeneration · "
                   "unaccounted=%s · closed-in-CURRENT=%s"

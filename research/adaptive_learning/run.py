@@ -54,18 +54,23 @@ def main() -> int:
     ap.add_argument("--top-n", type=int, default=20)
     ap.add_argument("--start", default="2022-01-01")
     ap.add_argument("--end",   default="2026-06-30")
-    ap.add_argument("--rebuild-cache", action="store_true")
+    modes = ap.add_mutually_exclusive_group()
+    modes.add_argument("--rebuild-cache", action="store_true")
+    modes.add_argument("--append-completed", action="store_true",
+                       help="preserve the published corpus and append completed monthly windows")
     args = ap.parse_args()
 
     t0 = time.time()
     _banner("DEV025 - ADAPTIVE PORTFOLIO LEARNING ENGINE")
     print(f"  time (IST):  {_now_ist()}")
     print(f"  code_sha:    {_git_sha()}")
-    print(f"  window:      {args.start} -> {args.end}   top_n={args.top_n}")
+    print("  window:      append completed market windows" if args.append_completed
+          else f"  window:      {args.start} -> {args.end}   top_n={args.top_n}")
 
     _banner("STEP 1/3 · Reconstruct or load trade history")
     result = engine.run(top_n=args.top_n, start_date=args.start, end_date=args.end,
-                          use_cache=not args.rebuild_cache, verbose=True)
+                          use_cache=not args.rebuild_cache, verbose=True,
+                          append_completed=args.append_completed)
     if "error" in result:
         print(f"  ERROR: {result['error']}")
         return 1
@@ -75,7 +80,7 @@ def main() -> int:
     print(f"  {len(sugg)} suggestion(s) generated")
 
     _banner("STEP 3/3 · Publish 6 outputs")
-    published = publish.build_and_publish(result, sugg)
+    publish.build_and_publish(result, sugg, simulated_append=args.append_completed)
     print(f"  outputs: learning_summary · recommendation_accuracy · "
             f"confidence_calibration · pattern_discovery · improvement_suggestions · "
             f"learning.parquet")

@@ -123,7 +123,7 @@ def main() -> int:
         except Exception as e:
             print(f"[telegram] send failed · {type(e).__name__}: {e}")
 
-    return 0
+    return int(any(report.get("status") == "failed" for report in summary["reports"]))
 
 
 if __name__ == "__main__":

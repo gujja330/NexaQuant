@@ -19,7 +19,7 @@ def build_portfolio(sized_positions: list[dict], target_n: int,
       1. Drop positions with |target_weight| < min_position_size
       2. Sort by |confidence × target_weight| desc — highest-conviction first
       3. Take top-target_n
-      4. Renormalize so sum(|w|) = (1 - cash_reserve)
+      4. Scale down only when gross exposure exceeds the cash budget
 
     Deterministic — no random state; sort tiebreaker is ticker string.
     """
@@ -39,17 +39,17 @@ def build_portfolio(sized_positions: list[dict], target_n: int,
     def _conviction(p):
         w = float(p.get("target_weight") or 0)
         c = float(p.get("confidence") or 0)
-        return (abs(w * c), -(hash(p.get("ticker") or "") % 10007))
+        return (-abs(w * c), str(p.get("ticker") or ""))
 
-    filtered.sort(key=_conviction, reverse=True)
+    filtered.sort(key=_conviction)
     top = filtered[:target_n]
 
-    # Renormalize gross exposure to (1 - cash_reserve)
+    # The cash policy caps gross exposure. Upstream risk sizing caps each weight.
     gross = sum(abs(float(p["target_weight"])) for p in top)
     if gross <= 0:
         return []
     target_gross = max(0.0, 1.0 - cash_reserve)
-    scale = target_gross / gross if gross > 0 else 0.0
+    scale = min(1.0, target_gross / gross)
 
     ts = ticker_sector or {}
     stamp = dict(model_stamp) if model_stamp else {}

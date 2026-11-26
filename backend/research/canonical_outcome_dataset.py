@@ -130,7 +130,7 @@ def _find_earliest_rank(rank_hist: list, market: str, runner_key: str,
 
 
 def _load_exit_events_index(root: Path) -> dict:
-    """Load XLSX ONCE · return {(market, runner, ticker): exit_info}."""
+    """Index legacy exit observations by market, runner, ticker and entry date."""
     xlsx = root / "reports" / "telegram" / "aegis_history.xlsx"
     if not xlsx.exists(): return {}
     index = {}
@@ -143,33 +143,41 @@ def _load_exit_events_index(root: Path) -> dict:
             try: return h.index(name) + 1
             except ValueError: return None
         c_ctry, c_run, c_tk, c_st, c_dt = col("Country"), col("Run_Type"), col("Ticker"), col("Status"), col("Date")
+        c_entry_date = col("Recommended") or col("Entry Date")
         c_pnl, c_reason = col("Exit P&L %"), col("Exit Reason")
         # 2026-08-14 Sprint K Part 28 · also capture Alerts + Stop Loss so
         # P0 outcome dataset can attribute WHY the exit fired · never
         # reconstruct from XLSX again in downstream P1.
         c_alerts, c_stop = col("Alerts"), col("Stop Loss")
-        if not all([c_ctry, c_run, c_tk, c_st, c_dt]):
+        if not all([c_ctry, c_run, c_tk, c_st, c_dt, c_entry_date]):
             wb.close(); return index
         # Binding risk signals · must match configs/priority_matrix.yaml
         _BINDING = ("EMERGENCY_EXIT", "PORTFOLIO_MAX_DD", "HARD_STOP",
                         "STOP_LOSS_HIT", "GAP_EXIT", "TRAILING_STOP_HIT",
                         "CRITICAL_DEEP_LOSS")
-        for r in range(2, ws.max_row + 1):
-            if ws.cell(r, c_st).value != "EXIT": continue
-            market = str(ws.cell(r, c_ctry).value or "").lower()
-            runner = str(ws.cell(r, c_run).value or "")
-            ticker = str(ws.cell(r, c_tk).value or "").upper()
+        for row in ws.iter_rows(min_row=2, values_only=True):
+            if row[c_st - 1] != "EXIT": continue
+            market = str(row[c_ctry - 1] or "").lower()
+            runner = str(row[c_run - 1] or "")
+            ticker = str(row[c_tk - 1] or "").upper()
             ticker = ticker.replace(".NS","").replace(".BO","")
-            _alerts = str(ws.cell(r, c_alerts).value or "").upper() if c_alerts else ""
+            _alerts = str(row[c_alerts - 1] or "").upper() if c_alerts else ""
             # Detect which binding risk signal (if any) drove the exit
             _risk_state = next((s for s in _BINDING if s in _alerts), "CLEAN")
-            key = (market, runner, ticker)
+            entry_date = str(row[c_entry_date - 1] or "")[:10]
+            exit_date = str(row[c_dt - 1] or "")[:10]
+            if not entry_date or not exit_date or exit_date < entry_date:
+                continue
+            key = (market, runner, ticker, entry_date)
+            prior = index.get(key)
+            if prior and prior["exit_date"] <= exit_date:
+                continue
             index[key] = {
-                "exit_date":         str(ws.cell(r, c_dt).value or "")[:10],
-                "exit_pnl":          ws.cell(r, c_pnl).value if c_pnl else None,
-                "exit_reason":       ws.cell(r, c_reason).value if c_reason else None,
+                "exit_date":         exit_date,
+                "exit_pnl":          row[c_pnl - 1] if c_pnl else None,
+                "exit_reason":       row[c_reason - 1] if c_reason else None,
                 "risk_state":        _risk_state,
-                "stop_trigger_price": ws.cell(r, c_stop).value if c_stop else None,
+                "stop_trigger_price": row[c_stop - 1] if c_stop else None,
             }
         wb.close()
     except Exception:
@@ -177,10 +185,14 @@ def _load_exit_events_index(root: Path) -> dict:
     return index
 
 
-def _sample_tier(n: int, tiers: list) -> str:
-    for t in tiers:
-        if t["min"] <= n <= t["max"]:
-            return t["label"]
+def _sample_tier(n: int, tiers: dict | list) -> str:
+    entries = tiers.items() if isinstance(tiers, dict) else (
+        (tier["label"], tier) for tier in tiers
+    )
+    for label, bounds in entries:
+        ceiling = bounds.get("max")
+        if n >= bounds["min"] and (ceiling is None or n <= ceiling):
+            return label
     return "unknown"
 
 
@@ -231,7 +243,7 @@ class OutcomeRow:
     sample_tier_note:             str = ""
 
 
-def build(root: Path) -> list:
+def build(root: Path, markets: tuple[str, ...] = ("india", "usa")) -> list:
     """Build canonical outcome rows from all sources · one per Position ID."""
     tiers_cfg = _load_yaml(root / "configs" / "outcome_dataset_schema.yaml")
     tiers = (tiers_cfg.get("sample_size_tiers") or [])
@@ -245,7 +257,7 @@ def build(root: Path) -> list:
     today_iso = date.today().isoformat()
     exit_index = _load_exit_events_index(root)   # load XLSX ONCE
 
-    for market in ("india", "usa"):
+    for market in markets:
         positions = _positions(root, market)
         inv_map = _investability(root, market)
         market_sector = sector_cache.get(market.lower(), {})
@@ -302,7 +314,7 @@ def build(root: Path) -> list:
                 cap = _cap_class(ticker_bare, market, largecap_set)
 
                 # Look for exit event (indexed lookup · O(1))
-                exit_info = exit_index.get((market.lower(), runner_label, ticker_bare.upper()), {})
+                exit_info = exit_index.get((market.lower(), runner_label, ticker_bare, entry_date), {})
                 exit_date = exit_info.get("exit_date") or ""
                 exit_price = _price_at(df, exit_date) if exit_date else None
                 exit_pnl = exit_info.get("exit_pnl")
@@ -388,11 +400,83 @@ def build(root: Path) -> list:
     return rows
 
 
-def emit(root: Path, rows: list) -> dict:
+def build_india_lifecycle(root: Path) -> list[OutcomeRow]:
+    """Measure the published India episode cohort using the canonical lifecycle."""
+    from functools import lru_cache
+    from math import isfinite
+
+    from backend.delivery.lifecycle.canonical_daily_lifecycle import RT_REALIZED, load
+    from backend.research.opportunity_registry import load_all
+
+    lifecycle = load(root, "india")
+    if not lifecycle or lifecycle.get("asof") != date.today().isoformat():
+        raise ValueError("India P0 requires today's canonical lifecycle snapshot")
+    data_day = lifecycle.get("market_data_asof")
+    if not data_day:
+        raise ValueError("India P0 requires a verified market data date")
+    registry = {p.opportunity_id: p for group in load_all(root).values()
+                for p in group if p.market == "india"}
+    cohorts = [(row, False) for row in lifecycle["current"]]
+    cohorts.extend((row, True) for row in lifecycle["exits"] if row["record_type"] == RT_REALIZED)
+    load_bars = lru_cache(maxsize=256)(_parquet_df)
+    tiers = _load_yaml(root / "configs" / "outcome_dataset_schema.yaml")["sample_size_tiers"]
+    from collections import Counter
+
+    counts = Counter(row["engine"] for row, _ in cohorts)
+    rows = []
+    for row, closed in cohorts:
+        position_id = row["position_id"]
+        episode = registry.get(position_id)
+        if not episode or episode.created_date != row["entry_date"]:
+            raise ValueError(f"India P0 episode lineage is unavailable for {position_id}")
+        ticker, entry_day = row["ticker"], row["entry_date"]
+        entry_price = row.get("entry_price")
+        exit_day = row.get("exit_date", "") if closed else ""
+        last_day = min(data_day, exit_day) if closed else min(data_day, row.get("market_data_asof") or data_day)
+        frame = load_bars(root, ticker, "india")
+        returns = {}
+        gain = drawdown = None
+        if frame is not None and entry_price and entry_price > 0:
+            within = frame.sort_index().loc[entry_day:last_day, "close"].dropna()
+            following = within.loc[within.index > entry_day]
+            if not within.empty:
+                gain = round((float(within.max()) / entry_price - 1) * 100, 2)
+                drawdown = round((float(within.min()) / entry_price - 1) * 100, 2)
+            for step in (1, 3, 5, 10, 17, 30, 60, 90):
+                if len(following) >= step:
+                    returns[step] = round((float(following.iloc[step - 1]) / entry_price - 1) * 100, 2)
+        pnl = row.get("realized_pnl_pct") if closed else None
+        rows.append(OutcomeRow(
+            position_id=position_id, country="INDIA", runner=row["engine"],
+            ticker=ticker, sector=row.get("sector") or "Unclassified",
+            cap=row.get("size") or "Unclassified", initial_rank=episode.initial_rank,
+            initial_confidence=row.get("entry_confidence_pct" if closed else "confidence_pct"),
+            initial_model_score=episode.initial_score,
+            initial_investability=None, initial_investability_verdict="UNAVAILABLE",
+            entry_date=entry_day, entry_price=entry_price,
+            current_price=None if closed else row.get("current_price"),
+            current_perf_pct=None if closed else row.get("pnl_pct"),
+            max_gain_pct=gain, max_drawdown_pct=drawdown,
+            ret_1d_pct=returns.get(1), ret_3d_pct=returns.get(3), ret_5d_pct=returns.get(5),
+            ret_10d_pct=returns.get(10), ret_17d_pct=returns.get(17), ret_30d_pct=returns.get(30),
+            ret_60d_pct=returns.get(60), ret_90d_pct=returns.get(90),
+            exit_date=exit_day, exit_price=row.get("exit_price") if closed else None,
+            exit_pnl_pct=pnl, exit_reason=row.get("exit_reason") or "",
+            win_flag=pnl > 0 if isinstance(pnl, (float, int)) and isfinite(pnl) else None,
+            lifecycle="CLOSED" if closed else row["action"], is_closed=closed,
+            risk_state=row.get("exit_trigger") or "",
+            sample_tier_note=_sample_tier(counts[row["engine"]], tiers),
+        ))
+    if len({row.position_id for row in rows}) != len(rows):
+        raise ValueError("India P0 encountered duplicate lifecycle episode IDs")
+    return rows
+
+
+def emit(root: Path, rows: list, output_dir: Path | None = None) -> dict:
     """Write parquet + summary JSON. Returns summary dict."""
     import pandas as pd
 
-    out_dir = root / "reports" / "research"
+    out_dir = output_dir or root / "reports" / "research"
     out_dir.mkdir(parents=True, exist_ok=True)
 
     parquet_path = out_dir / "outcome_dataset.parquet"

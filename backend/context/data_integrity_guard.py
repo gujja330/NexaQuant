@@ -64,9 +64,9 @@ def audit(root: Path, xlsx_paths: list) -> dict:
             if not all([c_date, c_tk, c_curr, c_entry]): continue
 
             per_key = {}    # (ticker, runner) → seen recommended/entry values
-            for r in range(2, ws.max_row + 1):
+            for values in ws.iter_rows(min_row=2, values_only=True):
                 stats["n_rows_checked"] += 1
-                row = {name: ws.cell(r, idx).value
+                row = {name: values[idx - 1]
                             for name, idx in [("date", c_date), ("ticker", c_tk),
                                                     ("runner", c_runner), ("recommended", c_rec),
                                                     ("entry", c_entry), ("current", c_curr),
@@ -144,7 +144,10 @@ def audit(root: Path, xlsx_paths: list) -> dict:
 
     # Verdict
     n_issues = len(issues)
-    if n_issues == 0:
+    if stats["n_rows_checked"] == 0:
+        verdict = "NOT_APPLICABLE"
+        symbol = "⚪"
+    elif n_issues == 0:
         verdict = "GREEN"
         symbol = "🟢"
     elif n_issues <= 5:
@@ -191,6 +194,8 @@ def render_summary(result: dict) -> str:
     s = result.get("stats", {})
     n = result.get("n_issues", 0)
     sym = result.get("symbol", "?")
+    if result.get("verdict") == "NOT_APPLICABLE":
+        return f"{sym} Data Integrity: no rows with the legacy history schema"
     if n == 0:
         return f"{sym} Data Integrity: {s.get('n_rows_checked', 0)} rows · all consistent"
     return (f"{sym} Data Integrity: {n} issues · "
