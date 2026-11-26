@@ -44,6 +44,7 @@ judge.
 from __future__ import annotations
 
 import time
+import sys
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Optional
@@ -306,8 +307,11 @@ def build_lifecycle(root: Path, market: str, asof: str) -> dict:
          ["python", "-W", "ignore", "-m",
           "backend.research.r3_program.evidence_clock"]),
     ):
+        step_started = time.perf_counter()
         rc, out, err = _sh(cmd, root)
-        steps.append({"step": label, "returncode": rc})
+        steps.append({"step": label, "command": cmd, "returncode": rc,
+                      "elapsed_s": round(time.perf_counter() - step_started, 2),
+                      "tail": (err if rc else out).splitlines()[-3:]})
     return {"steps": steps, "elapsed_s": round(time.time() - t0, 2)}
 
 
@@ -327,6 +331,33 @@ def build_workbook(root: Path, market: str, asof: str) -> dict:
     except Exception as e:
         return {"ok": False, "error": "%s: %s" % (type(e).__name__, e),
                 "elapsed_s": round(time.time() - t0, 2)}
+
+
+def check_price_integrity(ctx: RunContext):
+    from backend.context import price_integrity_guard as guard
+
+    start = time.perf_counter()
+    check = ctx.stage("PRICE_INTEGRITY")
+    root, market, asof = Path(ctx.root), ctx.market, ctx.requested_asof
+    workbook = root / "reports" / "telegram" / f"aegis_history_{market}.xlsx"
+    try:
+        positions = guard.workbook_positions(workbook, market)
+        if not positions:
+            raise ValueError("canonical workbook contains no price-qualified episode rows")
+        report = guard.compute(root, market, positions, asof)
+        path = guard.emit(root, report)
+        check.row_count = len(positions)
+        check.output_asof = asof
+        check.detail = {"artifact": str(path.relative_to(root)),
+                        "checks": {part.code: part.status for part in report.checks}}
+        for part in report.checks:
+            if part.status == "FAIL" and part.code in {"PI1", "PI2", "PI5"}:
+                check.block(part.code, part.detail)
+        check.ok()
+    except (OSError, ValueError, KeyError) as exc:
+        check.block("PRICE_INTEGRITY_UNAVAILABLE", str(exc))
+    check.elapsed_s = round(time.perf_counter() - start, 2)
+    return ctx.record(check)
 
 
 def validate(root: Path, market: str, asof: str) -> dict:
@@ -405,13 +436,23 @@ def run_market(root: Path, market: str, asof: str, trigger: str,
     if ctx.blocked:
         return ctx
 
-    score_universe(root, market)
-    scoring.check_scores_ready(ctx)
+    score_result = score_universe(root, market)
+    scores = scoring.check_scores_ready(ctx)
+    if market == "india":
+        scores.detail["score_process"] = score_result
+        if score_result["returncode"]:
+            scores.block("SCORE_SUBPROCESS_FAILED", str(score_result["tail"]))
     if ctx.blocked:
         return ctx
 
-    build_lifecycle(root, market, asof)
-    scoring.check_decision_ready(ctx)
+    lifecycle_result = build_lifecycle(root, market, asof)
+    decisions = scoring.check_decision_ready(ctx)
+    if market == "india":
+        decisions.detail["lifecycle_processes"] = lifecycle_result["steps"]
+        for step in lifecycle_result["steps"]:
+            if step["returncode"]:
+                decisions.block("LIFECYCLE_SUBPROCESS_FAILED",
+                                f"{step['step']} exited {step['returncode']}")
     if ctx.blocked:
         return ctx
 
@@ -428,16 +469,45 @@ def run_market(root: Path, market: str, asof: str, trigger: str,
     # It is deliberately non-fatal. Historical evidence and production
     # readiness are separate concerns, and a research gap must never stop
     # today's delivery.
-    record_historical_memory(root, market, asof)
+    memory = record_historical_memory(root, market, asof)
 
-    build_workbook(root, market, asof)
+    built = build_workbook(root, market, asof)
+    if market == "india" and not built["ok"]:
+        ctx.record(ctx.stage("FIELDS_COMPLETE").block("WORKBOOK_BUILD_FAILED", built["error"]))
+        return ctx
     # Field completeness is checked on the RENDERED sheet, after the
     # workbook exists and before anything is sent.
-    completeness.check_fields_complete(ctx)
+    fields = completeness.check_fields_complete(ctx)
+    if market == "india":
+        fields.detail["workbook_build"] = built
+        fields.detail["historical_memory"] = memory
     if ctx.blocked:
         return ctx
-    validate(root, market, asof)
-    cert.check_delivery_ready(ctx)
+    # Price integrity runs for BOTH markets. CEO 2026-11-26.
+    #
+    # This was `if market == "india"`, while delivery_gate.decide()
+    # reads price_integrity_<market>.json for whatever market it is
+    # handed and blocks on PI1/PI2/PI5 FAIL. A market-GATED producer
+    # feeding a market-BLIND consumer is a one-way door: USA's report
+    # froze on the last day anything ever wrote it - asof 2026-10-28,
+    # verdict FAIL - and every USA run afterwards copied that fossil
+    # into its workspace and blocked on it. Nothing could clear it,
+    # because the only code that writes it never ran for USA.
+    #
+    # Measured 2026-11-26: the fossil claimed 690 unexplained entry
+    # drifts across 2426 positions. The live computation over that
+    # day's actual 286 positions is PI1 PASS / PI2 PASS. The gate was
+    # not wrong to block - it was reciting a verdict about a different
+    # month and a population that no longer exists.
+    check_price_integrity(ctx)
+    if ctx.blocked:
+        return ctx
+    validation = validate(root, market, asof)
+    delivery = cert.check_delivery_ready(ctx)
+    if market == "india":
+        delivery.detail["validation"] = validation
+        if "error" in validation:
+            delivery.block("DELIVERY_VALIDATION_FAILED", validation["error"])
     return ctx
 
 
@@ -501,6 +571,9 @@ def send(root: Path, market: str, asof: str) -> dict:
 
 def main() -> int:
     import argparse
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
     ap = argparse.ArgumentParser(description="AEGIS certified run")
     ap.add_argument("--market", choices=["india", "usa", "both"], default="both")
     ap.add_argument("--asof", default=None)

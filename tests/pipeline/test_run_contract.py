@@ -564,28 +564,9 @@ def test_message_never_signs_stop_distance_as_upside():
         assert "NOT a profit target" in text
 
 
-def test_incoherent_target_is_withheld_not_shown():
-    """A target at or below the current price is a target already passed."""
-    src = (ROOT / "backend" / "delivery" / "sheets"
-           / "workbook_two.py").read_text(encoding="utf-8")
-    assert 'row["target"] <= row["current_price"]' in src
-
-
 @pytest.mark.parametrize("market", MARKETS)
-def test_no_row_displays_a_target_at_or_below_current_price(market, tmp_path):
-    """Assert the RENDERER, not a checked-in artifact.
-
-    The first version read reports/telegram/aegis_history_<mkt>.xlsx
-    directly and failed CI three times: the committed workbook was built
-    before this fix and still showed CRM at 221.57 against a price of
-    259.23. A delivery test that depends on the freshness of a file it
-    does not control blocks the send for a non-reason - which is exactly
-    the mistake made once already with the R3 ABSTAIN column.
-
-    The workbook is therefore built HERE from the current lifecycle. The
-    live artifact is the gate's responsibility, not pytest's, and
-    stop_distance_invariant already blocks delivery on it.
-    """
+def test_market_target_display_contract(market, tmp_path):
+    """India labels achieved targets and the legacy USA view withholds them."""
     from openpyxl import load_workbook
 
     from backend.delivery.lifecycle import canonical_daily_lifecycle as lc
@@ -609,7 +590,11 @@ def test_no_row_displays_a_target_at_or_below_current_price(market, tmp_path):
         cp, tg = ws.cell(r, pi + 1).value, ws.cell(r, gi + 1).value
         if isinstance(cp, (int, float)) and isinstance(tg, (int, float)) \
                 and tg <= cp:
-            bad.append((str(t), tg, cp))
+            if market == "india":
+                label = ws.cell(r, hdr.index("Target Status") + 1).value
+                assert label == ("TARGET REACHED" if tg == cp else "TARGET EXCEEDED")
+            else:
+                bad.append((str(t), tg, cp))
     wb.close()
     assert not bad, "targets at/below current price: %s" % bad[:4]
 

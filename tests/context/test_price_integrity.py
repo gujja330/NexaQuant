@@ -10,6 +10,28 @@ Run CI:     same · runs before every send via delivery_tests gate
 from __future__ import annotations
 
 from pathlib import Path
+
+
+def test_entry_split_requires_matching_symbol_date_and_ratio(tmp_path, monkeypatch):
+    import pandas as pd
+    from backend.context import price_integrity_guard as guard
+
+    path = tmp_path / "data/raw/india/corporate_actions.parquet"
+    path.parent.mkdir(parents=True)
+    pd.DataFrame({
+        "ticker": ["AAA.NS", "AAB.NS", "AAA.NS"],
+        "action_date": ["2026-08-20", "2026-08-20", "2026-08-01"],
+        "split_ratio": [2.0, 5.0, 3.0],
+    }).to_parquet(path)
+    monkeypatch.setattr(guard, "parquet_close", lambda *_: 50.0)
+    position = {"ticker": "AAA", "entry_date": "2026-08-10", "entry_price": 100.0}
+    passed = guard.check_entry_alignment(tmp_path, "india", [position], asof_date="2026-08-21")
+    failed = guard.check_entry_alignment(
+        tmp_path, "india", [dict(position, entry_price=250.0)], asof_date="2026-08-21",
+    )
+    assert passed.violations[0]["corp_action_explained"]
+    assert failed.status == "FAIL"
+    assert not failed.violations[0]["corp_action_explained"]
 from datetime import date, timedelta
 import pandas as pd
 import pytest

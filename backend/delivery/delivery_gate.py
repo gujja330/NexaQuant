@@ -135,9 +135,11 @@ def decide(root: Path, market: str) -> GateDecision:
     # now blocks the send: a workbook built on seven-week-old features is
     # indistinguishable from a correct one, which is exactly why it must
     # never ship.
+    _run_asof = ""
     try:
         from backend.delivery.lifecycle import canonical_daily_lifecycle as _lc
         _life = _lc.load(root, market) or {}
+        _run_asof = str(_life.get("asof") or "")[:10]
         _fresh = _life.get("input_freshness") or []
         for _code in _lc.blocking_freshness(_fresh):
             d.blocking_codes.append(_code)
@@ -159,21 +161,43 @@ def decide(root: Path, market: str) -> GateDecision:
         d.blocking_codes.append("GUARD:RED")
         d.reasons.append(f"[GUARD:RED] {_guard.get('notes','')}")
 
-    # 2026-08-25 · Price Integrity Guard · CEO directive.
-    # OBSERVATION PERIOD · start with all PI checks NON-BLOCKING so we
-    # can measure real-world drift base rate over 2-3 days BEFORE
-    # promoting PI1/PI2/PI5 to BLOCK. Rationale: 0.5% tolerance may
-    # legitimately fire on corporate actions or intraday-vs-close price
-    # mismatches; blocking without a baseline could ship zero XLSX.
-    # After base-rate observation, uncomment the BLOCK set below.
+    # ── PRICE-INTEGRITY FRESHNESS · CEO 2026-11-26 ───────────────────
+    #
+    # Price drift, invalid exit prices and stale active bars block
+    # delivery. This consumer is market-blind by design, and it used
+    # to trust whatever report it found however old it was.
+    #
+    # USA's copy froze at asof 2026-10-28 with PI1/PI2/PI5 FAIL,
+    # because the only producer was gated to india. For the next four
+    # weeks every USA run blocked by reciting those numbers as if they
+    # described that morning - 690 unexplained drifts over 2426
+    # positions, when the day's real workbook held 286 rows and
+    # measured PI1 PASS / PI2 PASS.
+    #
+    # A verdict that predates the run is not evidence about the run.
+    # It still blocks, because absent evidence must never read as
+    # ALLOW - but it blocks under its own name, so the next operator
+    # is told the report is stale instead of hunting 690 drifts that
+    # no longer exist. The stale verdicts are NOT consulted: quoting
+    # them is what cost four weeks.
     _pig = _load_json(ctx / f"price_integrity_{market}.json")
-    _PIG_BLOCKING: set = set()   # {"PI1", "PI2", "PI5"} · promote after calibration
-    for chk in _pig.get("checks", []):
-        if chk.get("status") == "FAIL" and chk.get("code") in _PIG_BLOCKING:
-            d.blocking_codes.append(chk.get("code"))
-            d.reasons.append(
-                f"[{chk['code']}] {chk.get('name','')} · "
-                f"{chk.get('detail','')}")
+    _PIG_BLOCKING = {"PI1", "PI2", "PI5"}
+    _pig_asof = str(_pig.get("asof") or "")[:10]
+    if _pig and _pig_asof and _run_asof and _pig_asof < _run_asof:
+        d.blocking_codes.append("PI:STALE")
+        d.reasons.append(
+            "[PI:STALE] price integrity was last computed for %s but "
+            "this run is %s · its PI1/PI2/PI5 verdicts describe a "
+            "different day and are not consulted · the producer must "
+            "run for this market before the gate can judge it"
+            % (_pig_asof, _run_asof))
+    else:
+        for chk in _pig.get("checks", []):
+            if chk.get("status") == "FAIL" and chk.get("code") in _PIG_BLOCKING:
+                d.blocking_codes.append(chk.get("code"))
+                d.reasons.append(
+                    f"[{chk['code']}] {chk.get('name','')} · "
+                    f"{chk.get('detail','')}")
 
     # Overall verdict
     if d.blocking_codes and not override:

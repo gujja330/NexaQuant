@@ -47,6 +47,7 @@ auto-adjustment (follow-up).
 from __future__ import annotations
 
 import json
+import math
 from dataclasses import dataclass, field, asdict
 from datetime import date, datetime, timezone, timedelta
 from pathlib import Path
@@ -148,10 +149,34 @@ def parquet_latest_date(root: Path, ticker: str,
 # ─────────────────────────────────────────────────────────────────
 # PI1 · Entry-price alignment
 # ─────────────────────────────────────────────────────────────────
+def _split_events(root: Path, market: str) -> dict:
+    """Load unambiguous post-entry split ratios from the recorded action feed."""
+    import pandas as pd
+
+    path = _parquet_path(root, "placeholder", market).parent / "corporate_actions.parquet"
+    if not path.exists():
+        return {}
+    frame = pd.read_parquet(path, columns=["ticker", "action_date", "split_ratio"])
+    seen = {}
+    for ticker, action_date, ratio in frame.itertuples(index=False, name=None):
+        if pd.isna(ratio) or not math.isfinite(float(ratio)) or ratio <= 0 or ratio == 1:
+            continue
+        symbol = str(ticker).upper().removesuffix(".NS").removesuffix(".BO")
+        key = (symbol, str(action_date)[:10])
+        seen.setdefault(key, set()).add(float(ratio))
+    events = {}
+    for (symbol, day), ratios in seen.items():
+        if len(ratios) == 1:
+            events.setdefault(symbol, {})[day] = next(iter(ratios))
+    return events
+
+
 def check_entry_alignment(
     root: Path, market: str, positions: Iterable[dict],
-    tolerance_pct: float = TOLERANCE_PCT_DEFAULT,
+    tolerance_pct: float = TOLERANCE_PCT_DEFAULT, *, asof_date: str | None = None,
 ) -> IntegrityCheck:
+    splits = _split_events(root, market)
+    cutoff = str(asof_date or date.today().isoformat())[:10]
     violations = []
     n_checked = 0
     for pos in positions:
@@ -204,45 +229,21 @@ def check_entry_alignment(
                 pass
             if matched_prior:
                 continue     # legitimate prior-trading-day close · not a drift
-            # 2026-08-26 · CEO canonical-transaction-price doctrine · check
-            # local corporate_actions.parquet for any split/dividend between
-            # entry_date and today. If found, drift is explained by the
-            # retrospective parquet adjustment · position_store's entry_price
-            # remains the CANONICAL immutable transaction price. Downgrade
-            # to WARN (informational · does not fail PI1 verdict).
-            corp_action_explains = False
-            try:
-                import pandas as _pd
-                ca_p = root / ("usa/data/raw/us" if market.lower()=="usa"
-                               else "data/raw/india") / "corporate_actions.parquet"
-                if ca_p.exists():
-                    ca_df = _pd.read_parquet(ca_p)
-                    if "ticker" in ca_df.columns and "action_date" in ca_df.columns:
-                        tk_norm = str(ticker).upper()
-                        # Match "TICKER" or "TICKER.NS"
-                        matches = ca_df[ca_df["ticker"].str.upper().str.startswith(
-                            tk_norm.replace(".NS","").replace(".BO",""))]
-                        for _, ca_row in matches.iterrows():
-                            act_d = str(ca_row["action_date"])[:10]
-                            # Corp action within 12 months prior to entry
-                            # explains price drift via retrospective adjust
-                            from datetime import date as _d, timedelta as _td
-                            try:
-                                _ed = _d.fromisoformat(str(entry_date)[:10])
-                                _ad = _d.fromisoformat(act_d)
-                                if (_ed - _td(days=365)) <= _ad <= _ed:
-                                    corp_action_explains = True
-                                    break
-                            except (ValueError, TypeError):
-                                continue
-            except Exception:
-                pass
+            symbol = str(ticker).upper().removesuffix(".NS").removesuffix(".BO")
+            events = [(day, ratio) for day, ratio in splits.get(symbol, {}).items()
+                      if str(entry_date)[:10] < day <= cutoff]
+            factor = math.prod(ratio for _, ratio in events)
+            corp_action_explains = bool(events) and (
+                abs(entry - actual * factor) / (actual * factor) * 100 <= tolerance_pct
+            )
             violations.append({
                 "ticker": ticker, "entry_date": entry_date,
                 "quoted": round(entry, 2),
                 "actual": round(actual, 2),
                 "delta_pct": round(delta, 2),
                 "corp_action_explained": corp_action_explains,
+                "split_events": events,
+                "position_id": pos.get("position_id"),
                 "reason": (f"entry price drift {delta:.2f}% · "
                            f"{'corp-action-adjusted (WARN)' if corp_action_explains else 'unexplained (FAIL)'}"),
             })
@@ -602,7 +603,9 @@ def check_corporate_actions(
             "PI6", "Corporate-action awareness", "PASS",
             "yfinance not importable · check skipped",
         )
-    suffix = "" if market.lower() == "usa" else ".NS"
+    from backend.ingest.ticker_health import yahoo_symbol
+
+    fetched = {}
     violations = []
     n_checked = 0
     for pos in positions:
@@ -611,10 +614,12 @@ def check_corporate_actions(
         entry_date = pos.get("entry_date")
         if not (ticker and entry_date): continue
         n_checked += 1
-        yf_sym = str(ticker).upper() + suffix
+        yf_sym = yahoo_symbol(root, market, str(ticker))
         try:
-            t = yf.Ticker(yf_sym)
-            actions = t.actions   # DataFrame indexed by date · cols: Dividends, Stock Splits
+            if yf_sym not in fetched:
+                fetched[yf_sym] = None
+                fetched[yf_sym] = yf.Ticker(yf_sym).actions
+            actions = fetched[yf_sym]
             if actions is None or actions.empty: continue
             actions.index = actions.index.map(lambda x: str(x)[:10])
             for act_date, row in actions.iterrows():
@@ -649,6 +654,46 @@ def check_corporate_actions(
 # ─────────────────────────────────────────────────────────────────
 # PUBLIC · compute + emit
 # ─────────────────────────────────────────────────────────────────
+def workbook_positions(path: Path, market: str) -> list[dict]:
+    """Read the current and realized episode prices from the delivered workbook."""
+    from openpyxl import load_workbook
+
+    positions = []
+    workbook = load_workbook(path, read_only=True, data_only=True)
+    try:
+        for sheet, status in (("CURRENT", "ACTIVE"), ("EXIT HISTORY", "EXIT")):
+            rows = workbook[sheet].values
+            needed = {"Position ID", "Ticker", "Market", "Entry Price"}
+            if status == "EXIT":
+                needed.update({"Record Type", "Exit Date", "Exit Price"})
+            header = next((row for _, row in zip(range(12), rows)
+                           if needed <= set(row) and {"Entry Date", "Admission Date"}.intersection(row)), None)
+            if header is None:
+                raise ValueError(f"{sheet} has no canonical price header")
+            for row in rows:
+                record = dict(zip(header, row))
+                if not record.get("Position ID"):
+                    continue
+                if str(record.get("Market", "")).strip().lower() != market.lower():
+                    raise ValueError(f"{sheet} contains a position from another market")
+                if status == "EXIT" and record["Record Type"] != "REALIZED EXIT":
+                    continue
+                positions.append({
+                    "position_id": str(record["Position ID"]).strip(),
+                    "ticker": str(record["Ticker"] or "").strip(),
+                    "entry_date": str(record.get("Admission Date") or record.get("Entry Date") or "")[:10],
+                    "entry_price": record["Entry Price"],
+                    "current_price": record.get("Last Price"),
+                    "stop_price": record.get("Stop"),
+                    "exit_date": str(record.get("Exit Date") or "")[:10],
+                    "exit_price": record.get("Exit Price"),
+                    "status": status,
+                })
+    finally:
+        workbook.close()
+    return positions
+
+
 def compute(
     root: Path, market: str, positions: list, asof_date: str,
     tolerance_pct: float = TOLERANCE_PCT_DEFAULT,
@@ -671,7 +716,7 @@ def compute(
     rep.n_active_checked = sum(1 for p in positions
                                if str(p.get("status", "")).upper() != "EXIT")
 
-    rep.add(check_entry_alignment(root, market, positions, tolerance_pct))
+    rep.add(check_entry_alignment(root, market, positions, tolerance_pct, asof_date=asof_date))
     rep.add(check_exit_alignment(root, market, positions, tolerance_pct))
     active_tickers = [p["ticker"] for p in positions
                       if str(p.get("status", "")).upper() != "EXIT"
