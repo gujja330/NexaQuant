@@ -1,6 +1,6 @@
 # Validation Engine · Daily Report · 2026-11-26
 
-_Generated 2026-11-26T08:49:20.754666+00:00Z · code_sha `bebb9354d283`_
+_Generated 2026-11-26T11:17:34.777932+00:00Z · code_sha `af095978c53b`_
 
 ## Portfolio
 
@@ -21,23 +21,22 @@ _insufficient closed trades for drift analysis_
 ## Opportunity Cost
 
 - Window: last **30 days**
-- Tickers in window: 20
-- Missed edges: **11**
-- Total missed expectancy: **+5458.40%**
-- Avg missed expectancy per ticker: **+496.22%**
+- Tickers in window: 32
+- Missed edges: **9**
+- Total missed expectancy: **+6525.35%**
+- Avg missed expectancy per ticker: **+725.04%**
 
 | Ticker | n | win_rate | expectancy |
 |--------|--:|--------:|-----------:|
-| GLAND | 1 | 1.0 | 11.684 |
-| LAURUSLABS | 1 | 1.0 | 10.308 |
-| NAVINFLUOR | 1 | 1.0 | 8.255 |
-| APOLLOHOSP | 1 | 1.0 | 6.286 |
-| POLYCAB | 1 | 1.0 | 5.028 |
-| ZYDUSLIFE | 1 | 1.0 | 4.185 |
-| THERMAX | 1 | 1.0 | 3.059 |
-| MOTHERSON | 1 | 1.0 | 2.957 |
-| MARICO | 1 | 1.0 | 1.856 |
-| ADANIGREEN | 1 | 1.0 | 0.813 |
+| PVRINOX | 1 | 1.0 | 22.408 |
+| LAURUSLABS | 2 | 1.0 | 11.186499999999999 |
+| KOTAKBANK | 1 | 1.0 | 11.096 |
+| ZYDUSLIFE | 1 | 1.0 | 7.392 |
+| SONACOMS | 2 | 1.0 | 4.6845 |
+| GLAND | 2 | 1.0 | 3.859 |
+| ADANIPORTS | 1 | 1.0 | 3.445 |
+| SUNTV | 1 | 1.0 | 0.787 |
+| AUROPHARMA | 2 | 1.0 | 0.39549999999999996 |
 
 ## Governance
 

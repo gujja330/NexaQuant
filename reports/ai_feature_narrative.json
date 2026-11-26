@@ -2,7 +2,7 @@
   "engine": "ai_feature_narrative",
   "version": "v1.0",
   "market": "india",
-  "run_utc": "2026-11-26T08:48:46+00:00",
+  "run_utc": "2026-11-26T11:17:02+00:00",
   "asof": "2026-11-26",
   "agents": {
     "anomaly": {
@@ -10,8 +10,8 @@
       "version": "v1.0",
       "market": "india",
       "asof": "2026-11-26",
-      "headline": "34 feature outlier(s) flagged (top 10 shown).",
-      "narrative": "34 data points across the universe carry |z|>5 vs their column mean.\n\n  \u00b7 BAJAJHLDNG.NS: fund_profit_margin = 9.48607 (z=14.45)\n  \u00b7 MRF.NS: sma_200 = 130761.525 (z=13.1)\n  \u00b7 MRF.NS: close = 128070.0 (z=12.87)\n  \u00b7 MRF.NS: sma_50 = 123771.3 (z=12.79)\n  \u00b7 MRF.NS: sma_20 = 124697.5 (z=12.77)\n  \u00b7 MFSL.NS: fund_earnings_growth = 18.605 (z=11.18)\n  \u00b7 MRF.NS: macd_hist = 465.6856 (z=10.3)\n  \u00b7 MRF.NS: macd = 1837.3439 (z=10.05)\n  \u00b7 INDIGO.NS: fund_quality_score = -4.955503501881596 (z=9.84)\n  \u00b7 INDIGO.NS: fund_debt_to_equity = 1738.69 (z=9.44)\n\nHigh z-scores are not necessarily wrong (a real 52-week high can be a legitimate extreme), but they warrant a look before downstream engines act on them.",
+      "headline": "33 feature outlier(s) flagged (top 10 shown).",
+      "narrative": "33 data points across the universe carry |z|>5 vs their column mean.\n\n  \u00b7 BAJAJHLDNG.NS: fund_profit_margin = 9.48607 (z=14.45)\n  \u00b7 MRF.NS: sma_200 = 130761.525 (z=13.1)\n  \u00b7 MRF.NS: close = 128070.0 (z=12.87)\n  \u00b7 MRF.NS: sma_50 = 123771.3 (z=12.79)\n  \u00b7 MRF.NS: sma_20 = 124697.5 (z=12.77)\n  \u00b7 MFSL.NS: fund_earnings_growth = 18.605 (z=11.18)\n  \u00b7 ABBOTINDIA.NS: ca_last_dividend_amount = 656.0 (z=11.07)\n  \u00b7 MRF.NS: macd_hist = 465.6856 (z=10.3)\n  \u00b7 MRF.NS: macd = 1837.3439 (z=10.05)\n  \u00b7 INDIGO.NS: fund_quality_score = -4.9597832268988995 (z=9.84)\n\nHigh z-scores are not necessarily wrong (a real 52-week high can be a legitimate extreme), but they warrant a look before downstream engines act on them.",
       "findings": [
         {
           "ticker": "BAJAJHLDNG.NS",
@@ -50,6 +50,12 @@
           "z": 11.18
         },
         {
+          "ticker": "ABBOTINDIA.NS",
+          "feature": "ca_last_dividend_amount",
+          "value": 656.0,
+          "z": 11.07
+        },
+        {
           "ticker": "MRF.NS",
           "feature": "macd_hist",
           "value": 465.6856,
@@ -64,18 +70,12 @@
         {
           "ticker": "INDIGO.NS",
           "feature": "fund_quality_score",
-          "value": -4.955503501881596,
+          "value": -4.9597832268988995,
           "z": 9.84
-        },
-        {
-          "ticker": "INDIGO.NS",
-          "feature": "fund_debt_to_equity",
-          "value": 1738.69,
-          "z": 9.44
         }
       ],
       "evidence": {
-        "n_outliers": 34,
+        "n_outliers": 33,
         "z_threshold": 5.0,
         "n_rows": 228,
         "n_numeric_cols_scanned": 66
@@ -93,7 +93,7 @@
       "market": "india",
       "asof": "2026-11-26",
       "headline": "Feature Store quality PASS \u00b7 228 rows \u00b7 76 features.",
-      "narrative": "Feature Store quality PASS \u00b7 228 rows \u00b7 76 features.\n\nCategory coverage:\n  \u00b7 news               avg coverage 14.7%\n  \u00b7 earnings           avg coverage 22.6%\n  \u00b7 institutional      avg coverage 28.6%\n  \u00b7 corporate_action   avg coverage 36.0%\n  \u00b7 sector             avg coverage 50.4%\n  \u00b7 fundamental        avg coverage 83.5%\n  \u00b7 historical         avg coverage 86.8%\n  \u00b7 technical          avg coverage 98.7%\n  \u00b7 identity           avg coverage 100.0%\n  \u00b7 macro              avg coverage 100.0%\n  \u00b7 market_intel       avg coverage 100.0%\n\nStrongest category is 'identity' at 100.0% coverage \u2014 solid.\n\nWeakest category is 'news' at 14.7% coverage \u2014 downstream engines relying on this category should degrade gracefully.\n\n13 feature column(s) show |z|>8 extremes \u2014 see the Feature Anomaly agent for detail.",
+      "narrative": "Feature Store quality PASS \u00b7 228 rows \u00b7 76 features.\n\nCategory coverage:\n  \u00b7 news               avg coverage 14.7%\n  \u00b7 earnings           avg coverage 22.6%\n  \u00b7 institutional      avg coverage 28.6%\n  \u00b7 corporate_action   avg coverage 49.1%\n  \u00b7 sector             avg coverage 52.6%\n  \u00b7 fundamental        avg coverage 83.5%\n  \u00b7 historical         avg coverage 86.8%\n  \u00b7 technical          avg coverage 98.7%\n  \u00b7 identity           avg coverage 100.0%\n  \u00b7 macro              avg coverage 100.0%\n  \u00b7 market_intel       avg coverage 100.0%\n\nStrongest category is 'identity' at 100.0% coverage \u2014 solid.\n\nWeakest category is 'news' at 14.7% coverage \u2014 downstream engines relying on this category should degrade gracefully.\n\n14 feature column(s) show |z|>8 extremes \u2014 see the Feature Anomaly agent for detail.",
       "findings": [
         {
           "category": "identity",
@@ -105,7 +105,7 @@
         },
         {
           "category": "fundamental",
-          "coverage": 0.835
+          "coverage": 0.8355
         },
         {
           "category": "news",
@@ -121,7 +121,7 @@
         },
         {
           "category": "sector",
-          "coverage": 0.5044
+          "coverage": 0.5263
         },
         {
           "category": "institutional",
@@ -129,7 +129,7 @@
         },
         {
           "category": "corporate_action",
-          "coverage": 0.3596
+          "coverage": 0.4912
         },
         {
           "category": "market_intel",
@@ -142,10 +142,10 @@
       ],
       "evidence": {
         "verdict": "PASS",
-        "null_pct_overall": 0.2495,
+        "null_pct_overall": 0.2413,
         "n_rows": 228,
         "n_features": 76,
-        "n_outliers": 13
+        "n_outliers": 14
       },
       "citations": [
         "backend/feature_store/feature_validation.py"
@@ -160,102 +160,94 @@
       "market": "india",
       "asof": "2026-11-26",
       "headline": "Top 15 most differentiating features by dispersion (categories: technical=10, fundamental=3, corporate_action=2)",
-      "narrative": "Top 15 most differentiating features by dispersion (categories: technical=10, fundamental=3, corporate_action=2)\n\n  \u00b7 volume                         score=2568.0813  cv=2.201  iqr=2996565.0000\n  \u00b7 sma_200                        score=79.7192  cv=3.287  iqr=1933.3212\n  \u00b7 sma_20                         score=79.1559  cv=3.218  iqr=1946.9125\n  \u00b7 sma_50                         score=78.3621  cv=3.221  iqr=1906.5080\n  \u00b7 close                          score=78.3527  cv=3.216  iqr=1908.7500\n  \u00b7 macd                           score=14.9955  cv=5.998  iqr=37.4924\n  \u00b7 macd_signal                    score=13.9421  cv=6.198  iqr=31.3619\n  \u00b7 fund_debt_to_equity            score=12.2605  cv=2.138  iqr=70.3040\n  \u00b7 return_10d_pct                 score=10.7180  cv=16.896  iqr=6.7991\n  \u00b7 return_60d_pct                 score=9.7727  cv=6.149  iqr=15.5308\n  \u00b7 ca_days_since_last_dividend    score=8.4085  cv=0.655  iqr=108.0000\n  \u00b7 macd_hist                      score=8.3533  cv=7.416  iqr=9.4092\n  \u00b7 ca_days_since_last_split       score=7.4247  cv=0.310  iqr=178.0000\n  \u00b7 fund_trailing_pe               score=6.1896  cv=1.151  iqr=33.2902\n  \u00b7 fund_quality_score             score=5.7873  cv=118.021  iqr=0.2838\n\nDispersion tells us where the universe DIFFERS in this snapshot \u2014 high dispersion means the feature carries information downstream engines can act on. This is NOT outcome-based importance (that comes from the Learning Engine).",
+      "narrative": "Top 15 most differentiating features by dispersion (categories: technical=10, fundamental=3, corporate_action=2)\n\n  \u00b7 volume                         score=2574.7040  cv=2.212  iqr=2996565.0000\n  \u00b7 sma_200                        score=79.7225  cv=3.287  iqr=1933.3212\n  \u00b7 sma_20                         score=79.1583  cv=3.218  iqr=1946.9125\n  \u00b7 sma_50                         score=78.3656  cv=3.221  iqr=1906.5080\n  \u00b7 close                          score=78.3541  cv=3.216  iqr=1908.7500\n  \u00b7 macd                           score=14.9666  cv=5.987  iqr=37.4157\n  \u00b7 macd_signal                    score=13.8931  cv=6.186  iqr=31.2019\n  \u00b7 fund_debt_to_equity            score=12.2600  cv=2.138  iqr=70.3040\n  \u00b7 return_10d_pct                 score=10.7225  cv=17.232  iqr=6.6721\n  \u00b7 return_60d_pct                 score=9.9515  cv=6.470  iqr=15.3064\n  \u00b7 macd_hist                      score=8.3478  cv=7.406  iqr=9.4092\n  \u00b7 ca_days_since_last_split       score=7.4247  cv=0.310  iqr=178.0000\n  \u00b7 ca_days_since_last_dividend    score=7.3286  cv=0.584  iqr=92.0000\n  \u00b7 fund_trailing_pe               score=6.2357  cv=1.150  iqr=33.8240\n  \u00b7 fund_quality_score             score=5.7258  cv=115.621  iqr=0.2836\n\nDispersion tells us where the universe DIFFERS in this snapshot \u2014 high dispersion means the feature carries information downstream engines can act on. This is NOT outcome-based importance (that comes from the Learning Engine).",
       "findings": [
         {
           "feature": "volume",
-          "std": 6835587.73291,
+          "std": 6838913.52478,
           "iqr": 2996565.0,
-          "cv": 2.20087,
-          "score": 2568.08126,
+          "cv": 2.21223,
+          "score": 2574.70403,
           "n_non_null": 225
         },
         {
           "feature": "sma_200",
-          "std": 9754.13266,
+          "std": 9754.1933,
           "iqr": 1933.3212,
-          "cv": 3.28717,
-          "score": 79.71923,
+          "cv": 3.28744,
+          "score": 79.72249,
           "n_non_null": 225
         },
         {
           "feature": "sma_20",
-          "std": 9532.07865,
+          "std": 9532.12767,
           "iqr": 1946.9125,
-          "cv": 3.21825,
-          "score": 79.15586,
+          "cv": 3.21845,
+          "score": 79.15834,
           "n_non_null": 225
         },
         {
           "feature": "sma_50",
-          "std": 9445.15692,
+          "std": 9445.22567,
           "iqr": 1906.508,
-          "cv": 3.22087,
-          "score": 78.36206,
+          "cv": 3.22116,
+          "score": 78.36557,
           "n_non_null": 225
         },
         {
           "feature": "close",
-          "std": 9712.94587,
+          "std": 9712.97271,
           "iqr": 1908.75,
-          "cv": 3.21632,
-          "score": 78.35272,
+          "cv": 3.21643,
+          "score": 78.35406,
           "n_non_null": 225
         },
         {
           "feature": "macd",
-          "std": 179.8141,
-          "iqr": 37.4924,
-          "cv": 5.99763,
-          "score": 14.99552,
+          "std": 179.80429,
+          "iqr": 37.4157,
+          "cv": 5.98676,
+          "score": 14.96659,
           "n_non_null": 225
         },
         {
           "feature": "macd_signal",
-          "std": 148.53419,
-          "iqr": 31.3619,
-          "cv": 6.19807,
-          "score": 13.94214,
+          "std": 148.5257,
+          "iqr": 31.2019,
+          "cv": 6.1861,
+          "score": 13.89309,
           "n_non_null": 225
         },
         {
           "feature": "fund_debt_to_equity",
-          "std": 175.52367,
+          "std": 175.52131,
           "iqr": 70.304,
-          "cv": 2.13813,
-          "score": 12.26046,
+          "cv": 2.13796,
+          "score": 12.25999,
           "n_non_null": 201
         },
         {
           "feature": "return_10d_pct",
-          "std": 5.99356,
-          "iqr": 6.7991,
-          "cv": 16.89572,
-          "score": 10.71801,
+          "std": 5.96407,
+          "iqr": 6.6721,
+          "cv": 17.23165,
+          "score": 10.72247,
           "n_non_null": 225
         },
         {
           "feature": "return_60d_pct",
-          "std": 13.05644,
-          "iqr": 15.5308,
-          "cv": 6.14938,
-          "score": 9.77265,
+          "std": 12.85611,
+          "iqr": 15.3064,
+          "cv": 6.47003,
+          "score": 9.95152,
           "n_non_null": 225
         },
         {
-          "feature": "ca_days_since_last_dividend",
-          "std": 70.49391,
-          "iqr": 108.0,
-          "cv": 0.65465,
-          "score": 8.40845,
-          "n_non_null": 151
-        },
-        {
           "feature": "macd_hist",
-          "std": 44.61587,
+          "std": 44.61478,
           "iqr": 9.4092,
-          "cv": 7.41588,
-          "score": 8.35329,
+          "cv": 7.4061,
+          "score": 8.34778,
           "n_non_null": 225
         },
         {
@@ -267,19 +259,27 @@
           "n_non_null": 13
         },
         {
+          "feature": "ca_days_since_last_dividend",
+          "std": 62.69481,
+          "iqr": 92.0,
+          "cv": 0.58379,
+          "score": 7.3286,
+          "n_non_null": 211
+        },
+        {
           "feature": "fund_trailing_pe",
-          "std": 49.95529,
-          "iqr": 33.29022,
-          "cv": 1.15082,
-          "score": 6.1896,
+          "std": 49.96977,
+          "iqr": 33.82398,
+          "cv": 1.14958,
+          "score": 6.23566,
           "n_non_null": 220
         },
         {
           "feature": "fund_quality_score",
-          "std": 0.50335,
-          "iqr": 0.28378,
-          "cv": 118.02136,
-          "score": 5.78726,
+          "std": 0.50381,
+          "iqr": 0.28355,
+          "cv": 115.62106,
+          "score": 5.72579,
           "n_non_null": 223
         }
       ],
@@ -313,7 +313,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 16.8363,
-          "quality_score": -0.2808369390146063,
+          "quality_score": -0.2806853422486872,
           "news_sentiment": 0.125,
           "return_5d_pct": 0.805,
           "rsi_14": 67.69
@@ -323,7 +323,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 8.8146,
-          "quality_score": -0.10124233768927755,
+          "quality_score": -0.1015534520795841,
           "news_sentiment": NaN,
           "return_5d_pct": 1.8285,
           "rsi_14": 64.301
@@ -333,7 +333,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 8.8786,
-          "quality_score": 0.0687444044848468,
+          "quality_score": 0.06924729248413473,
           "news_sentiment": NaN,
           "return_5d_pct": 0.5681,
           "rsi_14": 50.554
@@ -343,7 +343,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 10.1884,
-          "quality_score": 0.31794442843815934,
+          "quality_score": 0.317528055038045,
           "news_sentiment": 0.25,
           "return_5d_pct": 0.8035,
           "rsi_14": 59.793
@@ -353,7 +353,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 12.9447,
-          "quality_score": -2.0782201976047507,
+          "quality_score": -2.0789375860628896,
           "news_sentiment": NaN,
           "return_5d_pct": 8.4395,
           "rsi_14": 58.19
@@ -363,7 +363,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 8.0178,
-          "quality_score": -0.12178518354360374,
+          "quality_score": -0.1226347308077565,
           "news_sentiment": NaN,
           "return_5d_pct": 0.9497,
           "rsi_14": 61.005
@@ -373,7 +373,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 25.3061,
-          "quality_score": 0.0741968506603494,
+          "quality_score": 0.07523735071589838,
           "news_sentiment": NaN,
           "return_5d_pct": 4.4461,
           "rsi_14": 71.958
@@ -383,7 +383,7 @@
           "conflict": "oversold_extended",
           "description": "oversold (RSI<25) AND deep drawdown (<-20%)",
           "return_20d_pct": -30.9247,
-          "quality_score": 0.11235499431647565,
+          "quality_score": 0.11435228812361076,
           "news_sentiment": NaN,
           "return_5d_pct": -31.2728,
           "rsi_14": 15.959
@@ -393,7 +393,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 17.3493,
-          "quality_score": -0.15859526842470612,
+          "quality_score": -0.1596015288021114,
           "news_sentiment": 0.25,
           "return_5d_pct": 5.7938,
           "rsi_14": 78.873
@@ -403,7 +403,7 @@
           "conflict": "overbought_extended",
           "description": "overbought (RSI>75) AND far above 52W high (>0)",
           "return_20d_pct": 17.3493,
-          "quality_score": -0.15859526842470612,
+          "quality_score": -0.1596015288021114,
           "news_sentiment": 0.25,
           "return_5d_pct": 5.7938,
           "rsi_14": 78.873
@@ -413,7 +413,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 9.7215,
-          "quality_score": 0.08699847550551902,
+          "quality_score": 0.08718923941953471,
           "news_sentiment": NaN,
           "return_5d_pct": 2.4561,
           "rsi_14": 67.819
@@ -423,7 +423,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 8.431,
-          "quality_score": -0.24912713725126756,
+          "quality_score": -0.24808676270223903,
           "news_sentiment": NaN,
           "return_5d_pct": -2.6275,
           "rsi_14": 52.483
@@ -433,7 +433,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 10.5121,
-          "quality_score": -0.0605122303204216,
+          "quality_score": -0.05995158362531716,
           "news_sentiment": NaN,
           "return_5d_pct": -1.2202,
           "rsi_14": 59.861
@@ -443,7 +443,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 12.9466,
-          "quality_score": 0.15058731873149464,
+          "quality_score": 0.15204402118040178,
           "news_sentiment": NaN,
           "return_5d_pct": 1.4765,
           "rsi_14": 69.404
@@ -453,7 +453,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 11.8131,
-          "quality_score": 0.07269141858481513,
+          "quality_score": 0.07385563292568015,
           "news_sentiment": 0.25,
           "return_5d_pct": 0.5633,
           "rsi_14": 68.032
@@ -463,7 +463,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 14.6737,
-          "quality_score": 0.21661813084829068,
+          "quality_score": 0.21696875028035917,
           "news_sentiment": NaN,
           "return_5d_pct": 3.2156,
           "rsi_14": 77.194
@@ -473,7 +473,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 12.9352,
-          "quality_score": -0.1694299157481105,
+          "quality_score": -0.16868414254354366,
           "news_sentiment": NaN,
           "return_5d_pct": 1.6148,
           "rsi_14": 66.202
@@ -483,7 +483,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 9.5558,
-          "quality_score": 3.01474685023323,
+          "quality_score": 3.0154860145239715,
           "news_sentiment": NaN,
           "return_5d_pct": 6.2244,
           "rsi_14": 82.257
@@ -493,7 +493,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 19.6598,
-          "quality_score": -0.13286585947830937,
+          "quality_score": -0.13083514111721384,
           "news_sentiment": NaN,
           "return_5d_pct": 0.7986,
           "rsi_14": 72.738
@@ -503,7 +503,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 10.11,
-          "quality_score": 0.0020638441884657244,
+          "quality_score": 0.0027368735491340814,
           "news_sentiment": NaN,
           "return_5d_pct": 1.084,
           "rsi_14": 61.045
@@ -513,7 +513,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 12.3688,
-          "quality_score": 0.6005547663893316,
+          "quality_score": 0.6020659451993386,
           "news_sentiment": NaN,
           "return_5d_pct": -0.3337,
           "rsi_14": 65.821
@@ -523,7 +523,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 17.4101,
-          "quality_score": 0.2087726731063549,
+          "quality_score": 0.2092130320738445,
           "news_sentiment": NaN,
           "return_5d_pct": 0.0364,
           "rsi_14": 72.957
@@ -533,7 +533,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 9.2297,
-          "quality_score": 0.050796624195711494,
+          "quality_score": 0.05110020606462856,
           "news_sentiment": NaN,
           "return_5d_pct": 2.6022,
           "rsi_14": 60.645
@@ -543,7 +543,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 9.1497,
-          "quality_score": -0.47776146896138894,
+          "quality_score": -0.4806728359571675,
           "news_sentiment": -0.125,
           "return_5d_pct": -0.7933,
           "rsi_14": 65.041
@@ -553,7 +553,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 17.5413,
-          "quality_score": -0.19153007673821668,
+          "quality_score": -0.19067727327994985,
           "news_sentiment": NaN,
           "return_5d_pct": 10.7003,
           "rsi_14": 70.603
@@ -563,7 +563,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 12.8996,
-          "quality_score": 0.05714751670199725,
+          "quality_score": 0.054972658505258565,
           "news_sentiment": NaN,
           "return_5d_pct": 9.8098,
           "rsi_14": 60.603
@@ -573,7 +573,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 17.022,
-          "quality_score": 0.1323019629513169,
+          "quality_score": 0.13231095855434782,
           "news_sentiment": 0.125,
           "return_5d_pct": 4.9802,
           "rsi_14": 71.401
@@ -583,7 +583,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 11.1485,
-          "quality_score": 0.20347856589121102,
+          "quality_score": 0.203864245953543,
           "news_sentiment": NaN,
           "return_5d_pct": 2.7686,
           "rsi_14": 62.82
@@ -593,7 +593,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 11.0299,
-          "quality_score": 0.2875130031150303,
+          "quality_score": 0.2879474747503818,
           "news_sentiment": NaN,
           "return_5d_pct": -0.8558,
           "rsi_14": 74.544
@@ -603,7 +603,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 18.1563,
-          "quality_score": -0.02985383881874341,
+          "quality_score": -0.03177910861328126,
           "news_sentiment": NaN,
           "return_5d_pct": 0.7027,
           "rsi_14": 70.281
@@ -613,7 +613,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 25.8395,
-          "quality_score": -0.3812838170854265,
+          "quality_score": -0.38084377434882,
           "news_sentiment": NaN,
           "return_5d_pct": -1.1869,
           "rsi_14": 72.443
@@ -623,7 +623,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 8.6943,
-          "quality_score": -0.3271822173805591,
+          "quality_score": -0.32683515765455434,
           "news_sentiment": NaN,
           "return_5d_pct": -3.0772,
           "rsi_14": 49.187
@@ -633,7 +633,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 11.0053,
-          "quality_score": 0.35866073807969573,
+          "quality_score": 0.35873232543561967,
           "news_sentiment": NaN,
           "return_5d_pct": 5.6242,
           "rsi_14": 72.087
@@ -643,7 +643,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 10.6595,
-          "quality_score": -0.06370159643664129,
+          "quality_score": -0.06299564412937786,
           "news_sentiment": NaN,
           "return_5d_pct": -0.445,
           "rsi_14": 61.581
@@ -653,7 +653,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 9.0303,
-          "quality_score": -0.22022388834618792,
+          "quality_score": -0.22113824260080622,
           "news_sentiment": NaN,
           "return_5d_pct": 3.8324,
           "rsi_14": 59.824
@@ -663,7 +663,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 17.055,
-          "quality_score": 0.03307934672980022,
+          "quality_score": 0.03258167005971877,
           "news_sentiment": NaN,
           "return_5d_pct": 9.9262,
           "rsi_14": 63.198
@@ -673,7 +673,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 19.9187,
-          "quality_score": -0.7135607493916638,
+          "quality_score": -0.7211848175958671,
           "news_sentiment": NaN,
           "return_5d_pct": 2.4076,
           "rsi_14": 66.521
@@ -683,7 +683,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 12.9133,
-          "quality_score": -0.023854715557499257,
+          "quality_score": -0.024951256373965485,
           "news_sentiment": NaN,
           "return_5d_pct": -0.2605,
           "rsi_14": 56.526
@@ -693,7 +693,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 20.5658,
-          "quality_score": 0.1283615980768039,
+          "quality_score": 0.12840631502085062,
           "news_sentiment": NaN,
           "return_5d_pct": 5.2457,
           "rsi_14": 88.453
@@ -703,7 +703,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 11.3965,
-          "quality_score": -0.2245216850784532,
+          "quality_score": -0.22691133594014837,
           "news_sentiment": NaN,
           "return_5d_pct": 1.8618,
           "rsi_14": 64.31
@@ -713,7 +713,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 15.3971,
-          "quality_score": 0.10713969751956504,
+          "quality_score": 0.10878495343730514,
           "news_sentiment": NaN,
           "return_5d_pct": 6.8099,
           "rsi_14": 69.647
@@ -723,7 +723,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 12.41,
-          "quality_score": 0.16954054413453015,
+          "quality_score": 0.17032035298589013,
           "news_sentiment": NaN,
           "return_5d_pct": 2.7412,
           "rsi_14": 75.63
@@ -733,7 +733,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 12.3491,
-          "quality_score": 0.05195805865807183,
+          "quality_score": 0.05183931101991083,
           "news_sentiment": NaN,
           "return_5d_pct": -0.949,
           "rsi_14": 59.987
@@ -743,7 +743,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 12.3789,
-          "quality_score": -0.15305774242805895,
+          "quality_score": -0.16013669251215198,
           "news_sentiment": NaN,
           "return_5d_pct": 2.7268,
           "rsi_14": 58.308
@@ -753,7 +753,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 11.1374,
-          "quality_score": 0.2878356486029328,
+          "quality_score": 0.28814856611590617,
           "news_sentiment": NaN,
           "return_5d_pct": -0.9294,
           "rsi_14": 61.114
@@ -763,7 +763,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 12.9284,
-          "quality_score": 0.036486232747732265,
+          "quality_score": 0.034622985143879646,
           "news_sentiment": 0.375,
           "return_5d_pct": 3.3756,
           "rsi_14": 63.195
@@ -773,7 +773,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 21.3288,
-          "quality_score": -0.15326818635400866,
+          "quality_score": -0.15436359944929456,
           "news_sentiment": 0.25,
           "return_5d_pct": 2.8694,
           "rsi_14": 82.217
@@ -783,7 +783,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 13.7506,
-          "quality_score": 0.6217412659832936,
+          "quality_score": 0.6213801759589206,
           "news_sentiment": NaN,
           "return_5d_pct": -3.299,
           "rsi_14": 65.437
@@ -793,7 +793,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 12.2062,
-          "quality_score": -0.07570072629189785,
+          "quality_score": -0.07900421503241083,
           "news_sentiment": NaN,
           "return_5d_pct": 5.4482,
           "rsi_14": 70.127
@@ -803,7 +803,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 10.575,
-          "quality_score": -0.06099869118809106,
+          "quality_score": -0.058424838997656915,
           "news_sentiment": NaN,
           "return_5d_pct": -3.079,
           "rsi_14": 67.747
@@ -813,7 +813,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 28.3911,
-          "quality_score": -0.18931343618093968,
+          "quality_score": -0.18896758750819775,
           "news_sentiment": NaN,
           "return_5d_pct": 5.7358,
           "rsi_14": 76.12
@@ -823,7 +823,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 8.2014,
-          "quality_score": -0.17984955747175155,
+          "quality_score": -0.18046875662989376,
           "news_sentiment": 0.375,
           "return_5d_pct": 3.5295,
           "rsi_14": 57.697
@@ -833,7 +833,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 16.3842,
-          "quality_score": -0.021224219382118433,
+          "quality_score": -0.020840309036119564,
           "news_sentiment": NaN,
           "return_5d_pct": 3.4866,
           "rsi_14": 74.821
@@ -843,7 +843,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 24.6384,
-          "quality_score": 0.09896005233270919,
+          "quality_score": 0.0985100114124301,
           "news_sentiment": NaN,
           "return_5d_pct": 5.9758,
           "rsi_14": 79.521
@@ -853,7 +853,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 15.6609,
-          "quality_score": -0.16917523877681417,
+          "quality_score": -0.16629859171824188,
           "news_sentiment": NaN,
           "return_5d_pct": 3.7502,
           "rsi_14": 73.23
@@ -863,7 +863,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 9.3138,
-          "quality_score": 0.2631587474015269,
+          "quality_score": 0.2634900545832057,
           "news_sentiment": NaN,
           "return_5d_pct": 8.9528,
           "rsi_14": 74.395
@@ -873,7 +873,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 20.8286,
-          "quality_score": -0.010877613461808378,
+          "quality_score": -0.00981106001796774,
           "news_sentiment": NaN,
           "return_5d_pct": 7.8829,
           "rsi_14": 73.488
@@ -883,7 +883,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 15.1446,
-          "quality_score": 0.15711340458134235,
+          "quality_score": 0.15750045656545858,
           "news_sentiment": NaN,
           "return_5d_pct": 0.9918,
           "rsi_14": 75.047
@@ -893,7 +893,7 @@
           "conflict": "overbought_extended",
           "description": "overbought (RSI>75) AND far above 52W high (>0)",
           "return_20d_pct": 15.1446,
-          "quality_score": 0.15711340458134235,
+          "quality_score": 0.15750045656545858,
           "news_sentiment": NaN,
           "return_5d_pct": 0.9918,
           "rsi_14": 75.047
@@ -903,7 +903,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 9.3572,
-          "quality_score": 0.04809281030509779,
+          "quality_score": 0.04665354844906707,
           "news_sentiment": NaN,
           "return_5d_pct": 4.3969,
           "rsi_14": 75.377
@@ -912,18 +912,18 @@
           "ticker": "ICICIPRULI.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 14.6728,
-          "quality_score": 0.009951795037501562,
+          "return_20d_pct": 14.3939,
+          "quality_score": 0.010406800108419795,
           "news_sentiment": NaN,
-          "return_5d_pct": 4.5896,
-          "rsi_14": 76.439
+          "return_5d_pct": 5.4349,
+          "rsi_14": 69.978
         },
         {
           "ticker": "IDFCFIRSTB.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 20.3232,
-          "quality_score": 0.2518552431879827,
+          "quality_score": 0.251693698726089,
           "news_sentiment": NaN,
           "return_5d_pct": 4.3615,
           "rsi_14": 82.041
@@ -933,7 +933,7 @@
           "conflict": "overbought_extended",
           "description": "overbought (RSI>75) AND far above 52W high (>0)",
           "return_20d_pct": 20.3232,
-          "quality_score": 0.2518552431879827,
+          "quality_score": 0.251693698726089,
           "news_sentiment": NaN,
           "return_5d_pct": 4.3615,
           "rsi_14": 82.041
@@ -943,7 +943,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 11.0102,
-          "quality_score": -0.08483222112840783,
+          "quality_score": -0.08226733095425007,
           "news_sentiment": NaN,
           "return_5d_pct": 1.4035,
           "rsi_14": 66.645
@@ -953,7 +953,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 10.6478,
-          "quality_score": 0.24731161662861245,
+          "quality_score": 0.24753828300058336,
           "news_sentiment": NaN,
           "return_5d_pct": -0.8475,
           "rsi_14": 73.386
@@ -963,7 +963,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 20.5258,
-          "quality_score": -4.955503501881596,
+          "quality_score": -4.9597832268988995,
           "news_sentiment": NaN,
           "return_5d_pct": 1.2796,
           "rsi_14": 68.977
@@ -973,7 +973,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 13.1244,
-          "quality_score": 0.004776050311261243,
+          "quality_score": 0.004041285463686178,
           "news_sentiment": NaN,
           "return_5d_pct": 5.049,
           "rsi_14": 69.815
@@ -983,7 +983,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 10.1863,
-          "quality_score": 0.4162838959362327,
+          "quality_score": 0.41688262980079643,
           "news_sentiment": NaN,
           "return_5d_pct": 0.3477,
           "rsi_14": 57.829
@@ -993,7 +993,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 9.69,
-          "quality_score": -0.3051413171329434,
+          "quality_score": -0.30564446533707423,
           "news_sentiment": NaN,
           "return_5d_pct": 0.1353,
           "rsi_14": 58.248
@@ -1003,7 +1003,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 17.9225,
-          "quality_score": 0.22586840785842974,
+          "quality_score": 0.22602228482614126,
           "news_sentiment": NaN,
           "return_5d_pct": 5.3003,
           "rsi_14": 75.354
@@ -1013,7 +1013,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 9.2059,
-          "quality_score": -0.21888875647948258,
+          "quality_score": -0.22245520756684592,
           "news_sentiment": NaN,
           "return_5d_pct": 0.3129,
           "rsi_14": 59.813
@@ -1023,7 +1023,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 10.7611,
-          "quality_score": -0.13239110681910543,
+          "quality_score": -0.13249363437786896,
           "news_sentiment": NaN,
           "return_5d_pct": 5.657,
           "rsi_14": 61.828
@@ -1033,7 +1033,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 27.7339,
-          "quality_score": 0.006118611602713329,
+          "quality_score": 0.00696307030348516,
           "news_sentiment": NaN,
           "return_5d_pct": -1.9548,
           "rsi_14": 66.808
@@ -1043,7 +1043,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 13.5235,
-          "quality_score": -0.003758078738615759,
+          "quality_score": -0.006371852010545298,
           "news_sentiment": NaN,
           "return_5d_pct": 5.2181,
           "rsi_14": 71.079
@@ -1053,7 +1053,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 13.9001,
-          "quality_score": 0.09431155368062347,
+          "quality_score": 0.09360997103822521,
           "news_sentiment": NaN,
           "return_5d_pct": 1.2294,
           "rsi_14": 79.95
@@ -1063,7 +1063,7 @@
           "conflict": "overbought_extended",
           "description": "overbought (RSI>75) AND far above 52W high (>0)",
           "return_20d_pct": 13.9001,
-          "quality_score": 0.09431155368062347,
+          "quality_score": 0.09360997103822521,
           "news_sentiment": NaN,
           "return_5d_pct": 1.2294,
           "rsi_14": 79.95
@@ -1073,7 +1073,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 8.8583,
-          "quality_score": -0.0672095549980161,
+          "quality_score": -0.06654923215494375,
           "news_sentiment": NaN,
           "return_5d_pct": 3.9231,
           "rsi_14": 68.223
@@ -1083,7 +1083,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 18.3417,
-          "quality_score": -0.3326753475358096,
+          "quality_score": -0.3329341836574688,
           "news_sentiment": 0.25,
           "return_5d_pct": 7.6129,
           "rsi_14": 64.345
@@ -1093,7 +1093,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 18.0462,
-          "quality_score": -0.23091567266321048,
+          "quality_score": -0.2306689865926154,
           "news_sentiment": NaN,
           "return_5d_pct": -2.393,
           "rsi_14": 82.151
@@ -1103,7 +1103,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 26.0274,
-          "quality_score": 0.11643874434003405,
+          "quality_score": 0.11727749329517423,
           "news_sentiment": NaN,
           "return_5d_pct": 4.1137,
           "rsi_14": 74.222
@@ -1113,7 +1113,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 11.1363,
-          "quality_score": -0.003528636661946689,
+          "quality_score": -0.003752965356146105,
           "news_sentiment": NaN,
           "return_5d_pct": -0.3822,
           "rsi_14": 62.862
@@ -1123,7 +1123,7 @@
           "conflict": "oversold_extended",
           "description": "oversold (RSI<25) AND deep drawdown (<-20%)",
           "return_20d_pct": -6.5029,
-          "quality_score": 0.041228564831045866,
+          "quality_score": 0.03940680471630955,
           "news_sentiment": NaN,
           "return_5d_pct": -4.0128,
           "rsi_14": 21.977
@@ -1133,7 +1133,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 21.3649,
-          "quality_score": -0.10878839470944095,
+          "quality_score": -0.11250075060188684,
           "news_sentiment": 0.25,
           "return_5d_pct": 2.9866,
           "rsi_14": 74.799
@@ -1143,7 +1143,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 23.0121,
-          "quality_score": -0.00547865969428991,
+          "quality_score": -0.003603259162546483,
           "news_sentiment": NaN,
           "return_5d_pct": 10.8773,
           "rsi_14": 80.245
@@ -1153,7 +1153,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 28.1459,
-          "quality_score": -0.25654768741938777,
+          "quality_score": -0.25580548477604076,
           "news_sentiment": NaN,
           "return_5d_pct": 6.5957,
           "rsi_14": 88.834
@@ -1163,7 +1163,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 22.246,
-          "quality_score": 0.2208366506340245,
+          "quality_score": 0.22261015052069386,
           "news_sentiment": -0.375,
           "return_5d_pct": 4.372,
           "rsi_14": 76.789
@@ -1173,7 +1173,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 19.4314,
-          "quality_score": 0.8754457569404672,
+          "quality_score": 0.882900463865414,
           "news_sentiment": NaN,
           "return_5d_pct": 1.3527,
           "rsi_14": 77.95
@@ -1183,7 +1183,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 8.4558,
-          "quality_score": 0.01887009778959602,
+          "quality_score": 0.01877075330591212,
           "news_sentiment": NaN,
           "return_5d_pct": -0.2065,
           "rsi_14": 81.775
@@ -1193,7 +1193,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 29.163,
-          "quality_score": -0.006602918575822329,
+          "quality_score": -0.008655365685616404,
           "news_sentiment": 0.25,
           "return_5d_pct": 0.1965,
           "rsi_14": 78.61
@@ -1203,7 +1203,7 @@
           "conflict": "overbought_extended",
           "description": "overbought (RSI>75) AND far above 52W high (>0)",
           "return_20d_pct": 29.163,
-          "quality_score": -0.006602918575822329,
+          "quality_score": -0.008655365685616404,
           "news_sentiment": 0.25,
           "return_5d_pct": 0.1965,
           "rsi_14": 78.61
@@ -1213,7 +1213,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 12.6996,
-          "quality_score": -0.06632146465964468,
+          "quality_score": -0.059180850844149514,
           "news_sentiment": 0.25,
           "return_5d_pct": 3.5999,
           "rsi_14": 74.96
@@ -1223,7 +1223,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 19.1027,
-          "quality_score": 0.15400735546219152,
+          "quality_score": 0.15467090812713136,
           "news_sentiment": NaN,
           "return_5d_pct": 5.1876,
           "rsi_14": 75.312
@@ -1233,7 +1233,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 17.0379,
-          "quality_score": 0.044235789956946776,
+          "quality_score": 0.04447929237347664,
           "news_sentiment": NaN,
           "return_5d_pct": 0.1361,
           "rsi_14": 62.839
@@ -1243,7 +1243,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 8.0962,
-          "quality_score": 0.5540849880747077,
+          "quality_score": 0.5550476826723408,
           "news_sentiment": NaN,
           "return_5d_pct": -6.3231,
           "rsi_14": 55.745
@@ -1253,7 +1253,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 12.0699,
-          "quality_score": 0.29000750384161716,
+          "quality_score": 0.29069269243744467,
           "news_sentiment": NaN,
           "return_5d_pct": 0.153,
           "rsi_14": 67.317
@@ -1263,7 +1263,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 19.6072,
-          "quality_score": -0.16595050301655404,
+          "quality_score": -0.16246781279650646,
           "news_sentiment": 0.0,
           "return_5d_pct": 2.564,
           "rsi_14": 84.019
@@ -1273,7 +1273,7 @@
           "conflict": "overbought_extended",
           "description": "overbought (RSI>75) AND far above 52W high (>0)",
           "return_20d_pct": 19.6072,
-          "quality_score": -0.16595050301655404,
+          "quality_score": -0.16246781279650646,
           "news_sentiment": 0.0,
           "return_5d_pct": 2.564,
           "rsi_14": 84.019
@@ -1283,7 +1283,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 9.912,
-          "quality_score": -0.10603269494668566,
+          "quality_score": -0.10708332912182071,
           "news_sentiment": NaN,
           "return_5d_pct": 4.544,
           "rsi_14": 65.988
@@ -1293,7 +1293,7 @@
           "conflict": "oversold_extended",
           "description": "oversold (RSI<25) AND deep drawdown (<-20%)",
           "return_20d_pct": -21.7176,
-          "quality_score": -0.0326607536126843,
+          "quality_score": -0.03309379308541083,
           "news_sentiment": NaN,
           "return_5d_pct": -2.8606,
           "rsi_14": 8.907
@@ -1303,7 +1303,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 21.1139,
-          "quality_score": 0.25846983279144364,
+          "quality_score": 0.25908079190613453,
           "news_sentiment": NaN,
           "return_5d_pct": -1.9523,
           "rsi_14": 81.875
@@ -1313,7 +1313,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 13.5804,
-          "quality_score": -0.12552212980730504,
+          "quality_score": -0.12470451472969395,
           "news_sentiment": NaN,
           "return_5d_pct": 13.2398,
           "rsi_14": 76.46
@@ -1323,7 +1323,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 28.2809,
-          "quality_score": -0.3786709875472394,
+          "quality_score": -0.37982661161451214,
           "news_sentiment": NaN,
           "return_5d_pct": 8.6542,
           "rsi_14": 75.344
@@ -1333,7 +1333,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 11.9878,
-          "quality_score": 0.04176155707954348,
+          "quality_score": 0.04294671448867538,
           "news_sentiment": NaN,
           "return_5d_pct": -4.058,
           "rsi_14": 62.412
@@ -1343,7 +1343,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 10.6023,
-          "quality_score": -0.19709035341328018,
+          "quality_score": -0.19356878273448175,
           "news_sentiment": 0.375,
           "return_5d_pct": 0.3038,
           "rsi_14": 78.893
@@ -1353,7 +1353,7 @@
           "conflict": "overbought_extended",
           "description": "overbought (RSI>75) AND far above 52W high (>0)",
           "return_20d_pct": 10.6023,
-          "quality_score": -0.19709035341328018,
+          "quality_score": -0.19356878273448175,
           "news_sentiment": 0.375,
           "return_5d_pct": 0.3038,
           "rsi_14": 78.893
@@ -1363,7 +1363,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 12.4254,
-          "quality_score": -0.0972096696579553,
+          "quality_score": -0.09670907049173642,
           "news_sentiment": NaN,
           "return_5d_pct": 2.2881,
           "rsi_14": 69.129
@@ -1373,7 +1373,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 11.6702,
-          "quality_score": -0.07971864510680679,
+          "quality_score": -0.07823398277420554,
           "news_sentiment": 0.375,
           "return_5d_pct": 1.8276,
           "rsi_14": 71.175
@@ -1383,7 +1383,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 15.3885,
-          "quality_score": 0.051482695641108946,
+          "quality_score": 0.050402149551687626,
           "news_sentiment": NaN,
           "return_5d_pct": 1.1152,
           "rsi_14": 84.268
@@ -1393,7 +1393,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 9.3023,
-          "quality_score": -0.035703728693927496,
+          "quality_score": -0.03516662419217761,
           "news_sentiment": NaN,
           "return_5d_pct": 3.872,
           "rsi_14": 67.361
@@ -1403,7 +1403,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 11.9117,
-          "quality_score": -0.32351933426282253,
+          "quality_score": -0.32661082909606015,
           "news_sentiment": NaN,
           "return_5d_pct": 2.6721,
           "rsi_14": 75.591
@@ -1413,7 +1413,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 18.0705,
-          "quality_score": 0.18143456242765674,
+          "quality_score": 0.1821010436569131,
           "news_sentiment": NaN,
           "return_5d_pct": 2.2963,
           "rsi_14": 91.238
@@ -1423,7 +1423,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 8.0773,
-          "quality_score": -0.14748469770280762,
+          "quality_score": -0.14888581393744485,
           "news_sentiment": NaN,
           "return_5d_pct": 1.3497,
           "rsi_14": 62.5
@@ -1433,7 +1433,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 15.3322,
-          "quality_score": 0.14891054017957664,
+          "quality_score": 0.14965566865424298,
           "news_sentiment": NaN,
           "return_5d_pct": -0.7609,
           "rsi_14": 62.126
@@ -1443,7 +1443,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 8.2658,
-          "quality_score": 0.058479003810544335,
+          "quality_score": 0.05714926358523764,
           "news_sentiment": NaN,
           "return_5d_pct": 3.2213,
           "rsi_14": 65.455
@@ -1453,7 +1453,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 9.9948,
-          "quality_score": -0.18390079352027647,
+          "quality_score": -0.1831937879803176,
           "news_sentiment": NaN,
           "return_5d_pct": -0.5089,
           "rsi_14": 59.949
@@ -1463,7 +1463,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 8.2699,
-          "quality_score": -0.03748374540292219,
+          "quality_score": -0.03813152200010536,
           "news_sentiment": -0.25,
           "return_5d_pct": 2.1638,
           "rsi_14": 69.151
@@ -1473,7 +1473,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 23.1197,
-          "quality_score": -0.35661742588510537,
+          "quality_score": -0.35178487447567025,
           "news_sentiment": NaN,
           "return_5d_pct": 1.9572,
           "rsi_14": 68.917
@@ -1483,7 +1483,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 10.4726,
-          "quality_score": -0.37223561507256697,
+          "quality_score": -0.3728158841996473,
           "news_sentiment": NaN,
           "return_5d_pct": 4.9138,
           "rsi_14": 75.958
@@ -1493,7 +1493,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 17.1512,
-          "quality_score": -0.16823569963201437,
+          "quality_score": -0.16907910050827235,
           "news_sentiment": NaN,
           "return_5d_pct": 3.6161,
           "rsi_14": 76.183
@@ -1503,7 +1503,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 8.0544,
-          "quality_score": -0.3242954638874535,
+          "quality_score": -0.32552745330527344,
           "news_sentiment": 0.0,
           "return_5d_pct": 7.0893,
           "rsi_14": 71.192
@@ -1513,7 +1513,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 17.3729,
-          "quality_score": -0.38664530499296684,
+          "quality_score": -0.3822220569458885,
           "news_sentiment": NaN,
           "return_5d_pct": 2.3169,
           "rsi_14": 70.89
@@ -1523,7 +1523,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 12.2225,
-          "quality_score": -0.33458392128072617,
+          "quality_score": -0.3338000711239848,
           "news_sentiment": NaN,
           "return_5d_pct": 4.1171,
           "rsi_14": 59.796
@@ -1533,7 +1533,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 11.9493,
-          "quality_score": -0.022899856036626993,
+          "quality_score": -0.022369568255871875,
           "news_sentiment": NaN,
           "return_5d_pct": 6.0205,
           "rsi_14": 63.51
@@ -1543,7 +1543,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 14.3025,
-          "quality_score": -0.054253090788679785,
+          "quality_score": -0.05533699267232354,
           "news_sentiment": NaN,
           "return_5d_pct": 2.3446,
           "rsi_14": 73.039
@@ -1553,7 +1553,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 13.8857,
-          "quality_score": 0.30046368296922255,
+          "quality_score": 0.3010924829741423,
           "news_sentiment": NaN,
           "return_5d_pct": 1.8797,
           "rsi_14": 76.133
@@ -1563,7 +1563,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 19.464,
-          "quality_score": -0.15657724976756981,
+          "quality_score": -0.14951031363691172,
           "news_sentiment": NaN,
           "return_5d_pct": 3.8384,
           "rsi_14": 78.942
@@ -1573,7 +1573,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 27.8908,
-          "quality_score": -0.1291652720758378,
+          "quality_score": -0.1280815974970235,
           "news_sentiment": NaN,
           "return_5d_pct": 0.9345,
           "rsi_14": 75.059
@@ -1583,7 +1583,7 @@
           "conflict": "overbought_extended",
           "description": "overbought (RSI>75) AND far above 52W high (>0)",
           "return_20d_pct": 27.8908,
-          "quality_score": -0.1291652720758378,
+          "quality_score": -0.1280815974970235,
           "news_sentiment": NaN,
           "return_5d_pct": 0.9345,
           "rsi_14": 75.059
@@ -1593,7 +1593,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 12.7264,
-          "quality_score": -0.09536563840936578,
+          "quality_score": -0.09589077637138704,
           "news_sentiment": NaN,
           "return_5d_pct": 1.3019,
           "rsi_14": 68.2
@@ -1603,7 +1603,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 29.1356,
-          "quality_score": -0.23706328013198227,
+          "quality_score": -0.23747009712245823,
           "news_sentiment": NaN,
           "return_5d_pct": 7.5348,
           "rsi_14": 69.018
@@ -1613,7 +1613,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 10.106,
-          "quality_score": 0.1524855941000622,
+          "quality_score": 0.15270741541925617,
           "news_sentiment": NaN,
           "return_5d_pct": 0.2271,
           "rsi_14": 82.675
