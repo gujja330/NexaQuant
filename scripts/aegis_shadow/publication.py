@@ -10,6 +10,7 @@ from scripts.aegis_shadow.pipeline import _atomic, _json
 
 
 SHEETS = ["RUN SUMMARY", "NEW CURRENT", "NEW EXIT HISTORY"]
+SCHEMA = "aegis.unified.workbook.v2"
 
 
 def publish(root, attempt, summary):
@@ -21,6 +22,8 @@ def publish(root, attempt, summary):
     original = contained(attempt, Path("shadow.xlsx"))
     data = original.read_bytes()
     checksum = hashlib.sha256(data).hexdigest()
+    if summary.get("workbook_sha256", checksum) != checksum:
+        raise ValueError("shadow workbook changed after certification")
     stem = f"aegis_new_{market}_{asof}"
     path = contained(folder, Path(f"{stem}.xlsx"))
     if path.exists() and digest(path) != checksum:
@@ -35,34 +38,58 @@ def publish(root, attempt, summary):
         "runner": "new", "market": market, "asof": asof,
         "market_data_asof": summary["market_data_asof"], "status": summary["status"],
         "published_utc": datetime.now(timezone.utc).isoformat(), "sha256": checksum,
-        "schema": "aegis.unified.workbook.v1", "workbook": path.relative_to(root).as_posix(),
+        "schema": SCHEMA, "workbook": path.relative_to(root).as_posix(),
     }
     if not manifest.exists():
         _atomic(folder, manifest.name, json.dumps(record, indent=2).encode())
-    elif _json(manifest).get("sha256") != checksum:
-        raise ValueError("shadow workbook manifest mismatch")
+    else:
+        saved = _json(manifest)
+        if any(saved.get(key) != value for key, value in record.items() if key != "published_utc"):
+            raise ValueError("shadow workbook manifest mismatch")
+        record = saved
     return record
 
 
-def notify(root, record, send=None):
+def _delivery_enabled(root):
     config = contained(root, Path(".aegis-local/unified/delivery.json"))
     if not config.is_file():
-        return "DISABLED"
+        return False
     options = _json(config)
-    if options.get("enabled") is not True or options.get("isolation_owner_verified") is not True:
+    return options.get("enabled") is True and options.get("isolation_owner_verified") is True
+
+
+def _receipt(root, record):
+    workbook = contained(root, Path(record["workbook"]))
+    return contained(workbook.parent, Path(f"telegram-{record['sha256']}.json"))
+
+
+def delivery_status(root, record):
+    if not _delivery_enabled(root):
         return "DISABLED"
+    receipt = _receipt(root, record)
+    if receipt.is_file():
+        saved = _json(receipt)
+        if saved.get("sha256") != record["sha256"]:
+            raise ValueError("shadow Telegram receipt identity mismatch")
+        return saved["status"]
+    return "PENDING"
+
+
+def notify(root, record, send=None):
+    status = delivery_status(root, record)
+    if status in {"DISABLED", "DELIVERED", "SENDING", "UNCERTAIN"}:
+        return status
     from scripts.aegis_workbook_continuity import discover
     from scripts import telegram_command_center_send as telegram
 
     market = record["market"]
     verified = discover(root, market, "new")
-    if not verified or any(verified[key] != record[key] for key in ("sha256", "workbook", "market_data_asof")):
+    if not verified or any(verified.get(key) != record[key] for key in (
+            "sha256", "workbook", "market_data_asof", "schema", "runner", "market")):
         raise ValueError("notification attachment is not the latest verified shadow publication")
     path = contained(root, Path(record["workbook"]))
     folder = path.parent
-    receipt = contained(folder, Path(f"telegram-{record['sha256']}.json"))
-    if receipt.exists() and _json(receipt)["status"] in {"DELIVERED", "SENDING", "UNCERTAIN"}:
-        return _json(receipt)["status"]
+    receipt = _receipt(root, record)
     token = os.environ.get("AEGIS_NEW_TELEGRAM_BOT_TOKEN")
     chat = os.environ.get("AEGIS_NEW_TELEGRAM_CHAT_ID")
     if not token or not chat:
@@ -70,7 +97,8 @@ def notify(root, record, send=None):
     caption = (f"AEGIS NEW | {market.upper()} | SHADOW\n"
                f"Report {record['asof']} · Market session {record['market_data_asof']}\n"
                f"{record['status']}")
-    state = {"status": "SENDING", "sha256": record["sha256"]}
+    state = {"status": "SENDING", "sha256": record["sha256"],
+             "runner": "new", "market": market, "workbook": record["workbook"]}
     _atomic(folder, receipt.name, json.dumps(state).encode())
     try:
         success, _ = (send or telegram._send_document)(token, chat, path, caption=caption)
@@ -79,8 +107,10 @@ def notify(root, record, send=None):
                          and api.get("http_status") == 200 and api.get("message_id")
                          and api.get("document_filename") == path.name
                          and api.get("document_bytes") == path.stat().st_size)
-        state.update(status="DELIVERED" if verified_send else "UNCERTAIN",
-                     message_id=api.get("message_id"))
+        refused = (api.get("telegram_ok") is False and not api.get("message_id")
+                   and api.get("http_status") in {200, 400, 401, 403, 404, 413, 429})
+        state.update(status="DELIVERED" if verified_send else "FAILED" if refused else "UNCERTAIN",
+                     message_id=api.get("message_id"), http_status=api.get("http_status"))
     except Exception:
         state["status"] = "UNCERTAIN"
     _atomic(folder, receipt.name, json.dumps(state).encode())

@@ -1,5 +1,6 @@
 """Execute a single candidate engine with separate imports and write guards."""
 import os
+import json
 from pathlib import Path
 import runpy
 import subprocess
@@ -81,6 +82,13 @@ def main():
     target, *args = sys.argv[1:]
     sys.path.insert(0, str(_ROOT))
     install_boundary(_ROOT)
+    policy = os.environ.pop("AEGIS_SHADOW_PRICE_PROVIDER", None)
+    if policy:
+        from scripts.aegis_shadow.provider import install
+        import atexit
+
+        circuit = install(json.loads(policy))
+        atexit.register(lambda: print(f"Private price provider counters: {json.dumps(circuit.counts, sort_keys=True)}"))
     if target == "-m":
         module, *args = args
         sys.argv = [module, *args]

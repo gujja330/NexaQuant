@@ -4,6 +4,7 @@ from datetime import date
 from io import BytesIO
 import json
 from pathlib import Path
+from subprocess import TimeoutExpired
 from tempfile import NamedTemporaryFile
 from time import perf_counter
 from typing import Callable
@@ -16,7 +17,7 @@ from scripts.aegis_shadow.replay import replay
 @dataclass(frozen=True)
 class Stage:
     name: str
-    action: Callable[[dict], None]
+    action: Callable[[dict], str | None]
     requires: tuple[str, ...] = ()
     required: bool = True
 
@@ -174,20 +175,43 @@ STAGES = (
 )
 
 
-def _execute(context, stages=STAGES):
-    results = {}
+def _execute(context, stages=STAGES, *, prior=None):
+    results = dict(prior or {})
     for stage in stages:
         start = perf_counter()
-        status, reason = "PASS", None
-        if any(results.get(dep, {}).get("status") != "PASS" for dep in stage.requires):
-            status, reason = "BLOCKED", "required input stage did not pass"
+        status, reason, execution = "PASS", None, "EXECUTED"
+        failure_category = None
+        failed_dependencies = [dep for dep in stage.requires if results.get(dep, {}).get("status") != "PASS"]
+        if failed_dependencies:
+            status, reason = "BLOCKED", f"required input stages did not pass: {', '.join(failed_dependencies)}"
+            execution = "BLOCKED"
+            failure_category = "DEPENDENCY_FAILED"
         else:
             try:
-                stage.action(context)
+                outcome = stage.action(context)
+                if outcome == "REUSED":
+                    execution = "REUSED"
+                elif outcome == "RESEARCH_INSUFFICIENT_EVIDENCE":
+                    status = outcome
+                    failure_category = outcome
             except Exception as error:
                 status, reason = "FAIL", str(error)
-        print(f"{context['market']} {stage.name} {status}" + (f"  {reason}" if reason else ""))
+                if isinstance(error, (TimeoutError, TimeoutExpired)):
+                    failure_category = "WORKER_TIMEOUT"
+                elif isinstance(error, PermissionError):
+                    failure_category = "ACCESS_DENIED"
+                elif isinstance(error, FileNotFoundError):
+                    failure_category = "ARTIFACT_MISSING"
+                elif isinstance(error, (ValueError, KeyError, TypeError)):
+                    failure_category = "ARTIFACT_OR_CONTRACT_INVALID"
+                else:
+                    failure_category = "STAGE_EXECUTION_FAILURE"
+        print(f"{context['market']} {stage.name} {status}" + (" (reused)" if execution == "REUSED" else "")
+              + (f"  {reason}" if reason else ""))
         results[stage.name] = {"status": status, "reason": reason,
+                               "required": stage.required, "failure_category": failure_category,
+                               "execution": execution,
+                               "blocked_by": failed_dependencies,
                                "seconds": round(perf_counter() - start, 3)}
     return results
 
