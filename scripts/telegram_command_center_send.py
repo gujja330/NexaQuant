@@ -3518,9 +3518,19 @@ def main() -> int:
                             _obj = _json_orphan.loads(_ln)
                         except Exception:
                             continue
+                        # CEO 2026-11-26 · the August USA rows store their
+                        # episode under `pid`. With only opportunity_id /
+                        # position_id consulted, their id resolved to "" and
+                        # the `if _oid and ...` test silently dropped all 490 -
+                        # the ledger went 504 -> 39 rows, and publication
+                        # rightly refused to copy the result back, so USA
+                        # never reached Telegram. A row whose id cannot be
+                        # read cannot be one of THIS pass's rows either, so it
+                        # is carried forward rather than deleted.
                         _oid = str(_obj.get("opportunity_id")
-                                   or _obj.get("position_id") or "")
-                        if _oid and _oid not in _own_ids:
+                                   or _obj.get("position_id")
+                                   or _obj.get("pid") or "")
+                        if not _oid or _oid not in _own_ids:
                             _foreign_rows.append(_obj)
                 _orphan_lines.sort(key=lambda r: (r["closed_date"], r["ticker"]))
                 _foreign_rows.sort(key=lambda r: (str(r.get("closed_date") or ""),

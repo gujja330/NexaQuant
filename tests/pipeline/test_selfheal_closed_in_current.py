@@ -174,7 +174,7 @@ def test_a_current_row_without_a_position_id_is_skipped(mod, tmp_path):
 def test_heal_is_not_satisfied_by_a23_alone(mod, monkeypatch):
     """Regeneration leaving a closed position in CURRENT is not a repair."""
     monkeypatch.setattr(mod, "_run", lambda cmd: 0)
-    monkeypatch.setattr(mod, "unaccounted", lambda m: set())
+    monkeypatch.setattr(mod, "unaccounted", lambda m, asof=None: set())
     monkeypatch.setattr(mod, "closed_in_current",
                         lambda m: [("ZBRA", "USA-R2-ZBRA-20260923-11c4b9")])
     assert mod.heal("usa", "2026-10-31") is False
@@ -182,7 +182,7 @@ def test_heal_is_not_satisfied_by_a23_alone(mod, monkeypatch):
 
 def test_heal_passes_when_both_are_clean(mod, monkeypatch):
     monkeypatch.setattr(mod, "_run", lambda cmd: 0)
-    monkeypatch.setattr(mod, "unaccounted", lambda m: set())
+    monkeypatch.setattr(mod, "unaccounted", lambda m, asof=None: set())
     monkeypatch.setattr(mod, "closed_in_current", lambda m: [])
     assert mod.heal("usa", "2026-10-31") is True
 
@@ -190,7 +190,7 @@ def test_heal_passes_when_both_are_clean(mod, monkeypatch):
 def test_main_fails_loudly_when_the_repair_does_not_restore(
         mod, monkeypatch, capsys):
     monkeypatch.setattr(sys, "argv", ["x", "--market", "usa"])
-    monkeypatch.setattr(mod, "unaccounted", lambda m: set())
+    monkeypatch.setattr(mod, "unaccounted", lambda m, asof=None: set())
     monkeypatch.setattr(mod, "closed_in_current",
                         lambda m: [("ZBRA", "USA-R2-ZBRA-20260923-11c4b9")])
     monkeypatch.setattr(mod, "heal", lambda m, a: False)
@@ -204,7 +204,7 @@ def test_main_fails_loudly_when_the_repair_does_not_restore(
 def test_main_is_quiet_and_green_when_nothing_is_wrong(
         mod, monkeypatch, capsys):
     monkeypatch.setattr(sys, "argv", ["x", "--market", "usa"])
-    monkeypatch.setattr(mod, "unaccounted", lambda m: set())
+    monkeypatch.setattr(mod, "unaccounted", lambda m, asof=None: set())
     monkeypatch.setattr(mod, "closed_in_current", lambda m: [])
     called = []
     monkeypatch.setattr(mod, "heal", lambda m, a: called.append(1) or True)
@@ -216,7 +216,7 @@ def test_main_is_quiet_and_green_when_nothing_is_wrong(
 def test_stale_current_alone_triggers_the_repair(mod, monkeypatch):
     """A23 clean + CURRENT stale must still regenerate · that is the bug."""
     monkeypatch.setattr(sys, "argv", ["x", "--market", "usa"])
-    monkeypatch.setattr(mod, "unaccounted", lambda m: set())
+    monkeypatch.setattr(mod, "unaccounted", lambda m, asof=None: set())
     monkeypatch.setattr(mod, "closed_in_current",
                         lambda m: [("DDOG", "USA-R2-DDOG-20260930-8f3161")])
     healed = []

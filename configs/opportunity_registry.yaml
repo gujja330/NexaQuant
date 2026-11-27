@@ -79,6 +79,43 @@ risk_engine:
   trailing_lift_min_pct:  5.0    # only lift trailing stop when profit ≥ 5%
   high_vol_scale:         1.5    # wider stop multiplier in high-vol regimes
   high_vol_atr_pct:       3.0    # ATR% > 3.0 = high-vol regime
+  # ADVISORY EXITS · CEO 2026-11-26 · backend/risk/exit_advisor.py
+  # Flags only: no position is sold and no stop is moved. Enforcement is
+  # not implemented and needs explicit per-market approval after
+  # scripts/exit_policy_replay.py has been read.
+  exit_advisor:
+    enabled:
+      india:              true
+      usa:                true
+    profit_lock_tiers:            # [P&L trigger %, lock % over entry]
+      - [10.0, 0.0]               # +10% -> stop to breakeven
+      - [20.0, 10.0]              # +20% -> lock +10%
+      - [30.0, 20.0]              # +30% -> lock +20%
+    take_profit_fraction:   0.5   # at target: book half
+    rotation_min_days:      30
+    rotation_stall_band_pct: [-3.0, 5.0]
+    rotation_score_margin:  10.0  # candidate must beat the holding by this
+    signal_exit_if_holding: [REDUCE, EXIT]
+    signal_exit_actions:    [SELL, STRONG SELL, STRONG_SELL]
+    static_target_take_profit: false   # entry-time targets go stale
+    # Volatility-scaled triple barrier: stop / target at entry x exp(-/+ k sigma sqrt(h)),
+    # sigma = 20-day st.dev at entry, h in trading days. From
+    # scripts/exit_policy_replay.py, nested CV by entry-date block, 2026-11-26.
+    dynamic:
+      usa:
+        calibration: auto # read the latest replay; values below are the fallback
+        max_age_days: 35
+        enabled:  true    # SUPPORTED · 3/5 held-out blocks · 241 eps / 20 dates
+        h:        10      # severe 23.2% -> 8.3% · worst -53.7 -> -16.6 · 35.0d -> 8.2d
+        k_sl:     1.0
+        k_tp:     1.0
+        # Trend note only, NOT a rule: holding strong trends past the barrier
+        # beat the fixed exit in 1 of 4 comparable held-out blocks.
+        trend_note_er_min: 0.5
+      india:
+        calibration: auto # switches itself ON only if the replay supports it
+        max_age_days: 35
+        enabled:  false   # NOT SUPPORTED · 1/5 blocks · per-date mean -0.18 -> -0.71
 
 # ─────────────────────────────────────────────────────────────
 # Parts 9 + 14 · Recommendation Review + Dynamic Confidence trajectory

@@ -94,8 +94,21 @@ def _verified_alias_history(yf, ticker, existing, fresh):
     return fresh
 
 
-def _reconcile_mm_final_sessions(path):
-    """Replace two partial M&M bars with identified NSE EQ final records in staging."""
+def _reconcile_mm_final_sessions(path, exceptions=None):
+    """Replace two partial M&M bars with identified NSE EQ final records in staging.
+
+    CEO 2026-11-27 · this used to RAISE when a saved bar matched neither the
+    known partial nor the NSE final - and the raise killed the entire India
+    refresh, all 228 symbols, over two old bars of one stock. It happened on
+    2026-11-27: a git merge brought CI's copy of MM_D1.parquet, a DIFFERENT
+    vendor partial (close 3527.10 / 3499.30), and India died in 10 seconds.
+
+    The session is now identified by its OPEN, which a partial and the final
+    record share (they differ in high/low/close/volume); an identified
+    session is replaced with the NSE final. A bar that cannot be identified
+    is left untouched and flagged in `exceptions` for review, so one stock
+    can no longer stop the market.
+    """
     if not path.is_file():
         return
     expected = {
@@ -115,7 +128,14 @@ def _reconcile_mm_final_sessions(path):
         if all(isclose(x, y, abs_tol=0.001) for x, y in zip(values, final)):
             continue
         if not all(isclose(x, y, abs_tol=0.001) for x, y in zip(values, previous)):
-            raise ValueError(f"MM {session} has unknown prior data; review before replacing")
+            if not isclose(values[0], final[0], abs_tol=0.001):
+                msg = (f"MM {session} has unknown prior data (open {values[0]} vs NSE "
+                       f"final open {final[0]}) · left unchanged, review")
+                print(f"  {msg}")
+                if exceptions is not None:
+                    exceptions["MM"] = msg
+                continue
+            # same session (same open), a different vendor partial -> NSE final
         corrections.append({
             "session": session, "ticker": "MM", "exchange_symbol": "M&M",
             "isin": "INE101A01026", "series": "EQ",
@@ -360,7 +380,7 @@ def refresh(limit=None, *, reconcile_final_bars=False):
 
     exceptions = {}
     if reconcile_final_bars:
-        _reconcile_mm_final_sessions(RAW / "MM_D1.parquet")
+        _reconcile_mm_final_sessions(RAW / "MM_D1.parquet", exceptions)
         try:
             _restore_ltim_prices(yf, last_session, RAW / "LTIM_D1.parquet")
         except ValueError as error:

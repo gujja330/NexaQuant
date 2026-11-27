@@ -185,6 +185,16 @@ def main() -> int:
                 ready = run_stage("dynamic-exits:usa", [
                     "scripts/apply_dynamic_exits.py", "--market", market, "--enforce",
                 ], cwd=cwd, ready=ready)
+            # EXIT CALIBRATION · CEO 2026-11-26 "I cannot run every time
+            # multiple py files". Recalibrates the dynamic exit advisor from
+            # the exit-policy replay when the last one is >= 5 days old (a
+            # skip is ~1s), BEFORE the contract builds the lifecycle that
+            # reads it. The script exits 0 on internal error, so calibration
+            # can never cost a delivery.
+            ready = run_stage(f"exit-calibration:{market}", [
+                "scripts/exit_policy_replay.py", "--market", market,
+                "--asof", args.asof, "--live", "--if-older-than", "5",
+            ], cwd=cwd, ready=ready)
             ready = run_stage(f"contract:{market}", [
                 "-m", "backend.pipeline.contract.runner", "--market", market,
                 "--asof", args.asof, "--trigger", "manual",

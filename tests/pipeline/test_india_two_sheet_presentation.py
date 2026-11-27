@@ -37,6 +37,11 @@ def test_india_workbook_preserves_targets_and_colors(tmp_path):
         {"ticker": "FLAT", "realized_pnl_pct": 0.0, "record_type": "ADMINISTRATIVE"},
         {"ticker": "ADVISORY", "realized_pnl_pct": None, "record_type": "ADVISORY/HISTORICAL"},
     ]
+    # The canonical lifecycle owns these derived values (CEO 2026-11-27); a
+    # stand-in for its output must carry them exactly as it would.
+    from backend.delivery.lifecycle.canonical_daily_lifecycle import decision_metrics
+    for _r in current:
+        _r.update(decision_metrics(_r))
     dataset = {"market": "india", "asof": "2026-11-24", "current": current, "exits": exits}
     book = Workbook()
     book.remove(book.active)

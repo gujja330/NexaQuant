@@ -172,18 +172,50 @@ def closed_in_current(market: str) -> list:
 
 
 def unaccounted(market: str, asof: str | None = None) -> set:
-    if market == "india":
-        sys.path.insert(0, str(ROOT))
-        from backend.delivery.lineage import episode_lineage
+    """Episodes the registry closed that nothing accounts for.
 
-        accounting = episode_lineage.account(ROOT, market, asof or date.today().isoformat())
-        return {
-            episode.opportunity_id or f"{episode.ticker}:{episode.created_date}"
-            for episode in accounting["by_status"][episode_lineage.STATUS_UNACCOUNTED]
-        }
-    return (_closed_registry(market)
-            - _exit_history_tickers(market)
-            - _orphan_audit_tickers(market))
+    ONE accounting, both markets. CEO 2026-11-26.
+
+    This was `if market == "india"` using the canonical episode ledger,
+    with USA falling through to a private TICKER-level subtraction:
+
+        _closed_registry - _exit_history_tickers - _orphan_audit_tickers
+
+    That private path cannot see an administrative close, so it called
+    every one of them a defect. Measured 2026-11-26 on USA, the two
+    answers from the same tree at the same moment:
+
+        canonical   REPRESENTED 211 · ACCOUNTED_ADMINISTRATIVE 481
+                    · UNACCOUNTED 0
+        private     10 "unaccounted" · AJG BLDR CL ES FE MCK MOS SAIC
+                    SNA TTWO - all of them 2026-08-11 admissions that
+                    closed administratively 2026-08-14..21
+
+    So the contract certified the run and A23 passed - both read the
+    canonical ledger - and then this healer failed it and blocked the
+    send, because it read a private copy. USA had never once delivered
+    a workbook. Nothing was wrong with the data.
+
+    Ticker-level accounting is also unsound in principle: one ticker can
+    hold several episodes, so a later re-entry masks an earlier close.
+    That is the same masking the India A23 fix removed on 2026-11-07 -
+    USA was simply left behind on the old path.
+
+    This is NOT a relaxation. The canonical ledger is what A23, a
+    blocking gate, already decides on, so the healer can no longer
+    disagree with the gate that certified the run. A genuinely
+    unaccounted episode still lands in STATUS_UNACCOUNTED and still
+    fails the run.
+    """
+    sys.path.insert(0, str(ROOT))
+    from backend.delivery.lineage import episode_lineage
+
+    accounting = episode_lineage.account(
+        ROOT, market, asof or date.today().isoformat())
+    return {
+        episode.opportunity_id or f"{episode.ticker}:{episode.created_date}"
+        for episode in accounting["by_status"][episode_lineage.STATUS_UNACCOUNTED]
+    }
 
 
 def _run(cmd: list) -> int:

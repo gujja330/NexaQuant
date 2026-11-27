@@ -182,20 +182,20 @@ def _target_status(row):
     return "TARGET NOT REACHED"
 
 
-def _india_decision_cells(row):
+def _decision_cells(row, market):
     from backend.delivery.governance.advisory_state import is_advisory
 
-    close, stop, target = (row.get(key) for key in ("current_price", "stop", "target"))
-    pnl, return_at_stop = row.get("pnl_pct"), row.get("max_loss_if_stop_pct")
-    upside = ratio = giveback = None
-    if isinstance(close, (int, float)) and close > 0 and isinstance(target, (int, float)):
-        upside = round(max(0, (target / close - 1) * 100), 2)
-        if isinstance(stop, (int, float)) and target > close > stop > 0:
-            ratio = round((target - close) / (close - stop), 2)
-    if isinstance(pnl, (int, float)) and pnl > 0 and isinstance(return_at_stop, (int, float)):
-        giveback = round(min(pnl, max(0, pnl - return_at_stop)), 2)
+    # Rendered, never derived. CEO 2026-11-27: these three were computed
+    # here, which test_renderer_computes_nothing exists to forbid - a renderer
+    # that derives a number can disagree with the engine that owns it. They
+    # are produced by canonical_daily_lifecycle.decision_metrics().
+    upside = row.get("remaining_upside_pct")
+    ratio = row.get("reward_to_risk")
+    giveback = row.get("profit_giveback_pp")
     engine = row.get("engine")
-    advisory = engine == ENGINE_R1 or is_advisory("india", engine)
+    # The market was hardcoded here, so USA's Actionability would have
+    # been judged against India's advisory register. CEO 2026-11-26.
+    advisory = engine == ENGINE_R1 or is_advisory(str(market).lower(), engine)
     return [
         _target_status(row), _fmt(row.get("target_basis"), "SOURCE UNAVAILABLE"),
         _fmt(upside), _fmt(giveback), _fmt(ratio),
@@ -204,13 +204,19 @@ def _india_decision_cells(row):
         _fmt(row.get("price_freshness"), "UNAVAILABLE"),
         _fmt(row.get("entry_class"), "UNAVAILABLE"), _fmt(row.get("original_stop")),
         _fmt(row.get("stop_management"), "UNAVAILABLE"),
-        _fmt(row.get("exit_decision"), "UNAVAILABLE"), _fmt(row.get("decision_asof")),
+        # The dynamic exit advice IS the exit decision the reader needs. CEO
+        # 2026-11-26: it was written only at the END of a one-line Reason
+        # cell while this column showed the old engine's HOLD on 153 of 161
+        # rows, so the feature looked absent. Show the advice here.
+        _fmt(row.get("exit_advice") if row.get("exit_advice") not in (None, "", "HOLD")
+             else row.get("exit_decision"), "UNAVAILABLE"),
+        _fmt(row.get("decision_asof")),
         _fmt(row.get("entry_price_basis"), "UNAVAILABLE"),
 
     ]
 
 
-def _style_india_table(ws, columns, header, end):
+def _style_india_table(ws, columns, header, end, currency="INR"):
     from datetime import date
     from math import ceil
     from openpyxl.formatting.rule import FormulaRule
@@ -253,6 +259,10 @@ def _style_india_table(ws, columns, header, end):
         "STOP-BREACH MARK": "red", "BREACHED": "red", "EXIT": "red",
         "REALIZED EXIT": "red", "STALE DATA": "amber", "ADVISORY": "amber",
         "NOT ACTIONABLE": "amber",
+        # dynamic exit advice
+        "DYNAMIC STOP": "red", "SIGNAL EXIT": "red",
+        "DYNAMIC TAKE PROFIT": "green", "TAKE PROFIT": "green",
+        "TIME EXIT": "amber", "LOCK PROFIT": "amber", "ROTATE": "amber",
     }
     for row in ws.iter_rows(min_row=header + 1, max_row=end):
         for name, cell in zip(columns, row):
@@ -268,10 +278,15 @@ def _style_india_table(ws, columns, header, end):
                 if name in ("P&L %", "Return at Stop %") and value != 0:
                     cell.fill = fills["green" if value > 0 else "red"]
                     _style_pnl_text(cell)
+                # Currency follows the market. CEO 2026-11-26: this styling was
+                # India-only, so extending the layout to USA would have shown
+                # US prices as "INR".
+                _px = '"$"#,##0.00' if currency == "USD" else '"INR "#,##0.00'
+                _cap = '"$"#,##0' if currency == "USD" else '"INR "#,##0'
                 if name in ("Entry Price", "Last Price", "Exit Price", "Stop", "Target", "Original Stop"):
-                    cell.number_format = '"INR "#,##0.00'
+                    cell.number_format = _px
                 elif name == "Current Market Cap":
-                    cell.number_format = '"INR "#,##0'
+                    cell.number_format = _cap
             if name in ("Entry Date", "Admission Date", "Exit Date", "Market Data As-of",
                         "Market Cap As-of", "Decision As-of") and isinstance(value, str):
                 try:
@@ -280,11 +295,12 @@ def _style_india_table(ws, columns, header, end):
                 except ValueError:
                     pass
             if name in ("Reason", "Exit Reason"):
-                cell.alignment = Alignment(vertical="center", wrap_text=True)
-                width = (ws.column_dimensions[cell.column_letter].width or 26) - 4
-                lines = sum(max(1, ceil(len(text) / max(8, width)))
-                            for text in str(value or "").splitlines())
-                ws.row_dimensions[cell.row].height = max(30, lines * 12 + 6)
+                # ONE LINE PER ROW. CEO 2026-11-26: rows were stretched to fit
+                # the whole wrapped Reason - 78pt in India, 42pt in USA, against
+                # Excel's 15pt - which read as large gaps between rows. The
+                # full text stays in the cell (visible on selection).
+                cell.alignment = Alignment(vertical="center", wrap_text=False)
+                ws.row_dimensions[cell.row].height = 18
 
 
 def _fmt(x, dash="—"):
@@ -399,8 +415,23 @@ def emit_current(wb, d: dict):
     c = d.get("counts") or {}
     _r3 = d.get("_r3") or {}
     ws = wb.create_sheet("CURRENT")
-    india = str(d.get("market", "")).lower() == "india"
-    columns = INDIA_CURRENT_COLUMNS if india else CURRENT_COLUMNS
+    # ONE CURRENT LAYOUT, BOTH MARKETS. CEO 2026-11-26.
+    #
+    # This flag used to test the market name, so USA rendered the
+    # thinner 24-column layout while India got 37. The gap was never
+    # presentational: the extra columns read decision fields the USA
+    # lifecycle declined to populate. Measured on the certified USA run
+    # of 2026-11-26, 0 of 163 rows carried target_basis,
+    # price_freshness, entry_class, stop_management, exit_decision,
+    # decision_asof or entry_price_basis, against 97.9-100% of the 48
+    # India rows. canonical_daily_lifecycle now computes them for both
+    # markets, so both can render them.
+    #
+    # The two legend notes below travel with the layout deliberately:
+    # one defines Admission Date and Entry Price Basis, which is what a
+    # reader needs the first time USA shows those columns.
+    decision_layout = True
+    columns = INDIA_CURRENT_COLUMNS if decision_layout else CURRENT_COLUMNS
     n = len(columns)
     # The header date is the WORKBOOK date. The prices are the last
     # completed close, which on a pre-close run is the previous session.
@@ -501,7 +532,7 @@ def emit_current(wb, d: dict):
         % _n_r3)
     _sub(ws, "   ||   ".join(_row6), n, 6)
     _header(ws, columns, 7)
-    if india:
+    if decision_layout:
         for i, width in enumerate((27, 31, 19, 20, 17, 20, 25, 17, 17, 32, 19, 20, 43), len(CURRENT_COLUMNS) + 1):
             ws.column_dimensions[get_column_letter(i)].width = width
     # A capitalisation is a 12-digit number. Left raw it reads as noise
@@ -547,30 +578,41 @@ def emit_current(wb, d: dict):
             # passed · it is not a target and is withheld rather than
             # shown. Four R1 advisory rows carried one on 2026-09-09
             # (CRM: 221.57 against a current 249.12).
-            _fmt(row.get("target") if india else (
+            # TARGET WITHHOLDING IS A DISPLAY RULE, NOT A LAYOUT RULE.
+            # CEO 2026-11-26. India shows the stored target raw because
+            # its Target Status cell says whether it was reached; USA
+            # withholds a target at or below the current price, and
+            # test_market_target_display_contract[usa] holds it to that.
+            # Widening the layout must not quietly change either, so this
+            # one cell stays keyed on the market.
+            _fmt(row.get("target")
+                 if str(d.get("market", "")).lower() == "india" else (
                 None if isinstance(row.get("target"), (int, float))
                 and isinstance(row.get("current_price"), (int, float))
                 and row["target"] <= row["current_price"] else row.get("target")
             )),
             row.get("position_id"), row.get("reason"),
-            *(_india_decision_cells(row) if india else []),
-        ], r, pnl_col_idx=None if india else columns.index("P&L %") + 1)
-        if not india:
+            *(_decision_cells(row, d.get("market", "")) if decision_layout
+              else []),
+        ], r, pnl_col_idx=None if decision_layout else columns.index("P&L %") + 1)
+        if not decision_layout:
             _style_pnl_text(ws.cell(r, columns.index("P&L %") + 1))
         _c = ws.cell(r, _cap_col)
         if isinstance(_c.value, (int, float)):
             _c.number_format = "#,##0"
         r += 1
-    if india:
-        _style_india_table(ws, columns, 7, r - 1)
+    if decision_layout:
+        _style_india_table(ws, columns, 7, r - 1,
+                           currency="USD" if str(d.get("market", "")).lower() == "usa"
+                           else "INR")
     if not rows:
         ws.cell(r, 1, "Nothing investable today.").font = FONT_BODY
         r += 1
     r += 2
     _legend(ws, [
-        *(["Percent-based columns show decimal values in percentage points. A value of 2.50 means 2.50%."] if india else []),
+        *(["Percent-based columns show decimal values in percentage points. A value of 2.50 means 2.50%."] if decision_layout else []),
         *(["Admission Date records when AEGIS registered the episode. Entry Price Basis describes "
-           "the reference used for AEGIS P&L. Consult broker records for executed fills."] if india else []),
+           "the reference used for AEGIS P&L. Consult broker records for executed fills."] if decision_layout else []),
         "Stop distance % · the DOWNSIDE from the current price to the "
         "stop. It is not a profit target and no target is implied by it.",
         "Target · withheld (—) when the stored target sits at or below the "

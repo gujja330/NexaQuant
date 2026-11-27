@@ -396,22 +396,45 @@ def compute(root: Path, market: str, asof: str) -> dict:
     # CANONICAL R2 STOP · the one source. Nothing downstream recomputes it.
     dr_by_pid = _load_dynamic_risk(root, m)
 
-    india_registry = {}
-    india_positions = {}
+    # DECISION PROVENANCE IS NOT INDIA-ONLY. CEO 2026-11-26.
+    #
+    # These three inputs were loaded `if m == "india"`, so the CURRENT
+    # sheet's decision columns - target basis, entry class, stop
+    # management, exit decision, decision as-of, price freshness, entry
+    # price basis - were populated for India and left empty for USA.
+    # Measured 2026-11-26 on the certified USA run: 0 of 163 rows
+    # carried any of them, against 97.9-100% of India's 48.
+    #
+    # Nothing here is India-shaped. load_all() is the generic
+    # opportunity registry, and the exit audit is already addressed by
+    # market - `dynamic_exit_decisions_usa_2026-11-26.json`, 99,790
+    # bytes, was sitting on disk written by this same run's
+    # apply_dynamic_exits step. USA computed the evidence and then the
+    # lifecycle declined to read it.
+    #
+    # The position store is the one genuinely India-coupled input, and
+    # it feeds only `original_stop`, which is 0/48 in India too. It
+    # stays best-effort so a market without a store loses that one cell
+    # rather than the whole block.
+    position_registry = {}
+    position_store = {}
     exit_audits = {}
-    if m == "india":
-        from backend.research.opportunity_registry import load_all
+    from backend.research.opportunity_registry import load_all
+
+    position_registry = load_all(root)
+    try:
         from backend.portfolio.position_store.store import load_all_positions
 
-        india_registry = load_all(root)
-        india_positions = load_all_positions(root / "reports", m)
-        audit_path = root / "reports" / "audit" / f"dynamic_exit_decisions_{m}_{asof}.json"
-        try:
-            audit = json.loads(audit_path.read_text(encoding="utf-8"))
-            if audit.get("asof") == asof:
-                exit_audits = {item["opportunity_id"]: item for item in audit.get("decisions", [])}
-        except (OSError, ValueError, KeyError):
-            pass
+        position_store = load_all_positions(root / "reports", m)
+    except Exception:
+        position_store = {}
+    audit_path = root / "reports" / "audit" / f"dynamic_exit_decisions_{m}_{asof}.json"
+    try:
+        audit = json.loads(audit_path.read_text(encoding="utf-8"))
+        if audit.get("asof") == asof:
+            exit_audits = {item["opportunity_id"]: item for item in audit.get("decisions", [])}
+    except (OSError, ValueError, KeyError):
+        pass
 
     current, exits, filtered, breached = [], [], [], []
     latched = load_breach_ledger(root, m)
@@ -552,8 +575,7 @@ def compute(root: Path, market: str, asof: str) -> dict:
             "stop": stop, "stop_basis": basis, "stop_state": stop_state,
             "dist_to_stop_pct": dist, "max_loss_if_stop_pct": worst,
             "target": _num(target, 2),
-            **({"target_basis": target_basis, "market_data_asof": close_date}
-               if m == "india" else {}),
+            "target_basis": target_basis, "market_data_asof": close_date,
             "position_id": getattr(o, "opportunity_id", ""),
             "holding_days": days,
             # CEO 2026-10-27 · R2 India advisory notice rides on the
@@ -569,14 +591,14 @@ def compute(root: Path, market: str, asof: str) -> dict:
                         f"· stop {basis}"))),
             "source": "registry:active",
         }
-        if m == "india":
-            prior = india_registry.get((m, o.runner.upper(), _norm_ticker(o.ticker)), [])
+        if True:            # both markets · see DECISION PROVENANCE above
+            prior = position_registry.get((m, o.runner.upper(), _norm_ticker(o.ticker)), [])
             reentry = any(
                 p.status == "CLOSED" and p.closed_date and p.closed_date < o.created_date
                 and _record_type("registry:production", p.closed_reason or "") == RT_REALIZED
                 for p in prior
             )
-            position = india_positions.get(o.ticker) or india_positions.get(f"{o.ticker}.NS")
+            position = position_store.get(o.ticker) or position_store.get(f"{o.ticker}.NS")
             row["entry_class"] = "RE-ENTRY" if reentry else "NEW"
             row["original_stop"] = (
                 _num(position.initial_stop, 2)
@@ -833,20 +855,35 @@ def compute(root: Path, market: str, asof: str) -> dict:
                                           _b.get("n_files"), _b.get("scope"))
     except Exception:
         pass
+    # Price freshness and entry-price basis are market-agnostic: both are
+    # derived from this row's own market_data_asof against the market's
+    # leading bar. Only the exchange NAME differed, which is no reason to
+    # leave USA's cells empty. CEO 2026-11-26.
+    _exchange = {"india": "NSE", "usa": "US market"}.get(m, m.upper())
     for _row in current:
-        if m == "india":
-            price_day = _row.get("market_data_asof")
-            _row["price_freshness"] = (
-                "MARKET DATA UNAVAILABLE" if not price_day or not _md_asof else
-                "STALE DATA" if price_day < _md_asof else "CURRENT CLOSE"
-            )
-            _row["entry_price_basis"] = "AEGIS registry reference price"
-            if (_row.get("entry_date") == str(asof)[:10] and price_day
-                    and price_day < _row["entry_date"] and _row.get("entry_price") is not None
-                    and _row["entry_price"] == _row.get("current_price")):
-                _row["entry_price_basis"] = f"AEGIS reference matches NSE close {price_day}"
-        else:
-            _row["market_data_asof"] = _md_asof
+        price_day = _row.get("market_data_asof") or _md_asof
+        _row["market_data_asof"] = _row.get("market_data_asof") or _md_asof
+        _row["price_freshness"] = (
+            "MARKET DATA UNAVAILABLE" if not price_day or not _md_asof else
+            "STALE DATA" if price_day < _md_asof else "CURRENT CLOSE"
+        )
+        _row["entry_price_basis"] = "AEGIS registry reference price"
+        if (_row.get("entry_date") == str(asof)[:10] and price_day
+                and price_day < _row["entry_date"] and _row.get("entry_price") is not None
+                and _row["entry_price"] == _row.get("current_price")):
+            _row["entry_price_basis"] = (
+                f"AEGIS reference matches {_exchange} close {price_day}")
+
+    for _row in current:
+        _row.update(decision_metrics(_row))
+
+    # ADVISORY EXITS · CEO 2026-11-26 · both markets, never enforced.
+    # Signal exit / take profit / profit lock / rotate, recorded on the
+    # row and in its Reason text. Nothing is sold and no stop is moved -
+    # see backend/risk/exit_advisor.py for why enforcement is withheld.
+    from backend.risk import exit_advisor as _exit_advisor
+
+    _exit_advisor.annotate(root, m, asof, current)
 
     if m == "india" and _md_asof:
         from backend.ingest.ticker_health import resolve_alias
@@ -880,6 +917,31 @@ def compute(root: Path, market: str, asof: str) -> dict:
 
 # Honest absence · never an empty string, never a guessed sector.
 SECTOR_UNAVAILABLE = "NOT_AVAILABLE"
+
+
+def decision_metrics(row: dict) -> dict:
+    """Remaining upside, reward-to-risk and profit give-back for one row.
+
+    Moved here from the workbook renderer (CEO 2026-11-27) so the sheet only
+    renders what the lifecycle decided. Same definitions as before:
+
+      remaining_upside_pct  (target / close - 1) * 100, floored at 0
+      reward_to_risk        (target - close) / (close - stop), only when
+                            target > close > stop > 0
+      profit_giveback_pp    profit lost if the stop is hit: min(pnl,
+                            max(0, pnl - return_at_stop)), only when in profit
+    """
+    num = lambda v: v if isinstance(v, (int, float)) and not isinstance(v, bool) else None
+    close, stop, target = num(row.get("current_price")), num(row.get("stop")), num(row.get("target"))
+    pnl, ras = num(row.get("pnl_pct")), num(row.get("max_loss_if_stop_pct"))
+    out = {"remaining_upside_pct": None, "reward_to_risk": None, "profit_giveback_pp": None}
+    if close and close > 0 and target is not None:
+        out["remaining_upside_pct"] = round(max(0, (target / close - 1) * 100), 2)
+        if stop is not None and target > close > stop > 0:
+            out["reward_to_risk"] = round((target - close) / (close - stop), 2)
+    if pnl is not None and pnl > 0 and ras is not None:
+        out["profit_giveback_pp"] = round(min(pnl, max(0, pnl - ras)), 2)
+    return out
 
 
 def _todays_confidence(root: Path, market: str) -> dict:
