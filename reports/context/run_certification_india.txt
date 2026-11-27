@@ -1,6 +1,6 @@
 ════════════════════════════════════════════════════════════
 AEGIS DAILY RUN CERTIFICATION
-Run: AEGIS-2026-11-27-INDIA-0621
+Run: AEGIS-2026-11-27-INDIA-0900
 Requested ASOF: 2026-11-27   ·   trigger: ci
 ════════════════════════════════════════════════════════════
 
@@ -8,7 +8,7 @@ DATA_READY
   feature_snapshot           asof 2026-11-27 · age 0 
   price_bars                 asof 2026-11-26 · age 1 · median 2026-11-26 · 225/228 names (universe) 
     no bars at all           3 · LTIM, PEL, TATAMOTORS 
-    behind leading bar       73 · ABBOTINDIA(2026-11-25), ABCAPITAL(2026-11-25), ADANIENT(2026-11-25), ADANIPORTS(2026-11-25), AIAENG(2026-11-25) 
+    behind leading bar       1 · MM(2026-11-25) 
   universe                   228              
   macro_regime               asof 2026-11-27 · age 0 
   market_intelligence        asof 2026-11-27 · age 0 
@@ -17,11 +17,11 @@ DATA_READY
   bonds                      asof 2026-11-27 · age 0 
   sector_rotation            asof 2026-11-27 · age 0 
   fii_dii                    asof 2026-09-08 · age 80 
-                                              → PASS   (1.13s)
+                                              → PASS   (1.40s)
 
 INTERMARKET
   S&P 500                    2026-11-25       ✓ critical
-  VIX                        2026-11-26       ✓ critical
+  VIX                        2026-11-27       ✓ critical
   DXY                        2026-11-27       ✓ critical
   USD/INR                    2026-11-27       ✓ critical
   US 10Y                     2026-11-25       ✓ critical
@@ -64,8 +64,8 @@ DECISION_READY
                                               → PASS   (0.03s)
 
 LIFECYCLE_READY
-  current_total              45               
-  new                        4                
+  current_total              46               
+  new                        5                
   active_plus                41               
   active                     0                
   exit_history_total         184              
@@ -73,27 +73,27 @@ LIFECYCLE_READY
                                               → PASS   (0.00s)
 
 FIELDS_COMPLETE
-  rows checked               45               
-  required gaps              139              
+  rows checked               46               
+  required gaps              143              
   expected gaps              0                
   exit sector populated      184 / 184        
-    stop distance checked    41 of 45 rows have a stop 
-                                              → BLOCK   (0.10s)
+    stop distance checked    41 of 46 rows have a stop 
+                                              → BLOCK   (0.11s)
     ✗ REQUIRED_FIELD_MISSING
-      an actionable row cannot ship without these · Current Market Cap missing on 45 row(s): ABBOTINDIA, ADANIPOWER, AIAENG, ANGELONE, APOLLOTYRE; Market Cap As-of missing on 45 row(s): ABBOTINDIA, ADANIPOWER, AIAENG, ANGELONE, APOLLOTYRE; Size missing on 45 row(s): ABBOTINDIA, ADANIPOWER, AIAENG, ANGELONE, APOLLOTYRE; Stop missing on 4 row(s): ANGELONE, EMAMILTD, TCS, VEDL
+      an actionable row cannot ship without these · Current Market Cap missing on 46 row(s): ABBOTINDIA, ADANIPOWER, AIAENG, ANGELONE, APOLLOTYRE; Market Cap As-of missing on 46 row(s): ABBOTINDIA, ADANIPOWER, AIAENG, ANGELONE, APOLLOTYRE; Size missing on 46 row(s): ABBOTINDIA, ADANIPOWER, AIAENG, ANGELONE, APOLLOTYRE; Stop missing on 5 row(s): ANGELONE, EMAMILTD, OFSS, TCS, VEDL
 
   downstream NOT RUN: PRICE_INTEGRITY, DELIVERY_READY
 
 ════════════════════════════════════════════════════════════
 RUNTIME
-  DATA_READY                 1.13s            
+  DATA_READY                 1.40s            
   INTERMARKET                0.01s            
   FEATURES_READY             0.01s            
   SCORES_READY               0.01s            
   DECISION_READY             0.03s            
   LIFECYCLE_READY            0.00s            
-  FIELDS_COMPLETE            0.10s            
-  TOTAL                      1.29s            
+  FIELDS_COMPLETE            0.11s            
+  TOTAL                      1.57s            
 ════════════════════════════════════════════════════════════
 FINAL: ❌ BLOCKED
 FIRST FAILURE: REQUIRED_FIELD_MISSING  (FIELDS_COMPLETE)

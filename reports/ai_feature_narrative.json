@@ -2,7 +2,7 @@
   "engine": "ai_feature_narrative",
   "version": "v1.0",
   "market": "india",
-  "run_utc": "2026-11-27T06:21:12+00:00",
+  "run_utc": "2026-11-27T08:59:30+00:00",
   "asof": "2026-11-27",
   "agents": {
     "anomaly": {
@@ -11,7 +11,7 @@
       "market": "india",
       "asof": "2026-11-27",
       "headline": "33 feature outlier(s) flagged (top 10 shown).",
-      "narrative": "33 data points across the universe carry |z|>5 vs their column mean.\n\n  \u00b7 BAJAJHLDNG.NS: fund_profit_margin = 9.48607 (z=14.45)\n  \u00b7 MRF.NS: sma_200 = 130832.55 (z=13.1)\n  \u00b7 MRF.NS: close = 128470.0 (z=12.89)\n  \u00b7 MRF.NS: sma_50 = 123787.7 (z=12.79)\n  \u00b7 MRF.NS: sma_20 = 124198.25 (z=12.76)\n  \u00b7 MRF.NS: macd_hist = 665.6926 (z=11.72)\n  \u00b7 MFSL.NS: fund_earnings_growth = 18.605 (z=11.18)\n  \u00b7 ABBOTINDIA.NS: ca_last_dividend_amount = 656.0 (z=11.07)\n  \u00b7 MRF.NS: macd = 1920.9295 (z=10.24)\n  \u00b7 INDIGO.NS: fund_quality_score = -4.967148642499095 (z=9.84)\n\nHigh z-scores are not necessarily wrong (a real 52-week high can be a legitimate extreme), but they warrant a look before downstream engines act on them.",
+      "narrative": "33 data points across the universe carry |z|>5 vs their column mean.\n\n  \u00b7 BAJAJHLDNG.NS: fund_profit_margin = 9.48607 (z=14.45)\n  \u00b7 MRF.NS: sma_200 = 130763.5 (z=13.1)\n  \u00b7 MRF.NS: close = 128465.0 (z=12.87)\n  \u00b7 MRF.NS: sma_50 = 123779.2 (z=12.79)\n  \u00b7 MRF.NS: sma_20 = 124717.25 (z=12.77)\n  \u00b7 MFSL.NS: fund_earnings_growth = 18.605 (z=11.18)\n  \u00b7 ABBOTINDIA.NS: ca_last_dividend_amount = 656.0 (z=11.07)\n  \u00b7 MRF.NS: macd_hist = 490.8936 (z=10.58)\n  \u00b7 MRF.NS: macd = 1868.8539 (z=10.13)\n  \u00b7 INDIGO.NS: fund_quality_score = -4.969904072964047 (z=9.84)\n\nHigh z-scores are not necessarily wrong (a real 52-week high can be a legitimate extreme), but they warrant a look before downstream engines act on them.",
       "findings": [
         {
           "ticker": "BAJAJHLDNG.NS",
@@ -22,32 +22,26 @@
         {
           "ticker": "MRF.NS",
           "feature": "sma_200",
-          "value": 130832.55,
+          "value": 130763.5,
           "z": 13.1
         },
         {
           "ticker": "MRF.NS",
           "feature": "close",
-          "value": 128470.0,
-          "z": 12.89
+          "value": 128465.0,
+          "z": 12.87
         },
         {
           "ticker": "MRF.NS",
           "feature": "sma_50",
-          "value": 123787.7,
+          "value": 123779.2,
           "z": 12.79
         },
         {
           "ticker": "MRF.NS",
           "feature": "sma_20",
-          "value": 124198.25,
-          "z": 12.76
-        },
-        {
-          "ticker": "MRF.NS",
-          "feature": "macd_hist",
-          "value": 665.6926,
-          "z": 11.72
+          "value": 124717.25,
+          "z": 12.77
         },
         {
           "ticker": "MFSL.NS",
@@ -63,14 +57,20 @@
         },
         {
           "ticker": "MRF.NS",
+          "feature": "macd_hist",
+          "value": 490.8936,
+          "z": 10.58
+        },
+        {
+          "ticker": "MRF.NS",
           "feature": "macd",
-          "value": 1920.9295,
-          "z": 10.24
+          "value": 1868.8539,
+          "z": 10.13
         },
         {
           "ticker": "INDIGO.NS",
           "feature": "fund_quality_score",
-          "value": -4.967148642499095,
+          "value": -4.969904072964047,
           "z": 9.84
         }
       ],
@@ -160,62 +160,70 @@
       "market": "india",
       "asof": "2026-11-27",
       "headline": "Top 15 most differentiating features by dispersion (categories: technical=10, fundamental=3, corporate_action=2)",
-      "narrative": "Top 15 most differentiating features by dispersion (categories: technical=10, fundamental=3, corporate_action=2)\n\n  \u00b7 volume                         score=2839.7249  cv=2.058  iqr=3917990.0000\n  \u00b7 sma_200                        score=79.7285  cv=3.289  iqr=1932.9157\n  \u00b7 close                          score=78.9889  cv=3.221  iqr=1937.3000\n  \u00b7 sma_20                         score=78.7055  cv=3.214  iqr=1927.4725\n  \u00b7 sma_50                         score=78.5294  cv=3.221  iqr=1914.4710\n  \u00b7 macd                           score=15.0640  cv=6.053  iqr=37.4878\n  \u00b7 macd_signal                    score=13.5214  cv=6.130  iqr=29.8246\n  \u00b7 fund_debt_to_equity            score=12.2600  cv=2.138  iqr=70.3040\n  \u00b7 return_10d_pct                 score=11.1974  cv=17.989  iqr=6.9698\n  \u00b7 return_60d_pct                 score=10.4867  cv=7.096  iqr=15.4973\n  \u00b7 macd_hist                      score=8.7021  cv=7.768  iqr=9.7487\n  \u00b7 ca_days_since_last_split       score=7.4135  cv=0.309  iqr=178.0000\n  \u00b7 ca_days_since_last_dividend    score=7.2947  cv=0.578  iqr=92.0000\n  \u00b7 fund_trailing_pe               score=6.2279  cv=1.144  iqr=33.8954\n  \u00b7 fund_quality_score             score=5.7378  cv=115.443  iqr=0.2852\n\nDispersion tells us where the universe DIFFERS in this snapshot \u2014 high dispersion means the feature carries information downstream engines can act on. This is NOT outcome-based importance (that comes from the Learning Engine).",
+      "narrative": "Top 15 most differentiating features by dispersion (categories: technical=10, fundamental=3, corporate_action=2)\n\n  \u00b7 volume                         score=2943.5703  cv=2.057  iqr=4213130.0000\n  \u00b7 sma_200                        score=79.7244  cv=3.287  iqr=1933.4147\n  \u00b7 sma_20                         score=79.1618  cv=3.219  iqr=1946.9525\n  \u00b7 close                          score=78.4833  cv=3.218  iqr=1914.3000\n  \u00b7 sma_50                         score=78.3753  cv=3.221  iqr=1906.9450\n  \u00b7 return_10d_pct                 score=18.3025  cv=49.633  iqr=6.7492\n  \u00b7 macd                           score=14.9350  cv=5.915  iqr=37.7103\n  \u00b7 macd_signal                    score=13.8765  cv=6.173  iqr=31.1957\n  \u00b7 fund_debt_to_equity            score=12.2600  cv=2.138  iqr=70.3040\n  \u00b7 return_60d_pct                 score=10.5093  cv=7.241  iqr=15.2534\n  \u00b7 macd_hist                      score=8.0404  cv=6.965  iqr=9.2813\n  \u00b7 ca_days_since_last_split       score=7.4135  cv=0.309  iqr=178.0000\n  \u00b7 ca_days_since_last_dividend    score=7.2947  cv=0.578  iqr=92.0000\n  \u00b7 fund_trailing_pe               score=6.2065  cv=1.145  iqr=33.6509\n  \u00b7 fund_quality_score             score=5.7373  cv=115.399  iqr=0.2852\n\nDispersion tells us where the universe DIFFERS in this snapshot \u2014 high dispersion means the feature carries information downstream engines can act on. This is NOT outcome-based importance (that comes from the Learning Engine).",
       "findings": [
         {
           "feature": "volume",
-          "std": 8166908.13447,
-          "iqr": 3917990.0,
-          "cv": 2.05821,
-          "score": 2839.72488,
+          "std": 8158945.03647,
+          "iqr": 4213130.0,
+          "cv": 2.05657,
+          "score": 2943.57028,
           "n_non_null": 225
         },
         {
           "feature": "sma_200",
-          "std": 9757.35468,
-          "iqr": 1932.9157,
-          "cv": 3.28862,
-          "score": 79.72849,
-          "n_non_null": 225
-        },
-        {
-          "feature": "close",
-          "std": 9731.6331,
-          "iqr": 1937.3,
-          "cv": 3.22059,
-          "score": 78.98888,
+          "std": 9754.3437,
+          "iqr": 1933.4147,
+          "cv": 3.28744,
+          "score": 79.72439,
           "n_non_null": 225
         },
         {
           "feature": "sma_20",
-          "std": 9499.56955,
-          "iqr": 1927.4725,
-          "cv": 3.21382,
-          "score": 78.70546,
+          "std": 9533.61695,
+          "iqr": 1946.9525,
+          "cv": 3.21866,
+          "score": 79.16177,
+          "n_non_null": 225
+        },
+        {
+          "feature": "close",
+          "std": 9742.98149,
+          "iqr": 1914.3,
+          "cv": 3.21769,
+          "score": 78.48328,
           "n_non_null": 225
         },
         {
           "feature": "sma_50",
-          "std": 9447.00366,
-          "iqr": 1914.471,
-          "cv": 3.22118,
-          "score": 78.52938,
+          "std": 9445.82135,
+          "iqr": 1906.945,
+          "cv": 3.22122,
+          "score": 78.37534,
+          "n_non_null": 225
+        },
+        {
+          "feature": "return_10d_pct",
+          "std": 6.01913,
+          "iqr": 6.7492,
+          "cv": 49.63274,
+          "score": 18.30249,
           "n_non_null": 225
         },
         {
           "feature": "macd",
-          "std": 184.60869,
-          "iqr": 37.4878,
-          "cv": 6.05329,
-          "score": 15.06402,
+          "std": 181.50759,
+          "iqr": 37.7103,
+          "cv": 5.91491,
+          "score": 14.93496,
           "n_non_null": 225
         },
         {
           "feature": "macd_signal",
-          "std": 142.63106,
-          "iqr": 29.8246,
-          "cv": 6.13009,
-          "score": 13.52137,
+          "std": 148.83313,
+          "iqr": 31.1957,
+          "cv": 6.17259,
+          "score": 13.87653,
           "n_non_null": 225
         },
         {
@@ -227,27 +235,19 @@
           "n_non_null": 201
         },
         {
-          "feature": "return_10d_pct",
-          "std": 6.18896,
-          "iqr": 6.9698,
-          "cv": 17.98934,
-          "score": 11.19741,
-          "n_non_null": 225
-        },
-        {
           "feature": "return_60d_pct",
-          "std": 12.99321,
-          "iqr": 15.4973,
-          "cv": 7.09616,
-          "score": 10.48672,
+          "std": 12.91626,
+          "iqr": 15.2534,
+          "cv": 7.24069,
+          "score": 10.50929,
           "n_non_null": 225
         },
         {
           "feature": "macd_hist",
-          "std": 56.1601,
-          "iqr": 9.7487,
-          "cv": 7.7678,
-          "score": 8.70206,
+          "std": 45.79457,
+          "iqr": 9.2813,
+          "cv": 6.9655,
+          "score": 8.04045,
           "n_non_null": 225
         },
         {
@@ -268,18 +268,18 @@
         },
         {
           "feature": "fund_trailing_pe",
-          "std": 49.7202,
-          "iqr": 33.8954,
-          "cv": 1.14431,
-          "score": 6.22792,
+          "std": 49.67565,
+          "iqr": 33.65092,
+          "cv": 1.1447,
+          "score": 6.20646,
           "n_non_null": 220
         },
         {
           "feature": "fund_quality_score",
-          "std": 0.50449,
-          "iqr": 0.28518,
-          "cv": 115.44296,
-          "score": 5.73779,
+          "std": 0.50464,
+          "iqr": 0.28524,
+          "cv": 115.3988,
+          "score": 5.7373,
           "n_non_null": 223
         }
       ],
@@ -305,25 +305,25 @@
       "version": "v1.0",
       "market": "india",
       "asof": "2026-11-27",
-      "headline": "133 conflict signal(s) across 127 tickers.",
-      "narrative": "133 conflict signal(s) across 127 tickers.\n\n  \u00b7 ICICIBANK.NS: 2 conflicts\n  \u00b7 IDFCFIRSTB.NS: 2 conflicts\n  \u00b7 KOTAKBANK.NS: 2 conflicts\n  \u00b7 PHOENIXLTD.NS: 2 conflicts\n  \u00b7 RADICO.NS: 2 conflicts\n  \u00b7 UNOMINDA.NS: 2 conflicts\n  \u00b7 ABCAPITAL.NS: 1 conflict\n  \u00b7 ACC.NS: 1 conflict\n  \u00b7 ADANIPORTS.NS: 1 conflict\n  \u00b7 ADANIPOWER.NS: 1 conflict\n\nA conflict is not a verdict \u2014 it's a signal that the picture is mixed and the downstream engine should weigh the evidence rather than take any single dimension at face value.",
+      "headline": "130 conflict signal(s) across 123 tickers.",
+      "narrative": "130 conflict signal(s) across 123 tickers.\n\n  \u00b7 APOLLOHOSP.NS: 2 conflicts\n  \u00b7 ICICIBANK.NS: 2 conflicts\n  \u00b7 IDFCFIRSTB.NS: 2 conflicts\n  \u00b7 KOTAKBANK.NS: 2 conflicts\n  \u00b7 PHOENIXLTD.NS: 2 conflicts\n  \u00b7 RADICO.NS: 2 conflicts\n  \u00b7 UNOMINDA.NS: 2 conflicts\n  \u00b7 ABCAPITAL.NS: 1 conflict\n  \u00b7 ACC.NS: 1 conflict\n  \u00b7 ADANIPORTS.NS: 1 conflict\n\nA conflict is not a verdict \u2014 it's a signal that the picture is mixed and the downstream engine should weigh the evidence rather than take any single dimension at face value.",
       "findings": [
         {
           "ticker": "ABCAPITAL.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 21.1563,
-          "quality_score": -0.27772182046336175,
+          "return_20d_pct": 16.907,
+          "quality_score": -0.2789193823818767,
           "news_sentiment": 0.125,
-          "return_5d_pct": 1.9238,
-          "rsi_14": 71.562
+          "return_5d_pct": 0.866,
+          "rsi_14": 67.866
         },
         {
           "ticker": "ACC.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 9.7351,
-          "quality_score": -0.09996265595782683,
+          "quality_score": -0.09986741338644729,
           "news_sentiment": NaN,
           "return_5d_pct": 2.69,
           "rsi_14": 67.297
@@ -332,18 +332,18 @@
           "ticker": "ADANIPORTS.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 10.1875,
-          "quality_score": 0.07183870376503627,
+          "return_20d_pct": 8.8502,
+          "quality_score": 0.07325834664032853,
           "news_sentiment": NaN,
-          "return_5d_pct": 0.4442,
-          "rsi_14": 65.457
+          "return_5d_pct": 0.5418,
+          "rsi_14": 50.415
         },
         {
           "ticker": "ADANIPOWER.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 10.8804,
-          "quality_score": 0.31773715074378034,
+          "quality_score": 0.3197896693623658,
           "news_sentiment": 0.25,
           "return_5d_pct": 1.4366,
           "rsi_14": 61.417
@@ -353,7 +353,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 13.2101,
-          "quality_score": -2.0796656422640982,
+          "quality_score": -2.0800801290865665,
           "news_sentiment": NaN,
           "return_5d_pct": 8.6943,
           "rsi_14": 58.557
@@ -363,7 +363,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 8.8391,
-          "quality_score": -0.12082613515063662,
+          "quality_score": -0.12017645530144944,
           "news_sentiment": NaN,
           "return_5d_pct": 1.7172,
           "rsi_14": 63.553
@@ -373,7 +373,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 25.2186,
-          "quality_score": 0.0635349017217103,
+          "quality_score": 0.06335441217179143,
           "news_sentiment": NaN,
           "return_5d_pct": 4.3732,
           "rsi_14": 71.895
@@ -383,7 +383,7 @@
           "conflict": "oversold_extended",
           "description": "oversold (RSI<25) AND deep drawdown (<-20%)",
           "return_20d_pct": -31.1571,
-          "quality_score": 0.10613656144051348,
+          "quality_score": 0.1088241630286368,
           "news_sentiment": NaN,
           "return_5d_pct": -31.504,
           "rsi_14": 15.71
@@ -392,28 +392,38 @@
           "ticker": "APOLLOHOSP.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 21.0451,
-          "quality_score": -0.15665388198962943,
+          "return_20d_pct": 17.1334,
+          "quality_score": -0.15445595664820636,
           "news_sentiment": 0.25,
-          "return_5d_pct": 5.7596,
-          "rsi_14": 84.059
+          "return_5d_pct": 5.5991,
+          "rsi_14": 77.83
+        },
+        {
+          "ticker": "APOLLOHOSP.NS",
+          "conflict": "overbought_extended",
+          "description": "overbought (RSI>75) AND far above 52W high (>0)",
+          "return_20d_pct": 17.1334,
+          "quality_score": -0.15445595664820636,
+          "news_sentiment": 0.25,
+          "return_5d_pct": 5.5991,
+          "rsi_14": 77.83
         },
         {
           "ticker": "APOLLOTYRE.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 11.7961,
-          "quality_score": 0.08773925404463657,
+          "return_20d_pct": 9.8891,
+          "quality_score": 0.08790705396914524,
           "news_sentiment": NaN,
-          "return_5d_pct": 2.4553,
-          "rsi_14": 72.999
+          "return_5d_pct": 2.6126,
+          "rsi_14": 68.41
         },
         {
           "ticker": "ASHOKLEY.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 8.2646,
-          "quality_score": -0.24494798097168924,
+          "quality_score": -0.2408752544104721,
           "news_sentiment": NaN,
           "return_5d_pct": -2.7769,
           "rsi_14": 52.266
@@ -423,7 +433,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 10.5556,
-          "quality_score": -0.05877553981201333,
+          "quality_score": -0.059697265403405635,
           "news_sentiment": NaN,
           "return_5d_pct": -1.1813,
           "rsi_14": 59.958
@@ -433,7 +443,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 12.4599,
-          "quality_score": 0.1538169536211747,
+          "quality_score": 0.1528476653236964,
           "news_sentiment": NaN,
           "return_5d_pct": 1.0392,
           "rsi_14": 68.184
@@ -442,18 +452,18 @@
           "ticker": "AUROPHARMA.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 17.386,
-          "quality_score": 0.07460974346622971,
+          "return_20d_pct": 11.193,
+          "quality_score": 0.07568065325471017,
           "news_sentiment": 0.25,
-          "return_5d_pct": 2.4442,
-          "rsi_14": 73.14
+          "return_5d_pct": 0.0055,
+          "rsi_14": 65.995
         },
         {
           "ticker": "AXISBANK.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 14.845,
-          "quality_score": 0.21936400222262117,
+          "quality_score": 0.21957945766339212,
           "news_sentiment": NaN,
           "return_5d_pct": 3.3698,
           "rsi_14": 77.689
@@ -463,17 +473,27 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 13.1993,
-          "quality_score": -0.1661009407487372,
+          "quality_score": -0.16611571822346072,
           "news_sentiment": NaN,
           "return_5d_pct": 1.8525,
           "rsi_14": 66.992
+        },
+        {
+          "ticker": "BAJAJHLDNG.NS",
+          "conflict": "momentum_vs_fundamentals",
+          "description": "strong momentum but weak fundamentals",
+          "return_20d_pct": 9.7489,
+          "quality_score": 3.0173523385964995,
+          "news_sentiment": NaN,
+          "return_5d_pct": 6.4116,
+          "rsi_14": 82.408
         },
         {
           "ticker": "BAJFINANCE.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 18.9501,
-          "quality_score": -0.12967369554258398,
+          "quality_score": -0.1274186154775008,
           "news_sentiment": NaN,
           "return_5d_pct": 0.2008,
           "rsi_14": 70.941
@@ -483,7 +503,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 10.3851,
-          "quality_score": 0.0009370708364029775,
+          "quality_score": -0.00020852394957265874,
           "news_sentiment": NaN,
           "return_5d_pct": 1.3365,
           "rsi_14": 61.752
@@ -493,7 +513,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 11.8672,
-          "quality_score": 0.601849397791175,
+          "quality_score": 0.6036222231601942,
           "news_sentiment": NaN,
           "return_5d_pct": -0.7786,
           "rsi_14": 64.846
@@ -503,7 +523,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 17.44,
-          "quality_score": 0.20947079977659572,
+          "quality_score": 0.20995400697069364,
           "news_sentiment": NaN,
           "return_5d_pct": 0.0619,
           "rsi_14": 72.986
@@ -513,7 +533,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 9.3243,
-          "quality_score": 0.04616860707136392,
+          "quality_score": 0.04430199341541095,
           "news_sentiment": NaN,
           "return_5d_pct": 2.691,
           "rsi_14": 60.877
@@ -522,48 +542,38 @@
           "ticker": "BIOCON.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 11.8985,
-          "quality_score": -0.4798557766903855,
+          "return_20d_pct": 9.857,
+          "quality_score": -0.478617756235921,
           "news_sentiment": -0.125,
-          "return_5d_pct": 0.957,
-          "rsi_14": 67.789
+          "return_5d_pct": -0.1505,
+          "rsi_14": 67.283
         },
         {
           "ticker": "BLUESTARCO.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 17.6603,
-          "quality_score": -0.17656667605383933,
+          "quality_score": -0.1781714452564657,
           "news_sentiment": NaN,
           "return_5d_pct": 10.8123,
           "rsi_14": 70.891
         },
         {
-          "ticker": "BOSCHLTD.NS",
-          "conflict": "momentum_vs_fundamentals",
-          "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 10.257,
-          "quality_score": -0.15950822991655997,
-          "news_sentiment": NaN,
-          "return_5d_pct": -0.5995,
-          "rsi_14": 45.583
-        },
-        {
           "ticker": "BRITANNIA.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 9.8595,
-          "quality_score": 0.05913803621755731,
+          "return_20d_pct": 13.5368,
+          "quality_score": 0.06751091841701314,
           "news_sentiment": NaN,
-          "return_5d_pct": 6.3834,
-          "rsi_14": 60.425
+          "return_5d_pct": 10.4296,
+          "rsi_14": 61.535
         },
         {
           "ticker": "BSE.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 17.3336,
-          "quality_score": 0.1316254001022091,
+          "quality_score": 0.1339406575537524,
           "news_sentiment": 0.125,
           "return_5d_pct": 5.2598,
           "rsi_14": 71.736
@@ -573,7 +583,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 11.3949,
-          "quality_score": 0.20426193125023465,
+          "quality_score": 0.2059599053382837,
           "news_sentiment": NaN,
           "return_5d_pct": 2.9964,
           "rsi_14": 63.106
@@ -583,7 +593,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 11.3073,
-          "quality_score": 0.28937662573862494,
+          "quality_score": 0.2893183064801597,
           "news_sentiment": NaN,
           "return_5d_pct": -0.6081,
           "rsi_14": 75.401
@@ -593,7 +603,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 18.816,
-          "quality_score": -0.03390652829411215,
+          "quality_score": -0.04104390226084387,
           "news_sentiment": NaN,
           "return_5d_pct": 1.2649,
           "rsi_14": 71.075
@@ -603,7 +613,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 26.0447,
-          "quality_score": -0.37694632152866864,
+          "quality_score": -0.3761502221833377,
           "news_sentiment": NaN,
           "return_5d_pct": -1.0258,
           "rsi_14": 72.961
@@ -613,7 +623,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 9.2131,
-          "quality_score": -0.32675564117957706,
+          "quality_score": -0.32533246064662336,
           "news_sentiment": NaN,
           "return_5d_pct": -2.6146,
           "rsi_14": 50.08
@@ -622,28 +632,28 @@
           "ticker": "COLPAL.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 12.8161,
-          "quality_score": 0.36083037363280496,
+          "return_20d_pct": 11.2897,
+          "quality_score": 0.365649021318089,
           "news_sentiment": NaN,
-          "return_5d_pct": 6.0314,
-          "rsi_14": 79.457
+          "return_5d_pct": 5.8948,
+          "rsi_14": 73.094
         },
         {
           "ticker": "COROMANDEL.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 11.7898,
-          "quality_score": -0.0635357975714488,
+          "return_20d_pct": 10.4207,
+          "quality_score": -0.06433972057497261,
           "news_sentiment": NaN,
-          "return_5d_pct": -1.7821,
-          "rsi_14": 64.179
+          "return_5d_pct": -0.6598,
+          "rsi_14": 61.268
         },
         {
           "ticker": "CROMPTON.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 9.6866,
-          "quality_score": -0.21864681272551606,
+          "quality_score": -0.21861294373460458,
           "news_sentiment": NaN,
           "return_5d_pct": 4.4574,
           "rsi_14": 61.159
@@ -653,7 +663,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 17.4902,
-          "quality_score": 0.03463882928571855,
+          "quality_score": 0.03593056319483183,
           "news_sentiment": NaN,
           "return_5d_pct": 10.3348,
           "rsi_14": 64.208
@@ -663,7 +673,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 20.7711,
-          "quality_score": -0.733574254902797,
+          "quality_score": -0.7272769138665699,
           "news_sentiment": NaN,
           "return_5d_pct": 3.1355,
           "rsi_14": 68.471
@@ -672,18 +682,18 @@
           "ticker": "DIXON.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 16.2427,
-          "quality_score": -0.035904555201986675,
+          "return_20d_pct": 13.655,
+          "quality_score": -0.040058134081786455,
           "news_sentiment": NaN,
-          "return_5d_pct": -0.329,
-          "rsi_14": 66.488
+          "return_5d_pct": 0.3947,
+          "rsi_14": 58.104
         },
         {
           "ticker": "DLF.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 20.6032,
-          "quality_score": 0.12900446650026756,
+          "quality_score": 0.12906008962445137,
           "news_sentiment": NaN,
           "return_5d_pct": 5.2782,
           "rsi_14": 88.479
@@ -692,28 +702,28 @@
           "ticker": "DMART.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 13.048,
-          "quality_score": -0.22399198553417587,
+          "return_20d_pct": 11.8746,
+          "quality_score": -0.230353181184618,
           "news_sentiment": NaN,
-          "return_5d_pct": 3.3053,
-          "rsi_14": 74.177
+          "return_5d_pct": 2.299,
+          "rsi_14": 66.226
         },
         {
           "ticker": "EICHERMOT.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 17.94,
-          "quality_score": 0.11308632476709117,
+          "return_20d_pct": 15.0735,
+          "quality_score": 0.11483163072940594,
           "news_sentiment": NaN,
-          "return_5d_pct": 7.0297,
-          "rsi_14": 74.781
+          "return_5d_pct": 6.5104,
+          "rsi_14": 68.881
         },
         {
           "ticker": "EMAMILTD.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 12.4234,
-          "quality_score": 0.17279997195261923,
+          "quality_score": 0.17352506258386025,
           "news_sentiment": NaN,
           "return_5d_pct": 2.7534,
           "rsi_14": 75.679
@@ -723,7 +733,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 12.5964,
-          "quality_score": 0.05110714522205201,
+          "quality_score": 0.04998934514461421,
           "news_sentiment": NaN,
           "return_5d_pct": -0.731,
           "rsi_14": 60.33
@@ -733,7 +743,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 13.5336,
-          "quality_score": -0.16276109620431226,
+          "quality_score": -0.15808201909013356,
           "news_sentiment": NaN,
           "return_5d_pct": 3.7824,
           "rsi_14": 61.391
@@ -743,7 +753,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 11.3744,
-          "quality_score": 0.28939207522964944,
+          "quality_score": 0.2897279004109389,
           "news_sentiment": NaN,
           "return_5d_pct": -0.7182,
           "rsi_14": 62.075
@@ -753,7 +763,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 13.9323,
-          "quality_score": 0.038532416357518896,
+          "quality_score": 0.034358928214407225,
           "news_sentiment": 0.375,
           "return_5d_pct": 4.2946,
           "rsi_14": 64.742
@@ -762,18 +772,18 @@
           "ticker": "GLENMARK.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 23.6703,
-          "quality_score": -0.16731538217816846,
+          "return_20d_pct": 21.8625,
+          "quality_score": -0.16716073167977996,
           "news_sentiment": 0.25,
-          "return_5d_pct": 3.5774,
-          "rsi_14": 83.97
+          "return_5d_pct": 3.3219,
+          "rsi_14": 82.665
         },
         {
           "ticker": "GMRAIRPORT.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 13.5038,
-          "quality_score": 0.6143650025394413,
+          "quality_score": 0.6168573025570403,
           "news_sentiment": NaN,
           "return_5d_pct": -3.5088,
           "rsi_14": 64.899
@@ -783,7 +793,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 13.6091,
-          "quality_score": -0.07258741064370154,
+          "quality_score": -0.07099746467365088,
           "news_sentiment": NaN,
           "return_5d_pct": 6.7666,
           "rsi_14": 73.993
@@ -792,28 +802,28 @@
           "ticker": "GODREJIND.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 14.0476,
-          "quality_score": -0.05665180760334754,
+          "return_20d_pct": 10.3293,
+          "quality_score": -0.05901751019945925,
           "news_sentiment": NaN,
-          "return_5d_pct": -3.2279,
-          "rsi_14": 68.724
+          "return_5d_pct": -3.2944,
+          "rsi_14": 67.454
         },
         {
           "ticker": "GODREJPROP.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 24.032,
-          "quality_score": -0.186333334200392,
+          "return_20d_pct": 28.4232,
+          "quality_score": -0.18429653850344377,
           "news_sentiment": NaN,
-          "return_5d_pct": 0.9801,
-          "rsi_14": 74.725
+          "return_5d_pct": 5.7622,
+          "rsi_14": 76.143
         },
         {
           "ticker": "GRASIM.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 8.68,
-          "quality_score": -0.1789261283565397,
+          "quality_score": -0.17792280302591285,
           "news_sentiment": 0.375,
           "return_5d_pct": 3.9874,
           "rsi_14": 58.884
@@ -822,18 +832,18 @@
           "ticker": "HAVELLS.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 13.965,
-          "quality_score": -0.013748557030694395,
+          "return_20d_pct": 16.3547,
+          "quality_score": -0.012558721007525418,
           "news_sentiment": NaN,
-          "return_5d_pct": 0.3579,
-          "rsi_14": 76.201
+          "return_5d_pct": 3.4604,
+          "rsi_14": 74.791
         },
         {
           "ticker": "HDFCBANK.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 25.2998,
-          "quality_score": 0.09946779506456652,
+          "quality_score": 0.09902722528835375,
           "news_sentiment": NaN,
           "return_5d_pct": 6.5381,
           "rsi_14": 79.954
@@ -843,7 +853,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 14.7823,
-          "quality_score": -0.16141745072711208,
+          "quality_score": -0.16331538981942062,
           "news_sentiment": NaN,
           "return_5d_pct": 2.9621,
           "rsi_14": 71.061
@@ -853,7 +863,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 9.5883,
-          "quality_score": 0.26345203757621893,
+          "quality_score": 0.2656527255422806,
           "news_sentiment": NaN,
           "return_5d_pct": 9.2264,
           "rsi_14": 74.788
@@ -862,18 +872,18 @@
           "ticker": "HINDUNILVR.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 17.6262,
-          "quality_score": -0.010430392115114068,
+          "return_20d_pct": 20.4386,
+          "quality_score": -0.01091394187213495,
           "news_sentiment": NaN,
-          "return_5d_pct": 5.5384,
-          "rsi_14": 73.405
+          "return_5d_pct": 7.5347,
+          "rsi_14": 73.002
         },
         {
           "ticker": "ICICIBANK.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 15.302,
-          "quality_score": 0.15963921759692737,
+          "quality_score": 0.15970041043742836,
           "news_sentiment": NaN,
           "return_5d_pct": 1.1299,
           "rsi_14": 75.493
@@ -883,7 +893,7 @@
           "conflict": "overbought_extended",
           "description": "overbought (RSI>75) AND far above 52W high (>0)",
           "return_20d_pct": 15.302,
-          "quality_score": 0.15963921759692737,
+          "quality_score": 0.15970041043742836,
           "news_sentiment": NaN,
           "return_5d_pct": 1.1299,
           "rsi_14": 75.493
@@ -892,28 +902,28 @@
           "ticker": "ICICIGI.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 8.7372,
-          "quality_score": 0.04667035896260508,
+          "return_20d_pct": 10.0848,
+          "quality_score": 0.04682334476106,
           "news_sentiment": NaN,
-          "return_5d_pct": 2.908,
-          "rsi_14": 80.607
+          "return_5d_pct": 5.0915,
+          "rsi_14": 78.883
         },
         {
           "ticker": "ICICIPRULI.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 14.6728,
-          "quality_score": 0.010762446292488034,
+          "return_20d_pct": 14.3939,
+          "quality_score": 0.010570661451527663,
           "news_sentiment": NaN,
-          "return_5d_pct": 4.5896,
-          "rsi_14": 76.439
+          "return_5d_pct": 5.4349,
+          "rsi_14": 69.978
         },
         {
           "ticker": "IDFCFIRSTB.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 20.7828,
-          "quality_score": 0.2518339647382157,
+          "quality_score": 0.2519612846769459,
           "news_sentiment": NaN,
           "return_5d_pct": 4.7602,
           "rsi_14": 83.446
@@ -923,7 +933,7 @@
           "conflict": "overbought_extended",
           "description": "overbought (RSI>75) AND far above 52W high (>0)",
           "return_20d_pct": 20.7828,
-          "quality_score": 0.2518339647382157,
+          "quality_score": 0.2519612846769459,
           "news_sentiment": NaN,
           "return_5d_pct": 4.7602,
           "rsi_14": 83.446
@@ -933,7 +943,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 10.3135,
-          "quality_score": -0.08321725111533135,
+          "quality_score": -0.08282017217347952,
           "news_sentiment": NaN,
           "return_5d_pct": 0.7671,
           "rsi_14": 64.265
@@ -943,7 +953,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 10.9988,
-          "quality_score": 0.24865076399128122,
+          "quality_score": 0.24909600875859636,
           "news_sentiment": NaN,
           "return_5d_pct": -0.533,
           "rsi_14": 73.837
@@ -952,18 +962,18 @@
           "ticker": "INDIGO.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 24.4557,
-          "quality_score": -4.967148642499095,
+          "return_20d_pct": 20.8093,
+          "quality_score": -4.969904072964047,
           "news_sentiment": NaN,
-          "return_5d_pct": 1.2206,
-          "rsi_14": 74.607
+          "return_5d_pct": 1.5178,
+          "rsi_14": 69.596
         },
         {
           "ticker": "INDUSINDBK.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 13.8195,
-          "quality_score": 0.00454679434420191,
+          "quality_score": 0.005477092787211729,
           "news_sentiment": NaN,
           "return_5d_pct": 5.6944,
           "rsi_14": 71.493
@@ -973,7 +983,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 10.2779,
-          "quality_score": 0.41784586821074926,
+          "quality_score": 0.4180687514956977,
           "news_sentiment": NaN,
           "return_5d_pct": 0.4312,
           "rsi_14": 58.065
@@ -983,7 +993,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 10.9165,
-          "quality_score": -0.304739433075823,
+          "quality_score": -0.30459651412656646,
           "news_sentiment": NaN,
           "return_5d_pct": 1.2549,
           "rsi_14": 59.689
@@ -993,7 +1003,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 18.3272,
-          "quality_score": 0.22854568692005472,
+          "quality_score": 0.22792436057517876,
           "news_sentiment": NaN,
           "return_5d_pct": 5.6617,
           "rsi_14": 76.987
@@ -1003,7 +1013,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 10.4515,
-          "quality_score": -0.21886432494570007,
+          "quality_score": -0.2171578694245261,
           "news_sentiment": NaN,
           "return_5d_pct": 1.457,
           "rsi_14": 62.027
@@ -1012,18 +1022,18 @@
           "ticker": "JKCEMENT.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 15.421,
-          "quality_score": -0.12785221833157212,
+          "return_20d_pct": 11.0416,
+          "quality_score": -0.13316908502329292,
           "news_sentiment": NaN,
-          "return_5d_pct": 5.7316,
-          "rsi_14": 70.77
+          "return_5d_pct": 5.9245,
+          "rsi_14": 62.45
         },
         {
           "ticker": "KALYANKJIL.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 27.7939,
-          "quality_score": 0.002575253074322187,
+          "quality_score": -0.004312310277692882,
           "news_sentiment": NaN,
           "return_5d_pct": -1.9088,
           "rsi_14": 66.834
@@ -1032,38 +1042,38 @@
           "ticker": "KFINTECH.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 13.942,
-          "quality_score": -0.0034937052776309687,
+          "return_20d_pct": 14.9093,
+          "quality_score": -0.004659411832163507,
           "news_sentiment": NaN,
-          "return_5d_pct": -2.9745,
-          "rsi_14": 66.319
+          "return_5d_pct": 6.5025,
+          "rsi_14": 72.626
         },
         {
           "ticker": "KOTAKBANK.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 15.8224,
-          "quality_score": 0.09684918168193431,
+          "return_20d_pct": 14.6986,
+          "quality_score": 0.09641771845184585,
           "news_sentiment": NaN,
-          "return_5d_pct": 2.2202,
-          "rsi_14": 82.759
+          "return_5d_pct": 1.939,
+          "rsi_14": 82.628
         },
         {
           "ticker": "KOTAKBANK.NS",
           "conflict": "overbought_extended",
           "description": "overbought (RSI>75) AND far above 52W high (>0)",
-          "return_20d_pct": 15.8224,
-          "quality_score": 0.09684918168193431,
+          "return_20d_pct": 14.6986,
+          "quality_score": 0.09641771845184585,
           "news_sentiment": NaN,
-          "return_5d_pct": 2.2202,
-          "rsi_14": 82.759
+          "return_5d_pct": 1.939,
+          "rsi_14": 82.628
         },
         {
           "ticker": "LALPATHLAB.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 8.6185,
-          "quality_score": -0.05635892303975155,
+          "quality_score": -0.057617491626894474,
           "news_sentiment": NaN,
           "return_5d_pct": 3.6941,
           "rsi_14": 67.803
@@ -1072,28 +1082,28 @@
           "ticker": "LAURUSLABS.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 22.1017,
-          "quality_score": -0.3448420231383749,
+          "return_20d_pct": 18.4173,
+          "quality_score": -0.343877752152139,
           "news_sentiment": 0.25,
-          "return_5d_pct": 4.6422,
-          "rsi_14": 63.247
+          "return_5d_pct": 7.6817,
+          "rsi_14": 64.439
         },
         {
           "ticker": "LICHSGFIN.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 20.8081,
-          "quality_score": -0.22973471857149066,
+          "return_20d_pct": 17.7894,
+          "quality_score": -0.22973969348465562,
           "news_sentiment": NaN,
-          "return_5d_pct": -3.3301,
-          "rsi_14": 84.138
+          "return_5d_pct": -2.6054,
+          "rsi_14": 81.377
         },
         {
           "ticker": "LODHA.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 26.1074,
-          "quality_score": 0.11876437350992781,
+          "quality_score": 0.11695650214979343,
           "news_sentiment": NaN,
           "return_5d_pct": 4.1797,
           "rsi_14": 74.286
@@ -1103,7 +1113,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 11.5277,
-          "quality_score": -0.002752154144291285,
+          "quality_score": -0.0029028566620257997,
           "news_sentiment": NaN,
           "return_5d_pct": -0.0314,
           "rsi_14": 64.247
@@ -1113,7 +1123,7 @@
           "conflict": "oversold_extended",
           "description": "oversold (RSI<25) AND deep drawdown (<-20%)",
           "return_20d_pct": -6.6067,
-          "quality_score": 0.038666992774581445,
+          "quality_score": 0.0403196267154601,
           "news_sentiment": NaN,
           "return_5d_pct": -4.1193,
           "rsi_14": 21.688
@@ -1122,18 +1132,18 @@
           "ticker": "MARICO.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 21.9279,
-          "quality_score": -0.10769822619705023,
+          "return_20d_pct": 22.1911,
+          "quality_score": -0.10544748796321272,
           "news_sentiment": 0.25,
-          "return_5d_pct": 1.396,
-          "rsi_14": 80.279
+          "return_5d_pct": 3.6878,
+          "rsi_14": 76.515
         },
         {
           "ticker": "MARUTI.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 23.0033,
-          "quality_score": -0.0014089696296451422,
+          "quality_score": 0.00024293713507643014,
           "news_sentiment": NaN,
           "return_5d_pct": 10.8694,
           "rsi_14": 80.222
@@ -1143,7 +1153,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 28.0571,
-          "quality_score": -0.2529343261337915,
+          "quality_score": -0.25148870743520463,
           "news_sentiment": NaN,
           "return_5d_pct": 6.5218,
           "rsi_14": 88.795
@@ -1153,7 +1163,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 22.2778,
-          "quality_score": 0.21101916960148745,
+          "quality_score": 0.20835915183168008,
           "news_sentiment": -0.375,
           "return_5d_pct": 4.3992,
           "rsi_14": 76.813
@@ -1163,7 +1173,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 19.4397,
-          "quality_score": 0.9031885636684472,
+          "quality_score": 0.8953826233515437,
           "news_sentiment": NaN,
           "return_5d_pct": 1.3596,
           "rsi_14": 77.971
@@ -1172,18 +1182,18 @@
           "ticker": "MRF.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 8.3586,
-          "quality_score": 0.019707198300872353,
+          "return_20d_pct": 8.7903,
+          "quality_score": 0.01974418035075426,
           "news_sentiment": NaN,
-          "return_5d_pct": -0.3413,
-          "rsi_14": 84.214
+          "return_5d_pct": 0.1013,
+          "rsi_14": 83.861
         },
         {
           "ticker": "NAVINFLUOR.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 30.0494,
-          "quality_score": -0.017780924861263165,
+          "quality_score": -0.01880914689339071,
           "news_sentiment": 0.25,
           "return_5d_pct": 0.8841,
           "rsi_14": 79.148
@@ -1193,47 +1203,27 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 12.156,
-          "quality_score": -0.05532747918060377,
+          "quality_score": -0.056316934261451124,
           "news_sentiment": 0.25,
           "return_5d_pct": 3.1001,
           "rsi_14": 72.483
-        },
-        {
-          "ticker": "NYKAA.NS",
-          "conflict": "momentum_vs_fundamentals",
-          "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 11.8936,
-          "quality_score": -1.9041002336254065,
-          "news_sentiment": 0.75,
-          "return_5d_pct": -0.2928,
-          "rsi_14": 56.392
         },
         {
           "ticker": "OBEROIRLTY.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 19.0527,
-          "quality_score": 0.1521144361563582,
+          "quality_score": 0.1520364490614904,
           "news_sentiment": NaN,
           "return_5d_pct": 5.1435,
           "rsi_14": 75.263
-        },
-        {
-          "ticker": "OFSS.NS",
-          "conflict": "news_vs_price",
-          "description": "positive news but price declining",
-          "return_20d_pct": -6.2481,
-          "quality_score": 0.44155990991808475,
-          "news_sentiment": 0.375,
-          "return_5d_pct": -5.7309,
-          "rsi_14": 32.657
         },
         {
           "ticker": "PATANJALI.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 17.2693,
-          "quality_score": 0.04535144304550596,
+          "quality_score": 0.04684792092408165,
           "news_sentiment": NaN,
           "return_5d_pct": 0.3341,
           "rsi_14": 63.147
@@ -1243,7 +1233,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 8.0046,
-          "quality_score": 0.5523956689335148,
+          "quality_score": 0.560094504751293,
           "news_sentiment": NaN,
           "return_5d_pct": -6.4025,
           "rsi_14": 55.629
@@ -1253,7 +1243,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 11.7788,
-          "quality_score": 0.2914981733542576,
+          "quality_score": 0.291933148412057,
           "news_sentiment": NaN,
           "return_5d_pct": -0.1071,
           "rsi_14": 66.766
@@ -1263,7 +1253,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 19.3416,
-          "quality_score": -0.15894744263375665,
+          "quality_score": -0.15586597923097692,
           "news_sentiment": 0.0,
           "return_5d_pct": 2.3362,
           "rsi_14": 83.783
@@ -1273,7 +1263,7 @@
           "conflict": "overbought_extended",
           "description": "overbought (RSI>75) AND far above 52W high (>0)",
           "return_20d_pct": 19.3416,
-          "quality_score": -0.15894744263375665,
+          "quality_score": -0.15586597923097692,
           "news_sentiment": 0.0,
           "return_5d_pct": 2.3362,
           "rsi_14": 83.783
@@ -1282,18 +1272,18 @@
           "ticker": "PIDILITIND.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 10.3046,
-          "quality_score": -0.10551916243181814,
+          "return_20d_pct": 10.3176,
+          "quality_score": -0.10435901136449682,
           "news_sentiment": NaN,
-          "return_5d_pct": 5.6462,
-          "rsi_14": 73.339
+          "return_5d_pct": 4.9297,
+          "rsi_14": 67.409
         },
         {
           "ticker": "PIIND.NS",
           "conflict": "oversold_extended",
           "description": "oversold (RSI<25) AND deep drawdown (<-20%)",
           "return_20d_pct": -21.2823,
-          "quality_score": -0.034761518084458376,
+          "quality_score": -0.0347537488533767,
           "news_sentiment": NaN,
           "return_5d_pct": -2.3204,
           "rsi_14": 9.997
@@ -1303,7 +1293,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 20.9909,
-          "quality_score": 0.2601299532014414,
+          "quality_score": 0.26043343585747464,
           "news_sentiment": NaN,
           "return_5d_pct": -2.0519,
           "rsi_14": 81.809
@@ -1313,7 +1303,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 13.4931,
-          "quality_score": -0.12878722095340153,
+          "quality_score": -0.13073604905675387,
           "news_sentiment": NaN,
           "return_5d_pct": 13.1528,
           "rsi_14": 76.406
@@ -1323,7 +1313,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 28.9213,
-          "quality_score": -0.3725030759227604,
+          "quality_score": -0.37246503336813985,
           "news_sentiment": NaN,
           "return_5d_pct": 9.1966,
           "rsi_14": 75.777
@@ -1332,18 +1322,18 @@
           "ticker": "PVRINOX.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 19.439,
-          "quality_score": 0.0386463406696296,
+          "return_20d_pct": 11.3286,
+          "quality_score": 0.03841797793284967,
           "news_sentiment": NaN,
-          "return_5d_pct": 1.4099,
-          "rsi_14": 69.35
+          "return_5d_pct": -4.6227,
+          "rsi_14": 61.11
         },
         {
           "ticker": "RADICO.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 10.1989,
-          "quality_score": -0.19287639432038559,
+          "quality_score": -0.19215926095728,
           "news_sentiment": 0.375,
           "return_5d_pct": -0.062,
           "rsi_14": 76.817
@@ -1353,7 +1343,7 @@
           "conflict": "overbought_extended",
           "description": "overbought (RSI>75) AND far above 52W high (>0)",
           "return_20d_pct": 10.1989,
-          "quality_score": -0.19287639432038559,
+          "quality_score": -0.19215926095728,
           "news_sentiment": 0.375,
           "return_5d_pct": -0.062,
           "rsi_14": 76.817
@@ -1362,18 +1352,18 @@
           "ticker": "RAMCOCEM.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 12.286,
-          "quality_score": -0.09780106401379414,
+          "return_20d_pct": 12.256,
+          "quality_score": -0.09672595183134647,
           "news_sentiment": NaN,
-          "return_5d_pct": 0.9941,
-          "rsi_14": 64.685
+          "return_5d_pct": 2.134,
+          "rsi_14": 68.725
         },
         {
           "ticker": "RBLBANK.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 10.661,
-          "quality_score": -0.08014033244612166,
+          "quality_score": -0.07855835957585525,
           "news_sentiment": 0.375,
           "return_5d_pct": 0.9073,
           "rsi_14": 69.994
@@ -1383,7 +1373,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 16.8955,
-          "quality_score": 0.05220633407553232,
+          "quality_score": 0.05239212884867788,
           "news_sentiment": NaN,
           "return_5d_pct": 2.4358,
           "rsi_14": 86.47
@@ -1393,7 +1383,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 9.0419,
-          "quality_score": -0.03271268214975523,
+          "quality_score": -0.030584050568988646,
           "news_sentiment": NaN,
           "return_5d_pct": 3.6245,
           "rsi_14": 66.518
@@ -1402,18 +1392,18 @@
           "ticker": "SBILIFE.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 11.7604,
-          "quality_score": -0.3293966317467056,
+          "return_20d_pct": 12.0212,
+          "quality_score": -0.3273194445139784,
           "news_sentiment": NaN,
-          "return_5d_pct": 1.1843,
-          "rsi_14": 75.218
+          "return_5d_pct": 2.7725,
+          "rsi_14": 75.741
         },
         {
           "ticker": "SBIN.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 17.9098,
-          "quality_score": 0.18370042768909428,
+          "quality_score": 0.18380755903919072,
           "news_sentiment": NaN,
           "return_5d_pct": 2.157,
           "rsi_14": 90.956
@@ -1422,58 +1412,48 @@
           "ticker": "SHREECEM.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 10.7527,
-          "quality_score": -0.14921502229505348,
+          "return_20d_pct": 8.8507,
+          "quality_score": -0.14804429684022177,
           "news_sentiment": NaN,
-          "return_5d_pct": 1.3047,
-          "rsi_14": 66.857
+          "return_5d_pct": 2.0749,
+          "rsi_14": 64.634
         },
         {
           "ticker": "SHRIRAMFIN.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 14.9438,
-          "quality_score": 0.15416915674992523,
+          "quality_score": 0.15400047459738803,
           "news_sentiment": NaN,
           "return_5d_pct": -1.0951,
           "rsi_14": 61.433
         },
         {
-          "ticker": "SONACOMS.NS",
-          "conflict": "momentum_vs_fundamentals",
-          "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 14.7701,
-          "quality_score": -0.18073492913504552,
-          "news_sentiment": 0.375,
-          "return_5d_pct": -1.3267,
-          "rsi_14": 44.519
-        },
-        {
           "ticker": "SRF.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 9.6081,
-          "quality_score": 0.053829634395209276,
+          "return_20d_pct": 8.4468,
+          "quality_score": 0.05501240849422386,
           "news_sentiment": NaN,
-          "return_5d_pct": 2.0491,
-          "rsi_14": 71.377
+          "return_5d_pct": 3.3939,
+          "rsi_14": 66.559
         },
         {
           "ticker": "SUNDARMFIN.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 12.3437,
-          "quality_score": -0.18057758964415752,
+          "return_20d_pct": 10.6374,
+          "quality_score": -0.1805674161184437,
           "news_sentiment": NaN,
-          "return_5d_pct": -0.1277,
-          "rsi_14": 66.484
+          "return_5d_pct": 0.0724,
+          "rsi_14": 61.904
         },
         {
           "ticker": "SUNPHARMA.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 8.7354,
-          "quality_score": -0.035952610381924044,
+          "quality_score": -0.03552430070413357,
           "news_sentiment": -0.25,
           "return_5d_pct": 2.603,
           "rsi_14": 70.003
@@ -1482,18 +1462,18 @@
           "ticker": "SYNGENE.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 22.7441,
-          "quality_score": -0.35097102368284405,
+          "return_20d_pct": 23.4534,
+          "quality_score": -0.35015842985124057,
           "news_sentiment": NaN,
-          "return_5d_pct": 2.9753,
-          "rsi_14": 70.936
+          "return_5d_pct": 2.2335,
+          "rsi_14": 69.853
         },
         {
           "ticker": "TATACHEM.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 10.2736,
-          "quality_score": -0.3722300367757867,
+          "quality_score": -0.3719897534962351,
           "news_sentiment": NaN,
           "return_5d_pct": 4.7248,
           "rsi_14": 75.682
@@ -1503,7 +1483,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 17.5045,
-          "quality_score": -0.16568565494010232,
+          "quality_score": -0.167176144125763,
           "news_sentiment": NaN,
           "return_5d_pct": 3.9286,
           "rsi_14": 77.696
@@ -1513,7 +1493,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 8.4671,
-          "quality_score": -0.32722659149078764,
+          "quality_score": -0.32831965803781393,
           "news_sentiment": 0.0,
           "return_5d_pct": 7.4984,
           "rsi_14": 71.892
@@ -1523,7 +1503,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 16.8679,
-          "quality_score": -0.3869334032400444,
+          "quality_score": -0.38895968864951946,
           "news_sentiment": NaN,
           "return_5d_pct": 1.8767,
           "rsi_14": 69.238
@@ -1533,7 +1513,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 12.2373,
-          "quality_score": -0.3341266859257613,
+          "quality_score": -0.33331927291981267,
           "news_sentiment": NaN,
           "return_5d_pct": 4.1308,
           "rsi_14": 59.829
@@ -1542,18 +1522,18 @@
           "ticker": "UBL.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 11.4723,
-          "quality_score": -0.02193218469931331,
+          "return_20d_pct": 11.923,
+          "quality_score": -0.02179768939393573,
           "news_sentiment": NaN,
-          "return_5d_pct": 6.6901,
-          "rsi_14": 65.31
+          "return_5d_pct": 5.9955,
+          "rsi_14": 63.435
         },
         {
           "ticker": "ULTRACEMCO.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 15.0068,
-          "quality_score": -0.053219847731279295,
+          "quality_score": -0.05097859264851142,
           "news_sentiment": NaN,
           "return_5d_pct": 2.9752,
           "rsi_14": 75.981
@@ -1563,7 +1543,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 13.837,
-          "quality_score": 0.3018142730978147,
+          "quality_score": 0.30178189812975675,
           "news_sentiment": NaN,
           "return_5d_pct": 1.8361,
           "rsi_14": 76.005
@@ -1573,7 +1553,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 19.08,
-          "quality_score": -0.14982553051077163,
+          "quality_score": -0.14775050982904356,
           "news_sentiment": NaN,
           "return_5d_pct": 3.5046,
           "rsi_14": 76.967
@@ -1583,7 +1563,7 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 28.5846,
-          "quality_score": -0.12433275062292254,
+          "quality_score": -0.1223268389412695,
           "news_sentiment": NaN,
           "return_5d_pct": 1.4821,
           "rsi_14": 75.542
@@ -1593,7 +1573,7 @@
           "conflict": "overbought_extended",
           "description": "overbought (RSI>75) AND far above 52W high (>0)",
           "return_20d_pct": 28.5846,
-          "quality_score": -0.12433275062292254,
+          "quality_score": -0.1223268389412695,
           "news_sentiment": NaN,
           "return_5d_pct": 1.4821,
           "rsi_14": 75.542
@@ -1603,45 +1583,35 @@
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 13.6821,
-          "quality_score": -0.09503765841989081,
+          "quality_score": -0.09573451670828047,
           "news_sentiment": NaN,
           "return_5d_pct": 2.1607,
           "rsi_14": 69.52
         },
         {
-          "ticker": "VINATIORGA.NS",
-          "conflict": "momentum_vs_fundamentals",
-          "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 8.2004,
-          "quality_score": -0.040652680123096016,
-          "news_sentiment": NaN,
-          "return_5d_pct": 0.2199,
-          "rsi_14": 84.242
-        },
-        {
           "ticker": "VOLTAS.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
-          "return_20d_pct": 29.2187,
-          "quality_score": -0.22976675679117084,
+          "return_20d_pct": 29.3911,
+          "quality_score": -0.23351862829582948,
           "news_sentiment": NaN,
-          "return_5d_pct": 6.2963,
-          "rsi_14": 72.598
+          "return_5d_pct": 7.7475,
+          "rsi_14": 69.452
         },
         {
           "ticker": "YESBANK.NS",
           "conflict": "momentum_vs_fundamentals",
           "description": "strong momentum but weak fundamentals",
           "return_20d_pct": 10.2932,
-          "quality_score": 0.15231657338913554,
+          "quality_score": 0.1530815616209907,
           "news_sentiment": NaN,
           "return_5d_pct": 0.3975,
           "rsi_14": 82.831
         }
       ],
       "evidence": {
-        "n_conflicts": 133,
-        "n_tickers_with_conflict": 127,
+        "n_conflicts": 130,
+        "n_tickers_with_conflict": 123,
         "n_rules": 7
       },
       "citations": [
